@@ -169,6 +169,25 @@ The supported column constraints are:
 - :ref:`check_constraint`
 
 
+.. _null_constraint:
+
+``NULL``
+--------
+
+The ``NULL`` constraint specifies that a column of a table can also contain
+null values.
+
+The columns that are part of the primary key of a table cannot be declared as
+``NULL``.
+
+A column cannot be declared both as ``NULL`` and ``NOT NULL``.
+
+.. NOTE::
+
+    ``NULL`` constraint is not shown in :ref:`ref-show-create-table`, as is the
+    default for every column.
+
+
 .. _not_null_constraint:
 
 ``NOT NULL``

@@ -97,6 +97,7 @@ import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.NotNullColumnConstraint;
+import io.crate.sql.tree.NullColumnConstraint;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.PartitionedBy;
 import io.crate.sql.tree.PrimaryKeyColumnConstraint;
@@ -854,6 +855,13 @@ public final class SqlFormatter {
         @Override
         public Void visitNotNullColumnConstraint(NotNullColumnConstraint<?> node, Integer indent) {
             builder.append("NOT NULL");
+            return null;
+        }
+
+        @SuppressWarnings("rawtypes")
+        @Override
+        public Void visitNullColumnConstraint(NullColumnConstraint node, Integer indent) {
+            builder.append("NULL");
             return null;
         }
 

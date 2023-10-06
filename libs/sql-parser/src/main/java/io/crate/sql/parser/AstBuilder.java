@@ -46,6 +46,7 @@ import io.crate.sql.parser.antlr.SqlBaseLexer;
 import io.crate.sql.parser.antlr.SqlBaseParser;
 import io.crate.sql.parser.antlr.SqlBaseParser.BitStringContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.CloseContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.ColumnConstraintNullContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.ConflictTargetContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareCursorParamsContext;
@@ -181,6 +182,7 @@ import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.NotExpression;
 import io.crate.sql.tree.NotNullColumnConstraint;
+import io.crate.sql.tree.NullColumnConstraint;
 import io.crate.sql.tree.NullLiteral;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.ObjectLiteral;
@@ -1126,6 +1128,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitColumnConstraintNotNull(SqlBaseParser.ColumnConstraintNotNullContext context) {
         return new NotNullColumnConstraint<>();
+    }
+
+    
+    @Override
+    public Node visitColumnConstraintNull(ColumnConstraintNullContext ctx) {
+        return new NullColumnConstraint<>();
     }
 
     @Override

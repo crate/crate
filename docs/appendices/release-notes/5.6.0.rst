@@ -59,7 +59,8 @@ Changes
 SQL Statements
 --------------
 
-None
+- Added support for explicit :ref:`NULL <null_constraint>` column constraint
+  definitions in ``CREATE TABLE`` statements.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

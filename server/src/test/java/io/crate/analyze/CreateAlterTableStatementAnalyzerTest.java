@@ -52,6 +52,7 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -214,6 +215,50 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         List<String> notNullColumns = constraints != null ? constraints.get("not_null") : List.of();
         assertThat(notNullColumns).hasSize(1);
         assertThat(notNullColumns.get(0)).isEqualTo("name");
+    }
+    
+    @Test
+    public void testSimpleCreateTableWithNullConstraint() {
+        assertThatThrownBy(() -> analyze("create table foo (id integer primary key null)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"id\" is declared as PRIMARY KEY, therefore, cannot be declared NULL");
+
+        assertThatThrownBy(() -> analyze("create table foo (id integer null primary key)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"id\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        assertThatThrownBy(() -> analyze("create table foo (name string not null null)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"name\" is declared as NOT NULL, therefore, cannot be declared NULL");
+
+        assertThatThrownBy(() -> analyze("create table foo (name string null not null)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"name\" is declared NULL, therefore, cannot be declared NOT NULL");
+
+        AnalyzedCreateTable analysis = e.analyze("create table foo (name string null)");
+        Map<ColumnIdent, RefBuilder> columns = analysis.columns();
+        RefBuilder rb = columns.get(new ColumnIdent("name"));
+        assertThat(rb.isExplicitlyNull()).isTrue();
+    }
+
+    @Test
+    public void testCreateTableWithNullConstraintAndPrimaryKeyOnTableLevel() {
+        assertThatThrownBy(() -> analyze("create table t1 (a int null, primary key(a))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"a\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        assertThatThrownBy(() -> analyze("create table t1 (a int null, b int, primary key(a, b))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"a\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        assertThatThrownBy(() -> analyze("create table t1 (a int, b int null, primary key(a, b))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"b\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        AnalyzedCreateTable analysis = e.analyze("create table foo (a int, b int, c int null, primary key(a, b))");
+        Map<ColumnIdent, RefBuilder> columns = analysis.columns();
+        RefBuilder rb = columns.get(new ColumnIdent("c"));
+        assertThat(rb.isExplicitlyNull()).isTrue();
     }
 
     @Test

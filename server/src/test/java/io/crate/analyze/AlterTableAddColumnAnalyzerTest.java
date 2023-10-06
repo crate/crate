@@ -22,18 +22,22 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
 
+import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.data.Row;
 import io.crate.execution.ddl.tables.AddColumnRequest;
+import io.crate.metadata.ColumnIdent;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
@@ -159,6 +163,38 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             pKeyColNames.add(ref.column().leafName());
         }
         assertThat(pKeyColNames).containsExactlyInAnyOrder("b", "c");
+    }
+
+    @Test
+    public void testAlterTableAddColumnWithNullConstraint() throws IOException {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (col1 INT, col2 INT)")
+            .build();
+
+        assertThatThrownBy(() -> analyze("ALTER TABLE tbl ADD COLUMN col3 INT PRIMARY KEY NULL"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"col3\" is declared as PRIMARY KEY, therefore, cannot be declared NULL");
+
+        assertThatThrownBy(() -> analyze("ALTER TABLE tbl ADD COLUMN col3 INT NULL PRIMARY KEY"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"col3\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        assertThatThrownBy(() -> analyze("ALTER TABLE tbl ADD COLUMN col3 INT NOT NULL NULL"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"col3\" is declared as NOT NULL, therefore, cannot be declared NULL");
+
+        assertThatThrownBy(() -> analyze("ALTER TABLE tbl ADD COLUMN col3 INT NULL NOT NULL"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"col3\" is declared NULL, therefore, cannot be declared NOT NULL");
+
+        AnalyzedAlterTableAddColumn analysis = e.analyze("""
+                    ALTER TABLE tbl
+                        ADD COLUMN col3 INT NULL
+                """);
+
+        Map<ColumnIdent, RefBuilder> columns = analysis.columns();
+        RefBuilder rb = columns.get(new ColumnIdent("col3"));
+        assertThat(rb.isExplicitlyNull()).isTrue();
     }
 
     @Test
