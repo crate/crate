@@ -70,6 +70,9 @@ public final class AnyLikeOperator extends AnyOperator {
         booleanQuery.setMinimumNumberShouldMatch(1);
         Iterable<?> values = (Iterable<?>) candidates.value();
         for (Object value : values) {
+            if (value == null) {
+                continue;
+            }
             var likeQuery = caseSensitivity.likeQuery(fqn, (String) value, probe.indexType() != IndexType.NONE);
             if (likeQuery == null) {
                 return null;
