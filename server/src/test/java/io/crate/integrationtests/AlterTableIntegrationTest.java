@@ -269,4 +269,24 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             String.format(Locale.ENGLISH, rawRows, newColumnOid, newColumnOid + 1, newColumnOid + 2)
         );
     }
+
+    @Test
+    public void test_alter_table_can_add_column_after_dropping_column_with_max_known_position() {
+        execute("create table t(a int, b int)");
+        execute("alter table t drop column b");
+        execute("alter table t add column c int");
+
+        execute("""
+            select attname, attnum
+            from pg_attribute
+            where attrelid = 't'::regclass AND attname = 'c'
+            """
+        );
+        // New column gets position of the dropped column.
+        assertThat(response).hasRows(
+            "c| 2"
+        );
+    }
+
+
 }
