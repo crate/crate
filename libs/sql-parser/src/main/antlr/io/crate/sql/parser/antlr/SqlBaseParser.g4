@@ -681,6 +681,7 @@ objectTypeDefinition
 columnConstraint
     : PRIMARY_KEY                                                                    #columnConstraintPrimaryKey
     | NOT NULL                                                                       #columnConstraintNotNull
+    | NULL																			 #columnConstraintNull
     | INDEX USING method=ident withProperties?                                       #columnIndexConstraint
     | INDEX OFF                                                                      #columnIndexOff
     | STORAGE withProperties                                                         #columnStorageDefinition

@@ -37,6 +37,7 @@ Synopsis
 where ``column_constraint`` is::
 
     { PRIMARY KEY |
+      NULL |
       NOT NULL |
       INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  } |

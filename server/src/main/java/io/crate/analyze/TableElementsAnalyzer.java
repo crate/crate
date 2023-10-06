@@ -87,6 +87,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.NotNullColumnConstraint;
+import io.crate.sql.tree.NullColumnConstraint;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.PartitionedBy;
 import io.crate.sql.tree.PrimaryKeyColumnConstraint;
@@ -190,6 +191,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         private boolean nullable = true;
         private GenericProperties<Symbol> indexProperties = GenericProperties.empty();
         private boolean primaryKey;
+        private boolean explicitNullable;
         private Symbol generated;
         private Symbol defaultExpression;
         private GenericProperties<Symbol> storageProperties = GenericProperties.empty();
@@ -210,6 +212,10 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             return primaryKey;
         }
 
+        public boolean isExplicitlyNull() {
+            return explicitNullable;
+        }
+        
         public Reference build(Map<ColumnIdent, RefBuilder> columns,
                                RelationName tableName,
                                Function<Symbol, Symbol> bindParameter,
@@ -619,8 +625,22 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 }
             } else if (constraint instanceof NotNullColumnConstraint<Expression>) {
                 builder.nullable = false;
+                if (builder.explicitNullable) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, 
+                        "Column \"%s\" is declared NULL, therefore, cannot be declared NOT NULL", columnName));
+                }
             } else if (constraint instanceof PrimaryKeyColumnConstraint<Expression>) {
                 markAsPrimaryKey(builder);
+            } else if (constraint instanceof NullColumnConstraint<Expression>) {
+                builder.explicitNullable = true;
+                if (builder.primaryKey) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, 
+                        "Column \"%s\" is declared as PRIMARY KEY, therefore, cannot be declared NULL", columnName));
+                }
+                if (!builder.nullable) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, 
+                        "Column \"%s\" is declared as NOT NULL, therefore, cannot be declared NULL", columnName));
+                }
             }
         }
 
@@ -730,6 +750,10 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
     }
 
     private void markAsPrimaryKey(RefBuilder column) {
+        if (column.explicitNullable) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Column \"%s\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY", column.name));
+        }
         column.primaryKey = true;
         ColumnIdent columnName = column.name;
         DataType<?> type = column.type;

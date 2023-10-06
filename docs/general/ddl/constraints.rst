@@ -14,7 +14,7 @@ The values of a constrained column must comply with the constraint.
 
 .. _constraints-primary-key:
 
-Primary key
+PRIMARY KEY
 ===========
 
 The primary key constraint combines a unique constraint and a not-null
@@ -57,10 +57,29 @@ Or using a alternate syntax::
 
    For further details see :ref:`primary_key_constraint`.
 
+.. _constraints-null:
+
+NULL
+====
+
+Explicitly states that the column can contain ``NULL`` values. This is the default.
+
+Example::
+
+    cr> create table my_table2 (
+    ...   first_column integer primary key,
+    ...   second_column text null
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. SEEALSO::
+
+   - :ref:`null_constraint`
+
 
 .. _constraints-not-null:
 
-Not null
+NOT NULL
 ========
 
 The not null constraint can be used on any table column and it prevents null
@@ -68,20 +87,20 @@ values from being inserted.
 
 Example::
 
-    cr> create table my_table2 (
+    cr> create table my_table3 (
     ...   first_column integer primary key,
     ...   second_column text not null
     ... );
     CREATE OK, 1 row affected (... sec)
 
-.. NOTE::
+.. SEEALSO::
 
-   For further details see :ref:`not_null_constraint`.
+   :ref:`not_null_constraint`
 
 
 .. _constraints-check:
 
-Check
+CHECK
 =====
 
 A check constraint allows you to specify that the values in a certain column
@@ -108,6 +127,8 @@ from sensors and you want to ensure that negative values are rejected::
     cr> drop table my_table1pk1;
     DROP OK, 1 row affected (... sec)
     cr> drop table my_table2;
+    DROP OK, 1 row affected (... sec)
+    cr> drop table my_table3;
     DROP OK, 1 row affected (... sec)
     cr> drop table metrics;
     DROP OK, 1 row affected (... sec)
