@@ -462,7 +462,6 @@ public class DocIndexMetadata {
 
         for (Map.Entry<String, Object> columnEntry : cols.entrySet()) {
             Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
-            boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
             final DataType<?> columnDataType = getColumnDataType(columnProperties);
             String columnName = columnEntry.getKey();
             ColumnIdent newIdent = columnIdent(parent, columnName);
@@ -473,7 +472,13 @@ public class DocIndexMetadata {
             // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
             int position = (int) columnProperties.getOrDefault("position", 0);
             assert !takenPositions.containsKey(position) : "Duplicate column position assigned to " + newIdent.fqn() + " and " + takenPositions.get(position);
-            takenPositions.put(position, newIdent.fqn());
+            boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
+            if (!isDropped) {
+                // Columns, added later can get positions of the dropped columns.
+                // Absolute values of the positions is not important
+                // and relative positions still meet the requirement that new columns have higher positions.
+                takenPositions.put(position, newIdent.fqn());
+            }
             String formattedDefaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
             Symbol defaultExpression = null;
             if (formattedDefaultExpression != null) {
