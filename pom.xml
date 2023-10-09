@@ -143,6 +143,9 @@
             <!-- These are required to use https://github.com/crate/jmx_exporter -->
             <addModule>java.instrument</addModule>
             <addModule>jdk.httpserver</addModule>
+
+            <!-- To support -XX:StartFlightRecording=[...] -->
+            <addModule>jdk.jfr</addModule>
           </addModules>
         </configuration>
       </plugin>
