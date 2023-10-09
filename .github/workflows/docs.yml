@@ -37,8 +37,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run vale
-        uses: errata-ai/vale-action@3160f4797e8eed7775c76cb2563bdee5455b6d21
+        uses: errata-ai/vale-action@v2.0.1
         with:
           files: docs/
+          version: 2.26.0
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
