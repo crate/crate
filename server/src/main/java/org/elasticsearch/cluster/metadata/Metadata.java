@@ -81,6 +81,8 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.Constants;
 
+import javax.annotation.Nullable;
+
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, ToXContentFragment {
 
     private static final Logger LOGGER = LogManager.getLogger(Metadata.class);
@@ -513,10 +515,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return getAliasAndIndexLookup().containsKey(index);
     }
 
+    @Nullable
     public IndexMetadata index(String index) {
         return indices.get(index);
     }
 
+    @Nullable
     public IndexMetadata index(Index index) {
         return indicesByUUID.get(index.getUUID());
     }

@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
+import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -781,21 +782,51 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_can_restore_snapshots_taken_interleaved_with_swap_table() throws Exception {
+    public void test_can_restore_snapshots_taken_after_swap_table() throws Exception {
         execute("CREATE TABLE t01 as SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
         execute("CREATE TABLE t02 as SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
         execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
-        execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+        int i = 2;
+        boolean expectt01 = true;
+        for (; i < randomIntBetween(3, 10); i++) {
+            expectt01 = !expectt01;
+            execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+            execute("CREATE SNAPSHOT my_repo.s" + i + " ALL WITH (wait_for_completion=true)");
+        }
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s" + (i - 1) + " ALL");
+        execute("refresh table t01");
+
+        String t01 =
+            "1\n" +
+            "2\n" +
+            "3\n";
+        String t02 =
+            "10\n" +
+            "11\n" +
+            "12\n";
+        execute("select a from t01 order by a limit 3");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(expectt01 ? t01 : t02));
+    }
+
+    @Test
+    public void test_can_restore_snapshot_taken_before_swap_table() throws Exception {
+        execute("CREATE TABLE t01 as SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 as SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+        execute("alter cluster swap table t01 to t02");
         execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
         execute("DROP TABLE t01");
         execute("DROP TABLE t02");
-        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
+        execute("RESTORE SNAPSHOT my_repo.s1 table t01");
         execute("refresh table t01");
         execute("select a from t01 order by a limit 3");
-        assertThat(printedTable(response.rows()), is(
-            "10\n" +
-            "11\n" +
-            "12\n"
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "1\n" +
+            "2\n" +
+            "3\n"
         ));
     }
 
