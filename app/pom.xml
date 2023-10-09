@@ -11,8 +11,23 @@
 
   <artifactId>crate-app</artifactId>
 
+  <properties>
+    <timestamp>${maven.build.timestamp}</timestamp>
+    <maven.build.timestamp.format>yyyy-MM-dd-HH-mm</maven.build.timestamp.format>
+    <tarball.version>${project.version}-${timestamp}-${git.commit.id.abbrev}</tarball.version>
+  </properties>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <properties>
+        <tarball.version>${project.version}</tarball.version>
+      </properties>
+    </profile>
+  </profiles>
+
   <build>
-    <finalName>crate-${git.commit.id.describe}</finalName>
+    <finalName>crate-${tarball.version}</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
