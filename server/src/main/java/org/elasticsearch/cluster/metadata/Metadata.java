@@ -64,6 +64,7 @@ import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
@@ -291,10 +292,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return getAliasAndIndexLookup().containsKey(index);
     }
 
+    @Nullable
     public IndexMetadata index(String index) {
         return indices.get(index);
     }
 
+    @Nullable
     public IndexMetadata index(Index index) {
         return indicesByUUID.get(index.getUUID());
     }
