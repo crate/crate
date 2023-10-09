@@ -35,6 +35,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -291,10 +293,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return getAliasAndIndexLookup().containsKey(index);
     }
 
+    @Nullable
     public IndexMetadata index(String index) {
         return indices.get(index);
     }
 
+    @Nullable
     public IndexMetadata index(Index index) {
         return indicesByUUID.get(index.getUUID());
     }
