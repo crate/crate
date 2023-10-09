@@ -27,14 +27,14 @@ jobs:
       - name: Setup Gradle Java
         uses: actions/setup-java@v3
         with:
-          java-version: "17"
+          java-version: "20"
           distribution: "temurin"
           cache: maven
 
       - name: Run tests on ${{ matrix.os }}
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
-        run: mvn -T 1C test -Dtests.crate.run-windows-incompatible=true -Dcheckstyle.skip
+        run: mvn -T 1C test -Dtests.crate.run-windows-incompatible=true -Dcheckstyle.skip -DforkCount=2
 
 
   forbiddenApis:
