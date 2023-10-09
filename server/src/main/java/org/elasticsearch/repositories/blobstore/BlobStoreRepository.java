@@ -1003,15 +1003,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 executor.execute(ActionRunnable.run(allMetaListener, () -> {
                         final IndexMetadata indexMetaData = clusterMetadata.index(index.getName());
                         if (writeIndexGens) {
-                            final String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
-
-                            // If the existing IndexMetadataGenerations contain a indexUUID that's different from the current indexMetadata
-                            // the table may have been swapped, in which case we need to reset it, otherwise a subsequent restore
-                            // will try to access files which don't exist.
+                            String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
                             IndexMetaDataGenerations existingIndexMetaGenerations = existingRepositoryData.indexMetaDataGenerations();
-                            String indexUUID = existingIndexMetaGenerations.getIndexUUID(index.getName());
                             String metaUUID = existingIndexMetaGenerations.getIndexMetaBlobId(identifiers);
-                            if (metaUUID == null || (indexUUID != null && !indexUUID.equals(indexMetaData.getIndexUUID()))) {
+                            if (metaUUID == null) {
                                 // We don't yet have this version of the metadata so we write it
                                 metaUUID = UUIDs.base64UUID();
                                 INDEX_METADATA_FORMAT.write(indexMetaData, indexContainer(index), metaUUID, compress);
