@@ -31,7 +31,7 @@
       leading to JarHell. Exclude the latter
       -->
       <excludes>
-        <exclude>crate-${git.commit.id.describe}.jar</exclude>
+        <exclude>crate-${tarball.version}.jar</exclude>
       </excludes>
     </fileSet>
     <fileSet>
