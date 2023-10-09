@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.snapshots.SnapshotId;
 
 /**
@@ -104,7 +103,8 @@ public final class IndexMetaDataGenerations {
      * @param newIdentifiers new mappings of index metadata identifier to blob id
      * @return instance with added snapshot
      */
-    public IndexMetaDataGenerations withAddedSnapshot(SnapshotId snapshotId, Map<IndexId, String> newLookup,
+    public IndexMetaDataGenerations withAddedSnapshot(SnapshotId snapshotId,
+                                                      Map<IndexId, String> newLookup,
                                                       Map<String, String> newIdentifiers) {
         final Map<SnapshotId, Map<IndexId, String>> updatedIndexMetaLookup = new HashMap<>(this.lookup);
         final Map<String, String> updatedIndexMetaIdentifiers = new HashMap<>(identifiers);
@@ -162,7 +162,7 @@ public final class IndexMetaDataGenerations {
     }
 
     /**
-     * Compute identifier for {@link IndexMetadata} from its index- and history-uuid as well as its settings-, mapping- and alias-version.
+     * Compute identifier for {@link IndexMetadata} from its name, index- and history-uuid as well as its settings-, mapping- and alias-version.
      * If an index did not see a change in its settings, mappings or aliases between two points in time then the identifier will not change
      * between them either.
      *
@@ -170,29 +170,10 @@ public final class IndexMetaDataGenerations {
      * @return identifier string
      */
     public static String buildUniqueIdentifier(IndexMetadata indexMetadata) {
-        return indexMetadata.getIndexUUID() +
+        return indexMetadata.getIndex().getName() +
+                "-" + indexMetadata.getIndexUUID() +
                 "-" + indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID, IndexMetadata.INDEX_UUID_NA_VALUE) +
                 "-" + indexMetadata.getSettingsVersion() +
                 "-" + indexMetadata.getMappingVersion();
-    }
-
-    /**
-     * Extract the indexUUID from the identifier.
-     * Only works if the identifier was created using {@link #buildUniqueIdentifier(IndexMetadata)}
-     */
-    @Nullable
-    public String getIndexUUID(String indexName) {
-        for (Map<IndexId, String> indices : lookup.values()) {
-            for (var entry : indices.entrySet()) {
-                IndexId key = entry.getKey();
-                String entryIndexName = key.getName();
-                if (entryIndexName.equals(indexName)) {
-                    String identifier = entry.getValue();
-                    assert UUIDs.randomBase64UUID().length() == 22 : "Length of random UUID should be 22";
-                    return identifier.substring(0, 22);
-                }
-            }
-        }
-        return null;
     }
 }
