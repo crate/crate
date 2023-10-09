@@ -235,15 +235,14 @@ public class ShardingUpsertExecutor
             String requestNodeId = shardLocation.nodeId;
             ConcurrencyLimit nodeLimit = nodeLimits.get(requestNodeId);
             if (nodeLimit.exceedsLimit()) {
-                if (isDebugEnabled) {
-                    LOGGER.debug(
-                        "reached maximum concurrent operations for node {} (limit={}, rrt={}ms, inflight={})",
-                        requestNodeId,
-                        nodeLimit.getLimit(),
-                        nodeLimit.getLastRtt(TimeUnit.MILLISECONDS),
-                        nodeLimit.numInflight()
-                    );
-                }
+                LOGGER.info(
+                    "Overload protection: reached maximum concurrent operations for node {}" +
+                    " (limit={}, rrt={}ms, inflight={})",
+                    requestNodeId,
+                    nodeLimit.getLimit(),
+                    nodeLimit.getLastRtt(TimeUnit.MILLISECONDS),
+                    nodeLimit.numInflight()
+                );
                 return true;
             }
         }

@@ -35,7 +35,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -57,6 +56,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -210,7 +210,22 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         // as soon as possible. We do not want to throttle based on the targets node counter in such cases.
         Predicate<TReq> shouldPause = ignored -> true;
         if (batchIterator.hasLazyResultSet()) {
-            shouldPause = req -> nodeLimits.get(resolveNodeId(req)).exceedsLimit();
+            shouldPause = req -> {
+                var requestNodeId = resolveNodeId(req);
+                var requestNodeLimit = nodeLimits.get(requestNodeId);
+                if (requestNodeLimit.exceedsLimit()) {
+                    LOGGER.info(
+                            "Overload protection: reached maximum concurrent operations for node {}" +
+                            " (limit={}, rrt={}ms, inflight={})",
+                            requestNodeId,
+                            requestNodeLimit.getLimit(),
+                            requestNodeLimit.getLastRtt(TimeUnit.MILLISECONDS),
+                            requestNodeLimit.numInflight()
+                    );
+                    return true;
+                }
+                return false;
+            };
         }
         return new BatchIteratorBackpressureExecutor<>(
             jobId,

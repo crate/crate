@@ -51,7 +51,7 @@ Breaking Changes
 - Validation for ``COPY FROM`` is now enforced. The ``validation`` parameter is
   deprecated and using it results in a deprecation message in the logs.
 
-- `UPDATE`` statements will continue on row failures instead of always showing 
+- `UPDATE`` statements will continue on row failures instead of always showing
   an error. The affected rows are displayed by the resulting row count.
 
 Deprecations
@@ -90,7 +90,7 @@ SQL Standard and PostgreSQL Compatibility
 - Allowed statements that set
   :ref:`standard_conforming_strings session setting<conf-session-standard_conforming_strings>`
   to the default value (``on``).
- 
+
 - Added a new read-only session setting ``max_identifier_length``.
 
 - Added support for :ref:`INTERVAL <type-interval>` multiplication by integers.
@@ -152,3 +152,6 @@ Administration and Operations
 
 - Added support for endpoint and secondary endpoint to
   :ref:`CREATE REPOSITORY for Azure storage <sql-create-repo-azure>`.
+
+- Added ``INFO`` log entries when DML requests are throttled by the
+  :ref:`overload_protection`.
