@@ -7,17 +7,20 @@ To run all tests::
     $ ./mvnw test
 
 
-To run tests in a single module, you have to install the modules once::
+To run tests in a single module::
 
-    $ ./mvnw install -DskipTests=true
-
-And then run::
-
-    $ ./mvnw test -pl <module>
+    $ ./mvnw test -am -pl <module>
 
 For example::
 
-    $ ./mvnw test -pl server
+    $ ./mvnw test -am -pl server
+
+.. note::
+
+    The ``-am`` option is required to build the module and its dependencies.
+    Dependencies can also be built by running ``./mvnw install -DskipTests=true``,
+    followup module tasks don't need to be run with ``-am`` then.
+
 
 Run tests using multiple forks::
 
@@ -65,17 +68,17 @@ value for the remainder of your terminal session.
 
 Filter tests::
 
-    $ ./mvnw '-Dtest=PlannerTest#testSet*' test -pl server
+    $ ./mvnw '-Dtest=PlannerTest#testSet*' test -am -pl server
 
 Extra options::
 
-    $ ./mvnw test -pl server -Dtests.seed=8352BE0120F826A9
+    $ ./mvnw test -am -pl server -Dtests.seed=8352BE0120F826A9
 
-    $ ./mvnw test -pl server -Dtests.iters=20
+    $ ./mvnw test -am -pl server -Dtests.iters=20
 
-    $ ./mvnw test -pl server -Dtests.nightly=true # defaults to "false"
+    $ ./mvnw test -am -pl server -Dtests.nightly=true # defaults to "false"
 
-    $ ./mvnw test -pl server -Dtests.verbose=true # log result of all invoked tests
+    $ ./mvnw test -am -pl server -Dtests.verbose=true # log result of all invoked tests
 
 More logging by changing code:
 
