@@ -33,8 +33,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -48,6 +46,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
@@ -259,24 +258,21 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String valueForInsert(Object value) {
+    public String valueForInsert(String value) {
         if (value == null) {
             return null;
         }
-        assert value instanceof String
-            : "valueForInsert must be called only on objects of String type";
-        var string = (String) value;
-        if (unbound() || string.length() <= lengthLimit) {
-            return string;
+        if (unbound() || value.length() <= lengthLimit) {
+            return value;
         } else {
-            if (isBlank(string, lengthLimit, string.length())) {
-                return string.substring(0, lengthLimit);
+            if (isBlank(value, lengthLimit, value.length())) {
+                return value.substring(0, lengthLimit);
             } else {
-                if (string.length() > 20) {
-                    string = string.substring(0, 20) + "...";
+                if (value.length() > 20) {
+                    value = value.substring(0, 20) + "...";
                 }
                 throw new IllegalArgumentException(
-                    "'" + string + "' is too long for the text type of length: " + lengthLimit);
+                    "'" + value + "' is too long for the text type of length: " + lengthLimit);
             }
         }
     }

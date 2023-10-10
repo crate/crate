@@ -21,15 +21,16 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static io.crate.types.TimeTZParser.exceptionForInvalidLiteral;
+import static io.crate.types.TimeTZParser.timeTZOf;
 
 import java.io.IOException;
 import java.util.Locale;
 
-import static io.crate.types.TimeTZParser.timeTZOf;
-import static io.crate.types.TimeTZParser.exceptionForInvalidLiteral;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
 
 public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType, Streamer<TimeTZ> {
 
@@ -117,7 +118,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     }
 
     @Override
-    public TimeTZ valueForInsert(Object value) {
+    public TimeTZ valueForInsert(TimeTZ value) {
         throw new UnsupportedOperationException(String.format(
             Locale.ENGLISH,
             "%s cannot be used in insert statements",

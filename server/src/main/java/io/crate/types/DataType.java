@@ -137,14 +137,14 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     }
 
     /**
-     * To prepare a value of the same {@link DataType<T>} for insertion.
+     * Processes the value to honor SQL semantics of the type.
+     * For example a String may get trimmed to the string's length.
      *
      * @param value The value of the {@link DataType<T>}.
-     * @return The prepared for insertion value of the {@link DataType<T>}.
+     * @return The processed value
      */
-    @SuppressWarnings("unchecked")
-    public T valueForInsert(Object value) {
-        return (T) value;
+    public T valueForInsert(T value) {
+        return value;
     }
 
     /**
