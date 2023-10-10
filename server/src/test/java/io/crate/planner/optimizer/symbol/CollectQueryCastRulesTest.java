@@ -130,13 +130,13 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         }
         for (var op : List.of("LIKE", "ILIKE")) {
             assertCollectQuery(
-                "name " + op + " ANY([1, 2, 2])",
-                "(name " + op + " ANY(_cast([1, 2, 2], 'array(text)')))"
+                "name " + op + " ANY(d_array)",
+                "(name " + op + " ANY(_cast(d_array, 'array(text)')))"
             );
 
             assertCollectQuery(
-                "name NOT " + op + " ANY([1, 2, 2])",
-                "(name NOT " + op + " ANY(_cast([1, 2, 2], 'array(text)')))"
+                "name NOT " + op + " ANY(d_array)",
+                "(name NOT " + op + " ANY(_cast(d_array, 'array(text)')))"
             );
         }
     }
@@ -151,12 +151,12 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         }
         for (var op : List.of("LIKE", "ILIKE")) {
             assertCollectQuery(
-                "1 " + op + " ANY(text_array)",
-                "(_cast(1, 'text') " + op + " ANY(text_array))"
+                "id " + op + " ANY(text_array)",
+                "(_cast(id, 'text') " + op + " ANY(text_array))"
             );
             assertCollectQuery(
-                "1 NOT " + op + " ANY(text_array)",
-                "(_cast(1, 'text') NOT " + op + " ANY(text_array))"
+                "id NOT " + op + " ANY(text_array)",
+                "(_cast(id, 'text') NOT " + op + " ANY(text_array))"
             );
         }
     }

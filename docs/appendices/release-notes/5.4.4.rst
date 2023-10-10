@@ -113,3 +113,6 @@ Fixes
    ``NullPointerExceptions`` or return invalid results when the left hand side
    argument is a column and the right hand side argument array contains at
    least one ``null``.
+
+- Fixed an issue that caused ``(I)LIKE ANY`` operators to fail with an exception
+  when comparing non-string expressions.
