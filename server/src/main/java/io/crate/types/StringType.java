@@ -258,24 +258,21 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String valueForInsert(Object value) {
+    public String valueForInsert(String value) {
         if (value == null) {
             return null;
         }
-        assert value instanceof String
-            : "valueForInsert must be called only on objects of String type";
-        var string = (String) value;
-        if (unbound() || string.length() <= lengthLimit) {
-            return string;
+        if (unbound() || value.length() <= lengthLimit) {
+            return value;
         } else {
-            if (isBlank(string, lengthLimit, string.length())) {
-                return string.substring(0, lengthLimit);
+            if (isBlank(value, lengthLimit, value.length())) {
+                return value.substring(0, lengthLimit);
             } else {
-                if (string.length() > 20) {
-                    string = string.substring(0, 20) + "...";
+                if (value.length() > 20) {
+                    value = value.substring(0, 20) + "...";
                 }
                 throw new IllegalArgumentException(
-                    "'" + string + "' is too long for the text type of length: " + lengthLimit);
+                    "'" + value + "' is too long for the text type of length: " + lengthLimit);
             }
         }
     }

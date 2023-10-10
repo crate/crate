@@ -133,8 +133,6 @@ public class Indexer {
      */
     private final Function<String, FieldType> getFieldType;
 
-    private final Map<ColumnIdent, Reference> newColumns = new HashMap<>();
-
     record IndexColumn(Reference reference, FieldType fieldType, List<Input<?>> inputs) {
     }
 
@@ -698,7 +696,7 @@ public class Indexer {
         Object[] values = item.insertValues();
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
-            Object value = reference.valueType().valueForInsert(values[i]);
+            Object value = valueForInsert(reference.valueType(), values[i]);
             // No granularity check since PARTITIONED BY columns cannot be added dynamically.
             if (value == null) {
                 continue;
@@ -753,8 +751,7 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
-
-                Object value = reference.valueType().valueForInsert(values[i]);
+                Object value = valueForInsert(reference.valueType(), values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
                     check.verify(value);
@@ -767,7 +764,7 @@ public class Indexer {
                 }
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
                 valueIndexer.indexValue(
-                    reference.valueType().sanitizeValue(value),
+                    value,
                     reference.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
@@ -850,6 +847,10 @@ public class Indexer {
         }
     }
 
+    private static <T> T valueForInsert(DataType<T> valueType, Object value) {
+        return valueType.valueForInsert(valueType.sanitizeValue(value));
+    }
+
     @Nullable
     public Object[] returnValues(IndexItem item) {
         if (this.returnValueInputs == null) {
@@ -898,7 +899,7 @@ public class Indexer {
             Object[] values = indexItem.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = targetColumns.get(i);
-                Object value = reference.valueType().valueForInsert(values[i]);
+                Object value = valueForInsert(reference.valueType(), values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
                     check.verify(value);
