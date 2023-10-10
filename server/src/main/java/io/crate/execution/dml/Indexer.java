@@ -22,6 +22,7 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -449,7 +450,9 @@ public class Indexer {
                         table.ident()
                     ));
                 }
-                valueIndexer = new DynamicIndexer(ref.ident(), position, getFieldType, getRef);
+                // Empty arrays are not registered as known references, such they are stored in the source as unknown columns
+                var storageIdentPrefixForEmptyArrays = writeOids ? UNKNOWN_COLUMN_PREFIX : null;
+                valueIndexer = new DynamicIndexer(ref.ident(), position, getFieldType, getRef, storageIdentPrefixForEmptyArrays);
                 position--;
             } else {
                 valueIndexer = ref.valueType().valueIndexer(

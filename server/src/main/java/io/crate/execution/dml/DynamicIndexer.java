@@ -21,7 +21,6 @@
 
 package io.crate.execution.dml;
 
-import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -63,15 +62,19 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     private final int position;
     private DataType<?> type = null;
     private ValueIndexer<Object> indexer;
+    @Nullable
+    private final String storageIdentPrefixForEmptyArrays;
 
     public DynamicIndexer(ReferenceIdent refIdent,
                           int position,
                           Function<String, FieldType> getFieldType,
-                          Function<ColumnIdent, Reference> getRef) {
+                          Function<ColumnIdent, Reference> getRef,
+                          @Nullable String storageIdentPrefixForEmptyArrays) {
         this.refIdent = refIdent;
         this.getFieldType = getFieldType;
         this.getRef = getRef;
         this.position = position;
+        this.storageIdentPrefixForEmptyArrays = storageIdentPrefixForEmptyArrays;
     }
 
     @Override
@@ -137,7 +140,11 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         if (storageSupport == null) {
-            if (handleEmptyArray(type, value, UNKNOWN_COLUMN_PREFIX + storageIdentLeafName, xcontentBuilder)) {
+            var emptyArrayStorageIdent = storageIdentLeafName;
+            if (storageIdentPrefixForEmptyArrays != null) {
+                emptyArrayStorageIdent = storageIdentPrefixForEmptyArrays + storageIdentLeafName;
+            }
+            if (handleEmptyArray(type, value, emptyArrayStorageIdent, xcontentBuilder)) {
                 type = null; // guess type again with next value
                 return;
             }
