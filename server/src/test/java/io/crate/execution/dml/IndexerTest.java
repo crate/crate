@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,8 +42,10 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -79,6 +82,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.UseNewCluster;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -103,7 +107,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             column -> fieldType,
             Stream.of(columns)
-                .map(x -> table.getReference(new ColumnIdent(x)))
+                .map(x -> table.resolveColumn(x, true, false))
                 .toList(),
             null
         );
@@ -1250,5 +1254,86 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> indexer.index(item(Map.of("x", 5))))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContainingAll("Failed CONSTRAINT", "CHECK (\"obj\"['x'] > 10) for values: [{x=5}]");
+    }
+
+    @Test
+    public void test_empty_arrays_are_prefixed_as_unknown() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+                .addTable("create table tbl (i int) with (column_policy='dynamic')")
+                .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", null, "empty_arr");
+        ParsedDocument doc = indexer.index(item(List.of()));
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+                """
+                {"_u_empty_arr":[]}
+                """
+        );
+        // prefix is stripped on non _raw lookups
+        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
+                """
+                {"empty_arr":[]}
+                """
+        );
+    }
+
+    @Test
+    public void test_empty_arrays_are_not_prefixed_as_unknown_on_tables_created_less_5_5() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+                .addTable(
+                        "create table tbl (i int) with (column_policy='dynamic')",
+                        Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
+                )
+                .build();
+
+        var indexer = getIndexer(e, "tbl", null, "empty_arr");
+        ParsedDocument doc = indexer.index(item(List.of()));
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+                """
+                {"empty_arr":[]}
+                """
+        );
+    }
+
+    @UseNewCluster
+    @Test
+    public void test_ignored_object_child_columns_are_prefixed() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+                .addTable("create table tbl (o object (ignored) as (i int))")
+                .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", null, "o");
+        ParsedDocument doc = indexer.index(item(Map.of("i", 1, "ignored_col", "foo")));
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+                """
+                {"1":{"2":1,"_u_ignored_col":"foo"}}
+                """
+        );
+        // prefix is stripped and OID's replaced on non _raw lookups
+        assertThat(source(doc, table)).isIn(
+                "{\"o\":{\"i\":1,\"ignored_col\":\"foo\"}}",
+                "{\"o\":{\"ignored_col\":\"foo\",\"i\":1}}"
+        );
+    }
+
+    @Test
+    public void test_ignored_object_child_columns_are_not_prefixed_on_tables_created_less_5_5() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+                // old tables created with CrateDB < 5.5.0 do not assign any OID, fake it here
+                .setColumnOidSupplier(() -> COLUMN_OID_UNASSIGNED)
+                .addTable("create table tbl (o object (ignored) as (i int))",
+                        Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
+                )
+                .build();
+
+        var indexer = getIndexer(e, "tbl", null, "o");
+        ParsedDocument doc = indexer.index(item(Map.of("i", 1, "ignored_col", "foo")));
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+                """
+                {"o":{"i":1,"ignored_col":"foo"}}
+                """
+        );
     }
 }

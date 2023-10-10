@@ -62,6 +62,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private final RelationName table;
     private final Reference ref;
     private final Function<String, FieldType> getFieldType;
+    private final boolean prefixUnknownColumns;
 
     /**
      * @param getFieldType  A function to resolve a {@link FieldType} by {@link Reference#storageIdent()}
@@ -75,6 +76,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         this.ref = ref;
         this.getFieldType = getFieldType;
         this.getRef = getRef;
+        this.prefixUnknownColumns = ref.oid() != COLUMN_OID_UNASSIGNED;
         this.column = ref.column();
         this.objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         this.innerIndexers = new HashMap<>();
@@ -295,7 +297,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             if (!isNewColumn) {
                 continue;
             }
-            innerName = UNKNOWN_COLUMN_PREFIX + innerName;
+            if (prefixUnknownColumns) {
+                innerName = UNKNOWN_COLUMN_PREFIX + innerName;
+            }
             if (innerValue == null) {
                 xContentBuilder.nullField(innerName);
                 continue;
