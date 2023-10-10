@@ -25,7 +25,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -315,7 +314,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParameterExpressionInLikeAny() throws Exception {
         Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
-        assertThat(s).isFunction(LikeOperators.ANY_LIKE, isLiteral(5), exactlyInstanceOf(ParameterSymbol.class));
+        assertThat(s).isFunction(LikeOperators.ANY_LIKE, isLiteral("5"), exactlyInstanceOf(ParameterSymbol.class));
     }
 
     @Test
