@@ -65,6 +65,9 @@ public final class AnyNeqOperator extends AnyOperator {
 
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
         for (Object value : (Iterable<?>) candidates.value()) {
+            if (value == null) {
+                continue;
+            }
             andBuilder.add(EqOperator.fromPrimitive(probe.valueType(), probe.column().fqn(), value), BooleanClause.Occur.MUST);
         }
         Query exists = IsNullPredicate.refExistsQuery(probe, context, false);

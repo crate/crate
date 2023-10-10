@@ -669,4 +669,22 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("y_array = []");
         assertThat(query).hasToString("+NumTermsPerDoc: y_array +(y_array = [])");
     }
+
+    @Test
+    public void test_any_operators_with_operands_containing_nulls() {
+        Query query = convert("x != any([1, null, 2])");
+        assertThat(query).hasToString("+(+*:* -(+x:[1 TO 1] +x:[2 TO 2])) #FieldExistsQuery [field=x]");
+
+        query = convert("x = any([1, null, 2])");
+        assertThat(query).hasToString("x:{1 2}");
+
+        query = convert("x < any([1, null, 2])");
+        assertThat(query).hasToString("(x:[-2147483648 TO 0] x:[-2147483648 TO 1])~1");
+
+        query = convert("name like any(['bar', null, 'foo'])");
+        assertThat(query).hasToString("(name:bar name:foo)~1");
+
+        query = convert("name not ilike any(['bar', null, 'foo'])");
+        assertThat(query).hasToString("+*:* -(+name:^bar$,flags:66 +name:^foo$,flags:66)");
+    }
 }
