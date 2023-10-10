@@ -21,8 +21,6 @@
 
 package io.crate.expression.operator;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.util.regex.Pattern;
 
 import org.apache.lucene.index.Term;
@@ -36,7 +34,6 @@ import io.crate.expression.operator.any.AnyOperator;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import io.crate.types.TypeSignature;
 
 public class LikeOperators {
     public static final String OP_LIKE = "op_like";
@@ -130,10 +127,10 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 ANY_LIKE,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)"),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature(),
                 Operator.RETURN_TYPE.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+            ),
             (signature, boundSignature) ->
                 new AnyLikeOperator(
                     signature,
@@ -144,10 +141,10 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 ANY_NOT_LIKE,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)"),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature(),
                 Operator.RETURN_TYPE.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+            ),
             (signature, boundSignature) ->
                 new AnyNotLikeOperator(
                     signature,
@@ -158,10 +155,10 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 ANY_ILIKE,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)"),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature(),
                 Operator.RETURN_TYPE.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+            ),
             (signature, boundSignature) ->
                 new AnyLikeOperator(
                     signature,
@@ -172,10 +169,10 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 ANY_NOT_ILIKE,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)"),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature(),
                 Operator.RETURN_TYPE.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+            ),
             (signature, boundSignature) ->
                 new AnyNotLikeOperator(
                     signature,
