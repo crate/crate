@@ -21,13 +21,13 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+import io.crate.Streamer;
 
 public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> {
 
@@ -76,7 +76,7 @@ public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> 
     }
 
     @Override
-    public Regproc valueForInsert(Object value) {
+    public Regproc valueForInsert(Regproc value) {
         throw new UnsupportedOperationException(
             getName() + " cannot be used in insert statements.");
     }
