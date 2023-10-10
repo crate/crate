@@ -292,12 +292,13 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
         if (explicitCast) {
             if (other instanceof ArrayType<?> arrayType) {
-                if (arrayType.innerType().id() == ID) {
-                    return true;
-                }
-                if (arrayType.innerType().id() == JsonType.ID) {
-                    return true;
-                }
+                int innerTypeId = arrayType.innerType().id();
+                return switch (innerTypeId) {
+                    case ID -> true;
+                    case JsonType.ID -> true;
+                    case ObjectType.ID -> true;
+                    default -> super.isConvertableTo(other, explicitCast);
+                };
             } else if (other.id() == IntervalType.ID) {
                 return true;
             }

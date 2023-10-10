@@ -47,6 +47,7 @@ import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
+import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -247,11 +248,13 @@ public class ArrayType<T> extends DataType<List<T>> {
                 );
             } catch (PgArrayParsingException e) {
                 byte[] utf8Bytes = string.getBytes(StandardCharsets.UTF_8);
-                if (innerType instanceof JsonType) {
+                if (innerType instanceof JsonType || innerType instanceof ObjectType) {
                     try {
-                        return (List<T>) parseJsonList(utf8Bytes, sessionSettings);
+                        return parseJsonList(utf8Bytes, sessionSettings, innerType);
                     } catch (IOException ioEx) {
-                        throw new UncheckedIOException(ioEx);
+                        var conversionException = new ConversionException(string, innerType);
+                        conversionException.addSuppressed(ioEx);
+                        throw conversionException;
                     }
                 } else {
                     throw new IllegalArgumentException("Cannot parse `" + value + "` as array", e);
@@ -267,13 +270,13 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
     }
 
-    private static List<String> parseJsonList(byte[] utf8Bytes, SessionSettings sessionSettings) throws IOException {
+    private static <T> List<T> parseJsonList(byte[] utf8Bytes, SessionSettings sessionSettings, DataType<T> innerType) throws IOException {
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists2.map(parser.list(), value -> StringType.INSTANCE.explicitCast(value, sessionSettings));
+        return Lists2.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {
