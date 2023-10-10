@@ -59,7 +59,7 @@ then
 fi
 
 # install locally so we can get the version
-./mvnw -T 1C clean package -DskipTests=true
+./mvnw -T 1C clean package -DskipTests=true -P release
 checkBuild "Java"
 
 # check for broken docs
