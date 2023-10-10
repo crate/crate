@@ -132,12 +132,12 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         }
         for (var op : List.of("LIKE", "ILIKE")) {
             String lowerOp = op.toLowerCase(Locale.ENGLISH);
-            assertThat(toQuery("name " + op + " ANY([1, 2, 2])"))
+            assertThat(toQuery("name " + op + " ANY(d_array)"))
                 .isFunction("any_" + lowerOp,
                     arg1 -> assertThat(arg1).isReference().hasName("name"),
                     arg2 -> assertThat(arg2).isFunction("_cast")
                 );
-            assertThat(toQuery("name NOT " + op + " ANY([1, 2, 2])"))
+            assertThat(toQuery("name NOT " + op + " ANY(d_array)"))
                 .isFunction("any_not_" + lowerOp,
                     arg1 -> assertThat(arg1).isReference().hasName("name"),
                     arg2 -> assertThat(arg2).isFunction("_cast")
@@ -156,12 +156,12 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         }
         for (var op : List.of("LIKE", "ILIKE")) {
             String opLower = op.toLowerCase(Locale.ENGLISH);
-            assertThat(toQuery("1 " + op + " ANY(text_array)")).isFunction(
+            assertThat(toQuery("id " + op + " ANY(text_array)")).isFunction(
                 "any_" + opLower,
                 arg1 -> assertThat(arg1).isFunction("_cast"),
                 arg2 -> assertThat(arg2).isReference().hasName("text_array")
             );
-            assertThat(toQuery("1 NOT " + op + " ANY(text_array)")).isFunction(
+            assertThat(toQuery("id NOT " + op + " ANY(text_array)")).isFunction(
                 "any_not_" + opLower,
                 arg1 -> assertThat(arg1).isFunction("_cast"),
                 arg2 -> assertThat(arg2).isReference().hasName("text_array")
