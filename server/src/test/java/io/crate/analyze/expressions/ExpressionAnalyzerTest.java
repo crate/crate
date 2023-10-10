@@ -310,7 +310,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParameterExpressionInLikeAny() throws Exception {
         Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
-        assertThat(s).isFunction(LikeOperators.ANY_LIKE, isLiteral(5), exactlyInstanceOf(ParameterSymbol.class));
+        assertThat(s).isFunction(LikeOperators.ANY_LIKE, isLiteral("5"), exactlyInstanceOf(ParameterSymbol.class));
     }
 
     @Test

@@ -805,20 +805,50 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_can_restore_snapshots_taken_interleaved_with_swap_table() throws Exception {
+    public void test_can_restore_snapshots_taken_after_swap_table() throws Exception {
         execute("CREATE TABLE t01 as SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
         execute("CREATE TABLE t02 as SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
         execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
-        execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
-        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        int i = 2;
+        boolean expectt01 = true;
+        for (; i < randomIntBetween(3, 10); i++) {
+            expectt01 = !expectt01;
+            execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+            execute("CREATE SNAPSHOT my_repo.s" + i + " ALL WITH (wait_for_completion=true)");
+        }
         execute("DROP TABLE t01");
         execute("DROP TABLE t02");
-        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
+        execute("RESTORE SNAPSHOT my_repo.s" + (i - 1) + " ALL");
         execute("refresh table t01");
-        assertThat(execute("select a from t01 order by a limit 3")).hasRows(
+        String[] t01 = new String[] {
+            "1",
+            "2",
+            "3"
+        };
+        String[] t02 = new String[] {
             "10",
             "11",
             "12"
+        };
+        assertThat(execute("select a from t01 order by a limit 3")).hasRows(expectt01 ? t01 : t02);
+    }
+
+    @Test
+    public void test_can_restore_snapshot_taken_before_swap_table() throws Exception {
+        execute("CREATE TABLE t01 as SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 as SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+        execute("alter cluster swap table t01 to t02");
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s1 table t01");
+        execute("refresh table t01");
+        assertThat(execute("select a from t01 order by a limit 3")).hasRows(
+            "1",
+            "2",
+            "3"
         );
     }
 
