@@ -28,6 +28,7 @@ import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -100,13 +101,6 @@ public class CastFunctionTest extends ScalarTestCase {
     @Test
     public void test_cast_string_literal_text_with_length_truncates_exceeding_chars() {
         assertEvaluate("'abcde'::varchar(2)", "ab");
-    }
-
-    @Test
-    public void test_cannot_cast_text_to_object_array() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast expressions from type `text` to type `object_array`");
-        assertEvaluate("cast(name as array(object))", "");
     }
 
     @Test
@@ -321,5 +315,17 @@ public class CastFunctionTest extends ScalarTestCase {
     public void test_can_cast_date_to_timestamp() {
         assertEvaluate("'2020-02-09T17:50:44+0100'::date::timestamp", 1581206400000L);
         assertEvaluate("'2020-02-09T17:50:44+0100'::date::timestamp without time zone", 1581206400000L);
+    }
+
+    @Test
+    public void test_can_cast_jsonstring_to_object_array() throws Exception {
+        assertEvaluate("'[{\"a\": 1}, {\"a\":2}]'::object[]", List.of(Map.of("a", 1), Map.of("a", 2)));
+    }
+
+    @Test
+    public void test_cannot_cast_bogus_string_to_object_array() throws Exception {
+        assertThatThrownBy(() -> assertEvaluate("'i-am-not-json'::object[]", null))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast value `i-am-not-json` to type `object`");
     }
 }

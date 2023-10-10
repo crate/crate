@@ -98,6 +98,9 @@ SQL Standard and PostgreSQL Compatibility
 Data Types
 ----------
 
+- Added support for explicit casts from strings in JSON list format to
+  ``object[]``.
+
 - Added a :ref:`FLOAT_VECTOR <type-float_vector>` type to store dense vectors of
   float values which can be searched using a k-nearest neighbour algorithm via a
   new :ref:`KNN_MATCH <scalar_knn_match>` scalar.

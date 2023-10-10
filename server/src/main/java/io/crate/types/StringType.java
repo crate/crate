@@ -33,8 +33,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -48,6 +46,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
@@ -296,12 +295,13 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
         if (explicitCast) {
             if (other instanceof ArrayType<?> arrayType) {
-                if (arrayType.innerType().id() == ID) {
-                    return true;
-                }
-                if (arrayType.innerType().id() == JsonType.ID) {
-                    return true;
-                }
+                int innerTypeId = arrayType.innerType().id();
+                return switch (innerTypeId) {
+                    case ID -> true;
+                    case JsonType.ID -> true;
+                    case ObjectType.ID -> true;
+                    default -> super.isConvertableTo(other, explicitCast);
+                };
             } else if (other.id() == IntervalType.ID) {
                 return true;
             }
