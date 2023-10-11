@@ -174,7 +174,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
                     .build();
             }
-            if (mappedFieldType == null || !mappedFieldType.isSearchable()) {
+            if (mappedFieldType == null) {
                 return null;
             } else {
                 return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));
