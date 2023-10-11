@@ -120,7 +120,7 @@ public final class QueryTester implements AutoCloseable {
             return this;
         }
 
-        void indexValue(String column, Object value) throws IOException {
+        public void indexValue(String column, Object value) throws IOException {
             MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
                 table.concreteIndices()[0],

@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -80,8 +81,6 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import io.crate.types.ObjectType.Builder;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends IntegTestCase {
@@ -1936,28 +1935,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
-    /**
-     * Adds innerTypes to object type definitions
-     **/
-    private static DataType<?> extendedType(DataType<?> type, Object value) {
-        if (type.id() == ObjectType.ID) {
-            var entryIt = ((Map<?, ?>) value).entrySet().iterator();
-            Builder builder = ObjectType.builder();
-            while (entryIt.hasNext()) {
-                var entry = entryIt.next();
-                String innerName = (String) entry.getKey();
-                Object innerValue = entry.getValue();
-                DataType<?> innerType = DataTypes.guessType(innerValue);
-                if (innerType.id() == ObjectType.ID && innerValue instanceof Map<?, ?> m && m.containsKey("coordinates")) {
-                    innerType = DataTypes.GEO_SHAPE;
-                }
-                builder.setInnerType(innerName, extendedType(innerType, innerValue));
-            }
-            return builder.build();
-        } else {
-            return type;
-        }
-    }
 
     @Test
     @UseJdbc(0)
@@ -1969,7 +1946,7 @@ public class TransportSQLActionTest extends IntegTestCase {
             }
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
-            var extendedType = extendedType(type, val1);
+            var extendedType = DataTypeTesting.extendedType(type, val1);
             String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.STRICT, null));
             execute("create table tbl (id int primary key, x " + typeDefinition + ")");
             execute("insert into tbl (id, x) values (?, ?)", new Object[] { 1, val1 });
