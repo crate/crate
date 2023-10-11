@@ -234,32 +234,11 @@ public final class AccessControlImpl implements AccessControl {
             for (var source : relation.from()) {
                 source.accept(this, context);
             }
-            for (var symbol : relation.outputs()) {
+            relation.visitSymbols(symbol -> {
                 for (var rel : SymbolVisitors.extractAnalyzedRelations(symbol)) {
                     rel.accept(this, context);
                 }
-            }
-            for (var rel : SymbolVisitors.extractAnalyzedRelations(relation.where())) {
-                rel.accept(this, context);
-            }
-            if (relation.groupBy() != null) {
-                for (var symbol : relation.groupBy()) {
-                    for (var rel : SymbolVisitors.extractAnalyzedRelations(symbol)) {
-                        rel.accept(this, context);
-                    }
-                }
-            }
-            for (var rel : SymbolVisitors.extractAnalyzedRelations(relation.having())) {
-                rel.accept(this, context);
-            }
-            if (relation.orderBy() != null) {
-                for (var symbol : relation.orderBy().orderBySymbols()) {
-                    for (var rel : SymbolVisitors.extractAnalyzedRelations(symbol)) {
-                        rel.accept(this, context);
-                    }
-                }
-            }
-
+            });
             return null;
         }
 
