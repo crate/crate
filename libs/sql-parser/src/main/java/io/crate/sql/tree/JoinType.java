@@ -24,51 +24,35 @@ package io.crate.sql.tree;
 public enum JoinType {
     CROSS,
     INNER,
-    LEFT {
-        @Override
-        public JoinType invert() {
-            return RIGHT;
-        }
-    },
-    RIGHT {
-        @Override
-        public JoinType invert() {
-            return LEFT;
-        }
-    },
+    LEFT,
+    RIGHT,
     FULL,
-    SEMI {
-        @Override
-        public JoinType invert() {
-            throw new UnsupportedOperationException("Tables of a SEMI Join cannot be inverted");
-        }
-
-        @Override
-        public boolean supportsInversion() {
-            return false;
-        }
-    },
-    ANTI {
-        @Override
-        public JoinType invert() {
-            throw new UnsupportedOperationException("Tables of a ANTI Join cannot be inverted");
-        }
-
-        @Override
-        public boolean supportsInversion() {
-            return false;
-        }
-    };
+    SEMI,
+    ANTI;
 
     public JoinType invert() {
-        return this;
+        return switch (this) {
+            case CROSS -> CROSS;
+            case INNER -> INNER;
+            case LEFT -> RIGHT;
+            case RIGHT -> LEFT;
+            case FULL -> FULL;
+            case SEMI -> throw new UnsupportedOperationException("SEMI Join cannot be inverted");
+            case ANTI -> throw new UnsupportedOperationException("ANTI Join cannot be inverted");
+        };
     }
 
     public boolean supportsInversion() {
-        return true;
+        return switch (this) {
+            case SEMI, ANTI -> false;
+            default -> true;
+        };
     }
 
     public boolean isOuter() {
-        return ordinal() > INNER.ordinal() && ordinal() <= FULL.ordinal();
+        return switch (this) {
+            case LEFT, RIGHT, FULL -> true;
+            default -> false;
+        };
     }
 }
