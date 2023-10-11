@@ -275,21 +275,21 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference getRelocated(ReferenceIdent referenceIdent) {
+    public Reference withReferenceIdent(ReferenceIdent referenceIdent) {
         return new GeneratedReference(
-            ref.getRelocated(referenceIdent),
+            ref.withReferenceIdent(referenceIdent),
             formattedGeneratedExpression,
             generatedExpression
         );
     }
 
     @Override
-    public Reference applyColumnOid(LongSupplier oidSupplier) {
+    public Reference withColumnOid(LongSupplier oidSupplier) {
         if (ref.oid() != COLUMN_OID_UNASSIGNED) {
             return this;
         }
         return new GeneratedReference(
-                ref.applyColumnOid(oidSupplier),
+                ref.withColumnOid(oidSupplier),
                 formattedGeneratedExpression,
                 generatedExpression
         );

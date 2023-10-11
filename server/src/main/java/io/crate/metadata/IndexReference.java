@@ -218,7 +218,7 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Reference getRelocated(ReferenceIdent newIdent) {
+    public Reference withReferenceIdent(ReferenceIdent newIdent) {
         return new IndexReference(
             newIdent,
             granularity,
@@ -252,7 +252,7 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Reference applyColumnOid(LongSupplier oidSupplier) {
+    public Reference withColumnOid(LongSupplier oidSupplier) {
         if (oid != COLUMN_OID_UNASSIGNED) {
             return this;
         }
