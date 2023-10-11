@@ -76,7 +76,6 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     private static final StorageSupport<Boolean> STORAGE = new StorageSupport<>(
             true,
             false,
-            true,
             EQ_QUERY) {
 
         @Override

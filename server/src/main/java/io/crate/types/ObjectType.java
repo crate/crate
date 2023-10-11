@@ -67,7 +67,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final ObjectType UNTYPED = new ObjectType();
     public static final int ID = 12;
     public static final String NAME = "object";
-    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, true, null) {
+    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
 
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
