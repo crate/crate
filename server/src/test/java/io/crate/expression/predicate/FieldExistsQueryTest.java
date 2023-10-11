@@ -247,11 +247,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
                 assertThat(queryTester.runQuery("x", "x is null"))
                     .containsExactly(new Object[] { null });
 
-                if (!(type instanceof FloatVectorType)) {
-                    assertThat(queryTester.toQuery("x is null").toString())
-                        .as(type.getName() + " indexes field_names")
-                        .isEqualTo("+*:* -ConstantScore(_field_names:x)");
-                }
+                assertThat(queryTester.toQuery("x is null").toString())
+                    .as(type.getName() + " indexes field_names")
+                    .isEqualTo("+*:* -ConstantScore(_field_names:x)");
             }
         }
     }

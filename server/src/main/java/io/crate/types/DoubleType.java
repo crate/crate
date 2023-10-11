@@ -51,7 +51,6 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     private static final StorageSupport<Double> STORAGE = new StorageSupport<>(
         true,
         true,
-        true,
         new EqQuery<Double>() {
 
             @Override

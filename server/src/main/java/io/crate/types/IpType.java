@@ -47,7 +47,6 @@ public class IpType extends DataType<String> implements Streamer<String> {
     private static final StorageSupport<String> STORAGE = new StorageSupport<>(
         true,
         false,
-        true,
         new EqQuery<String>() {
 
             @Override

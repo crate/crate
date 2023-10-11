@@ -73,7 +73,6 @@ public class StringType extends DataType<String> implements Streamer<String> {
     private static final StorageSupport<Object> STORAGE = new StorageSupport<>(
         true,
         true,
-        true,
         new EqQuery<Object>() {
 
             @Override
