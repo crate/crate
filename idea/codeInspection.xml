@@ -1,8 +1,0 @@
-<component name="InspectionProjectProfileManager">
-  <profile version="1.0">
-    <option name="myName" value="Project Default"/>
-    <inspection_tool class="ForCanBeForeach" enabled_by_default="false"/>
-    <inspection_tool class="PointlessBooleanExpression" enabled_by_default="false"/>
-    <inspection_tool class="UNUSED_IMPORT" enabled="true" level="ERROR" enabled_by_default="true" />
-  </profile>
-</component>
