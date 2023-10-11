@@ -81,11 +81,7 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
             return currentState;
         }
 
-        var refsToDrop = Lists2.map(normalizedColumns,
-                                    dc -> {
-                                        dc.ref().setDropped();
-                                        return dc.ref();
-                                    });
+        var refsToDrop = Lists2.map(normalizedColumns, dc -> dc.ref().withDropped(true));
 
         // Prepare columns tree, it will be used twice:
         // 1. For creating mapping for dropped columns.

@@ -181,6 +181,23 @@ public class SimpleReference implements Reference {
     }
 
     @Override
+    public Reference withDropped(boolean dropped) {
+        return new SimpleReference(
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            dropped,
+            defaultExpression
+        );
+    }
+
+    @Override
     public SymbolType symbolType() {
         return SymbolType.REFERENCE;
     }
@@ -256,11 +273,6 @@ public class SimpleReference implements Reference {
     @Override
     public boolean isDropped() {
         return isDropped;
-    }
-
-    @Override
-    public void setDropped() {
-        this.isDropped = true;
     }
 
     @Nullable

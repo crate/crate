@@ -236,9 +236,6 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public void setDropped() {}
-
-    @Override
     public boolean hasDocValues() {
         return ref.hasDocValues();
     }
@@ -292,6 +289,15 @@ public class GeneratedReference implements Reference {
                 ref.withColumnOid(oidSupplier),
                 formattedGeneratedExpression,
                 generatedExpression
+        );
+    }
+
+    @Override
+    public Reference withDropped(boolean dropped) {
+        return new GeneratedReference(
+            ref.withDropped(dropped),
+            formattedGeneratedExpression,
+            generatedExpression
         );
     }
 
