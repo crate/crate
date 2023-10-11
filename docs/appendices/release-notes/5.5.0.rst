@@ -83,6 +83,8 @@ SQL Statements
   sub-columns of object columns. Before it was necessary to use table check
   constraints.
 
+- Added support for
+  :ref:`ALTER TABLE DROP COLUMN <sql-alter-table-drop-column>` statement.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
