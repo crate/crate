@@ -28,12 +28,14 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.BinaryDocValuesField;
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.KnnFloatVectorField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.FloatVectorFieldMapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -112,6 +114,11 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
             buffer.get(bytes);
             var field = new BinaryDocValuesField(fqn, new BytesRef(bytes));
             addField.accept(field);
+        } else {
+            addField.accept(new Field(
+                FieldNamesFieldMapper.NAME,
+                fqn,
+                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
         }
     }
 }
