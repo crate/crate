@@ -237,21 +237,6 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping(int position) {
-        Map<String, Object> mapping = super.toMapping(position);
-        if (analyzer != null) {
-            mapping.put("analyzer", analyzer);
-        }
-        mapping.put("type", "text");
-
-        if (columns.isEmpty() == false) {
-            mapping.put("sources", columns.stream().map(Reference::storageIdent).toList());
-        }
-
-        return mapping;
-    }
-
-    @Override
     public Reference withColumnOid(LongSupplier oidSupplier) {
         if (oid != COLUMN_OID_UNASSIGNED) {
             return this;
@@ -271,6 +256,40 @@ public class IndexReference extends SimpleReference {
                 columns,
                 analyzer
         );
+    }
+
+    @Override
+    public Reference withDropped(boolean dropped) {
+        return new IndexReference(
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            dropped,
+            defaultExpression,
+            columns,
+            analyzer
+        );
+    }
+
+    @Override
+    public Map<String, Object> toMapping(int position) {
+        Map<String, Object> mapping = super.toMapping(position);
+        if (analyzer != null) {
+            mapping.put("analyzer", analyzer);
+        }
+        mapping.put("type", "text");
+
+        if (columns.isEmpty() == false) {
+            mapping.put("sources", columns.stream().map(Reference::storageIdent).toList());
+        }
+
+        return mapping;
     }
 
     public IndexReference updateColumns(List<Reference> newColumns) {
