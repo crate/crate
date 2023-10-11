@@ -51,7 +51,6 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     private static final StorageSupport<Float> STORAGE = new StorageSupport<>(
         true,
         true,
-        true,
         new EqQuery<Float>() {
 
             @Override

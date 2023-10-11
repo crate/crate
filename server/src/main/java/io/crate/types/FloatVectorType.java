@@ -76,7 +76,6 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     private static final StorageSupport<? super float[]> STORAGE_SUPPORT = new StorageSupport<>(
             true,
             true,
-            true,
             EQ_QUERY) {
 
         @Override

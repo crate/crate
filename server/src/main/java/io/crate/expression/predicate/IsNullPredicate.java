@@ -148,7 +148,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         } else if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
             // Not indexed, need to use source lookup
             return null;
-        } else if (storageSupport != null && storageSupport.hasFieldNamesIndex()) {
+        } else if (storageSupport != null) {
             if (valueType instanceof ObjectType objType) {
                 if (objType.innerTypes().isEmpty()) {
                     return null;

@@ -43,7 +43,6 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     private static final StorageSupport<Number> STORAGE = new StorageSupport<>(
             true,
             true,
-            true,
             new IntEqQuery()) {
 
         @Override
