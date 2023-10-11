@@ -83,9 +83,9 @@ public interface Reference extends Symbol {
 
     boolean isGenerated();
 
-    Reference getRelocated(ReferenceIdent referenceIdent);
+    Reference withReferenceIdent(ReferenceIdent referenceIdent);
 
-    Reference applyColumnOid(LongSupplier oidSupplier);
+    Reference withColumnOid(LongSupplier oidSupplier);
 
     /**
      * Return the identifier of this column used inside the storage engine

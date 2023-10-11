@@ -144,7 +144,7 @@ public class SimpleReference implements Reference {
      * Returns a cloned Reference with the given ident
      */
     @Override
-    public Reference getRelocated(ReferenceIdent newIdent) {
+    public Reference withReferenceIdent(ReferenceIdent newIdent) {
         return new SimpleReference(
             newIdent,
             granularity,
@@ -161,7 +161,7 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference applyColumnOid(LongSupplier oidSupplier) {
+    public Reference withColumnOid(LongSupplier oidSupplier) {
         if (oid != COLUMN_OID_UNASSIGNED) {
             return this;
         }

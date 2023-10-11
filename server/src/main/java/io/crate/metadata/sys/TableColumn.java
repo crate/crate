@@ -57,6 +57,6 @@ public class TableColumn {
         if (info == null) {
             return null;
         }
-        return info.getRelocated(new ReferenceIdent(relationName, columnIdent));
+        return info.withReferenceIdent(new ReferenceIdent(relationName, columnIdent));
     }
 }
