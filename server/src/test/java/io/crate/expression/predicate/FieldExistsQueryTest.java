@@ -33,12 +33,15 @@ import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.analyze.TableElementsAnalyzer;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
+import io.crate.types.StorageSupport;
 
 public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
@@ -216,6 +219,40 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
             results = queryTester.runQuery("xs", "xs is not null");
             assertThat(results).containsExactly(shapes);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_columns_without_doc_values() throws Exception {
+        for (var type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            StorageSupport<?> storageSupport = type.storageSupport();
+            if (storageSupport == null || !storageSupport.supportsDocValuesOff()) {
+                continue;
+            }
+            Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
+            Object val1 = dataGenerator.get();
+            var extendedType = DataTypeTesting.extendedType(type, val1);
+            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.STRICT, null));
+            String stmt = "create table tbl (id int primary key, x " + typeDefinition + " storage with (columnstore = false))";
+            QueryTester.Builder builder = new QueryTester.Builder(
+                createTempDir(),
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                stmt
+            );
+            builder.indexValue("x", val1);
+            builder.indexValue("x", null);
+            try (var queryTester = builder.build()) {
+                assertThat(queryTester.runQuery("x", "x is null"))
+                    .containsExactly(new Object[] { null });
+
+                if (!(type instanceof FloatVectorType)) {
+                    assertThat(queryTester.toQuery("x is null").toString())
+                        .as(type.getName() + " indexes field_names")
+                        .isEqualTo("+*:* -ConstantScore(_field_names:x)");
+                }
+            }
         }
     }
 }

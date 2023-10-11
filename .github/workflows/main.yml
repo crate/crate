@@ -34,7 +34,7 @@ jobs:
       - name: Run tests on ${{ matrix.os }}
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
-        run: mvn -T 1C test -Dtests.crate.run-windows-incompatible=true -Dcheckstyle.skip -DforkCount=2
+        run: mvn test -Dtests.crate.run-windows-incompatible=true -Dcheckstyle.skip -DforkCount=2
 
 
   forbiddenApis:
@@ -50,7 +50,7 @@ jobs:
           cache: maven
       - name: Run forbiddenapis:check
         run: |
-          mvn -T 1C compile forbiddenapis:check
+          mvn compile forbiddenapis:check
 
   checkstyle:
     name: checkstyle
@@ -63,4 +63,4 @@ jobs:
           java-version: 17
           distribution: "temurin"
       - name: Run checkstyle
-        run: mvn -T 1C compile checkstyle:checkstyle
+        run: mvn compile checkstyle:checkstyle

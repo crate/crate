@@ -28,9 +28,9 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './mvnw -T 1C compile'
+            sh './mvnw compile'
             sh '''
-              x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw -T 1C test \
+              x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw test \
                 -DforkCount=8 \
                 -Dtests.crate.slow=true \
                 -Dcheckstyle.skip \
