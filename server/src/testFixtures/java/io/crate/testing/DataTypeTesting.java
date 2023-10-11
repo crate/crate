@@ -64,6 +64,7 @@ import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
+import io.crate.types.ObjectType.Builder;
 import io.crate.types.Regclass;
 import io.crate.types.RegclassType;
 import io.crate.types.ShortType;
@@ -220,6 +221,29 @@ public class DataTypeTesting {
                 };
             default:
                 throw new AssertionError("No data generator for type " + type.getName());
+        }
+    }
+
+    /**
+     * Adds innerTypes to object type definitions
+     **/
+    public static DataType<?> extendedType(DataType<?> type, Object value) {
+        if (type.id() == ObjectType.ID) {
+            var entryIt = ((Map<?, ?>) value).entrySet().iterator();
+            Builder builder = ObjectType.builder();
+            while (entryIt.hasNext()) {
+                var entry = entryIt.next();
+                String innerName = (String) entry.getKey();
+                Object innerValue = entry.getValue();
+                DataType<?> innerType = DataTypes.guessType(innerValue);
+                if (innerType.id() == ObjectType.ID && innerValue instanceof Map<?, ?> m && m.containsKey("coordinates")) {
+                    innerType = DataTypes.GEO_SHAPE;
+                }
+                builder.setInnerType(innerName, extendedType(innerType, innerValue));
+            }
+            return builder.build();
+        } else {
+            return type;
         }
     }
 
