@@ -116,3 +116,6 @@ Fixes
 
 - Fixed an issue that caused ``(I)LIKE ANY`` operators to fail with an exception
   when comparing non-string expressions.
+
+- Fixed an issue that caused ``IS NULL`` operators to raise an error if the
+  column had the column store disabled.
