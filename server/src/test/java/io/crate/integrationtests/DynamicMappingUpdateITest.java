@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.testing.UseNewCluster;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
@@ -59,6 +60,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
 
     @Test
     @UseNewCluster
+    @Repeat(iterations = 500)
     public void test_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         execute("create table t (a int, b object as (x int))");
         execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates();
