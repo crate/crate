@@ -33,7 +33,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-
 import org.jetbrains.annotations.NotNull;
 
 /** A {@link FieldMapper} for full-text fields. */
@@ -191,7 +190,7 @@ public class TextFieldMapper extends FieldMapper {
     public static final class TextFieldType extends MappedFieldType {
 
         public TextFieldType(String name, boolean indexed, boolean hasPositions) {
-            super(name, indexed, false);
+            super(name, indexed, false, true);
             this.hasPositions = hasPositions;
         }
 
