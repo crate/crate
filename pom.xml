@@ -199,7 +199,7 @@
     <maven.compiler.source>20</maven.compiler.source>
     <maven.compiler.target>20</maven.compiler.target>
 
-    <versions.jdk>20.0.2</versions.jdk>
+    <versions.jdk>21</versions.jdk>
     <versions.annotations>24.0.1</versions.annotations>
     <versions.log4j>2.19.0</versions.log4j>
     <versions.assertj>3.23.1</versions.assertj>
