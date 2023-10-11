@@ -75,8 +75,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.tests.util.LuceneTestCase;
@@ -147,6 +145,7 @@ import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matchers;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -208,7 +207,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
-import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.Identifiers;
@@ -218,6 +216,7 @@ import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestExecutionConfig;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -276,7 +275,7 @@ import io.crate.user.UserLookup;
 @UseJdbc
 @UseHashJoins
 @UseRandomizedSchema
-@UseRandomizedOptimizerRules(alwaysKeep = {RemoveRedundantFetchOrEval.class, MergeFilterAndCollect.class})
+@UseRandomizedOptimizerRules(alwaysKeep = MergeFilterAndCollect.class)
 public abstract class IntegTestCase extends ESTestCase {
 
     private static final Logger LOGGER = LogManager.getLogger(IntegTestCase.class);
@@ -1101,6 +1100,10 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     private Scope getCurrentClusterScope() {
+        UseNewCluster createNewCluster = getTestAnnotation(UseNewCluster.class);
+        if (createNewCluster != null) {
+            return Scope.TEST;
+        }
         return getCurrentClusterScope(this.getClass());
     }
 
@@ -1689,7 +1692,7 @@ public abstract class IntegTestCase extends ESTestCase {
             // If enterprise is not enabled there is no UserLookup instance bound in guice
             userLookup = () -> List.of(User.CRATE_USER);
         }
-        try (Session session = sqlOperations.createSession(schema, userLookup.findUser("crate"))) {
+        try (Session session = sqlOperations.newSession(schema, userLookup.findUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
         }
         return response;
@@ -1879,7 +1882,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
-        try (Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
+        try (Session session = sqlOperations.newSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
             SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
             this.response = response;
             return response;
@@ -2012,7 +2015,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     protected Session createSessionOnNode(String nodeName) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, nodeName);
-        return sqlOperations.createSession(
+        return sqlOperations.newSession(
             sqlExecutor.getCurrentSchema(), User.CRATE_USER);
     }
 
@@ -2026,7 +2029,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     protected Session createSession(@Nullable String defaultSchema) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.createSession(defaultSchema, User.CRATE_USER);
+        return sqlOperations.newSession(defaultSchema, User.CRATE_USER);
     }
 
     private TestExecutionConfig testExecutionConfig() {

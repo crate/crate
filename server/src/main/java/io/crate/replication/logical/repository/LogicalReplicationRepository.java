@@ -34,8 +34,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
@@ -72,6 +70,7 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.exceptions.Exceptions;
@@ -224,11 +223,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void getRepositoryData(ActionListener<RepositoryData> listener) {
-        getRepositoryData().whenComplete(listener);
-    }
-
-    @Override
     public CompletableFuture<RepositoryData> getRepositoryData() {
         return getPublicationsState()
             .thenCompose(resp -> getRemoteClusterState(false, false, resp.concreteIndices(), resp.concreteTemplates()))
@@ -362,7 +356,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
                     snapshotShardId.getIndexName(),
-                    snapshotShardId.getId()
+                    snapshotShardId.id()
                 )
                 .primaryShard();
             var publisherShardNode = publisherClusterState.nodes().get(publisherShardRouting.currentNodeId());
@@ -370,7 +364,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var shardId = new ShardId(
                 snapshotShardId.getIndexName(),
                 publisherClusterState.metadata().index(indexId.getName()).getIndexUUID(),
-                snapshotShardId.getId()
+                snapshotShardId.id()
             );
             var restoreUUID = UUIDs.randomBase64UUID();
             var getStoreMetadataRequest = new GetStoreMetadataAction.Request(
@@ -423,7 +417,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 );
                 chunkTransferCompleted.whenComplete((result, throwable) -> IOUtils.closeWhileHandlingException(multiChunkTransfer));
                 if (fileMetadata.isEmpty()) {
-                    LOGGER.info("Initializing with empty store for shard: {}", shardId.getId());
+                    LOGGER.info("Initializing with empty store for shard: {}", shardId.id());
                     try {
                         store.createEmpty(store.indexSettings().getIndexVersionCreated().luceneVersion);
                         listener.onResponse(null);

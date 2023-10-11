@@ -30,6 +30,7 @@ import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -40,8 +41,6 @@ import io.crate.user.UserLookup;
 
 public class LikeOperator extends Operator<String> {
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final TriPredicate<String, String, CaseSensitivity> matcher;
     private final CaseSensitivity caseSensitivity;
 
@@ -49,20 +48,9 @@ public class LikeOperator extends Operator<String> {
                         BoundSignature boundSignature,
                         TriPredicate<String, String, CaseSensitivity> matcher,
                         CaseSensitivity caseSensitivity) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.matcher = matcher;
         this.caseSensitivity = caseSensitivity;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override
@@ -96,28 +84,15 @@ public class LikeOperator extends Operator<String> {
         Object value = literal.value();
         assert value instanceof String
             : "LikeOperator is registered for string types. Value must be a string";
-        return caseSensitivity.likeQuery(ref.column().fqn(), (String) value);
+        return caseSensitivity.likeQuery(ref.storageIdent(), (String) value, ref.indexType() != IndexType.NONE);
     }
 
     private static class CompiledLike extends Scalar<Boolean, String> {
-        private final Signature signature;
-        private final BoundSignature boundSignature;
         private final Pattern pattern;
 
         CompiledLike(Signature signature, BoundSignature boundSignature, String pattern, CaseSensitivity caseSensitivity) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
             this.pattern = LikeOperators.makePattern(pattern, caseSensitivity);
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @SafeVarargs

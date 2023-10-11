@@ -77,8 +77,6 @@ public abstract sealed class AnyOperator extends Operator<Object>
         ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()
     );
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     protected final DataType<Object> leftType;
 
     public static void register(OperatorModule operatorModule) {
@@ -98,8 +96,8 @@ public abstract sealed class AnyOperator extends Operator<Object>
         module.register(
             Signature.scalar(
                 name,
-                TypeSignature.parseTypeSignature("E"),
-                TypeSignature.parseTypeSignature("array(E)"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)"),
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
             operatorFactory
@@ -108,19 +106,8 @@ public abstract sealed class AnyOperator extends Operator<Object>
 
     @SuppressWarnings("unchecked")
     AnyOperator(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.leftType = (DataType<Object>) boundSignature.argTypes().get(0);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     abstract boolean matches(Object probe, Object candidate);

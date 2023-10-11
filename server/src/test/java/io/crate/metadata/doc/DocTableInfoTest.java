@@ -22,11 +22,13 @@
 package io.crate.metadata.doc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
@@ -69,6 +71,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                     null
                 )
             ),
+            Set.of(),
             List.of(),
             List.of(),
             List.of(),
@@ -130,6 +133,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             true,
             false,
             1,
+            COLUMN_OID_UNASSIGNED,
+            false,
             null
         );
 
@@ -138,6 +143,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo info = new DocTableInfo(
             dummy,
             List.of(strictParent),
+            Set.of(),
             List.of(),
             List.of(),
             List.of(),
@@ -241,5 +247,68 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo tableInfo = e.resolveTableInfo("p1");
         assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.CURRENT);
+    }
+
+    @Test
+    public void test_dropped_columns_are_included_in_oid_to_column_map() throws Exception {
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
+
+        DocTableInfo info = new DocTableInfo(
+                relationName,
+                List.of(
+                        new SimpleReference(
+                                new ReferenceIdent(relationName, new ColumnIdent("a", List.of())),
+                                RowGranularity.DOC,
+                                DataTypes.INTEGER,
+                                ColumnPolicy.DYNAMIC,
+                                IndexType.PLAIN,
+                                true,
+                                false,
+                                1,
+                                1,
+                                false,
+                                null
+                        )
+                ),
+                Set.of(
+                        new SimpleReference(
+                                new ReferenceIdent(relationName, new ColumnIdent("b", List.of())),
+                                RowGranularity.DOC,
+                                DataTypes.INTEGER,
+                                ColumnPolicy.DYNAMIC,
+                                IndexType.PLAIN,
+                                true,
+                                false,
+                                2,
+                                2,
+                                true,
+                                null
+                        )
+                ),
+                List.of(),
+                List.of(),
+                List.of(),
+                Map.of(),
+                Map.of(),
+                Map.of(),
+                List.of(),
+                List.of(),
+                null,
+                true,
+                new String[0],
+                new String[0],
+                5,
+                "0",
+                Settings.EMPTY,
+                List.of(),
+                List.of(),
+                ColumnPolicy.DYNAMIC,
+                Version.CURRENT,
+                null,
+                false,
+                Operation.ALL
+        );
+
+        assertThat(info.lookupNameBySourceKey().apply("2")).isEqualTo("b");
     }
 }

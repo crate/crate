@@ -23,6 +23,7 @@ package io.crate.planner.optimizer;
 
 import java.util.function.Function;
 
+import io.crate.common.StringUtils;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
@@ -55,5 +56,22 @@ public interface Rule<T> {
      */
     default Version requiredVersion() {
         return Version.V_4_0_0;
+    }
+
+    /**
+     * If a rule is mandatory, the rule will always be included in the optimizer rule set and will
+     * not be exposed as session setting to be configurable by the user.
+     * This is useful for rules which are mandatory for building a valid query execution plan.
+     */
+    default boolean mandatory() {
+        return false;
+    }
+
+    default String sessionSettingName() {
+        return sessionSettingName(getClass());
+    }
+
+    static String sessionSettingName(Class<?> rule) {
+        return "optimizer_" + StringUtils.camelToSnakeCase(rule.getSimpleName());
     }
 }

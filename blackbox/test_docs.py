@@ -460,6 +460,7 @@ def load_tests(loader, suite, ignore):
     for fn in doctest_files('general/ddl/create-table.rst',
                             'general/ddl/generated-columns.rst',
                             'general/ddl/constraints.rst',
+                            'sql/general/constraints.rst',
                             'general/ddl/sharding.rst',
                             'general/ddl/replication.rst',
                             'general/ddl/column-policy.rst',

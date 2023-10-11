@@ -21,9 +21,6 @@
 
 package io.crate.blob;
 
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING;
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_OPERATIONS_SETTING;
-
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -33,13 +30,9 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
-import org.elasticsearch.transport.TransportService;
 
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
-import io.crate.blob.recovery.BlobRecoveryHandler;
 import io.crate.blob.transfer.BlobHeadRequestHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
@@ -50,33 +43,21 @@ public class BlobService extends AbstractLifecycleComponent {
 
     private final BlobIndicesService blobIndicesService;
     private final BlobHeadRequestHandler blobHeadRequestHandler;
-    private final PeerRecoverySourceService peerRecoverySourceService;
     private final ClusterService clusterService;
-    private final TransportService transportService;
-    private final BlobTransferTarget blobTransferTarget;
     private final Client client;
     private final PipelineRegistry pipelineRegistry;
-    private final Settings settings;
 
     @Inject
     public BlobService(ClusterService clusterService,
                        BlobIndicesService blobIndicesService,
                        BlobHeadRequestHandler blobHeadRequestHandler,
-                       PeerRecoverySourceService peerRecoverySourceService,
-                       TransportService transportService,
-                       BlobTransferTarget blobTransferTarget,
                        Client client,
-                       PipelineRegistry pipelineRegistry,
-                       Settings settings) {
+                       PipelineRegistry pipelineRegistry) {
         this.clusterService = clusterService;
         this.blobIndicesService = blobIndicesService;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
-        this.peerRecoverySourceService = peerRecoverySourceService;
-        this.transportService = transportService;
-        this.blobTransferTarget = blobTransferTarget;
         this.client = client;
         this.pipelineRegistry = pipelineRegistry;
-        this.settings = settings;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
@@ -93,24 +74,7 @@ public class BlobService extends AbstractLifecycleComponent {
             new PipelineRegistry.ChannelPipelineItem(
                 "aggregator", "blob_handler", netty4CorsConfig -> new HttpBlobHandler(this, blobIndicesService, netty4CorsConfig))
         );
-
         blobHeadRequestHandler.registerHandler();
-        peerRecoverySourceService.registerRecoverySourceHandlerProvider((shard, request, recoveryTarget, fileChunkSizeInBytes) -> {
-            if (!BlobIndex.isBlobIndex(shard.shardId().getIndexName())) {
-                return null;
-            }
-            return new BlobRecoveryHandler(
-                shard,
-                recoveryTarget,
-                request,
-                fileChunkSizeInBytes,
-                INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING.get(settings),
-                INDICES_RECOVERY_MAX_CONCURRENT_OPERATIONS_SETTING.get(settings),
-                transportService,
-                blobTransferTarget,
-                blobIndicesService
-            );
-        });
     }
 
     @Override

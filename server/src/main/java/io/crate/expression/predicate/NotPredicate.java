@@ -21,6 +21,8 @@
 
 package io.crate.expression.predicate;
 
+import static io.crate.expression.predicate.IsNullPredicate.isNullFuncToQuery;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -50,8 +52,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
-import static io.crate.expression.predicate.IsNullPredicate.isNullFuncToQuery;
-
 public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
@@ -67,22 +67,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private NotPredicate(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -97,8 +83,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 // WHERE NOT NULL -> WHERE NULL
                 return Literal.of(DataTypes.BOOLEAN, null);
             }
-            if (value instanceof Boolean) {
-                return Literal.of(!((Boolean) value));
+            if (value instanceof Boolean b) {
+                return Literal.of(!b);
             }
         }
         return symbol;
@@ -187,8 +173,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         Symbol arg = input.arguments().get(0);
 
         // Optimize `NOT (<ref> IS NULL)`
-        if (arg instanceof Function && ((Function) arg).name().equals(IsNullPredicate.NAME)) {
-            Function innerFunction = (Function) arg;
+        if (arg instanceof Function innerFunction && innerFunction.name().equals(IsNullPredicate.NAME)) {
             if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference ref) {
                 // Ignored objects have no field names in the index, need function filter fallback
                 if (ref.columnPolicy() == ColumnPolicy.IGNORED) {

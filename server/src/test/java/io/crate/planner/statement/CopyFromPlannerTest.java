@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -160,5 +161,12 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testNodeFiltersNoMatch() {
         Collect cm = plan("copy users from '/path' with (node_filters={name='foobar'})");
         assertThat(cm.collectPhase().nodeIds()).isEmpty();
+    }
+
+    @Test
+    public void test_logs_deprecation_on_validation_false() throws Exception {
+        CopyFromPlan.DEPRECATION_LOGGER.resetLRU();
+        plan("copy users from '/path' with (validation = false)");
+        assertWarnings("Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
     }
 }

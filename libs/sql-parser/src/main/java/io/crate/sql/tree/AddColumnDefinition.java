@@ -21,20 +21,17 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Function;
+
+import org.jetbrains.annotations.Nullable;
 
 public class AddColumnDefinition<T> extends TableElement<T> {
 
     private final T name;
     @Nullable
     private final T generatedExpression;
-    private final boolean generated;
     @Nullable
     private final ColumnType<T> type;
     private final List<ColumnConstraint<T>> constraints;
@@ -43,29 +40,14 @@ public class AddColumnDefinition<T> extends TableElement<T> {
                                @Nullable T generatedExpression,
                                @Nullable ColumnType<T> type,
                                List<ColumnConstraint<T>> constraints) {
-        this(name, generatedExpression, type, constraints, true, generatedExpression != null);
-    }
-
-    public AddColumnDefinition(T name,
-                               @Nullable T generatedExpression,
-                               @Nullable ColumnType<T> type,
-                               List<ColumnConstraint<T>> constraints,
-                               boolean validate,
-                               boolean generated) {
         this.name = name;
         this.generatedExpression = generatedExpression;
-        this.generated = generated;
         this.type = type;
         this.constraints = constraints;
-        if (validate) {
-            validateColumnDefinition();
-        }
-    }
-
-    private void validateColumnDefinition() {
         if (type == null && generatedExpression == null) {
-            throw new IllegalArgumentException("Column [" + name + "]: data type needs to be provided " +
-                                               "or column should be defined as a generated expression");
+            throw new IllegalArgumentException(
+                "Column [" + name + "]: data type needs to be provided " +
+                "or column should be defined as a generated expression");
         }
     }
 
@@ -78,9 +60,6 @@ public class AddColumnDefinition<T> extends TableElement<T> {
         return generatedExpression;
     }
 
-    public boolean isGenerated() {
-        return generated;
-    }
 
     @Nullable
     public ColumnType<T> type() {
@@ -100,8 +79,7 @@ public class AddColumnDefinition<T> extends TableElement<T> {
             return false;
         }
         AddColumnDefinition<?> that = (AddColumnDefinition<?>) o;
-        return generated == that.generated &&
-               Objects.equals(name, that.name) &&
+        return Objects.equals(name, that.name) &&
                Objects.equals(generatedExpression, that.generatedExpression) &&
                Objects.equals(type, that.type) &&
                Objects.equals(constraints, that.constraints);
@@ -109,7 +87,7 @@ public class AddColumnDefinition<T> extends TableElement<T> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, generatedExpression, generated, type, constraints);
+        return Objects.hash(name, generatedExpression, type, constraints);
     }
 
     @Override
@@ -117,7 +95,6 @@ public class AddColumnDefinition<T> extends TableElement<T> {
         return "AddColumnDefinition{" +
                "name=" + name +
                ", generatedExpression=" + generatedExpression +
-               ", generated=" + generated +
                ", type=" + type +
                ", constraints=" + constraints +
                '}';
@@ -126,30 +103,6 @@ public class AddColumnDefinition<T> extends TableElement<T> {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitAddColumnDefinition(this, context);
-    }
-
-    @Override
-    public <U> AddColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
-        return new AddColumnDefinition<>(
-            mapper.apply(name),
-            null,   // expression must be mapped later on using mapExpressions()
-            type == null ? null : type.map(mapper),
-            Lists2.map(constraints, x -> x.map(mapper)),
-            false,
-            generatedExpression != null
-        );
-    }
-
-    @Override
-    public <U> TableElement<U> mapExpressions(TableElement<U> mappedElement,
-                                              Function<? super T, ? extends U> mapper) {
-        AddColumnDefinition<U> mappedAddDefinition = (AddColumnDefinition<U>) mappedElement;
-        return new AddColumnDefinition<>(
-            mappedAddDefinition.name,
-            generatedExpression == null ? null : mapper.apply(generatedExpression),
-            type == null ? null : type.mapExpressions(mappedAddDefinition.type, mapper),
-            mappedAddDefinition.constraints
-        );
     }
 
     @Override

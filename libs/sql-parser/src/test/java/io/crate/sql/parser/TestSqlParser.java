@@ -53,6 +53,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.SingleColumn;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 
@@ -391,14 +392,34 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testCurrentTimestamp() {
+    public void test_current_date_time_timestamp() {
+        assertExpression("CURRENT_DATE", new CurrentTime(CurrentTime.Type.DATE));
+        var stmt = SqlParser.createStatement("SELECT CURRENT_DATE AS CURRENT_DATE");
+        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+            s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_date")
+        );
+
+        assertExpression("CURRENT_TIME", new CurrentTime(CurrentTime.Type.TIME));
+        stmt = SqlParser.createStatement("SELECT CURRENT_TIME CURRENT_TIME");
+        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+            s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_time")
+        );
+
         assertExpression("CURRENT_TIMESTAMP", new CurrentTime(CurrentTime.Type.TIMESTAMP));
+        stmt = SqlParser.createStatement("SELECT CURRENT_TIMESTAMP AS CURRENT_TIMESTAMP");
+        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+            s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_timestamp")
+        );
     }
 
     @Test
     public void testCurrentSchemaFunction() {
         assertInstanceOf("CURRENT_SCHEMA", FunctionCall.class);
         assertInstanceOf("CURRENT_SCHEMA()", FunctionCall.class);
+        var stmt = SqlParser.createStatement("SELECT CURRENT_SCHEMA AS CURRENT_SCHEMA");
+        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+            s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_schema")
+        );
     }
 
     @Test

@@ -71,6 +71,8 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             var mapper = new GeoPointFieldMapper(
                 name,
                 position,
+                columnOID,
+                isDropped,
                 defaultExpression,
                 fieldType,
                 ft,
@@ -93,11 +95,13 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
 
     public GeoPointFieldMapper(String simpleName,
                                int position,
+                               long columnOID,
+                               boolean isDropped,
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType defaultFieldType,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, copyTo);
+        super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, defaultFieldType, copyTo);
     }
 
     @Override

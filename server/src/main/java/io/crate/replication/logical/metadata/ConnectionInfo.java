@@ -21,18 +21,6 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.exceptions.InvalidArgumentException;
-import io.crate.types.DataTypes;
-import io.crate.user.User;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.RemoteCluster;
-import org.elasticsearch.transport.RemoteCluster.ConnectionStrategy;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -43,13 +31,25 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.RemoteCluster;
+import org.elasticsearch.transport.RemoteCluster.ConnectionStrategy;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.replication.logical.exceptions.CreateSubscriptionException;
+import io.crate.types.DataTypes;
+import io.crate.user.User;
+
 
 public class ConnectionInfo implements Writeable {
 
     public static final Setting<String> USERNAME = Setting.simpleString("user");
 
     public static final Setting<String> PASSWORD = Setting.simpleString("password");
-
 
     public enum SSLMode {
         PREFER,
@@ -64,7 +64,7 @@ public class ConnectionInfo implements Writeable {
             case "prefer" -> SSLMode.PREFER;
             case "disable" -> SSLMode.DISABLE;
             case "require" -> SSLMode.REQUIRE;
-            default -> throw new InvalidArgumentException("Invalid value for sslmode: " + input + " expected one of: prefer, disable, require");
+            default -> throw new CreateSubscriptionException("Invalid value for sslmode: " + input + " expected one of: prefer, disable, require");
         },
         DataTypes.STRING
     );
@@ -80,86 +80,95 @@ public class ConnectionInfo implements Writeable {
     private static final String DEFAULT_PG_PORT = "5432";
 
     public static ConnectionInfo fromURL(String url) {
-        List<String> hosts = new ArrayList<>();
+        try {
+            List<String> hosts = new ArrayList<>();
 
-        String urlServer = url;
-        String urlArgs = "";
+            String urlServer = url;
+            String urlArgs = "";
 
-        int qPos = url.indexOf('?');
-        if (qPos != -1) {
-            urlServer = url.substring(0, qPos);
-            urlArgs = url.substring(qPos + 1);
-        }
-
-        // parse the args part of the url
-        var settingsBuilder = Settings.builder();
-        String[] args = urlArgs.split("&");
-        for (String token : args) {
-            if (token.isEmpty()) {
-                continue;
+            int qPos = url.indexOf('?');
+            if (qPos != -1) {
+                urlServer = url.substring(0, qPos);
+                urlArgs = url.substring(qPos + 1);
             }
-            String settingName;
-            String settingValue;
-            int pos = token.indexOf('=');
-            if (pos == -1) {
-                settingName = token;
-                settingValue = "";
-            } else {
-                settingName = token.substring(0, pos);
-                settingValue = URLDecoder.decode(token.substring(pos + 1), StandardCharsets.UTF_8);
+
+            // parse the args part of the url
+            var settingsBuilder = Settings.builder();
+            String[] args = urlArgs.split("&");
+            for (String token : args) {
+                if (token.isEmpty()) {
+                    continue;
+                }
+                String settingName;
+                String settingValue;
+                int pos = token.indexOf('=');
+                if (pos == -1) {
+                    settingName = token;
+                    settingValue = "";
+                } else {
+                    settingName = token.substring(0, pos);
+                    settingValue = URLDecoder.decode(token.substring(pos + 1), StandardCharsets.UTF_8);
+                }
+                if (SUPPORTED_SETTINGS.contains(settingName) == false) {
+                    throw new CreateSubscriptionException(
+                        String.format(Locale.ENGLISH,
+                                      "Connection string argument '%s' is not supported", settingName)
+                    );
+                }
+                settingsBuilder.put(settingName, settingValue);
             }
-            if (SUPPORTED_SETTINGS.contains(settingName) == false) {
-                throw new InvalidArgumentException(
+
+            if (!urlServer.startsWith("crate://")) {
+                throw new CreateSubscriptionException(
                     String.format(Locale.ENGLISH,
-                                  "Connection string argument '%s' is not supported", settingName)
+                                  "The connection string must start with \"crate://\" but was: \"%s\"", url)
                 );
             }
-            settingsBuilder.put(settingName, settingValue);
-        }
+            urlServer = urlServer.substring("crate://".length());
 
-        if (!urlServer.startsWith("crate://")) {
-            throw new InvalidArgumentException(
-                String.format(Locale.ENGLISH,
-                              "The connection string must start with \"crate://\" but was: \"%s\"", url)
-            );
-        }
-        urlServer = urlServer.substring("crate://".length());
+            int slash = urlServer.indexOf('/');
+            if (slash != -1) {
+                if (slash != urlServer.length() - 1) {
+                    throw new CreateSubscriptionException(
+                        String.format(Locale.ENGLISH,
+                                      "Database name \"%s\" is not supported inside the connection string: %s",
+                                      urlServer.substring(slash + 1),
+                                      url)
+                    );
+                }
+                urlServer = urlServer.substring(0, slash);
+            }
+            slash = urlServer.length();
 
-        int slash = urlServer.indexOf('/');
-        if (slash != -1 && slash != urlServer.length()) {
-            throw new InvalidArgumentException(
-                String.format(Locale.ENGLISH,
-                              "Database argument is not supported inside the connection string: %s", url)
-            );
-        }
-        slash = urlServer.length();
-
-        Settings settings = settingsBuilder.build();
-        String[] addresses = urlServer.substring(0, slash).split(",");
-        for (String address : addresses) {
-            int portIdx = address.lastIndexOf(':');
-            if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
-                String portStr = address.substring(portIdx + 1);
-                try {
-                    int port = Integer.parseInt(portStr);
-                    if (port < 1 || port > 65535) {
-                        throw new InvalidArgumentException(
+            Settings settings = settingsBuilder.build();
+            String[] addresses = urlServer.substring(0, slash).split(",");
+            for (String address : addresses) {
+                int portIdx = address.lastIndexOf(':');
+                if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
+                    String portStr = address.substring(portIdx + 1);
+                    try {
+                        int port = Integer.parseInt(portStr);
+                        if (port < 1 || port > 65535) {
+                            throw new CreateSubscriptionException(
+                                String.format(Locale.ENGLISH,
+                                              "Invalid port number '%s' inside connection string (1:65535)", portStr)
+                            );
+                        }
+                    } catch (NumberFormatException ignore) {
+                        throw new CreateSubscriptionException(
                             String.format(Locale.ENGLISH,
                                           "Invalid port number '%s' inside connection string (1:65535)", portStr)
                         );
                     }
-                } catch (NumberFormatException ignore) {
-                    throw new InvalidArgumentException(
-                        String.format(Locale.ENGLISH,
-                                      "Invalid port number '%s' inside connection string (1:65535)", portStr)
-                    );
+                    hosts.add(address);
+                } else {
+                    hosts.add(address + ":" + defaultPort(settings));
                 }
-                hosts.add(address);
-            } else {
-                hosts.add(address + ":" + defaultPort(settings));
             }
+            return new ConnectionInfo(hosts, settings);
+        } catch (Exception e) {
+            throw new CreateSubscriptionException(e);
         }
-        return new ConnectionInfo(hosts, settings);
     }
 
     private static String defaultPort(Settings settings) {

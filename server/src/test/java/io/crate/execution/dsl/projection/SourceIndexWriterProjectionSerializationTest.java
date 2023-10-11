@@ -22,7 +22,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.List;
@@ -53,16 +54,19 @@ public class SourceIndexWriterProjectionSerializationTest {
     public void testSerializationFailFast() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            dataType,
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
             0,
-            Literal.of(Map.of("f", 10)
+            COLUMN_OID_UNASSIGNED,
+            false,
+            Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
         String partitionIdent = "pIdent";
@@ -103,23 +107,26 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in2 = out2.bytes().streamInput();
         in2.setVersion(Version.V_4_7_0);
 
-        assertThat(new SourceIndexWriterProjection(in2).failFast()).isEqualTo((expected.failFast()));
+        assertThat(new SourceIndexWriterProjection(in2).failFast()).isEqualTo(expected.failFast());
     }
 
     @Test
     public void testSerializationValidationFlag() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            dataType,
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
             0,
-            Literal.of(Map.of("f", 10)
+            COLUMN_OID_UNASSIGNED,
+            false,
+            Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
         String partitionIdent = "pIdent";
@@ -151,7 +158,7 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_7_0);
 
-        assertThat(new SourceIndexWriterProjection(in).validation()).isTrue(); // validation flag value lost and set to default (true)
+        new SourceIndexWriterProjection(in);
 
         BytesStreamOutput out2 = new BytesStreamOutput();
         out2.setVersion(Version.V_4_8_0);
@@ -160,6 +167,6 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in2 = out2.bytes().streamInput();
         in2.setVersion(Version.V_4_8_0);
 
-        assertThat(new SourceIndexWriterProjection(in2).validation()).isFalse(); // validation flag value recovered
+        new SourceIndexWriterProjection(in2);
     }
 }

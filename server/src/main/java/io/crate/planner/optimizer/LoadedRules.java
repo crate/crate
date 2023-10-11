@@ -27,7 +27,6 @@ import java.util.Locale;
 
 import org.elasticsearch.common.inject.Singleton;
 
-import io.crate.common.StringUtils;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -39,7 +38,6 @@ import io.crate.types.DataTypes;
 @Singleton
 public class LoadedRules implements SessionSettingProvider {
 
-    private static final String OPTIMIZER_SETTING_PREFIX = "optimizer_";
     public static final List<Class<? extends Rule<?>>> RULES = buildRules();
 
     private static List<Class<? extends Rule<?>>> buildRules() {
@@ -47,16 +45,18 @@ public class LoadedRules implements SessionSettingProvider {
         rules.addAll(LogicalPlanner.ITERATIVE_OPTIMIZER_RULES);
         rules.addAll(LogicalPlanner.JOIN_ORDER_OPTIMIZER_RULES);
         rules.addAll(LogicalPlanner.FETCH_OPTIMIZER_RULES);
-        return Lists2.map(rules, x -> (Class<? extends Rule<?>>) x.getClass());
-    }
-
-    public static String buildSessionSettingName(Class<? extends Rule<?>> rule) {
-        return OPTIMIZER_SETTING_PREFIX + StringUtils.camelToSnakeCase(rule.getSimpleName());
+        var result = new ArrayList<Class<? extends Rule<?>>>();
+        for (Rule<?> rule : rules) {
+            if (rule.mandatory() == false) {
+                result.add((Class<? extends Rule<?>>) rule.getClass());
+            }
+        }
+        return result;
     }
 
     @VisibleForTesting
     static SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
-        var optimizerRuleName = buildSessionSettingName(rule);
+        var optimizerRuleName = Rule.sessionSettingName(rule);
         return new SessionSetting<>(
             optimizerRuleName,
             objects -> {},

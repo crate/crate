@@ -33,13 +33,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
-import io.crate.common.annotations.GuardedBy;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -48,7 +41,13 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.NotNull;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.cursors.IntCursor;
+
+import io.crate.common.annotations.GuardedBy;
 import io.crate.common.collections.BorrowedItem;
 import io.crate.common.collections.RefCountedItem;
 import io.crate.common.exceptions.Exceptions;
@@ -67,6 +66,7 @@ public class FetchTask implements Task {
     private final IntObjectHashMap<RefCountedItem<? extends IndexSearcher>> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
+    private final int memoryLimitInBytes;
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
     private final TreeMap<Integer, RelationName> tableIdents = new TreeMap<>();
@@ -86,6 +86,7 @@ public class FetchTask implements Task {
 
     public FetchTask(UUID jobId,
                      FetchPhase phase,
+                     int memoryLimitInBytes,
                      String localNodeId,
                      SharedShardContexts sharedShardContexts,
                      Metadata metadata,
@@ -93,6 +94,7 @@ public class FetchTask implements Task {
                      Iterable<? extends Routing> routingIterable) {
         this.jobId = jobId;
         this.phase = phase;
+        this.memoryLimitInBytes = memoryLimitInBytes;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
         this.metadata = metadata;
@@ -106,6 +108,13 @@ public class FetchTask implements Task {
             cursor.value.close();
         }
         searchers.clear();
+    }
+
+    /**
+     * From the memory.operation_limit session setting.
+     */
+    public int memoryLimitInBytes() {
+        return memoryLimitInBytes;
     }
 
     public Map<RelationName, Collection<Reference>> toFetch() {

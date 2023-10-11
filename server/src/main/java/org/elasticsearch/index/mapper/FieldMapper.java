@@ -19,6 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,8 +29,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -36,6 +36,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
 
@@ -84,6 +85,9 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
 
         protected String buildFullName(BuilderContext context) {
+            if (columnOID != COLUMN_OID_UNASSIGNED) {
+                return Long.toString(columnOID);
+            }
             return context.path().pathAsText(name);
         }
 
@@ -103,12 +107,15 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
     protected FieldMapper(String simpleName,
                           int position,
+                          long columnOID,
+                          boolean isDropped,
                           @Nullable String defaultExpression,
                           FieldType fieldType,
                           MappedFieldType mappedFieldType,
                           CopyTo copyTo) {
-        super(simpleName);
+        super(simpleName, columnOID);
         this.position = position;
+        this.isDropped = isDropped;
         this.defaultExpression = defaultExpression;
         if (mappedFieldType.name().isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
@@ -121,6 +128,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
     public int position() {
         return position;
+    }
+
+    public boolean isDropped() {
+        return isDropped;
     }
 
     @Override
@@ -213,6 +224,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         merged.mappedFieldType = toMerge.mappedFieldType;
         merged.fieldType = toMerge.fieldType;
         merged.copyTo = toMerge.copyTo;
+        merged.isDropped = toMerge.isDropped();
         return merged;
     }
 
@@ -312,6 +324,12 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
         if (includeDefaults || fieldType.stored() != storedByDefault()) {
             builder.field("store", fieldType.stored());
+        }
+        if (columnOID != COLUMN_OID_UNASSIGNED) {
+            builder.field("oid", columnOID);
+        }
+        if (isDropped) {
+            builder.field("dropped", true);
         }
 
         copyTo.toXContent(builder);

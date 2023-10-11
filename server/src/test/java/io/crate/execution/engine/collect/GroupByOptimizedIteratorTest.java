@@ -30,10 +30,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -125,7 +127,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             Version.CURRENT,
             new InputRow(Collections.singletonList(inExpr)),
             new MatchAllDocsQuery(),
-            new CollectorContext(),
+            new CollectorContext(Set.of(), Function.identity()),
             AggregateMode.ITER_FINAL
         );
     }
@@ -190,7 +192,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void test_optimized_iterator_behaviour() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(() -> createBatchIterator(() -> {}));
+        var tester = BatchIteratorTester.forRows(() -> createBatchIterator(() -> {}));
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 

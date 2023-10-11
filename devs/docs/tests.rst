@@ -2,17 +2,37 @@
 Test cheatsheet
 ===============
 
-Run tests in a single module using multiple forks::
+To run all tests::
 
-    $ ./gradlew --parallel -PtestForks=2 :sql:test
+    $ ./mvnw test
 
-Run the all of `doctests`_::
 
-    $ ./gradlew itest
+To run tests in a single module, you have to install the modules once::
 
-For running itest on Windows, `WSL needs to be installed`_. If the downloaded
-Linux distro comes without Java, you can install it by running the following
-commands::
+    $ ./mvnw install -DskipTests=true
+
+And then run::
+
+    $ ./mvnw test -pl <module>
+
+For example::
+
+    $ ./mvnw test -pl server
+
+Run tests using multiple forks::
+
+    $ ./mvnw test -DforkCount=4
+
+This requires ``$JAVA_HOME`` to match the used toolchain version because
+maven/surefire won't use the toolchain JDK to run the test forks.
+
+Run all `doctests`_::
+
+    $ ./blackbox/bin/test-docs
+
+For running the documentation tests on Windows, `WSL needs to be installed`_. If
+the downloaded Linux distro comes without Java, you can install it by running
+the following commands::
 
     $ sudo add-apt-repository ppa:openjdk-r/ppa
     $ sudo apt-get update
@@ -33,11 +53,11 @@ page and run::
 After all configuration is done, launch WSL from the project directory
 (by running ``wsl``) and run::
 
-    $ ./gradlew itest
+    $ ./blackbox/bin/test-docs
 
 Run the doctests for a specific file (e.g., ``filename.rst``):
 
-    $ ITEST_FILE_NAME_FILTER=filename.rst ./gradlew itest
+    $ ITEST_FILE_NAME_FILTER=filename.rst ./blackbox/bin/test-docs
 
 You can also ``export`` ``ITEST_FILE_NAME_FILTER`` to your shell environment
 (e.g., export ITEST_FILE_NAME_FILTER=filename.rst``) if you want to set the
@@ -45,21 +65,17 @@ value for the remainder of your terminal session.
 
 Filter tests::
 
-    $ ./gradlew test --tests '*ClassName.testMethodName'
+    $ ./mvnw '-Dtest=PlannerTest#testSet*' test -pl server
 
 Extra options::
 
-    $ ./gradlew :server:test -Dtests.seed=8352BE0120F826A9
+    $ ./mvnw test -pl server -Dtests.seed=8352BE0120F826A9
 
-    $ ./gradlew :server:test -Dtests.iters=20
+    $ ./mvnw test -pl server -Dtests.iters=20
 
-    $ ./gradlew :server:test -Dtests.nightly=true # defaults to "false"
+    $ ./mvnw test -pl server -Dtests.nightly=true # defaults to "false"
 
-    $ ./gradlew :server:test -Dtests.verbose=true # log result of all invoked tests
-
-More logging::
-
-    $ ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :server:test
+    $ ./mvnw test -pl server -Dtests.verbose=true # log result of all invoked tests
 
 More logging by changing code:
 

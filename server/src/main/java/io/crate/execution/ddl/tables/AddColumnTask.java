@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import static io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
 import static io.crate.execution.ddl.tables.MappingUtil.mergeConstraints;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -43,12 +45,16 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Maps;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -70,34 +76,26 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
     @Override
     @SuppressWarnings("unchecked")
     public ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
-        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
 
-        boolean allExist = true;
-        for (Reference ref : request.references()) {
-            Reference exists = currentTable.getReference(ref.column());
-            if (exists == null) {
-                allExist = false;
-            } else if (ref.valueType().id() != exists.valueType().id()) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
-                    ref.column(),
-                    exists.valueType().getName(),
-                    ref.valueType().getName()));
-            }
-        }
-        if (allExist) {
+        List<Reference> normalizedColumns = normalizeColumns(request, currentTable);
+        if (normalizedColumns == null) {
             return currentState;
         }
 
-        request = addMissingParentColumns(request, currentTable);
-
+        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+        if (currentTable.versionCreated().onOrAfter(Version.V_5_5_0)) {
+            normalizedColumns = DocReferences.applyOid(
+                    normalizedColumns,
+                    metadataBuilder.columnOidSupplier()
+            );
+        }
         Map<String, Object> mapping = createMapping(
-            request.references(),
+            AllocPosition.forTable(currentTable),
+            normalizedColumns,
             request.pKeyIndices(),
             request.checkConstraints(),
-            Map.of(),
             List.of(),
             null,
             null
@@ -117,53 +115,82 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             metadataBuilder.put(newIndexTemplateMetadata);
         }
 
-        currentState = updateMapping(currentState, metadataBuilder, request, (Map<String, Map<String, Object>>) mapping.get("properties"));
+        currentState = updateMapping(
+            currentState,
+            metadataBuilder,
+            request.relationName().indexNameOrAlias(),
+            normalizedColumns,
+            request.pKeyIndices(),
+            request.checkConstraints(),
+            (Map<String, Map<String, Object>>) mapping.get("properties")
+        );
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
         docTableInfoFactory.create(request.relationName(), currentState);
         return currentState;
     }
 
-    static AddColumnRequest addMissingParentColumns(AddColumnRequest request, DocTableInfo currentTable) {
+
+    /**
+     * Creates updated list of columns by adding missing parent columns.
+     * Replace existing references by taking them from the cluster state (so that we get an actual version with assigned OID).
+     * @return NULL if all columns already exist.
+     */
+    @Nullable
+    static List<Reference> normalizeColumns(AddColumnRequest request, DocTableInfo currentTable) {
         List<Reference> newColumns = new ArrayList<>();
-        boolean anyMissing = false;
-        for (var newColumn : request.references()) {
-            if (newColumn.column().isTopLevel()) {
-                newColumns.add(newColumn);
+
+        // Get existing references
+        boolean allExist = true;
+        for (Reference ref : request.references()) {
+            Reference exists = currentTable.getReference(ref.column());
+            if (exists == null) {
+                allExist = false;
+                newColumns.add(ref); // Actually new column, take it from request.
             } else {
-                ColumnIdent parent = newColumn.column();
-                while ((parent = parent.getParent()) != null) {
-                    if (!Symbols.containsColumn(request.references(), parent)
-                            && !Symbols.containsColumn(newColumns, parent)) {
-                        newColumns.add(currentTable.getReference(parent));
-                        anyMissing = true;
-                    }
+                if (ref.valueType().id() != exists.valueType().id()) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                     "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
+                                                                     ref.column(),
+                                                                     exists.valueType().getName(),
+                                                                     ref.valueType().getName()));
                 }
-                newColumns.add(newColumn);
+                newColumns.add(exists); // Get updated reference from the cluster state.
             }
         }
-        if (anyMissing) {
-            return new AddColumnRequest(
-                request.relationName(),
-                newColumns,
-                request.checkConstraints(),
-                request.pKeyIndices()
-            );
-        } else {
-            return request;
+        if (allExist) {
+            return null;
         }
+
+        // Add missing parents
+        for (var newColumn : request.references()) {
+            ColumnIdent parent = newColumn.column();
+            while ((parent = parent.getParent()) != null) {
+                if (!Symbols.containsColumn(request.references(), parent)
+                    && !Symbols.containsColumn(newColumns, parent)) {
+                    newColumns.add(currentTable.getReference(parent));
+                }
+            }
+        }
+
+        // If allExist was not short-circuited, we have at least one updated reference.
+        // Need to return an updated list regardless of missing parents presence.
+        return newColumns;
     }
 
     private ClusterState updateMapping(ClusterState currentState,
                                        Metadata.Builder metadataBuilder,
-                                       AddColumnRequest request,
+                                       String indexName,
+                                       List<Reference> references,
+                                       IntArrayList pkeyIndices,
+                                       Map<String, String> checkConstraints,
                                        Map<String, Map<String, Object>> propertiesMap) throws IOException {
-        Index[] concreteIndices = resolveIndices(currentState, request.relationName().indexNameOrAlias());
+        Index[] concreteIndices = resolveIndices(currentState, indexName);
 
         for (Index index : concreteIndices) {
             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
-            mergeDeltaIntoExistingMapping(indexMapping, request, propertiesMap);
+            mergeDeltaIntoExistingMapping(indexMapping, references, pkeyIndices, checkConstraints, propertiesMap);
             TransportSchemaUpdateAction.populateColumnPositions(indexMapping);
 
             MapperService mapperService = createMapperService.apply(indexMetadata);
@@ -181,7 +208,9 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
 
     @SuppressWarnings("unchecked")
     private static void mergeDeltaIntoExistingMapping(Map<String, Object> existingMapping,
-                                                      AddColumnRequest request,
+                                                      List<Reference> references,
+                                                      IntArrayList pkeyIndices,
+                                                      Map<String, String> checkConstraints,
                                                       Map<String, Map<String, Object>> propertiesMap) {
 
         Map<String, Object> meta = (Map<String, Object>) existingMapping.get("_meta");
@@ -192,7 +221,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             existingMapping.put("_meta", meta);
         }
 
-        mergeConstraints(meta, request.references(), request.pKeyIndices(), request.checkConstraints());
+        mergeConstraints(meta, references, pkeyIndices, checkConstraints);
 
         existingMapping.merge(
             "properties",
@@ -203,7 +232,4 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             }
         );
     }
-
-
-
 }

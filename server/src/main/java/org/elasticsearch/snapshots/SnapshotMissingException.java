@@ -19,15 +19,18 @@
 
 package org.elasticsearch.snapshots;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.exceptions.ClusterScopeException;
+import io.crate.exceptions.ResourceUnknownException;
 
 /**
  * Thrown if requested snapshot doesn't exist
  */
-public class SnapshotMissingException extends SnapshotException {
+public class SnapshotMissingException extends SnapshotException implements ResourceUnknownException, ClusterScopeException {
 
     public SnapshotMissingException(final String repositoryName, final SnapshotId snapshotId, final Throwable cause) {
         super(repositoryName, snapshotId, "is missing", cause);
@@ -49,5 +52,4 @@ public class SnapshotMissingException extends SnapshotException {
     public RestStatus status() {
         return RestStatus.NOT_FOUND;
     }
-
 }

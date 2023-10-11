@@ -21,6 +21,9 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
@@ -31,9 +34,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
 
@@ -51,22 +51,8 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public CurrentSchemasFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs

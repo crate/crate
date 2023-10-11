@@ -20,6 +20,7 @@
 package org.elasticsearch.index.mapper;
 
 import static java.util.Collections.emptyMap;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -298,7 +299,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 // first time through the loops
                 fullPathObjectMappers = new HashMap<>(this.fullPathObjectMappers);
             }
-            fullPathObjectMappers.put(objectMapper.fullPath(), objectMapper);
+            var path = objectMapper.columnOID() == COLUMN_OID_UNASSIGNED ? objectMapper.fullPath() : Long.toString(objectMapper.columnOID());
+            fullPathObjectMappers.put(path, objectMapper);
         }
 
         if (reason == MergeReason.MAPPING_UPDATE) {

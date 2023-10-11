@@ -24,11 +24,11 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -50,11 +50,46 @@ import io.crate.metadata.Reference;
  **/
 public interface ValueIndexer<T> {
 
+    /**
+     * Only {@link ObjectIndexer}, {@link ArrayIndexer} and {@link DynamicIndexer} can create new columns.
+     */
+    default void collectSchemaUpdates(@Nullable T value,
+                                      Consumer<? super Reference> onDynamicColumn,
+                                      Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {}
+
+    /**
+     * Update value indexer of inner columns.
+     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(Object, Consumer, Map)
+     * and added to the cluster state
+     *
+     * @param getRef A function that returns a reference for a given column ident based on the current cluster state
+     */
+    default void updateTargets(Function<ColumnIdent, Reference> getRef) {}
+
+    /**
+     * @param storageIdentLeafName is a key in the source.
+     * If it's NULL, writing key must be skipped.
+     * For example, for array of primitives,
+     * we need to write key only once and inner primitive indexer should be writing only values.
+     */
+    default void indexValue(
+        @Nullable T value,
+        @Nullable String storageIdentLeafName,
+        XContentBuilder xcontentBuilder,
+        Consumer<? super IndexableField> addField,
+        Map<ColumnIdent, Indexer.Synthetic> synthetics,
+        Map<ColumnIdent, ColumnConstraint> toValidate
+    ) throws IOException {
+        if (storageIdentLeafName != null) {
+            xcontentBuilder.field(storageIdentLeafName);
+        }
+        indexValue(value, xcontentBuilder, addField, synthetics, toValidate);
+    }
+
     void indexValue(
         @Nullable T value,
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
-        Consumer<? super Reference> onDynamicColumn,
         Map<ColumnIdent, Indexer.Synthetic> synthetics,
         Map<ColumnIdent, ColumnConstraint> toValidate
     ) throws IOException;

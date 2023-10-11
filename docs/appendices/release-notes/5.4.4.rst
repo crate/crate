@@ -1,0 +1,121 @@
+.. _version_5.4.4:
+
+==========================
+Version 5.4.4 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 5.4.4 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.4.4.
+
+    We recommend that you upgrade to the latest 5.3 release before moving to
+    5.4.4.
+
+    A rolling upgrade from 5.3.x to 5.4.4 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.4.0` release notes for a full list of changes in the
+5.4 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that led to file not found errors when trying to restore a
+  snapshot that was taken after a table had been swapped. A new snapshot
+  must be taken to apply the fix and solve the issue.
+
+- Fixed an issue that caused nested accesses to ``ignored`` objects with
+  unknown object keys from returning non ``nulls``. e.g.::
+
+    SELECT o['a']['unknown'] FROM t;
+
+  returning the value for ``o['a']`` instead of a ``null``.
+
+- Fixed an issue that caused the output object column of ``UNION`` on object
+  columns to contain only the sub-columns of the object column from the right
+  hand side. With this fix, the output object column will contain the
+  merged sub-columns of the respective objects of both relations.
+
+- Fixed an issue that caused ``IS NULL`` predicate to be ineffective on
+  sub-columns of ``ignored`` object types.
+
+- Fixed a regression introduced with CrateDB 5.3.1 which caused a
+  ``NullPointerException`` when creating a repository on S3 with authentication
+  provided by IAM role attached to the EC2 instance running the CrateDB node.
+
+- Fixed an issue which led to skipping duplicate column check, in
+  ``CREATE TABLE`` statements, if duplicate columns have the same type.
+
+- Fixed an issue with missing validation on ``INSERT`` statement, allowing to
+  specify duplicate target columns.
+
+- Fixed an issue that caused ``UPDATE`` statements, invoked immediately after a
+  ``DELETE`` statement, which empties a table, to show an error.
+
+- Fixed an issue that caused ``CASE`` expressions to throw
+  ``UnsupportedFeatureException`` when ``null`` values are returned for one or
+  more conditions. e.g.::
+
+    SELECT CASE col1
+      WHEN 'value1' THEN 1
+      WHEN 'value2' THEN NULL
+      WHEN 'value3' THEN 3
+      ELSE NULL
+    END
+    FROM (SELECT 'value1' AS col1) a;
+
+- Fixed an issue that caused :ref:`column policy <type-object-column-policy>`
+  of object types created by ``CREATE TABLE AS`` to be overridden to
+  ``strict``.
+
+ - Fixed an issue that caused ``RETURNING`` clause, referring to
+   non-deterministic ``GENERATED`` or ``DEFAULT`` columns, return a value, not
+   equal to the actually persisted one.
+
+ - Fixed an issue that caused storing inconsistent values on primary and
+   replica for ``GENERATED`` or ``DEFAULT`` columns, using non-deterministic
+   functions, returning different values even within the scope of a single
+   query. e.g.:: ``gen_random_text_uuid`` and ``random``. Functions like
+   ``NOW`` or ``CURRENT_TIMESTAMP`` are unaffected by this issue.
+
+- Fixed an issue that caused privileges checks to be bypassed when using scalar
+  sub-selects in various clauses of a query: ``SELECT``, ``WHERE``, ``HAVING``,
+  etc.
+
+ - Fixed an issue that caused ``any`` operators such as ``!= any``,
+   ``not like any`` or range operators like ``< any`` to throw
+   ``NullPointerExceptions`` or return invalid results when the left hand side
+   argument is a column and the right hand side argument array contains at
+   least one ``null``.
+
+- Fixed an issue that caused ``(I)LIKE ANY`` operators to fail with an exception
+  when comparing non-string expressions.
+
+- Fixed an issue that caused ``IS NULL`` operators to raise an error if the
+  column had the column store disabled.

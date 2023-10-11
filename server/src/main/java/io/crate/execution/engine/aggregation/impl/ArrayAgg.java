@@ -22,7 +22,6 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +36,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import io.crate.types.TypeSignature;
 
 public final class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
 
@@ -44,8 +44,8 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     public static final Signature SIGNATURE =
         Signature.aggregate(
             NAME,
-            parseTypeSignature("E"),
-            parseTypeSignature("array(E)")
+            TypeSignature.parse("E"),
+            TypeSignature.parse("array(E)")
         ).withTypeVariableConstraints(typeVariable("E"));
 
 

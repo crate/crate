@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common.logging;
 
+import static org.elasticsearch.common.settings.AbstractScopedSettings.LOGGER_SETTINGS_PREFIX;
 import static org.elasticsearch.common.util.CollectionUtils.asArrayList;
 
 import java.util.Map;
@@ -40,15 +41,16 @@ import io.crate.types.DataTypes;
 /**
  * A set of utilities around Logging.
  */
-public class Loggers {
-
+public final class Loggers {
     public static final String SPACE = " ";
+
+    private Loggers() {}
 
     public static final Setting<Level> LOG_DEFAULT_LEVEL_SETTING =
         new Setting<>("logger.level", Level.INFO.name(), Level::valueOf, DataTypes.STRING, Setting.Property.NodeScope);
     public static final Setting.AffixSetting<Level> LOG_LEVEL_SETTING = Setting.prefixKeySetting(
-        "logger.",
-        (key) -> new Setting<>(key, Level.INFO.name(), Level::valueOf, DataTypes.STRING, Setting.Property.Dynamic, Setting.Property.NodeScope)
+        LOGGER_SETTINGS_PREFIX,
+        key -> new Setting<>(key, Level.INFO.name(), Level::valueOf, DataTypes.STRING, Setting.Property.Dynamic, Setting.Property.NodeScope)
     );
 
     public static Logger getLogger(Class<?> clazz, ShardId shardId, String... prefixes) {
@@ -73,8 +75,8 @@ public class Loggers {
 
     public static Logger getLogger(Logger parentLogger, String s) {
         String prefix = null;
-        if (parentLogger instanceof PrefixLogger) {
-            prefix = ((PrefixLogger)parentLogger).prefix();
+        if (parentLogger instanceof PrefixLogger prefixLogger) {
+            prefix = prefixLogger.prefix();
         }
         return ESLoggerFactory.getLogger(prefix, parentLogger.getName() + s);
     }

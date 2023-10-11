@@ -49,7 +49,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     public GeoShapeIndexer(Reference ref, FieldType fieldType) {
         assert ref instanceof GeoReference : "GeoShapeIndexer requires GeoReference";
         this.ref = (GeoReference) ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.strategy = new RecursivePrefixTreeStrategy(this.ref.prefixTree(), name);
         Double distanceErrorPct = this.ref.distanceErrorPct();
         if (distanceErrorPct != null) {
@@ -62,7 +62,6 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     public void indexValue(Map<String, Object> value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.map(value);

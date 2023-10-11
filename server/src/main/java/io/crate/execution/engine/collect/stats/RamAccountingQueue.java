@@ -21,19 +21,19 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.data.breaker.RamAccounting;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Queue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.ToLongFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.ToLongFunction;
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.data.breaker.RamAccounting;
 
 public final class RamAccountingQueue<T> implements Queue<T> {
 
@@ -52,7 +52,9 @@ public final class RamAccountingQueue<T> implements Queue<T> {
         // create a non-breaking (thread-safe) instance as this component will check the breaker limits by itself
         this.ramAccounting = new ConcurrentRamAccounting(
             breaker::addWithoutBreaking,
-            bytes -> breaker.addWithoutBreaking(- bytes)
+            bytes -> breaker.addWithoutBreaking(- bytes),
+            breaker.getName(),
+            0
         );
         this.exceeded = new AtomicBoolean(false);
     }

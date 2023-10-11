@@ -57,7 +57,7 @@ public final class AnyNeqOperator extends AnyOperator {
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
-        String columnName = probe.column().fqn();
+        String columnName = probe.storageIdent();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
             return new MatchNoDocsQuery("column does not exist in this index");
@@ -65,6 +65,9 @@ public final class AnyNeqOperator extends AnyOperator {
 
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
         for (Object value : (Iterable<?>) candidates.value()) {
+            if (value == null) {
+                continue;
+            }
             andBuilder.add(EqOperator.fromPrimitive(probe.valueType(), probe.column().fqn(), value), BooleanClause.Occur.MUST);
         }
         Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
@@ -78,7 +81,7 @@ public final class AnyNeqOperator extends AnyOperator {
     @SuppressWarnings({"unchecked", "rawtypes"})
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         // 1 != any ( col ) -->  gt 1 or lt 1
-        String columnName = candidates.column().fqn();
+        String columnName = candidates.storageIdent();
 
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {

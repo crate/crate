@@ -21,12 +21,15 @@
 
 package io.crate.blob.recovery;
 
-import io.crate.blob.BlobContainer;
-import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
-import io.crate.common.Hex;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -36,6 +39,7 @@ import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.util.CancellableThreads;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.IndexShardState;
@@ -54,14 +58,12 @@ import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import io.crate.blob.BlobContainer;
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
+import io.crate.common.Hex;
 
 public class BlobRecoveryHandler extends RecoverySourceHandler {
 
@@ -115,7 +117,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(listener, BlobStartPrefixResponse::new)
         );
-        BlobStartPrefixResponse response = listener.actionGet();
+        BlobStartPrefixResponse response = FutureUtils.get(listener);
 
         Set<BytesArray> result = new HashSet<>();
         for (byte[] digests : response.existingDigests) {
@@ -194,7 +196,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                 LOGGER.trace("[{}][{}] start to transfer file var/{} to {}",
                              request.shardId().getIndexName(), request.shardId().id(), digest,
                              request.targetNode().getName());
-                cancellableThreads.executeIO(
+                cancellableThreads.execute(
                     new TransferFileRunnable(blobShard.blobContainer().getFile(digest),
                         lastException, latch)
                 );
@@ -217,7 +219,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
         );
-        listener.actionGet();
+        FutureUtils.get(listener);
     }
 
     private void sendFinalizeRecoveryRequest() {
@@ -229,7 +231,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
         );
-        listener.actionGet();
+        FutureUtils.get(listener);
     }
 
     private void sendStartRecoveryRequest() {
@@ -241,7 +243,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
         );
-        listener.actionGet();
+        FutureUtils.get(listener);
     }
 
     private class TransferFileRunnable implements CancellableThreads.Interruptable {
@@ -300,7 +302,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                             TransportRequestOptions.EMPTY,
                             new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
                         );
-                        listener.actionGet();
+                        FutureUtils.get(listener);
 
                         boolean isLast = false;
                         boolean sentChunks = false;
@@ -326,7 +328,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                 TransportRequestOptions.EMPTY,
                                 new ActionListenerResponseHandler<>(transferChunkListener, in -> TransportResponse.Empty.INSTANCE)
                             );
-                            transferChunkListener.actionGet();
+                            FutureUtils.get(transferChunkListener);
                         }
 
                         if (!isLast && sentChunks) {
@@ -340,7 +342,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                 TransportRequestOptions.EMPTY,
                                 new ActionListenerResponseHandler<>(transferMissingChunkListener, in -> TransportResponse.Empty.INSTANCE)
                             );
-                            transferMissingChunkListener.actionGet();
+                            FutureUtils.get(transferMissingChunkListener);
                         }
                     }
 

@@ -115,6 +115,7 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
         properties.put("protocol", new StringLiteral("http"));
         properties.put("secret_key", new StringLiteral("thisIsASecretKey"));
         properties.put("server_side_encryption", new StringLiteral("false"));
+        properties.put("storage_class", new StringLiteral("standard_ia"));
         GenericProperties<Expression> genericProperties = new GenericProperties<>(properties);
         repositoryParamValidator.validate(
             "s3",
@@ -128,7 +129,7 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
         assertThatThrownBy(
             () -> analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("setting 'wrong' not supported");
+            .hasMessage("Setting 'wrong' is not supported");
     }
 
     @Test
@@ -149,7 +150,8 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
             "   max_retries=2," +
             "   use_throttle_retries=false," +
             "   readonly=false, " +
-            "   canned_acl=false)");
+            "   canned_acl=false, " +
+            "   storage_class='standard_ia')");
         assertThat(request.name()).isEqualTo("foo");
         assertThat(request.type()).isEqualTo("s3");
         assertThat(request.settings().getAsStructuredMap())
@@ -166,7 +168,8 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
                 .hasFieldOrPropertyWithValue("protocol", "http")
                 .hasFieldOrPropertyWithValue("secret_key", "0xCAFEE")
                 .hasFieldOrPropertyWithValue("server_side_encryption", "false")
-                .hasFieldOrPropertyWithValue("readonly", "false");
+                .hasFieldOrPropertyWithValue("readonly", "false")
+                .hasFieldOrPropertyWithValue("storage_class", "standard_ia");
     }
 
     private static Settings toSettings(GenericProperties<Expression> genericProperties) {

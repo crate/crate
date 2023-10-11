@@ -48,24 +48,11 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final RowType rowType;
 
     public SubscriptRecordFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.rowType = (RowType) boundSignature.argTypes().get(0);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

@@ -32,7 +32,9 @@ import java.util.Map;
 /**
  * Due to the match predicate not being an actual function, we have to manually print it here.
  */
-public class MatchPrinter {
+public final class MatchPrinter {
+
+    private MatchPrinter() {}
 
     public static void printMatchPredicate(Function matchPredicate, Style style, StringBuilder sb) {
         List<Symbol> arguments = matchPredicate.arguments();
@@ -48,9 +50,10 @@ public class MatchPrinter {
         printProperties(arguments.get(3), sb);
     }
 
+    @SuppressWarnings("unchecked")
     private static void printColumns(Symbol cols, StringBuilder sb) {
         // first argument (cols)
-        Map columnBootMap = (Map) ((Literal) cols).value();
+        var columnBootMap = (Map<String, Object>) ((Literal<?>) cols).value();
         Iterator<Map.Entry<String, Object>> entryIterator = columnBootMap.entrySet().iterator();
         while (entryIterator.hasNext()) {
             Map.Entry<String, Object> entry = entryIterator.next();
@@ -69,14 +72,14 @@ public class MatchPrinter {
 
     private static void printProperties(Symbol propSymbol, StringBuilder sb) {
         // fourth argument (properties)
-        Map<?, ?> properties = (Map<?, ?>) ((Literal<?>) propSymbol).value();
+        var properties = (Map<?, ?>) ((Literal<?>) propSymbol).value();
         if (properties.isEmpty()) {
             return;
         }
         sb.append(" WITH (");
         var it = properties.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<?, ?> entry = it.next();
+            var entry = it.next();
             sb.append(entry.getKey()).append(" = ");
             Object value = entry.getValue();
             if (value != null) {

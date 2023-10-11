@@ -82,6 +82,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
+import io.crate.planner.optimizer.rule.EliminateCrossJoin;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
@@ -108,6 +109,7 @@ import io.crate.planner.optimizer.rule.ReorderHashJoin;
 import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
+import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.types.DataTypes;
@@ -124,6 +126,7 @@ public class LogicalPlanner {
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
 
+    // Be careful, the order of the rules matter
     public static final List<Rule<?>> ITERATIVE_OPTIMIZER_RULES = List.of(
         new RemoveRedundantFetchOrEval(),
         new MergeAggregateAndCollectToCount(),
@@ -150,6 +153,8 @@ public class LogicalPlanner {
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
         new MoveConstantJoinConditionsBeneathNestedLoop(),
+        new EliminateCrossJoin(),
+        new RewriteJoinPlan(),
         new RewriteNestedLoopJoinToHashJoin()
     );
 

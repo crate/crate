@@ -21,6 +21,8 @@
 
 package io.crate.expression.eval;
 
+import static io.crate.expression.predicate.MatchPredicate.TEXT_MATCH;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,13 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.data.Input;
@@ -56,8 +57,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
-
-import static io.crate.expression.predicate.MatchPredicate.TEXT_MATCH;
 
 
 /**
@@ -142,7 +141,7 @@ public class EvaluatingNormalizer {
                 for (Map.Entry<Symbol, Symbol> entry : fieldBoostMap.entrySet()) {
                     Symbol resolved = entry.getKey().accept(this, null);
                     if (resolved instanceof Reference ref) {
-                        columnBoostMapArgs.add(Literal.of(ref.column().fqn()));
+                        columnBoostMapArgs.add(Literal.of(ref.storageIdent()));
                         columnBoostMapArgs.add(entry.getValue());
                     } else {
                         return matchPredicate;

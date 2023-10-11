@@ -89,7 +89,7 @@ public class JoinPlanBuilder {
             );
             it = orderedRelationNames.iterator();
         } else {
-            it = Lists2.map(from, AnalyzedRelation::relationName).iterator();
+            it = Lists2.mapLazy(from, AnalyzedRelation::relationName).iterator();
         }
 
         final RelationName lhsName = it.next();
@@ -121,13 +121,12 @@ public class JoinPlanBuilder {
 
         boolean isFiltered = validWhereConditions.symbolType().isValueSymbol() == false;
 
-        LogicalPlan joinPlan = new NestedLoopJoin(
+        LogicalPlan joinPlan = new JoinPlan(
             plan.apply(lhs),
             plan.apply(rhs),
             joinType,
             validJoinConditions,
             isFiltered,
-            lhs,
             false);
 
         joinPlan = Filter.create(joinPlan, validWhereConditions);
@@ -238,13 +237,12 @@ public class JoinPlanBuilder {
                 .filter(Objects::nonNull).iterator()
         );
         boolean isFiltered = query.symbolType().isValueSymbol() == false;
-        var joinPlan = new NestedLoopJoin(
+        var joinPlan = new JoinPlan(
             source,
             nextPlan,
             type,
             AndOperator.join(conditions, null),
             isFiltered,
-            leftRelation,
             false);
         return Filter.create(joinPlan, query);
     }

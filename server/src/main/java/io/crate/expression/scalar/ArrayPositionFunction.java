@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.List;
 import java.util.Objects;
@@ -35,48 +34,35 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
 
     public static final String NAME = "array_position";
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     public ArrayPositionFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
         scalarFunctionModule.register(
             Signature.scalar(NAME,
-                parseTypeSignature("array(T)"),
-                parseTypeSignature("T"),
+                TypeSignature.parse("array(T)"),
+                TypeSignature.parse("T"),
                 DataTypes.INTEGER.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("T")),
             ArrayPositionFunction::new);
 
         scalarFunctionModule.register(
             Signature.scalar(NAME,
-                parseTypeSignature("array(T)"),
-                parseTypeSignature("T"),
+                TypeSignature.parse("array(T)"),
+                TypeSignature.parse("T"),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("T")),
             ArrayPositionFunction::new);
     }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
-    }
-
 
     @Override
     public Integer evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input[] args) {

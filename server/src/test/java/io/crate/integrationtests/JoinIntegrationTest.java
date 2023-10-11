@@ -24,11 +24,9 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +47,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
@@ -148,10 +147,10 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("create table bar (id long) partitioned by (id)");
         ensureYellow();
         execute("select * from foo f, bar b where f.id = b.id");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
 
         execute("select * from foo f, bar b");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
     }
 
     @Test
@@ -235,7 +234,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(6L);
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        Collections.sort(rows, OrderingByPosition.arrayOrdering(
+        rows.sort(OrderingByPosition.arrayOrdering(
             List.of(DataTypes.STRING, DataTypes.STRING),
             new int[]{0, 1},
             new boolean[]{false, false},
@@ -324,7 +323,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(9L);
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        Collections.sort(rows, OrderingByPosition.arrayOrdering(
+        rows.sort(OrderingByPosition.arrayOrdering(
             List.of(DataTypes.INTEGER, DataTypes.INTEGER),
             new int[]{0, 1},
             new boolean[]{false, true},
@@ -425,7 +424,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into doc.t (x, y) values (1, 10), (2, 20)");
         execute("refresh table doc.t");
         execute("explain (costs false) select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
-        assertThat(response).hasRows(
+        assertThat(response).hasLines(
             "Fetch[x, y, x, y]",
             "  └ Limit[3::bigint;0]",
             "    └ OrderBy[x ASC x ASC]",
@@ -869,11 +868,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into orders(id, customer_id, price) values (1,1,20.0), (2,1,10.0), (3,1,30.0), (4,1,40.0), (5,1,50.0)");
         execute("refresh table orders");
 
-        String stmt = "SELECT t1.company_id, t1.country, t1.id, t1.name, t2.customer_id, t2.id, t2.price FROM" +
-                      "  customers t1, " +
-                      "  (SELECT * FROM (SELECT * from orders order by price desc limit 4) t ORDER BY price limit 3) t2 " +
-                      "WHERE t2.customer_id = t1.id " +
-                      "order by price limit 3 offset 1";
+        String stmt = """
+            SELECT t1.company_id, t1.country, t1.id, t1.name, t2.customer_id, t2.id, t2.price
+            FROM customers t1,
+                 (SELECT * FROM (SELECT * from orders order by price desc limit 4) t ORDER BY price limit 3) t2
+            WHERE t2.customer_id = t1.id order by price limit 3 offset 1""";
 
         execute(stmt);
         assertThat(response).hasRows(
@@ -883,15 +882,16 @@ public class JoinIntegrationTest extends IntegTestCase {
 
     @Test
     public void testJoinOnVirtualTableWithSingleRowSubselect() throws Exception {
-        execute("SELECT\n" +
-                "        (select min(t1.x) from\n" +
-                "            (select unnest as x from unnest([1, 2, 3])) t1,\n" +
-                "            (select * from unnest([1, 2, 3])) t2\n" +
-                "        ) as min_col1,\n" +
-                "        *\n" +
-                "    FROM\n" +
-                "        unnest([1]) tt1," +
-                "        unnest([2]) tt2");
+        execute(
+            """
+                SELECT
+                  (select min(t1.x) from
+                    (select unnest as x from unnest([1, 2, 3])) t1,
+                    (select * from unnest([1, 2, 3])) t2
+                  ) as min_col1,
+                  *
+                FROM
+                  unnest([1]) tt1,        unnest([2]) tt2""");
         assertThat(response).hasRows("1| 1| 2");
     }
 
@@ -1088,53 +1088,54 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     public void test_many_table_join_with_filter_pushdown() throws Exception {
         // regression this; optimization rule resulted in a endless loop
-        String stmt = ""
-            + "SELECT\n"
-            + "   *\n"
-            + "FROM\n"
-            + "    pg_catalog.pg_namespace pkn,\n"
-            + "    pg_catalog.pg_class pkc,\n"
-            + "    pg_catalog.pg_attribute pka,\n"
-            + "    pg_catalog.pg_namespace fkn,\n"
-            + "    pg_catalog.pg_class fkc,\n"
-            + "    pg_catalog.pg_attribute fka,\n"
-            + "    pg_catalog.pg_constraint con,\n"
-            + "    pg_catalog.generate_series(1, 32) pos (n),\n"
-            + "    pg_catalog.pg_class pkic\n"
-            + "WHERE\n"
-            + "    pkn.oid = pkc.relnamespace\n"
-            + "    AND pkc.oid = pka.attrelid\n"
-            + "    AND pka.attnum = con.confkey[pos.n]\n"
-            + "    AND con.confrelid = pkc.oid\n"
-            + "    AND fkn.oid = fkc.relnamespace\n"
-            + "    AND fkc.oid = fka.attrelid\n"
-            + "    AND fka.attnum = con.conkey[pos.n]\n"
-            + "    AND con.conrelid = fkc.oid\n"
-            + "    AND con.contype = 'f'\n"
-            + "    AND pkic.relkind = 'i'\n"
-            + "    AND pkic.oid = con.conindid\n"
-            + "    AND pkn.nspname = E'sys'\n"
-            + "    AND fkn.nspname = E'sys'\n"
-            + "    AND pkc.relname = E'jobs'\n"
-            + "    AND fkc.relname = E'jobs_log'\n"
-            + "ORDER BY\n"
-            + "    fkn.nspname,\n"
-            + "    fkc.relname,\n"
-            + "    con.conname,\n"
-            + "    pos.n\n";
+        String stmt = """
+            SELECT
+               *
+            FROM
+                pg_catalog.pg_namespace pkn,
+                pg_catalog.pg_class pkc,
+                pg_catalog.pg_attribute pka,
+                pg_catalog.pg_namespace fkn,
+                pg_catalog.pg_class fkc,
+                pg_catalog.pg_attribute fka,
+                pg_catalog.pg_constraint con,
+                pg_catalog.generate_series(1, 32) pos (n),
+                pg_catalog.pg_class pkic
+            WHERE
+                pkn.oid = pkc.relnamespace
+                AND pkc.oid = pka.attrelid
+                AND pka.attnum = con.confkey[pos.n]
+                AND con.confrelid = pkc.oid
+                AND fkn.oid = fkc.relnamespace
+                AND fkc.oid = fka.attrelid
+                AND fka.attnum = con.conkey[pos.n]
+                AND con.conrelid = fkc.oid
+                AND con.contype = 'f'
+                AND pkic.relkind = 'i'
+                AND pkic.oid = con.conindid
+                AND pkn.nspname = E'sys'
+                AND fkn.nspname = E'sys'
+                AND pkc.relname = E'jobs'
+                AND fkc.relname = E'jobs_log'
+            ORDER BY
+                fkn.nspname,
+                fkc.relname,
+                con.conname,
+                pos.n
+            """;
         execute(stmt);
         assertThat(response).hasRowCount(0L);
     }
 
     @Test
     public void test_group_by_on_cross_join_on_system_tables() throws Exception {
-        String stmt = "SELECT c.name as name, max(h.severity) as severity " +
-            "FROM sys.health h, sys.cluster c " +
-            "GROUP BY 1";
+        String stmt = """
+            SELECT c.name as name, max(h.severity) as severity
+            FROM sys.health h, sys.cluster c
+            GROUP BY 1""";
         execute(stmt);
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
     }
-
 
     @Test
     @UseHashJoins(value = 1.0)
@@ -1150,17 +1151,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t1 (id, a) values (1, 1), (2, 10)");
         execute("insert into t2 (id, b) values (1, 2), (2, 20)");
         execute("insert into t3 (id, c) values (1, 2), (3, 30)");
-        execute("insert into t4 (id, d) values (1, 3), (4, 40)");
+        execute("insert into t4 (id, d) values (1, 3)");
 
-        execute("refresh table t1, t2, t3");
+        execute("refresh table t1, t2, t3, t4");
         execute("analyze");
-        assertBusy(() -> {
-            var resp = execute("select n_distinct from pg_stats where tablename = 't1'");
-            assertThat(resp).hasRows(
-                "2.0",
-                "2.0"
-            );
-        });
+
         String stmt =
             """
                     SELECT
@@ -1224,7 +1219,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
-        assertThat(response).hasRows(
+        assertThat(response).hasLines(
             "NestedLoopJoin[INNER | (id = id)]",
                 "  ├ NestedLoopJoin[INNER | (id = id)]",
                 "  │  ├ Collect[doc.t1 | [id, a] | true]",
@@ -1502,5 +1497,112 @@ public class JoinIntegrationTest extends IntegTestCase {
             "1| 1| 1",
             "2| 2| 2",
             "3| 3| 3");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(value = 0)
+    public void test_cross_join_on_top_of_fetch() throws Exception {
+        execute("create table tt1 (a int, b int)");
+        execute("create table tt2 (a int, b int, c int)");
+        execute("insert into tt1 (a, b) SELECT a, a FROM generate_series(1, 100, 1) as g (a)");
+        execute("insert into tt2 (a, b, c) SELECT a, a, a FROM generate_series(1, 100, 1) as g (a)");
+        execute("refresh table tt1, tt2");
+        execute("analyze");
+
+        String stmt = "SELECT * FROM (select a from tt1 order by b desc limit 1) i, tt2 WHERE c >= 50";
+        assertThat(execute("explain (costs false) " + stmt)).hasLines(
+            "Eval[a, a, b, c]",
+            "  └ NestedLoopJoin[CROSS]",
+            "    ├ Collect[doc.tt2 | [a, b, c] | (c >= 50)]",
+            "    └ Rename[a] AS i",
+            "      └ Eval[a]",
+            "        └ Fetch[a, b]",
+            "          └ Limit[1::bigint;0]",
+            "            └ OrderBy[b DESC]",
+            "              └ Collect[doc.tt1 | [_fetchid, b] | true]"
+        );
+        assertThat(execute(stmt)).hasRowCount(51);
+    }
+
+    /**
+     * Verifies a bug in the HashJoinPhase building code resulting in hashing symbols being in the wrong order
+     * and such it's generated hash-code won't match anymore.
+     *
+     * https://github.com/crate/crate/issues/14583
+     */
+    @UseJdbc(1)
+    @UseHashJoins(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @Test
+    public void test_ensure_hash_symbols_match_after_hash_join_is_reordered() {
+        execute("create table doc.t1(a int, b int)");
+        execute("create table doc.t2(c int, d int)");
+        execute("create table doc.t3(e int, f int)");
+
+        execute("insert into doc.t1(a,b) values(1,2)");
+        execute("insert into doc.t2(c,d) values (1,3),(5,6)");
+        execute("insert into doc.t3(e,f) values (3,2)");
+        refresh();
+        execute("analyze");
+
+        var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t1.a = t2.c WHERE t2.d =t3.e";
+        assertThat(execute("explain " + stmt)).hasLines(
+                "Eval[e] (rows=0)",
+                "  └ Eval[b, a, e, f, c, d] (rows=0)",
+                "    └ HashJoin[((a = c) AND (d = e))] (rows=0)",
+                "      ├ Collect[doc.t2 | [c, d] | true] (rows=2)",
+                "      └ HashJoin[(b = f)] (rows=1)",
+                "        ├ Collect[doc.t1 | [b, a] | true] (rows=1)",
+                "        └ Collect[doc.t3 | [e, f] | true] (rows=1)"
+        );
+
+        execute(stmt);
+        assertThat(response).hasRows("3");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_eliminate_cross_join() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+        execute("create table t3 (z int)");
+
+        String stmt = "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y;";
+        execute("explain (costs false) " + stmt);
+
+        assertThat(response).hasLines(
+            "Eval[x, y, z]",
+            "  └ HashJoin[(z = y)]",
+            "    ├ HashJoin[(x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_eliminate_cross_join_with_filter() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+        execute("create table t3 (z int)");
+
+        String stmt = "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y WHERE t1.x > 1";
+        execute("explain (costs false) " + stmt);
+
+        assertThat(response).hasLines(
+            "Eval[x, y, z]",
+            "  └ HashJoin[(z = y)]",
+            "    ├ HashJoin[(x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | (x > 1)]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
     }
 }

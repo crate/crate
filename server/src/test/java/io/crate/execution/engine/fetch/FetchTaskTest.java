@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.fetch;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -74,6 +74,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 new TreeMap<>(),
                 new HashMap<>(),
                 List.of()),
+            0,
             "dummy",
             new SharedShardContexts(mock(IndicesService.class), UnaryOperator.identity()),
             clusterService.state().metadata(),
@@ -122,6 +123,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 ibb.build(),
                 tableIndices,
                 List.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
+            0,
             "dummy",
             sharedShardContexts,
             metadata,

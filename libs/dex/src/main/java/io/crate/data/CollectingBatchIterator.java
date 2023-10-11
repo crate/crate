@@ -84,7 +84,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
         return newInstance(
             source::close,
             source::kill,
-            () -> BatchIterators.collect(source, collector),
+            () -> source.collect(collector),
             source.hasLazyResultSet()
         );
     }

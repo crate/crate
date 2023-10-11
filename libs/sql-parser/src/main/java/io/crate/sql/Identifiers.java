@@ -33,7 +33,7 @@ import org.antlr.v4.runtime.Vocabulary;
 
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
+import io.crate.sql.parser.antlr.SqlBaseLexer;
 import io.crate.sql.tree.QualifiedNameReference;
 
 public class Identifiers {

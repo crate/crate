@@ -21,21 +21,25 @@
 
 package io.crate.metadata.doc;
 
+import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
@@ -117,12 +121,14 @@ import io.crate.sql.tree.ColumnPolicy;
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private final Collection<Reference> columns;
+    private final Set<Reference> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
     private final List<Reference> defaultExpressionColumns;
     private final Collection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final Map<ColumnIdent, Reference> references;
+    private final Map<String, String> leafNamesByOid;
     private final Map<ColumnIdent, String> analyzers;
     private final RelationName ident;
     private final List<ColumnIdent> primaryKeys;
@@ -150,6 +156,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo(RelationName ident,
                         Collection<Reference> columns,
+                        Set<Reference> droppedColumns,
                         List<Reference> partitionedByColumns,
                         List<GeneratedReference> generatedColumns,
                         Collection<ColumnIdent> notNullColumns,
@@ -175,11 +182,16 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         assert (partitionedBy.size() ==
                 partitionedByColumns.size()) : "partitionedBy and partitionedByColumns must have same amount of items in list";
         this.columns = columns;
+        this.droppedColumns = droppedColumns;
         this.partitionedByColumns = partitionedByColumns;
         this.generatedColumns = generatedColumns;
         this.notNullColumns = notNullColumns;
         this.indexColumns = indexColumns;
         this.references = references;
+        leafNamesByOid = new HashMap<>();
+        Stream.concat(Stream.concat(references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
+            .filter(r -> r.oid() != COLUMN_OID_UNASSIGNED)
+            .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
         this.analyzers = analyzers;
         this.ident = ident;
         this.primaryKeys = primaryKeys;
@@ -199,12 +211,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
         this.supportedOperations = supportedOperations;
-        // scale the fetchrouting timeout by n# of partitions
         this.docColumn = new TableColumn(DocSysColumns.DOC, references);
         this.defaultExpressionColumns = references.values()
             .stream()
             .filter(r -> r.defaultExpression() != null)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Nullable
@@ -219,6 +230,25 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Collection<Reference> columns() {
         return columns;
+    }
+
+    @Override
+    public Set<Reference> droppedColumns() {
+        return droppedColumns;
+    }
+
+    public int maxPosition() {
+        return Math.max(
+            references.values().stream()
+                .filter(ref -> !ref.column().isSystemColumn())
+                .mapToInt(Reference::position)
+                .max()
+                .orElse(0),
+            indexColumns.values().stream()
+                .mapToInt(IndexReference::position)
+                .max()
+                .orElse(0)
+        );
     }
 
     public List<Reference> defaultExpressionColumns() {
@@ -473,5 +503,32 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public Collection<ColumnIdent> notNullColumns() {
         return notNullColumns;
+    }
+
+    /**
+     * Starting from 5.5 column OID-s are used as source keys.
+     * Even of 5.5, there are no OIDs (and thus no source key rewrite happening) for:
+     * <ul>
+     *  <li>OBJECT (IGNORED) sub-columns</li>
+     *  <li>Empty arrays, or arrays with only null values</li>
+     *  <li>Internal object keys of the geo shape column, such as "coordinates", "type"</li>
+     * </ul>
+     */
+    public Function<String, String> lookupNameBySourceKey() {
+        if (versionCreated.onOrAfter(Version.V_5_5_0)) {
+            return oidOrName -> {
+                if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
+                    assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
+                    return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
+                }
+                String name = leafNamesByOid.get(oidOrName);
+                if (name == null) {
+                    return oidOrName;
+                }
+                return name;
+            };
+        } else {
+            return Function.identity();
+        }
     }
 }

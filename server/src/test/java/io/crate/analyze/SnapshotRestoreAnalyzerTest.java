@@ -26,7 +26,7 @@ import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINIT
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +53,6 @@ import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -133,15 +133,15 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testCreateSnapshotUnknownRepo() throws Exception {
         assertThatThrownBy(() -> analyze(e, "CREATE SNAPSHOT unknown_repo.my_snapshot ALL"))
-            .isExactlyInstanceOf(RepositoryUnknownException.class)
-            .hasMessage("Repository 'unknown_repo' unknown");
+            .isExactlyInstanceOf(RepositoryMissingException.class)
+            .hasMessage("[unknown_repo] missing");
     }
 
     @Test
     public void testCreateSnapshotUnsupportedParameter() throws Exception {
         assertThatThrownBy(() -> analyze(e, "CREATE SNAPSHOT my_repo.my_snapshot ALL with (foo=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("setting 'foo' not supported");
+            .hasMessage("Setting 'foo' is not supported");
     }
 
     @Test
@@ -264,8 +264,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testDropSnapshotUnknownRepo() throws Exception {
         assertThatThrownBy(() -> analyze(e, "DROP SNAPSHOT unknown_repo.my_snap_1"))
-            .isExactlyInstanceOf(RepositoryUnknownException.class)
-            .hasMessage("Repository 'unknown_repo' unknown");
+            .isExactlyInstanceOf(RepositoryMissingException.class)
+            .hasMessage("[unknown_repo] missing");
     }
 
     @Test
@@ -304,7 +304,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testRestoreUnsupportedParameter() throws Exception {
         assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE users WITH (foo=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("setting 'foo' not supported");
+            .hasMessage("Setting 'foo' is not supported");
     }
 
     @Test
@@ -347,8 +347,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testRestoreUnknownRepo() throws Exception {
         assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT unknown_repo.my_snapshot ALL"))
-            .isExactlyInstanceOf(RepositoryUnknownException.class)
-            .hasMessage("Repository 'unknown_repo' unknown");
+            .isExactlyInstanceOf(RepositoryMissingException.class)
+            .hasMessage("[unknown_repo] missing");
     }
 
     @Test

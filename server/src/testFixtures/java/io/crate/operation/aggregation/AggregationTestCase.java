@@ -25,6 +25,7 @@ import static io.crate.metadata.RelationName.fromIndexName;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
@@ -42,10 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
@@ -86,12 +84,13 @@ import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.action.FutureActionListener;
 import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
 import io.crate.data.ArrayBucket;
-import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
@@ -320,6 +319,8 @@ public abstract class AggregationTestCase extends ESTestCase {
                     true,
                     true,
                     i + 1,
+                    COLUMN_OID_UNASSIGNED,
+                    false,
                     null
                 )
             );
@@ -363,7 +364,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         List<Row> result;
         if (batchIterator != null) {
-            result = BatchIterators.collect(batchIterator, Collectors.toList()).get();
+            result = batchIterator.toList().get();
         } else {
             result = null;
         }
@@ -453,7 +454,7 @@ public abstract class AggregationTestCase extends ESTestCase {
     /**
      * Creates a new empty primary shard and starts it.
      */
-    private IndexShard newStartedPrimaryShard(XContentBuilder mapping) throws IOException {
+    private IndexShard newStartedPrimaryShard(XContentBuilder mapping) throws Exception {
         IndexShard shard = newPrimaryShard(mapping);
         shard.markAsRecovering(
             "store",
@@ -469,9 +470,9 @@ public abstract class AggregationTestCase extends ESTestCase {
                 null)
         );
 
-        PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         shard.recoverFromStore(future);
-        future.actionGet(5, TimeUnit.SECONDS);
+        future.get(5, TimeUnit.SECONDS);
 
         var newRouting = ShardRoutingHelper.moveToStarted(shard.routingEntry());
         var newRoutingTable = new IndexShardRoutingTable.Builder(newRouting.shardId())
@@ -625,6 +626,8 @@ public abstract class AggregationTestCase extends ESTestCase {
                     true,
                     true,
                     i + 1,
+                    COLUMN_OID_UNASSIGNED,
+                    false,
                     null)
             );
         }

@@ -21,7 +21,32 @@
 
 package io.crate.protocols.http;
 
-import io.crate.action.FutureActionListener;
+import static io.crate.protocols.http.Headers.isAcceptJson;
+import static io.crate.protocols.http.Headers.isBrowser;
+import static io.crate.protocols.http.Headers.isCloseConnection;
+import static io.crate.protocols.http.Responses.contentResponse;
+import static io.crate.protocols.http.Responses.redirectTo;
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.Build;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
+import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
+import org.elasticsearch.rest.RestStatus;
+import org.jetbrains.annotations.Nullable;
+
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelFutureListener;
@@ -37,31 +62,6 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
-import org.elasticsearch.Build;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.rest.RestStatus;
-
-import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-
-import static io.crate.protocols.http.Headers.isAcceptJson;
-import static io.crate.protocols.http.Headers.isBrowser;
-import static io.crate.protocols.http.Headers.isCloseConnection;
-import static io.crate.protocols.http.Responses.contentResponse;
-import static io.crate.protocols.http.Responses.redirectTo;
-import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
@@ -131,9 +131,8 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
             .metadata(false)
             .nodes(false)
             .local(true);
-        FutureActionListener<ClusterStateResponse, ClusterStateResponse> listener = new FutureActionListener<>(x -> x);
-        client.executeLocally(ClusterStateAction.INSTANCE, requestClusterState, listener);
-        return listener.thenApply(resp -> clusterStateRespToHttpResponse(method, resp, alloc, nodeName));
+        return client.execute(ClusterStateAction.INSTANCE, requestClusterState)
+            .thenApply(resp -> clusterStateRespToHttpResponse(method, resp, alloc, nodeName));
     }
 
     private static FullHttpResponse clusterStateRespToHttpResponse(HttpMethod method,

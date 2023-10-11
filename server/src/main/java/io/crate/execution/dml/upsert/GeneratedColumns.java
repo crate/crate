@@ -77,7 +77,7 @@ public final class GeneratedColumns<T> {
                 // For nested columns we can't be sure if the user provided them or not
                 // ((INSERT INTO t (obj) VALUES ({a=1}), ({a=2, b=2}))
                 // So we mark them as toValidate (and only validate them if actually provided)
-                if (generatedCol.column().isTopLevel() && generatedToInject.containsKey(generatedCol)) {
+                if (generatedCol.column().isRoot() && generatedToInject.containsKey(generatedCol)) {
                     continue;
                 }
                 toValidate.put(generatedCol, ctx.add(generatedCol.generatedExpression()));
@@ -98,7 +98,7 @@ public final class GeneratedColumns<T> {
         for (var entry : toValidate.entrySet()) {
             GeneratedReference ref = entry.getKey();
             Object providedValue = ValueExtractors.fromMap(source, ref.column());
-            if (providedValue == null && !ref.column().isTopLevel()) {
+            if (providedValue == null && !ref.column().isRoot()) {
                 // Nested columns will be present in `toValidate` even if they are *not* provided by the user but injected
                 // That's because we can't be certain if they will be present or not.
                 // (INSERT INTO (obj) VALUES ({a=1}), ({a=1, b=2}) -> obj is always there as `target` but child contents are dynamic.

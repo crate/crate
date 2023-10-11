@@ -21,16 +21,16 @@
 
 package io.crate.replication.logical.plan;
 
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 import java.util.Locale;
 import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.InvalidArgumentException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
@@ -39,6 +39,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.action.CreateSubscriptionRequest;
 import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
+import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.types.DataTypes;
 
@@ -71,18 +72,17 @@ public class CreateSubscriptionPlan implements Plan {
 
         var url = validateAndConvertToString(eval.apply(analyzedCreateSubscription.connectionInfo()));
         var connectionInfo = ConnectionInfo.fromURL(url);
-        var settings = genericPropertiesToSettings(analyzedCreateSubscription.properties().map(eval));
+        var settings = Settings.builder().put(analyzedCreateSubscription.properties().map(eval)).build();
 
         var subscribingUser = connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey());
         if (subscribingUser == null || subscribingUser.isEmpty()) {
-            throw new InvalidArgumentException(
+            throw new CreateSubscriptionException(
                 String.format(Locale.ENGLISH, "Setting '%s' must be provided on CREATE SUBSCRIPTION", ConnectionInfo.USERNAME.getKey())
             );
         }
-        for (var setting : settings.names()) {
-            throw new InvalidArgumentException(
-                String.format(Locale.ENGLISH, "Setting '%s' is not support on CREATE SUBSCRIPTION", setting)
-            );
+
+        if (settings.names().isEmpty() == false) {
+            throw new CreateSubscriptionException("Settings with 'WITH' clause are not supported for CREATE SUBSCRIPTION");
         }
 
         var request = new CreateSubscriptionRequest(
@@ -101,6 +101,6 @@ public class CreateSubscriptionPlan implements Plan {
         if (uri instanceof String str) {
             return str;
         }
-        throw new IllegalArgumentException("fileUri must be of type STRING. Got " + DataTypes.guessType(uri));
+        throw new CreateSubscriptionException("fileUri must be of type STRING. Got " + DataTypes.guessType(uri));
     }
 }

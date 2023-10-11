@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.Locale;
+
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
@@ -29,9 +31,8 @@ import io.crate.sql.tree.ObjectColumnType;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 import io.crate.types.ObjectType;
-
-import java.util.Locale;
 
 public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>, Void> {
 
@@ -71,6 +72,10 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>,
     @Override
     public DataType<?> visitCollectionColumnType(CollectionColumnType<?> node, Void context) {
         DataType<?> innerType = node.innerType().accept(this, context);
+        if (innerType instanceof FloatVectorType) {
+            // https://github.com/apache/lucene/issues/12313
+            throw new UnsupportedOperationException("Arrays of " + innerType.getName() + " are not supported");
+        }
         return new ArrayType<>(innerType);
     }
 }

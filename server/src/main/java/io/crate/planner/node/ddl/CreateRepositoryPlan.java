@@ -21,6 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
+import java.util.Map;
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.repositories.RepositoryParamValidator;
@@ -36,11 +43,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 
-import java.util.function.Function;
-
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 public class CreateRepositoryPlan implements Plan {
 
@@ -90,10 +93,9 @@ public class CreateRepositoryPlan implements Plan {
         );
 
         var genericProperties = createRepository.properties().map(eval);
-        var settings = genericPropertiesToSettings(
-            genericProperties,
-            // supported settings for the repository type
-            repositoryParamValidator.settingsForType(createRepository.type()).all());
+        Map<String, Setting<?>> supportedSettings = repositoryParamValidator.settingsForType(createRepository.type()).all();
+        genericProperties.ensureContainsOnly(supportedSettings.keySet());
+        var settings = Settings.builder().put(genericProperties).build();
 
         repositoryParamValidator.validate(
             createRepository.type(), createRepository.properties(), settings);

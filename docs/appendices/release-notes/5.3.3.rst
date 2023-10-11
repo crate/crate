@@ -1,0 +1,89 @@
+.. _version_5.3.3:
+
+=============
+Version 5.3.3
+=============
+
+Released on 2023-06-26.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.3.3.
+
+    We recommend that you upgrade to the latest 5.2 release before moving to
+    5.3.3.
+
+    A rolling upgrade from 5.2.x to 5.3.3 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.3.0` release notes for a full list of changes in the
+5.3 series.
+
+Fixes
+=====
+
+- Fixed an issue introduced with CrateDB ``5.3.0`` resulting in failing writes,
+  broken replica shards, or even un-recoverable tables on tables using a
+  column definition with a number data type and an explicit ``INDEX OFF``.
+  Any table that was created with ``INDEX OFF`` on a number column and already
+  written to with CrateDB version >= ``5.3.0`` should be recreated using e.g.
+  :ref:`INSERT INTO new_table SELECT * FROM old_table<dml-inserting-by-query>`
+  (followed by swap table
+  :ref:`ALTER CLUSTER SWAP TABLE new_table TO old_table<alter_cluster_swap_table>`)
+  or :ref:`restored from a backup<sql-restore-snapshot>`.
+
+- Fixed a regression introduced in 4.7.0 which caused aggregations used in
+  ``INSERT INTO`` statements returning null instead of the aggregation result.
+
+- Fixed a regression introduced in 5.3.0 which caused
+  ``CAST(<generated_partition_column> AS <targetType>)`` expressions to return
+  ``NULL`` instead of the cast result.
+
+- Fixed a regression introduced in 5.3.0 which caused ``INSERT INTO`` statements
+  with a ``ON CONFLICT`` clause on tables with generated primary key columns to
+  fail with an ``ArrayIndexOutOfBoundsException``.
+
+- Fixed an issue that caused an ``NullPointerException`` while inserting
+  a ``TIMETZ`` typed value dynamically which is not supported.
+
+- Fixed a regression introduced in 5.3.0 which caused ``INSERT INTO`` statements
+  to reject invalid dynamic columns and their value without raising an error or
+  skipping the whole record. An example ::
+
+    CREATE TABLE t(a INT) WITH (column_policy='dynamic');
+    INSERT INTO t(a, _b) VALUES (1, 2);
+    INSERT OK, 1 row affected  (0.258 sec)
+    INSERT INTO t(a, _b) (SELECT 2, 2);
+    INSERT OK, 1 row affected  (0.077 sec)
+    SELECT * FROM t;
+    +---+
+    | a |
+    +---+
+    | 1 |
+    | 2 |
+    +---+
+    SELECT 2 rows in set (0.594 sec)
+
+  In 5.2.0 neither variant inserted a record. The first ``INSERT`` raised an
+  error, and the second resulted in row count 0.
+
+- Fixed an issue which caused ``INSERT INTO`` statements
+  to skip generated column validation for sub-columns if provided value is
+  ``NULL``.

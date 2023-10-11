@@ -21,6 +21,13 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -28,13 +35,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-
-import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 class ArrayLowerFunction extends Scalar<Integer, Object> {
 
@@ -44,7 +45,7 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
@@ -52,23 +53,9 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public ArrayLowerFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), NAME);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

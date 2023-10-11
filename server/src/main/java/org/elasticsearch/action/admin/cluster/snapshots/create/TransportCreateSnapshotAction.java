@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -31,8 +33,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 /**
  * Transport action for create snapshot operation
@@ -76,9 +76,9 @@ public class TransportCreateSnapshotAction extends TransportMasterNodeAction<Cre
                                    ClusterState state,
                                    final ActionListener<CreateSnapshotResponse> listener) {
         if (request.waitForCompletion()) {
-            snapshotsService.executeSnapshot(request, ActionListener.map(listener, CreateSnapshotResponse::new));
+            snapshotsService.executeSnapshot(request, listener.map(CreateSnapshotResponse::new));
         } else {
-            snapshotsService.createSnapshot(request, ActionListener.map(listener, snapshot -> new CreateSnapshotResponse()));
+            snapshotsService.createSnapshot(request, listener.map(snapshot -> new CreateSnapshotResponse()));
         }
     }
 }

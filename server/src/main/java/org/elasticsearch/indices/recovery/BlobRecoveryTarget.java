@@ -138,7 +138,7 @@ public class BlobRecoveryTarget {
         @Override
         public void messageReceived(BlobStartRecoveryRequest request, TransportChannel channel) throws Exception {
             LOGGER.info("[{}] StartRecoveryRequestHandler start recovery with recoveryId {}",
-                        request.shardId().getId(), request.recoveryId);
+                        request.shardId().id(), request.recoveryId);
 
             try (RecoveriesCollection.RecoveryRef statusSafe = peerRecoveryTargetService.onGoingRecoveries.getRecoverySafe(
                 request.recoveryId(), request.shardId())) {

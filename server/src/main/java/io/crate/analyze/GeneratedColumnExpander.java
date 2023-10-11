@@ -37,6 +37,7 @@ import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.Operators;
+import io.crate.expression.scalar.DateBinFunction;
 import io.crate.expression.scalar.DateTruncFunction;
 import io.crate.expression.scalar.arithmetic.CeilFunction;
 import io.crate.expression.scalar.arithmetic.FloorFunction;
@@ -65,7 +66,8 @@ public final class GeneratedColumnExpander {
         CeilFunction.CEIL,
         FloorFunction.NAME,
         RoundFunction.NAME,
-        DateTruncFunction.NAME
+        DateTruncFunction.NAME,
+        DateBinFunction.NAME
     );
 
     private GeneratedColumnExpander() {

@@ -56,7 +56,7 @@ public class Gateway {
             LOGGER.trace("performing state recovery from {}", Arrays.toString(nodes));
         }
         var request = new TransportNodesListGatewayMetaState.Request(nodes);
-        client.executeLocally(TransportNodesListGatewayMetaState.TYPE, request).whenComplete((res, err) -> {
+        client.execute(TransportNodesListGatewayMetaState.TYPE, request).whenComplete((res, err) -> {
             if (err == null) {
                 performStateRecovery(res, listener);
             } else {

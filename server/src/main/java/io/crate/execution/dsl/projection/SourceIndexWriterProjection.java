@@ -26,12 +26,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -48,10 +47,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private static final String OVERWRITE_DUPLICATES = "overwrite_duplicates";
     private static final boolean OVERWRITE_DUPLICATES_DEFAULT = false;
     private static final String FAIL_FAST = "fail_fast";
-    private static final String SOURCE_VALIDATION = "validation";
 
     private final boolean failFast;
-    private final boolean validation;
     private final Boolean overwriteDuplicates;
     private final Reference rawSourceReference;
     private final InputColumn rawSourceSymbol;
@@ -83,12 +80,12 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         this.outputs = outputs;
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
         this.failFast = settings.getAsBoolean(FAIL_FAST, false);
-        this.validation = settings.getAsBoolean(SOURCE_VALIDATION, true);
     }
 
     SourceIndexWriterProjection(StreamInput in) throws IOException {
         super(in);
-        if (in.getVersion().onOrAfter(Version.V_4_7_0)) {
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_4_7_0)) {
             failFast = in.readBoolean();
         } else {
             failFast = false;
@@ -97,7 +94,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
 
-        if (in.getVersion().before(Version.V_5_3_0)) {
+        if (version.before(Version.V_5_3_0)) {
             if (in.readBoolean()) {
                 // includes
                 int length = in.readVInt();
@@ -116,10 +113,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             excludes = null;
         }
         outputs = Symbols.listFromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
-            validation = in.readBoolean();
-        } else {
-            validation = true;
+        if (version.onOrAfter(Version.V_4_8_0) && version.before(Version.V_5_5_0)) {
+            in.readBoolean(); // validation
         }
     }
 
@@ -127,14 +122,15 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
-        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_4_7_0)) {
             out.writeBoolean(failFast);
         }
         out.writeBoolean(overwriteDuplicates);
-        Reference.toStream(rawSourceReference, out);
+        Reference.toStream(out, rawSourceReference);
         Symbols.toStream(rawSourceSymbol, out);
 
-        if (out.getVersion().before(Version.V_5_3_0)) {
+        if (version.before(Version.V_5_3_0)) {
             // no includes
             out.writeBoolean(false);
         }
@@ -148,8 +144,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         }
         Symbols.toStream(outputs, out);
-        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            out.writeBoolean(validation);
+        if (version.onOrAfter(Version.V_4_8_0) && version.before(Version.V_5_5_0)) {
+            out.writeBoolean(true);
         }
     }
 
@@ -191,8 +187,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                Objects.equals(rawSourceReference, that.rawSourceReference) &&
                Objects.equals(rawSourceSymbol, that.rawSourceSymbol) &&
                Arrays.equals(excludes, that.excludes) &&
-               failFast == that.failFast &&
-               validation == that.validation;
+               failFast == that.failFast;
     }
 
     @Override
@@ -201,8 +196,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                   overwriteDuplicates,
                                   rawSourceReference,
                                   rawSourceSymbol,
-                                  failFast,
-                                  validation);
+                                  failFast);
         result = 31 * result + Arrays.hashCode(excludes);
         return result;
     }
@@ -213,9 +207,5 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public boolean failFast() {
         return failFast;
-    }
-
-    public boolean validation() {
-        return validation;
     }
 }

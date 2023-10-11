@@ -43,6 +43,8 @@ public class BitStringFieldMapper extends FieldMapper {
 
     protected BitStringFieldMapper(String simpleName,
                                    int position,
+                                   long columnOID,
+                                   boolean isDropped,
                                    Integer length,
                                    String defaultExpression,
                                    FieldType fieldType,
@@ -51,6 +53,8 @@ public class BitStringFieldMapper extends FieldMapper {
         super(
             simpleName,
             position,
+            columnOID,
+            isDropped,
             defaultExpression,
             fieldType,
             mappedFieldType,
@@ -102,10 +106,12 @@ public class BitStringFieldMapper extends FieldMapper {
             var mapper = new BitStringFieldMapper(
                 name,
                 position,
+                columnOID,
+                isDropped,
                 length,
                 defaultExpression,
                 fieldType,
-                new BitStringFieldType(buildFullName(context), true, true),
+                new BitStringFieldType(buildFullName(context), indexed, hasDocValues),
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;

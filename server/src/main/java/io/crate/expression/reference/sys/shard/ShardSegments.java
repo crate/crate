@@ -58,7 +58,7 @@ public class ShardSegments implements Iterable<ShardSegment> {
             List<Segment> segments = indexShard.segments(false);
             ShardId shardId = indexShard.shardId();
             return segments.stream().map(
-                sgmt -> new ShardSegment(shardId.getId(),
+                sgmt -> new ShardSegment(shardId.id(),
                                          shardId.getIndexName(),
                                          sgmt,
                                          indexShard.routingEntry().primary()));

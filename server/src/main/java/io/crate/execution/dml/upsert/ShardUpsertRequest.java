@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -40,6 +38,7 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
@@ -60,7 +59,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
 
     private final DuplicateKeyAction duplicateKeyAction;
     private final boolean continueOnError;
-    private final boolean validation;
     private boolean isRetry = false;
     private final SessionSettings sessionSettings;
 
@@ -87,7 +85,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         ShardId shardId,
         UUID jobId,
         boolean continueOnError,
-        boolean validation,
         DuplicateKeyAction duplicateKeyAction,
         SessionSettings sessionSettings,
         @Nullable String[] updateColumns,
@@ -96,7 +93,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         super(shardId, jobId);
         assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
         this.continueOnError = continueOnError;
-        this.validation = validation;
         this.duplicateKeyAction = duplicateKeyAction;
         this.sessionSettings = sessionSettings;
         this.updateColumns = updateColumns;
@@ -124,7 +120,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         }
         continueOnError = in.readBoolean();
         duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
-        validation = in.readBoolean();
+        if (in.getVersion().before(Version.V_5_5_0)) {
+            in.readBoolean(); // validation
+        }
 
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
@@ -164,7 +162,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
             for (Reference reference : insertColumns) {
-                Reference.toStream(reference, out);
+                Reference.toStream(out, reference);
             }
             insertValuesStreamer = Symbols.streamerArray(insertColumns);
         } else {
@@ -173,7 +171,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
 
         out.writeBoolean(continueOnError);
         out.writeVInt(duplicateKeyAction.ordinal());
-        out.writeBoolean(validation);
+        if (out.getVersion().before(Version.V_5_5_0)) {
+            out.writeBoolean(true); // validation
+        }
 
         sessionSettings.writeTo(out);
 
@@ -233,10 +233,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         return continueOnError;
     }
 
-    public boolean validation() {
-        return validation;
-    }
-
     public DuplicateKeyAction duplicateKeyAction() {
         return duplicateKeyAction;
     }
@@ -254,7 +250,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         }
         ShardUpsertRequest items = (ShardUpsertRequest) o;
         return continueOnError == items.continueOnError &&
-               validation == items.validation &&
                Objects.equals(sessionSettings, items.sessionSettings) &&
                duplicateKeyAction == items.duplicateKeyAction &&
                Arrays.equals(updateColumns, items.updateColumns) &&
@@ -267,8 +262,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         int result = Objects.hash(super.hashCode(),
                                   sessionSettings,
                                   duplicateKeyAction,
-                                  continueOnError,
-                                  validation);
+                                  continueOnError);
         result = 31 * result + Arrays.hashCode(updateColumns);
         result = 31 * result + Arrays.hashCode(insertColumns);
         result = 31 * result + Arrays.hashCode(returnValues);
@@ -539,7 +533,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         @Nullable
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
-        private final boolean validation;
         @Nullable
         private final Symbol[] returnValues;
 
@@ -550,8 +543,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
                        @Nullable Symbol[] returnValue,
-                       UUID jobId,
-                       boolean validation) {
+                       UUID jobId) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
             this.duplicateKeyAction = duplicateKeyAction;
@@ -560,7 +552,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
             this.returnValues = returnValue;
-            this.validation = validation;
         }
 
         public ShardUpsertRequest newRequest(ShardId shardId) {
@@ -568,7 +559,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 shardId,
                 jobId,
                 continueOnError,
-                validation,
                 duplicateKeyAction,
                 sessionSettings,
                 assignmentsColumns,

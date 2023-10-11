@@ -21,18 +21,6 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.data.Input;
-import io.crate.expression.symbol.format.Style;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.joda.time.Period;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +31,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.joda.time.Period;
+
+import io.crate.data.Input;
+import io.crate.expression.symbol.format.Style;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 
 public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
@@ -57,25 +57,26 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
     public static final Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
     public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.emptyMap());
 
-    public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static Collection<Literal<?>> explodeCollection(Literal<?> collectionLiteral) {
         if (!DataTypes.isArray(collectionLiteral.valueType())) {
             throw new IllegalArgumentException("collectionLiteral must have have an array type");
         }
-        Iterable values;
+        Iterable<?> values;
         int size;
         Object literalValue = collectionLiteral.value();
-        if (literalValue instanceof Collection) {
-            values = (Iterable) literalValue;
-            size = ((Collection) literalValue).size();
+        if (literalValue instanceof Collection<?> collection) {
+            values = collection;
+            size = collection.size();
         } else {
             values = Arrays.asList((Object[]) literalValue);
             size = ((Object[]) literalValue).length;
         }
 
-        List<Literal> literals = new ArrayList<>(size);
+        List<Literal<?>> literals = new ArrayList<>(size);
         for (Object value : values) {
-            literals.add(new Literal<>(
-                ((ArrayType) collectionLiteral.valueType()).innerType(),
+            literals.add(new Literal(
+                ((ArrayType<?>) collectionLiteral.valueType()).innerType(),
                 value
             ));
         }
@@ -103,10 +104,10 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
             //noinspection unchecked
             Map<String, Object> mapValue = (Map<String, Object>) value;
             ObjectType objectType = ((ObjectType) type);
-            for (String key : mapValue.keySet()) {
-                DataType<?> innerType = objectType.innerType(key);
+            for (var entry : mapValue.entrySet()) {
+                DataType<?> innerType = objectType.innerType(entry.getKey());
                 //noinspection unchecked
-                if (typeMatchesValue((DataType<Object>) innerType, mapValue.get(key)) == false) {
+                if (typeMatchesValue((DataType<Object>) innerType, entry.getValue()) == false) {
                     return false;
                 }
             }
@@ -165,10 +166,33 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
         if (value == null) {
             return 0;
         }
-        if (value.getClass().isArray()) {
-            return Arrays.deepHashCode(((Object[]) value));
+        Class<?> componentType = value.getClass().getComponentType();
+        if (componentType == null) {
+            return value.hashCode();
         }
-        return value.hashCode();
+        if (value instanceof Object[] values) {
+            return Arrays.deepHashCode(values);
+        }
+        if (componentType == byte.class) {
+            return Arrays.hashCode((byte[]) value);
+        } else if (componentType == int.class) {
+            return Arrays.hashCode((int[]) value);
+        } else if (componentType == long.class) {
+            return Arrays.hashCode((long[]) value);
+        } else if (componentType == char.class) {
+            return Arrays.hashCode((char[]) value);
+        } else if (componentType == short.class) {
+            return Arrays.hashCode((short[]) value);
+        } else if (componentType == boolean.class) {
+            return Arrays.hashCode((boolean[]) value);
+        } else if (componentType == double.class) {
+            return Arrays.hashCode((double[]) value);
+        } else if (componentType == float.class) {
+            return Arrays.hashCode((float[]) value);
+        } else {
+            throw new UnsupportedOperationException(
+                "Unexpected value: " + value + ", was a new primitive type added to java?");
+        }
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -202,6 +226,7 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
         return new Literal<>(DataTypes.LONG, value);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static Literal<?> ofUnchecked(DataType<?> type, Object value) {
         return new Literal(type, value);
     }

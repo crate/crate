@@ -20,6 +20,7 @@ package org.elasticsearch.indices.recovery;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.Matchers.containsString;
@@ -29,7 +30,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -98,6 +98,7 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
@@ -199,7 +200,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             threadPool, request, Math.toIntExact(recoverySettings.getChunkSize().getBytes()), between(1, 5), between(1, 5));
         PlainActionFuture<Void> sendFilesFuture = new PlainActionFuture<>();
         handler.sendFiles(store, metas.toArray(new StoreFileMetadata[0]), () -> 0, sendFilesFuture);
-        sendFilesFuture.actionGet(5, TimeUnit.SECONDS);
+        FutureUtils.get(sendFilesFuture, (long) 5, TimeUnit.SECONDS);
         Store.MetadataSnapshot targetStoreMetadata = targetStore.getMetadata(null);
         Store.RecoveryDiff recoveryDiff = targetStoreMetadata.recoveryDiff(metadata);
         assertEquals(metas.size(), recoveryDiff.identical.size());
@@ -278,7 +279,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             future
         );
         final int expectedOps = (int) (endingSeqNo - startingSeqNo + 1);
-        RecoverySourceHandler.SendSnapshotResult result = future.actionGet();
+        RecoverySourceHandler.SendSnapshotResult result = FutureUtils.get(future);
         assertThat(result.sentOperations, equalTo(expectedOps));
         List<Translog.Operation> sortedShippedOps = shippedOps.stream()
             .sorted(Comparator.comparing(Translog.Operation::seqNo))
@@ -335,9 +336,12 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             future
         );
         if (wasFailed.get()) {
-            final RecoveryEngineException error = expectThrows(RecoveryEngineException.class, future::actionGet);
-            assertThat(error.getMessage(), equalTo("Phase[2] failed to send/replay operations"));
-            assertThat(error.getCause().getMessage(), equalTo("test - failed to index"));
+            assertThatThrownBy(future::get)
+                .cause()
+                .isExactlyInstanceOf(RecoveryEngineException.class)
+                .hasMessage("Phase[2] failed to send/replay operations")
+                .cause()
+                .hasMessage("test - failed to index");
         }
     }
 
@@ -385,7 +389,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             threadPool, getStartRecoveryRequest(), between(1, 10 * 1024), between(1, 5), between(1, 5));
         handler.phase2(startingSeqNo, endingSeqNo, snapshot, maxSeenAutoIdTimestamp, maxSeqNoOfUpdatesOrDeletes, retentionLeases,
             mappingVersion, sendFuture);
-        RecoverySourceHandler.SendSnapshotResult sendSnapshotResult = sendFuture.actionGet();
+        RecoverySourceHandler.SendSnapshotResult sendSnapshotResult = FutureUtils.get(sendFuture);
         assertTrue(received.get());
         assertThat(sendSnapshotResult.targetLocalCheckpoint, equalTo(localCheckpoint.get()));
         assertThat(sendSnapshotResult.sentOperations, equalTo(receivedSeqNos.size()));
@@ -411,7 +415,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         document.add(seqID.primaryTerm);
         final BytesReference source = new BytesArray(new byte[] { 1 });
         final ParsedDocument doc =
-            new ParsedDocument(versionField, seqID, id, document, source, null, List.of());
+            new ParsedDocument(versionField, seqID, id, document, source, null);
         return new Engine.Index(
             new Term("_id", Uid.encodeId(doc.id())), doc, UNASSIGNED_SEQ_NO, 0,
             Versions.MATCH_ANY, VersionType.INTERNAL, PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
@@ -536,15 +540,9 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         };
         PlainActionFuture<Void> sendFilesFuture = new PlainActionFuture<>();
         handler.sendFiles(store, metas.toArray(new StoreFileMetadata[0]), () -> 0, sendFilesFuture);
-        Exception ex = expectThrows(Exception.class, sendFilesFuture::actionGet);
-        final IOException unwrappedCorruption = ExceptionsHelper.unwrapCorruption(ex);
-        if (throwCorruptedIndexException) {
-            assertNotNull(unwrappedCorruption);
-            assertEquals(ex.getMessage(), "[File corruption occurred on recovery but checksums are ok]");
-        } else {
-            assertNull(unwrappedCorruption);
-            assertEquals(ex.getMessage(), "boom");
-         }
+        assertThatThrownBy(sendFilesFuture::get)
+            .rootCause()
+            .hasMessageContaining(throwCorruptedIndexException ? "[File corruption occurred on recovery but checksums are ok]" : "boom");
         assertFalse(failedEngine.get());
         IOUtils.close(store);
     }
@@ -622,7 +620,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
         expectThrows(IndexShardRelocatedException.class, () -> {
             handler.recoverToTarget(future);
-            future.actionGet();
+            FutureUtils.get(future);
         });
         assertFalse(phase1Called.get());
         assertFalse(prepareTargetForTranslogCalled.get());
@@ -686,7 +684,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                 assertThat(unrepliedChunks, hasSize(expectedUnrepliedChunks));
             });
         }
-        sendFilesFuture.actionGet();
+        FutureUtils.get(sendFilesFuture);
         store.close();
     }
 

@@ -41,7 +41,7 @@ public class FilteringBatchIteratorTest {
         List<Object[]> expectedResult = IntStream.iterate(0, l -> l + 2).limit(10).mapToObj(
             l -> new Object[]{l}).collect(Collectors.toList());
 
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> new FilteringBatchIterator(TestingBatchIterators.range(0, 20), EVEN_ROW));
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

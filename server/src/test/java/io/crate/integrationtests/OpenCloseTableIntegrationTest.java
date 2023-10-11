@@ -38,7 +38,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
-import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
@@ -281,7 +280,6 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
                                                        "as it is currently closed.", getFqn("t")));
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testSelectPartitionedTableWhilePartitionIsClosed() throws Exception {
         execute("create table partitioned_table (i int) partitioned by (i)");

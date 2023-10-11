@@ -342,8 +342,8 @@ public class MemoTest {
         }
 
         @Override
-        public Set<RelationName> getRelationNames() {
-            return Set.of();
+        public List<RelationName> getRelationNames() {
+            return List.of();
         }
     }
 }

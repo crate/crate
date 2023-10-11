@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.search.FieldDoc;
 
@@ -35,12 +35,12 @@ import io.crate.metadata.Reference;
 public class OrderByCollectorExpression extends LuceneCollectorExpression<Object> {
 
     private final int orderIndex;
-    private final Function<Object, Object> valueConversion;
+    private final UnaryOperator<Object> valueConversion;
     private final Object missingValue;
 
     private Object value;
 
-    public OrderByCollectorExpression(Reference ref, OrderBy orderBy, Function<Object, Object> valueConversion) {
+    public OrderByCollectorExpression(Reference ref, OrderBy orderBy, UnaryOperator<Object> valueConversion) {
         this.valueConversion = valueConversion;
         assert orderBy.orderBySymbols().contains(ref) : "symbol must be part of orderBy symbols";
         orderIndex = orderBy.orderBySymbols().indexOf(ref);

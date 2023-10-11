@@ -40,15 +40,8 @@ public class SleepScalarFunction extends Scalar<Boolean, Long> {
         DataTypes.BOOLEAN.getTypeSignature()
     ).withFeatures(NO_FEATURES);
 
-
-    @Override
-    public Signature signature() {
-        return SIGNATURE;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return BoundSignature.sameAsUnbound(SIGNATURE);
+    public SleepScalarFunction() {
+        super(SIGNATURE, BoundSignature.sameAsUnbound(SIGNATURE));
     }
 
     @SafeVarargs

@@ -24,6 +24,7 @@ exclude_patterns = ['out/**', 'tmp/**', 'eggs/**', 'requirements.txt', 'README.r
 extensions.append('crate.sphinx.csv')
 
 linkcheck_ignore = [
-    'https://www.iso.org/obp/ui/.*'  # Breaks accessibility via JS ¯\_(ツ)_/¯
+    'https://www.iso.org/obp/ui/.*',  # Breaks accessibility via JS ¯\_(ツ)_/¯
+    'https://www.codeproject.com/',   # Went down on 2023-09-28
 ]
 linkcheck_retries = 3

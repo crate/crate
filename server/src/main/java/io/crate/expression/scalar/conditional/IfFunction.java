@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.conditional;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -29,9 +31,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 /**
  * Conditional If/Else function, CASE expressions can be converted to chain of {@link IfFunction}s.
@@ -58,8 +58,8 @@ public class IfFunction extends Scalar<Object, Object> {
             Signature.scalar(
                 NAME,
                 DataTypes.BOOLEAN.getTypeSignature(),
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             IfFunction::new
         );
@@ -68,9 +68,9 @@ public class IfFunction extends Scalar<Object, Object> {
             Signature.scalar(
                 NAME,
                 DataTypes.BOOLEAN.getTypeSignature(),
-                parseTypeSignature("E"),
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             IfFunction::new
         );
@@ -78,22 +78,9 @@ public class IfFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "if";
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     private IfFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

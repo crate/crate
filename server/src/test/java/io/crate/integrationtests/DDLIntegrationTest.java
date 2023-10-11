@@ -32,6 +32,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,6 +53,7 @@ import io.crate.metadata.Schemas;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -62,6 +64,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
+    @UseNewCluster
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\"=1)");
@@ -70,8 +73,8 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"primary_keys\":[\"col1\"]}," +
                                  "\"properties\":{" +
                                  // doc_values: true is default and not included
-                                 "\"col1\":{\"type\":\"integer\",\"position\":1}," +
-                                 "\"col2\":{\"type\":\"keyword\",\"position\":2}" +
+                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
+                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -138,17 +141,18 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testCreateTableWithReplicasAndShards() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)" +
                 "clustered by (col1) into 10 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\"," +
                                  "\"_meta\":{" +
-                                 "\"primary_keys\":[\"col1\"]," +
-                                 "\"routing\":\"col1\"}," +
+                                 "\"routing\":\"col1\"," +
+                                 "\"primary_keys\":[\"col1\"]}," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"keyword\"}" +
+                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
+                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -163,17 +167,17 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testCreateTableWithStrictColumnPolicy() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards " +
                 "with (column_policy='strict', number_of_replicas = 0)");
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{" +
-                                 "\"primary_keys\":[\"col1\"]}," +
-                                 "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\",\"position\":1}," +
-                                 "\"col2\":{\"type\":\"keyword\",\"position\":2}" +
-                                 "}}}";
+            "\"dynamic\":\"strict\"," +
+            "\"_meta\":{\"primary_keys\":[\"col1\"]}," +
+            "\"properties\":{" +
+            "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
+            "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}}}}";
 
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
@@ -188,27 +192,30 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testCreateGeoShapeExplicitIndex() throws Exception {
         execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"position\":1,\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
+                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"position\":1,\"oid\":1,\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
     }
 
     @Test
+    @UseNewCluster
     public void testCreateColumnWithDefaultExpression() throws Exception {
         execute("create table test (id int, col1 text default 'foo', col2 int[] default [1,2])");
         String expectedMapping = "{\"default\":{" +
             "\"dynamic\":\"strict\"," +
             "\"_meta\":{}," +
             "\"properties\":{" +
-            "\"col1\":{\"type\":\"keyword\",\"position\":2,\"default_expr\":\"'foo'\"}," +
-            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"_cast([1, 2], 'array(integer)')\"}}," +
-            "\"id\":{\"type\":\"integer\",\"position\":1}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
+            "\"id\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
+            "\"col1\":{\"type\":\"keyword\",\"position\":2,\"default_expr\":\"'foo'\",\"oid\":2}," +
+            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"[1, 2]\",\"oid\":3}}" +
+            "}}}";
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         execute("insert into test(id) values(1)");
         execute("refresh table test");
         execute("select id, col1, col2 from test");
@@ -216,12 +223,13 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testCreateGeoShape() throws Exception {
         execute("create table test (col1 geo_shape)");
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\",\"position\":1}}}}";
+                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\",\"position\":1,\"oid\":1}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
 
     }
@@ -316,6 +324,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testCreateTableWithCompositeIndex() throws Exception {
         execute("create table novels (title string, description string, " +
                 "index title_desc_fulltext using fulltext(title, description) " +
@@ -323,11 +332,11 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         String expectedMapping = "{\"default\":{" +
             "\"dynamic\":\"strict\",\"" +
-            "_meta\":{\"indices\":{\"title_desc_fulltext\":{}}}," +
+            "_meta\":{\"indices\":{\"3\":{}}}," +
             "\"properties\":{" +
-            "\"description\":{\"type\":\"keyword\",\"position\":2}," +
-            "\"title\":{\"type\":\"keyword\",\"position\":1}," +
-            "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":3,\"analyzer\":\"stop\",\"sources\":[\"title\",\"description\"]}}}}";
+            "\"title\":{\"type\":\"keyword\",\"position\":1,\"oid\":1}," +
+            "\"description\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
+            "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":3,\"oid\":3,\"analyzer\":\"stop\",\"sources\":[\"1\",\"2\"]}}}}";
         assertEquals(expectedMapping, getIndexMapping("novels"));
 
         String title = "So Long, and Thanks for All the Fish";
@@ -388,7 +397,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_alter_table_add_column_succedds_because_check_constaint_refers_to_self_columns() {
+    public void test_alter_table_add_column_succeeds_because_check_constaint_refers_to_self_columns() {
         execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
         execute("alter table t add column bazinga integer constraint bazinga_check check(bazinga <> 42)");
         execute("insert into t(id, qty, bazinga) values(0, 1, 100)");
@@ -585,12 +594,23 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testAlterTableAddObjectColumnToExistingObject() {
+    @UseNewCluster
+    public void testAlterTableAddObjectColumnToExistingObject() throws IOException {
         execute("create table t (o object as (x string)) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         ensureYellow();
         execute("alter table t add o['y'] int");
+
+        // Verify that ADD COLUMN gets advanced OID.
+        String expectedMapping = "{\"default\":" +
+            "{\"dynamic\":\"strict\",\"_meta\":{}," +
+            "\"properties\":{\"o\":{\"position\":1,\"oid\":1,\"dynamic\":\"true\"," +
+            "\"properties\":" +
+            "{\"x\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
+            "\"y\":{\"type\":\"integer\",\"position\":3,\"oid\":3}}}}}}";
+        assertThat(getIndexMapping("t")).isEqualTo(expectedMapping);
+
         // column o exists already
         Asserts.assertSQLError(() -> execute("alter table t add o object as (z string)"))
             .hasPGError(INTERNAL_ERROR)
@@ -607,6 +627,8 @@ public class DDLIntegrationTest extends IntegTestCase {
             fqColumnNames.add((String) row[0]);
         }
         assertThat(fqColumnNames).containsExactly("o", "o['x']", "o['y']");
+
+
     }
 
     @Test
@@ -863,6 +885,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testCreateTableWithGeneratedColumn() throws Exception {
         execute(
             "create table test (" +
@@ -874,14 +897,15 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"_meta\":{" +
                                  "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"properties\":{" +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
+                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
     }
 
     @Test
+    @UseNewCluster
     public void testAddGeneratedColumnToTableWithExistingGeneratedColumns() throws Exception {
         execute(
             "create table test (" +
@@ -896,9 +920,9 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"day\":\"date_trunc('day', ts)\"," +
                                  "\"added\":\"date_trunc('day', ts)\"}}," +
                                  "\"properties\":{" +
-                                 "\"added\":{\"type\":\"date\",\"position\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
+                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"added\":{\"type\":\"date\",\"position\":3,\"oid\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1025,7 +1049,7 @@ public class DDLIntegrationTest extends IntegTestCase {
             """
                 CREATE TABLE IF NOT EXISTS "doc"."tbl" (
                    "id" INTEGER,
-                   "g" GEO_SHAPE GENERATED ALWAYS AS _cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape') INDEX USING QUADTREE WITH (
+                   "g" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))' INDEX USING QUADTREE WITH (
                       distance_error_pct = 0.123,
                       precision = '123.0m'
                    )
@@ -1108,7 +1132,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                       "c2" INTEGER
                    ),
                    "int_col" INTEGER NOT NULL,
-                   "long_col" BIGINT GENERATED ALWAYS AS _cast(30, 'bigint'),
+                   "long_col" BIGINT GENERATED ALWAYS AS 30,
                    "analyzed_col" TEXT INDEX USING FULLTEXT WITH (
                       analyzer = 'simple'
                    ),

@@ -80,14 +80,14 @@ public class DateType extends DataType<Long>
                     throw new ClassCastException("Can't cast '" + value + "' to " + getName());
                 }
             }
-        } else if (value instanceof Double) {
+        } else if (value instanceof Double d) {
             // we treat float and double values as seconds with milliseconds as fractions
             // see timestamp documentation
-            longVal = ((Number) (((Double) value) * 1000)).longValue();
-        } else if (value instanceof Float) {
-            longVal = ((Number) (((Float) value) * 1000)).longValue();
-        } else if (value instanceof Number) {
-            longVal = ((Number) value).longValue();
+            longVal = ((Number) (d * 1000)).longValue();
+        } else if (value instanceof Float f) {
+            longVal = ((Number) (f * 1000)).longValue();
+        } else if (value instanceof Number number) {
+            longVal = number.longValue();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
@@ -101,8 +101,8 @@ public class DateType extends DataType<Long>
     public Long sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Number) {
-            return ((Number) value).longValue();
+        } else if (value instanceof Number number) {
+            return number.longValue();
         } else {
             return (Long) value;
         }

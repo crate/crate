@@ -39,6 +39,9 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.v2.BlobIndicesService;
+
 public class PeerRecoverySourceServiceTests extends IndexShardTestCase {
 
     @Test
@@ -52,8 +55,13 @@ public class PeerRecoverySourceServiceTests extends IndexShardTestCase {
                 .build()
         );
         PeerRecoverySourceService peerRecoverySourceService = new PeerRecoverySourceService(
-            mock(TransportService.class), indicesService, clusterService,
-            new RecoverySettings(Settings.EMPTY, new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)));
+            mock(TransportService.class),
+            indicesService,
+            clusterService,
+            new RecoverySettings(Settings.EMPTY, new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
+            mock(BlobTransferTarget.class),
+            mock(BlobIndicesService.class)
+        );
         StartRecoveryRequest startRecoveryRequest = new StartRecoveryRequest(primary.shardId(), randomAlphaOfLength(10),
             getFakeDiscoNode("source"), getFakeDiscoNode("target"), Store.MetadataSnapshot.EMPTY, randomBoolean(), randomLong(),
             SequenceNumbers.UNASSIGNED_SEQ_NO);

@@ -42,7 +42,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -90,7 +89,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
 
     @Test
     public void testNormalizeDoesNotRemoveOrderBy() throws Exception {
-        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER);
+        Symbol toInt10 = Literal.of(10L).cast(DataTypes.INTEGER);
         RoutedCollectPhase collect = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,
@@ -112,7 +111,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
 
     @Test
     public void testNormalizePreservesNodePageSizeHint() throws Exception {
-        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER);
+        Symbol toInt10 = Literal.of(10L).cast(DataTypes.INTEGER);
         RoutedCollectPhase collect = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,

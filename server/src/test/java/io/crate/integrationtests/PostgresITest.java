@@ -1137,6 +1137,78 @@ public class PostgresITest extends IntegTestCase {
         }
     }
 
+    @Test
+    public void test_insert_array_in_simple_query_mode() throws Exception {
+        var properties = new Properties();
+        properties.setProperty("user", "crate");
+        properties.setProperty("preferQueryMode", "simple");
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate(
+                    "CREATE TABLE t (" +
+                    "   ints array(int)) " +
+                    "WITH (number_of_replicas = 0)");
+
+            PreparedStatement preparedStatement = conn.prepareStatement(
+                    "INSERT INTO t (ints) VALUES (?)");
+            preparedStatement.setArray(1, conn.createArrayOf("int", new Integer[]{1, 2}));
+            preparedStatement.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
+
+            ResultSet resultSet = conn.createStatement().executeQuery("SELECT ints FROM t");
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Integer[]{1, 2});
+        } catch (BatchUpdateException e) {
+            throw e.getNextException();
+        }
+    }
+
+    @Test
+    public void test_original_query_appears_in_jobs_log() throws Exception {
+        var properties = new Properties();
+        properties.setProperty("user", "crate");
+        properties.setProperty("preferQueryMode", "simple");
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            var stmt = "SET timezone = 'Europe/Berlin'";
+            conn.createStatement().execute(stmt);
+
+            // Check that the statement is logged with a WHERE filter to avoid flakiness because of
+            // other statements logged like:  "SET extra_float_digits = 3"
+            var prepStmt = conn.prepareStatement("SELECT stmt FROM sys.jobs_log WHERE stmt = ?");
+            prepStmt.setString(1, stmt);
+            var resultSet = prepStmt.executeQuery();
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getString(1)).isEqualTo(stmt);
+            assertThat(resultSet.next()).isFalse();
+        } catch (BatchUpdateException e) {
+            throw e.getNextException();
+        }
+    }
+
+    @Test
+    public void test_float_vector_jdbc() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().execute("create table tbl (id int, xs float_vector(2))");
+            PreparedStatement stmt = conn.prepareStatement("insert into tbl (id, xs) values (?, ?)");
+            stmt.setObject(1, 1);
+            stmt.setObject(2, new float[] { 1.2f, 1.3f });
+            stmt.executeUpdate();
+            stmt.setObject(1, 2);
+            stmt.setObject(2, new float[] { 2.2f, 2.3f });
+            stmt.executeUpdate();
+            stmt.setObject(1, 3);
+            stmt.setObject(2, null);
+            stmt.executeUpdate();
+
+            conn.createStatement().execute("refresh table tbl");
+            var resultSet = conn.createStatement().executeQuery("select xs from tbl order by id");
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Float[] { 1.2f, 1.3f });
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Float[] { 2.2f, 2.3f });
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getArray(1)).isNull();
+        }
+    }
 
     private long getNumQueriesFromJobsLogs() {
         long result = 0;

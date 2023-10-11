@@ -49,9 +49,9 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         @Override
         public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new IntIndexer(ref, getFieldType.apply(ref.column()));
+            return new IntIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 
@@ -82,18 +82,18 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     public Byte implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Byte) {
-            return (Byte) value;
-        } else if (value instanceof String) {
-            return Byte.parseByte((String) value);
-        } else if (value instanceof BigDecimal) {
+        } else if (value instanceof Byte b) {
+            return b;
+        } else if (value instanceof String str) {
+            return Byte.parseByte(str);
+        } else if (value instanceof BigDecimal bigDecimal) {
             try {
-                return ((BigDecimal) value).byteValueExact();
+                return bigDecimal.byteValueExact();
             } catch (ArithmeticException e) {
                 throw new IllegalArgumentException("byte value out of range: " + value);
             }
-        } else if (value instanceof Number) {
-            int val = ((Number) value).intValue();
+        } else if (value instanceof Number number) {
+            int val = number.intValue();
             if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {
                 throw new IllegalArgumentException("byte value out of range: " + val);
             }
@@ -107,8 +107,8 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     public Byte sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Byte) {
-            return (Byte) value;
+        } else if (value instanceof Byte b) {
+            return b;
         } else {
             return ((Number) value).byteValue();
         }

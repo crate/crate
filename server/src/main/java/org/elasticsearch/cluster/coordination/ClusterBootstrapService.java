@@ -245,6 +245,6 @@ public class ClusterBootstrapService {
             }
         }
 
-        return Tuple.tuple(selectedNodes, unmatchedRequirements);
+        return new Tuple<>(selectedNodes, unmatchedRequirements);
     }
 }

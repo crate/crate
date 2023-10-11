@@ -470,7 +470,7 @@ public class MasterServiceTests extends ESTestCase {
                     tasks.add(new Task(taskId++));
                 }
                 taskGroups.add(tasks);
-                assignments.add(Tuple.tuple(executor, tasks));
+                assignments.add(new Tuple<>(executor, tasks));
             }
         }
 

@@ -21,14 +21,14 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 import io.crate.types.DataType;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 public class AnalyzedCopyFrom implements AnalyzedStatement {
 
@@ -89,7 +89,7 @@ public class AnalyzedCopyFrom implements AnalyzedStatement {
         return analyzedStatementVisitor.visitCopyFromStatement(this, context);
     }
 
-    public static IllegalArgumentException raiseInvalidType(DataType dataType) {
+    public static IllegalArgumentException raiseInvalidType(DataType<?> dataType) {
         throw new IllegalArgumentException("fileUri must be of type STRING or STRING ARRAY. Got " + dataType);
     }
 }

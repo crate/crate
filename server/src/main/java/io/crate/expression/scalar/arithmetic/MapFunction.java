@@ -22,7 +22,10 @@
 package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
@@ -32,9 +35,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-
-import java.util.LinkedHashMap;
-import java.util.List;
+import io.crate.types.TypeSignature;
 
 /**
  * _map(k, v, [...]) -> object
@@ -54,12 +55,12 @@ public class MapFunction extends Scalar<Object, Object> {
             .name(new FunctionName(null, NAME))
             .kind(FunctionType.SCALAR)
             .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
-            .argumentTypes(parseTypeSignature("text"), parseTypeSignature("V"))
+            .argumentTypes(TypeSignature.parse("text"), TypeSignature.parse("V"))
             // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
             // of e.g. `object(text, int, text, geo_point, ...)`.
             // This is *ok* as the returnType is currently not used directly, only for function description.
-            .returnType(parseTypeSignature("object(text, V)"))
-            .variableArityGroup(List.of(parseTypeSignature("text"), parseTypeSignature("V")))
+            .returnType(TypeSignature.parse("object(text, V)"))
+            .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.parse("V")))
             .build();
 
 
@@ -70,22 +71,8 @@ public class MapFunction extends Scalar<Object, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private MapFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs

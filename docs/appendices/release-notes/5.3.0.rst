@@ -6,6 +6,15 @@ Version 5.3.0
 
 Released on 2023-04-04.
 
+.. WARNING::
+
+    CrateDB 5.3.x versions up to :ref:`5.3.3 <version_5.3.3>` (excluding)
+    contain a critical bug which can lead to data corruption/loss when using
+    a column definition with a number data type and disabled index
+    (``INDEX OFF``).
+    It is not recommended to use those versions, use CrateDB >=
+    :ref:`5.3.3 <version_5.3.3>` instead.
+
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
@@ -75,6 +84,26 @@ SQL Standard And PostgreSQL Schema Compatibility
 - Added the :ref:`col_description(integer, integer) <scalar-col_description>` scalar
   function for improved PostgreSQL compatibility. CrateDB does not support
   comments for columns, so this function always returns ``NULL``.
+
+
+SQL statements
+--------------
+
+- Changed the behavior of ``INSERT INTO`` on tables with generated columns which
+  use non-deterministic functions.
+  Previously, if the columns were included in the column target list, the
+  provided values were validated against re-computed values of the generated
+  expression. Given that the functions are not deterministic, this validation
+  always failed and made it impossible to copy data between tables
+  with such columns.
+
+  In the new behavior the values are no longer validated for non-deterministic
+  functions but are accepted as is. If the column is not present in the target
+  list, they are re-computed as before. This lets users do copy operations
+  between such tables and decide if the source value should be used as is, or if
+  they should be re-computed by either adding or removing the columns from the
+  ``INSERT INTO`` column target list.
+
 
 Performance Improvements
 ------------------------

@@ -21,6 +21,15 @@
 
 package io.crate.expression.tablefunctions;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Comparator;
+import java.util.List;
+import java.util.function.BinaryOperator;
+
+import org.joda.time.Period;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.legacy.LegacySettings;
@@ -33,14 +42,6 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-import org.joda.time.Period;
-
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.function.BinaryOperator;
 
 /**
  * <pre>
@@ -169,8 +170,6 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final T defaultStep;
     private final BinaryOperator<T> minus;
     private final BinaryOperator<T> plus;
@@ -186,8 +185,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                            BinaryOperator<T> divide,
                            Comparator<T> comparator,
                            RowType returnType) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.defaultStep = defaultStep;
         this.minus = minus;
         this.plus = plus;
@@ -222,16 +220,6 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     }
 
     @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
-    }
-
-    @Override
     public RowType returnType() {
         return returnType;
     }
@@ -244,23 +232,10 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     private static class GenerateSeriesIntervals extends TableFunctionImplementation<Object> {
 
         private final RowType returnType;
-        private final Signature signature;
-        private final BoundSignature boundSignature;
 
         public GenerateSeriesIntervals(Signature signature, BoundSignature boundSignature, RowType returnType) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
             this.returnType = returnType;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override

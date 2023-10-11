@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -322,8 +323,8 @@ public class WherePKIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(2L);
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void test_select_where_pk_and_additional_filter() {
         execute("create table t1 (id int primary key, x int) with (refresh_interval=0)");
         execute("insert into t1 (id, x) values (1, 1)");

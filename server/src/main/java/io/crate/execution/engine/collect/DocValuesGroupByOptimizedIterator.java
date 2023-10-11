@@ -35,8 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -49,6 +47,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
@@ -121,7 +120,6 @@ final class DocValuesGroupByOptimizedIterator {
             }
         }
 
-        //noinspection rawtypes
         List<DocValueAggregator> aggregators = DocValuesAggregates.createAggregators(
             functions,
             referenceResolver,
@@ -165,7 +163,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId())
+                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey())
             );
         } else {
             return GroupByIterator.forManyKeys(
@@ -177,13 +175,16 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId())
+                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey())
             );
         }
     }
 
-    static class GroupByIterator {
+    static final class GroupByIterator {
 
+        private GroupByIterator() {}
+
+        @SuppressWarnings("rawtypes")
         @VisibleForTesting
         static BatchIterator<Row> forSingleKey(List<DocValueAggregator> aggregators,
                                                IndexSearcher indexSearcher,
@@ -194,6 +195,7 @@ final class DocValuesGroupByOptimizedIterator {
                                                Version minNodeVersion,
                                                Query query,
                                                CollectorContext collectorContext) {
+            //noinspection unchecked
             DataType<Object> valueType = (DataType<Object>) keyReference.valueType();
             return GroupByIterator.getIterator(
                 aggregators,
@@ -206,20 +208,21 @@ final class DocValuesGroupByOptimizedIterator {
                 (expressions) -> expressions.get(0).value(),
                 (key, cells) -> cells[0] = key,
                 query,
-                new CollectorContext(collectorContext.readerId())
+                collectorContext
             );
         }
 
+        @SuppressWarnings("rawtypes")
         @VisibleForTesting
-        static <K> BatchIterator<Row> forManyKeys(List<DocValueAggregator> aggregators,
-                                                  IndexSearcher indexSearcher,
-                                                  List<Reference> keyColumnRefs,
-                                                  List<? extends LuceneCollectorExpression<?>> keyExpressions,
-                                                  RamAccounting ramAccounting,
-                                                  MemoryManager memoryManager,
-                                                  Version minNodeVersion,
-                                                  Query query,
-                                                  CollectorContext collectorContext) {
+        static BatchIterator<Row> forManyKeys(List<DocValueAggregator> aggregators,
+                                              IndexSearcher indexSearcher,
+                                              List<Reference> keyColumnRefs,
+                                              List<? extends LuceneCollectorExpression<?>> keyExpressions,
+                                              RamAccounting ramAccounting,
+                                              MemoryManager memoryManager,
+                                              Version minNodeVersion,
+                                              Query query,
+                                              CollectorContext collectorContext) {
             return GroupByIterator.getIterator(
                 aggregators,
                 indexSearcher,
@@ -244,10 +247,11 @@ final class DocValuesGroupByOptimizedIterator {
                     }
                 },
                 query,
-                new CollectorContext(collectorContext.readerId())
+                collectorContext
             );
         }
 
+        @SuppressWarnings("rawtypes")
         @VisibleForTesting
         static <K> BatchIterator<Row> getIterator(List<DocValueAggregator> aggregators,
                                                   IndexSearcher indexSearcher,
@@ -298,6 +302,7 @@ final class DocValuesGroupByOptimizedIterator {
             );
         }
 
+        @SuppressWarnings("rawtypes")
         private static <K> Iterable<Row> getRows(Map<K, Object[]> groupedStates,
                                                  int numberOfKeys,
                                                  BiConsumer<K, Object[]> applyKeyToCells,
@@ -323,6 +328,7 @@ final class DocValuesGroupByOptimizedIterator {
             };
         }
 
+        @SuppressWarnings("rawtypes")
         private static <K> Map<K, Object[]> applyAggregatesGroupedByKey(
             List<DocValueAggregator> aggregators,
             IndexSearcher indexSearcher,
@@ -419,10 +425,10 @@ final class DocValuesGroupByOptimizedIterator {
             return null;
         }
         Projection shardProjection = shardProjections.iterator().next();
-        if (!(shardProjection instanceof GroupProjection) ||
-            ((GroupProjection) shardProjection).mode() == AggregateMode.ITER_FINAL) {
+        if (!(shardProjection instanceof GroupProjection groupProjection) ||
+            groupProjection.mode() == AggregateMode.ITER_FINAL) {
             return null;
         }
-        return (GroupProjection) shardProjection;
+        return groupProjection;
     }
 }

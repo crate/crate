@@ -42,6 +42,7 @@ import io.crate.execution.ddl.tables.RenameTableRequest;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.view.ViewsMetadata;
 
 public class RenameTableClusterStateExecutor {
 
@@ -51,8 +52,7 @@ public class RenameTableClusterStateExecutor {
     private final DDLClusterStateService ddlClusterStateService;
     private final AllocationService allocationService;
 
-    public RenameTableClusterStateExecutor(
-                                           AllocationService allocationService,
+    public RenameTableClusterStateExecutor(AllocationService allocationService,
                                            DDLClusterStateService ddlClusterStateService) {
         this.allocationService = allocationService;
         logger = LogManager.getLogger(getClass());
@@ -60,12 +60,20 @@ public class RenameTableClusterStateExecutor {
     }
 
     public ClusterState execute(ClusterState currentState, RenameTableRequest request) throws Exception {
-        RelationName source = request.sourceTableIdent();
-        RelationName target = request.targetTableIdent();
+        RelationName source = request.sourceName();
+        RelationName target = request.targetName();
         boolean isPartitioned = request.isPartitioned();
 
         Metadata currentMetadata = currentState.metadata();
         Metadata.Builder newMetadata = Metadata.builder(currentMetadata);
+        ViewsMetadata views = currentMetadata.custom(ViewsMetadata.TYPE);
+        if (views != null && views.contains(source)) {
+            ViewsMetadata updatedViewsMetadata = views.rename(source, target);
+            newMetadata.putCustom(ViewsMetadata.TYPE, updatedViewsMetadata);
+            return ClusterState.builder(currentState)
+                .metadata(newMetadata)
+                .build();
+        }
 
         if (isPartitioned) {
             IndexTemplateMetadata indexTemplateMetadata = DDLClusterStateHelpers.templateMetadata(currentMetadata, source);

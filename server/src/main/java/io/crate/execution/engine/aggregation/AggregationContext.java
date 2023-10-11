@@ -21,15 +21,16 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.data.Input;
-
 import java.util.List;
 
+import io.crate.data.Input;
+
+@SuppressWarnings("rawtypes")
 public final class AggregationContext {
 
     private final AggregationFunction impl;
     private final Input<Boolean> filter;
-    private final Input[] inputs;
+    private final Input<?>[] inputs;
 
     public AggregationContext(AggregationFunction aggregationFunction,
                               Input<Boolean> filter,

@@ -42,9 +42,6 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import com.carrotsearch.hppc.ObjectLongHashMap;
-import com.carrotsearch.hppc.ObjectLongMap;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.GroupedActionListener;
@@ -64,6 +61,9 @@ import org.elasticsearch.index.shard.AbstractIndexShardComponent;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
+
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Tuple;
@@ -247,7 +247,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
      */
     public synchronized Tuple<Boolean, RetentionLeases> getRetentionLeases(final boolean expireLeases) {
         if (expireLeases == false) {
-            return Tuple.tuple(false, retentionLeases);
+            return new Tuple<>(false, retentionLeases);
         }
         assert primaryMode;
         // the primary calculates the non-expired retention leases and syncs them to replicas
@@ -280,13 +280,13 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         if (expiredLeases == null) {
             // early out as no retention leases have expired
             logger.debug("no retention leases are expired from current retention leases [{}]", retentionLeases);
-            return Tuple.tuple(false, retentionLeases);
+            return new Tuple<>(false, retentionLeases);
         }
         final Collection<RetentionLease> nonExpiredLeases =
                 partitionByExpiration.get(false) != null ? partitionByExpiration.get(false) : Collections.emptyList();
         logger.debug("expiring retention leases [{}] from current retention leases [{}]", expiredLeases, retentionLeases);
         retentionLeases = new RetentionLeases(operationPrimaryTerm, retentionLeases.version() + 1, nonExpiredLeases);
-        return Tuple.tuple(true, retentionLeases);
+        return new Tuple<>(true, retentionLeases);
     }
 
     private long getMinimumReasonableRetainedSeqNo() {
@@ -1395,10 +1395,13 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
     public synchronized void createMissingPeerRecoveryRetentionLeases(ActionListener<Void> listener) {
         if (hasAllPeerRecoveryRetentionLeases == false) {
             final List<ShardRouting> shardRoutings = routingTable.assignedShards();
-            final GroupedActionListener<ReplicationResponse> groupedActionListener = new GroupedActionListener<>(ActionListener.wrap(vs -> {
-                setHasAllPeerRecoveryRetentionLeases();
-                listener.onResponse(null);
-            }, listener::onFailure), shardRoutings.size());
+            final GroupedActionListener<ReplicationResponse> groupedActionListener = new GroupedActionListener<>(
+                listener.map(vs -> {
+                    setHasAllPeerRecoveryRetentionLeases();
+                    return null;
+                }),
+                shardRoutings.size()
+            );
             for (ShardRouting shardRouting : shardRoutings) {
                 if (retentionLeases.contains(getPeerRecoveryRetentionLeaseId(shardRouting))) {
                     groupedActionListener.onResponse(null);

@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -65,26 +66,13 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     public static class DummyFunction<InputType> extends Scalar<String, InputType> {
 
-        private final Signature signature;
         private final UserDefinedFunctionMetadata metadata;
-        private final BoundSignature boundSignature;
 
         private DummyFunction(UserDefinedFunctionMetadata metadata,
                               Signature signature,
                               BoundSignature boundSignature) {
-            this.signature = signature;
+            super(signature, boundSignature);
             this.metadata = metadata;
-            this.boundSignature = boundSignature;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override
@@ -282,10 +270,10 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
             .kind(FunctionType.SCALAR)
             .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"))
             .argumentTypes(
-                TypeSignature.parseTypeSignature("array(array(integer))"),
-                TypeSignature.parseTypeSignature("integer"),
-                TypeSignature.parseTypeSignature("text"))
-            .returnType(TypeSignature.parseTypeSignature("text"))
+                TypeSignature.parse("array(array(integer))"),
+                TypeSignature.parse("integer"),
+                TypeSignature.parse("text"))
+            .returnType(TypeSignature.parse("text"))
             .build();
         int functionOid = OidHash.functionOid(signature);
 
@@ -304,7 +292,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_pg_get_function_result() throws Exception {
-        TypeSignature returnTypeSig = TypeSignature.parseTypeSignature("array(array(integer))");
+        TypeSignature returnTypeSig = TypeSignature.parse("array(array(integer))");
         String returnType = returnTypeSig.toString();
         Signature signature = Signature
             .builder()

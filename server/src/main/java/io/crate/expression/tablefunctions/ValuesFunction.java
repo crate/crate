@@ -22,7 +22,6 @@
 package io.crate.expression.tablefunctions;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +38,7 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.RowType;
+import io.crate.types.TypeSignature;
 
 public class ValuesFunction {
 
@@ -47,24 +47,20 @@ public class ValuesFunction {
     public static final Signature SIGNATURE = Signature
         .table(
             NAME,
-            parseTypeSignature("array(E)"),
+            TypeSignature.parse("array(E)"),
             RowType.EMPTY.getTypeSignature())
         .withTypeVariableConstraints(typeVariableOfAnyType("E"))
         .withVariableArity();
 
     public static void register(TableFunctionModule module) {
-        module.register(SIGNATURE, ValuesTableFunctionImplementation::new);
+        module.register(SIGNATURE, ValuesTableFunctionImplementation::of);
     }
 
     private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final RowType returnType;
-        private final Signature signature;
-        private final BoundSignature boundSignature;
 
-        private ValuesTableFunctionImplementation(Signature signature,
-                                                  BoundSignature boundSignature) {
-            this.signature = signature;
+        private static ValuesTableFunctionImplementation of(Signature signature, BoundSignature boundSignature) {
             var argTypes = boundSignature.argTypes();
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
@@ -73,18 +69,13 @@ public class ValuesFunction {
 
                 fieldTypes.add(((ArrayType<?>) dataType).innerType());
             }
-            returnType = new RowType(fieldTypes);
-            this.boundSignature = new BoundSignature(argTypes, returnType);
+            RowType returnType = new RowType(fieldTypes);
+            return new ValuesTableFunctionImplementation(signature, argTypes, returnType);
         }
 
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
+        private ValuesTableFunctionImplementation(Signature signature, List<DataType<?>> argTypes, RowType returnType) {
+            super(signature, new BoundSignature(argTypes, returnType));
+            this.returnType = returnType;
         }
 
         @Override

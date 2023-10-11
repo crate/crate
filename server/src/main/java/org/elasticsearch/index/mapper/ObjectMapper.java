@@ -19,8 +19,10 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,23 +81,32 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
         @Override
         public ObjectMapper build(BuilderContext context) {
-            context.path().add(name);
+            var pathName = name;
+            context.path().add(pathName);
 
             Map<String, Mapper> mappers = new HashMap<>();
             for (Mapper.Builder<?> builder : mappersBuilders) {
                 Mapper mapper = builder.build(context);
-                Mapper existing = mappers.get(mapper.simpleName());
+                var name = mapper.simpleName();
+                if (mapper.columnOID() != COLUMN_OID_UNASSIGNED) {
+                    name = Long.toString(mapper.columnOID());
+                }
+
+                Mapper existing = mappers.get(name);
+
                 if (existing != null) {
                     mapper = existing.merge(mapper);
                 }
-                mappers.put(mapper.simpleName(), mapper);
+                mappers.put(name, mapper);
             }
             context.path().remove();
 
             var mapper = createMapper(
                 name,
                 position,
-                context.path().pathAsText(name),
+                columnOID,
+                isDropped,
+                context.path().pathAsText(pathName),
                 dynamic,
                 mappers,
                 context.indexSettings()
@@ -110,11 +121,13 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
         protected ObjectMapper createMapper(String name,
                                             int position,
+                                            long columnOID,
+                                            boolean isDropped,
                                             String fullPath,
                                             Dynamic dynamic,
                                             Map<String, Mapper> mappers,
                                             @Nullable Settings settings) {
-            return new ObjectMapper(name, position, fullPath, dynamic, mappers, settings);
+            return new ObjectMapper(name, position, columnOID, isDropped, fullPath, dynamic, mappers, settings);
         }
     }
 
@@ -140,6 +153,12 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
             if (fieldName.equals("position")) {
                 builder.position(nodeIntegerValue(fieldNode));
+                return true;
+            } else if (fieldName.equals("oid")) {
+                builder.columnOID(nodeLongValue(fieldNode));
+                return true;
+            } else if (fieldName.equals("dropped")) {
+                builder.setDropped(nodeBooleanValue(fieldNode));
                 return true;
             } else if (fieldName.equals("dynamic")) {
                 String value = fieldNode.toString();
@@ -233,17 +252,20 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     ObjectMapper(String name,
                  int position,
+                 long columnOID,
+                 boolean isDropped,
                  String fullPath,
                  Dynamic dynamic,
                  Map<String, Mapper> mappers,
                  Settings settings) {
-        super(name);
+        super(name, columnOID);
         assert settings != null;
         if (name.isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
         }
         this.fullPath = fullPath;
         this.position = position;
+        this.isDropped = isDropped;
         this.dynamic = dynamic;
         if (mappers == null) {
             this.mappers = new CopyOnWriteHashMap<>();
@@ -293,7 +315,11 @@ public class ObjectMapper extends Mapper implements Cloneable {
     }
 
     protected void putMapper(Mapper mapper) {
-        mappers = mappers.copyAndPut(mapper.simpleName(), mapper);
+        var name = mapper.simpleName();
+        if (mapper.columnOID() != COLUMN_OID_UNASSIGNED) {
+            name = Long.toString(mapper.columnOID());
+        }
+        mappers = mappers.copyAndPut(name, mapper);
     }
 
     @Override
@@ -333,6 +359,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         if (mergeWith.dynamic != null) {
             this.dynamic = mergeWith.dynamic;
         }
+        this.isDropped = mergeWith.isDropped;
 
         for (Mapper mergeWithMapper : mergeWith) {
             Mapper mergeIntoMapper = mappers.get(mergeWithMapper.simpleName());
@@ -349,8 +376,13 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
     }
 
+
     protected int position() {
         return position;
+    }
+
+    protected boolean isDropped() {
+        return isDropped;
     }
 
     @Override
@@ -366,6 +398,12 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
         if (position != NOT_TO_BE_POSITIONED) {
             builder.field("position", position);
+        }
+        if (columnOID != COLUMN_OID_UNASSIGNED) {
+            builder.field("oid", columnOID);
+        }
+        if (isDropped) {
+            builder.field("dropped", true);
         }
         if (dynamic != null) {
             builder.field("dynamic", dynamic.name().toLowerCase(IsoLocale.ROOT));

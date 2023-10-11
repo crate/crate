@@ -317,7 +317,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
@@ -326,7 +326,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
@@ -338,7 +338,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                 );
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();

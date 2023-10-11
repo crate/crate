@@ -24,7 +24,6 @@ package io.crate.planner.statement;
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,6 +53,7 @@ import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
@@ -225,7 +225,7 @@ public final class CopyToPlan implements Plan {
             }
             columnsDefined = true;
         } else {
-            Reference sourceRef;
+            Symbol toCollect;
             if (table.isPartitioned() && partitions.isEmpty()) {
                 // table is partitioned, insert partitioned columns into the output
                 overwrites = new HashMap<>();
@@ -235,17 +235,21 @@ public final class CopyToPlan implements Plan {
                     }
                 }
                 if (overwrites.size() > 0) {
-                    sourceRef = table.getReference(DocSysColumns.DOC);
+                    toCollect = table.getReference(DocSysColumns.DOC);
                 } else {
-                    sourceRef = table.getReference(DocSysColumns.RAW);
+                    var docRef = table.getReference(DocSysColumns.DOC);
+                    assert docRef != null : "_doc reference must be resolvable";
+                    toCollect = docRef.cast(DataTypes.STRING, CastMode.EXPLICIT);
                 }
             } else {
-                sourceRef = table.getReference(DocSysColumns.RAW);
+                var docRef = table.getReference(DocSysColumns.DOC);
+                assert docRef != null : "_doc reference must be resolvable";
+                toCollect = docRef.cast(DataTypes.STRING, CastMode.EXPLICIT);
             }
-            outputs = List.of(sourceRef);
+            outputs = List.of(toCollect);
         }
 
-        Settings settings = genericPropertiesToSettings(copyTo.properties().map(eval));
+        Settings settings = Settings.builder().put(copyTo.properties().map(eval)).build();
 
         WriterProjection.CompressionType compressionType =
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));

@@ -74,6 +74,8 @@ public class BooleanFieldMapper extends FieldMapper {
             var mapper = new BooleanFieldMapper(
                 name,
                 position,
+                columnOID,
+                isDropped,
                 defaultExpression,
                 fieldType,
                 new BooleanFieldType(buildFullName(context), indexed, hasDocValues),
@@ -112,11 +114,13 @@ public class BooleanFieldMapper extends FieldMapper {
 
     protected BooleanFieldMapper(String simpleName,
                                  int position,
+                                 long columnOID,
+                                 boolean isDropped,
                                  @Nullable String defaultExpression,
                                  FieldType fieldType,
                                  MappedFieldType defaultFieldType,
                                  CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, copyTo);
+        super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, defaultFieldType, copyTo);
     }
 
     @Override

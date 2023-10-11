@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.Build;
@@ -68,11 +69,14 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
@@ -111,14 +115,22 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     public void testSelectRaw() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
+
+        var schemas = cluster().getDataNodeInstance(Schemas.class);
+        DocTableInfo table = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "characters"));
+        Function<String, String> mapName = s -> {
+            var ref = table.getReference(ColumnIdent.fromPath(s));
+            return ref.storageIdent();
+        };
+
         Object raw = response.rows()[0][0];
         Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
-        assertThat(rawMap.get("race"), is("Human"));
-        assertThat(rawMap.get("gender"), is("female"));
-        assertThat(rawMap.get("age"), is(32));
-        assertThat(rawMap.get("name"), is("Trillian"));
+        assertThat(rawMap.get(mapName.apply("race")), is("Human"));
+        assertThat(rawMap.get(mapName.apply("gender")), is("female"));
+        assertThat(rawMap.get(mapName.apply("age")), is(32));
+        assertThat(rawMap.get(mapName.apply("name")), is("Trillian"));
     }
 
     @Test
@@ -127,14 +139,21 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute("select name, _raw from characters " +
                                        "group by _raw, name order by name desc limit 1");
 
+        var schemas = cluster().getDataNodeInstance(Schemas.class);
+        DocTableInfo table = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "characters"));
+        Function<String, String> mapName = s -> {
+            var ref = table.getReference(ColumnIdent.fromPath(s));
+            return ref.storageIdent();
+        };
+
         Object raw = response.rows()[0][1];
         Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
-        assertThat(rawMap.get("race"), is("Human"));
-        assertThat(rawMap.get("gender"), is("female"));
-        assertThat(rawMap.get("age"), is(32));
-        assertThat(rawMap.get("name"), is("Trillian"));
+        assertThat(rawMap.get(mapName.apply("race")), is("Human"));
+        assertThat(rawMap.get(mapName.apply("gender")), is("female"));
+        assertThat(rawMap.get(mapName.apply("age")), is(32));
+        assertThat(rawMap.get(mapName.apply("name")), is("Trillian"));
     }
 
     @Test
@@ -493,7 +512,6 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         assertThat((Long) resp.rows()[0][0], is(0L));
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testSysOperationsLogConcurrentAccess() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
@@ -567,7 +585,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     public void testCreateTableWithInvalidAnalyzer() throws Exception {
         Asserts.assertSQLError(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasHTTPError(BAD_REQUEST, 4003)
             .hasMessageContaining("Failed to parse mapping: analyzer [foobar] not found for field [content]");
     }
 

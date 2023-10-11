@@ -23,10 +23,10 @@ package io.crate.execution.dml.upsert;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -203,8 +203,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new Object[] {}
         );
         assertThat(updateToInsert.columns()).satisfiesExactly(
-            c -> assertThat(c).isReference("x"),
-            c -> assertThat(c).isReference("y")
+            c -> assertThat(c).isReference().hasName("x"),
+            c -> assertThat(c).isReference().hasName("y")
         );
         assertThat(item.insertValues())
             .containsExactly(1, 2);
@@ -264,14 +264,14 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
             updateColumns,
-            insertColumns
+            Arrays.asList(insertColumns)
         );
         assertThat(updateToInsert.columns())
             .as("Start References of columns() must match insertColumns")
             .satisfiesExactly(
-                x -> assertThat(x).isReference("z"),
-                x -> assertThat(x).isReference("x"),
-                x -> assertThat(x).isReference("y")
+                x -> assertThat(x).isReference().hasName("z"),
+                x -> assertThat(x).isReference().hasName("x"),
+                x -> assertThat(x).isReference().hasName("y")
             );
 
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
@@ -309,7 +309,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
             updateColumns,
-            insertColumns
+            Arrays.asList(insertColumns)
         );
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -319,9 +319,9 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new Object[] { 1, 20 }
         );
         assertThat(updateToInsert.columns()).satisfiesExactly(
-            x -> assertThat(x).isReference("x"),
-            x -> assertThat(x).isReference("z"),
-            x -> assertThat(x).isReference("y")
+            x -> assertThat(x).isReference().hasName("x"),
+            x -> assertThat(x).isReference().hasName("z"),
+            x -> assertThat(x).isReference().hasName("y")
         );
         assertThat(item.pkValues()).containsExactly("1", "2");
         assertThat(item.insertValues()).containsExactly(1, 20, 2);
@@ -353,7 +353,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
             updateColumns,
-            insertColumns
+            Arrays.asList(insertColumns)
         );
         Map<String, Object> source = Map.of(
             "x", 1,
@@ -394,7 +394,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
             updateColumns,
-            insertColumns
+            Arrays.asList(insertColumns)
         );
         Map<String, Object> source = Map.of(
             "x", 1,

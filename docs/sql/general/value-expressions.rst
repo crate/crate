@@ -128,6 +128,8 @@ A subscript expression is an expression which contains a subscript
 :ref:`operator <gloss-operator>` (``[ ]``). It can be used to access a sub
 value of a composite type value.
 
+.. _sql-array-subscript:
+
 Array subscript
 ---------------
 

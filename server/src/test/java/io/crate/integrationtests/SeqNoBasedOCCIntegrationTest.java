@@ -31,8 +31,8 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testDeleteWhereSeqNoAndTermThatMatch() throws Exception {
         execute("create table t (x integer primary key, y string) with (number_of_replicas=0)");
         execute("insert into t (x, y) values (?, ?)", new Object[]{1, "don't panic"});
@@ -71,8 +71,8 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
         assertEquals(0, response.rowCount());
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testUpdateWhereSeqNoAndPrimaryTermWithPrimaryKey() throws Exception {
         execute("create table t (x integer primary key, y string)");
         execute("insert into t (x, y) values (?, ?)", new Object[]{1, "don't panic"});

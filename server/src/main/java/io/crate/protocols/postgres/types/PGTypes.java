@@ -37,6 +37,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
@@ -182,6 +183,9 @@ public class PGTypes {
 
             case BitStringType.ID:
                 return new BitType(((BitStringType) type).length());
+
+            case FloatVectorType.ID:
+                return PGFloatVectorType.INSTANCE;
 
             default: {
                 PGType<?> pgType = CRATE_TO_PG_TYPES.get(type);

@@ -34,8 +34,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -51,6 +49,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
@@ -66,7 +65,6 @@ import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Publication;
@@ -80,6 +78,7 @@ public class AlterTableOperation {
     private final TransportAlterTableAction transportAlterTableAction;
     private final TransportDropConstraintAction transportDropConstraintAction;
     private final TransportAddColumnAction transportAddColumnAction;
+    private final TransportDropColumnAction transportDropColumnAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
     private final TransportResizeAction transportResizeAction;
@@ -101,6 +100,7 @@ public class AlterTableOperation {
                                TransportAlterTableAction transportAlterTableAction,
                                TransportDropConstraintAction transportDropConstraintAction,
                                TransportAddColumnAction transportAddColumnAction,
+                               TransportDropColumnAction transportDropColumnAction,
                                Sessions sessions,
                                IndexScopedSettings indexScopedSettings,
                                LogicalReplicationService logicalReplicationService) {
@@ -114,13 +114,14 @@ public class AlterTableOperation {
         this.transportCloseTable = transportCloseTable;
         this.transportAlterTableAction = transportAlterTableAction;
         this.transportAddColumnAction = transportAddColumnAction;
+        this.transportDropColumnAction = transportDropColumnAction;
         this.transportDropConstraintAction = transportDropConstraintAction;
         this.sessions = sessions;
         this.indexScopedSettings = indexScopedSettings;
         this.logicalReplicationService = logicalReplicationService;
     }
 
-    public CompletableFuture<Long> executeAlterTableAddColumn(AddColumnRequest addColumnRequest) {
+    public CompletableFuture<Long> addColumn(AddColumnRequest addColumnRequest) {
         String subject = null;
         if (addColumnRequest.pKeyIndices().isEmpty() == false) {
             subject = "primary key";
@@ -138,6 +139,10 @@ public class AlterTableOperation {
             });
         }
         return transportAddColumnAction.execute(addColumnRequest).thenApply(resp -> -1L);
+    }
+
+    public CompletableFuture<Long> executeAlterTableDropColumn(DropColumnRequest dropColumnRequest) {
+        return transportDropColumnAction.execute(dropColumnRequest).thenApply(resp -> -1L);
     }
 
     private CompletableFuture<Long> getRowCount(RelationName ident) {
@@ -378,18 +383,8 @@ public class AlterTableOperation {
         });
     }
 
-    public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRename statement) {
-        DocTableInfo sourceTableInfo = statement.sourceTableInfo();
-        RelationName sourceRelationName = sourceTableInfo.ident();
-        RelationName targetRelationName = statement.targetTableIdent();
-
-        return renameTable(sourceRelationName, targetRelationName, sourceTableInfo.isPartitioned());
-    }
-
-    private CompletableFuture<Long> renameTable(RelationName sourceRelationName,
-                                                RelationName targetRelationName,
-                                                boolean isPartitioned) {
-        RenameTableRequest request = new RenameTableRequest(sourceRelationName, targetRelationName, isPartitioned);
+    public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRename renameTable) {
+        var request = new RenameTableRequest(renameTable.sourceName(), renameTable.targetName(), renameTable.isPartitioned());
         return transportRenameTableAction.execute(request, r -> -1L);
     }
 

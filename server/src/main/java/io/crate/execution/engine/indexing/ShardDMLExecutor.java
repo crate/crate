@@ -35,8 +35,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import org.jetbrains.annotations.Nullable;
-
+import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -45,7 +44,10 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.exceptions.Exceptions;
@@ -197,7 +199,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     public CompletableFuture<TResult> apply(BatchIterator<Row> batchIterator) {
         ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
         var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
-        BatchIterator<TReq> reqBatchIterator = BatchIterators.partition(
+        BatchIterator<TReq> reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
             requestFactory,
@@ -237,17 +239,19 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         return nodeId;
     }
 
-    private static void maybeRaiseFailure(ShardResponse shardResponse) {
-        Exception failure = shardResponse.failure();
-        if (failure != null) {
-            throw Exceptions.toRuntimeException(failure);
+    public static void maybeRaiseFailure(@Nullable Exception exception) {
+        if (exception != null) {
+            Throwable t = SQLExceptions.unwrap(exception);
+            if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
+                throw Exceptions.toRuntimeException(t);
+            }
         }
     }
 
     public static final Collector<ShardResponse, long[], Iterable<Row>> ROW_COUNT_COLLECTOR = Collector.of(
         () -> new long[]{0L},
         (acc, response) -> {
-            maybeRaiseFailure(response);
+            maybeRaiseFailure(response.failure());
             acc[0] += response.successRowCount();
         },
         (acc, response) -> {
@@ -260,7 +264,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     public static final Collector<ShardResponse, List<Object[]>, Iterable<Row>> RESULT_ROW_COLLECTOR = Collector.of(
         ArrayList::new,
         (acc, response) -> {
-            maybeRaiseFailure(response);
+            maybeRaiseFailure(response.failure());
             List<Object[]> rows = response.getResultRows();
             if (rows != null) {
                 acc.addAll(rows);

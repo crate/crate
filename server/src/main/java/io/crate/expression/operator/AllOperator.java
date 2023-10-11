@@ -21,6 +21,11 @@
 
 package io.crate.expression.operator;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.Collection;
+import java.util.function.IntPredicate;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -28,12 +33,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.DataType;
-
-import java.util.Collection;
-import java.util.function.IntPredicate;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public final class AllOperator extends Operator<Object> {
 
@@ -61,8 +61,8 @@ public final class AllOperator extends Operator<Object> {
             module.register(
                 Signature.scalar(
                     type.fullQualifiedName,
-                    parseTypeSignature("E"),
-                    parseTypeSignature("array(E)"),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("array(E)"),
                     Operator.RETURN_TYPE.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E")),
                 (signature, boundSignature) ->
@@ -75,14 +75,11 @@ public final class AllOperator extends Operator<Object> {
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final IntPredicate cmp;
     private final DataType leftType;
 
     public AllOperator(Signature signature, BoundSignature boundSignature, IntPredicate cmp) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.cmp = cmp;
         this.leftType = boundSignature.argTypes().get(0);
     }
@@ -110,15 +107,5 @@ public final class AllOperator extends Operator<Object> {
         } else {
             return false;
         }
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

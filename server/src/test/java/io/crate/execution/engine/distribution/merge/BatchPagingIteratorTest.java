@@ -71,7 +71,7 @@ public class BatchPagingIteratorTest {
         List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
             .map(Row::materialize)
             .collect(Collectors.toList());
-        BatchIteratorTester tester = new BatchIteratorTester(() -> {
+        var tester = BatchIteratorTester.forRows(() -> {
             PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
             pagingIterator.merge(singletonList(new KeyIterable<>(0, rows)));
             return new BatchPagingIterator<>(
@@ -131,7 +131,7 @@ public class BatchPagingIteratorTest {
                 }
             );
         };
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 

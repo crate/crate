@@ -20,10 +20,7 @@
 package org.elasticsearch.test;
 
 import static com.carrotsearch.randomizedtesting.generators.RandomNumbers.randomIntBetween;
-import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomAsciiLettersOfLength;
 import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomUnicodeOfLengthBetween;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
-import static org.elasticsearch.test.ESTestCase.randomFrom;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -32,20 +29,12 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
-import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo.Failure;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.shard.IndexShardRecoveringException;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.rest.RestStatus;
 
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
@@ -137,7 +126,7 @@ public final class RandomObjects {
                     throw new UnsupportedOperationException();
             }
         }
-        return Tuple.tuple(originalValues, expectedParsedValues);
+        return new Tuple<>(originalValues, expectedParsedValues);
     }
 
     /**
@@ -221,54 +210,5 @@ public final class RandomObjects {
             default:
                 throw new UnsupportedOperationException();
         }
-    }
-
-    /**
-     * Returns a tuple that contains a randomized {@link Failure} value (left side) and its corresponding
-     * value (right side) after it has been printed out as a {@link ToXContent} and parsed back using a parsing
-     * method like {@link ShardInfo.Failure#fromXContent(XContentParser)}.
-     *
-     * @param random Random generator
-     */
-    private static Tuple<Failure, Failure> randomShardInfoFailure(Random random) {
-        String index = randomAsciiLettersOfLength(random, 5);
-        String indexUuid = randomAsciiLettersOfLength(random, 5);
-        int shardId = randomIntBetween(random, 1, 10);
-        String nodeId = randomAsciiLettersOfLength(random, 5);
-        RestStatus status = randomFrom(random, RestStatus.INTERNAL_SERVER_ERROR, RestStatus.FORBIDDEN, RestStatus.NOT_FOUND);
-        boolean primary = random.nextBoolean();
-        ShardId shard = new ShardId(index, indexUuid, shardId);
-
-        Exception actualException;
-        ElasticsearchException expectedException;
-
-        int type = randomIntBetween(random, 0, 2);
-        switch (type) {
-            case 0:
-                actualException = new ShardNotFoundException(shard);
-                expectedException = new ElasticsearchException("Elasticsearch exception [type=shard_not_found_exception, " +
-                        "reason=no such shard]");
-                expectedException.setShard(shard);
-                break;
-            case 1:
-                actualException = new IllegalArgumentException("Closed resource", new RuntimeException("Resource"));
-                expectedException = new ElasticsearchException("Elasticsearch exception [type=illegal_argument_exception, " +
-                        "reason=Closed resource]",
-                        new ElasticsearchException("Elasticsearch exception [type=runtime_exception, reason=Resource]"));
-                break;
-            case 2:
-                actualException = new IndexShardRecoveringException(shard);
-                expectedException = new ElasticsearchException("Elasticsearch exception [type=index_shard_recovering_exception, " +
-                        "reason=CurrentState[RECOVERING] Already recovering]");
-                expectedException.setShard(shard);
-                break;
-            default:
-                throw new UnsupportedOperationException("No randomized exceptions generated for type [" + type + "]");
-        }
-
-        Failure actual = new Failure(shard, nodeId, actualException, status, primary);
-        Failure expected = new Failure(new ShardId(index, INDEX_UUID_NA_VALUE, shardId), nodeId, expectedException, status, primary);
-
-        return Tuple.tuple(actual, expected);
     }
 }

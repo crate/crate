@@ -33,8 +33,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -59,6 +57,7 @@ import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.exceptions.Exceptions;
@@ -177,10 +176,7 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
                     repository,
                     new ArrayList<>(toResolve),
                     request.ignoreUnavailable(),
-                    ActionListener.wrap(
-                        snapshotInfos -> listener.onResponse(new GetSnapshotsResponse(new ArrayList<>(snapshotInfos))),
-                        listener::onFailure
-                    )
+                    listener.map(snapshotInfos -> new GetSnapshotsResponse(new ArrayList<>(snapshotInfos)))
                 );
             } else {
                 final List<SnapshotInfo> snapshotInfos;
@@ -215,22 +211,6 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
         }
         CollectionUtil.timSort(snapshotList);
         return unmodifiableList(snapshotList);
-    }
-
-
-    /**
-     * Gets the {@link RepositoryData} for the given repository.
-     *
-     * @param repositoryName repository name
-     * @return repository data
-     */
-    public CompletableFuture<RepositoryData> getRepositoryData(final String repositoryName) {
-        try {
-            Repository repository = repositoriesService.repository(repositoryName);
-            return repository.getRepositoryData();
-        } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
-        }
     }
 
     /**

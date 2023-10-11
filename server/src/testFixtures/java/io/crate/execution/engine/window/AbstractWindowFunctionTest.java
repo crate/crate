@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -43,7 +42,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -161,7 +159,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         InputColumns.SourceSymbols inputColSources = new InputColumns.SourceSymbols(sourceSymbols);
         var mappedWindowDef = windowDef.map(s -> InputColumns.create(s, inputColSources));
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
-            InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL,
+            InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).toList(), SENTINEL,
                                      true),
             new IgnoreRowAccounting(),
             WindowProjector.createComputeStartFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),
@@ -178,9 +176,10 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         );
         List<Object> actualResult;
         try {
-            actualResult = BatchIterators.collect(
-                iterator,
-                Collectors.mapping(row -> row.get(numCellsInSourceRows), Collectors.toList())).get(5, TimeUnit.SECONDS);
+            actualResult = iterator
+                .map(row -> row.get(numCellsInSourceRows))
+                .toList()
+                .get(5, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
             throw e.getCause();
         }

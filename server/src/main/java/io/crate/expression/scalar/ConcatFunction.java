@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.object.ObjectMergeFunction;
 import io.crate.expression.symbol.Function;
@@ -32,9 +34,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public abstract class ConcatFunction extends Scalar<String, String> {
 
@@ -65,9 +65,9 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("array(E)")
+                TypeSignature.parse("array(E)"),
+                TypeSignature.parse("array(E)"),
+                TypeSignature.parse("array(E)")
             )
                 .withTypeVariableConstraints(typeVariable("E")),
             ArrayCatFunction::new
@@ -84,22 +84,8 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     ConcatFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

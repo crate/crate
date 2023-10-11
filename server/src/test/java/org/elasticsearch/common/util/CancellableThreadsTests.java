@@ -20,18 +20,16 @@
  */
 package org.elasticsearch.common.util;
 
-import static org.elasticsearch.common.util.CancellableThreads.ExecutionCancelledException;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.elasticsearch.common.util.CancellableThreads.IOInterruptable;
+import org.elasticsearch.common.util.CancellableThreads.ExecutionCancelledException;
 import org.elasticsearch.common.util.CancellableThreads.Interruptable;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
@@ -41,12 +39,6 @@ public class CancellableThreadsTests extends ESTestCase {
 
     public static class CustomException extends RuntimeException {
         CustomException(String msg) {
-            super(msg);
-        }
-    }
-
-    public static class IOCustomException extends IOException {
-        IOCustomException(String msg) {
             super(msg);
         }
     }
@@ -61,8 +53,6 @@ public class CancellableThreadsTests extends ESTestCase {
         final boolean exitBeforeCancel;
         final boolean exceptAfterCancel;
         final boolean presetInterrupt;
-        final boolean ioOp;
-        private final boolean ioException;
 
         private TestPlan(int id) {
             this.id = id;
@@ -71,8 +61,6 @@ public class CancellableThreadsTests extends ESTestCase {
             this.exitBeforeCancel = randomBoolean();
             this.exceptAfterCancel = randomBoolean();
             this.presetInterrupt = randomBoolean();
-            this.ioOp = randomBoolean();
-            this.ioException = ioOp && randomBoolean();
         }
     }
 
@@ -109,39 +97,6 @@ public class CancellableThreadsTests extends ESTestCase {
         }
     }
 
-    static class TestIORunnable implements IOInterruptable {
-        final TestPlan plan;
-        final CountDownLatch readyForCancel;
-
-        TestIORunnable(TestPlan plan, CountDownLatch readyForCancel) {
-            this.plan = plan;
-            this.readyForCancel = readyForCancel;
-        }
-
-        @Override
-        public void run() throws IOException, InterruptedException {
-            assertFalse("interrupt thread should have been clear", Thread.currentThread().isInterrupted());
-            if (plan.exceptBeforeCancel) {
-                throw new IOCustomException("thread [" + plan.id + "] pre-cancel exception");
-            } else if (plan.exitBeforeCancel) {
-                return;
-            }
-            readyForCancel.countDown();
-            try {
-                if (plan.busySpin) {
-                    while (!Thread.currentThread().isInterrupted()) {
-                    }
-                } else {
-                    Thread.sleep(50000);
-                }
-            } finally {
-                if (plan.exceptAfterCancel) {
-                    throw new IOCustomException("thread [" + plan.id + "] post-cancel exception");
-                }
-            }
-        }
-    }
-
     @Test
     public void testCancellableThreads() throws InterruptedException {
         Thread[] threads = new Thread[randomIntBetween(3, 10)];
@@ -158,15 +113,7 @@ public class CancellableThreadsTests extends ESTestCase {
                     if (plan.presetInterrupt) {
                         Thread.currentThread().interrupt();
                     }
-                    if (plan.ioOp) {
-                        if (plan.ioException) {
-                            cancellableThreads.executeIO(new TestIORunnable(plan, readyForCancel));
-                        } else {
-                            cancellableThreads.executeIO(new TestRunnable(plan, readyForCancel));
-                        }
-                    } else {
-                        cancellableThreads.execute(new TestRunnable(plan, readyForCancel));
-                    }
+                    cancellableThreads.execute(new TestRunnable(plan, readyForCancel));
                 } catch (Exception e) {
                     exceptions[plan.id] = e;
                 }
@@ -201,7 +148,7 @@ public class CancellableThreadsTests extends ESTestCase {
         }
         for (int i = 0; i < threads.length; i++) {
             TestPlan plan = plans[i];
-            final Class<?> exceptionClass = plan.ioException ? IOCustomException.class : CustomException.class;
+            final Class<?> exceptionClass = CustomException.class;
             if (plan.exceptBeforeCancel) {
                 assertThat(exceptions[i], Matchers.instanceOf(exceptionClass));
             } else if (plan.exitBeforeCancel) {

@@ -2975,7 +2975,7 @@ public class TranslogTests extends ESTestCase {
         document.add(seqID.seqNo);
         document.add(seqID.seqNoDocValue);
         document.add(seqID.primaryTerm);
-        ParsedDocument doc = new ParsedDocument(versionField, seqID, "1", document, B_1, null, List.of());
+        ParsedDocument doc = new ParsedDocument(versionField, seqID, "1", document, B_1, null);
 
         Engine.Index eIndex = new Engine.Index(newUid(doc), doc, randomSeqNum, randomPrimaryTerm,
             1, VersionType.INTERNAL, Origin.PRIMARY, 0, 0, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
@@ -3091,9 +3091,9 @@ public class TranslogTests extends ESTestCase {
         final List<Tuple<Long, Long>> seqNos = new ArrayList<>();
         final Map<Long, Long> terms = new HashMap<>();
         for (final Long seqNo : shuffledSeqNos) {
-            seqNos.add(Tuple.tuple(seqNo, terms.computeIfAbsent(seqNo, k -> 0L)));
+            seqNos.add(new Tuple<>(seqNo, terms.computeIfAbsent(seqNo, k -> 0L)));
             Long repeatingTermSeqNo = randomFrom(seqNos.stream().map(Tuple::v1).collect(Collectors.toList()));
-            seqNos.add(Tuple.tuple(repeatingTermSeqNo, terms.get(repeatingTermSeqNo)));
+            seqNos.add(new Tuple<>(repeatingTermSeqNo, terms.get(repeatingTermSeqNo)));
         }
 
         for (final Tuple<Long, Long> tuple : seqNos) {
@@ -3121,7 +3121,7 @@ public class TranslogTests extends ESTestCase {
                         TranslogSnapshot snapshot = reader.newSnapshot();
                         Translog.Operation operation;
                         while ((operation = snapshot.next()) != null) {
-                            generationSeenSeqNos.add(Tuple.tuple(operation.seqNo(), operation.primaryTerm()));
+                            generationSeenSeqNos.add(new Tuple<>(operation.seqNo(), operation.primaryTerm()));
                             opCount++;
                         }
                         assertThat(opCount, equalTo(reader.totalOperations()));
@@ -3142,7 +3142,7 @@ public class TranslogTests extends ESTestCase {
                 assertThat(snapshot.totalOperations(), equalTo(expectedSnapshotOps));
                 Translog.Operation op;
                 while ((op = snapshot.next()) != null) {
-                    assertThat(Tuple.tuple(op.seqNo(), op.primaryTerm()), isIn(seenSeqNos));
+                    assertThat(new Tuple<>(op.seqNo(), op.primaryTerm()), isIn(seenSeqNos));
                     readFromSnapshot++;
                 }
                 readFromSnapshot += snapshot.skippedOperations();

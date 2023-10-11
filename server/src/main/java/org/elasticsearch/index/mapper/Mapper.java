@@ -19,14 +19,14 @@
 
 package org.elasticsearch.index.mapper;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
-
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
 
 public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
@@ -79,6 +79,10 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
         protected int position;
 
+        protected long columnOID;
+
+        protected boolean isDropped;
+
         public String name() {
             return this.name;
         }
@@ -88,6 +92,14 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
         public void position(int position) {
             this.position = position;
+        }
+
+        public void columnOID(long columnOID) {
+            this.columnOID = columnOID;
+        }
+
+        public void setDropped(boolean isDropped) {
+            this.isDropped = isDropped;
         }
     }
 
@@ -126,15 +138,28 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
     protected int position;
 
-    protected Mapper(String simpleName) {
+    protected long columnOID;
+
+    protected boolean isDropped;
+
+    protected Mapper(String simpleName, long columnOID) {
         Objects.requireNonNull(simpleName);
         this.simpleName = simpleName;
+        this.columnOID = columnOID;
     }
 
     /** Returns the simple name, which identifies this mapper against other mappers at the same level in the mappers hierarchy
      * TODO: make this protected once Mapper and FieldMapper are merged together */
     public final String simpleName() {
         return simpleName;
+    }
+
+    /**
+     * Returns the column's (field) OID this mapper is used for.
+     * If no OID was assigned, {@link org.elasticsearch.cluster.metadata.Metadata#COLUMN_OID_UNASSIGNED} is returned.
+     */
+    public long columnOID() {
+        return columnOID;
     }
 
     /** Returns the canonical name which uniquely identifies the mapper against other mappers in a type. */

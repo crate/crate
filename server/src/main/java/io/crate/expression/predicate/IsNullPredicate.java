@@ -23,15 +23,10 @@ package io.crate.expression.predicate;
 
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.Collections;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
@@ -42,6 +37,9 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.MapperService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.DynamicReference;
@@ -61,13 +59,14 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
+import io.crate.types.TypeSignature;
 
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
-        parseTypeSignature("E"),
+        TypeSignature.parse("E"),
         DataTypes.BOOLEAN.getTypeSignature()
     ).withTypeVariableConstraints(typeVariable("E"));
 
@@ -78,22 +77,8 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private IsNullPredicate(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -131,10 +116,11 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     @Nullable
     public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
-        String field = ref.column().fqn();
-        FieldType fieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
+        String field = ref.storageIdent();
+        MapperService mapperService = context.queryShardContext().getMapperService();
+        MappedFieldType mappedFieldType = mapperService.fieldType(field);
         DataType<?> valueType = ref.valueType();
-        boolean canUseFieldsExist = ref.hasDocValues() || (fieldType != null && !fieldType.omitNorms());
+        boolean canUseFieldsExist = ref.hasDocValues() || (mappedFieldType != null && mappedFieldType.hasNorms());
         if (valueType instanceof ArrayType<?>) {
             if (countEmptyArrays) {
                 if (canUseFieldsExist) {
@@ -151,7 +137,11 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             valueType = ArrayType.unnest(valueType);
         }
         StorageSupport<?> storageSupport = valueType.storageSupport();
-        if (storageSupport == null && ref instanceof DynamicReference) {
+        if (ref instanceof DynamicReference) {
+            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                // Not indexed, need to use source lookup
+                return null;
+            }
             return new MatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
         } else if (canUseFieldsExist) {
             return new FieldExistsQuery(field);
@@ -167,7 +157,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     .setMinimumNumberShouldMatch(1);
                 for (var entry : objType.innerTypes().entrySet()) {
                     String childColumn = entry.getKey();
-                    Reference childRef = context.getRef(ref.column().append(childColumn));
+                    Reference childRef = context.getRef(ref.column().getChild(childColumn));
                     if (childRef == null) {
                         return null;
                     }
@@ -184,7 +174,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
                     .build();
             }
-            if (fieldType == null || fieldType.indexOptions() == IndexOptions.NONE && !fieldType.stored()) {
+            if (mappedFieldType == null || !mappedFieldType.isSearchable()) {
                 return null;
             } else {
                 return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));

@@ -54,7 +54,6 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-
         if (txnCtx.sessionSettings().hashJoinsEnabled() &&
             EquiJoinDetector.isHashJoinPossible(nl.joinType(), nl.joinCondition())) {
             return new HashJoin(
@@ -63,18 +62,7 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
                 nl.joinCondition()
             );
         } else {
-            return new NestedLoopJoin(
-                nl.lhs(),
-                nl.rhs(),
-                nl.joinType(),
-                nl.joinCondition(),
-                nl.isFiltered(),
-                nl.topMostLeftRelation(),
-                nl.orderByWasPushedDown(),
-                nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                nl.isJoinConditionOptimised(),
-                true
-            );
+            return null;
         }
     }
 }

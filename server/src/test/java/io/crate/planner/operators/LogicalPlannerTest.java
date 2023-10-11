@@ -567,7 +567,6 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
-
     // tracks a bug: https://github.com/crate/crate/issues/13779
     @Test
     public void test_prune_outputs_on_group_hash_aggregate() {
@@ -596,6 +595,63 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """);
     }
 
+    // tracks a bug: https://github.com/crate/crate/issues/14330
+    @Test
+    public void test_prune_outputs_on_group_hash_aggregate_with_limit() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='1' GROUP BY 1,3
+            UNION
+            SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='2' GROUP BY 1,3
+            UNION
+            SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='3' GROUP BY 1,3
+            LIMIT 10
+            """);
+        assertThat(plan).isEqualTo(
+            """
+                LimitDistinct[10::bigint;0 | [ai, "avg(x)", "cast(i AS bigint)"]]
+                  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
+                    ├ GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
+                    │  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
+                    │    ├ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
+                    │    │  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
+                    │    │    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '1')]
+                    │    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
+                    │      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
+                    │        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '2')]
+                    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
+                      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
+                        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '3')]""");
+    }
+
+    @Test
+    public void test_prune_outputs_on_window_functions() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT i, avgx FROM (SELECT a, avg(x) OVER(ORDER BY i) as avgx, i FROM t1) as vt
+            """);
+        assertThat(plan).isEqualTo(
+            """
+                Rename[i, avgx] AS vt
+                  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]
+                    └ WindowAgg[x, i, avg(x) OVER (ORDER BY i ASC)]
+                      └ Collect[doc.t1 | [x, i] | true]""");
+    }
+
+    @Test
+    public void test_prune_outputs_on_table_functions() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT sumx, umaxx, minx, uavgx FROM(
+               SELECT min(x) as minx, unnest([min(x)]) as uminx, max(x) as maxx, unnest([max(x)]) as umaxx,
+                      avg(x) as avgx, unnest([avg(x)]) as uavgx, sum(x) as sumx, unnest([sum(x)]) as usumx from t1) as vt
+            """);
+        assertThat(plan).isEqualTo(
+            """
+                Rename[sumx, umaxx, minx, uavgx] AS vt
+                  └ Eval[sum(x) AS sumx, unnest(_array(max(x))) AS umaxx, min(x) AS minx, unnest(_array(avg(x))) AS uavgx]
+                    └ ProjectSet[unnest(_array(min(x))), unnest(_array(max(x))), unnest(_array(avg(x))), unnest(_array(sum(x))), sum(x), max(x), min(x), avg(x)]
+                      └ HashAggregate[min(x), max(x), avg(x), sum(x)]
+                        └ Collect[doc.t1 | [x] | true]""");
+    }
+
     @Test
     public void test_column_pruning_is_applied_to_subqueries() throws Exception {
         var plan = sqlExecutor.logicalPlan(
@@ -604,7 +660,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .as("Must not collect `x`")
             .hasOperators(
                 "MultiPhase",
-                "  └ Collect[doc.users | [name] | (id = ANY(_cast((SELECT a FROM (doc.t1)), 'array(bigint)')))]",
+                "  └ Collect[doc.users | [name] | (id = ANY((SELECT a FROM (doc.t1))))]",
                 "  └ Eval[a]",
                 "    └ OrderBy[a ASC]",
                 "      └ Collect[doc.t1 | [a] | (x > 10)]"

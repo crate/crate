@@ -21,7 +21,6 @@ package org.elasticsearch.client.support;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -95,20 +94,6 @@ public abstract class AbstractClient implements Client {
         return admin;
     }
 
-    /**
-     * This is the single execution point of *all* clients.
-     */
-    @Override
-    public final <Request extends TransportRequest, Response extends TransportResponse> void execute(ActionType<Response> action,
-                                                                                                     Request request,
-                                                                                                     ActionListener<Response> listener) {
-        doExecute(action, request, listener);
-    }
-
-    protected abstract <Request extends TransportRequest, Response extends TransportResponse> void doExecute(ActionType<Response> action,
-                                                                                                             Request request,
-                                                                                                             ActionListener<Response> listener);
-
     static class Admin implements AdminClient {
 
         private final ClusterAdmin clusterAdmin;
@@ -139,10 +124,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse> void execute(ActionType<Response> action,
-                                                                                                   Request request,
-                                                                                                   ActionListener<Response> listener) {
-            client.execute(action, request).whenComplete(listener);
+        public <Req extends TransportRequest, Resp extends TransportResponse> CompletableFuture<Resp> execute(ActionType<Resp> action, Req request) {
+            return client.execute(action, request);
         }
 
         @Override
@@ -175,10 +158,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public <Request extends TransportRequest, Response extends TransportResponse> void execute(ActionType<Response> action,
-                                                                                                   Request request,
-                                                                                                   ActionListener<Response> listener) {
-            client.execute(action, request).whenComplete(listener);
+        public <Req extends TransportRequest, Resp extends TransportResponse> CompletableFuture<Resp> execute(ActionType<Resp> action, Req request) {
+            return client.execute(action, request);
         }
 
         @Override

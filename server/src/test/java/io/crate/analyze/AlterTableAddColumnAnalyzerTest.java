@@ -21,41 +21,38 @@
 
 package io.crate.analyze;
 
-import static io.crate.planner.node.ddl.AlterTableAddColumnPlan.validate;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import org.junit.Test;
 
+import com.carrotsearch.hppc.cursors.IntCursor;
+
 import io.crate.data.Row;
+import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
-    private void analyze(String stmt) {
+    private AddColumnRequest analyze(String stmt) {
         PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
-        validate(
-            e.analyze(stmt),
-            plannerContext.transactionContext(),
+        AnalyzedAlterTableAddColumn analyze = e.analyze(stmt);
+        return analyze.bind(
             plannerContext.nodeContext(),
+            plannerContext.transactionContext(),
             Row.EMPTY,
-            SubQueryResults.EMPTY,
-            e.fulltextAnalyzerResolver()
+            SubQueryResults.EMPTY
         );
     }
 
@@ -66,8 +63,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             .build();
 
         assertThatThrownBy(() -> analyze("alter table t add column ts time with time zone"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Cannot use the type `time with time zone` for column: ts");
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Type `time with time zone` does not support storage");
     }
 
     @Test
@@ -131,7 +128,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         assertThatThrownBy(() -> analyze("alter table users add column newpk array(string) primary key"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot use columns of type \"array\" as primary key");
+            .hasMessage("Cannot use column \"newpk\" with type \"text_array\" as primary key");
     }
 
     @Test
@@ -141,7 +138,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             .build();
 
         assertThatThrownBy(() -> analyze("alter table users add column bazinga int constraint bazinga_check check(id > 0)"))
-            .hasMessage("CHECK expressions defined in this context cannot refer to other columns: id");
+            .hasMessage("CHECK constraint on column `bazinga` cannot refer to column `id`. Use full path to refer " +
+                        "to a sub-column or a table check constraint instead");
     }
 
     @Test
@@ -150,21 +148,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             .addTable("CREATE TABLE tbl (x int)")
             .build();
 
-        AnalyzedAlterTableAddColumn analyzedAlterTableAddColumn =
-            e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN o['a']['c'] int primary key");
-
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
-
-        var tableElements = validate(
-            analyzedAlterTableAddColumn,
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext(),
-            Row.EMPTY,
-            SubQueryResults.EMPTY,
-            e.fulltextAnalyzerResolver()
-        );
-
-        var request = AlterTableAddColumnPlan.createRequest(tableElements, analyzedAlterTableAddColumn.tableInfo().ident());
+        AddColumnRequest request = analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN o['a']['c'] int primary key");
 
         assertThat(request.pKeyIndices()).hasSize(2);
         assertThat(request.references()).hasSize(4); // 2 leaves (b, c) and their common parents (o, a).
@@ -192,5 +176,33 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThatThrownBy(() -> e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN col INTEGER, ADD COLUMN col TEXT"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("column \"col\" specified more than once");
+    }
+
+    @Test
+    public void test_check_constraint_on_nested_object_sub_column_has_correct_type_and_expression() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (i int, o object)")
+            .build();
+
+        var addColumnRequest = analyze("alter table t add column o1 object as (o2 object as (b int check (o1['o2']['b'] > 100)))");
+        assertThat(addColumnRequest.references()).satisfiesExactly(
+            o1 -> assertThat(o1).isReference().hasName("o1"),
+            o1 -> assertThat(o1).isReference().hasName("o1['o2']"),
+            o1 -> assertThat(o1).isReference().hasName("o1['o2']['b']").hasType(DataTypes.INTEGER)
+        );
+        assertThat(addColumnRequest.checkConstraints()).containsValue("\"o1\"['o2']['b'] > 100");
+    }
+
+    @Test
+    public void test_check_constraint_cannot_be_added_to_nested_object_sub_column_without_full_path() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (i int, o object)")
+            .build();
+
+        assertThatThrownBy(
+            () -> analyze("alter table t add column o1 object as (o2 object as (b int check (b > 100)))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("CHECK constraint on column `o1['o2']['b']` cannot refer to column `b`. Use full path to " +
+                        "refer to a sub-column or a table check constraint instead");
     }
 }

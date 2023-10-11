@@ -21,6 +21,14 @@
 
 package io.crate.analyze.relations;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -28,15 +36,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * <pre>{@code <relation> AS alias}</pre>
@@ -93,7 +95,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         }
         ColumnIdent childColumnName = aliasToColumnMapping.get(column);
         if (childColumnName == null) {
-            if (column.isTopLevel()) {
+            if (column.isRoot()) {
                 return null;
             }
             childColumnName = aliasToColumnMapping.get(column.getRoot());
@@ -112,8 +114,14 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             }
         }
         Symbol field = relation.getField(childColumnName, operation, errorOnUnknownObjectKey);
-        if (field == null || field instanceof VoidReference) {
-            return field;
+        if (field == null) {
+            return null;
+        }
+        if (field instanceof VoidReference voidReference) {
+            return new VoidReference(
+                new ReferenceIdent(alias, voidReference.column()),
+                voidReference.granularity(),
+                voidReference.position());
         }
         ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field.valueType());
 
@@ -161,7 +169,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         }
         ColumnIdent column = field.column();
         ColumnIdent childColumnName = aliasToColumnMapping.get(column);
-        if (childColumnName == null && !column.isTopLevel()) {
+        if (childColumnName == null && !column.isRoot()) {
             var childCol = aliasToColumnMapping.get(column.getRoot());
             childColumnName = new ColumnIdent(childCol.name(), column.path());
         }

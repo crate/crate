@@ -87,7 +87,7 @@ public class BlobTableInfoFactory {
     private String blobsPath(Settings indexMetadataSettings) {
         String blobsPath;
         String blobsPathStr = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.get(indexMetadataSettings);
-        if (!Strings.isNullOrEmpty(blobsPathStr)) {
+        if (Strings.hasLength(blobsPathStr)) {
             blobsPath = blobsPathStr;
         } else {
             Path path = globalBlobPath;

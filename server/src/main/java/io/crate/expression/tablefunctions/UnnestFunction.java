@@ -21,6 +21,14 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
 import io.crate.common.collections.Iterators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
@@ -35,16 +43,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public class UnnestFunction {
 
@@ -55,8 +54,8 @@ public class UnnestFunction {
             Signature
                 .table(
                     NAME,
-                    parseTypeSignature("array(E)"),
-                    parseTypeSignature("E")
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("E")
                 )
                 .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
@@ -70,8 +69,8 @@ public class UnnestFunction {
             Signature
                 .table(
                     NAME,
-                    parseTypeSignature("array(E)"),
-                    parseTypeSignature("array(N)"),
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(N)"),
                     RowType.EMPTY.getTypeSignature()
                 )
                 .withTypeVariableConstraints(typeVariable("E"), typeVariableOfAnyType("N"))
@@ -111,27 +110,14 @@ public class UnnestFunction {
     static class UnnestTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final RowType returnType;
-        private final Signature signature;
-        private final BoundSignature boundSignature;
         private final List<DataType<?>> argumentTypes;
 
         private UnnestTableFunctionImplementation(Signature signature,
                                                   BoundSignature boundSignature,
                                                   RowType returnType) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
             this.argumentTypes = boundSignature.argTypes();
             this.returnType = returnType;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override

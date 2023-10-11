@@ -36,6 +36,7 @@ import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 
 public class BooleanIndexer implements ValueIndexer<Boolean> {
@@ -46,7 +47,7 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
 
     public BooleanIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType == null ? BooleanFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 
@@ -54,11 +55,12 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
     public void indexValue(Boolean value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.value(value);
-        addField.accept(new Field(name, value ? "T" : "F", fieldType));
+        if (ref.indexType() != IndexType.NONE || fieldType.stored()) {
+            addField.accept(new Field(name, value ? "T" : "F", fieldType));
+        }
         if (ref.hasDocValues()) {
             addField.accept(new SortedNumericDocValuesField(name, value ? 1 : 0));
         } else {

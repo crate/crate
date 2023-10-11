@@ -137,7 +137,7 @@ public class FetchPhase implements ExecutionPhase {
 
         out.writeVInt(fetchRefs.size());
         for (Reference ref : fetchRefs) {
-            Reference.toStream(ref, out);
+            Reference.toStream(out, ref);
         }
         out.writeVInt(tableIndices.size());
         for (Map.Entry<RelationName, Collection<String>> entry : tableIndices.entrySet()) {

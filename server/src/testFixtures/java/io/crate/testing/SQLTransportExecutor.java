@@ -50,9 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -62,8 +59,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
-import org.elasticsearch.action.support.AdapterActionFuture;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
@@ -72,6 +67,8 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
@@ -182,7 +179,7 @@ public class SQLTransportExecutor {
         for (int i = 0; i < numberOfRulesToPick; i++) {
             result.add(String.format(Locale.ENGLISH,
                                      "set %s=false",
-                                     LoadedRules.buildSessionSettingName(ruleCandidates.get(i))));
+                                     Rule.sessionSettingName(ruleCandidates.get(i))));
         }
 
         return result;
@@ -238,17 +235,17 @@ public class SQLTransportExecutor {
                 cause = ex;
             }
             throw new ElasticsearchTimeoutException("Timeout while running `" + stmt + "`", cause);
-        } catch (RuntimeException e) {
-            var cause = e.getCause();
+        } catch (Throwable t) {
             // ActionListener.onFailure takes `Exception` as argument instead of `Throwable`.
             // That requires us to wrap Throwable; That Throwable may be an AssertionError.
             //
             // Wrapping the exception can hide parts of the stacktrace that are interesting
             // to figure out the root cause of an error, so we prefer the cause here
-            if (e.getClass() == RuntimeException.class && cause != null) {
-                Exceptions.rethrowUnchecked(cause);
-            }
-            throw e;
+            t = SQLExceptions.unwrap(t);
+            Exceptions.rethrowUnchecked(t);
+
+            // unreachable
+            return null;
         }
     }
 
@@ -263,14 +260,14 @@ public class SQLTransportExecutor {
     }
 
     public Session newSession() {
-        return clientProvider.sqlOperations().createSession(
+        return clientProvider.sqlOperations().newSession(
             searchPath.currentSchema(),
             User.CRATE_USER
         );
     }
 
     public SQLResponse executeAs(String stmt, User user) {
-        try (Session session = clientProvider.sqlOperations().createSession(null, user)) {
+        try (Session session = clientProvider.sqlOperations().newSession(null, user)) {
             return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         }
     }
@@ -293,7 +290,8 @@ public class SQLTransportExecutor {
         FutureActionListener<SQLResponse, SQLResponse> future = FutureActionListener.newInstance();
         execute(stmt, args, future, session);
         return future.exceptionally(err -> {
-            throw SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err);
+            Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));
+            return null;
         });
     }
 
@@ -397,11 +395,10 @@ public class SQLTransportExecutor {
         if (arg instanceof Map) {
             return DataTypes.STRING.implicitCast(arg);
         }
-        if (arg.getClass().isArray()) {
-            arg = Arrays.asList((Object[]) arg);
+        if (arg instanceof Object[] values) {
+            arg = Arrays.asList(values);
         }
-        if (arg instanceof Collection) {
-            Collection<?> values = (Collection<?>) arg;
+        if (arg instanceof Collection<?> values) {
             if (values.isEmpty()) {
                 return null; // Can't insert empty list without knowing the type
             }
@@ -433,7 +430,7 @@ public class SQLTransportExecutor {
             ResultSet resultSet = preparedStatement.getResultSet();
             List<Object[]> rows = new ArrayList<>();
             List<String> columnNames = new ArrayList<>(metadata.getColumnCount());
-            DataType[] dataTypes = new DataType[metadata.getColumnCount()];
+            DataType<?>[] dataTypes = new DataType[metadata.getColumnCount()];
             for (int i = 0; i < metadata.getColumnCount(); i++) {
                 columnNames.add(metadata.getColumnName(i + 1));
             }
@@ -585,14 +582,15 @@ public class SQLTransportExecutor {
      */
     private long[] executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
-            AdapterActionFuture<long[], long[]> actionFuture = new PlainActionFuture<>();
-            var listener = ActionListener.delegateResponse(actionFuture, (delegate, failure) -> {
-                delegate.onFailure(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, failure));
-            });
+            FutureActionListener<long[], long[]> listener = FutureActionListener.newInstance();
             execute(stmt, bulkArgs, listener);
-            return actionFuture.actionGet(timeout);
+            var future = listener.exceptionally(err -> {
+                Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));
+                return null;
+            });
+            return FutureUtils.get(future, timeout);
         } catch (ElasticsearchTimeoutException e) {
-            LOGGER.error("Timeout on SQL statement: {}", e, stmt);
+            LOGGER.error("Timeout on SQL statement: " + stmt, e);
             throw e;
         }
     }
@@ -640,7 +638,7 @@ public class SQLTransportExecutor {
     }
 
 
-    private static final DataType[] EMPTY_TYPES = new DataType[0];
+    private static final DataType<?>[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
     private static final Object[][] EMPTY_ROWS = new Object[0][];
 
@@ -683,7 +681,7 @@ public class SQLTransportExecutor {
 
         private SQLResponse createSqlResponse() {
             String[] outputNames = new String[outputFields.size()];
-            DataType[] outputTypes = new DataType[outputFields.size()];
+            DataType<?>[] outputTypes = new DataType[outputFields.size()];
 
             for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
                 Symbol field = outputFields.get(i);

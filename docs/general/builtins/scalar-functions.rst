@@ -139,6 +139,39 @@ Returns: ``text``
     SELECT 1 row in set (... sec)
 
 
+``substr('string' FROM 'pattern')``
+-----------------------------------
+
+Extract a part from a string that matches a POSIX regular expression pattern.
+
+Returns:: ``text``.
+
+If the pattern contains groups specified via parentheses it returns the first
+matching group.
+If the pattern doesn't match, the function returns ``NULL``.
+
+::
+
+    cr> SELECT
+    ...   substring('2023-08-07', '[a-z]') as no_match,
+    ...   substring('2023-08-07', '\d{4}-\d{2}-\d{2}') as full_date,
+    ...   substring('2023-08-07', '\d{4}-(\d{2})-\d{2}') as month;
+    +----------+------------+-------+
+    | no_match | full_date  | month |
+    +----------+------------+-------+
+    | NULL     | 2023-08-07 |    08 |
+    +----------+------------+-------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-substring:
+
+``substring(...)``
+---------------...
+
+Alias for :ref:`scalar-substr`.
+
+
 .. _scalar-char_length:
 
 ``char_length('string')``
@@ -4241,6 +4274,67 @@ If the given ``OID`` is not know, ``???`` is returned::
 
 Special functions
 =================
+
+
+.. _scalar_knn_match:
+
+
+``knn_match(float_vector, float_vector, int)``
+----------------------------------------------
+
+The ``knn_match`` function uses a k-nearest
+neighbour (kNN) search algorithm to find vectors that are similar
+to a query vector.
+
+The first argument is the column to search.
+The second argument is the query vector.
+The third argument is the number of nearest neighbours to search in the index.
+Searching a larger number of nearest neighbours is more expensive. There is one
+index per shard, and on each shard the function will match at most `k` records.
+To limit the total query result, add a :ref:`LIMIT clause <sql-select-limit>` to
+the query.
+
+``knn_match(search_vector, target, k)``
+
+This function must be used within a ``WHERE`` clause targeting a table to use it
+as a predicate that searches the whole dataset of a table.
+Using it *outside* of a ``WHERE`` clause, or in a ``WHERE`` clause targeting a
+virtual table instead of a physical table, results in an error.
+
+Similar to the :ref:`MATCH predicate <predicates_match>`, this function affects
+the :ref:`_score <sql_administration_system_column_score>` value.
+
+An example::
+
+
+    cr> CREATE TABLE IF NOT EXISTS doc.vectors (
+    ...    xs float_vector(2)
+    ...  );
+    CREATE OK, 1 row affected (... sec)
+
+    cr> INSERT INTO doc.vectors (xs)
+    ...   VALUES
+    ...   ([3.14, 8.17]),
+    ...   ([14.3, 19.4]);
+    INSERT OK, 2 rows affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE doc.vectors;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT xs, _score FROM doc.vectors
+    ... WHERE knn_match(xs, [3.14, 8], 2)
+    ... ORDER BY _score DESC;
+    +--------------+--------------+
+    | xs           |       _score |
+    +--------------+--------------+
+    | [3.14, 8.17] | 0.9719117    |
+    | [14.3, 19.4] | 0.0039138086 |
+    +--------------+--------------+
+    SELECT 2 rows in set (... sec)
 
 
 .. _scalar-ignore3vl:

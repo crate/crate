@@ -99,7 +99,7 @@ public class Asserts extends Assertions {
     }
 
     public static LogicalPlanAssert assertThat(LogicalPlan actual) {
-        return new LogicalPlanAssert(actual);
+        return new LogicalPlanAssert(actual, null);
     }
 
     public static JoinPairAssert assertThat(JoinPair actual) {
@@ -175,11 +175,16 @@ public class Asserts extends Assertions {
     }
 
     public static Consumer<Symbol> isReference(String expectedName) {
-        return s -> assertThat(s).isReference(expectedName);
+        return s -> assertThat(s)
+            .isReference()
+            .hasName(expectedName);
     }
 
     public static Consumer<Symbol> isReference(String expectedName, DataType<?> expectedType) {
-        return s -> assertThat(s).isReference(expectedName, expectedType);
+        return s -> assertThat(s)
+            .isReference()
+            .hasName(expectedName)
+            .hasType(expectedType);
     }
 
     public static Consumer<Symbol> isScopedSymbol(String expectedName) {

@@ -28,12 +28,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -114,7 +113,7 @@ public class Function implements Symbol, Cloneable {
         this(signature, arguments, returnType, null);
     }
 
-    public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, Symbol filter) {
+    public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, @Nullable Symbol filter) {
         this.signature = signature;
         this.arguments = List.copyOf(arguments);
         this.returnType = returnType;
@@ -176,6 +175,23 @@ public class Function implements Symbol, Cloneable {
             newDataType,
             null
         );
+    }
+
+    public boolean isCast() {
+        return castMode() != null;
+    }
+
+    /**
+     * @return {@link CastMode} if {@link #isCast()} is true, otherwise null
+     **/
+    @Nullable
+    public CastMode castMode() {
+        return switch (name()) {
+            case ExplicitCastFunction.NAME -> CastMode.EXPLICIT;
+            case ImplicitCastFunction.NAME -> CastMode.IMPLICIT;
+            case TryCastFunction.NAME -> CastMode.TRY;
+            default -> null;
+        };
     }
 
     @Override
@@ -322,9 +338,7 @@ public class Function implements Symbol, Cloneable {
             default:
                 if (AnyOperator.OPERATOR_NAMES.contains(name)) {
                     printAnyOperator(builder, style);
-                } else if (name.equalsIgnoreCase(ImplicitCastFunction.NAME) ||
-                           name.equalsIgnoreCase(ExplicitCastFunction.NAME) ||
-                           name.equalsIgnoreCase(TryCastFunction.NAME)) {
+                } else if (isCast()) {
                     printCastFunction(builder, style);
                 } else if (name.startsWith(Operator.PREFIX)) {
                     printOperator(builder, style, null);
@@ -373,20 +387,18 @@ public class Function implements Symbol, Cloneable {
     private void printCastFunction(StringBuilder builder, Style style) {
         var name = signature.getName().name();
         assert arguments.size() == 2 : "Expecting 2 arguments for function " + name;
-        var targetType = arguments.get(1).valueType();
-        builder
-            .append(name)
-            .append("(")
-            .append(arguments().get(0).toString(style));
         if (name.equalsIgnoreCase(ImplicitCastFunction.NAME)) {
-            builder
-                .append(", ")
-                .append(arguments.get(1).toString(style));
+            builder.append(arguments().get(0).toString(style));
         } else {
-            builder.append(" AS ")
-                .append(targetType.toString());
+            var targetType = arguments.get(1).valueType();
+            builder
+                .append(name)
+                .append("(")
+                .append(arguments().get(0).toString(style))
+                .append(" AS ")
+                .append(targetType.toString())
+                .append(")");
         }
-        builder.append(")");
     }
 
     private void printExtract(StringBuilder builder, Style style) {
@@ -418,7 +430,7 @@ public class Function implements Symbol, Cloneable {
 
     private void printSubscriptFunction(StringBuilder builder, Style style) {
         Symbol base = arguments.get(0);
-        if (base instanceof Reference ref && base.valueType() instanceof ArrayType && ref.column().path().size() > 0) {
+        if (base instanceof Reference ref && base.valueType() instanceof ArrayType && !ref.column().path().isEmpty()) {
             builder.append(ref.column().getRoot().quotedOutputName());
             builder.append("[");
             builder.append(arguments.get(1).toString(style));

@@ -18,18 +18,18 @@
  */
 package org.elasticsearch.test;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.appender.AbstractAppender;
-import org.apache.logging.log4j.core.filter.RegexFilter;
-import org.elasticsearch.common.regex.Regex;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
+import org.apache.logging.log4j.core.filter.RegexFilter;
+import org.elasticsearch.common.regex.Regex;
 
 /**
  * Test appender that can be used to verify that certain events were logged correctly
@@ -41,7 +41,7 @@ public class MockLogAppender extends AbstractAppender {
     private List<LoggingExpectation> expectations;
 
     public MockLogAppender() throws IllegalAccessException {
-        super("mock", RegexFilter.createFilter(".*(\n.*)*", new String[0], false, null, null), null);
+        super("mock", RegexFilter.createFilter(".*(\n.*)*", new String[0], false, null, null), null, true, Property.EMPTY_ARRAY);
         expectations = new ArrayList<>();
     }
 
@@ -112,7 +112,7 @@ public class MockLogAppender extends AbstractAppender {
 
         @Override
         public void assertMatched() {
-            assertThat(name, saw, equalTo(false));
+            assertThat(saw).as(name).isFalse();
         }
     }
 
@@ -124,7 +124,7 @@ public class MockLogAppender extends AbstractAppender {
 
         @Override
         public void assertMatched() {
-            assertThat(name, saw, equalTo(true));
+            assertThat(saw).as(name).isTrue();
         }
     }
 
@@ -180,7 +180,7 @@ public class MockLogAppender extends AbstractAppender {
 
         @Override
         public void assertMatched() {
-            assertThat(name, saw, equalTo(true));
+            assertThat(saw).as(name).isTrue();
         }
 
     }

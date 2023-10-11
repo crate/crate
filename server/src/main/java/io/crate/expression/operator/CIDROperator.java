@@ -108,12 +108,8 @@ public final class CIDROperator {
 
     public static class ContainedWithinOperator extends Scalar<Boolean, Object> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
-
         public ContainedWithinOperator(Signature signature, BoundSignature boundSignature) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
         }
 
         @Override
@@ -131,23 +127,13 @@ public final class CIDROperator {
         }
 
         @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
-        }
-
-        @Override
         public Query toQuery(Reference ref, Literal<?> literal) {
             String cidrStr = (String) literal.value();
             if (ref.indexType() == IndexType.NONE) {
                 return new MatchNoDocsQuery("column does not exist in this index");
             }
             InetAddresses.InetAddressPrefixLength cidr = InetAddresses.parseCidr(cidrStr);
-            return InetAddressPoint.newPrefixQuery(ref.column().fqn(), cidr.inetAddress(), cidr.prefixLen());
+            return InetAddressPoint.newPrefixQuery(ref.storageIdent(), cidr.inetAddress(), cidr.prefixLen());
         }
     }
 }

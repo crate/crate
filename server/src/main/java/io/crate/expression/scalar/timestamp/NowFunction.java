@@ -21,6 +21,9 @@
 
 package io.crate.expression.scalar.timestamp;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -29,9 +32,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 
 public final class NowFunction extends Scalar<Long, Object> {
 
@@ -47,27 +47,13 @@ public final class NowFunction extends Scalar<Long, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public NowFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
     @SafeVarargs
     public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         return ChronoUnit.MILLIS.between(Instant.EPOCH, txnCtx.currentInstant());
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

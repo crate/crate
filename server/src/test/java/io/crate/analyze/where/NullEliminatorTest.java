@@ -21,7 +21,7 @@
 
 package io.crate.analyze.where;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.function.Function;
 
@@ -65,23 +65,22 @@ public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNullsReplaced() throws Exception {
         sqlExpressions.context().allowEagerNormalize(false);
-        assertReplaced("null and x = null", "(_cast(NULL, 'boolean') AND (x = _cast(NULL, 'integer')))");
+        assertReplaced("null and x = null", "(NULL AND (x = NULL))");
         assertReplaced(
             "null or x = 1 or null",
-            "((_cast(NULL, 'boolean') OR (x = 1)) OR _cast(NULL, 'boolean'))");
+            "((NULL OR (x = 1)) OR NULL)");
         assertReplaced(
             "not(null and x = 1)",
-            "(NOT (_cast(NULL, 'boolean') AND (x = 1)))");
+            "(NOT (NULL AND (x = 1)))");
         assertReplaced(
             "not(null or not(null and x = 1))",
-            "(NOT (_cast(NULL, 'boolean') OR (NOT (_cast(NULL, 'boolean') AND (x = 1)))))");
+            "(NOT (NULL OR (NOT (NULL AND (x = 1)))))");
         assertReplaced(
             "not(null and x = 1) and not(null or x = 2)",
-            "((NOT (_cast(NULL, 'boolean') AND (x = 1))) AND " +
-            "(NOT (_cast(NULL, 'boolean') OR (x = 2))))");
+            "((NOT (NULL AND (x = 1))) AND (NOT (NULL OR (x = 2))))");
         assertReplaced(
             "null or coalesce(null or x = 1, true)",
-            "(_cast(NULL, 'boolean') OR coalesce((_cast(NULL, 'boolean') OR (x = 1)), true))");
+            "(NULL OR coalesce((NULL OR (x = 1)), true))");
     }
 
     @Test

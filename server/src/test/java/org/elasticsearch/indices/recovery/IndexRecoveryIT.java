@@ -44,7 +44,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -168,7 +167,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     private void assertRecoveryStateWithoutStage(RecoveryState state, int shardId, RecoverySource recoverySource, boolean primary,
                                                  String sourceNode, String targetNode) {
-        assertThat(state.getShardId().getId()).isEqualTo(shardId);
+        assertThat(state.getShardId().id()).isEqualTo(shardId);
         assertThat(state.getRecoverySource()).isEqualTo(recoverySource);
         assertThat(state.getPrimary()).isEqualTo(primary);
         if (sourceNode == null) {
@@ -711,6 +710,7 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testTransientErrorsDuringRecoveryAreRetried() throws Exception {
         final String indexName = "test";
+
         final Settings nodeSettings = Settings.builder()
             .put(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING.getKey(), "100ms")
             .put(NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING.getKey(), "500ms")
@@ -776,14 +776,6 @@ public class IndexRecoveryIT extends IntegTestCase {
         MockTransportService redTransportService =
             (MockTransportService) cluster().getInstance(TransportService.class, redNodeName);
 
-        final AtomicBoolean recoveryStarted = new AtomicBoolean(false);
-        final AtomicBoolean finalizeReceived = new AtomicBoolean(false);
-
-        final SingleStartEnforcer validator = new SingleStartEnforcer(indexName, recoveryStarted, finalizeReceived);
-        redTransportService.addSendBehavior(blueTransportService, (connection, requestId, action, request, options) -> {
-            validator.accept(action, request);
-            connection.sendRequest(requestId, action, request, options);
-        });
         Runnable connectionBreaker = () -> {
             // Always break connection from source to remote to ensure that actions are retried
             blueTransportService.disconnectFromNode(redTransportService.getLocalDiscoNode());
@@ -792,15 +784,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 redTransportService.disconnectFromNode(blueTransportService.getLocalDiscoNode());
             }
         };
-        TransientReceiveRejected handlingBehavior =
-            new TransientReceiveRejected(recoveryActionToBlock, recoveryStarted, connectionBreaker);
-        redTransportService.addRequestHandlingBehavior(
-            PeerRecoveryTargetService.Actions.FINALIZE,
-            (handler, request, channel) -> {
-                finalizeReceived.set(true);
-                handler.messageReceived(request, channel);
-            }
-        );
+        TransientReceiveRejected handlingBehavior = new TransientReceiveRejected(recoveryActionToBlock, connectionBreaker);
         redTransportService.addRequestHandlingBehavior(recoveryActionToBlock, handlingBehavior);
 
         try {
@@ -823,15 +807,12 @@ public class IndexRecoveryIT extends IntegTestCase {
     private class TransientReceiveRejected implements StubbableTransport.RequestHandlingBehavior<TransportRequest> {
 
         private final String actionName;
-        private final AtomicBoolean recoveryStarted;
         private final Runnable connectionBreaker;
         private final AtomicInteger blocksRemaining;
 
         private TransientReceiveRejected(String actionName,
-                                         AtomicBoolean recoveryStarted,
                                          Runnable connectionBreaker) {
             this.actionName = actionName;
-            this.recoveryStarted = recoveryStarted;
             this.connectionBreaker = connectionBreaker;
             this.blocksRemaining = new AtomicInteger(randomIntBetween(1, 3));
         }
@@ -840,7 +821,6 @@ public class IndexRecoveryIT extends IntegTestCase {
         public void messageReceived(TransportRequestHandler<TransportRequest> handler,
                                     TransportRequest request,
                                     TransportChannel channel) throws Exception {
-            recoveryStarted.set(true);
             if (blocksRemaining.getAndUpdate(i -> i == 0 ? 0 : i - 1) != 0) {
                 String rejected = "rejected";
                 String circuit = "circuit";
@@ -860,33 +840,6 @@ public class IndexRecoveryIT extends IntegTestCase {
                 }
             }
             handler.messageReceived(request, channel);
-        }
-    }
-
-    private class SingleStartEnforcer implements BiConsumer<String, TransportRequest> {
-
-        private final AtomicBoolean recoveryStarted;
-        private final AtomicBoolean finalizeReceived;
-        private final String indexName;
-
-        private SingleStartEnforcer(String indexName, AtomicBoolean recoveryStarted, AtomicBoolean finalizeReceived) {
-            this.indexName = indexName;
-            this.recoveryStarted = recoveryStarted;
-            this.finalizeReceived = finalizeReceived;
-        }
-
-        @Override
-        public void accept(String action, TransportRequest request) {
-            // The cluster state applier will immediately attempt to retry the recovery on a cluster state
-            // update. We want to assert that the first and only recovery attempt succeeds
-            if (PeerRecoverySourceService.Actions.START_RECOVERY.equals(action)) {
-                StartRecoveryRequest startRecoveryRequest = (StartRecoveryRequest) request;
-                ShardId shardId = startRecoveryRequest.shardId();
-                logger.info("--> attempting to send start_recovery request for shard: " + shardId);
-                if (indexName.equals(shardId.getIndexName()) && recoveryStarted.get() && finalizeReceived.get() == false) {
-                    throw new IllegalStateException("Recovery cannot be started twice");
-                }
-            }
         }
     }
 

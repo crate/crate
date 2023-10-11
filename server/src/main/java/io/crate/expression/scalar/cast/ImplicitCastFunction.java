@@ -21,6 +21,12 @@
 
 package io.crate.expression.scalar.cast;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -33,14 +39,8 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 import io.crate.user.UserLookup;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
-import java.util.List;
-
-import org.jetbrains.annotations.Nullable;
 
 public class ImplicitCastFunction extends Scalar<Object, Object> {
 
@@ -50,7 +50,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.UNDEFINED.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
@@ -58,8 +58,6 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     @Nullable
     private final DataType<?> targetType;
 
@@ -68,8 +66,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     private ImplicitCastFunction(Signature signature, BoundSignature boundSignature, @Nullable DataType<?> targetType) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.targetType = targetType;
     }
 
@@ -79,7 +76,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         Symbol input = args.get(1);
         if (input instanceof Input) {
             String targetTypeValue = (String) ((Input<?>) input).value();
-            var targetTypeSignature = parseTypeSignature(targetTypeValue);
+            var targetTypeSignature = TypeSignature.parse(targetTypeValue);
             var targetType = targetTypeSignature.createType();
             return new ImplicitCastFunction(
                 signature,
@@ -95,7 +92,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         assert args.length == 1 || args.length == 2 : "number of args must be 1 or 2";
         var arg = args[0].value();
         if (targetType == null) {
-            var targetTypeSignature = parseTypeSignature((String) args[1].value());
+            var targetTypeSignature = TypeSignature.parse((String) args[1].value());
             var targetType = targetTypeSignature.createType();
             return castToTargetType(targetType, arg);
         } else {
@@ -114,30 +111,20 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
-    }
-
-    @Override
     public Symbol normalizeSymbol(io.crate.expression.symbol.Function symbol,
                                   TransactionContext txnCtx,
                                   NodeContext nodeCtx) {
         Symbol argument = symbol.arguments().get(0);
 
         var targetTypeAsString = (String) ((Input<?>) symbol.arguments().get(1)).value();
-        var targetType = parseTypeSignature(targetTypeAsString).createType();
+        var targetType = TypeSignature.parse(targetTypeAsString).createType();
 
         if (argument.valueType().equals(targetType)) {
             return argument;
         }
 
-        if (argument instanceof Input) {
-            Object value = ((Input<?>) argument).value();
+        if (argument instanceof Input<?> input) {
+            Object value = input.value();
             try {
                 return Literal.ofUnchecked(targetType, targetType.implicitCast(value));
             } catch (ConversionException e) {

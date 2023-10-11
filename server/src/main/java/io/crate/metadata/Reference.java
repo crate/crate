@@ -21,18 +21,20 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.LongSupplier;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -65,6 +67,15 @@ public interface Reference extends Symbol {
 
     int position();
 
+    /**
+     * This is used as a column name in the source
+     */
+    long oid();
+
+    boolean isDropped();
+
+    void setDropped();
+
     boolean hasDocValues();
 
     @Nullable
@@ -74,15 +85,35 @@ public interface Reference extends Symbol {
 
     Reference getRelocated(ReferenceIdent referenceIdent);
 
+    Reference applyColumnOid(LongSupplier oidSupplier);
+
+    /**
+     * Return the identifier of this column used inside the storage engine
+     */
+    default String storageIdent() {
+        return oid() == COLUMN_OID_UNASSIGNED ? column().fqn() : Long.toString(oid());
+    }
+
+    /**
+     * Return the identifier of this column used inside the storage engine.
+     * Compared to {@link #storageIdent()}, this will return the columns leaf name instead of the FQN
+     * if no OID is assigned.
+     */
+    default String storageIdentLeafName() {
+        return oid() == COLUMN_OID_UNASSIGNED ? column().leafName() : Long.toString(oid());
+    }
+
     /**
      * Creates the {@link IndexMetadata} mapping representation of the Column.
      * <p>
      * Note that for object types it does _NOT_ include the inner columns.
      * </p>
+     *
+     * @param position position to use in the mapping
      */
-    Map<String, Object> toMapping();
+    Map<String, Object> toMapping(int position);
 
-    static void toStream(Reference ref, StreamOutput out) throws IOException {
+    static void toStream(StreamOutput out, Reference ref) throws IOException {
         out.writeVInt(ref.symbolType().ordinal());
         ref.writeTo(out);
     }

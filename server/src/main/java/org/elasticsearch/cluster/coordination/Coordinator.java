@@ -33,14 +33,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -82,7 +81,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.ListenableFuture;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoveryModule;
@@ -97,6 +95,7 @@ import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportResponse.Empty;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.server.xcontent.XContentHelper;
@@ -1078,7 +1077,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
                 final PublishRequest publishRequest = coordinationState.get().handleClientValue(clusterState);
                 final CoordinatorPublication publication = new CoordinatorPublication(publishRequest, publicationContext,
-                    new ListenableFuture<>(), ackListener, publishListener);
+                    new CompletableFuture<>(), ackListener, publishListener);
                 currentPublication = Optional.of(publication);
 
                 final DiscoveryNodes publishNodes = publishRequest.getAcceptedState().nodes();
@@ -1257,7 +1256,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     class CoordinatorPublication extends Publication {
 
         private final PublishRequest publishRequest;
-        private final ListenableFuture<Void> localNodeAckEvent;
+        private final CompletableFuture<Void> localNodeAckEvent;
         private final AckListener ackListener;
         private final ActionListener<Void> publishListener;
         private final PublicationTransportHandler.PublicationContext publicationContext;
@@ -1272,7 +1271,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         private boolean receivedJoinsProcessed;
 
         CoordinatorPublication(PublishRequest publishRequest, PublicationTransportHandler.PublicationContext publicationContext,
-                               ListenableFuture<Void> localNodeAckEvent, AckListener ackListener, ActionListener<Void> publishListener) {
+                               CompletableFuture<Void> localNodeAckEvent, AckListener ackListener, ActionListener<Void> publishListener) {
             super(publishRequest,
                 new AckListener() {
                     @Override
@@ -1286,9 +1285,9 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                         if (node.equals(getLocalNode())) {
                             synchronized (mutex) {
                                 if (e == null) {
-                                    localNodeAckEvent.onResponse(null);
+                                    localNodeAckEvent.complete(null);
                                 } else {
-                                    localNodeAckEvent.onFailure(e);
+                                    localNodeAckEvent.completeExceptionally(e);
                                 }
                             }
                         } else {
@@ -1357,7 +1356,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         protected void onCompletion(boolean committed) {
             assert Thread.holdsLock(mutex) : "Coordinator mutex not held";
 
-            localNodeAckEvent.addListener(new ActionListener<Void>() {
+            localNodeAckEvent.whenCompleteAsync(new ActionListener<Void>() {
                 @Override
                 public void onResponse(Void ignore) {
                     assert Thread.holdsLock(mutex) : "Coordinator mutex not held";

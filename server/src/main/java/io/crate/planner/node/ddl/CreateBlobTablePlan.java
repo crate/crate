@@ -21,12 +21,22 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.blob.v2.BlobIndex.fullIndexName;
+import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
+
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
-import io.crate.analyze.TablePropertiesAnalyzer;
+import io.crate.analyze.TableProperties;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -43,15 +53,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.function.Function;
-
-import static io.crate.blob.v2.BlobIndex.fullIndexName;
-import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
 
 public class CreateBlobTablePlan implements Plan {
 
@@ -110,7 +111,7 @@ public class CreateBlobTablePlan implements Plan {
         // apply default in case it is not specified in the properties,
         // if it is it will get overwritten afterwards.
         TableParameter tableParameter = new TableParameter();
-        TablePropertiesAnalyzer.analyzeWithBoundValues(
+        TableProperties.analyze(
             tableParameter,
             TableParameters.CREATE_BLOB_TABLE_PARAMETERS,
             properties,

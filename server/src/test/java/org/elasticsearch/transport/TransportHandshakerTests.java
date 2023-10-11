@@ -19,7 +19,7 @@
 
 package org.elasticsearch.transport;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -43,6 +42,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
 import io.netty.channel.embedded.EmbeddedChannel;
 
@@ -73,8 +73,8 @@ public class TransportHandshakerTests extends ESTestCase {
     }
 
     @Test
-    public void testHandshakeRequestAndResponse() throws IOException {
-        PlainActionFuture<Version> versionFuture = PlainActionFuture.newFuture();
+    public void testHandshakeRequestAndResponse() throws Exception {
+        FutureActionListener<Version, Version> versionFuture = FutureActionListener.newInstance();
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
@@ -86,21 +86,21 @@ public class TransportHandshakerTests extends ESTestCase {
         BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
         handshakeRequest.writeTo(bytesStreamOutput);
         StreamInput input = bytesStreamOutput.bytes().streamInput();
-        final PlainActionFuture<TransportResponse> responseFuture = PlainActionFuture.newFuture();
+        final FutureActionListener<TransportResponse, TransportResponse> responseFuture = FutureActionListener.newInstance();
         final TestTransportChannel channel = new TestTransportChannel(responseFuture);
         handshaker.handleHandshake(channel, reqId, input);
 
         TransportResponseHandler<TransportHandshaker.HandshakeResponse> handler = handshaker.removeHandlerForHandshake(reqId);
-        handler.handleResponse((TransportHandshaker.HandshakeResponse) responseFuture.actionGet());
+        handler.handleResponse((TransportHandshaker.HandshakeResponse) responseFuture.get());
 
         assertTrue(versionFuture.isDone());
-        assertEquals(Version.CURRENT, versionFuture.actionGet());
+        assertEquals(Version.CURRENT, versionFuture.get());
     }
 
     @Test
-    public void testHandshakeRequestFutureVersionsCompatibility() throws IOException {
+    public void testHandshakeRequestFutureVersionsCompatibility() throws Exception {
         long reqId = randomLongBetween(1, 10);
-        handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), PlainActionFuture.newFuture());
+        handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), FutureActionListener.newInstance());
 
         verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT.minimumCompatibilityVersion());
 
@@ -123,19 +123,19 @@ public class TransportHandshakerTests extends ESTestCase {
         // Otherwise, we need to update the test.
         assertEquals(currentHandshakeBytes.bytes().length(), lengthCheckingHandshake.bytes().length());
         assertEquals(1031, futureHandshakeStream.available());
-        final PlainActionFuture<TransportResponse> responseFuture = PlainActionFuture.newFuture();
+        final FutureActionListener<TransportResponse, TransportResponse> responseFuture = FutureActionListener.newInstance();
         final TestTransportChannel channel = new TestTransportChannel(responseFuture);
         handshaker.handleHandshake(channel, reqId, futureHandshakeStream);
         assertEquals(0, futureHandshakeStream.available());
 
-        TransportHandshaker.HandshakeResponse response = (TransportHandshaker.HandshakeResponse) responseFuture.actionGet();
+        TransportHandshaker.HandshakeResponse response = (TransportHandshaker.HandshakeResponse) responseFuture.get();
 
         assertEquals(Version.CURRENT, response.getResponseVersion());
     }
 
     @Test
     public void testHandshakeError() throws IOException {
-        PlainActionFuture<Version> versionFuture = PlainActionFuture.newFuture();
+        FutureActionListener<Version, Version> versionFuture = FutureActionListener.newInstance();
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
@@ -147,13 +147,15 @@ public class TransportHandshakerTests extends ESTestCase {
         handler.handleException(new TransportException("failed"));
 
         assertTrue(versionFuture.isDone());
-        IllegalStateException ise = expectThrows(IllegalStateException.class, versionFuture::actionGet);
-        assertThat(ise.getMessage()).contains("handshake failed");
+        assertThatThrownBy(versionFuture::get)
+            .cause()
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("handshake failed");
     }
 
     @Test
     public void testSendRequestThrowsException() throws IOException {
-        PlainActionFuture<Version> versionFuture = PlainActionFuture.newFuture();
+        FutureActionListener<Version, Version> versionFuture = FutureActionListener.newInstance();
         long reqId = randomLongBetween(1, 10);
         Version compatibilityVersion = Version.CURRENT.minimumCompatibilityVersion();
         doThrow(new IOException("boom")).when(requestSender).sendRequest(node, channel, reqId, compatibilityVersion);
@@ -161,21 +163,25 @@ public class TransportHandshakerTests extends ESTestCase {
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
         assertTrue(versionFuture.isDone());
-        ConnectTransportException cte = expectThrows(ConnectTransportException.class, versionFuture::actionGet);
-        assertThat(cte.getMessage()).contains("failure to send internal:tcp/handshake");
+        assertThatThrownBy(versionFuture::get)
+            .cause()
+            .isExactlyInstanceOf(ConnectTransportException.class)
+            .hasMessageContaining("failure to send internal:tcp/handshake");
         assertNull(handshaker.removeHandlerForHandshake(reqId));
     }
 
     @Test
     public void testHandshakeTimeout() throws IOException {
-        PlainActionFuture<Version> versionFuture = PlainActionFuture.newFuture();
+        FutureActionListener<Version, Version> versionFuture = FutureActionListener.newInstance();
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(100, TimeUnit.MILLISECONDS), versionFuture);
 
         verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT.minimumCompatibilityVersion());
 
-        ConnectTransportException cte = expectThrows(ConnectTransportException.class, versionFuture::actionGet);
-        assertThat(cte.getMessage()).contains("handshake_timeout");
+        assertThatThrownBy(versionFuture::get)
+            .cause()
+            .isExactlyInstanceOf(ConnectTransportException.class)
+            .hasMessageContaining("handshake_timeout");
 
         assertNull(handshaker.removeHandlerForHandshake(reqId));
     }

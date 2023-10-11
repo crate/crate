@@ -36,18 +36,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.BlobStoreException;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.jetbrains.annotations.Nullable;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
@@ -65,7 +65,6 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
-import org.elasticsearch.common.blobstore.BlobStoreException;
 
 import io.crate.common.collections.Tuple;
 
@@ -446,7 +445,7 @@ class S3BlobContainer extends AbstractBlobContainer {
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
 
             uploadId.set(clientReference.client().initiateMultipartUpload(initRequest).getUploadId());
-            if (Strings.isEmpty(uploadId.get())) {
+            if (Strings.isNullOrEmpty(uploadId.get())) {
                 throw new IOException("Failed to initialize multipart upload " + blobName);
             }
 
@@ -511,16 +510,16 @@ class S3BlobContainer extends AbstractBlobContainer {
         }
 
         if ((totalSize == 0L) || (totalSize <= partSize)) {
-            return Tuple.tuple(1L, totalSize);
+            return new Tuple<>(1L, totalSize);
         }
 
         final long parts = totalSize / partSize;
         final long remaining = totalSize % partSize;
 
         if (remaining == 0) {
-            return Tuple.tuple(parts, partSize);
+            return new Tuple<>(parts, partSize);
         } else {
-            return Tuple.tuple(parts + 1, remaining);
+            return new Tuple<>((parts + 1), remaining);
         }
     }
 }

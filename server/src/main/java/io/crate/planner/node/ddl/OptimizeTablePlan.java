@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 import static io.crate.analyze.OptimizeTableSettings.FLUSH;
 import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
 import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
@@ -135,7 +134,8 @@ public class OptimizeTablePlan implements Plan {
         );
 
         var genericProperties = optimizeTable.properties().map(eval);
-        var settings = genericPropertiesToSettings(genericProperties, SUPPORTED_SETTINGS);
+        genericProperties.ensureContainsOnly(SUPPORTED_SETTINGS.keySet());
+        var settings = Settings.builder().put(genericProperties).build();
         validateSettings(settings, genericProperties);
 
         ArrayList<String> toOptimize = new ArrayList<>();
@@ -163,7 +163,7 @@ public class OptimizeTablePlan implements Plan {
         return new BoundOptimizeTable(toOptimize, settings);
     }
 
-    private static void validateSettings(Settings settings, GenericProperties properties) {
+    private static void validateSettings(Settings settings, GenericProperties<?> properties) {
         if (UPGRADE_SEGMENTS.get(settings) && properties.size() > 1) {
             throw new IllegalArgumentException("cannot use other parameters if " +
                                                UPGRADE_SEGMENTS.getKey() + " is set to true");

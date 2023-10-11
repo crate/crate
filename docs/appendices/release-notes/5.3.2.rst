@@ -6,6 +6,15 @@ Version 5.3.2
 
 Released on 2023-05-24.
 
+.. WARNING::
+
+    CrateDB 5.3.x versions up to :ref:`5.3.3 <version_5.3.3>` (excluding)
+    contain a critical bug which can lead to data corruption/loss when using
+    a column definition with a number data type and disabled index
+    (``INDEX OFF``).
+    It is not recommended to use those versions, use CrateDB >=
+    :ref:`5.3.3 <version_5.3.3>` instead.
+
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
@@ -96,10 +105,10 @@ Fixes
   first argument of :ref:`INTERVAL data type <type-interval>` contains month
   and/or year units.
 
-- Added a workaround for an issue that allowed inserting a non-array value onto
-  a column that is dynamically created by inserting an empty array, ultimately
-  modifying the type of the column. The empty arrays will be convert to
-  ``nulls`` when queried. For example::
+- Fixed an issue that allowed inserting a non-array value into a column that is
+  dynamically created by inserting an empty array, ultimately modifying the type
+  of the column. The empty arrays will be convert to ``nulls`` when queried. For
+  example::
 
     CREATE TABLE t (o OBJECT);
     INSERT INTO t VALUES ({x=[]});

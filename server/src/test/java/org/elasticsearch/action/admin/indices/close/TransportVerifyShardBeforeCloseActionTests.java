@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -185,16 +186,16 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             phase1,
             clusterBlock
         );
-        PlainActionFuture<Void> res = PlainActionFuture.newFuture();
+        CompletableFuture<Void> res = new CompletableFuture<>();
         action.shardOperationOnPrimary(
             request,
             indexShard,
             ActionListener.wrap(
                 r -> {
                     assertNotNull(r);
-                    res.onResponse(null);
+                    res.complete(null);
                 },
-                res::onFailure
+                res::completeExceptionally
             ));
         try {
             res.get();

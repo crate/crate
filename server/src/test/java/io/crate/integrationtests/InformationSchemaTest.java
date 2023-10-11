@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.util.Collections;
@@ -191,7 +192,7 @@ public class InformationSchemaTest extends IntegTestCase {
                 "FROM information_schema.columns " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
 
         // Clean up metadata that does not show up in information_schema any more
         execute("DROP VIEW t1_view1, t1_view2");
@@ -451,10 +452,10 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[3][1]).isEqualTo(sqlExecutor.getCurrentSchema() + "_test_col3_not_null");
         assertThat(response.rows()[3][2]).isEqualTo("test");
         assertThat(response.rows()[4][0]).isEqualTo("CHECK");
-        assertThat(response.rows()[4][1]).isEqualTo("unnecessary_check");
+        assertThat(response.rows()[4][1]).isEqualTo("chk_1");
         assertThat(response.rows()[4][2]).isEqualTo("test");
         assertThat(response.rows()[5][0]).isEqualTo("CHECK");
-        assertThat(response.rows()[5][1]).isEqualTo("chk_1");
+        assertThat(response.rows()[5][1]).isEqualTo("unnecessary_check");
         assertThat(response.rows()[5][2]).isEqualTo("test");
     }
 
@@ -561,7 +562,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(959);
+        assertThat(response.rowCount()).isEqualTo(960);
     }
 
     @Test

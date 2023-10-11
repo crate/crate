@@ -21,23 +21,26 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.LongSupplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
@@ -58,7 +61,7 @@ public class GeneratedReference implements Reference {
                               @Nullable Symbol generatedExpression) {
         this.ref = ref;
         this.formattedGeneratedExpression = formattedGeneratedExpression;
-        this.generatedExpression = generatedExpression;
+        generatedExpression(generatedExpression);
     }
 
     public GeneratedReference(StreamInput in) throws IOException {
@@ -83,7 +86,7 @@ public class GeneratedReference implements Reference {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
-            Reference.toStream(ref, out);
+            Reference.toStream(out, ref);
         } else {
             if (ref instanceof SimpleReference simpleRef) {
                 simpleRef.writeTo(out);
@@ -97,6 +100,8 @@ public class GeneratedReference implements Reference {
                     ref.isNullable(),
                     ref.hasDocValues(),
                     ref.position(),
+                    ref.oid(),
+                    ref.isDropped(),
                     ref.defaultExpression()
                 );
                 simpleReference.writeTo(out);
@@ -111,7 +116,7 @@ public class GeneratedReference implements Reference {
 
         out.writeVInt(referencedReferences.size());
         for (Reference reference : referencedReferences) {
-            Reference.toStream(reference, out);
+            Reference.toStream(out, reference);
         }
     }
 
@@ -124,7 +129,12 @@ public class GeneratedReference implements Reference {
     }
 
     public void generatedExpression(Symbol generatedExpression) {
+        assert generatedExpression == null || generatedExpression.valueType().equals(valueType())
+            : "The type of the generated expression must match the valueType of the `GeneratedReference`";
         this.generatedExpression = generatedExpression;
+        if (generatedExpression != null && SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
+            throw new UnsupportedOperationException("Aggregation functions are not allowed in generated columns: " + generatedExpression);
+        }
     }
 
     public Symbol generatedExpression() {
@@ -216,6 +226,19 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
+    public long oid() {
+        return ref.oid();
+    }
+
+    @Override
+    public boolean isDropped() {
+        return false;
+    }
+
+    @Override
+    public void setDropped() {}
+
+    @Override
     public boolean hasDocValues() {
         return ref.hasDocValues();
     }
@@ -227,11 +250,11 @@ public class GeneratedReference implements Reference {
 
     @Override
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
-        Symbol result = ref.cast(targetType, modes);
-        if (ref == result) {
+        Symbol result = Reference.super.cast(targetType, modes);
+        if (result == this) {
             return this;
         }
-        if (result instanceof Reference castRef) {
+        if (result instanceof Reference castRef && !(result instanceof GeneratedReference)) {
             return new GeneratedReference(
                 castRef,
                 formattedGeneratedExpression,
@@ -261,6 +284,18 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
+    public Reference applyColumnOid(LongSupplier oidSupplier) {
+        if (ref.oid() != COLUMN_OID_UNASSIGNED) {
+            return this;
+        }
+        return new GeneratedReference(
+                ref.applyColumnOid(oidSupplier),
+                formattedGeneratedExpression,
+                generatedExpression
+        );
+    }
+
+    @Override
     public long ramBytesUsed() {
         return SHALLOW_SIZE
             + ref.ramBytesUsed()
@@ -270,7 +305,7 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        return ref.toMapping();
+    public Map<String, Object> toMapping(int position) {
+        return ref.toMapping(position);
     }
 }

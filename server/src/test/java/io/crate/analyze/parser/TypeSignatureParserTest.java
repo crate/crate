@@ -22,15 +22,14 @@
 package io.crate.analyze.parser;
 
 import static io.crate.common.collections.Lists2.getOnlyElement;
-import static io.crate.testing.Asserts.assertThat;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import static io.crate.types.TypeSignature.parse;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.signatures.TypeSignatureParser;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerLiteralTypeSignature;
@@ -48,19 +47,19 @@ public class TypeSignatureParserTest extends ESTestCase {
     @Test
     public void testParsingOfPrimitiveDataTypes() {
         for (var type : DataTypes.PRIMITIVE_TYPES) {
-            assertThat(TypeSignatureParser.parse(type.getName())).isEqualTo(type.getTypeSignature());
+            assertThat(TypeSignature.parse(type.getName())).isEqualTo(type.getTypeSignature());
         }
     }
 
     @Test
     public void testParsingOfArray() {
         ArrayType<Integer> integerArrayType = new ArrayType<>(IntegerType.INSTANCE);
-        assertThat(TypeSignatureParser.parse("array(integer)")).isEqualTo(integerArrayType.getTypeSignature());
+        assertThat(TypeSignature.parse("array(integer)")).isEqualTo(integerArrayType.getTypeSignature());
     }
 
     @Test
     public void testParsingOfObject() {
-        var signature = TypeSignatureParser.parse("object(text, integer)");
+        var signature = TypeSignature.parse("object(text, integer)");
         assertThat(signature.getBaseTypeName()).isEqualTo(ObjectType.NAME);
         assertThat(signature.getParameters()).containsExactly(
                 new TypeSignature(DataTypes.STRING.getName()),
@@ -69,7 +68,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void testParsingOfNestedArray() {
-        var signature = TypeSignatureParser.parse("array(object(text, array(integer)))");
+        var signature = TypeSignature.parse("array(object(text, array(integer)))");
         assertThat(signature.getBaseTypeName()).isEqualTo(ArrayType.NAME);
 
         var innerObjectTypeSignature = signature.getParameters().get(0);
@@ -81,7 +80,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_record() {
-        var signature = TypeSignatureParser.parse("record(text, integer)");
+        var signature = TypeSignature.parse("record(text, integer)");
 
         assertThat(signature.getBaseTypeName()).isEqualTo(RowType.NAME);
         assertThat(signature.getParameters()).containsExactly(
@@ -91,7 +90,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_record_with_named_data_type() {
-        var signature = TypeSignatureParser.parse("record(field1 text)");
+        var signature = TypeSignature.parse("record(field1 text)");
 
         assertThat(signature.getBaseTypeName()).isEqualTo(RowType.NAME);
         var innerSignature = (ParameterTypeSignature) getOnlyElement(signature.getParameters());
@@ -101,7 +100,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_record_with_named_data_types_that_contain_whitespaces() {
-        var signature = TypeSignatureParser.parse("record(field1 double precision)");
+        var signature = TypeSignature.parse("record(field1 double precision)");
 
         assertThat(signature.getBaseTypeName()).isEqualTo(RowType.NAME);
         var innerSignature = (ParameterTypeSignature) getOnlyElement(signature.getParameters());
@@ -111,7 +110,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_array_with_nested_record_type() {
-        var signature = TypeSignatureParser.parse("array(record(double precision))");
+        var signature = TypeSignature.parse("array(record(double precision))");
 
         assertThat(signature.getBaseTypeName()).isEqualTo(ArrayType.NAME);
         assertThat(signature.getParameters()).containsExactly(
@@ -122,7 +121,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_record_with_nested_named_record_type() {
-        var signature = TypeSignatureParser.parse("record(field1 record(timestamp without time zone))");
+        var signature = TypeSignature.parse("record(field1 record(timestamp without time zone))");
 
         assertThat(signature.getBaseTypeName()).isEqualTo(RowType.NAME);
         var innerSignature = (ParameterTypeSignature) getOnlyElement(signature.getParameters());
@@ -133,7 +132,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_text_type_signature_with_length_limit() {
-        var signature = TypeSignatureParser.parse("text(12)");
+        var signature = TypeSignature.parse("text(12)");
         assertThat(signature.getBaseTypeName()).isEqualTo("text");
         assertThat(signature.getParameters()).containsExactly(new IntegerLiteralTypeSignature(12));
     }
@@ -145,7 +144,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_nested_named_text_type_signature_with_length_limit() {
-        var signature = TypeSignatureParser.parse("object(name text(11))");
+        var signature = TypeSignature.parse("object(name text(11))");
         assertThat(signature.getBaseTypeName()).isEqualTo("object");
         assertThat(signature.getParameters().size()).isEqualTo(1);
 
@@ -164,7 +163,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_numeric_type_signature_round_trip() {
-        var signature = TypeSignatureParser.parse("numeric");
+        var signature = TypeSignature.parse("numeric");
         assertThat(signature.getBaseTypeName()).isEqualTo("numeric");
         assertThat(signature.getParameters()).isEmpty();
         assertThat(signature.createType()).isEqualTo(NumericType.INSTANCE);
@@ -172,7 +171,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_numeric_type_signature_with_precision_round_trip() {
-        var signature = TypeSignatureParser.parse("numeric(1)");
+        var signature = TypeSignature.parse("numeric(1)");
         assertThat(signature.getBaseTypeName()).isEqualTo("numeric");
         assertThat(signature.getParameters()).containsExactly(new IntegerLiteralTypeSignature(1));
         assertThat(signature.createType()).isEqualTo(NumericType.of(1));
@@ -180,7 +179,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_numeric_type_signature_with_precision_and_scale_round_trip() {
-        var signature = TypeSignatureParser.parse("numeric(1, 2)");
+        var signature = TypeSignature.parse("numeric(1, 2)");
         assertThat(signature.getBaseTypeName()).isEqualTo("numeric");
         assertThat(signature.getParameters()).containsExactly(
             new IntegerLiteralTypeSignature(1), new IntegerLiteralTypeSignature(2));
@@ -194,7 +193,7 @@ public class TypeSignatureParserTest extends ESTestCase {
             .build();
         var signature = type.getTypeSignature();
         assertThat(signature.toString()).isEqualTo("object(text,\"first field\" text)");
-        var parsedSignature = TypeSignatureParser.parse(signature.toString());
+        var parsedSignature = TypeSignature.parse(signature.toString());
         assertThat(parsedSignature).isEqualTo(signature);
         assertThat(parsedSignature.createType()).isEqualTo(type);
     }
@@ -206,7 +205,7 @@ public class TypeSignatureParserTest extends ESTestCase {
             .build();
         var signature = type.getTypeSignature();
         assertThat(signature.toString()).isEqualTo("object(text,\"()))\" text)");
-        var parsedSignature = TypeSignatureParser.parse(signature.toString());
+        var parsedSignature = TypeSignature.parse(signature.toString());
         assertThat(parsedSignature).isEqualTo(signature);
         assertThat(parsedSignature.createType()).isEqualTo(type);
     }
@@ -218,7 +217,7 @@ public class TypeSignatureParserTest extends ESTestCase {
             .build();
         var signature = type.getTypeSignature();
         assertThat(signature.toString()).isEqualTo("object(text,\"foo ()))\" text)");
-        var parsedSignature = TypeSignatureParser.parse(signature.toString());
+        var parsedSignature = TypeSignature.parse(signature.toString());
         assertThat(parsedSignature).isEqualTo(signature);
         assertThat(parsedSignature.createType()).isEqualTo(type);
     }
@@ -230,7 +229,7 @@ public class TypeSignatureParserTest extends ESTestCase {
             .build();
         var signature = type.getTypeSignature();
         assertThat(signature.toString()).isEqualTo("object(text,\"foo # !!::\\n '\'\" text)");
-        var parsedSignature = TypeSignatureParser.parse(signature.toString());
+        var parsedSignature = TypeSignature.parse(signature.toString());
         assertThat(parsedSignature).isEqualTo(signature);
         assertThat(parsedSignature.createType()).isEqualTo(type);
     }
@@ -242,7 +241,7 @@ public class TypeSignatureParserTest extends ESTestCase {
             .build();
         var signature = type.getTypeSignature();
         assertThat(signature.toString()).isEqualTo("object(text,\"first \\\" field\" text)");
-        var parsedSignature = parseTypeSignature(signature.toString());
+        var parsedSignature = parse(signature.toString());
         assertThat(parsedSignature).isEqualTo(signature);
         assertThat(parsedSignature.createType()).isEqualTo(type);
     }

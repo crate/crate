@@ -21,10 +21,9 @@
 
 package io.crate.planner.statement;
 
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -108,8 +107,8 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         Reference nameRef = (Reference) node.toCollect().get(0);
 
-        assertThat(nameRef.column().name(), is(DocSysColumns.DOC.name()));
-        assertThat(nameRef.column().path().get(0), is("name"));
+        assertThat(nameRef.column().name()).isEqualTo(DocSysColumns.DOC.name());
+        assertThat(nameRef.column().path().get(0)).isEqualTo("name");
     }
 
     @Test
@@ -119,7 +118,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         WriterProjection projection = (WriterProjection) node.projections().get(0);
-        assertThat(projection.overwrites().size(), is(0));
+        assertThat(projection.overwrites()).isEmpty();
     }
 
     @Test
@@ -133,16 +132,16 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             ((RoutedCollectPhase) collect.collectPhase()).routing().locations().values().stream()
                 .flatMap(shardsByIndices -> shardsByIndices.keySet().stream())
-                .collect(Collectors.toSet()),
-            contains(expectedIndex)
-        );
+                .collect(Collectors.toSet()))
+            .containsExactly(expectedIndex);
     }
 
     @Test
     public void testCopyToWithInvalidPartitionInWhereClause() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Given partition ident does not match partition evaluated from where clause");
-        plan("copy parted partition (date=1395874800000) where date = 1395961200000 to directory '/tmp/foo'");
+        assertThatThrownBy(
+            () -> plan("copy parted partition (date=1395874800000) where date = 1395961200000 to directory '/tmp/foo'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Given partition ident does not match partition evaluated from where clause");
     }
 
     @Test
@@ -150,14 +149,28 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = plan("copy users to directory '/path/to' with (protocol='http', wait_for_completion=false)");
         Collect collect = (Collect) merge.subPlan();
         WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
-        assertThat(writerProjection.withClauseOptions().get("protocol"), is("http"));
+        assertThat(writerProjection.withClauseOptions().get("protocol")).isEqualTo("http");
         assertThat(writerProjection.withClauseOptions().getAsBoolean(
-            "wait_for_completion", true), is(false));
+            "wait_for_completion", true)).isFalse();
+
+        // null or empty compression
+        for (var compression : List.of("''", "null")) {
+            merge = plan(
+                "copy users to directory '/path/to' with (compression=" + compression + ")");
+            collect = (Collect) merge.subPlan();
+            writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
+            assertThat(writerProjection.withClauseOptions().size()).isEqualTo(1);
+            if (compression.equals("''")) {
+                assertThat(writerProjection.withClauseOptions().get("compression")).isEmpty();
+            } else {
+                assertThat(writerProjection.withClauseOptions().get("compression")).isNull();
+            }
+        }
 
         // verify defaults:
         merge = plan("copy users to directory '/path/to/'");
         collect = (Collect) merge.subPlan();
         writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
-        assertThat(writerProjection.withClauseOptions(), is(Settings.EMPTY));
+        assertThat(writerProjection.withClauseOptions()).isEqualTo(Settings.EMPTY);
     }
 }

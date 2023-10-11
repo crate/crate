@@ -19,24 +19,7 @@
 
 package org.elasticsearch.cluster.routing;
 
-import com.carrotsearch.hppc.IntSet;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import org.elasticsearch.cluster.Diff;
-import org.elasticsearch.cluster.Diffable;
-import org.elasticsearch.cluster.DiffableUtils;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.collections.Iterables;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.isIndexVerifiedBeforeClosed;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,7 +30,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.isIndexVerifiedBeforeClosed;
+import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
+import org.elasticsearch.cluster.DiffableUtils;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.IntSet;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.common.collections.Iterables;
 
 /**
  * Represents a global cluster-wide routing table for all indices including the
@@ -99,8 +101,8 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         return indicesRouting.valuesIt();
     }
 
-    public boolean hasIndex(String index) {
-        return indicesRouting.containsKey(index);
+    public boolean hasIndex(String indexName) {
+        return indicesRouting.containsKey(indexName);
     }
 
     public boolean hasIndex(Index index) {
@@ -108,8 +110,8 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         return indexRouting != null && indexRouting.getIndex().equals(index);
     }
 
-    public IndexRoutingTable index(String index) {
-        return indicesRouting.get(index);
+    public IndexRoutingTable index(String indexName) {
+        return indicesRouting.get(indexName);
     }
 
     public IndexRoutingTable index(Index index) {
@@ -120,20 +122,16 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         return indicesRouting;
     }
 
-    public ImmutableOpenMap<String, IndexRoutingTable> getIndicesRouting() {
-        return indicesRouting();
-    }
-
     /**
      * All shards for the provided index and shard id
      * @return All the shard routing entries for the given index and shard id
      * @throws IndexNotFoundException if provided index does not exist
      * @throws ShardNotFoundException if provided shard id is unknown
      */
-    public IndexShardRoutingTable shardRoutingTable(String index, int shardId) {
-        IndexRoutingTable indexRouting = index(index);
+    public IndexShardRoutingTable shardRoutingTable(String indexName, int shardId) {
+        IndexRoutingTable indexRouting = index(indexName);
         if (indexRouting == null) {
-            throw new IndexNotFoundException(index);
+            throw new IndexNotFoundException(indexName);
         }
         return shardRoutingTable(indexRouting, shardId);
     }
@@ -162,7 +160,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         if (indexRoutingTable == null) {
             return null;
         }
-        final IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.getId());
+        final IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.id());
         return shardRoutingTable == null ? null : shardRoutingTable.getByAllocationId(allocationId);
     }
 
@@ -411,7 +409,6 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
             }
         }
 
-        @SuppressWarnings("unchecked")
         public Builder updateNodes(long version, RoutingNodes routingNodes) {
             // this is being called without pre initializing the routing table, so we must copy over the version as well
             this.version = version;

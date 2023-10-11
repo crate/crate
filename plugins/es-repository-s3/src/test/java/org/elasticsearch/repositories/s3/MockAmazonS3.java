@@ -134,7 +134,7 @@ class MockAmazonS3 extends AbstractAmazonS3 {
         listing.setPrefix(request.getPrefix());
 
         for (Map.Entry<String, byte[]> blob : blobs.entrySet()) {
-            if (Strings.isEmpty(request.getPrefix()) || blob.getKey().startsWith(request.getPrefix())) {
+            if (Strings.isNullOrEmpty(request.getPrefix()) || blob.getKey().startsWith(request.getPrefix())) {
                 S3ObjectSummary summary = new S3ObjectSummary();
                 summary.setBucketName(request.getBucketName());
                 summary.setKey(blob.getKey());

@@ -71,22 +71,8 @@ public class DistanceFunction extends Scalar<Double, Point> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private DistanceFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -164,7 +150,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
         Double distance = DataTypes.DOUBLE.implicitCast(parentRhs.value());
         String parentName = parent.name();
         Point pointValue = (Point) pointLiteral.value();
-        String fieldName = pointRef.column().fqn();
+        String fieldName = pointRef.storageIdent();
         return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);
     }
 

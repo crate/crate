@@ -21,17 +21,19 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.exceptions.JobKilledException;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.exceptions.JobKilledException;
 
 class UpsertResults {
 
@@ -73,7 +75,8 @@ class UpsertResults {
         result.updateErrorCount(uriFailure, Collections.emptyList(), 1L);
     }
 
-    private Result getResultSafe(@Nullable String uri) {
+    @VisibleForTesting
+    Result getResultSafe(@Nullable String uri) {
         Result result = resultsByUri.get(uri);
         if (result == null) {
             result = new Result();
@@ -150,11 +153,22 @@ class UpsertResults {
 
         private static final String ERROR_COUNT_KEY = "count";
         private static final String LINE_NUMBERS_KEY = "line_numbers";
+        private static final int MAX_ERRORS = 25;
         private static final int MAX_LINE_NUMBERS_ALLOWED = 50;
 
         private long successRowCount = 0;
         private long errorRowCount = 0;
-        private final Map<String, Map<String, Object>> errors = new HashMap<>();
+        /**
+         * Grouped by error message.
+         * <p>
+         * Inner map has `count` and `line_numbers` keys.
+         * </p>
+         * <p>
+         * Not using a `ErrorEntry` class because the errors are returned as result in rows
+         * and need to be serializable via objectType
+         * </p>
+         **/
+        final Map<String, Map<String, Object>> errors = new HashMap<>();
         private boolean sourceUriFailure = false;
         private final List<Object[]> resultRows = new ArrayList<>();
 
@@ -180,6 +194,9 @@ class UpsertResults {
             Long cnt = 0L;
             List<Long> currentLineNumbers;
             if (errorEntry == null) {
+                if (errors.size() == MAX_ERRORS) {
+                    return;
+                }
                 errorEntry = new HashMap<>(1);
                 errors.put(msg, errorEntry);
                 int lineNumbersTopIndex = Math.min(lineNumbers.size(), MAX_LINE_NUMBERS_ALLOWED);

@@ -44,7 +44,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class UpdateIntegrationTest extends IntegTestCase {
 
@@ -779,12 +778,8 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into computed (ts) values (1)");
         refresh();
 
-        Asserts.assertSQLError(() -> execute(
-                        "update computed set gen_col=1745"))
-                .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(BAD_REQUEST, 4000)
-                .hasMessageContaining(
-                        "Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970");
+        execute("update computed set gen_col=1745");
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -1043,7 +1038,6 @@ public class UpdateIntegrationTest extends IntegTestCase {
         }
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_update_preserves_the_top_level_order_implied_by_set_clause_while_dynamically_adding_columns() {
         execute("create table t (x int) partitioned by (x) with (column_policy='dynamic')");
@@ -1111,5 +1105,38 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThatThrownBy(() -> execute("update t2 set a[1] = {c=1}"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessage("Column a['c'] unknown");
+    }
+
+    @Test
+    public void test_update_on_table_with_big_refresh_interval_emptied_by_delete_return_0_rows() {
+        execute("create table test (a int) with (refresh_interval = 10000)");
+        execute("insert into test (a) values (1)");
+        assertThat(response).hasRowCount(1);
+        refresh();
+
+        execute("delete from test");
+        assertThat(response).hasRowCount(1);
+
+        // No refresh() here, collect doesn't now that table is already empty,
+        // which leads to ShardUpsertRequest to be issued.
+        // We ensure that no exception is thrown and UPDATE behaves similar to DELETE, returns 0 rows.
+        execute("update test set a = 2");
+        assertThat(response).hasRowCount(0L);
+
+        // Another similar scenario of update, which could hit multiple rows.
+        execute("update test set a = 2 where a = 1");
+        assertThat(response).hasRowCount(0L);
+    }
+
+    @Test
+    public void test_update_continues_on_error() {
+        execute("create table test (a int CHECK (a < 100))");
+
+        execute("insert into test (a) values (1), (2), (3)");
+        assertThat(response).hasRowCount(3);
+        refresh();
+
+        execute("update test set a = a + 98");
+        assertThat(response).hasRowCount(1);
     }
 }

@@ -42,15 +42,14 @@ public class BatchIteratorsTest {
 
     @Test
     public void testExceptionOnAllLoadedIsSetOntoFuture() {
-        CompletableFuture<Long> future = BatchIterators.collect(
-            FailingBatchIterator.failOnAllLoaded(), Collectors.counting());
+        CompletableFuture<Long> future = FailingBatchIterator.failOnAllLoaded().collect(Collectors.counting());
         assertThat(future.isCompletedExceptionally()).isTrue();
     }
 
     @Test
     public void testBatchBySize() {
         var batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false);
-        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator,
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.chunks(batchIterator,
                                                                           2,
                                                                           ArrayList::new,
                                                                           List::add,
@@ -72,9 +71,9 @@ public class BatchIteratorsTest {
             2,
             null
         );
-        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add, r -> false);
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.chunks(batchIterator, 2, ArrayList::new, List::add, r -> false);
 
-        CompletableFuture<List<List<Integer>>> future = BatchIterators.collect(batchedIt, Collectors.toList());
+        CompletableFuture<List<List<Integer>>> future = batchedIt.toList();
         assertThat(future.get(10, TimeUnit.SECONDS)).isEqualTo(Arrays.asList(
             Arrays.asList(0, 1),
             Arrays.asList(2, 3),
@@ -86,8 +85,13 @@ public class BatchIteratorsTest {
     public void testBatchBySizeWithDynamicLimiter() {
         var batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false);
         final AtomicInteger rowCount = new AtomicInteger();
-        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add,
-                                                                          r -> rowCount.incrementAndGet() == 3);
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.chunks(
+            batchIterator,
+            2,
+            ArrayList::new,
+            List::add,
+            r -> rowCount.incrementAndGet() == 3
+        );
 
         assertThat(batchedIt.moveNext()).isTrue();
         assertThat(batchedIt.currentElement()).isEqualTo(Arrays.asList(0, 1));

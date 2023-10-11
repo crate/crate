@@ -28,7 +28,7 @@ import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.arithmetic.CeilFunction;
 import io.crate.expression.scalar.arithmetic.ExpFunction;
 import io.crate.expression.scalar.arithmetic.FloorFunction;
-import io.crate.expression.scalar.arithmetic.IntervalArithmeticScalar;
+import io.crate.expression.scalar.arithmetic.IntervalArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
 import io.crate.expression.scalar.arithmetic.LogFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
@@ -118,7 +118,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         BitwiseFunctions.register(this);
         SubtractTimestampScalar.register(this);
         IntervalTimestampArithmeticScalar.register(this);
-        IntervalArithmeticScalar.register(this);
+        IntervalArithmeticFunctions.register(this);
 
         DistanceFunction.register(this);
         WithinFunction.register(this);
@@ -237,5 +237,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         HasDatabasePrivilegeFunction.register(this);
         ParseURIFunction.register(this);
         ParseURLFunction.register(this);
+
+        KnnMatch.register(this);
     }
 }

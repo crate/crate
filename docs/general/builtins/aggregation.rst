@@ -699,10 +699,10 @@ of the algorithm is defined by a single compression parameter which has a
 constant value of ``100``. However, there are a few guidelines to keep in mind
 in this implementation:
 
-    - Extreme percentiles (e.g. 99%) are more accurate
-    - For small sets percentiles are highly accurate
-    - It's difficult to generalize the exact level of accuracy, as it depends
-      on your data distribution and volume of data being aggregated
+- Extreme percentiles (e.g. 99%) are more accurate.
+- For small sets, percentiles are highly accurate.
+- It is difficult to generalize the exact level of accuracy, as it depends
+  on your data distribution and volume of data being aggregated.
 
 
 .. _aggregation-sum:
@@ -831,11 +831,11 @@ Example::
 Limitations
 ===========
 
- - ``DISTINCT`` is not supported with aggregations on :ref:`sql_joins`.
+- ``DISTINCT`` is not supported with aggregations on :ref:`sql_joins`.
 
- - Aggregate functions can only be applied to columns with a :ref:`plain index
-   <sql_ddl_index_plain>`, which is the default for all :ref:`primitive type
-   <data-types-primitive>` columns.
+- Aggregate functions can only be applied to columns with a :ref:`plain index
+  <sql_ddl_index_plain>`, which is the default for all :ref:`primitive type
+  <data-types-primitive>` columns.
 
 
 .. _Aggregate function: https://en.wikipedia.org/wiki/Aggregate_function

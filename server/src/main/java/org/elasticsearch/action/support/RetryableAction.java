@@ -49,17 +49,14 @@ public abstract class RetryableAction<Response> {
     private final long timeoutMillis;
     private final long startMillis;
     private final ActionListener<Response> finalListener;
-    private final String executor;
 
     private volatile Scheduler.ScheduledCancellable retryTask;
 
-    public RetryableAction(Logger logger, ThreadPool threadPool, TimeValue initialDelay, TimeValue timeoutValue,
+    public RetryableAction(Logger logger,
+                           ThreadPool threadPool,
+                           TimeValue initialDelay,
+                           TimeValue timeoutValue,
                            ActionListener<Response> listener) {
-        this(logger, threadPool, initialDelay, timeoutValue, listener, ThreadPool.Names.SAME);
-    }
-
-    public RetryableAction(Logger logger, ThreadPool threadPool, TimeValue initialDelay, TimeValue timeoutValue,
-                           ActionListener<Response> listener, String executor) {
         this.logger = logger;
         this.threadPool = threadPool;
         this.initialDelayMillis = initialDelay.millis();
@@ -69,13 +66,12 @@ public abstract class RetryableAction<Response> {
         this.timeoutMillis = timeoutValue.millis();
         this.startMillis = threadPool.relativeTimeInMillis();
         this.finalListener = listener;
-        this.executor = executor;
     }
 
     public void run() {
         final RetryingListener retryingListener = new RetryingListener(initialDelayMillis, null);
         final Runnable runnable = createRunnable(retryingListener);
-        threadPool.executor(executor).execute(runnable);
+        runnable.run();
     }
 
     public void cancel(Exception e) {
@@ -157,7 +153,7 @@ public abstract class RetryableAction<Response> {
                         final TimeValue delay = TimeValue.timeValueMillis(delayMillis);
                         logger.debug(() -> new ParameterizedMessage("retrying action that failed in {}", delay), e);
                         try {
-                            retryTask = threadPool.schedule(runnable, delay, executor);
+                            retryTask = threadPool.schedule(runnable, delay, ThreadPool.Names.SAME);
                         } catch (EsRejectedExecutionException ree) {
                             onFinalFailure(ree);
                         }

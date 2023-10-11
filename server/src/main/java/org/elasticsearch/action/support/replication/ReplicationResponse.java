@@ -19,25 +19,21 @@
 
 package org.elasticsearch.action.support.replication;
 
+import java.io.IOException;
+import java.util.Arrays;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ShardOperationFailedException;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TransportResponse;
-
-import static io.crate.server.xcontent.XContentParserUtils.ensureExpectedToken;
-
-import java.io.IOException;
-import java.util.Arrays;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Base class for write action responses.
@@ -172,7 +168,7 @@ public class ReplicationResponse extends TransportResponse {
                 '}';
         }
 
-        public static class Failure extends ShardOperationFailedException implements ToXContentObject {
+        public static class Failure extends ShardOperationFailedException {
 
             private static final String INDEX = "_index";
             private static final String SHARD = "_shard";
@@ -190,7 +186,7 @@ public class ReplicationResponse extends TransportResponse {
                            Exception cause,
                            RestStatus status,
                            boolean primary) {
-                super(shardId.getIndexName(), shardId.getId(), ExceptionsHelper.stackTrace(cause), status, cause);
+                super(shardId.getIndexName(), shardId.id(), ExceptionsHelper.stackTrace(cause), status, cause);
                 this.shardId = shardId;
                 this.nodeId = nodeId;
                 this.primary = primary;
@@ -218,7 +214,7 @@ public class ReplicationResponse extends TransportResponse {
 
             public Failure(StreamInput in) throws IOException {
                 shardId = new ShardId(in);
-                super.shardId = shardId.getId();
+                super.shardId = shardId.id();
                 index = shardId.getIndexName();
                 nodeId = in.readOptionalString();
                 cause = in.readException();
@@ -249,45 +245,6 @@ public class ReplicationResponse extends TransportResponse {
                 builder.field(PRIMARY, primary);
                 builder.endObject();
                 return builder;
-            }
-
-            public static Failure fromXContent(XContentParser parser) throws IOException {
-                XContentParser.Token token = parser.currentToken();
-                ensureExpectedToken(XContentParser.Token.START_OBJECT, token, parser);
-
-                String shardIndex = null, nodeId = null;
-                int shardId = -1;
-                boolean primary = false;
-                RestStatus status = null;
-                ElasticsearchException reason = null;
-
-                String currentFieldName = null;
-                while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                    if (token == XContentParser.Token.FIELD_NAME) {
-                        currentFieldName = parser.currentName();
-                    } else if (token.isValue()) {
-                        if (INDEX.equals(currentFieldName)) {
-                            shardIndex = parser.text();
-                        } else if (SHARD.equals(currentFieldName)) {
-                            shardId = parser.intValue();
-                        } else if (NODE.equals(currentFieldName)) {
-                            nodeId = parser.text();
-                        } else if (STATUS.equals(currentFieldName)) {
-                            status = RestStatus.valueOf(parser.text());
-                        } else if (PRIMARY.equals(currentFieldName)) {
-                            primary = parser.booleanValue();
-                        }
-                    } else if (token == XContentParser.Token.START_OBJECT) {
-                        if (REASON.equals(currentFieldName)) {
-                            reason = ElasticsearchException.fromXContent(parser);
-                        } else {
-                            parser.skipChildren(); // skip potential inner objects for forward compatibility
-                        }
-                    } else if (token == XContentParser.Token.START_ARRAY) {
-                        parser.skipChildren(); // skip potential inner arrays for forward compatibility
-                    }
-                }
-                return new Failure(new ShardId(shardIndex, IndexMetadata.INDEX_UUID_NA_VALUE, shardId), nodeId, reason, status, primary);
             }
         }
     }

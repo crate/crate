@@ -23,7 +23,6 @@ package io.crate.data.join;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 import static io.crate.window.NthValueFunctions.LAST_VALUE_NAME;
 
 import java.util.List;
@@ -44,7 +43,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -61,6 +59,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -88,8 +87,8 @@ public class RowsBatchIteratorBenchmark {
         lastValueIntFunction = (WindowFunction) functions.getQualified(
             Signature.window(
                 LAST_VALUE_NAME,
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             List.of(DataTypes.INTEGER),
             DataTypes.INTEGER
@@ -209,7 +208,7 @@ public class RowsBatchIteratorBenchmark {
             new Boolean[]{null},
             new Input[]{input}
         );
-        BatchIterators.collect(batchIterator, Collectors.summingInt(x -> {
+        batchIterator.collect(Collectors.summingInt(x -> {
             blackhole.consume(x);
             return 1;
         })).get();

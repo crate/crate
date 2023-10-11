@@ -156,7 +156,7 @@ public final class TransportAnalyzeAction {
                     .filter(x -> !x.column().isSystemColumn())
                     .filter(x -> DataTypes.isPrimitive(x.valueType()))
                     .map(x -> table.getReadReference(x.column()))
-                    .collect(Collectors.toList());
+                    .toList();
 
                 futures.add(fetchSamples(
                     table.ident(),
@@ -195,13 +195,13 @@ public final class TransportAnalyzeAction {
     static Stats createTableStats(Samples samples, List<Reference> primitiveColumns) {
         List<Row> records = samples.records;
         List<Object> columnValues = new ArrayList<>(records.size());
-        Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>(primitiveColumns.size());
+        Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>();
         for (int i = 0; i < primitiveColumns.size(); i++) {
             Reference primitiveColumn = primitiveColumns.get(i);
             columnValues.clear();
             int nullCount = 0;
-            for (Row record : records) {
-                Object value = record.get(i);
+            for (Row row : records) {
+                Object value = row.get(i);
                 if (value == null) {
                     nullCount++;
                 } else {
@@ -210,7 +210,7 @@ public final class TransportAnalyzeAction {
             }
             @SuppressWarnings("unchecked")
             DataType<Object> dataType = (DataType<Object>) primitiveColumn.valueType();
-            columnValues.sort(dataType::compare);
+            columnValues.sort(dataType);
             ColumnStats<?> columnStats = ColumnStats.fromSortedValues(
                 columnValues,
                 dataType,
@@ -222,6 +222,7 @@ public final class TransportAnalyzeAction {
         return new Stats(samples.numTotalDocs, samples.numTotalSizeInBytes, statsByColumn);
     }
 
+    @SuppressWarnings("rawtypes")
     private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
         FutureActionListener<FetchSampleResponse, Samples> listener = new FutureActionListener<>(FetchSampleResponse::samples);
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();

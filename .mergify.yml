@@ -6,7 +6,7 @@ queue_rules:
       - check-success~=^Test CrateDB SQL on ubuntu
       - check-success=docs/readthedocs.org:crate
       - check-success~=^checkstyle
-      - check-success~=^forbiddenApisMain
+      - check-success~=^forbiddenApis
       - check-success~=^Vale
 
 
@@ -19,12 +19,22 @@ pull_request_rules:
       - status-success~=^Test CrateDB SQL on ubuntu
       - status-success=docs/readthedocs.org:crate
       - status-success~=^checkstyle
-      - status-success~=^forbiddenApisMain
+      - status-success~=^forbiddenApis
       - status-success~=^Vale
     actions:
       queue:
         method: rebase
         name: default
+
+  - name: backport 5.4
+    actions:
+      backport:
+        ignore_conflicts: true
+        branches:
+          - '5.4'
+    conditions:
+      - label=ready-to-merge
+      - label=v/5.4
 
   - name: backport 5.3
     actions:
@@ -35,13 +45,3 @@ pull_request_rules:
     conditions:
       - label=ready-to-merge
       - label=v/5.3
-
-  - name: backport 5.2
-    actions:
-      backport:
-        ignore_conflicts: true
-        branches:
-          - '5.2'
-    conditions:
-      - label=ready-to-merge
-      - label=v/5.2

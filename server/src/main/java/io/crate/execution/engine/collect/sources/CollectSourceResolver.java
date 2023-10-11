@@ -41,6 +41,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -73,6 +74,7 @@ public class CollectSourceResolver {
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
+                                 Schemas schemas,
                                  NodeLimits nodeJobsCounter,
                                  CircuitBreakerService circuitBreakerService,
                                  NodeContext nodeCtx,
@@ -92,6 +94,7 @@ public class CollectSourceResolver {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,

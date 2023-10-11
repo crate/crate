@@ -56,7 +56,7 @@ public final class GroupAndAggregateSemantics {
     public static void validate(List<Symbol> outputSymbols,
                                 List<Symbol> groupBy) throws IllegalArgumentException {
         boolean containsAggregations = SymbolVisitors.any(
-            x -> x instanceof Function && ((Function) x).signature().getKind() == FunctionType.AGGREGATE,
+            x -> x instanceof Function fn && fn.signature().getKind() == FunctionType.AGGREGATE,
             outputSymbols
         );
         if (!containsAggregations && groupBy.isEmpty()) {
@@ -84,10 +84,10 @@ public final class GroupAndAggregateSemantics {
 
     private static class EnsureTypedGroupKey extends SymbolVisitor<Void, Void> {
 
-        static final EnsureTypedGroupKey INSTANCE = new EnsureTypedGroupKey();
+        private static final EnsureTypedGroupKey INSTANCE = new EnsureTypedGroupKey();
 
         @Override
-        public Void visitLiteral(Literal symbol, Void context) {
+        public Void visitLiteral(Literal<?> symbol, Void context) {
             if (symbol.valueType() == DataTypes.UNDEFINED) {
                 if (symbol.value() == null) {
                     // `NULL` is a valid case
@@ -112,9 +112,9 @@ public final class GroupAndAggregateSemantics {
         }
     }
 
-    static class FindOffendingSymbol extends SymbolVisitor<List<Symbol>, Symbol> {
+    private static class FindOffendingSymbol extends SymbolVisitor<List<Symbol>, Symbol> {
 
-        static final FindOffendingSymbol INSTANCE = new FindOffendingSymbol();
+        private static final FindOffendingSymbol INSTANCE = new FindOffendingSymbol();
 
         @Override
         protected Symbol visitSymbol(Symbol symbol, List<Symbol> groupBy) {
@@ -207,8 +207,8 @@ public final class GroupAndAggregateSemantics {
                 if (symbol.equals(groupExpr)) {
                     return true;
                 }
-                if (groupExpr instanceof AliasSymbol) {
-                    if (symbol.equals(((AliasSymbol) groupExpr).symbol())) {
+                if (groupExpr instanceof AliasSymbol aliasSymbol) {
+                    if (symbol.equals(aliasSymbol.symbol())) {
                         return true;
                     }
                 }

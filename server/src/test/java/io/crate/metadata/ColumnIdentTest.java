@@ -115,6 +115,8 @@ public class ColumnIdentTest {
         ColumnIdent.validateColumnName("_Name");
         ColumnIdent.validateColumnName("_name_");
         ColumnIdent.validateColumnName("__name");
+        ColumnIdent.validateColumnName("____name");
+        ColumnIdent.validateColumnName("_name__");
         ColumnIdent.validateColumnName("_name1");
         ColumnIdent.validateColumnName("'index'");
         ColumnIdent.validateColumnName("ident'index");

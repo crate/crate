@@ -37,6 +37,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
@@ -64,12 +65,14 @@ import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.Booleans;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 import io.crate.server.xcontent.XContentParserUtils;
+import io.crate.sql.tree.GenericProperties;
 
 /**
  * An immutable settings implementation.
@@ -797,6 +800,19 @@ public final class Settings implements ToXContentFragment {
             return this;
         }
 
+        /*
+         * Sets a value as list if it is an array or list. Otherwise as string via value.toString()
+         */
+        public Builder putStringOrList(String key, @Nullable Object value) {
+            if (value instanceof String[] strings) {
+                return putList(key, strings);
+            } else if (value instanceof List<?> list) {
+                return putList(key, list);
+            } else {
+                return put(key, value == null ? null : value.toString());
+            }
+        }
+
         public Builder copy(String key, Settings source) {
             return copy(key, key, source);
         }
@@ -855,6 +871,14 @@ public final class Settings implements ToXContentFragment {
          */
         public Builder put(String setting, int value) {
             put(setting, String.valueOf(value));
+            return this;
+        }
+
+        public Builder put(GenericProperties<Object> properties) {
+            for (Entry<String,Object> entry : properties.properties().entrySet()) {
+                String settingName = entry.getKey();
+                putStringOrList(settingName, entry.getValue());
+            }
             return this;
         }
 

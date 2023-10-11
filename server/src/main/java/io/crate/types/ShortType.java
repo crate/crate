@@ -47,9 +47,9 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
         @Override
         public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new IntIndexer(ref, getFieldType.apply(ref.column()));
+            return new IntIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 

@@ -73,37 +73,27 @@ public class TableFunctionFactory {
 
         private final Scalar<?, T> functionImplementation;
         private final RowType returnType;
-        private final Signature signature;
-        private final BoundSignature boundSignature;
 
         private ScalarTableFunctionImplementation(Scalar<?, T> functionImplementation) {
+            super(
+                Signature.table(
+                    functionImplementation.signature().getName(),
+                    Lists2.concat(
+                        functionImplementation.signature().getArgumentTypes(),
+                        functionImplementation.signature().getReturnType()
+                    ).toArray(new TypeSignature[0])
+                ),
+                new BoundSignature(
+                    functionImplementation.boundSignature().argTypes(),
+                    functionImplementation.boundSignature().returnType()
+                )
+            );
             this.functionImplementation = functionImplementation;
             var boundReturnType = functionImplementation.boundSignature().returnType();
             returnType = new RowType(
                 List.of(boundReturnType),
                 List.of(functionImplementation.signature().getName().name())
             );
-            signature = Signature.table(
-                functionImplementation.signature().getName(),
-                Lists2.concat(
-                    functionImplementation.signature().getArgumentTypes(),
-                    functionImplementation.signature().getReturnType()
-                ).toArray(new TypeSignature[0])
-            );
-            boundSignature = new BoundSignature(
-                functionImplementation.boundSignature().argTypes(),
-                boundReturnType
-            );
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override

@@ -47,6 +47,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.execution.support.ActionListeners;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
+import io.crate.metadata.view.ViewsMetadata;
 
 @Singleton
 public class TransportRenameTableAction extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
@@ -115,7 +116,7 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                         false
                     );
                     newIndexNames.set(IndexNameExpressionResolver.concreteIndexNames(
-                        updatedState.metadata(), openIndices, request.targetTableIdent().indexNameOrAlias()));
+                        updatedState.metadata(), openIndices, request.targetName().indexNameOrAlias()));
                     return updatedState;
                 }
 
@@ -128,13 +129,17 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
 
     @Override
     protected ClusterBlockException checkBlock(RenameTableRequest request, ClusterState state) {
+        ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
+        if (views != null && views.contains(request.sourceName())) {
+            return null;
+        }
         try {
             return state.blocks().indicesBlockedException(
                 ClusterBlockLevel.METADATA_WRITE,
                 IndexNameExpressionResolver.concreteIndexNames(
                     state.metadata(),
                     STRICT_INDICES_OPTIONS,
-                    request.sourceTableIdent().indexNameOrAlias()
+                    request.sourceName().indexNameOrAlias()
                 )
             );
         } catch (IndexNotFoundException e) {

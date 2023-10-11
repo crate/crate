@@ -37,8 +37,6 @@ import io.crate.types.DataType;
  */
 public final class TripleScalar<R, T> extends Scalar<R, T> {
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final ThreeParametersFunction<T, T, T, R> func;
     private final DataType<T> type;
 
@@ -46,22 +44,11 @@ public final class TripleScalar<R, T> extends Scalar<R, T> {
                         BoundSignature boundSignature,
                         DataType<T> type,
                         ThreeParametersFunction<T, T, T, R> func) {
+        super(signature, boundSignature);
         assert boundSignature.argTypes().stream().allMatch(t -> t.id() == type.id()) :
             "All argument types of the bound signature must match the type argument";
-        this.signature = signature;
-        this.boundSignature = boundSignature;
         this.type = type;
         this.func = func;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @SafeVarargs

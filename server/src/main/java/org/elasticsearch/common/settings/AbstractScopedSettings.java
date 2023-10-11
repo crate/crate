@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractScopedSettings {
     public static final String ARCHIVED_SETTINGS_PREFIX = "archived.";
+    public static final String LOGGER_SETTINGS_PREFIX = "logger.";
     private static final Pattern KEY_PATTERN = Pattern.compile("^(?:[-\\w]+[.])*[-\\w]+$");
     private static final Pattern GROUP_KEY_PATTERN = Pattern.compile("^(?:[-\\w]+[.])+$");
     private static final Pattern AFFIX_KEY_PATTERN = Pattern.compile("^(?:[-\\w]+[.])+[*](?:[.][-\\w]+)+$");

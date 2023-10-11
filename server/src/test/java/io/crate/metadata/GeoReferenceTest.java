@@ -45,6 +45,8 @@ public class GeoReferenceTest extends ESTestCase {
             IndexType.PLAIN,
             true,
             1,
+            10,
+            true,
             null,
             "some_tree",
             "1m",
@@ -53,7 +55,7 @@ public class GeoReferenceTest extends ESTestCase {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(geoReferenceInfo, out);
+        Reference.toStream(out, geoReferenceInfo);
         StreamInput in = out.bytes().streamInput();
         GeoReference geoReferenceInfo2 = Reference.fromStream(in);
 
@@ -66,6 +68,8 @@ public class GeoReferenceTest extends ESTestCase {
             IndexType.PLAIN,
             false,
             2,
+            10,
+            true,
             null,
             "some_tree",
             null,
@@ -73,11 +77,10 @@ public class GeoReferenceTest extends ESTestCase {
             null
         );
         out = new BytesStreamOutput();
-        Reference.toStream(geoReferenceInfo3, out);
+        Reference.toStream(out, geoReferenceInfo3);
         in = out.bytes().streamInput();
         GeoReference geoReferenceInfo4 = Reference.fromStream(in);
 
         assertThat(geoReferenceInfo4).isEqualTo(geoReferenceInfo3);
-
     }
 }

@@ -43,120 +43,165 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.CopyFromParserProperties;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.expression.InputRow;
 
-public class FileReadingIterator implements BatchIterator<Row> {
+/**
+ * BatchIterator to read lines from one or more {@link URI}s.
+ *
+ * <p>
+ * URIs are opened using a {@link FileInputFactory}.
+ * A map from Scheme -> FileInputFactory is parameterized in the constructor to support
+ * arbitrary sources.
+ * </p>
+ *
+ * <p>
+ * The iterator automatically retries reading on
+ * @{link {@link SocketException} or {@link SocketTimeoutException}
+ * </p>
+ *
+ * <p>
+ * The file content is exposed via a shared {@link LineCursor}
+ * It's properties are mutated after each {@link #moveNext()} call.
+ * Use {@link LineCursor#copy()} if you need an instance that's not shared.
+ *
+ * {@link #currentElement()} can be used in a "off-position", before the first {@link #moveNext()} call
+ * to gain early access to the cursor.
+ * </p>
+ */
+public class FileReadingIterator implements BatchIterator<FileReadingIterator.LineCursor> {
 
     private static final Logger LOGGER = LogManager.getLogger(FileReadingIterator.class);
     @VisibleForTesting
     static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
 
-    public static BatchIterator<Row> newInstance(Collection<String> fileUris,
-                                                 List<Input<?>> inputs,
-                                                 Iterable<LineCollectorExpression<?>> collectorExpressions,
-                                                 String compression,
-                                                 Map<String, FileInputFactory> fileInputFactories,
-                                                 Boolean shared,
-                                                 int numReaders,
-                                                 int readerNumber,
-                                                 List<String> targetColumns,
-                                                 CopyFromParserProperties parserProperties,
-                                                 FileUriCollectPhase.InputFormat inputFormat,
-                                                 Settings withClauseOptions,
-                                                 ScheduledExecutorService scheduler) {
-        return new FileReadingIterator(
-            fileUris,
-            inputs,
-            collectorExpressions,
-            compression,
-            fileInputFactories,
-            shared,
-            numReaders,
-            readerNumber,
-            targetColumns,
-            parserProperties,
-            inputFormat,
-            withClauseOptions,
-            scheduler);
-    }
-
+    private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
 
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;
     private final int numReaders;
     private final int readerNumber;
     private final boolean compressed;
-    private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
     private final List<FileInput> fileInputs;
 
-    private final Iterable<LineCollectorExpression<?>> collectorExpressions;
-
     private volatile Throwable killed;
-    private final List<String> targetColumns;
-    private final CopyFromParserProperties parserProperties;
-    private final FileUriCollectPhase.InputFormat inputFormat;
+
     private Iterator<FileInput> fileInputsIterator = null;
     private FileInput currentInput = null;
     private Iterator<URI> currentInputUriIterator = null;
-    private URI currentUri;
     private BufferedReader currentReader = null;
-    private long currentLineNumber;
+
     @VisibleForTesting
     long watermark;
-    private final Row row;
-    private LineProcessor lineProcessor;
+
+    private final LineCursor cursor;
     private final ScheduledExecutorService scheduler;
     private final Iterator<TimeValue> backOffPolicy;
 
-    @VisibleForTesting
-    FileReadingIterator(Collection<String> fileUris,
-                        List<? extends Input<?>> inputs,
-                        Iterable<LineCollectorExpression<?>> collectorExpressions,
-                        String compression,
-                        Map<String, FileInputFactory> fileInputFactories,
-                        Boolean shared,
-                        int numReaders,
-                        int readerNumber,
-                        List<String> targetColumns,
-                        CopyFromParserProperties parserProperties,
-                        FileUriCollectPhase.InputFormat inputFormat,
-                        Settings withClauseOptions,
-                        ScheduledExecutorService scheduler) {
+    public static class LineCursor {
+        private URI uri;
+        private long lineNumber;
+        private String line;
+        private IOException failure;
+
+        public LineCursor() {
+        }
+
+        public LineCursor(URI uri, long lineNumber, @Nullable String line, @Nullable IOException failure) {
+            this.uri = uri;
+            this.lineNumber = lineNumber;
+            this.line = line;
+            this.failure = failure;
+        }
+
+        public URI uri() {
+            return uri;
+        }
+
+        public long lineNumber() {
+            return lineNumber;
+        }
+
+        @Nullable
+        public String line() {
+            return line;
+        }
+
+        @Nullable
+        public IOException failure() {
+            return failure;
+        }
+
+        @VisibleForTesting
+        public LineCursor copy() {
+            return new LineCursor(uri, lineNumber, line, failure);
+        }
+
+        @Override
+        public String toString() {
+            return "LineCursor{" + uri + ":" + lineNumber + ":line=" + line + ", failure=" + failure + "}";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(uri, lineNumber, line, failure);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            LineCursor other = (LineCursor) obj;
+            return Objects.equals(uri, other.uri)
+                && lineNumber == other.lineNumber
+                && Objects.equals(line, other.line)
+                && Objects.equals(failure, other.failure);
+        }
+    }
+
+    public FileReadingIterator(Collection<String> fileUris,
+                               String compression,
+                               Map<String, FileInputFactory> fileInputFactories,
+                               Boolean shared,
+                               int numReaders,
+                               int readerNumber,
+                               Settings withClauseOptions,
+                               ScheduledExecutorService scheduler) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
+        this.cursor = new LineCursor();
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
-        this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).filter(Objects::nonNull).toList();
-        this.collectorExpressions = collectorExpressions;
-        this.targetColumns = targetColumns;
-        this.parserProperties = parserProperties;
-        this.inputFormat = inputFormat;
-        initCollectorState();
         this.scheduler = scheduler;
         this.backOffPolicy = BackoffPolicy.exponentialBackoff(TimeValue.ZERO, MAX_SOCKET_TIMEOUT_RETRIES).iterator();
+
+        this.fileInputs = fileUris.stream()
+            .map(uri -> toFileInput(uri, withClauseOptions))
+            .filter(Objects::nonNull)
+            .toList();
+        fileInputsIterator = fileInputs.iterator();
     }
 
     @Override
-    public Row currentElement() {
-        return row;
+    public LineCursor currentElement() {
+        return cursor;
     }
 
     @Override
@@ -164,16 +209,12 @@ public class FileReadingIterator implements BatchIterator<Row> {
         killed = throwable;
     }
 
-    private void initCollectorState() {
-        lineProcessor = new LineProcessor(parserProperties, targetColumns);
-        lineProcessor.startCollect(collectorExpressions);
-        fileInputsIterator = fileInputs.iterator();
-    }
-
     @Override
     public void moveToStart() {
         raiseIfKilled();
-        initCollectorState();
+        reset();
+        watermark = 0;
+        fileInputsIterator = fileInputs.iterator();
     }
 
     @Override
@@ -191,10 +232,11 @@ public class FileReadingIterator implements BatchIterator<Row> {
                     throw e;
                 }
                 if (line == null) {
-                    closeCurrentReader();
+                    closeReader();
                     return moveNext();
                 }
-                lineProcessor.process(line);
+                cursor.line = line;
+                cursor.failure = null;
                 return true;
             } else if (currentInputUriIterator != null && currentInputUriIterator.hasNext()) {
                 advanceToNextUri(currentInput);
@@ -203,27 +245,24 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 advanceToNextFileInput();
                 return moveNext();
             } else {
-                releaseBatchIteratorState();
+                reset();
                 return false;
             }
         } catch (IOException e) {
-            lineProcessor.setUriFailure(e.getMessage());
-            closeCurrentReader();
-            // If the error happens on the first line, return true so that the error is collected by {@link #currentElement()}
-            if (currentLineNumber == 0) {
+            cursor.failure = e;
+            closeReader();
+            // If IOError happens on file opening, let consumers collect the error
+            // This is mostly for RETURN SUMMARY of COPY FROM
+            if (cursor.lineNumber == 0) {
                 return true;
             }
             return moveNext();
-        } catch (Exception e) {
-            lineProcessor.setParsingFailure(e.getMessage());
-            return true;
         }
     }
 
     private void advanceToNextUri(FileInput fileInput) throws IOException {
         watermark = 0;
-        currentUri = currentInputUriIterator.next();
-        initCurrentReader(fileInput, currentUri);
+        createReader(fileInput, currentInputUriIterator.next());
     }
 
     private void advanceToNextFileInput() throws IOException {
@@ -233,8 +272,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
             currentInputUriIterator = uris.iterator();
             advanceToNextUri(currentInput);
         } else if (currentInput.isGlobbed()) {
-            lineProcessor.startWithUri(currentInput.uri());
-            throw new IOException("Cannot find any URI matching: " + currentInput.uri().toString());
+            URI uri = currentInput.uri();
+            cursor.uri = uri;
+            throw new IOException("Cannot find any URI matching: " + uri.toString());
         }
     }
 
@@ -247,20 +287,19 @@ public class FileReadingIterator implements BatchIterator<Row> {
         }
     }
 
-    private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
-        lineProcessor.startWithUri(uri);
+    private void createReader(FileInput fileInput, URI uri) throws IOException {
+        cursor.uri = uri;
+        cursor.lineNumber = 0;
         InputStream stream = fileInput.getStream(uri);
         currentReader = createBufferedReader(stream);
-        currentLineNumber = 0;
-        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
     }
 
-    private void closeCurrentReader() {
+    private void closeReader() {
         if (currentReader != null) {
             try {
                 currentReader.close();
             } catch (IOException e) {
-                LOGGER.error("Unable to close reader for " + currentUri, e);
+                LOGGER.error("Unable to close reader for " + cursor.uri, e);
             }
             currentReader = null;
         }
@@ -270,8 +309,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
         String line = null;
         try {
             while ((line = reader.readLine()) != null) {
-                currentLineNumber++;
-                if (currentLineNumber < watermark) {
+                cursor.lineNumber++;
+                if (cursor.lineNumber < watermark) {
                     continue;
                 } else {
                     watermark = 0;
@@ -283,9 +322,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
             }
         } catch (SocketException | SocketTimeoutException e) {
             if (backOffPolicy.hasNext()) {
-                watermark = watermark == 0 ? currentLineNumber + 1 : watermark;
-                closeCurrentReader();
-                initCurrentReader(currentInput, currentUri);
+                watermark = watermark == 0 ? cursor.lineNumber + 1 : watermark;
+                closeReader();
+                createReader(currentInput, cursor.uri);
             } else {
                 URI uri = currentInput.uri();
                 LOGGER.error("Timeout during COPY FROM '" + uri.toString() +
@@ -305,17 +344,17 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
     @Override
     public void close() {
-        closeCurrentReader();
-        releaseBatchIteratorState();
+        closeReader();
+        reset();
         killed = BatchIterator.CLOSED;
         backOffPolicy.forEachRemaining((delay) -> {});
     }
 
-    private void releaseBatchIteratorState() {
+    private void reset() {
         fileInputsIterator = null;
         currentInputUriIterator = null;
         currentInput = null;
-        currentUri = null;
+        cursor.failure = null;
     }
 
     @Override

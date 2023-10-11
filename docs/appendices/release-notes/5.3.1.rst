@@ -6,6 +6,15 @@ Version 5.3.1
 
 Released on 2023-04-28.
 
+.. WARNING::
+
+    CrateDB 5.3.x versions up to :ref:`5.3.3 <version_5.3.3>` (excluding)
+    contain a critical bug which can lead to data corruption/loss when using
+    a column definition with a number data type and disabled index
+    (``INDEX OFF``).
+    It is not recommended to use those versions, use CrateDB >=
+    :ref:`5.3.3 <version_5.3.3>` instead.
+
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher

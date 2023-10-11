@@ -154,24 +154,24 @@ about naming.
 Additionally, table and schema names are restricted in terms of characters and
 length. They:
 
-  - may not contain one of the following characters: ``\ / * ? " < > |
-    <whitespace> , # .``
+- may not contain one of the following characters: ``\ / * ? " < > |
+  <whitespace> , # .``
 
-  - should not exceed 255 bytes when encoded with ``utf-8`` (this
-    limit applies on the optionally schema-qualified table name)
+- should not exceed 255 bytes when encoded with ``utf-8`` (this
+  limit applies on the optionally schema-qualified table name)
 
 Column names are restricted in terms of patterns:
 
-  - Columns are not allowed to contain a dot (``.``), since this conflicts
-    with internal path definitions.
+- Columns are not allowed to contain a dot (``.``), since this conflicts
+  with internal path definitions.
 
-  - Columns that conflict with the naming scheme of
-    :ref:`virtual system columns <sql_administration_system_columns>` are
-    restricted.
+- Columns that conflict with the naming scheme of
+  :ref:`virtual system columns <sql_administration_system_columns>` are
+  restricted.
 
-  - Character sequences that conform to the
-    :ref:`subscript notation <sql_dql_object_arrays>` (e.g. ``col['id']``) are
-    not allowed.
+- Character sequences that conform to the
+  :ref:`subscript notation <sql_dql_object_arrays>` (e.g. ``col['id']``) are
+  not allowed.
 
 
 .. _ddl-create-table-configuration:

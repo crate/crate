@@ -36,18 +36,6 @@ public class BatchIterators {
      * @param <T> element type
      * @param <A> state type
      * @param <R> result type
-     * @return future containing the result
-     */
-    public static <T, A, R> CompletableFuture<R> collect(BatchIterator<T> it, Collector<T, A, R> collector) {
-        return collect(it, collector.supplier().get(), collector, new CompletableFuture<>());
-    }
-
-    /**
-     * Use {@code collector} to consume all elements from {@code it}
-     *
-     * @param <T> element type
-     * @param <A> state type
-     * @param <R> result type
      * @return future containing the result, this is the future that has been provided as argument.
      */
     public static <T, A, R> CompletableFuture<R> collect(BatchIterator<T> it,
@@ -68,7 +56,7 @@ public class BatchIterators {
     }
 
     /**
-     * Partition the items of a BatchIterator into blocks of {@code size}.
+     * Create chunks of items of a BatchIterator of {@code size}.
      *
      * Example:
      * <pre>
@@ -78,17 +66,17 @@ public class BatchIterators {
      *     partition(inputBi, 2, ArrayList::new, List::add) -> [[1, 2], [3, 4], [5]]
      * }
      * </pre>
-     * @param supplier Used to create the state per partition
-     * @param accumulator Used to add items to the partitions state
-     * @param stateLimiter Used to dynamically adjust the partition size.
+     * @param supplier Used to create the state per chunk
+     * @param accumulator Used to add items to the chunk
+     * @param stateLimiter Used to dynamically adjust the chunk size.
      * @param <T> input item type
      * @param <A> output item type
      */
-    public static <T, A> BatchIterator<A> partition(BatchIterator<T> bi,
-                                                    int size,
-                                                    Supplier<A> supplier,
-                                                    BiConsumer<A, T> accumulator,
-                                                    Predicate<? super A> stateLimiter) {
+    public static <T, A> BatchIterator<A> chunks(BatchIterator<T> bi,
+                                                 int size,
+                                                 Supplier<A> supplier,
+                                                 BiConsumer<A, T> accumulator,
+                                                 Predicate<? super A> stateLimiter) {
         return new MappedForwardingBatchIterator<T, A>() {
 
             private A element = null;
@@ -121,20 +109,6 @@ public class BatchIterators {
             @Override
             public A currentElement() {
                 return element;
-            }
-        };
-    }
-
-    public static <I, O> BatchIterator<O> map(BatchIterator<I> bi, Function<? super I, ? extends O> mapper) {
-        return new MappedForwardingBatchIterator<I, O>() {
-            @Override
-            public O currentElement() {
-                return mapper.apply(bi.currentElement());
-            }
-
-            @Override
-            protected BatchIterator<I> delegate() {
-                return bi;
             }
         };
     }

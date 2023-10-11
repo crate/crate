@@ -43,27 +43,13 @@ public final class PiFunction extends Scalar<Double, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public PiFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
     @SafeVarargs
     public final Double evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         return Math.PI;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

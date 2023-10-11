@@ -34,9 +34,6 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     private ReaderContext context;
     private int docId;
 
-    public IdCollectorExpression() {
-    }
-
     @Override
     public void setNextDocId(int docId) {
         this.docId = docId;

@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -40,7 +39,7 @@ import io.crate.expression.reference.doc.lucene.ShortColumnReference;
 
 public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "s";
+    private static final String COLUMN = "s";
 
     public ShortColumnReferenceTest() {
         super("create table t (l short)");
@@ -51,14 +50,14 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
         for (short i = -10; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Short.toString(i), Field.Store.NO));
-            doc.add(new SortedNumericDocValuesField(column, i));
+            doc.add(new SortedNumericDocValuesField(COLUMN, i));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testShortExpression() throws Exception {
-        ShortColumnReference shortColumn = new ShortColumnReference(column);
+        ShortColumnReference shortColumn = new ShortColumnReference(COLUMN);
         shortColumn.startCollect(ctx);
         shortColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -66,7 +65,7 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
         short i = -10;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             shortColumn.setNextDocId(doc.doc);
-            assertThat(shortColumn.value(), is(i));
+            assertThat(shortColumn.value()).isEqualTo(i);
             i++;
         }
     }

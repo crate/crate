@@ -240,8 +240,8 @@ with parentheses, but without grouping, use ``(?...)``.
 For example matching the regular expression ``([Aa](.+)z)`` against
 ``alcatraz``, results in these groups:
 
- * group 1: ``alcatraz`` (from first to last parenthesis or whole pattern)
- * group 2: ``lcatra`` (beginning at second parenthesis)
+- group 1: ``alcatraz`` (from first to last parenthesis or whole pattern)
+- group 2: ``lcatra`` (beginning at second parenthesis)
 
 The ``regexp_matches`` :ref:`function <gloss-function>` will return all groups
 as a ``text`` array::

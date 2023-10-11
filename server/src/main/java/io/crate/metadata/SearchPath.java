@@ -52,14 +52,20 @@ public final class SearchPath implements Iterable<String>, Writeable {
         }
     }
 
+    public static SearchPath pathWithPGCatalogAndDoc() {
+        return PG_CATALOG_AND_DOC_PATH;
+    }
+
     public static SearchPath createSearchPathFrom(StreamInput in) throws IOException {
         final boolean pgCatalogIsSetExplicitly = in.readBoolean();
         final List<String> searchPath = in.readList(StreamInput::readString);
         return new SearchPath(pgCatalogIsSetExplicitly, searchPath);
     }
 
-    public static SearchPath pathWithPGCatalogAndDoc() {
-        return PG_CATALOG_AND_DOC_PATH;
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeBoolean(pgCatalogIsSetExplicitly);
+        out.writeStringCollection(searchPath);
     }
 
     private SearchPath() {
@@ -127,11 +133,5 @@ public final class SearchPath implements Iterable<String>, Writeable {
     @Override
     public int hashCode() {
         return Objects.hash(pgCatalogIsSetExplicitly, searchPath);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeBoolean(pgCatalogIsSetExplicitly);
-        out.writeStringCollection(searchPath);
     }
 }

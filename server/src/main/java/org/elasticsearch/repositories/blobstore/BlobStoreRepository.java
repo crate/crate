@@ -49,8 +49,6 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -138,7 +136,9 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -151,45 +151,9 @@ import io.crate.server.xcontent.LoggingDeprecationHandler;
  * <p>
  * This repository works with any {@link BlobStore} implementation. The blobStore could be (and preferred) lazy initialized in
  * {@link #createBlobStore()}.
- * <p>
- * BlobStoreRepository maintains the following structure in the blob store
- * <pre>
- * {@code
- *   STORE_ROOT
- *   |- index-N           - JSON serialized {@link RepositoryData} containing a list of all snapshot ids and the indices belonging to
- *   |                      each snapshot, N is the generation of the file
- *   |- index.latest      - contains the numeric value of the latest generation of the index file (i.e. N from above)
- *   |- incompatible-snapshots - list of all snapshot ids that are no longer compatible with the current version of the cluster
- *   |- snap-20131010.dat - SMILE serialized {@link SnapshotInfo} for snapshot "20131010"
- *   |- meta-20131010.dat - SMILE serialized {@link Metadata} for snapshot "20131010" (includes only global metadata)
- *   |- snap-20131011.dat - SMILE serialized {@link SnapshotInfo} for snapshot "20131011"
- *   |- meta-20131011.dat - SMILE serialized {@link Metadata} for snapshot "20131011"
- *   .....
- *   |- indices/ - data for all indices
- *      |- Ac1342-B_x/ - data for index "foo" which was assigned the unique id of Ac1342-B_x in the repository
- *      |  |- meta-20131010.dat - JSON Serialized {@link IndexMetadata} for index "foo"
- *      |  |- 0/ - data for shard "0" of index "foo"
- *      |  |  |- __1                      \  (files with numeric names were created by older ES versions)
- *      |  |  |- __2                      |
- *      |  |  |- __VPO5oDMVT5y4Akv8T_AO_A |- files from different segments see snap-* for their mappings to real segment files
- *      |  |  |- __1gbJy18wS_2kv1qI7FgKuQ |
- *      |  |  |- __R8JvZAHlSMyMXyZc2SS8Zg /
- *      |  |  .....
- *      |  |  |- snap-20131010.dat - SMILE serialized {@link BlobStoreIndexShardSnapshot} for snapshot "20131010"
- *      |  |  |- snap-20131011.dat - SMILE serialized {@link BlobStoreIndexShardSnapshot} for snapshot "20131011"
- *      |  |  |- index-123 - SMILE serialized {@link BlobStoreIndexShardSnapshots} for the shard
- *      |  |
- *      |  |- 1/ - data for shard "1" of index "foo"
- *      |  |  |- __1
- *      |  |  .....
- *      |  |
- *      |  |-2/
- *      |  ......
- *      |
- *      |- 1xB0D8_B3y/ - data for index "bar" which was assigned the unique id of 1xB0D8_B3y in the repository
- *      ......
- * }
- * </pre>
+ * </p>
+ * For in depth documentation on how exactly implementations of this class interact with the snapshot functionality please refer to the
+ * documentation of the package {@link org.elasticsearch.repositories.blobstore}.
  */
 public abstract class BlobStoreRepository extends AbstractLifecycleComponent implements Repository {
 
@@ -372,10 +336,11 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void executeConsistentStateUpdate(Function<RepositoryData, ClusterStateUpdateTask> createUpdateTask, String source,
+    public void executeConsistentStateUpdate(Function<RepositoryData, ClusterStateUpdateTask> createUpdateTask,
+                                             String source,
                                              Consumer<Exception> onFailure) {
         final RepositoryMetadata repositoryMetadataStart = metadata;
-        getRepositoryData(ActionListener.wrap(repositoryData -> {
+        getRepositoryData().whenComplete(ActionListener.wrap(repositoryData -> {
             final ClusterStateUpdateTask updateTask = createUpdateTask.apply(repositoryData);
             clusterService.submitStateUpdateTask(source, new ClusterStateUpdateTask(updateTask.priority()) {
 
@@ -693,7 +658,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                                          ActionListener<Void> listener) {
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.wrap(
             listener,
-            l -> cleanupStaleBlobs(deletedSnapshots, foundIndices, rootBlobs, updatedRepoData, ActionListener.map(l, ignored -> null))));
+            l -> cleanupStaleBlobs(deletedSnapshots, foundIndices, rootBlobs, updatedRepoData, l.map(ignored -> null))));
     }
 
 
@@ -730,8 +695,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
         // Listener that flattens out the delete results for each index
         final ActionListener<Collection<ShardSnapshotMetaDeleteResult>> deleteIndexMetadataListener = new GroupedActionListener<>(
-            ActionListener.map(onAllShardsCompleted,
-                               res -> res.stream().flatMap(Collection::stream).collect(Collectors.toList())), indices.size());
+            onAllShardsCompleted.map(res -> res.stream().flatMap(Collection::stream).toList()), indices.size());
 
         for (IndexId indexId : indices) {
             final Set<SnapshotId> survivingSnapshots = oldRepositoryData.getSnapshots(indexId).stream()
@@ -981,17 +945,17 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         // If there are older version nodes in the cluster, we don't need to run this cleanup as it will have already happened
         // when writing the index-${N} to each shard directory.
         final boolean writeShardGens = SnapshotsService.useShardGenerations(repositoryMetaVersion);
-        final Consumer<Exception> onUpdateFailure =
-            e -> listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to update snapshot in repository", e));
+        final Consumer<Exception> onUpdateFailure = e -> {
+            listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to update snapshot in repository", e));
+        };
 
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
-
         final boolean writeIndexGens = SnapshotsService.useIndexGenerations(repositoryMetaVersion);
-
-        final StepListener<RepositoryData> repoDataListener = new StepListener<>();
-        executor.execute(ActionRunnable.wrap(repoDataListener, this::getRepositoryData));
-        repoDataListener.whenComplete(existingRepositoryData -> {
-
+        getRepositoryData().whenComplete((existingRepositoryData, err) -> {
+            if (err != null) {
+                onUpdateFailure.accept(Exceptions.toException(err));
+                return;
+            }
             final Map<IndexId, String> indexMetas;
             final Map<String, String> indexMetaIdentifiers;
             if (writeIndexGens) {
@@ -1002,19 +966,27 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 indexMetaIdentifiers = null;
             }
 
-            final ActionListener<Void> allMetaListener = new GroupedActionListener<>(
-                ActionListener.wrap(v -> {
+            ActionListener<Collection<Void>> onAllIndicesFinishedListener = ActionListener.wrap(
+                v -> {
                     final RepositoryData updatedRepositoryData = existingRepositoryData.addSnapshot(
                         snapshotId, snapshotInfo.state(), Version.CURRENT, shardGenerations, indexMetas, indexMetaIdentifiers);
-                    writeIndexGen(updatedRepositoryData, repositoryStateId, repositoryMetaVersion, stateTransformer,
-                            ActionListener.wrap(
-                                    newRepoData -> {
-                                        if (writeShardGens) {
-                                            cleanupOldShardGens(existingRepositoryData, updatedRepositoryData);
-                                        }
-                                        listener.onResponse(newRepoData);
-                                    }, onUpdateFailure));
-                }, onUpdateFailure), 2 + indices.size());
+                    writeIndexGen(
+                        updatedRepositoryData,
+                        repositoryStateId,
+                        repositoryMetaVersion,
+                        stateTransformer,
+                        ActionListener.wrap(newRepoData -> {
+                            if (writeShardGens) {
+                                cleanupOldShardGens(existingRepositoryData, updatedRepositoryData);
+                            }
+                            listener.onResponse(newRepoData);
+                        },
+                        onUpdateFailure
+                    ));
+                },
+                onUpdateFailure
+            );
+            final ActionListener<Void> allMetaListener = new GroupedActionListener<>(onAllIndicesFinishedListener, 2 + indices.size());
 
             // We ignore all FileAlreadyExistsException when writing metadata since otherwise a master failover while in this method will
             // mean that no snap-${uuid}.dat blob is ever written for this snapshot. This is safe because any updated version of the
@@ -1031,8 +1003,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 executor.execute(ActionRunnable.run(allMetaListener, () -> {
                         final IndexMetadata indexMetaData = clusterMetadata.index(index.getName());
                         if (writeIndexGens) {
-                            final String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
-                            String metaUUID = existingRepositoryData.indexMetaDataGenerations().getIndexMetaBlobId(identifiers);
+                            String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
+                            IndexMetaDataGenerations existingIndexMetaGenerations = existingRepositoryData.indexMetaDataGenerations();
+                            String metaUUID = existingIndexMetaGenerations.getIndexMetaBlobId(identifiers);
                             if (metaUUID == null) {
                                 // We don't yet have this version of the metadata so we write it
                                 metaUUID = UUIDs.base64UUID();
@@ -1049,7 +1022,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             }
             executor.execute(ActionRunnable.run(allMetaListener,
                 () -> SNAPSHOT_FORMAT.write(snapshotInfo, blobContainer(), snapshotId.getUUID(), compress)));
-        }, onUpdateFailure);
+        }).exceptionally(err -> {
+            listener.onFailure(Exceptions.toException(err));
+            return null;
+        });
     }
 
     // Delete all old shard gen blobs that aren't referenced any longer as a result from moving to updated repository data
@@ -1131,7 +1107,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     private BlobContainer shardContainer(IndexId indexId, ShardId shardId) {
-        return blobStore().blobContainer(indicesPath().add(indexId.getId()).add(Integer.toString(shardId.getId())));
+        return blobStore().blobContainer(indicesPath().add(indexId.getId()).add(Integer.toString(shardId.id())));
     }
 
     public BlobContainer shardContainer(IndexId indexId, int shardId) {
@@ -1212,12 +1188,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     private final AtomicLong latestKnownRepoGen = new AtomicLong(RepositoryData.UNKNOWN_REPO_GEN);
 
     @Override
-    public void getRepositoryData(ActionListener<RepositoryData> listener) {
+    public CompletableFuture<RepositoryData> getRepositoryData() {
         if (latestKnownRepoGen.get() == RepositoryData.CORRUPTED_REPO_GEN) {
-            listener.onFailure(corruptedStateException(null));
-            return;
+            return CompletableFuture.failedFuture(corruptedStateException(null));
         }
-        threadPool.generic().execute(ActionRunnable.wrap(listener, this::doGetRepositoryData));
+        FutureActionListener<RepositoryData, RepositoryData> listener = FutureActionListener.newInstance();
+        threadPool.generic().execute(ActionRunnable.run(listener, () -> doGetRepositoryData(listener)));
+        return listener;
     }
 
     private void doGetRepositoryData(ActionListener<RepositoryData> listener) {
@@ -1707,9 +1684,15 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void snapshotShard(Store store, MapperService mapperService, SnapshotId snapshotId, IndexId indexId,
-                              IndexCommit snapshotIndexCommit, String shardStateIdentifier, IndexShardSnapshotStatus snapshotStatus,
-                              Version repositoryMetaVersion, ActionListener<String> listener) {
+    public void snapshotShard(Store store,
+                              MapperService mapperService,
+                              SnapshotId snapshotId,
+                              IndexId indexId,
+                              IndexCommit snapshotIndexCommit,
+                              String shardStateIdentifier,
+                              IndexShardSnapshotStatus snapshotStatus,
+                              Version repositoryMetaVersion,
+                              ActionListener<String> listener) {
         final ShardId shardId = store.shardId();
         final long startTime = threadPool.absoluteTimeInMillis();
         try {
@@ -1883,7 +1866,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 // now create and write the commit point
                 LOGGER.trace("[{}] [{}] writing shard snapshot file", shardId, snapshotId);
                 try {
-                    INDEX_SHARD_SNAPSHOT_FORMAT.write(new BlobStoreIndexShardSnapshot(snapshotId.getName(),
+                    INDEX_SHARD_SNAPSHOT_FORMAT.write(new BlobStoreIndexShardSnapshot(
+                            snapshotId.getName(),
                             lastSnapshotStatus.getIndexVersion(),
                             indexCommitPointFiles,
                             lastSnapshotStatus.getStartTime(),
@@ -1981,8 +1965,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                             : 1;
                         final int workers = Math.min(maxPoolSize, snapshotFiles.indexFiles().size());
                         final BlockingQueue<BlobStoreIndexShardSnapshot.FileInfo> files = new LinkedBlockingQueue<>(filesToRecover);
-                        final ActionListener<Void> allFilesListener =
-                            fileQueueListener(files, workers, ActionListener.map(listener, v -> null));
+                        final ActionListener<Void> allFilesListener = fileQueueListener(files, workers, listener.map(v -> null));
                         // restore the files from the snapshot to the Lucene store
                         for (int i = 0; i < workers; ++i) {
                             try {

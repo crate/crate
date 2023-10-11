@@ -21,6 +21,12 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.types.DataTypes.STRING;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -33,12 +39,6 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.Identifiers;
 import io.crate.types.RowType;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Function;
-
-import static io.crate.types.DataTypes.STRING;
 
 public final class PgGetKeywordsFunction extends TableFunctionImplementation<List<Object>> {
 
@@ -60,12 +60,8 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public PgGetKeywordsFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -89,16 +85,6 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
                     return row;
                 }
             }).iterator();
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

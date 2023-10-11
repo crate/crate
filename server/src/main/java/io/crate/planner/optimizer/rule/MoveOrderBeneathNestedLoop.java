@@ -68,8 +68,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
             .with(source(),
                   typeOf(NestedLoopJoin.class)
                       .capturedAs(nlCapture)
-                      .with(nl -> !nl.joinType().isOuter() &&
-                                  nl.isRewriteNestedLoopJoinToHashJoinDone() == true)
+                      .with(nl -> !nl.joinType().isOuter())
             );
     }
 
@@ -96,8 +95,9 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
             RefVisitor.visitRefs(orderExpr, gatherRelationsFromRef);
         }
         if (relationsInOrderBy.size() == 1) {
-            RelationName relationInOrderBy = relationsInOrderBy.iterator().next();
-            if (relationInOrderBy == nestedLoop.topMostLeftRelation().relationName()) {
+            var relationInOrderBy = relationsInOrderBy.iterator().next();
+            var topMostLeftRelation = nestedLoop.getRelationNames().get(0);
+            if (relationInOrderBy.equals(topMostLeftRelation)) {
                 LogicalPlan lhs = nestedLoop.sources().get(0);
                 LogicalPlan newLhs = order.replaceSources(List.of(lhs));
                 return new NestedLoopJoin(
@@ -106,9 +106,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                     nestedLoop.joinType(),
                     nestedLoop.joinCondition(),
                     nestedLoop.isFiltered(),
-                    nestedLoop.topMostLeftRelation(),
                     true,
-                    nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                     false,
                     nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
                 );

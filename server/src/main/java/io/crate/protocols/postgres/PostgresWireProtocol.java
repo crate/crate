@@ -41,13 +41,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
 import javax.net.ssl.SSLSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
@@ -65,9 +65,9 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
+import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -437,7 +437,7 @@ public class PostgresWireProtocol {
         try {
             User authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
-            session = sessions.createSession(database, authenticatedUser);
+            session = sessions.newSession(database, authenticatedUser);
             String options = properties.getProperty("options");
             if (options != null) {
                 applyOptions(options);
@@ -770,7 +770,13 @@ public class PostgresWireProtocol {
 
         List<Statement> statements;
         try {
-            statements = SqlParser.createStatements(queryString);
+            statements = SqlParser.createStatementsForSimpleQuery(
+                    queryString,
+                    str -> PgArrayParser.parse(
+                            str,
+                            bytes -> new String(bytes, StandardCharsets.UTF_8)
+                    )
+                );
         } catch (Exception ex) {
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionSettings()), ex);
             sendReadyForQuery(channel, TransactionState.IDLE);
@@ -778,20 +784,14 @@ public class PostgresWireProtocol {
         }
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
         for (var statement : statements) {
-            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, channel));
+            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, queryString, channel));
         }
         composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
     }
 
-    private CompletableFuture<?> handleSingleQuery(Statement statement, DelayableWriteChannel channel) {
+    private CompletableFuture<?> handleSingleQuery(Statement statement, String query, DelayableWriteChannel channel) {
         CompletableFuture<?> result = new CompletableFuture<>();
 
-        String query;
-        try {
-            query = SqlFormatter.formatSql(statement);
-        } catch (Exception e) {
-            query = statement.toString();
-        }
         AccessControl accessControl = getAccessControl.apply(session.sessionSettings());
         try {
             session.analyze("", statement, Collections.emptyList(), query);

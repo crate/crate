@@ -27,6 +27,10 @@ public final class FieldsVisitor extends DefaultTraversalSymbolVisitor<Consumer<
 
     private static final FieldsVisitor FIELDS_VISITOR = new FieldsVisitor();
 
+    private FieldsVisitor() {
+        super();
+    }
+
     @Override
     public Void visitField(ScopedSymbol field, Consumer<? super ScopedSymbol> context) {
         context.accept(field);

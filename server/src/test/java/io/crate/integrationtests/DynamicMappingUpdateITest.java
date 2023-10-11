@@ -29,34 +29,50 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import io.crate.testing.UseNewCluster;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.common.collections.Maps;
+import io.crate.server.xcontent.XContentHelper;
+import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
+
+@UseRandomizedSchema(random = false)
 public class DynamicMappingUpdateITest extends IntegTestCase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    public void test_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException {
+    @UseNewCluster
+    public void test_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         execute("create table t (a int, b object as (x int))");
         execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates();
     }
 
     @Test
-    public void test_concurrent_statements_that_add_columns_to_partitioned_table_result_in_dynamic_mapping_updates() throws InterruptedException {
+    @UseNewCluster
+    public void test_concurrent_statements_that_add_columns_to_partitioned_table_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         execute("create table t (a int, b object as (x int)) partitioned by (a)");
         execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates();
     }
 
-    private void execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException {
+    @SuppressWarnings("unchecked")
+    private void execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         // update, insert, alter take slightly different paths to update mappings
         execute("""
                 insert into t values (1, {x=1})
@@ -220,6 +236,12 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             b| 2
             b['x']| 3
             """);
+
+        Map<String, Object> mapping = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, getIndexMapping("t"), false);
+        Set<Long> oids = new HashSet<>();
+        collectOID((Map<String, Map<String, Object>>) Maps.getByPath(mapping, "default.properties"), oids);
+        assertThat(oids.size()).isEqualTo(48);
+        assertThat(oids.stream().max(Long::compareTo).get()).isEqualTo(48);
     }
 
     @Test
@@ -228,7 +250,6 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute_update_stmt_results_in_dynamic_mapping_updates();
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_update_partitioned_table_results_in_dynamic_mapping_updates() {
         execute("create table t (id int primary key) partitioned by (id) with (column_policy='dynamic')");
@@ -249,8 +270,8 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             name| 2
             o| 3
             o['a']| 4
-            o['b']| 5
-            o['a']['b']| 6
+            o['a']['b']| 5
+            o['b']| 6
             o['q']| 7
             o['q']['r']| 8
             o['q']['r']['s']| 9
@@ -281,8 +302,8 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             name| 2
             o| 3
             o['a']| 4
-            o['b']| 5
-            o['a']['b']| 6
+            o['a']['b']| 5
+            o['b']| 6
             o['q']| 7
             o['q']['r']| 8
             o['q']['r']['s']| 9
@@ -321,21 +342,19 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("refresh table t");
         execute("select column_name, ordinal_position, data_type from information_schema.columns where table_name = 't' order by 2");
 
-        assertThat(printedTable(response.rows())).isEqualTo(
-            """
-            tb| 1| object_array
-            p| 2| integer
-            tb['t1']| 3| object_array
-            tb['t2']| 4| object
-            tb['t1']['t3']| 5| object
-            tb['t1']['t6']| 6| bigint_array
-            tb['t1']['t3']['t4']| 7| object
-            tb['t1']['t3']['t4']['t5']| 8| bigint
-            o| 9| object
-            o['a']| 10| object
-            o['b']| 11| bigint
-            o['a']['b']| 12| bigint
-            """
+        assertThat(response).hasRows(
+            "tb| 1| object_array",
+            "p| 2| integer",
+            "tb['t1']| 3| object_array",
+            "tb['t1']['t3']| 4| object",
+            "tb['t1']['t3']['t4']| 5| object",
+            "tb['t1']['t3']['t4']['t5']| 6| bigint",
+            "tb['t1']['t6']| 7| bigint_array",
+            "tb['t2']| 8| object",
+            "o| 9| object",
+            "o['a']| 10| object",
+            "o['a']['b']| 11| bigint",
+            "o['b']| 12| bigint"
         );
     }
 
@@ -394,15 +413,42 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             tb| 1
             p| 2
             tb['t1']| 3
-            tb['t2']| 4
-            tb['t1']['t3']| 5
-            tb['t1']['t6']| 6
-            tb['t1']['t3']['t4']| 7
-            tb['t1']['t3']['t4']['t5']| 8
+            tb['t1']['t3']| 4
+            tb['t1']['t3']['t4']| 5
+            tb['t1']['t3']['t4']['t5']| 6
+            tb['t1']['t6']| 7
+            tb['t2']| 8
             o| 9
             o['a']| 10
-            o['b']| 11
-            o['a']['b']| 12
+            o['a']['b']| 11
+            o['b']| 12
             """);
+    }
+
+    private static void collectOID(@Nullable Map<String, Map<String, Object>> propertiesMap, Set<Long> oids) {
+        if (propertiesMap != null) {
+            for (Map<String, Object> colProps: propertiesMap.values()) {
+                String type = (String) colProps.get("type"); // Can be null
+
+                if (ArrayType.NAME.equals(type)) {
+                    Map<String, Object> inner = Maps.get(colProps, "inner");
+                    Number oid = Maps.get(inner, "oid");
+                    assertThat(oid).isNotNull();
+                    oids.add(oid.longValue());
+
+                    String innerType = (String) inner.get("type");
+                    if (ObjectType.UNTYPED.equals(DataTypes.ofMappingName(innerType))) {
+                        collectOID(Maps.get(inner, "properties"), oids);
+                    }
+                } else {
+                    Number oid = Maps.get(colProps, "oid");
+                    assertThat(oid).isNotNull();
+                    oids.add(oid.longValue());
+                    if (type == null || ObjectType.UNTYPED.equals(DataTypes.ofMappingName(type))) {
+                        collectOID(Maps.get(colProps,"properties"), oids);
+                    }
+                }
+            }
+        }
     }
 }

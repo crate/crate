@@ -93,7 +93,12 @@ public class RowShardResolver {
         if (routingInput == null) {
             routing = null;
         } else {
-            routing = nullOrString(routingInput.value());
+            // If clustered by column is specified it cannot be null.
+            var clusteredBy = routingInput.value();
+            if (clusteredBy == null) {
+                throw new IllegalArgumentException("Clustered by value must not be NULL");
+            }
+            routing = clusteredBy.toString();
         }
     }
 

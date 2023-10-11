@@ -21,17 +21,25 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.expression.scalar.cast.CastFunctionResolver;
-import io.crate.expression.scalar.cast.CastMode;
-import io.crate.expression.symbol.format.Style;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.cast.CastMode;
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import io.crate.expression.scalar.cast.TryCastFunction;
+import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 public interface Symbol extends Writeable, Accountable {
 
@@ -73,7 +81,7 @@ public interface Symbol extends Writeable, Accountable {
             // Do not cast numerics to unscaled numerics because we do not want to loose precision + scale
             return this;
         }
-        return CastFunctionResolver.generateCastFunction(this, targetType, modes);
+        return generateCastFunction(this, targetType, modes);
     }
 
     /**
@@ -81,4 +89,59 @@ public interface Symbol extends Writeable, Accountable {
      * NOTE: remember to prefer quoted variants over non quoted when converting.
      */
     String toString(Style style);
+
+    private static Symbol generateCastFunction(Symbol sourceSymbol,
+                                              DataType<?> targetType,
+                                              CastMode... castModes) {
+        var modes = Set.of(castModes);
+        assert !modes.containsAll(List.of(CastMode.EXPLICIT, CastMode.IMPLICIT))
+            : "explicit and implicit cast modes are mutually exclusive";
+
+        DataType<?> sourceType = sourceSymbol.valueType();
+        if (!sourceType.isConvertableTo(targetType, modes.contains(CastMode.EXPLICIT))) {
+            throw new ConversionException(sourceType, targetType);
+        }
+
+        if (modes.contains(CastMode.TRY) || modes.contains(CastMode.EXPLICIT)) {
+            // Currently, it is not possible to resolve a function based on
+            // its return type. For instance, it is not possible to generate
+            // an object cast function with the object return type which inner
+            // types have to be considered as well. Therefore, to bypass this
+            // limitation we encode the return type info as the second function
+            // argument.
+            var name = modes.contains(CastMode.TRY)
+                ? TryCastFunction.NAME
+                : ExplicitCastFunction.NAME;
+            return new Function(
+                Signature
+                    .scalar(
+                        name,
+                        TypeSignature.parse("E"),
+                        TypeSignature.parse("V"),
+                        TypeSignature.parse("V")
+                    ).withTypeVariableConstraints(
+                        TypeVariableConstraint.typeVariable("E"),
+                        TypeVariableConstraint.typeVariable("V")),
+                // a literal with a NULL value is passed as an argument
+                // to match the method signature
+                List.of(sourceSymbol, Literal.of(targetType, null)),
+                targetType
+            );
+        } else {
+            return new Function(
+                Signature
+                    .scalar(
+                        ImplicitCastFunction.NAME,
+                        TypeSignature.parse("E"),
+                        DataTypes.STRING.getTypeSignature(),
+                        DataTypes.UNDEFINED.getTypeSignature())
+                    .withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
+                List.of(
+                    sourceSymbol,
+                    Literal.of(targetType.getTypeSignature().toString())
+                ),
+                targetType
+            );
+        }
+    }
 }

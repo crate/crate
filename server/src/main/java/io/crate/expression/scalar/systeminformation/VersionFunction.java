@@ -84,27 +84,13 @@ public class VersionFunction extends Scalar<String, Void> {
 
     private static final String VERSION = formatVersion();
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public VersionFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
     @SafeVarargs
     public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Void>... args) {
         return VERSION;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

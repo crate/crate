@@ -21,8 +21,6 @@
 
 package io.crate.sql.tree;
 
-import java.util.function.Function;
-
 /**
  * columntype that contains many values of a single type
  */
@@ -39,18 +37,6 @@ public class CollectionColumnType<T> extends ColumnType<T> {
         return innerType;
     }
 
-    @Override
-    public <U> ColumnType<U> map(Function<? super T, ? extends U> mapper) {
-        return new CollectionColumnType<>(innerType.map(mapper));
-    }
-
-    @Override
-    public <U> ColumnType<U> mapExpressions(ColumnType<U> mappedType,
-                                            Function<? super T, ? extends U> mapper) {
-        CollectionColumnType<U> collectionColumnType = (CollectionColumnType<U>) mappedType;
-        return new CollectionColumnType<>(
-            innerType.mapExpressions(collectionColumnType.innerType, mapper));
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -64,7 +50,7 @@ public class CollectionColumnType<T> extends ColumnType<T> {
             return false;
         }
 
-        CollectionColumnType that = (CollectionColumnType) o;
+        CollectionColumnType<?> that = (CollectionColumnType<?>) o;
 
         return innerType.equals(that.innerType);
     }

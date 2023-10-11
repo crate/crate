@@ -28,10 +28,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.server.xcontent.XContentMapValues;
-
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
@@ -41,6 +37,9 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.server.xcontent.XContentMapValues;
 
 /**
  * A field mapper for keywords. This mapper accepts strings and indexes them as-is.
@@ -114,6 +113,8 @@ public final class KeywordFieldMapper extends FieldMapper {
             var mapper = new KeywordFieldMapper(
                 name,
                 position,
+                columnOID,
+                isDropped,
                 defaultExpression,
                 fieldType,
                 buildFieldType(context),
@@ -150,14 +151,11 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     public static final class KeywordFieldType extends MappedFieldType {
 
-        boolean hasNorms;
-
         public KeywordFieldType(String name,
                                 boolean isSearchable,
                                 boolean hasDocValues,
                                 boolean hasNorms) {
-            super(name, isSearchable, hasDocValues);
-            this.hasNorms = hasNorms;
+            super(name, isSearchable, hasDocValues, hasNorms);
             setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
             setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
         }
@@ -184,6 +182,8 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     private KeywordFieldMapper(String simpleName,
                                int position,
+                               long columnOID,
+                               boolean isDropped,
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,
@@ -191,7 +191,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                                Integer lengthLimit,
                                boolean blankPadding,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, mappedFieldType, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.lengthLimit = lengthLimit;
         this.blankPadding = blankPadding;

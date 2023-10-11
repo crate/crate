@@ -30,14 +30,21 @@ import java.lang.annotation.Target;
 import io.crate.planner.optimizer.Rule;
 
 /**
- * Execute randomized {@code set <optimizer_rule_name> = false} as session setting.
- * Rules can be excluded from randomization, and therefore always applied, e.g.:
- * <pre>{@code
+ * Randomize optimizer rules via {@code set <optimizer_rule_name> = false}.
+ *
+ * <p>
+ * To exclude rules from randomization:
+ * </p>
+ *
+ * <pre>
  * @UseRandomizedOptimizerRules(alwaysKeep = MyOptimizerRule.class)
- * public void test_my_optimizer_rule() {
- *     ...
- * }
- * }</pre>
+ * </pre>
+ *
+ * <p>
+ * To disable randomization:
+ * <pre>
+ * @UseRandomizedOptimizerRules(value = 0)
+ * </pre>
  *
  */
 @Retention(RetentionPolicy.RUNTIME)
@@ -45,15 +52,23 @@ import io.crate.planner.optimizer.Rule;
 @Inherited
 public @interface UseRandomizedOptimizerRules {
 
-    // 0 -> disabled
-    // 1 -> always enabled
-    // close to 1 -> mostly enabled
-    // close to 0 -> mostly disabled
+    /**
+     * <ul>
+     *  <li>0 -> disabled</li>
+     *  <li>close to 0 - mostly disabled</li>
+     *  <li>1 -> enabled</li>
+     *  <li>close to 1 -> mostly enabled</li>
+     * </ul>
+     **/
     double value() default 0.5;
 
-    // -1  -> disable random number of optimizer rules
-    // 0.1 -> disable randomly 10 % of the optimizer rules
-    // 1   -> disable all the optimizer rules
+    /**
+     * <ul>
+     *  <li>-1  -> disable random number of optimizer rules</li>
+     *  <li>0.1 -> disable randomly 10 % of the optimizer rules</li>
+     *  <li>1   -> disable all the optimizer rules</li>
+     * </ul>
+     **/
     double disablePercentage() default -1;
 
     Class<? extends Rule<?>>[] alwaysKeep() default {};

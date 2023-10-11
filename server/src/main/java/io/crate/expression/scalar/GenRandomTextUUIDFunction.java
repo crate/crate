@@ -34,8 +34,6 @@ import io.crate.types.DataTypes;
 public final class GenRandomTextUUIDFunction extends Scalar<String, Void> {
 
     private static final String NAME = "gen_random_text_uuid";
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -48,18 +46,7 @@ public final class GenRandomTextUUIDFunction extends Scalar<String, Void> {
     }
 
     public GenRandomTextUUIDFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs

@@ -41,6 +41,7 @@ import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
@@ -120,7 +121,7 @@ public class PutHeadChunkRunnable implements Runnable {
                     TransportRequestOptions.EMPTY,
                     new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
                 );
-                listener.actionGet();
+                FutureUtils.get(listener);
             }
 
         } catch (IOException ex) {

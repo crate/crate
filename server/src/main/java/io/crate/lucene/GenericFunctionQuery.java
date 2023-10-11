@@ -53,7 +53,7 @@ import io.crate.expression.symbol.SymbolVisitors;
  *
  * This query is very slow.
  */
-class GenericFunctionQuery extends Query {
+public class GenericFunctionQuery extends Query {
 
     private final Function function;
     private final LuceneCollectorExpression[] expressions;
@@ -88,7 +88,7 @@ class GenericFunctionQuery extends Query {
         return new Weight(this) {
             @Override
             public boolean isCacheable(LeafReaderContext ctx) {
-                if (SymbolVisitors.any(s -> s instanceof Function && !((Function) s).signature().isDeterministic(), function)) {
+                if (SymbolVisitors.any(s -> s instanceof Function fn && !fn.signature().isDeterministic(), function)) {
                     return false;
                 }
                 var fields = new ArrayList<String>();
@@ -126,7 +126,7 @@ class GenericFunctionQuery extends Query {
     }
 
     private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
-        for (LuceneCollectorExpression expression : expressions) {
+        for (LuceneCollectorExpression<?> expression : expressions) {
             expression.setNextReader(new ReaderContext(context));
         }
         return new FilteredTwoPhaseIterator(context.reader(), condition, expressions);
@@ -160,7 +160,7 @@ class GenericFunctionQuery extends Query {
             if (!liveDocs.get(doc)) {
                 return false;
             }
-            for (LuceneCollectorExpression expression : expressions) {
+            for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setNextDocId(doc);
             }
             return InputCondition.matches(condition);

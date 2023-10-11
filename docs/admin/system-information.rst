@@ -190,6 +190,7 @@ information about the currently applied cluster settings.
     | settings['memory']                                                                | object       |
     | settings['memory']['allocation']                                                  | object       |
     | settings['memory']['allocation']['type']                                          | text         |
+    | settings['memory']['operation_limit']                                             | integer      |
     | settings['overload_protection']                                                   | object       |
     | settings['overload_protection']['dml']                                            | object       |
     | settings['overload_protection']['dml']['initial_concurrency']                     | integer      |
@@ -884,7 +885,7 @@ replicas and rebalance shards as necessary. This is throttled, and it can be
 controlled with :ref:`routing allocation settings <conf_routing>`, but
 depending on the context, you may prefer to delay recovery if the nodes are 
 only down for a short period of time, so it is advisable to review the
-documentation around :ref:`the settings involved <metadata-gateway>` and 
+documentation around :ref:`the settings involved <metadata_gateway>` and
 configure them carefully.
 
 Recovery after time
@@ -1803,7 +1804,7 @@ How to reindex
     +--------------------+
     | version['created'] |
     +--------------------+
-    | 5.4.0              |
+    | 5.5.0              |
     +--------------------+
     SELECT 1 row in set (... sec)
 

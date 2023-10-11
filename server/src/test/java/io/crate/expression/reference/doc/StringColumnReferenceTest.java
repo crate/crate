@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -41,7 +40,7 @@ import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
 
 public class StringColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "b";
+    private static final String COLUMN = "b";
 
     public StringColumnReferenceTest() {
         super("create table t (b string)");
@@ -54,14 +53,14 @@ public class StringColumnReferenceTest extends DocLevelExpressionsTest {
             builder.append(i);
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new SortedDocValuesField(column, new BytesRef(builder.toString())));
+            doc.add(new SortedDocValuesField(COLUMN, new BytesRef(builder.toString())));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column);
+        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(COLUMN);
         bytesRefColumn.startCollect(ctx);
         bytesRefColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -71,7 +70,7 @@ public class StringColumnReferenceTest extends DocLevelExpressionsTest {
         for (ScoreDoc doc : topDocs.scoreDocs) {
             builder.append(i);
             bytesRefColumn.setNextDocId(doc.doc);
-            assertThat(bytesRefColumn.value(), is(builder.toString()));
+            assertThat(bytesRefColumn.value()).isEqualTo(builder.toString());
             i++;
         }
     }

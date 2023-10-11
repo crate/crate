@@ -21,13 +21,16 @@
 
 package io.crate.breaker;
 
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongConsumer;
+
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.unit.ByteSizeValue;
 
 import io.crate.common.annotations.ThreadSafe;
 import io.crate.data.breaker.RamAccounting;
-
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongConsumer;
 
 /**
  * A RamAccounting implementation that can be used concurrently.
@@ -39,23 +42,46 @@ public final class ConcurrentRamAccounting implements RamAccounting {
     private final AtomicLong usedBytes = new AtomicLong(0L);
     private final LongConsumer reserveBytes;
     private final LongConsumer releaseBytes;
+    private final String label;
+    private final int operationMemoryLimit;
 
-    public static ConcurrentRamAccounting forCircuitBreaker(String label, CircuitBreaker circuitBreaker) {
+    public static ConcurrentRamAccounting forCircuitBreaker(String label, CircuitBreaker circuitBreaker, int operationMemoryLimit) {
         return new ConcurrentRamAccounting(
             bytes -> circuitBreaker.addEstimateBytesAndMaybeBreak(bytes, label),
-            bytes -> circuitBreaker.addWithoutBreaking(- bytes)
+            bytes -> circuitBreaker.addWithoutBreaking(- bytes),
+            label,
+            operationMemoryLimit
         );
     }
 
-    public ConcurrentRamAccounting(LongConsumer reserveBytes, LongConsumer releaseBytes) {
+    public ConcurrentRamAccounting(LongConsumer reserveBytes,
+                                   LongConsumer releaseBytes,
+                                   String label,
+                                   int operationMemoryLimit) {
         this.reserveBytes = reserveBytes;
         this.releaseBytes = releaseBytes;
+        this.label = label;
+        this.operationMemoryLimit = operationMemoryLimit;
     }
 
     @Override
     public void addBytes(long bytes) {
-        reserveBytes.accept(bytes);
-        usedBytes.addAndGet(bytes);
+        long currentUsedBytes = usedBytes.addAndGet(bytes);
+        if (operationMemoryLimit > 0 && currentUsedBytes > operationMemoryLimit) {
+            usedBytes.addAndGet(- bytes);
+            throw new CircuitBreakingException(String.format(Locale.ENGLISH,
+                "\"%s\" reached operation memory limit. Used: %s, Limit: %s",
+                label,
+                new ByteSizeValue(currentUsedBytes),
+                new ByteSizeValue(operationMemoryLimit)
+            ));
+        }
+        try {
+            reserveBytes.accept(bytes);
+        } catch (Exception e) {
+            usedBytes.addAndGet(- bytes);
+            throw e;
+        }
     }
 
     @Override

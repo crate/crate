@@ -24,17 +24,15 @@ package io.crate.expression.scalar;
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.List;
 import java.util.function.IntPredicate;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.EqOperator;
@@ -58,6 +56,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.TypeSignature;
 
 public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
@@ -69,7 +68,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             module.register(
                 Signature.scalar(
                     name,
-                    parseTypeSignature("array(E)"),
+                    TypeSignature.parse("array(E)"),
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E")),
@@ -78,23 +77,10 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     private ArrayUpperFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

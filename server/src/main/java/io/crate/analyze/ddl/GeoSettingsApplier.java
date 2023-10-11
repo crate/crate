@@ -25,13 +25,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.DistanceUnit;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.sql.tree.GenericProperties;
 
 public class GeoSettingsApplier {
@@ -39,8 +37,8 @@ public class GeoSettingsApplier {
     private static final Set<String> SUPPORTED_OPTIONS = Set.of(
         "precision", "distance_error_pct", "tree_levels");
 
-    public static void applySettings(Map<String, Object> mapping, GenericProperties<?> properties, @Nullable String geoTree) {
-        Settings geoSettings = GenericPropertiesConverter.genericPropertiesToSettings(properties);
+    public static void applySettings(Map<String, Object> mapping, GenericProperties<Object> properties, @Nullable String geoTree) {
+        Settings geoSettings = Settings.builder().put(properties).build();
         validate(geoSettings);
         if (geoTree != null) {
             mapping.put("tree", geoTree);

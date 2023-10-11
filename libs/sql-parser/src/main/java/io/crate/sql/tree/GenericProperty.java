@@ -33,7 +33,7 @@ import java.util.Objects;
  * Instance of {@link io.crate.sql.tree.AnalyzerElement} but frequently used in other
  * {@link io.crate.sql.tree.GenericProperties} contexts.
  */
-public class GenericProperty<T> extends AnalyzerElement {
+public class GenericProperty<T> extends AnalyzerElement<T> {
 
     private final String key;
     private final T value;
@@ -42,7 +42,6 @@ public class GenericProperty<T> extends AnalyzerElement {
         this.key = key;
         this.value = value;
     }
-
 
     public String key() {
         return key;

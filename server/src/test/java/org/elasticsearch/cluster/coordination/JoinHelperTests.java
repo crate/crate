@@ -18,6 +18,9 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
@@ -28,6 +31,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.Level;
 import org.elasticsearch.Version;
@@ -48,12 +52,7 @@ import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
-import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
-import static org.hamcrest.Matchers.containsString;
+import org.junit.Test;
 
 public class JoinHelperTests extends ESTestCase {
 
@@ -153,6 +152,7 @@ public class JoinHelperTests extends ESTestCase {
                         new NotMasterException("test"))), is(Level.DEBUG));
     }
 
+    @Test
     public void testJoinValidationRejectsMismatchedClusterUUID() {
         assertJoinValidationRejectsMismatchedClusterUUID(JoinHelper.VALIDATE_JOIN_ACTION_NAME,
             "join validation on cluster state with a different cluster uuid");
@@ -184,11 +184,14 @@ public class JoinHelperTests extends ESTestCase {
             new ActionListenerResponseHandler<>(future, in -> TransportResponse.Empty.INSTANCE));
         deterministicTaskQueue.runAllTasks();
 
-        final CoordinationStateRejectedException coordinationStateRejectedException
-            = expectThrows(CoordinationStateRejectedException.class, future::actionGet);
-        assertThat(coordinationStateRejectedException.getMessage(), containsString(expectedMessage));
-        assertThat(coordinationStateRejectedException.getMessage(), containsString(localClusterState.metadata().clusterUUID()));
-        assertThat(coordinationStateRejectedException.getMessage(), containsString(otherClusterState.metadata().clusterUUID()));
+        assertThatThrownBy(future::get)
+            .rootCause()
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContainingAll(
+                expectedMessage,
+                localClusterState.metadata().clusterUUID(),
+                otherClusterState.metadata().clusterUUID()
+            );
     }
 
     public void testJoinFailureOnUnhealthyNodes() {

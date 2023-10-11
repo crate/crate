@@ -34,8 +34,8 @@ public class XContentMapValues {
     }
 
     public static int nodeIntegerValue(Object node) {
-        if (node instanceof Number) {
-            return Numbers.toIntExact((Number) node);
+        if (node instanceof Number number) {
+            return Numbers.toIntExact(number);
         }
         return Integer.parseInt(node.toString());
     }
@@ -57,5 +57,19 @@ public class XContentMapValues {
 
     public static boolean nodeBooleanValue(Object node) {
         return Booleans.parseBoolean(node.toString());
+    }
+
+    public static long nodeLongValue(Object node) {
+        if (node instanceof Number) {
+            return Numbers.toLongExact((Number) node);
+        }
+        return Long.parseLong(node.toString());
+    }
+
+    public static long nodeLongValue(Object node, long defaultValue) {
+        if (node == null) {
+            return defaultValue;
+        }
+        return nodeLongValue(node);
     }
 }

@@ -21,6 +21,9 @@
 
 package io.crate.metadata.settings;
 
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import static org.elasticsearch.common.settings.AbstractScopedSettings.LOGGER_SETTINGS_PREFIX;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -92,12 +95,16 @@ public final class CrateSettings {
 
     public static boolean isValidSetting(String name) {
         return isLoggingSetting(name) ||
+               isArchivedSetting(name) ||
                EXPOSED_SETTING_NAMES.contains(name) ||
                EXPOSED_SETTING_NAMES.stream().noneMatch(s -> s.startsWith(name + ".")) == false;
     }
 
     public static List<String> settingNamesByPrefix(String prefix) {
         if (isLoggingSetting(prefix)) {
+            return Collections.singletonList(prefix);
+        }
+        if (isArchivedSetting(prefix)) {
             return Collections.singletonList(prefix);
         }
         List<String> filteredList = new ArrayList<>();
@@ -143,6 +150,10 @@ public final class CrateSettings {
     }
 
     private static boolean isLoggingSetting(String name) {
-        return name.startsWith("logger.");
+        return name.startsWith(LOGGER_SETTINGS_PREFIX);
+    }
+
+    private static boolean isArchivedSetting(String name) {
+        return name.startsWith(ARCHIVED_SETTINGS_PREFIX);
     }
 }

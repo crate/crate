@@ -23,14 +23,16 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.List;
 import java.util.Map;
 
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ArrayType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.mapper.MapperParsingException;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -43,9 +45,11 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
@@ -69,7 +73,13 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 refIdent,
                 RowGranularity.DOC,
                 DataTypes.INTEGER,
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                true,
                 3,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null
             );
             List<Reference> columns = List.of(newColumn);
@@ -83,7 +93,21 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
 
             Reference addedColumn = newTable.getReference(newColumn.column());
-            assertThat(addedColumn).isEqualTo(newColumn);
+            // Need to create a clone of request column to imitate the expected OID.
+            Reference newColumnWithOid = new SimpleReference(
+                newColumn.ident(),
+                newColumn.granularity(),
+                newColumn.valueType(),
+                newColumn.columnPolicy(),
+                newColumn.indexType(),
+                newColumn.isNullable(),
+                newColumn.hasDocValues(),
+                newColumn.position(),
+                3,
+                false,
+                newColumn.defaultExpression()
+            );
+            assertThat(addedColumn).isEqualTo(newColumnWithOid);
         }
     }
 
@@ -110,6 +134,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 IndexType.PLAIN,
                 true,
                 2,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null,
                 null,
                 null,
@@ -125,6 +151,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 IndexType.PLAIN,
                 true,
                 3,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null,
                 null,
                 null,
@@ -177,8 +205,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             new IntArrayList()
         );
 
-        var updatedRequest = AddColumnTask.addMissingParentColumns(request, table);
-        assertThat(updatedRequest.references()).hasSize(3);
+        var updatedRefs = AddColumnTask.normalizeColumns(request, table);
+        assertThat(updatedRefs).hasSize(3);
     }
 
     @Test
@@ -262,6 +290,83 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThatThrownBy(() -> addColumnTask.execute(state, request))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Column `x` already exists with type `integer`. Cannot add same column with type `text`");
+        }
+    }
+
+    @Test
+    public void test_raises_error_on_nested_arrays() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        ClusterState state = clusterService.state();
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            state,
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            SimpleReference newColumn1 = new SimpleReference(
+                new ReferenceIdent(tbl.ident(), "y"),
+                RowGranularity.DOC,
+                new ArrayType<>(new ArrayType<>(DataTypes.LONG)),
+                2,
+                null
+            );
+            List<Reference> columns = List.of(newColumn1);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            assertThatThrownBy(() -> addColumnTask.execute(state, request))
+                .isExactlyInstanceOf(MapperParsingException.class)
+                .hasMessageContaining("nested arrays are not supported");
+        }
+    }
+
+    @Test
+    public void test_table_version_less_than_5_5_oid_is_not_assigned() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable(
+                "create table tbl (x int)",
+                Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
+            )
+            .build();
+
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            clusterService.state(),
+            Version.V_5_4_0,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+
+            SimpleReference colToAdd = new SimpleReference(
+                new ReferenceIdent(tbl.ident(), "y"),
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                2,
+                null
+            );
+
+            List<Reference> columns = List.of(colToAdd);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+
+            Reference addedColumn = newTable.getReference(colToAdd.column());
+            assertThat(addedColumn).isReference().hasOid(COLUMN_OID_UNASSIGNED);
         }
     }
 }

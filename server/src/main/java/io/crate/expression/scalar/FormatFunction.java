@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+
+import java.util.Locale;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -28,11 +32,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.Locale;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public class FormatFunction extends Scalar<String, Object> {
 
@@ -42,7 +42,7 @@ public class FormatFunction extends Scalar<String, Object> {
         Signature.scalar(
             NAME,
             DataTypes.STRING.getTypeSignature(),
-            parseTypeSignature("E"),
+            TypeSignature.parse("E"),
             DataTypes.STRING.getTypeSignature()
         )
             .withTypeVariableConstraints(typeVariableOfAnyType("E"))
@@ -53,12 +53,8 @@ public class FormatFunction extends Scalar<String, Object> {
         module.register(SIGNATURE, FormatFunction::new);
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public FormatFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs
@@ -75,15 +71,5 @@ public class FormatFunction extends Scalar<String, Object> {
         }
 
         return String.format(Locale.ENGLISH, (String) arg0Value, values);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

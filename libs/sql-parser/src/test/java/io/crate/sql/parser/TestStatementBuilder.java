@@ -100,21 +100,21 @@ public class TestStatementBuilder {
 
     @Test
     public void testMultipleStatements() {
-        List<Statement> statements = SqlParser.createStatements("BEGIN; END;");
+        List<Statement> statements = SqlParser.createStatementsForSimpleQuery("BEGIN; END;", str -> str);
         assertThat(statements).hasSize(2);
         assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
         assertThat(statements.get(1)).isExactlyInstanceOf(CommitStatement.class);
 
-        statements = SqlParser.createStatements("BEGIN; END");
+        statements = SqlParser.createStatementsForSimpleQuery("BEGIN; END", str -> str);
         assertThat(statements).hasSize(2);
         assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
         assertThat(statements.get(1)).isExactlyInstanceOf(CommitStatement.class);
 
-        statements = SqlParser.createStatements("BEGIN");
+        statements = SqlParser.createStatementsForSimpleQuery("BEGIN", str -> str);
         assertThat(statements).hasSize(1);
         assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
 
-        statements = SqlParser.createStatements("SET extra_float_digits = 3");
+        statements = SqlParser.createStatementsForSimpleQuery("SET extra_float_digits = 3", str -> str);
         assertThat(statements).hasSize(1);
         assertThat(statements.get(0)).isExactlyInstanceOf(SetStatement.class);
     }
@@ -645,6 +645,17 @@ public class TestStatementBuilder {
 
         printStatement("alter table t add column foo['x'] integer");
         printStatement("alter table t add column foo['x']['y'] object as (z integer)");
+
+        printStatement("alter table t drop foo");
+        printStatement("alter table t drop column foo");
+        printStatement("alter table t drop if exists foo");
+        printStatement("alter table t drop column if exists foo");
+        printStatement("alter table t drop column if exists foo, drop if exists bar");
+        printStatement("alter table t drop column if exists foo");
+        printStatement("alter table t drop foo, drop column if exists bar");
+
+        printStatement("alter table t drop column foo['x']");
+        printStatement("alter table t drop if exists foo['x']['y']");
 
         printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
         printStatement("alter table only t set (number_of_replicas=4)");
@@ -1961,6 +1972,16 @@ public class TestStatementBuilder {
         printStatement("WITH r AS (SELECT * FROM t1)," +
             " s AS (WITH r AS (SELECT * FROM t2) SELECT * FROM r)\n" +
             "SELECT * FROM t2, r");
+    }
+
+    @Test
+    public void test_add_column_drop_column_not_supported_in_the_same_stmt() {
+        assertThatThrownBy(() -> printStatement("alter table t add column a int drop column a"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:32: mismatched input 'drop' expecting {<EOF>, ';'}");
+        assertThatThrownBy(() -> printStatement("alter table t drop column a, add column a int"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:30: mismatched input 'add' expecting 'DROP'");
     }
 
     private static void printStatement(String sql) {

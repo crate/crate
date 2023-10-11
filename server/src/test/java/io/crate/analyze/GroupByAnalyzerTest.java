@@ -195,7 +195,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.groupBy()).isNotNull();
         assertThat(relation.outputs()).hasSize(2);
         assertThat(relation.groupBy()).hasSize(1);
-        assertThat(relation.groupBy().get(0)).isReference("load['1']");
+        assertThat(relation.groupBy().get(0)).isReference().hasName("load['1']");
     }
 
     @Test
@@ -352,7 +352,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.having()).isFunction(LikeOperators.OP_LIKE);
         Function havingFunction = (Function) relation.having();
         assertThat(havingFunction.arguments()).hasSize(2);
-        assertThat(havingFunction.arguments().get(0)).isReference("name");
+        assertThat(havingFunction.arguments().get(0)).isReference().hasName("name");
         assertThat(havingFunction.arguments().get(1)).isLiteral("Slartibart%");
     }
 
@@ -380,7 +380,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(havingFunction.arguments().get(0)).isFunction("max");
         Function maxFunction = (Function) havingFunction.arguments().get(0);
 
-        assertThat(maxFunction.arguments().get(0)).isReference("bytes");
+        assertThat(maxFunction.arguments().get(0)).isReference().hasName("bytes");
         assertThat(havingFunction.arguments().get(1)).isLiteral((byte) 4);
     }
 
@@ -407,7 +407,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.having()).isFunction(LikeOperators.OP_LIKE);
         Function havingFunction = (Function) relation.having();
         assertThat(havingFunction.arguments()).hasSize(2);
-        assertThat(havingFunction.arguments().get(0)).isReference("name");
+        assertThat(havingFunction.arguments().get(0)).isReference().hasName("name");
         assertThat(havingFunction.arguments().get(1)).isLiteral("Slartibart%");
     }
 

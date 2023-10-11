@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -37,6 +35,7 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * fieldmapper for encoding and handling of primitive arrays (non-object) explicitly
@@ -79,11 +78,14 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     ArrayMapper(String simpleName,
                 int position,
+                long columnOID,
+                boolean isDropped,
                 @Nullable String defaultExpression,
                 FieldType fieldType,
                 MappedFieldType defaultFieldType,
                 Mapper innerMapper) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, CopyTo.empty());
+        super(simpleName, position, columnOID, isDropped,
+              defaultExpression, fieldType, defaultFieldType, CopyTo.empty());
         this.innerMapper = innerMapper;
     }
 
@@ -107,14 +109,20 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         public ArrayMapper build(BuilderContext context) {
             Mapper innerMapper = innerBuilder.build(context);
             MappedFieldType mappedFieldType = null;
+            FieldType innerFieldType;
             if (innerMapper instanceof FieldMapper fieldMapper) {
+                innerFieldType = fieldMapper.fieldType;
                 mappedFieldType = fieldMapper.fieldType();
+            } else {
+                innerFieldType = fieldType;
             }
             return new ArrayMapper(
                 name,
                 position,
+                innerMapper.columnOID(),
+                isDropped,
                 defaultExpression,
-                fieldType,
+                innerFieldType,
                 mappedFieldType,
                 innerMapper
             );

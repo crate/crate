@@ -21,8 +21,15 @@
 
 package io.crate.data;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.crate.common.concurrent.Killable;
 
@@ -186,5 +193,67 @@ public interface BatchIterator<T> extends Killable {
         } catch (Throwable ex) {
             onFinish.accept(ex);
         }
+    }
+
+
+    default <O> BatchIterator<O> map(Function<? super T, ? extends O> mapper) {
+        final BatchIterator<T> source = this;
+        return new MappedForwardingBatchIterator<T, O>() {
+
+            @Override
+            public O currentElement() {
+                return mapper.apply(source.currentElement());
+            }
+
+            @Override
+            protected BatchIterator<T> delegate() {
+                return source;
+            }
+        };
+    }
+
+
+    /**
+     * Use {@code collector} to consume all elements from {@code it}
+     *
+     * @param <A> state type
+     * @param <R> result type
+     * @return future containing the result
+     */
+    default <A, R> CompletableFuture<R> collect(Collector<T, A, R> collector, boolean close) {
+        BiConsumer<A, T> accumulator = collector.accumulator();
+        Function<A, R> finisher = collector.finisher();
+        A state = collector.supplier().get();
+        CompletableFuture<R> result = new CompletableFuture<>();
+        move(Integer.MAX_VALUE, row -> accumulator.accept(state, row), err -> {
+            if (close) {
+                close();
+            }
+            if (err == null) {
+                result.complete(finisher.apply(state));
+            } else {
+                result.completeExceptionally(err);
+            }
+        });
+        return result;
+    }
+
+    /**
+     * Use {@code collector} to consume all elements from {@code it}
+     *
+     * @param <A> state type
+     * @param <R> result type
+     * @return future containing the result
+     */
+    default <A, R> CompletableFuture<R> collect(Collector<T, A, R> collector) {
+        return collect(collector, true);
+    }
+
+    /**
+     * Shortcut for {@link #collect(Collector)} with {@link Collectors#toList()}.
+     * To mirror {@link Stream#toList()}
+     */
+    default <R> CompletableFuture<List<T>> toList() {
+        return collect(Collectors.toList());
     }
 }

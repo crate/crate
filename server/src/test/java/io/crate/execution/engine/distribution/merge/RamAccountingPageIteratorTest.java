@@ -149,7 +149,9 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
                     new MemoryCircuitBreaker(
                         new ByteSizeValue(197, ByteSizeUnit.BYTES),
                         1,
-                        LogManager.getLogger(RowAccountingWithEstimatorsTest.class)))));
+                        LogManager.getLogger(RowAccountingWithEstimatorsTest.class)), 0
+                )
+            ));
         assertThatThrownBy(() -> pagingIterator.merge(Arrays.asList(
                 new KeyIterable<>(0, Collections.singletonList(TEST_ROWS[0])),
                 new KeyIterable<>(1, Collections.singletonList(TEST_ROWS[1])))))

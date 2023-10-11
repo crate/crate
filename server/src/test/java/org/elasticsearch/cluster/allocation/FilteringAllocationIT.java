@@ -42,7 +42,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
@@ -63,6 +62,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         return plugins;
     }
 
+    @Test
     public void testDecommissionNodeNoReplicas() throws Exception {
         logger.info("--> starting 2 nodes");
         List<String> nodesIds = cluster().startNodes(2);
@@ -241,10 +241,10 @@ public class FilteringAllocationIT extends IntegTestCase {
         List<String> nodes = cluster().startNodes(6);
         Set<String> excludeNodes = new HashSet<>(nodes.subList(0, 3));
         Set<String> includeNodes = new HashSet<>(nodes.subList(3, 6));
-        String excludeNodeIdsAsString = Strings.collectionToCommaDelimitedString(excludeNodes);
+        String excludeNodeIdsAsString = String.join(",", excludeNodes);
         logger.info("--> exclude: [{}], include: [{}]",
                     excludeNodeIdsAsString,
-                    Strings.collectionToCommaDelimitedString(includeNodes));
+                    String.join(", ", includeNodes));
         ensureStableCluster(6);
 
         execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0')",
@@ -271,7 +271,7 @@ public class FilteringAllocationIT extends IntegTestCase {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
             logger.info("--> shard on {} - {}", node, shard);
             assertTrue("shard on " + node + " but should only be on the include node list: " +
-                       Strings.collectionToCommaDelimitedString(includeNodes),
+                       String.join(", ", includeNodes),
                        includeNodes.contains(node));
         }
 
@@ -294,7 +294,7 @@ public class FilteringAllocationIT extends IntegTestCase {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
             logger.info("--> shard on {} - {}", node, shard);
             assertTrue("shard on " + node + " but should only be on the include node list: " +
-                       Strings.collectionToCommaDelimitedString(includeNodes),
+                       String.join(", ", includeNodes),
                        includeNodes.contains(node));
         }
     }

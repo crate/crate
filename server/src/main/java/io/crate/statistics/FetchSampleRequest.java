@@ -60,7 +60,7 @@ public final class FetchSampleRequest extends TransportRequest {
         out.writeVInt(maxSamples);
         out.writeVInt(columns.size());
         for (Reference column : columns) {
-            Reference.toStream(column, out);
+            Reference.toStream(out, column);
         }
     }
 
@@ -82,7 +82,7 @@ public final class FetchSampleRequest extends TransportRequest {
     }
 
     @Override
-    public final boolean equals(Object obj) {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }

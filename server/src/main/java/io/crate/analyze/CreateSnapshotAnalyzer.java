@@ -21,6 +21,9 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.Locale;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -34,13 +37,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
-
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.snapshots.Snapshot;
-import org.elasticsearch.snapshots.SnapshotId;
-
-import java.util.List;
-import java.util.Locale;
 
 class CreateSnapshotAnalyzer {
 
@@ -64,7 +60,6 @@ class CreateSnapshotAnalyzer {
                 "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\""));
 
         String snapshotName = createSnapshot.name().getSuffix();
-        Snapshot snapshot = new Snapshot(repositoryName, new SnapshotId(snapshotName, UUIDs.dirtyUUID().toString()));
 
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
@@ -78,7 +73,7 @@ class CreateSnapshotAnalyzer {
         GenericProperties<Symbol> properties = createSnapshot.properties()
             .map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));
 
-        return new AnalyzedCreateSnapshot(snapshot, tables, properties);
+        return new AnalyzedCreateSnapshot(repositoryName, snapshotName, tables, properties);
     }
 
     private void validateRepository(QualifiedName name) {

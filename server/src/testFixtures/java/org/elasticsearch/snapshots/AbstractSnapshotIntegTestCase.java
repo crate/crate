@@ -30,17 +30,16 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -53,6 +52,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.After;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
 
 
@@ -123,15 +123,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
     }
 
     protected RepositoryData getRepositoryData(Repository repository) throws InterruptedException {
-        ThreadPool threadPool = cluster().getInstance(ThreadPool.class, cluster().getMasterName());
-        final PlainActionFuture<RepositoryData> repositoryData = PlainActionFuture.newFuture();
-        final CountDownLatch latch = new CountDownLatch(1);
-        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
-            repository.getRepositoryData(repositoryData);
-            latch.countDown();
-        });
-        latch.await();
-        return repositoryData.actionGet();
+        return FutureUtils.get(repository.getRepositoryData());
     }
 
     public static long getFailureCount(String repository) {
@@ -246,7 +238,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         ClusterService clusterService = cluster().getInstance(ClusterService.class, viaNode);
         ClusterStateObserver observer = new ClusterStateObserver(clusterService, logger);
         if (statePredicate.test(observer.setAndGetObservedState()) == false) {
-            final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+            final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
             observer.waitForNextChange(new ClusterStateObserver.Listener() {
                 @Override
                 public void onNewClusterState(ClusterState state) {
@@ -263,7 +255,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
                     future.onFailure(new TimeoutException());
                 }
             }, statePredicate);
-            future.get(30L, TimeUnit.SECONDS);
+            FutureUtils.get(future, 30L, TimeUnit.SECONDS);
         }
     }
 

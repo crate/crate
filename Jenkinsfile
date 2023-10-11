@@ -16,8 +16,7 @@ pipeline {
         stage('sphinx') {
           agent { label 'small' }
           steps {
-            sh 'cd ./blackbox/ && ./bootstrap.sh'
-            sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/_out/html'
+            sh './blackbox/bin/sphinx'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
         }
@@ -29,7 +28,14 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon --parallel -Dtests.crate.slow=true -PtestForks=8 test jacocoReport'
+            sh './mvnw -T 1C compile'
+            sh '''
+              x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw -T 1C test \
+                -DforkCount=8 \
+                -Dtests.crate.slow=true \
+                -Dcheckstyle.skip \
+                jacoco:report
+            '''.stripIndent()
 
             // Upload coverage report to Codecov.
             // https://about.codecov.io/blog/introducing-codecovs-new-uploader/
@@ -49,7 +55,7 @@ pipeline {
           }
           post {
             always {
-              junit '**/build/test-results/test/*.xml'
+              junit '**/target/surefire-reports/*.xml'
             }
           }
         }
@@ -59,7 +65,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'python3 ./blackbox/kill_4200.py'
-            sh './gradlew --no-daemon itest'
+            sh './blackbox/bin/test-docs'
           }
         }
         stage('blackbox tests') {
@@ -67,34 +73,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon s3Test monitoringTest gtest dnsDiscoveryTest sslTest'
-          }
-        }
-        stage('benchmarks') {
-          agent { label 'medium' }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git clone https://github.com/crate/crate-benchmarks'
-            sh '''
-              ./gradlew clean distTar
-              rm -rf crate-dist
-              mkdir crate-dist
-              tar xvz --strip-components=1 -f app/build/distributions/crate-*.tar.gz -C crate-dist/
-              export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
-              export CR8_NO_TQDM=True
-              cd crate-benchmarks
-              python3 -m venv venv
-              venv/bin/python -m pip install -U wheel
-              venv/bin/python -m pip install -r requirements.txt
-              venv/bin/python compare_run.py \
-                --v1 branch:master \
-                --v2 ../app/build/distributions/crate-*.tar.gz \
-                --spec fast/queries.toml \
-                --env CRATE_HEAP_SIZE=2g \
-                --forks 1 \
-                --show-plot true
-            '''.stripIndent()
+            sh './blackbox/bin/test test_decommission test_dns_discovery test_jmx test_s3 test_ssl'
           }
         }
       }

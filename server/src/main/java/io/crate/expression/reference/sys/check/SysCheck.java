@@ -33,7 +33,7 @@ public interface SysCheck {
         MEDIUM(2),
         HIGH(3);
 
-        private int value;
+        private final int value;
 
         Severity(int value) {
             this.value = value;

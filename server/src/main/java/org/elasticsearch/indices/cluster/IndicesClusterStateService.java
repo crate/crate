@@ -33,12 +33,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -94,6 +93,7 @@ import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.common.unit.TimeValue;
@@ -295,18 +295,13 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
 
     // overrideable by tests
     protected void updateGlobalCheckpointForShard(final ShardId shardId) {
-        client.executeLocally(
-            GlobalCheckpointSyncAction.TYPE,
-            new GlobalCheckpointSyncAction.Request(shardId),
-            ActionListener.wrap(
-                r -> {},
-                e -> {
-                    if (ExceptionsHelper.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
-                        getLogger().info(new ParameterizedMessage("{} global checkpoint sync failed", shardId), e);
-                    }
+        client.execute(GlobalCheckpointSyncAction.TYPE, new GlobalCheckpointSyncAction.Request(shardId))
+            .exceptionally(err -> {
+                if (ExceptionsHelper.unwrap(err, CompletionException.class, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
+                    getLogger().info(new ParameterizedMessage("{} global checkpoint sync failed", shardId), err);
                 }
-            )
-        );
+                return null;
+            });
     }
 
     // overrideable by tests

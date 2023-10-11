@@ -166,7 +166,7 @@ public class MockTransport extends StubbableTransport {
             @Override
             public void sendRequest(long requestId, String action, TransportRequest request, TransportRequestOptions options)
                 throws TransportException {
-                requests.put(requestId, Tuple.tuple(node, action));
+                requests.put(requestId, new Tuple<>(node, action));
                 onSendRequest(requestId, action, request, node);
             }
         };

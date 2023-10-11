@@ -28,15 +28,14 @@
 function checkBuild() {
     if [ $? != 0 ]
     then
-        echo "$1 build failed."
-        echo "Aborting. "
+        echo "$1 build failed. Aborting"
         exit 1
     fi
 }
 
 # check if everything is committed
-CLEAN=`git status -s`
-if [ ! -z "$CLEAN" ]
+CLEAN=$(git status -s)
+if [ -n "$CLEAN" ]
 then
    echo "Working directory not clean. Please commit all changes before tagging."
    echo "Aborting."
@@ -46,36 +45,36 @@ fi
 echo "Fetching origin..."
 git fetch origin > /dev/null
 
-# get current branc
-BRANCH=`git branch | grep "^*" | cut -d " " -f 2`
+BRANCH=$(git branch | grep "^\*" | cut -d " " -f 2)
 echo "Current branch is $BRANCH."
 
 # check if BRANCH == origin/BRANCH
-LOCAL_COMMIT=`git show --format="%H" $BRANCH`
-ORIGIN_COMMIT=`git show --format="%H" origin/$BRANCH`
+LOCAL_COMMIT=$(git show --format="%H" "$BRANCH")
+ORIGIN_COMMIT=$(git show --format="%H" "origin/$BRANCH")
 
 if [ "$LOCAL_COMMIT" != "$ORIGIN_COMMIT" ]
 then
-   echo "Local $BRANCH is not up to date."
-   echo "Aborting."
+   echo "Local $BRANCH is not up to date. Aborting"
    exit 1
 fi
 
 # install locally so we can get the version
-./gradlew clean installDist
+./mvnw -T 1C clean package -DskipTests=true -P release
 checkBuild "Java"
 
 # check for broken docs
-./gradlew itest
+./blackbox/bin/test-docs
 checkBuild "Docs"
 blackbox/bin/sphinx
 checkBuild "Docs"
 
 # get the version
-VERSION=`./app/build/install/crate/bin/crate -v | cut -d " " -f 2 | tr -d ','`
+tar xvzf ./app/target/crate-*.tar.gz -C app/target
+CMD=$(ls -1 app/target/crate-*/bin/crate)
+VERSION=$("$CMD" -v | cut -d " " -f 2 | tr -d ',')
 
 # check if tag to create has already been created
-EXISTS=`git tag | grep $VERSION`
+EXISTS=$(git tag | grep "$VERSION")
 
 if [ "$VERSION" == "$EXISTS" ]
 then
@@ -85,7 +84,7 @@ then
 fi
 
 # check if VERSION is in head of CHANGES.txt
-REV_NOTE=`grep "Version $VERSION" ./app/build/install/crate/CHANGES.txt`
+REV_NOTE=$(grep "Version $VERSION" ./app/target/crate-*/CHANGES.txt)
 if [ -z "$REV_NOTE" ]
 then
     echo "No notes for revision $VERSION found in CHANGES.txt"

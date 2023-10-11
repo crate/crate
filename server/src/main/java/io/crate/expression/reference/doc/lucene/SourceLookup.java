@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
+import java.util.Set;
+import java.util.function.Function;
 
 import org.elasticsearch.common.bytes.BytesReference;
 
@@ -36,13 +38,14 @@ import io.crate.metadata.Reference;
 public final class SourceLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
-    private final SourceParser sourceParser = new SourceParser();
+    private final SourceParser sourceParser;
     private int doc;
     private ReaderContext readerContext;
     private Map<String, Object> source;
     private boolean docVisited = false;
 
-    SourceLookup() {
+    SourceLookup(Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+        sourceParser = new SourceParser(droppedColumns, lookupNameBySourceKey);
     }
 
     public void setSegmentAndDocument(ReaderContext context, int doc) {
@@ -74,6 +77,11 @@ public final class SourceLookup {
         return fieldsVisitor.source();
     }
 
+    public void source(Map<String, Object> source) {
+        this.source = source;
+        docVisited = true;
+    }
+
     private void ensureSourceParsed() {
         if (source == null) {
             ensureDocVisited();
@@ -101,8 +109,7 @@ public final class SourceLookup {
             tmp = m.get(path.get(i));
             if (tmp instanceof Map) {
                 m = (Map<?, ?>) tmp;
-            } else if (tmp instanceof List) {
-                List<?> list = (List<?>) tmp;
+            } else if (tmp instanceof List<?> list) {
                 if (i + 1 == path.size()) {
                     return list;
                 }
@@ -116,6 +123,9 @@ public final class SourceLookup {
                 }
                 return newList;
             } else {
+                if (i + 1 != path.size()) {
+                    return null;
+                }
                 break;
             }
         }

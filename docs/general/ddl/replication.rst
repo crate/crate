@@ -57,7 +57,7 @@ Here are some examples of replica ranges:
 Range     Explanation
 ========= =====================================================================
 ``0-1``   If you only have one node, CrateDB will not create any replicas. If
-          you have more than one node, CreateDB will create one replica per
+          you have more than one node, CrateDB will create one replica per
           shard.
 
           This range is the default value.

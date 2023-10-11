@@ -169,22 +169,8 @@ public final class TrimFunctions {
 
     private static class TrimFunction extends Scalar<String, String> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
-
         TrimFunction(Signature signature, BoundSignature boundSignature) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
+            super(signature, boundSignature);
         }
 
         @Override
@@ -232,24 +218,11 @@ public final class TrimFunctions {
 
     private static class OneCharTrimFunction extends Scalar<String, String> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
         private final char charToTrim;
 
         OneCharTrimFunction(Signature signature, BoundSignature boundSignature, char charToTrim) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
             this.charToTrim = charToTrim;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override
@@ -264,26 +237,13 @@ public final class TrimFunctions {
 
     private static class SideTrimFunction extends Scalar<String, String> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
         private final BinaryOperator<String> trimFunction;
 
         SideTrimFunction(Signature signature,
                          BoundSignature boundSignature,
                          BinaryOperator<String> function) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
             this.trimFunction = function;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override

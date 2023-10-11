@@ -39,27 +39,14 @@ import io.crate.types.StorageSupport;
 
 public final class CmpOperator extends Operator<Object> {
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final IntPredicate isMatch;
     private final DataType<Object> type;
 
     @SuppressWarnings("unchecked")
     public CmpOperator(Signature signature, BoundSignature boundSignature, IntPredicate cmpResultIsMatch) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.type = (DataType<Object>) boundSignature.argTypes().get(0);
         this.isMatch = cmpResultIsMatch;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override
@@ -91,7 +78,7 @@ public final class CmpOperator extends Operator<Object> {
             // For types that do not support EqQuery, a `x [>, >=, <, <=] <value>` is always considered a no-match
             return new MatchNoDocsQuery("column does not exist in this index");
         }
-        String field = ref.column().fqn();
+        String field = ref.storageIdent();
         return switch (functionName) {
             case GtOperator.NAME -> eqQuery.rangeQuery(
                     field, value, null, false, false, ref.hasDocValues());

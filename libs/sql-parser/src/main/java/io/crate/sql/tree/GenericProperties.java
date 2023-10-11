@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -118,5 +119,18 @@ public class GenericProperties<T> extends Node {
 
     public Set<String> keys() {
         return properties.keySet();
+    }
+
+    /**
+     * Raises an {@link IllegalArgumentException} if the properties contain a
+     * setting not contained in the given collection.
+     **/
+    public GenericProperties<T> ensureContainsOnly(Collection<String> supportedSettings) {
+        for (String key : properties.keySet()) {
+            if (!supportedSettings.contains(key)) {
+                throw new IllegalArgumentException("Setting '" + key + "' is not supported");
+            }
+        }
+        return this;
     }
 }

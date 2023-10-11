@@ -53,6 +53,8 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
             return new ArrayMapper(
                 name,
                 innerFieldMapper.position(),
+                innerFieldMapper.columnOID(),
+                innerFieldMapper.isDropped(),
                 null,
                 innerFieldMapper.fieldType,
                 mappedFieldType,

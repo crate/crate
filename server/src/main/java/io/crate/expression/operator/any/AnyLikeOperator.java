@@ -31,6 +31,7 @@ import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -56,24 +57,33 @@ public final class AnyLikeOperator extends AnyOperator {
 
     @Override
     boolean matches(Object probe, Object candidate) {
-        return LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
+        // Accept both sides of arguments to be patterns
+        return LikeOperators.matches((String) probe, (String) candidate, caseSensitivity) ||
+               LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
     }
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
-        String fqn = probe.column().fqn();
+        String fqn = probe.storageIdent();
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
         Iterable<?> values = (Iterable<?>) candidates.value();
         for (Object value : values) {
-            booleanQuery.add(caseSensitivity.likeQuery(fqn, (String) value), BooleanClause.Occur.SHOULD);
+            if (value == null) {
+                continue;
+            }
+            var likeQuery = caseSensitivity.likeQuery(fqn, (String) value, probe.indexType() != IndexType.NONE);
+            if (likeQuery == null) {
+                return null;
+            }
+            booleanQuery.add(likeQuery, BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();
     }
 
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
-        return caseSensitivity.likeQuery(candidates.column().fqn(), (String) probe.value());
+        return caseSensitivity.likeQuery(candidates.storageIdent(), (String) probe.value(), candidates.indexType() != IndexType.NONE);
     }
 }

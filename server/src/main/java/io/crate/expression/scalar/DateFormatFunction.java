@@ -21,6 +21,11 @@
 
 package io.crate.expression.scalar;
 
+import java.util.List;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -29,10 +34,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
-import java.util.List;
 
 public class DateFormatFunction extends Scalar<String, Object> {
 
@@ -75,12 +76,8 @@ public class DateFormatFunction extends Scalar<String, Object> {
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public DateFormatFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -113,15 +110,5 @@ public class DateFormatFunction extends Scalar<String, Object> {
         }
         DateTime dateTime = new DateTime(timestamp, timezone);
         return TimestampFormatter.format(format, dateTime);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

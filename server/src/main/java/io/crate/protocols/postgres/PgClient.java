@@ -62,7 +62,7 @@ import org.elasticsearch.transport.netty4.Netty4MessageChannelHandler;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
-import io.crate.common.exceptions.Exceptions;
+import io.crate.action.FutureActionListener;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
@@ -616,33 +616,28 @@ public class PgClient extends AbstractClient {
         }
     }
 
-    @Override
-    protected <Request extends TransportRequest, Response extends TransportResponse> void doExecute(ActionType<Response> action,
-                                                                                                    Request request,
-                                                                                                    ActionListener<Response> listener) {
-        ensureConnected().whenComplete((connection, e) -> {
-            if (e != null) {
-                listener.onFailure(Exceptions.toException(e));
+    public <Request extends TransportRequest, Response extends TransportResponse> CompletableFuture<Response> execute(ActionType<Response> action, Request request) {
+        return ensureConnected().thenCompose(connection -> {
+            FutureActionListener<Response, Response> future = FutureActionListener.newInstance();
+            if (request instanceof RemoteClusterAwareRequest remoteClusterAware) {
+                DiscoveryNode targetNode = remoteClusterAware.getPreferredTargetNode();
+                transportService.sendRequest(
+                    new ProxyConnection(connection, targetNode),
+                    action.name(),
+                    request,
+                    TransportRequestOptions.EMPTY,
+                    new ActionListenerResponseHandler<>(future, action.getResponseReader())
+                );
             } else {
-                if (request instanceof RemoteClusterAwareRequest remoteClusterAware) {
-                    DiscoveryNode targetNode = remoteClusterAware.getPreferredTargetNode();
-                    transportService.sendRequest(
-                        new ProxyConnection(connection, targetNode),
-                        action.name(),
-                        request,
-                        TransportRequestOptions.EMPTY,
-                        new ActionListenerResponseHandler<>(listener, action.getResponseReader())
-                    );
-                } else {
-                    transportService.sendRequest(
-                        connection,
-                        action.name(),
-                        request,
-                        TransportRequestOptions.EMPTY,
-                        new ActionListenerResponseHandler<>(listener, action.getResponseReader())
-                    );
-                }
+                transportService.sendRequest(
+                    connection,
+                    action.name(),
+                    request,
+                    TransportRequestOptions.EMPTY,
+                    new ActionListenerResponseHandler<>(future, action.getResponseReader())
+                );
             }
+            return future;
         });
     }
 }

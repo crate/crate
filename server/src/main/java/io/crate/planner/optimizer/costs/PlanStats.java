@@ -32,6 +32,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Count;
@@ -41,6 +42,7 @@ import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.Insert;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
@@ -121,7 +123,9 @@ public class PlanStats {
             var stats = limit.source().accept(this, null);
             if (limit.limit() instanceof Literal<?> literal) {
                 var numberOfRows = DataTypes.LONG.sanitizeValue(literal.value());
-                return stats.withNumDocs(numberOfRows);
+                if (stats.numDocs() > numberOfRows) {
+                    return stats.withNumDocs(numberOfRows);
+                }
             }
             return stats;
         }
@@ -134,10 +138,20 @@ public class PlanStats {
         }
 
         @Override
+        public Stats visitJoinPlan(JoinPlan join, Void context) {
+            return visitAbstractJoinPlan(join, context);
+        }
+
+        @Override
         public Stats visitNestedLoopJoin(NestedLoopJoin join, Void context) {
+            return visitAbstractJoinPlan(join, context);
+        }
+
+        private Stats visitAbstractJoinPlan(AbstractJoinPlan join, Void context) {
             var lhsStats = join.lhs().accept(this, context);
             var rhsStats = join.rhs().accept(this, context);
-            Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn());
+            Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(),
+                                                                         rhsStats.statsByColumn());
             if (lhsStats.numDocs() == -1
                 || lhsStats.sizeInBytes() == -1
                 || rhsStats.numDocs() == -1

@@ -21,6 +21,15 @@
 
 package io.crate.expression.scalar.regex;
 
+import static io.crate.expression.RegexpFlags.isGlobal;
+import static io.crate.expression.RegexpFlags.parseFlags;
+
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
@@ -32,14 +41,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static io.crate.expression.RegexpFlags.parseFlags;
-import static io.crate.expression.RegexpFlags.isGlobal;
 
 public final class RegexpReplaceFunction extends Scalar<String, String> {
 
@@ -71,27 +72,14 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
 
     @Nullable
     private final Pattern pattern;
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     private RegexpReplaceFunction(Signature signature, BoundSignature boundSignature) {
         this(signature, boundSignature, null);
     }
 
     private RegexpReplaceFunction(Signature signature, BoundSignature boundSignature, @Nullable Pattern pattern) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.pattern = pattern;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

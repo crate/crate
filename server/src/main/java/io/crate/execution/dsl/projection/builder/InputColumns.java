@@ -33,8 +33,6 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
-import org.elasticsearch.common.inject.Singleton;
-
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
@@ -60,10 +58,11 @@ import io.crate.types.DataType;
 /**
  * Provides functions to create {@link InputColumn}s
  */
-@Singleton
 public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColumns.SourceSymbols, Symbol> {
 
     private static final InputColumns INSTANCE = new InputColumns();
+
+    private InputColumns() {}
 
     /**
      * Represents the "source" symbols to which the InputColumns will point to
@@ -92,8 +91,8 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
                  * GROUP operator would outputs: [x AS xx, count(*)]
                  * Eval wouldn't find `x`
                  */
-                if (input instanceof AliasSymbol) {
-                    add(i, ((AliasSymbol) input).symbol());
+                if (input instanceof AliasSymbol aliasSymbol) {
+                    add(i, aliasSymbol.symbol());
                 }
                 i++;
             }
@@ -238,7 +237,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     }
 
     @Override
-    public Symbol visitLiteral(Literal symbol, SourceSymbols context) {
+    public Symbol visitLiteral(Literal<?> symbol, SourceSymbols context) {
         return symbol;
     }
 
@@ -299,7 +298,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
 
     @Nullable
     private static Symbol tryCreateSubscriptOnRoot(Symbol symbol, ColumnIdent column, HashMap<Symbol, InputColumn> inputs) {
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             return null;
         }
         ColumnIdent root = column.getRoot();

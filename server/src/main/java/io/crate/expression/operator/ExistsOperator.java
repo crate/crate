@@ -34,31 +34,18 @@ import io.crate.types.TypeSignature;
 public class ExistsOperator extends Operator<List<Object>> {
 
     public static final String NAME = "_exists";
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     public static void register(OperatorModule module) {
         Signature signature = Signature.scalar(
             NAME,
-            TypeSignature.parseTypeSignature("array(E)"),
+            TypeSignature.parse("array(E)"),
             Operator.RETURN_TYPE.getTypeSignature()
         ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"));
         module.register(signature, ExistsOperator::new);
     }
 
     private ExistsOperator(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

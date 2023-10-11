@@ -63,7 +63,7 @@ public class FsProbe {
             Set<Tuple<Integer, Integer>> devicesNumbers = new HashSet<>();
             for (int i = 0; i < dataLocations.length; i++) {
                 if (dataLocations[i].majorDeviceNumber != -1 && dataLocations[i].minorDeviceNumber != -1) {
-                    devicesNumbers.add(Tuple.tuple(dataLocations[i].majorDeviceNumber, dataLocations[i].minorDeviceNumber));
+                    devicesNumbers.add(new Tuple<>(dataLocations[i].majorDeviceNumber, dataLocations[i].minorDeviceNumber));
                 }
             }
             ioStats = ioStats(devicesNumbers, previous);
@@ -77,7 +77,7 @@ public class FsProbe {
             if (previous != null && previous.getIoStats() != null && previous.getIoStats().devicesStats != null) {
                 for (int i = 0; i < previous.getIoStats().devicesStats.length; i++) {
                     FsInfo.DeviceStats deviceStats = previous.getIoStats().devicesStats[i];
-                    deviceMap.put(Tuple.tuple(deviceStats.majorDeviceNumber, deviceStats.minorDeviceNumber), deviceStats);
+                    deviceMap.put(new Tuple<>(deviceStats.majorDeviceNumber, deviceStats.minorDeviceNumber), deviceStats);
                 }
             }
 
@@ -89,7 +89,7 @@ public class FsProbe {
                     String[] fields = line.trim().split("\\s+");
                     final int majorDeviceNumber = Integer.parseInt(fields[0]);
                     final int minorDeviceNumber = Integer.parseInt(fields[1]);
-                    if (!devicesNumbers.contains(Tuple.tuple(majorDeviceNumber, minorDeviceNumber))) {
+                    if (!devicesNumbers.contains(new Tuple<>(majorDeviceNumber, minorDeviceNumber))) {
                         continue;
                     }
                     final String deviceName = fields[2];
@@ -106,7 +106,7 @@ public class FsProbe {
                                     sectorsRead,
                                     writesCompleted,
                                     sectorsWritten,
-                                    deviceMap.get(Tuple.tuple(majorDeviceNumber, minorDeviceNumber)));
+                                    deviceMap.get(new Tuple<>(majorDeviceNumber, minorDeviceNumber)));
                     devicesStats.add(deviceStats);
                 }
             }

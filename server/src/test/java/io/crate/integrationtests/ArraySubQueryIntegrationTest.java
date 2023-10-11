@@ -21,16 +21,12 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 public class ArraySubQueryIntegrationTest extends IntegTestCase {
-
-    private Setup setup = new Setup(sqlExecutor);
 
     @Test
     public void testSubQueryInSelectList() throws Exception {
@@ -40,12 +36,12 @@ public class ArraySubQueryIntegrationTest extends IntegTestCase {
                 "where country = 'AT' " +
                 "order by height desc " +
                 "limit 5");
-        assertThat(printedTable(response.rows()),
-                   is("Großglockner| 3798| [3798, 3770, 3666, 3564, 3550]\n" +
-                      "Wildspitze| 3770| [3798, 3770, 3666, 3564, 3550]\n" +
-                      "Großvenediger| 3666| [3798, 3770, 3666, 3564, 3550]\n" +
-                      "Großes Wiesbachhorn| 3564| [3798, 3770, 3666, 3564, 3550]\n" +
-                      "Großer Ramolkogel| 3550| [3798, 3770, 3666, 3564, 3550]\n"));
+        assertThat(response).hasRows(
+            "Großglockner| 3798| [3798, 3770, 3666, 3564, 3550]",
+            "Wildspitze| 3770| [3798, 3770, 3666, 3564, 3550]",
+            "Großvenediger| 3666| [3798, 3770, 3666, 3564, 3550]",
+            "Großes Wiesbachhorn| 3564| [3798, 3770, 3666, 3564, 3550]",
+            "Großer Ramolkogel| 3550| [3798, 3770, 3666, 3564, 3550]");
     }
 
     @Test
@@ -56,11 +52,11 @@ public class ArraySubQueryIntegrationTest extends IntegTestCase {
                 "and [3798, 3770] = array(select height from sys.summits where country = 'AT' order by height desc limit 2) " +
                 "order by height desc " +
                 "limit 5");
-        assertThat(printedTable(response.rows()),
-            is("Großglockner| 3798\n" +
-               "Wildspitze| 3770\n" +
-               "Großvenediger| 3666\n" +
-               "Großes Wiesbachhorn| 3564\n" +
-               "Großer Ramolkogel| 3550\n"));
+        assertThat(response).hasRows(
+            "Großglockner| 3798",
+               "Wildspitze| 3770",
+               "Großvenediger| 3666",
+               "Großes Wiesbachhorn| 3564",
+               "Großer Ramolkogel| 3550");
     }
 }

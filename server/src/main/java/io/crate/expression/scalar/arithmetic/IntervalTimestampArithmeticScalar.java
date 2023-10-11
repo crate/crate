@@ -21,6 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.util.List;
+import java.util.function.BiFunction;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Period;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -31,12 +38,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntervalType;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.Period;
-
-import java.util.List;
-import java.util.function.BiFunction;
 
 public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long> {
 
@@ -88,16 +89,13 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
     }
 
     private final BiFunction<DateTime, Period, DateTime> operation;
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final int periodIdx;
     private final int timestampIdx;
 
     public IntervalTimestampArithmeticScalar(String operator,
-                                             Signature declaredSignature,
+                                             Signature signature,
                                              BoundSignature boundSignature) {
-        this.signature = declaredSignature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         var firstArgType = boundSignature.argTypes().get(0);
         if (firstArgType.id() == IntervalType.ID) {
             periodIdx = 0;
@@ -122,16 +120,6 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                     throw new IllegalArgumentException("Unsupported operator for interval " + operator);
                 };
         }
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

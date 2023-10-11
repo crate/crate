@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.conditional;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -28,9 +30,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public class NullIfFunction extends Scalar<Object, Object> {
 
@@ -38,31 +38,18 @@ public class NullIfFunction extends Scalar<Object, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("E"),
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             NullIfFunction::new
         );
     }
 
     public static final String NAME = "nullif";
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     private NullIfFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

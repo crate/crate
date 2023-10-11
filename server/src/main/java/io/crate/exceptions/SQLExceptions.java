@@ -27,8 +27,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -37,6 +35,7 @@ import org.elasticsearch.ElasticsearchWrapperException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
@@ -46,18 +45,14 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.repositories.RepositoryMissingException;
-import org.elasticsearch.snapshots.InvalidSnapshotNameException;
-import org.elasticsearch.snapshots.SnapshotCreationException;
-import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NoSeedNodeLeftException;
 import org.elasticsearch.transport.NodeDisconnectedException;
 import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.RemoteTransportException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
-import io.crate.common.exceptions.Exceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 
@@ -70,16 +65,14 @@ public class SQLExceptions {
         throwable instanceof CompletionException ||
         throwable instanceof UncategorizedExecutionException ||
         throwable instanceof ElasticsearchWrapperException ||
-        throwable instanceof ExecutionException;
+        throwable instanceof ExecutionException ||
+        throwable instanceof NotSerializableExceptionWrapper ||
+        throwable.getClass() == RuntimeException.class;
 
-    public static Throwable unwrap(Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
+    public static Throwable unwrap(Throwable t) {
         int counter = 0;
         Throwable result = t;
-        Predicate<Throwable> unwrapCondition = EXCEPTIONS_TO_UNWRAP;
-        if (additionalUnwrapCondition != null) {
-            unwrapCondition = unwrapCondition.or(additionalUnwrapCondition);
-        }
-        while (unwrapCondition.test(result)) {
+        while (EXCEPTIONS_TO_UNWRAP.test(result)) {
             Throwable cause = result.getCause();
             if (cause == null) {
                 return result;
@@ -95,10 +88,6 @@ public class SQLExceptions {
             result = cause;
         }
         return result;
-    }
-
-    public static Throwable unwrap(Throwable t) {
-        return unwrap(t, null);
     }
 
     public static String messageOf(@Nullable Throwable t) {
@@ -147,7 +136,7 @@ public class SQLExceptions {
             || t instanceof ElasticsearchTimeoutException;
     }
 
-    public static RuntimeException prepareForClientTransmission(AccessControl accessControl, Throwable e) {
+    public static Throwable prepareForClientTransmission(AccessControl accessControl, Throwable e) {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         e = esToCrateException(unwrappedError);
         try {
@@ -155,7 +144,7 @@ public class SQLExceptions {
         } catch (Exception mpe) {
             e = mpe;
         }
-        return Exceptions.toRuntimeException(e);
+        return e;
     }
 
     private static Throwable esToCrateException(Throwable unwrappedError) {
@@ -183,16 +172,6 @@ public class SQLExceptions {
             return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
         } else if (unwrappedError instanceof InterruptedException) {
             return JobKilledException.of(unwrappedError.getMessage());
-        } else if (unwrappedError instanceof RepositoryMissingException) {
-            return new RepositoryUnknownException(((RepositoryMissingException) unwrappedError).repository());
-        } else if (unwrappedError instanceof InvalidSnapshotNameException) {
-            return new SnapshotNameInvalidException(unwrappedError.getMessage());
-        } else if (unwrappedError instanceof SnapshotMissingException) {
-            SnapshotMissingException snapshotException = (SnapshotMissingException) unwrappedError;
-            return new SnapshotUnknownException(snapshotException.getRepositoryName(), snapshotException.getSnapshotName(), unwrappedError);
-        } else if (unwrappedError instanceof SnapshotCreationException) {
-            SnapshotCreationException creationException = (SnapshotCreationException) unwrappedError;
-            return new SnapshotAlreadyExistsException(creationException.getRepositoryName(), creationException.getSnapshotName());
         }
         return unwrappedError;
     }

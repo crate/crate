@@ -47,7 +47,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMPZ.getTypeSignature(), // source
                 DataTypes.TIMESTAMPZ.getTypeSignature(), // origin
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
+            ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
             DateBinFunction::new);
 
         module.register(
@@ -57,26 +57,12 @@ public class DateBinFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMP.getTypeSignature(), // source
                 DataTypes.TIMESTAMP.getTypeSignature(), // origin
                 DataTypes.TIMESTAMP.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
+            ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
             DateBinFunction::new);
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private DateBinFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -92,14 +78,15 @@ public class DateBinFunction extends Scalar<Long, Object> {
                 if (intervalInMs == 0) {
                     throw new IllegalArgumentException("Interval cannot be zero");
                 }
-                return new CompiledDateBin(intervalInMs);
+                return new CompiledDateBin(signature, boundSignature, intervalInMs);
             }
         }
         return this;
     }
 
     @Override
-    public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
         assert args.length == 3 : "Invalid number of arguments";
 
         var interval = args[0].value();
@@ -153,26 +140,18 @@ public class DateBinFunction extends Scalar<Long, Object> {
         }
     }
 
-    private class CompiledDateBin extends Scalar<Long, Object> {
+    private static class CompiledDateBin extends Scalar<Long, Object> {
 
         private final long intervalInMs;
 
-        private CompiledDateBin(long intervalInMs) {
+        private CompiledDateBin(Signature signature, BoundSignature boundSignature, long intervalInMs) {
+            super(signature, boundSignature);
             this.intervalInMs = intervalInMs;
         }
 
         @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
-        }
-
-        @Override
-        public Long evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
+        @SafeVarargs
+        public final Long evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
             // Validation for arguments amount is done in compile.
 
             var timestamp = args[1].value();

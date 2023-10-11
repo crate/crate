@@ -22,15 +22,10 @@ package org.elasticsearch.common;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
-import java.util.function.Supplier;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
@@ -38,6 +33,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 
 public class Strings {
@@ -127,7 +123,7 @@ public class Strings {
      * @return <code>true</code> if the CharSequence is not null and has length
      * @see #hasText(String)
      */
-    public static boolean hasLength(CharSequence str) {
+    public static boolean hasLength(@Nullable CharSequence str) {
         return (str != null && str.length() > 0);
     }
 
@@ -149,18 +145,6 @@ public class Strings {
         return sb.toString();
     }
 
-    /**
-     * Check that the given String is neither <code>null</code> nor of length 0.
-     * Note: Will return <code>true</code> for a String that purely consists of whitespace.
-     *
-     * @param str the String to check (may be <code>null</code>)
-     * @return <code>true</code> if the String is not null and has length
-     * @see #hasLength(CharSequence)
-     */
-    public static boolean hasLength(String str) {
-        return hasLength((CharSequence) str);
-    }
-
 
     /**
      * Check that the given CharSequence is either <code>null</code> or of length 0.
@@ -175,7 +159,7 @@ public class Strings {
      * @param str the CharSequence to check (may be <code>null</code>)
      * @return <code>true</code> if the CharSequence is either null or has a zero length
      */
-    public static boolean isEmpty(CharSequence str) {
+    public static boolean isNullOrEmpty(@Nullable CharSequence str) {
         return !hasLength(str);
     }
 
@@ -208,20 +192,6 @@ public class Strings {
             }
         }
         return false;
-    }
-
-    /**
-     * Check whether the given String has actual text.
-     * More specifically, returns <code>true</code> if the string not <code>null</code>,
-     * its length is greater than 0, and it contains at least one non-whitespace character.
-     *
-     * @param str the String to check (may be <code>null</code>)
-     * @return <code>true</code> if the String is not <code>null</code>, its length is
-     *         greater than 0, and it does not contain whitespace only
-     * @see #hasText(CharSequence)
-     */
-    public static boolean hasText(String str) {
-        return hasText((CharSequence) str);
     }
 
     /**
@@ -271,29 +241,6 @@ public class Strings {
         return sb.toString();
     }
 
-    /**
-     * Delete any character in a given String.
-     *
-     * @param inString      the original String
-     * @param charsToDelete a set of characters to delete.
-     *                      E.g. "az\n" will delete 'a's, 'z's and new lines.
-     * @return the resulting String
-     */
-    public static String deleteAny(String inString, String charsToDelete) {
-        if (!hasLength(inString) || !hasLength(charsToDelete)) {
-            return inString;
-        }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < inString.length(); i++) {
-            char c = inString.charAt(i);
-            if (charsToDelete.indexOf(c) == -1) {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
-
     //---------------------------------------------------------------------
     // Convenience methods for working with formatted Strings
     //---------------------------------------------------------------------
@@ -307,19 +254,11 @@ public class Strings {
      * @return the capitalized String, <code>null</code> if null
      */
     public static String capitalize(String str) {
-        return changeFirstCharacterCase(str, true);
-    }
-
-    private static String changeFirstCharacterCase(String str, boolean capitalize) {
         if (str == null || str.length() == 0) {
             return str;
         }
         StringBuilder sb = new StringBuilder(str.length());
-        if (capitalize) {
-            sb.append(Character.toUpperCase(str.charAt(0)));
-        } else {
-            sb.append(Character.toLowerCase(str.charAt(0)));
-        }
+        sb.append(Character.toUpperCase(str.charAt(0)));
         sb.append(str.substring(1));
         return sb.toString();
     }
@@ -402,34 +341,15 @@ public class Strings {
         if (s == null) {
             return EMPTY_ARRAY;
         }
-        return tokenizeToCollection(s, delimiters, ArrayList::new).toArray(new String[0]);
-    }
-
-    /**
-     * Tokenizes the specified string to a collection using the specified delimiters as the token delimiters. This method trims whitespace
-     * from tokens and ignores empty tokens.
-     *
-     * @param s          the string to tokenize.
-     * @param delimiters the token delimiters
-     * @param supplier   a collection supplier
-     * @param <T>        the type of the collection
-     * @return the tokens
-     * @see java.util.StringTokenizer
-     */
-    private static <T extends Collection<String>> T tokenizeToCollection(
-            final String s, final String delimiters, final Supplier<T> supplier) {
-        if (s == null) {
-            return null;
-        }
         final StringTokenizer tokenizer = new StringTokenizer(s, delimiters);
-        final T tokens = supplier.get();
+        final List<String> tokens = new ArrayList<>();
         while (tokenizer.hasMoreTokens()) {
             final String token = tokenizer.nextToken().trim();
             if (token.length() > 0) {
                 tokens.add(token);
             }
         }
-        return tokens;
+        return tokens.toArray(new String[0]);
     }
 
     /**
@@ -445,24 +365,6 @@ public class Strings {
      * @see #tokenizeToStringArray
      */
     public static String[] delimitedListToStringArray(String str, String delimiter) {
-        return delimitedListToStringArray(str, delimiter, null);
-    }
-
-    /**
-     * Take a String which is a delimited list and convert it to a String array.
-     * <p>A single delimiter can consists of more than one character: It will still
-     * be considered as single delimiter string, rather than as bunch of potential
-     * delimiter characters - in contrast to <code>tokenizeToStringArray</code>.
-     *
-     * @param str           the input String
-     * @param delimiter     the delimiter between elements (this is a single delimiter,
-     *                      rather than a bunch individual delimiter characters)
-     * @param charsToDelete a set of characters to delete. Useful for deleting unwanted
-     *                      line breaks: e.g. "\r\n\f" will delete all new lines and line feeds in a String.
-     * @return an array of the tokens in the list
-     * @see #tokenizeToStringArray
-     */
-    public static String[] delimitedListToStringArray(String str, String delimiter, String charsToDelete) {
         if (str == null) {
             return EMPTY_ARRAY;
         }
@@ -472,18 +374,18 @@ public class Strings {
         List<String> result = new ArrayList<>();
         if ("".equals(delimiter)) {
             for (int i = 0; i < str.length(); i++) {
-                result.add(deleteAny(str.substring(i, i + 1), charsToDelete));
+                result.add(str.substring(i, i + 1));
             }
         } else {
             int pos = 0;
             int delPos;
             while ((delPos = str.indexOf(delimiter, pos)) != -1) {
-                result.add(deleteAny(str.substring(pos, delPos), charsToDelete));
+                result.add(str.substring(pos, delPos));
                 pos = delPos + delimiter.length();
             }
             if (str.length() > 0 && pos <= str.length()) {
                 // Add rest of String, but not in case of empty input.
-                result.add(deleteAny(str.substring(pos), charsToDelete));
+                result.add(str.substring(pos));
             }
         }
         return result.toArray(new String[0]);
@@ -514,81 +416,6 @@ public class Strings {
     }
 
     /**
-     * Convenience method to return a Collection as a delimited (e.g. CSV)
-     * String. E.g. useful for <code>toString()</code> implementations.
-     *
-     * @param coll   the Collection to display
-     * @param delim  the delimiter to use (probably a ",")
-     * @param prefix the String to start each element with
-     * @param suffix the String to end each element with
-     * @return the delimited String
-     */
-    public static String collectionToDelimitedString(Iterable<?> coll, String delim, String prefix, String suffix) {
-        StringBuilder sb = new StringBuilder();
-        collectionToDelimitedString(coll, delim, prefix, suffix, sb);
-        return sb.toString();
-    }
-
-    public static void collectionToDelimitedString(Iterable<?> coll, String delim, String prefix, String suffix, StringBuilder sb) {
-        Iterator<?> it = coll.iterator();
-        while (it.hasNext()) {
-            sb.append(prefix).append(it.next()).append(suffix);
-            if (it.hasNext()) {
-                sb.append(delim);
-            }
-        }
-    }
-
-    /**
-     * Convenience method to return a Collection as a delimited (e.g. CSV)
-     * String. E.g. useful for <code>toString()</code> implementations.
-     *
-     * @param coll  the Collection to display
-     * @param delim the delimiter to use (probably a ",")
-     * @return the delimited String
-     */
-    public static String collectionToDelimitedString(Iterable<?> coll, String delim) {
-        return collectionToDelimitedString(coll, delim, "", "");
-    }
-
-    /**
-     * Convenience method to return a Collection as a CSV String.
-     * E.g. useful for <code>toString()</code> implementations.
-     *
-     * @param coll the Collection to display
-     * @return the delimited String
-     */
-    public static String collectionToCommaDelimitedString(Iterable<?> coll) {
-        return collectionToDelimitedString(coll, ",");
-    }
-
-    /**
-     * Convenience method to return a String array as a delimited (e.g. CSV)
-     * String. E.g. useful for <code>toString()</code> implementations.
-     *
-     * @param arr   the array to display
-     * @param delim the delimiter to use (probably a ",")
-     * @return the delimited String
-     */
-    public static String arrayToDelimitedString(Object[] arr, String delim) {
-        StringBuilder sb = new StringBuilder();
-        arrayToDelimitedString(arr, delim, sb);
-        return sb.toString();
-    }
-
-    public static void arrayToDelimitedString(Object[] arr, String delim, StringBuilder sb) {
-        if (isEmpty(arr)) {
-            return;
-        }
-        for (int i = 0; i < arr.length; i++) {
-            if (i > 0) {
-                sb.append(delim);
-            }
-            sb.append(arr[i]);
-        }
-    }
-
-    /**
      * Convenience method to return a String array as a CSV String.
      * E.g. useful for <code>toString()</code> implementations.
      *
@@ -596,7 +423,17 @@ public class Strings {
      * @return the delimited String
      */
     public static String arrayToCommaDelimitedString(Object[] arr) {
-        return arrayToDelimitedString(arr, ",");
+        if ((arr == null || arr.length == 0)) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arr.length; i++) {
+            if (i > 0) {
+                sb.append(",");
+            }
+            sb.append(arr[i]);
+        }
+        return sb.toString();
     }
 
     /**
@@ -620,16 +457,6 @@ public class Strings {
                 return p.substring(0, ix) + fraction + suffix;
             }
         }
-    }
-
-    /**
-     * Determine whether the given array is empty:
-     * i.e. <code>null</code> or of zero length.
-     *
-     * @param array the array to check
-     */
-    private static boolean isEmpty(Object[] array) {
-        return (array == null || array.length == 0);
     }
 
     private Strings() {
@@ -692,10 +519,6 @@ public class Strings {
             builder.humanReadable(true);
         }
         return builder;
-    }
-
-    public static boolean isNullOrEmpty(@Nullable String s) {
-        return s == null || s.isEmpty();
     }
 
     public static String padStart(String s, int minimumLength, char c) {

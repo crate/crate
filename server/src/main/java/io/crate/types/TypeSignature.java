@@ -22,21 +22,41 @@
 package io.crate.types;
 
 
-import org.apache.lucene.util.Accountable;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import io.crate.signatures.TypeSignatureParser;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.atn.PredictionMode;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.signatures.antlr.TypeSignaturesLexer;
 
 public class TypeSignature implements Writeable, Accountable {
+
+    private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
+        @Override
+        public void syntaxError(Recognizer<?, ?> recognizer,
+                                Object offendingSymbol,
+                                int line,
+                                int charPositionInLine,
+                                String message,
+                                RecognitionException e) {
+            throw new TypeSignatureParsingException(message, e, line, charPositionInLine);
+        }
+    };
 
     /**
      * Creates a type signature out of the given signature string.
@@ -56,8 +76,35 @@ public class TypeSignature implements Writeable, Accountable {
      *      object(text, V)
      * <p>
      */
-    public static TypeSignature parseTypeSignature(String signature) {
-        return TypeSignatureParser.parse(signature);
+    public static TypeSignature parse(String signature) {
+        try {
+            var lexer = new TypeSignaturesLexer(CharStreams.fromString(signature));
+            var tokenStream = new CommonTokenStream(lexer);
+            var parser = new io.crate.signatures.antlr.TypeSignaturesParser(tokenStream);
+
+            lexer.removeErrorListeners();
+            lexer.addErrorListener(ERROR_LISTENER);
+
+            parser.removeErrorListeners();
+            parser.addErrorListener(ERROR_LISTENER);
+
+            ParserRuleContext tree;
+            try {
+                // first, try parsing with potentially faster SLL mode
+                parser.getInterpreter().setPredictionMode(PredictionMode.SLL);
+                tree = parser.type();
+            } catch (ParseCancellationException ex) {
+                // if we fail, parse with LL mode
+                tokenStream.seek(0); // rewind input stream
+                parser.reset();
+
+                parser.getInterpreter().setPredictionMode(PredictionMode.LL);
+                tree = parser.type();
+            }
+            return tree.accept(new TypeSignaturesASTVisitor());
+        } catch (StackOverflowError e) {
+            throw new TypeSignatureParsingException("stack overflow while parsing: " + e.getLocalizedMessage());
+        }
     }
 
     protected static TypeSignature of(int parseInt) {
@@ -115,7 +162,7 @@ public class TypeSignature implements Writeable, Accountable {
      */
     public DataType<?> createType() {
         if (baseTypeName.equalsIgnoreCase(ArrayType.NAME)) {
-            if (parameters.size() == 0) {
+            if (parameters.isEmpty()) {
                 return new ArrayType<>(UndefinedType.INSTANCE);
             }
             DataType<?> innerType = parameters.get(0).createType();
@@ -125,13 +172,12 @@ public class TypeSignature implements Writeable, Accountable {
             // Only build typed objects if we receive parameter key-value pairs which may not exist on generic
             // object signatures with type information only, no key strings
             if (parameters.size() > 1) {
-                for (int i = 0; i < parameters.size() - 1; ) {
+                for (int i = 0; i < parameters.size() - 1; i += 2) {
                     var valTypeSignature = parameters.get(i + 1);
                     if (valTypeSignature instanceof ParameterTypeSignature p) {
                         var innerTypeName = p.unescapedParameterName();
                         builder.setInnerType(innerTypeName, valTypeSignature.createType());
                     }
-                    i += 2;
                 }
             }
             return builder.build();

@@ -51,14 +51,14 @@ public class GroupReference implements LogicalPlan {
 
     private final int groupId;
     private final List<Symbol> outputs;
-    private final Set<RelationName> relationNames;
+    private final List<RelationName> relationNames;
     private static final String ERROR_MESSAGE =
         "Operation is not supported in GroupReference, it needs to be resolved to it's referenced LogicalPlan";
 
     public GroupReference(int groupId, List<Symbol> outputs, Collection<RelationName> relationNames) {
         this.groupId = groupId;
         this.outputs = List.copyOf(outputs);
-        this.relationNames = Set.copyOf(relationNames);
+        this.relationNames = List.copyOf(relationNames);
     }
 
     public int groupId() {
@@ -91,7 +91,7 @@ public class GroupReference implements LogicalPlan {
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
+    public List<RelationName> getRelationNames() {
         return relationNames;
     }
 

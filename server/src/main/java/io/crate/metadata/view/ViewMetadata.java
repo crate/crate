@@ -21,56 +21,41 @@
 
 package io.crate.metadata.view;
 
+import java.io.IOException;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.Objects;
 
-public class ViewMetadata implements Writeable {
+import io.crate.metadata.SearchPath;
 
-    private final String stmt;
-    @Nullable
-    private final String owner;
+public record ViewMetadata(
+        String stmt,
+        @Nullable String owner,
+        SearchPath searchPath) implements Writeable {
 
-    ViewMetadata(String stmt, @Nullable String owner) {
-        this.stmt = stmt;
-        this.owner = owner;
-    }
-
-    ViewMetadata(StreamInput in) throws IOException {
-        stmt = in.readString();
-        owner = in.readOptionalString();
+    public static ViewMetadata of(StreamInput in) throws IOException {
+        String stmt = in.readString();
+        String owner = in.readOptionalString();
+        SearchPath searchPath;
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_5_3_5) && !version.equals(Version.V_5_4_0)) {
+            searchPath = SearchPath.createSearchPathFrom(in);
+        } else {
+            searchPath = SearchPath.pathWithPGCatalogAndDoc();
+        }
+        return new ViewMetadata(stmt, owner, searchPath);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(stmt);
         out.writeOptionalString(owner);
-    }
-
-    public String stmt() {
-        return stmt;
-    }
-
-    @Nullable
-    public String owner() {
-        return owner;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ViewMetadata view = (ViewMetadata) o;
-        return Objects.equals(stmt, view.stmt) &&
-               Objects.equals(owner, view.owner);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(stmt, owner);
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_5_3_5) && !version.equals(Version.V_5_4_0)) {
+            searchPath.writeTo(out);
+        }
     }
 }

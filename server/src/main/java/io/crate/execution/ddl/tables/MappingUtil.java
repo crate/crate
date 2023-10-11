@@ -21,47 +21,90 @@
 
 package io.crate.execution.ddl.tables;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
-import io.crate.metadata.table.ColumnPolicies;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ArrayType;
-import io.crate.types.ObjectType;
+import static io.crate.metadata.Reference.buildTree;
+import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.function.ToIntFunction;
 
-import static io.crate.metadata.Reference.buildTree;
-import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
+import org.jetbrains.annotations.Nullable;
 
-public class MappingUtil {
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.ObjectType;
+
+public final class MappingUtil {
+
+    public static final String DROPPED_COLUMN_NAME_PREFIX = "_dropped_";
+
+    private MappingUtil() {}
+
+    public static class AllocPosition {
+
+        private final ToIntFunction<ColumnIdent> getExistingPosition;
+        private int nextPosition;
+
+        /**
+         * Important: The table must be based on the _latest_ cluster state, retrieved from within a clusterState update routine.
+         */
+        public static AllocPosition forTable(DocTableInfo table) {
+            return new AllocPosition(table.maxPosition(), column -> {
+                var reference = table.getReference(column);
+                return reference == null ? -1 : reference.position();
+            });
+        }
+
+        public static AllocPosition forNewTable() {
+            return new AllocPosition(0, column -> -1);
+        }
+
+        private AllocPosition(int maxPosition, ToIntFunction<ColumnIdent> getExistingPosition) {
+            this.getExistingPosition = getExistingPosition;
+            this.nextPosition = maxPosition + 1;
+        }
+
+        public int position(ColumnIdent column) {
+            int position = getExistingPosition.applyAsInt(column);
+            if (position < 0) {
+                return nextPosition++;
+            }
+            return position;
+        }
+    }
 
     /**
      * This is a singe entry point to creating mapping: adding a column(s), create a table, create a partitioned table (template).
      * @param tableColumnPolicy has default value STRICT if not specified on a table creation.
      * On column addition it's NULL in order to not override an existing value.
+     *
      */
-    public static Map<String, Object> createMapping(List<Reference> columns,
+    public static Map<String, Object> createMapping(AllocPosition allocPosition,
+                                                    List<Reference> columns,
                                                     IntArrayList pKeyIndices,
                                                     Map<String, String> checkConstraints,
-                                                    Map<String, Object> indices,
                                                     List<List<String>> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
                                                     @Nullable String routingColumn) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
-        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(null, tree);
+        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
         Map<String, Object> mapping = new HashMap<>();
-
         Map<String, Object> meta = new HashMap<>();
         mergeConstraints(meta, columns, pKeyIndices, checkConstraints);
         if (routingColumn != null) {
@@ -72,6 +115,12 @@ public class MappingUtil {
             mapping.put(ES_MAPPING_NAME, ColumnPolicies.encodeMappingValue(tableColumnPolicy));
         }
 
+        Map<String, Object> indices = new HashMap<>();
+        for (Reference column : columns) {
+            if (column instanceof IndexReference indexRef && !indexRef.columns().isEmpty()) {
+                indices.put(column.storageIdent(), Map.of());
+            }
+        }
         if (indices.isEmpty() == false) {
             meta.put("indices", indices);
         }
@@ -82,6 +131,39 @@ public class MappingUtil {
         mapping.put("_meta", meta);
         mapping.put("properties", propertiesMap);
 
+        return mapping;
+    }
+
+    public static Map<String, Object> createMappingForDroppedCols(DocTableInfo tableInfo,
+                                                                  HashMap<ColumnIdent, List<Reference>> tree) {
+        Map<String, Map<String, Object>> propertiesMap =
+            createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree);
+
+        Map<String, Object> mapping = new HashMap<>();
+        mapping.put("_meta", Map.of());
+        mapping.put("properties", propertiesMap);
+        return mapping;
+    }
+
+
+    /**
+     * Creates a mapping containing only column names, can be nested.
+     */
+    public static Map<String, Object> createMappingToRemove(HashMap<ColumnIdent, List<Reference>> tree,
+                                                            @Nullable ColumnIdent currentNode) {
+        List<Reference> children = tree.get(currentNode);
+        if (children == null) {
+            assert currentNode != null : "Root must have children nodes";
+            return null;
+        }
+
+        Map<String, Object> allColumnsMap = new HashMap<>();
+        for (Reference child: children) {
+            allColumnsMap.put(child.column().leafName(), createMappingToRemove(tree, child.column()));
+        }
+
+        Map<String, Object> mapping = new HashMap<>();
+        mapping.put("properties", allColumnsMap);
         return mapping;
     }
 
@@ -105,38 +187,54 @@ public class MappingUtil {
 
      */
     @Nullable
-    private static Map<String, Map<String, Object>> createPropertiesMap(@Nullable ColumnIdent currentNode, HashMap<ColumnIdent, List<Reference>> tree) {
+    private static Map<String, Map<String, Object>> createPropertiesMap(AllocPosition position,
+                                                                        @Nullable ColumnIdent currentNode,
+                                                                        HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
         }
         HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
         for (Reference child: children) {
-            allColumnsMap.put(child.column().leafName(), addColumnProperties(child, tree));
+            allColumnsMap.put(mappingKey(child), addColumnProperties(position, child, tree));
         }
         return allColumnsMap;
     }
 
-    private static Map<String, Object> addColumnProperties(Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
-
-        Map<String, Object> columnProperties = reference.toMapping();
-        if (reference.valueType().id() == ArrayType.ID) {
-            HashMap<String, Object> outerMapping = new HashMap<>();
-            outerMapping.put("type", "array");
-            if (ArrayType.unnest(reference.valueType()).id() == ObjectType.ID) {
-                objectMapping(columnProperties, reference, tree);
-            }
-            outerMapping.put("inner", columnProperties);
-            return outerMapping;
-        } else if (reference.valueType().id() == ObjectType.ID) {
-            objectMapping(columnProperties, reference, tree);
+    private static String mappingKey(Reference reference) {
+        if (reference.isDropped()) {
+            assert reference.oid() != COLUMN_OID_UNASSIGNED : "Only columns with assigned OID-s can be dropped";
+            return DROPPED_COLUMN_NAME_PREFIX + reference.oid();
+        } else {
+            return reference.column().leafName();
         }
-        return columnProperties;
     }
 
-    private static void objectMapping(Map<String, Object> propertiesMap, Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
+    private static Map<String, Object> addColumnProperties(AllocPosition position,
+                                                           Reference reference,
+                                                           HashMap<ColumnIdent, List<Reference>> tree) {
+        Map<String, Object> leafProperties = reference.toMapping(position.position(reference.column()));
+        Map<String, Object> properties = leafProperties;
+        DataType<?> valueType = reference.valueType();
+        while (valueType instanceof ArrayType<?> arrayType) {
+            HashMap<String, Object> arrayMapping = new HashMap<>();
+            arrayMapping.put("type", "array");
+            arrayMapping.put("inner", properties);
+            valueType = arrayType.innerType();
+            properties = arrayMapping;
+        }
+        if (valueType.id() == ObjectType.ID) {
+            objectMapping(position, leafProperties, reference, tree);
+        }
+        return properties;
+    }
+
+    private static void objectMapping(AllocPosition position,
+                                      Map<String, Object> propertiesMap,
+                                      Reference reference,
+                                      HashMap<ColumnIdent, List<Reference>> tree) {
         propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(reference.column(), tree);
+        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }
@@ -144,9 +242,9 @@ public class MappingUtil {
 
     @SuppressWarnings("unchecked")
     public static void mergeConstraints(Map<String, Object> meta,
-                                         List<Reference> references,
-                                         IntArrayList pKeyIndices,
-                                         Map<String, String> checkConstraints) {
+                                        List<Reference> references,
+                                        IntArrayList pKeyIndices,
+                                        Map<String, String> checkConstraints) {
 
         // CHECK
         if (checkConstraints.isEmpty() == false) {
@@ -175,7 +273,7 @@ public class MappingUtil {
         }
 
         // Not nulls
-        List<String> newNotNulls = references.stream().filter(ref -> !ref.isNullable()).map(ref -> ref.column().fqn()).collect(Collectors.toList());
+        List<String> newNotNulls = references.stream().filter(ref -> !ref.isNullable()).map(ref -> ref.column().fqn()).toList();
         if (newNotNulls.isEmpty() == false) {
             Map<String, List<String>> constraints = (Map<String, List<String>>) meta.get("constraints");
             List<String> notNulls = constraints != null ? constraints.get("not_null") : null;
@@ -192,7 +290,7 @@ public class MappingUtil {
         List<GeneratedReference> newGenExpressions = references.stream()
             .filter(ref -> ref instanceof GeneratedReference)
             .map(ref -> (GeneratedReference) ref)
-            .collect(Collectors.toList());
+            .toList();
         if (newGenExpressions.isEmpty() == false) {
             Map<String, String> generatedColumns = (Map<String, String>) meta.get("generated_columns");
             if (generatedColumns == null) {

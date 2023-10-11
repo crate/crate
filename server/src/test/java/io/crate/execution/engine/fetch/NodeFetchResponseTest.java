@@ -99,7 +99,10 @@ public class NodeFetchResponseTest extends ESTestCase {
                 new MemoryCircuitBreaker(
                     new ByteSizeValue(2, ByteSizeUnit.BYTES),
                     1.0,
-                    LogManager.getLogger(NodeFetchResponseTest.class))));
+                    LogManager.getLogger(NodeFetchResponseTest.class)),
+                0
+            )
+        );
 
     }
 }

@@ -37,6 +37,7 @@ import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
+import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
@@ -96,12 +97,13 @@ import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.planner.consumer.CreateTableAsPlanner;
+import io.crate.planner.consumer.CreateTableAsPlan;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.AlterBlobTablePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
+import io.crate.planner.node.ddl.AlterTableDropColumnPlan;
 import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
@@ -330,13 +332,13 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitCreateTable(AnalyzedCreateTable createTable, PlannerContext context) {
-        return new CreateTablePlan(createTable, numberOfShards, tableCreator, schemas);
+        return new CreateTablePlan(createTable, numberOfShards, tableCreator);
     }
 
     @Override
     public Plan visitCreateTableAs(AnalyzedCreateTableAs createTableAs, PlannerContext context) {
-        return CreateTableAsPlanner.plan(
-            createTableAs, numberOfShards, tableCreator, schemas, context, logicalPlanner
+        return CreateTableAsPlan.of(
+            createTableAs, numberOfShards, tableCreator, context, logicalPlanner
         );
     }
 
@@ -397,6 +399,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitAlterTableAddColumn(AnalyzedAlterTableAddColumn alterTableAddColumn,
                                          PlannerContext context) {
         return new AlterTableAddColumnPlan(alterTableAddColumn);
+    }
+
+    @Override
+    public Plan visitAlterTableDropColumn(AnalyzedAlterTableDropColumn alterTableDropColumn,
+                                          PlannerContext context) {
+        return new AlterTableDropColumnPlan(alterTableDropColumn);
     }
 
     @Override

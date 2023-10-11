@@ -21,6 +21,9 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static org.elasticsearch.common.xcontent.XContentParser.Token.START_ARRAY;
+import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -29,8 +32,10 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -38,8 +43,15 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.BitString;
@@ -50,6 +62,7 @@ import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
@@ -57,18 +70,35 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
-
-import static org.elasticsearch.common.xcontent.XContentParser.Token.START_ARRAY;
-import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
+import io.crate.types.UndefinedType;
 
 public final class SourceParser {
 
+    public static final String UNKNOWN_COLUMN_PREFIX = "_u_";
     private final Map<String, Object> requiredColumns = new HashMap<>();
+    private final Set<String> droppedColumns;
+    private final Function<String, String> lookupNameBySourceKey;
 
-    public SourceParser() {
+    public SourceParser(Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+        // Use a Set of string fqn instead of ColumnIdent to avoid creating ColumnIdent objects to call `contains`
+        this.droppedColumns = droppedColumns.stream().map(r -> r.column().fqn()).collect(Collectors.toUnmodifiableSet());
+        this.lookupNameBySourceKey = lookupNameBySourceKey;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void register(List<Symbol> symbols) {
+        if (!Symbols.containsColumn(symbols, DocSysColumns.DOC)) {
+            Consumer<Reference> register = ref -> {
+                if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
+                    register(DocReferences.toSourceLookup(ref).column(), ref.valueType());
+                }
+            };
+            for (Symbol symbol : symbols) {
+                RefVisitor.visitRefs(symbol, register);
+            }
+        }
+    }
+
+    @SuppressWarnings({"unchecked"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";
@@ -84,12 +114,12 @@ public final class SourceParser {
                     columns.put(part, type);
                 } else {
                     Object object = columns.get(part);
-                    if (object instanceof Map) {
-                        columns = (Map) object;
+                    if (object instanceof Map map) {
+                        columns = map;
                     } else if (object instanceof DataType) {
                         break;
                     } else {
-                        HashMap<String, Object> children = new HashMap<String, Object>();
+                        HashMap<String, Object> children = new HashMap<>();
                         columns.put(part, children);
                         columns = children;
                     }
@@ -98,7 +128,7 @@ public final class SourceParser {
         }
     }
 
-    public Map<String, Object> parse(BytesReference bytes) {
+    public Map<String, Object> parse(BytesReference bytes, boolean includeUnknownCols) {
         try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes)) {
             XContentParser parser = XContentType.JSON.xContent().createParser(
                 NamedXContentRegistry.EMPTY,
@@ -107,18 +137,33 @@ public final class SourceParser {
             );
             Token token = parser.currentToken();
             if (token == null) {
-                token = parser.nextToken();
+                parser.nextToken();
             }
-            return parseObject(parser, null, requiredColumns, false);
+            return parseObject(
+                parser,
+                null,
+                requiredColumns,
+                droppedColumns,
+                lookupNameBySourceKey,
+                new StringBuilder(),
+                includeUnknownCols
+            );
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
+    public Map<String, Object> parse(BytesReference bytes) {
+        return parse(bytes, false);
+    }
+
     private static Object parseArray(XContentParser parser,
                                      @Nullable DataType<?> type,
-                                     @Nullable Map<String, Object> requiredColumns) throws IOException {
-        if (type instanceof GeoPointType) {
+                                     @Nullable Map<String, Object> requiredColumns,
+                                     Set<String> droppedColumns,
+                                     Function<String, String> lookupNameBySourceKey,
+                                     StringBuilder colPath) throws IOException {
+        if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
         } else {
             ArrayList<Object> values = new ArrayList<>();
@@ -135,7 +180,7 @@ public final class SourceParser {
                 type = ((ArrayType<?>) type).innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                values.add(parseValue(parser, type, requiredColumns));
+                values.add(parseValue(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey, colPath));
             }
             return values;
         }
@@ -145,39 +190,86 @@ public final class SourceParser {
     private static Map<String, Object> parseObject(XContentParser parser,
                                                    @Nullable DataType<?> type,
                                                    @Nullable Map<String, Object> requiredColumns,
+                                                   Set<String> droppedColumns,
+                                                   Function<String, String> lookupNameBySourceKey,
+                                                   StringBuilder colPath,
                                                    boolean includeUnknown) throws IOException {
+        var parseAllFields = false;
         if (requiredColumns == null || requiredColumns.isEmpty()) {
-            return type == null ? parser.map() : (Map) type.implicitCast(parser.map());
-        } else {
-            HashMap<String, Object> values = new HashMap<>();
-            XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
-            for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
-                String fieldName = parser.currentName();
-                token = parser.nextToken(); // Move to the current field's value
-                var required = requiredColumns.get(fieldName);
-                if (required == null && !includeUnknown) {
-                    parser.skipChildren();
-                } else if (token == START_ARRAY &&
-                           required instanceof DataType<?> && !(required instanceof ArrayType<?>) &&
-                           !(required instanceof GeoPointType) && !(required instanceof GeoShapeType)) {
-                    // due to a bug: https://github.com/crate/crate/issues/13990
-                    parser.skipChildren();
-                    values.put(fieldName, null);
-                } else if (token == VALUE_NULL) {
-                    // If object value is null, we can short-circuit to NULL and continue further with other fields.
-                    // We should not call parseObject() as current object's innerTypes can interfere with sibling columns
-                    // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
-                    values.put(fieldName, null);
-                } else if (required instanceof ObjectType objectType) {
-                    values.put(fieldName, parseObject(parser, objectType, (Map) objectType.innerTypes(), true));
-                } else if (required instanceof DataType<?> dataType) {
-                    values.put(fieldName, parseValue(parser, dataType, null));
-                } else {
-                    values.put(fieldName, parseValue(parser, null, (Map) required));
-                }
-            }
-            return values;
+            parseAllFields = true;
         }
+        HashMap<String, Object> values = new HashMap<>();
+        XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
+        for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
+            String fieldName = lookupNameBySourceKey.apply(parser.currentName());
+            boolean dropped = false;
+            if (droppedColumns.isEmpty() == false) {
+                String path = fieldName;
+                if (colPath.isEmpty() == false) {
+                    path = colPath + "." + fieldName;
+                }
+                dropped = droppedColumns.contains(path);
+            }
+
+            token = parser.nextToken(); // Move to the current field's value
+            var required = requiredColumns == null ? null : requiredColumns.get(fieldName);
+            if ((parseAllFields == false && required == null && !includeUnknown) || dropped) {
+                parser.skipChildren();
+            } else if (token == START_ARRAY
+                && required instanceof DataType<?>
+                && !(required instanceof ArrayType<?>)
+                && !(required instanceof GeoPointType)
+                && !(required instanceof GeoShapeType)
+                && !(required instanceof FloatVectorType)
+                && !(required instanceof UndefinedType)) {
+                // due to a bug: https://github.com/crate/crate/issues/13990
+                parser.skipChildren();
+                values.put(fieldName, null);
+            } else if (token == VALUE_NULL) {
+                // If object value is null, we can short-circuit to NULL and continue further with other fields.
+                // We should not call parseObject() as current object's innerTypes can interfere with sibling columns
+                // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
+                values.put(fieldName, null);
+            } else if (required instanceof ObjectType objectType) {
+                var prevLength = appendToColPath(colPath, fieldName);
+                values.put(fieldName, parseObject(
+                    parser,
+                    objectType,
+                    (Map) objectType.innerTypes(),
+                    droppedColumns,
+                    lookupNameBySourceKey,
+                    colPath,
+                    true)
+                );
+                colPath.delete(prevLength, colPath.length());
+            } else if (required instanceof DataType<?> dataType) {
+                if (dataType instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID) {
+                    var prevLength = appendToColPath(colPath, fieldName);
+                    values.put(fieldName, parseValue(parser, arrayType.innerType(),
+                        (Map) ((ObjectType) arrayType.innerType()).innerTypes(), droppedColumns,
+                        lookupNameBySourceKey, colPath)
+                    );
+                    colPath.delete(prevLength, colPath.length());
+                } else {
+                    values.put(fieldName, parseValue(parser, dataType, null, droppedColumns,
+                        lookupNameBySourceKey, colPath)
+                    );
+                }
+            } else {
+                values.put(fieldName, parseValue(parser, null, (Map) required, droppedColumns,
+                    lookupNameBySourceKey, colPath));
+            }
+        }
+        return values;
+    }
+
+    private static int appendToColPath(StringBuilder colPath, String fieldName) {
+        var prevLength = colPath.length();
+        if (colPath.isEmpty() == false) {
+            colPath.append('.');
+        }
+        colPath.append(fieldName);
+        return prevLength;
     }
 
     /**
@@ -188,18 +280,22 @@ public final class SourceParser {
      */
     private static Object parseValue(XContentParser parser,
                                      @Nullable DataType<?> type,
-                                     @Nullable Map<String, Object> requiredColumns) throws IOException {
+                                     @Nullable Map<String, Object> requiredColumns,
+                                     Set<String> droppedColumns,
+                                     Function<String, String> lookupNameBySourceKey,
+                                     StringBuilder colPath) throws IOException {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
-            case START_ARRAY -> parseArray(parser, type, requiredColumns);
-            case START_OBJECT -> parseObject(parser, type, requiredColumns, false);
+            case START_ARRAY -> parseArray(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey,
+                colPath);
+            case START_OBJECT -> parseObject(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey,
+                colPath, false);
             case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
             case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
             case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);
             case VALUE_EMBEDDED_OBJECT -> type == null ? parser.binaryValue() : parseByType(parser, type);
-            default -> {
-                throw new UnsupportedOperationException("Unsupported token encountered, expected a value, got " + parser.currentToken());
-            }
+            default -> throw new UnsupportedOperationException("Unsupported token encountered, expected a value, got "
+                + parser.currentToken());
         };
     }
 

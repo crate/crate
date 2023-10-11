@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import io.crate.testing.TestingHelpers;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +36,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -139,14 +141,14 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgDescriptionTableIsEmpty() {
         execute("select * from pg_description");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
         assertThat(response).hasColumns("classoid", "description", "objoid", "objsubid");
     }
 
     @Test
     public void testPgShdescriptionTableIsEmpty() {
         execute("select * from pg_shdescription");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
         assertThat(response).hasColumns("classoid", "description", "objoid");
     }
 
@@ -162,8 +164,11 @@ public class PgCatalogITest extends IntegTestCase {
             "datestyle| ISO| Display format for date and time values.| NULL| NULL",
             "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL",
             "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.| NULL| NULL",
+            "max_identifier_length| 255| Shows the maximum length of identifiers in bytes.| NULL| NULL",
             "max_index_keys| 32| Shows the maximum number of index keys.| NULL| NULL",
+            "memory.operation_limit| 0| Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits| NULL| NULL",
             "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.| NULL| NULL",
+            "optimizer_eliminate_cross_join| true| Indicates if the optimizer rule EliminateCrossJoin is activated.| NULL| NULL",
             "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.| NULL| NULL",
             "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.| NULL| NULL",
             "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.| NULL| NULL",
@@ -316,7 +321,7 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void test_kepserver_regclass_cast_query() throws Exception {
         execute("select nspname from pg_namespace n, pg_class c where c.relnamespace=n.oid and c.oid='kepware'::regclass");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
     }
 
     @Test
@@ -347,5 +352,58 @@ public class PgCatalogITest extends IntegTestCase {
             " oid " +
             " FROM pg_class WHERE relname ='persons'");
         assertThat(response).hasRows("1726373441| 1726373441");
+    }
+
+    @Test
+    @UseNewCluster // Dropped column prefix contains OID and must be deterministic.
+    public void test_dropped_columns_shown_in_pg_attribute() {
+        execute("create table t(a integer, o object AS(oo object AS(a int)))");
+
+        execute("alter table t drop column a");
+        execute("alter table t add column a text");
+
+        // Verify that dropping top-level column is reflected in pg_attribute
+        // and re-added column with the same name appears as a new entry.
+        execute("""
+            select attname, attnum, attisdropped
+            from pg_attribute
+            where attrelid = 't'::regclass
+            order by attnum"""
+        );
+
+        // Column 'a' has OID 6 because first 5 are taken by the table, created in createRelations().
+        String pgAttributeRows = """
+            _dropped_6| 1| true
+            o| 2| false
+            o['oo']| 3| false
+            o['oo']['a']| 4| false
+            a| 5| false
+            """;
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(pgAttributeRows);
+
+        // Drop sub-column which in turn, has children column.
+        // Re-add columns with the same names but leaf having different type.
+        execute("alter table t drop column o['oo']");
+        execute("alter table t add column o['oo'] object AS(a text)");
+
+
+        // Only top-level columns are shown, children are completely gone.
+        // For example, there is no entry with ordinal 4 ==> no entry for dropped column o['oo']['a']|
+        execute("""
+            select attname, attnum, attisdropped
+            from pg_attribute
+            where attrelid = 't'::regclass
+            order by attnum"""
+        );
+
+        pgAttributeRows = """
+            _dropped_6| 1| true
+            o| 2| false
+            _dropped_8| 3| true
+            a| 5| false
+            o['oo']| 6| false
+            o['oo']['a']| 7| false
+            """;
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(pgAttributeRows);
     }
 }

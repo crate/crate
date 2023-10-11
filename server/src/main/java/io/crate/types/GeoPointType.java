@@ -52,9 +52,9 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
         @Override
         public ValueIndexer<Point> valueIndexer(RelationName table,
                                                 Reference ref,
-                                                Function<ColumnIdent, FieldType> getFieldType,
+                                                Function<String, FieldType> getFieldType,
                                                 Function<ColumnIdent, Reference> getRef) {
-            return new GeoPointIndexer(ref, getFieldType.apply(ref.column()));
+            return new GeoPointIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 
@@ -120,7 +120,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     public Point sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof List values) {
+        } else if (value instanceof List<?> values) {
             checkLengthIs2(values.size());
             PointImpl point = new PointImpl(
                 ((Number) values.get(0)).doubleValue(),

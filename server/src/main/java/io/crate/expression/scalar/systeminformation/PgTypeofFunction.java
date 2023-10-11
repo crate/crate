@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
@@ -31,9 +33,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public final class PgTypeofFunction extends Scalar<String, Object> {
 
@@ -43,7 +43,7 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 FQNAME,
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 DataTypes.STRING.getTypeSignature()
             )
                 .withTypeVariableConstraints(typeVariable("E")),
@@ -52,24 +52,11 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
 
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final String type;
 
     private PgTypeofFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         type = boundSignature.argTypes().get(0).getName();
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @SafeVarargs

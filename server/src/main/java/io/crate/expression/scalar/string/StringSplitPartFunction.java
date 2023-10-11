@@ -50,12 +50,8 @@ public final class StringSplitPartFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public StringSplitPartFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -94,15 +90,5 @@ public final class StringSplitPartFunction extends Scalar<String, Object> {
             endIndex = text.length();
         }
         return text.substring(startIndex, endIndex);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -38,6 +36,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.core.Base64Variants;
 
@@ -88,9 +87,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         @Override
         public ValueIndexer<BitString> valueIndexer(RelationName table,
                                                     Reference ref,
-                                                    Function<ColumnIdent, FieldType> getFieldType,
+                                                    Function<String, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
-            return new BitStringIndexer(ref, getFieldType.apply(ref.column()));
+            return new BitStringIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 
@@ -188,11 +187,10 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public BitString valueForInsert(Object value) {
-        if (value == null) {
+    public BitString valueForInsert(BitString bitString) {
+        if (bitString == null) {
             return null;
         }
-        BitString bitString = (BitString) value;
         if (bitString.length() == length) {
             return bitString;
         }

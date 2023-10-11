@@ -32,6 +32,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 
 /**
  * rudimentary sort symbol validation that can be used during analysis.
@@ -49,7 +50,8 @@ public class SemanticSortValidator {
         Stream.of(
             DataTypes.REGCLASS,
             DataTypes.REGPROC,
-            BitStringType.INSTANCE_ONE
+            BitStringType.INSTANCE_ONE,
+            FloatVectorType.INSTANCE_ONE
         )
     ).map(x -> x.id()).collect(Collectors.toSet());
 

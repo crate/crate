@@ -356,7 +356,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     /**
      * Union with order by (and/or limit) results
-     * in a {@link io.crate.analyze.relation.OrderedLimitedRelation}
+     * in a {@link io.crate.analyze.QueriedSelectRelation}
      * which wraps the {@link io.crate.analyze.relations.UnionSelect}
      */
     @Test
@@ -373,6 +373,41 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 ") as users_parted order by users_parted.id");
         assertAskedForTable(Privilege.Type.DQL, "doc.users");
         assertAskedForTable(Privilege.Type.DQL, "doc.parted");
+    }
+
+    @Test
+    public void test_select_with_scalar_subselect_in_select() {
+        analyze("SELECT 1, array(SELECT users.id FROM USERS), 2");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
+
+    @Test
+    public void test_select_with_scalar_subselect_in_where() {
+        analyze("SELECT generate_series(1, 10, 1) WHERE EXISTS " +
+                "(SELECT u.a + 10 FROM (SELECT users.id AS a FROM USERS) u)");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
+
+    @Test
+    public void test_select_with_scalar_subselect_in_order_by() {
+        analyze("SELECT generate_series(1, 10, 1) ORDER BY " +
+                "(SELECT u.a + 10 FROM (SELECT users.id AS a FROM USERS) u)");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
+
+    @Test
+    public void test_select_with_scalar_subselect_in_group_by() {
+        analyze("SELECT count(*) FROM (SELECT * FROM GENERATE_SERIES(1,10,1) AS g) gs " +
+                "GROUP BY gs.g + (SELECT u.a + 10 FROM (SELECT users.id AS a FROM USERS) u)");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
+
+    @Test
+    public void test_select_with_scalar_subselect_in_having() {
+        analyze("SELECT count(*) FROM parted GROUP BY id HAVING id > " +
+                "(SELECT u.a + 10 FROM (SELECT users.id AS a FROM USERS) u)");
+        assertAskedForTable(Privilege.Type.DQL, "doc.parted");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
     }
 
     @Test
@@ -435,6 +470,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAddColumn() throws Exception {
         analyze("alter table users add column foo string");
+        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+    }
+
+    @Test
+    public void test_drop_column() {
+        analyze("alter table users drop column floats");
         assertAskedForTable(Privilege.Type.DDL, "doc.users");
     }
 

@@ -22,7 +22,6 @@
 package io.crate.expression.scalar;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +41,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
     public static final String NAME = "array_set";
 
     public static void register(ScalarFunctionModule module) {
-        TypeSignature arrayESignature = parseTypeSignature("array(E)");
+        TypeSignature arrayESignature = TypeSignature.parse("array(E)");
         module.register(
             Signature.scalar(
                 NAME,
@@ -58,29 +57,15 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
                 NAME,
                 arrayESignature,
                 DataTypes.INTEGER.getTypeSignature(),
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 arrayESignature
             ).withTypeVariableConstraints(typeVariable("E")),
             SingleArraySetFunction::new
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public ArraySetFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -127,22 +112,8 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
 
     static class SingleArraySetFunction extends Scalar<List<Object>, Object> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
-
         SingleArraySetFunction(Signature signature, BoundSignature boundSignature) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
+            super(signature, boundSignature);
         }
 
         @SafeVarargs

@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -72,7 +71,6 @@ public class BlobIndicesService implements IndexEventListener {
     @Nullable
     private final Path globalBlobPath;
 
-    @Inject
     public BlobIndicesService(Settings settings, ClusterService clusterService) {
         this.clusterService = clusterService;
         globalBlobPath = getGlobalBlobPath(settings);

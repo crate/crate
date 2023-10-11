@@ -25,9 +25,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -44,7 +46,6 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public void indexValue(List<T> values,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.startArray();
@@ -57,7 +58,6 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                         value,
                         xContentBuilder,
                         addField,
-                        onDynamicColumn,
                         synthetics,
                         toValidate
                     );
@@ -65,5 +65,23 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
             }
         }
         xContentBuilder.endArray();
+    }
+
+    @Override
+    public void collectSchemaUpdates(@Nullable List<T> values,
+                                     Consumer<? super Reference> onDynamicColumn,
+                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+        if (values != null) {
+            for (T value : values) {
+                if (value != null) {
+                    innerIndexer.collectSchemaUpdates(value, onDynamicColumn, synthetics);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+        innerIndexer.updateTargets(getRef);
     }
 }

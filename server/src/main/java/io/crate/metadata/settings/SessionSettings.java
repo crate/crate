@@ -44,31 +44,55 @@ public class SessionSettings implements Writeable {
     protected SearchPath searchPath;
     protected boolean hashJoinsEnabled;
     protected boolean errorOnUnknownObjectKey;
-
-    public SessionSettings(StreamInput in) throws IOException {
-        this.userName = in.readString();
-        this.searchPath = SearchPath.createSearchPathFrom(in);
-        this.hashJoinsEnabled = in.readBoolean();
-        if (in.getVersion().onOrAfter(Version.V_4_7_0)) {
-            this.errorOnUnknownObjectKey = in.readBoolean();
-        } else {
-            this.errorOnUnknownObjectKey = true;
-        }
-    }
+    protected int memoryLimit;
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true, true);
+        this(userName, searchPath, true, true, 0);
     }
 
     public SessionSettings(String userName,
                            SearchPath searchPath,
                            boolean hashJoinsEnabled,
-                           boolean errorOnUnknownObjectKey) {
+                           boolean errorOnUnknownObjectKey,
+                           int memoryLimit) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
         this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
+        this.memoryLimit = memoryLimit;
+    }
+
+
+    public SessionSettings(StreamInput in) throws IOException {
+        this.userName = in.readString();
+        this.searchPath = SearchPath.createSearchPathFrom(in);
+        this.hashJoinsEnabled = in.readBoolean();
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_4_7_0)) {
+            this.errorOnUnknownObjectKey = in.readBoolean();
+        } else {
+            this.errorOnUnknownObjectKey = true;
+        }
+        if (version.onOrAfter(Version.V_5_5_0)) {
+            this.memoryLimit = in.readVInt();
+        } else {
+            this.memoryLimit = 0;
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(userName);
+        searchPath.writeTo(out);
+        out.writeBoolean(hashJoinsEnabled);
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_4_7_0)) {
+            out.writeBoolean(errorOnUnknownObjectKey);
+        }
+        if (version.onOrAfter(Version.V_5_5_0)) {
+            out.writeVInt(memoryLimit);
+        }
     }
 
     public String userName() {
@@ -106,14 +130,11 @@ public class SessionSettings implements Writeable {
         return TimeValue.ZERO;
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(userName);
-        searchPath.writeTo(out);
-        out.writeBoolean(hashJoinsEnabled);
-        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
-            out.writeBoolean(errorOnUnknownObjectKey);
-        }
+    /**
+     * memory.operation_limit
+     **/
+    public int memoryLimitInBytes() {
+        return memoryLimit;
     }
 
     @Override
@@ -127,11 +148,12 @@ public class SessionSettings implements Writeable {
         SessionSettings that = (SessionSettings) o;
         return Objects.equals(userName, that.userName) &&
                Objects.equals(searchPath, that.searchPath) &&
-               Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled);
+               Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled) &&
+               Objects.equals(memoryLimit, that.memoryLimit);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userName, searchPath, hashJoinsEnabled);
+        return Objects.hash(userName, searchPath, hashJoinsEnabled, memoryLimit);
     }
 }

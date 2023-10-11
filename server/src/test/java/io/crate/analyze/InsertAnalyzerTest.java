@@ -21,26 +21,19 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isInputColumn;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.core.Is;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,7 +47,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
@@ -109,16 +101,14 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private void assertCompatibleColumns(AnalyzedInsertStatement statement) {
         List<Symbol> outputSymbols = statement.subQueryRelation().outputs();
-        assertThat(statement.columns().size(), is(outputSymbols.size()));
+        assertThat(statement.columns()).hasSize(outputSymbols.size());
 
         for (int i = 0; i < statement.columns().size(); i++) {
             Symbol subQueryColumn = outputSymbols.get(i);
-            assertThat(subQueryColumn, instanceOf(Symbol.class));
+            assertThat(subQueryColumn).isInstanceOf(Symbol.class);
             var insertColumn = statement.columns().get(i);
-            assertThat(
-                subQueryColumn.valueType().isConvertableTo(insertColumn.valueType(), false),
-                is(true)
-            );
+            assertThat(subQueryColumn.valueType().isConvertableTo(insertColumn.valueType(), false))
+                .isTrue();
         }
     }
 
@@ -126,7 +116,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_nested_primary_key_can_be_used_as_conflict_target_with_subscript_notation() throws Exception {
         AnalyzedInsertStatement insert =
             e.analyze("insert into doc.nested (o) values (?) on conflict (o['id']) do update set x = x + 1");
-        Asserts.assertThat(insert.onDuplicateKeyAssignments())
+        assertThat(insert.onDuplicateKeyAssignments())
             .hasKeySatisfying(toCondition(isReference("x")));
     }
 
@@ -134,7 +124,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_nested_primary_key_can_be_used_as_conflict_target_with_dotted_column_name() throws Exception {
         AnalyzedInsertStatement insert =
             e.analyze("insert into doc.nested (o) values (?) on conflict (\"o.id\") do update set x = x + 1");
-        Asserts.assertThat(insert.onDuplicateKeyAssignments())
+        assertThat(insert.onDuplicateKeyAssignments())
             .hasKeySatisfying(toCondition(isReference("x")));
     }
 
@@ -155,23 +145,27 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFromQueryWithMissingSubQueryColumn() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        e.analyze("insert into users (" +
-                  "  select id, other_id, name, details, awesome, counters, " +
-                  "       friends " +
-                  "  from users " +
-                  "  where name = 'Trillian'" +
-                  ")");
+        assertThatThrownBy(() ->
+            e.analyze("""
+                insert into users (
+                  select id, other_id, name, details, awesome, counters, friends
+                  from users   where name = 'Trillian')
+                """))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageMatching("Number of target columns .* of insert statement doesn't match number of source columns .*");
 
     }
 
     @Test
     public void testFromQueryWithMissingInsertColumn() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        e.analyze("insert into users (id, other_id, name, details, awesome, counters, friends) (" +
-                  "  select * from users " +
-                  "  where name = 'Trillian'" +
-                  ")");
+        assertThatThrownBy(() ->
+            e.analyze("""
+                insert into users (id, other_id, name, details, awesome, counters, friends) (
+                  select * from users
+                  where name = 'Trillian')
+            """))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageMatching("Number of target columns .* of insert statement doesn't match number of source columns .*");
     }
 
     @Test
@@ -186,11 +180,14 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFromQueryWithWrongColumnTypes() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        e.analyze("insert into users (id, details, name) (" +
-                  "  select id, name, details from users " +
-                  "  where name = 'Trillian'" +
-                  ")");
+        assertThatThrownBy(() ->
+            e.analyze("""
+                insert into users (id, details, name) (
+                  select id, name, details from users
+                  where name = 'Trillian')
+            """))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The type 'object' of the insert source 'details' is not convertible to the type 'text' of target column 'name'");
     }
 
     @Test
@@ -219,11 +216,11 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                      "on conflict (id) do update set name = 'Arthur'";
 
         AnalyzedInsertStatement statement = e.analyze(insert);
-        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        assertThat(statement.onDuplicateKeyAssignments()).hasSize(1);
 
         for (var entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            Asserts.assertThat(entry.getKey()).isReference("name");
-            Asserts.assertThat(entry.getValue()).isLiteral("Arthur", StringType.INSTANCE);
+            assertThat(entry.getKey()).isReference().hasName("name");
+            assertThat(entry.getValue()).isLiteral("Arthur", StringType.INSTANCE);
         }
     }
 
@@ -234,11 +231,11 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         AnalyzedInsertStatement statement = e.analyze(insert);
 
-        Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        assertThat(statement.onDuplicateKeyAssignments()).hasSize(1);
 
         for (var entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            Asserts.assertThat(entry.getKey()).isReference("name");
-            Asserts.assertThat(entry.getValue()).isExactlyInstanceOf(ParameterSymbol.class);
+            assertThat(entry.getKey()).isReference().hasName("name");
+            assertThat(entry.getValue()).isExactlyInstanceOf(ParameterSymbol.class);
         }
     }
 
@@ -248,16 +245,16 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                      "on conflict (id) do update set name = substr(excluded.name, 1, 1)";
 
         AnalyzedInsertStatement statement = e.analyze(insert);
-        Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        assertThat(statement.onDuplicateKeyAssignments()).hasSize(1);
 
         for (var entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            Asserts.assertThat(entry.getKey()).isReference("name");
-            Asserts.assertThat(entry.getValue()).isFunction(SubstrFunction.NAME);
+            assertThat(entry.getKey()).isReference().hasName("name");
+            assertThat(entry.getValue()).isFunction(SubstrFunction.NAME);
             Function function = (Function) entry.getValue();
-            assertThat(function.arguments().get(0), instanceOf(InputColumn.class));
+            assertThat(function.arguments().get(0)).isExactlyInstanceOf(InputColumn.class);
             InputColumn inputColumn = (InputColumn) function.arguments().get(0);
-            assertThat(inputColumn.index(), is(1));
-            assertThat(inputColumn.valueType(), instanceOf(StringType.class));
+            assertThat(inputColumn.index()).isEqualTo(1);
+            assertThat(inputColumn.valueType()).isExactlyInstanceOf(StringType.class);
         }
     }
 
@@ -265,31 +262,28 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testFromQueryWithOnConflictAndMultiplePKs() {
         String insertStatement = "insert into three_pk (a, b, c) (select 1, 2, 3) on conflict (a, b, c) do update set d = 1";
         AnalyzedInsertStatement statement = e.analyze(insertStatement);
-        assertThat(statement.onDuplicateKeyAssignments().size(), Is.is(1));
-        Asserts.assertThat(statement.onDuplicateKeyAssignments()).hasEntrySatisfying(
+        assertThat(statement.onDuplicateKeyAssignments()).hasSize(1);
+        assertThat(statement.onDuplicateKeyAssignments()).hasEntrySatisfying(
             toCondition(isReference("d")),
             toCondition(isLiteral(1)));
     }
 
     @Test
     public void testFromQueryWithUnknownOnDuplicateKeyValues() throws Exception {
-        try {
+        assertThatThrownBy(() ->
             e.analyze("insert into users (id, name) (select id, name from users) " +
-                      "on conflict (id) do update set name = excluded.does_not_exist");
-            fail("Analyze passed without a failure.");
-        } catch (ColumnUnknownException e) {
-            assertThat(e.getMessage(), containsString("Column does_not_exist unknown"));
-        }
+                      "on conflict (id) do update set name = excluded.does_not_exist"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column does_not_exist unknown");
     }
 
     @Test
     public void testFromQueryWithOnDuplicateKeyPrimaryKeyUpdate() {
-        try {
-            e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id) do update set id = id + 1");
-            fail("Analyze passed without a failure.");
-        } catch (ColumnValidationException e) {
-            assertThat(e.getMessage(), containsString("Updating a primary key is not supported"));
-        }
+        assertThatThrownBy(() ->
+            e.analyze("insert into users (id, name) (select 1, 'Arthur') " +
+                      "on conflict (id) do update set id = id + 1"))
+            .isExactlyInstanceOf(ColumnValidationException.class)
+            .hasMessage("Validation failed for id: Updating a primary key is not supported");
     }
 
     @Test
@@ -297,85 +291,95 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedInsertStatement statement =
             e.analyze("insert into users (id, name) (select 1, 'Jon') on conflict DO NOTHING");
         Map<Reference, Symbol> duplicateKeyAssignments = statement.onDuplicateKeyAssignments();
-        assertThat(statement.isIgnoreDuplicateKeys(), is(true));
-        assertThat(duplicateKeyAssignments, is(notNullValue()));
-        assertThat(duplicateKeyAssignments.size(), is(0));
+        assertThat(statement.isIgnoreDuplicateKeys()).isTrue();
+        assertThat(duplicateKeyAssignments).isNotNull();
+        assertThat(duplicateKeyAssignments).isEmpty();
     }
 
     @Test
     public void testMissingPrimaryKey() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column `id` is required but is missing from the insert statement");
-        e.analyze("insert into users (name) (select name from users)");
+        assertThatThrownBy(() -> e.analyze("insert into users (name) (select name from users)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column `id` is required but is missing from the insert statement");
     }
 
     @Test
     public void testTargetColumnsMustMatchSourceColumnsEvenWithGeneratedColumns() throws Exception {
-        /**
+        /*
          * We want the copy case (insert into target (select * from source)) to work so there is no special logic
          * to exclude generated columns from the target
          */
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of target columns (id, firstname, lastname, name) " +
-                                        "of insert statement doesn't match number of source columns (id, firstname, lastname)");
-        e.analyze("insert into users_generated (select id, firstname, lastname from users_generated)");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users_generated (select id, firstname, lastname from users_generated)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Number of target columns (id, firstname, lastname, name) " +
+                        "of insert statement doesn't match number of source columns (id, firstname, lastname)");
     }
 
     @Test
     public void testFromQueryWithInvalidConflictTarget() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Conflict target (name) did not match the primary key columns ([id])");
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (name) do update set name = excluded.name");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (name) do update set name = excluded.name"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Conflict target (name) did not match the primary key columns ([id])");
     }
 
     @Test
     public void testFromQueryWithConflictTargetNotMatchingPK() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of conflict targets ([\"id\", \"id2\"]) did not match the number of primary key columns ([id])");
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id, id2) do update set name = excluded.name");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id, id2) do update set name = excluded.name"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Number of conflict targets ([\"id\", \"id2\"]) did not match the number of primary key columns ([id])");
     }
 
     @Test
     public void testInsertFromValuesWithConflictTargetNotMatchingMultiplePKs() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of conflict targets ([\"a\", \"b\"]) did not match the number of primary key columns ([a, b, c])");
-        e.analyze("insert into three_pk (a, b, c) (select 1, 2, 3) " +
-                  "on conflict (a, b) do update set d = 1");
+        assertThatThrownBy(
+            () -> e.analyze("insert into three_pk (a, b, c) (select 1, 2, 3) " +
+                  "on conflict (a, b) do update set d = 1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Number of conflict targets ([\"a\", \"b\"]) did not match the number of primary key columns ([a, b, c])");
     }
 
     @Test
     public void testFromQueryWithMissingConflictTarget() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:66: mismatched input 'update' expecting 'NOTHING'");
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict do update set name = excluded.name");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict do update set name = excluded.name"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:66: mismatched input 'update' expecting 'NOTHING'");
+
     }
 
     @Test
     public void testFromQueryWithInvalidConflictTargetDoNothing() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Conflict target (name) did not match the primary key columns ([id])");
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (name) DO NOTHING");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (name) DO NOTHING"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Conflict target (name) did not match the primary key columns ([id])");
     }
 
     @Test
     public void test_query_with_column_that_does_not_exist_as_on_conflict_target() {
-        expectedException.expect(ColumnUnknownException.class);
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (invalid_col) DO NOTHING");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (invalid_col) DO NOTHING"))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
     @Test
     public void testFromQueryWithConflictTargetDoNothingNotMatchingPK() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of conflict targets ([\"id\", \"id2\"]) did not match the number of primary key columns ([id])");
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id, id2) DO NOTHING");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id, id2) DO NOTHING"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Number of conflict targets ([\"id\", \"id2\"]) did not match the number of primary key columns ([id])");
     }
 
     @Test
     public void testInsertFromValuesWithConflictTargetDoNothingNotMatchingMultiplePKs() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Number of conflict targets ([\"a\", \"b\"]) did not match the number of primary key columns ([a, b, c])");
-        e.analyze("insert into three_pk (a, b, c) (select 1, 2, 3) " +
-                  "on conflict (a, b) DO NOTHING");
+        assertThatThrownBy(
+            () -> e.analyze("insert into three_pk (a, b, c) (select 1, 2, 3) " +
+                  "on conflict (a, b) DO NOTHING"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Number of conflict targets ([\"a\", \"b\"]) did not match the number of primary key columns ([a, b, c])");
     }
 
     @Test
@@ -384,32 +388,33 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertCompatibleColumns(statement);
 
         List<Symbol> pkSymbols = statement.primaryKeySymbols();
-        assertThat(pkSymbols, hasSize(2));
-        Asserts.assertThat(pkSymbols.get(0)).isInputColumn(0);
-        Asserts.assertThat(pkSymbols.get(1)).isLiteral("crate");
+        assertThat(pkSymbols).hasSize(2);
+        assertThat(pkSymbols.get(0)).isInputColumn(0);
+        assertThat(pkSymbols.get(1)).isLiteral("crate");
     }
 
     @Test
     public void test_insert_from_query_with_missing_clustered_by_column() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column `id` is required but is missing from the insert statement");
-        e.analyze("insert into users_clustered_by_only (name) (select 'user')");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users_clustered_by_only (name) (select 'user')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column `id` is required but is missing from the insert statement");
     }
 
     @Test
     public void test_insert_from_query_fails_when_source_and_target_types_are_incompatible() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "The type 'bigint' of the insert source 'id' " +
-            "is not convertible to the type 'object' of target column 'details'");
-        e.analyze("insert into users (id, name, details) (select id, name, id from users)");
+        assertThatThrownBy(
+            () -> e.analyze("insert into users (id, name, details) (select id, name, id from users)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The type 'bigint' of the insert source 'id' " +
+                        "is not convertible to the type 'object' of target column 'details'");
     }
 
     @Test
     public void test_unnest_with_json_str_can_insert_into_object_column() {
         AnalyzedInsertStatement stmt = e.analyze(
             "insert into users (id, address) (select * from unnest([1], ['{\"postcode\":12345}']))");
-        Asserts.assertThat(stmt.subQueryRelation().outputs())
+        assertThat(stmt.subQueryRelation().outputs())
             .satisfiesExactly(
                 isReference("col1"),
                 isReference("col2", DataTypes.STRING)); // Planner adds a cast projection; text is okay here
@@ -419,21 +424,21 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_insert_with_id_in_returning_clause() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning id");
-        Asserts.assertThat(stmt.outputs()).satisfiesExactly(isReference("id"));
+        assertThat(stmt.outputs()).satisfiesExactly(isReference("id"));
     }
 
     @Test
     public void test_insert_with_docid_in_returning_clause() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning _doc");
-        Asserts.assertThat(stmt.outputs()).satisfiesExactly(isReference("_doc"));
+        assertThat(stmt.outputs()).satisfiesExactly(isReference("_doc"));
     }
 
     @Test
     public void test_insert_with_id_renamed_in_returning_clause() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning id as foo");
-        Asserts.assertThat(stmt.outputs())
+        assertThat(stmt.outputs())
             .satisfiesExactly(isAlias("foo", isReference("id")));
     }
 
@@ -441,7 +446,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_insert_with_function_in_returning_clause() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning id + 1 as foo");
-        Asserts.assertThat(stmt.outputs())
+        assertThat(stmt.outputs())
             .satisfiesExactly(isAlias("foo", isFunction("add")));
     }
 
@@ -449,7 +454,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_insert_with_returning_all_columns() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning *");
-        assertThat(stmt.outputs().size(), is(17));
+        assertThat(stmt.outputs()).hasSize(17);
     }
 
     @Test
@@ -462,8 +467,10 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_quoted_on_conflict_columns_are_treated_case_sensitive() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (\"ID\") do update set NAME = excluded.name");
+        assertThatThrownBy(() ->
+            e.analyze("insert into users (id, name) (select 1, 'Arthur') " +
+                      "on conflict (\"ID\") do update set NAME = excluded.name"))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
     @Test
@@ -475,7 +482,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_insert_from_values_with_mixed_type_used_target_column_type() throws Exception {
         AnalyzedInsertStatement stmt = e.analyze("insert into users (id, name) values (1, '1'), (2, 2)");
-        Asserts.assertThat(stmt.subQueryRelation().outputs())
+        assertThat(stmt.subQueryRelation().outputs())
             .satisfiesExactly(
                 isReference("col1", DataTypes.LONG),
                 isReference("col2", DataTypes.STRING));
@@ -484,15 +491,22 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_pk_col_generated_from_col_with_default() throws Exception {
         AnalyzedInsertStatement stmt = e.analyze("insert into doc.pk_generated_default(col1) values (1)");
-        Asserts.assertThat(stmt.subQueryRelation().outputs())
+        assertThat(stmt.subQueryRelation().outputs())
             .satisfiesExactly(
                 isReference("col1", DataTypes.INTEGER));
-        Asserts.assertThat(stmt.primaryKeySymbols()).satisfiesExactly(
+        assertThat(stmt.primaryKeySymbols()).satisfiesExactly(
             isInputColumn(0),
             isFunction("subtract",
                        isFunction("multiply",
                                   isFunction("add", isLiteral(10), isLiteral(20)),
                                   isInputColumn(0)),
                        isLiteral(2)));
+    }
+
+    @Test
+    public void test_duplicate_column_throws_an_error() {
+        assertThatThrownBy(() -> e.analyze("insert into users (id, id) values (1, 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("column \"id\" specified more than once");
     }
 }

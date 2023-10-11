@@ -64,22 +64,9 @@ public class AgeFunction extends Scalar<Period, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     public AgeFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

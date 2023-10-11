@@ -34,8 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -58,6 +56,7 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -166,7 +165,7 @@ final class GroupByOptimizedIterator {
 
         RamAccounting ramAccounting = collectTask.getRamAccounting();
 
-        CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId());
+        CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey());
         InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
@@ -406,6 +405,7 @@ final class GroupByOptimizedIterator {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     private static Object[] initStates(List<AggregationContext> aggregations,
                                        RamAccounting ramAccounting,
                                        MemoryManager memoryManager,
@@ -433,8 +433,8 @@ final class GroupByOptimizedIterator {
 
     @Nullable
     private static Reference getKeyRef(List<Symbol> toCollect, Symbol key) {
-        if (key instanceof InputColumn) {
-            Symbol keyRef = toCollect.get(((InputColumn) key).index());
+        if (key instanceof InputColumn inputColumn) {
+            Symbol keyRef = toCollect.get(inputColumn.index());
             if (keyRef instanceof Reference ref) {
                 return ref;
             }
@@ -447,10 +447,9 @@ final class GroupByOptimizedIterator {
             return null;
         }
         Projection shardProjection = shardProjections.iterator().next();
-        if (!(shardProjection instanceof GroupProjection)) {
+        if (!(shardProjection instanceof GroupProjection groupProjection)) {
             return null;
         }
-        GroupProjection groupProjection = (GroupProjection) shardProjection;
         if (groupProjection.keys().size() != 1 || groupProjection.keys().get(0).valueType() != DataTypes.STRING) {
             return null;
         }

@@ -21,10 +21,14 @@
 
 package io.crate.planner;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.user.User;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -46,10 +50,7 @@ import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Table;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.List;
+import io.crate.user.User;
 
 public final class CreateViewPlan implements Plan {
 
@@ -85,6 +86,7 @@ public final class CreateViewPlan implements Plan {
             createViewStmt.name(),
             formattedQuery,
             createViewStmt.replaceExisting(),
+            plannerContext.transactionContext().sessionSettings().searchPath(),
             owner == null ? null : owner.name()
         );
         dependencies.createViewAction().execute(request).whenComplete(new OneRowActionListener<>(consumer, resp -> {

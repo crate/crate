@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.costs;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.user.User;
+
 
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -126,6 +128,16 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
         var result = planStats.get(limit);
         assertThat(result.numDocs()).isEqualTo(5L);
+        assertThat(limit).withPlanStats(planStats).hasOperators("Limit[5;0] (rows=5)",
+                                                                "  └ Collect[doc.a | [x] | true] (rows=10)");
+
+        // now the source is smaller than the limit
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(3L, 1, Map.of())));
+
+        result = planStats.get(limit);
+        assertThat(result.numDocs()).isEqualTo(3L);
+        assertThat(limit).withPlanStats(planStats).hasOperators("Limit[5;0] (rows=3)",
+                                                                "  └ Collect[doc.a | [x] | true] (rows=3)");
     }
 
     @Test
@@ -244,7 +256,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         );
 
         var nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, relation, false, false, false, false);
+            lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, false, false, false);
 
         var memo = new Memo(nestedLoopJoin);
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
@@ -255,13 +267,13 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
         var joinCondition = e.asSymbol("x = y");
         nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.INNER, joinCondition, false, relation, false, false, false, false);
+            lhs, rhs, JoinType.INNER, joinCondition, false, false, false, false);
         result = planStats.get(nestedLoopJoin);
         assertThat(result.numDocs()).isEqualTo(1L);
         assertThat(result.sizeInBytes()).isEqualTo(32L);
 
         nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.CROSS, x, false, relation, false, false, false, false);
+            lhs, rhs, JoinType.CROSS, x, false, false, false, false);
 
         memo = new Memo(nestedLoopJoin);
         planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);

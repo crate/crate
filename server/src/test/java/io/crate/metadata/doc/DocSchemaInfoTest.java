@@ -30,8 +30,8 @@ import static org.junit.Assert.assertThat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
 import javax.script.ScriptException;
 
 import org.elasticsearch.Version;
@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.hamcrest.Matchers;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -83,20 +84,10 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                 if (error != null) {
                     throw new ScriptException("this is not Burlesque");
                 }
-                return new Scalar<>() {
+                return new Scalar<>(signature, boundSignature) {
                     @Override
                     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
                         return null;
-                    }
-
-                    @Override
-                    public Signature signature() {
-                        return signature;
-                    }
-
-                    @Override
-                    public BoundSignature boundSignature() {
-                        return boundSignature;
                     }
                 };
             }
@@ -251,6 +242,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         return new DocTableInfo(
             new RelationName(Schemas.DOC_SCHEMA_NAME, name),
             List.of(),
+            Set.of(),
             List.of(),
             List.of(),
             List.of(),

@@ -1,0 +1,130 @@
+.. _version_5.3.5:
+
+=============
+Version 5.3.5
+=============
+
+Released on 2023-08-04.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.3.5.
+
+    We recommend that you upgrade to the latest 5.3 release before moving to
+    5.3.5.
+
+    Before upgrading, you should `back up your data`_.
+
+
+.. WARNING::
+
+    A rolling upgrade from 5.3.x to 5.3.5 is **not** supported if your cluster
+    contains view definitions.
+    If you want to do a rolling upgrade, skip 5.3.5 and upgrade to 5.3.6 or
+    5.4.2.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.3.0` release notes for a full list of changes in the
+5.3 series.
+
+
+Fixes
+=====
+
+- Allowed user to :ref:`RESET<ref-set>` cluster settings with ``archived.``
+  prefix.
+
+- Fixed an issue that could lead to a ``class_cast_exception`` when using a
+  subscript expression on an aliased expression that shadows another column. For
+  example::
+
+    SELECT a['b'] FROM (SELECT UNNEST(a) AS a FROM tbl) t;
+
+- Fixed an issue that caused a ``object_column = {}`` query to not match if the
+  object column doesn't have any child columns.
+
+- Fixed an issue that caused queries against views to evaluate the view
+  definition with the current search path. This could cause issues if the
+  search path diverged. The fix only applies to newly created views.
+
+- Fixed a ``Failed to validate IP`` error that occurred when using the
+  ``any_value`` aggregation on a column of type ``IP``.
+
+- Improved error message when passing settings with ``WITH`` clause on a
+  :ref:`CREATE SUBSCRIPTION<sql-create-subscription>` statement, which is not
+  currently supported.
+
+- Fixed an issue that resulted in hiding errors with the connection URL of
+  :ref:`CREATE SUBSCRIPTION<sql-create-subscription>`, when executed from a
+  non-superuser but with `AL` privileges.
+
+- Allowed trailing ``/`` without a database name for connection URL of
+  :ref:`CREATE SUBSCRIPTION<sql-create-subscription>`.
+
+- Fixed a ``NullPointerException`` which could happen if using a cross join on a
+  sub-query, where the sub-query was executed using a ``Fetch`` operator. An
+  example query::
+
+    SELECT
+      *
+    FROM
+      (SELECT a FROM tbl1 ORDER BY b DESC LIMIT 1) i,
+      tbl2
+    WHERE
+      c >= 50;
+
+- Fixed a ``NullPointerException` which was thrown, instead of using default
+  ``no compression`` behavior, when
+  :ref:`compression parameter<sql-copy-to-compression>` of
+  :ref:`COPY TO<sql-copy-to>` statement is set to ``null``.
+
+- Fixed ``IndexOutOfBoundsException`` caused by an ``IS [NOT] NULL`` filter on
+  a sub-column of an object or object array in a ``WHERE`` clause, e.g. ::
+
+    CREATE TABLE test (o1 ARRAY(OBJECT AS (col INT)), o2 OBJECT);
+    SELECT * FROM test WHERE o1[1]['col'] IS NULL;
+    => IndexOutOfBoundsException[Index: 1 Size: 1]
+    SELECT * FROM test AS T WHERE T.o2['unknown_col'] IS NOT NULL;
+    => IndexOutOfBoundsException[Index: 1 Size: 1]
+
+- Fixed an issue which caused ``INSERT INTO`` statements to skip generated
+  expression validation for partitioned columns.
+
+- Fixed an issue which caused arrays in ``IGNORED`` objects to be converted to
+  nulls.
+
+- Fixed an issue which caused ``INSERT INTO ... SELECT ...`` statements to
+  leave behind empty partitions if ``NULL`` or ``CHECK`` constraint on
+  partitioned by column failed.
+
+- Fixed an issue which caused errors on querying ``information_schema`` tables
+  when the query of a ``VIEW`` is erroneous due to changes made to the
+  underlying tables/views. Also, added a comment to view definition in
+  ``pg_catalog.pg_views`` and ``information_schema.views`` tables to denote
+  that a ``VIEW``'s query is erroneous.
+
+- Fixed ``SQLParseException`` caused by querying an unknown key from an object
+  column of a table that is aliased and with the session setting
+  :ref:`error_on_unknown_object_key <conf-session-error_on_unknown_object_key>`,
+  set to ``false``, e.g. ::
+
+    CREATE TABLE test (o OBJECT);
+    SELECT T.o['unknown'] from (SELECT * FROM test) AS T;
+    => SQLParseException[Couldn't create execution plan from logical plan because of: Couldn't find o['unknown'] in SourceSymbols{inputs={}, nonDeterministicFunctions={}}
+

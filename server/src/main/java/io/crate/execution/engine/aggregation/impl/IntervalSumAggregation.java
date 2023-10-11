@@ -21,24 +21,16 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import java.util.List;
-
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.Period;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.aggregation.DocValueAggregator;
-import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -128,14 +120,5 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
                                             Period previousAggState,
                                             Input<?>[] stateToRemove) {
         return previousAggState.minus(DataTypes.INTERVAL.sanitizeValue(stateToRemove[0].value()));
-    }
-
-    @Nullable
-    @Override
-    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
-                                                       List<Reference> aggregationReferences,
-                                                       DocTableInfo table,
-                                                       List<Literal<?>> optionalParams) {
-        return null;
     }
 }

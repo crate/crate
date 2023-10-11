@@ -214,8 +214,8 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
-        return Set.of(name);
+    public List<RelationName> getRelationNames() {
+        return List.of(name);
     }
 
     @Override

@@ -21,14 +21,14 @@
 
 package io.crate.expression.scalar;
 
+import java.util.function.DoubleUnaryOperator;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-
-import java.util.function.DoubleUnaryOperator;
 
 /**
  * Scalar implementation that wraps another function: f(double) -> double
@@ -38,24 +38,11 @@ import java.util.function.DoubleUnaryOperator;
  */
 public final class DoubleScalar extends Scalar<Double, Number> {
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final DoubleUnaryOperator func;
 
     public DoubleScalar(Signature signature, BoundSignature boundSignature, DoubleUnaryOperator func) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.func = func;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @SafeVarargs

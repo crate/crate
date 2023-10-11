@@ -21,6 +21,12 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.List;
+import java.util.StringJoiner;
+
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
@@ -30,13 +36,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import java.util.List;
-import java.util.StringJoiner;
-
-import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 class ArrayToStringFunction extends Scalar<String, Object> {
 
@@ -46,7 +46,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 FQN,
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
@@ -55,7 +55,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 FQN,
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
@@ -64,23 +64,9 @@ class ArrayToStringFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private ArrayToStringFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), FQN.name());
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

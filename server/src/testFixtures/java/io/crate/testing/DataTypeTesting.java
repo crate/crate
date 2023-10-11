@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -54,6 +55,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
@@ -62,6 +64,7 @@ import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
+import io.crate.types.ObjectType.Builder;
 import io.crate.types.Regclass;
 import io.crate.types.RegclassType;
 import io.crate.types.ShortType;
@@ -152,11 +155,26 @@ public class DataTypeTesting {
                 };
 
             case ObjectType.ID:
-                Supplier<?> innerValueGenerator = getDataGenerator(randomType());
+                ObjectType objectType = (ObjectType) type;
+                final Map<String, Supplier<?>> typeGen;
+                if (objectType.innerTypes().isEmpty()) {
+                    typeGen = Map.of("x", getDataGenerator(randomType()));
+                } else {
+                    typeGen = new HashMap<>();
+                    for (var entry : objectType.innerTypes().entrySet()) {
+                        String columnName = entry.getKey();
+                        DataType<?> innerType = entry.getValue();
+                        typeGen.put(columnName, getDataGenerator(innerType));
+                    }
+                }
                 return () -> {
                     // Can't use immutable Collections.singletonMap; insert-analyzer mutates the map
                     HashMap<String, Object> map = new HashMap<>();
-                    map.put("x", innerValueGenerator.get());
+                    for (var entry : typeGen.entrySet()) {
+                        String column = entry.getKey();
+                        Supplier<?> valueGenerator = entry.getValue();
+                        map.put(column, valueGenerator.get());
+                    }
                     return (T) map;
                 };
 
@@ -175,8 +193,57 @@ public class DataTypeTesting {
                     }
                     return (T) new BitString(bitSet, length);
                 };
+
+            case FloatVectorType.ID:
+                return () -> {
+                    int length = type.characterMaximumLength();
+                    float[] result = new float[length];
+                    for (int i = 0; i < length; i++) {
+                        result[i] = random.nextFloat();
+                    }
+                    return (T) result;
+                };
+
+            case ArrayType.ID:
+                ArrayType<?> arrayType = (ArrayType<?>) type;
+                Supplier<?> elementGenerator = getDataGenerator(arrayType.innerType());
+                return () -> {
+                    int length = random.nextInt(21);
+                    ArrayList<Object> values = new ArrayList<>(length);
+                    for (int i = 0; i < length; i++) {
+                        if (random.nextInt(30) == 0) {
+                            values.add(null);
+                        } else {
+                            values.add(elementGenerator.get());
+                        }
+                    }
+                    return (T) values;
+                };
             default:
                 throw new AssertionError("No data generator for type " + type.getName());
+        }
+    }
+
+    /**
+     * Adds innerTypes to object type definitions
+     **/
+    public static DataType<?> extendedType(DataType<?> type, Object value) {
+        if (type.id() == ObjectType.ID) {
+            var entryIt = ((Map<?, ?>) value).entrySet().iterator();
+            Builder builder = ObjectType.builder();
+            while (entryIt.hasNext()) {
+                var entry = entryIt.next();
+                String innerName = (String) entry.getKey();
+                Object innerValue = entry.getValue();
+                DataType<?> innerType = DataTypes.guessType(innerValue);
+                if (innerType.id() == ObjectType.ID && innerValue instanceof Map<?, ?> m && m.containsKey("coordinates")) {
+                    innerType = DataTypes.GEO_SHAPE;
+                }
+                builder.setInnerType(innerName, extendedType(innerType, innerValue));
+            }
+            return builder.build();
+        } else {
+            return type;
         }
     }
 

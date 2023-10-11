@@ -44,8 +44,6 @@ import java.util.function.Function;
 
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
-    private final List<Symbol> targetColsSymbolsExclPartition;
-    private final List<Reference> targetColsExclPartitionCols;
     private final boolean ignoreDuplicateKeys;
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
     private final List<Reference> allTargetColumns;
@@ -70,8 +68,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
                                        List<Reference> allTargetColumns,
-                                       List<Reference> targetColsExclPartitionCols,
-                                       List<Symbol> targetColsSymbolsExclPartition,
                                        boolean ignoreDuplicateKeys,
                                        Map<Reference, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
@@ -90,9 +86,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         this.partitionedBySymbols = partitionedBySymbols;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
-        this.targetColsExclPartitionCols = targetColsExclPartitionCols;
         this.clusteredBySymbol = clusteredBySymbol;
-        this.targetColsSymbolsExclPartition = targetColsSymbolsExclPartition;
         this.outputs = outputs;
         this.returnValues = returnValues;
     }
@@ -100,19 +94,20 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     ColumnIndexWriterProjection(StreamInput in) throws IOException {
         super(in);
 
-        if (in.readBoolean()) {
-            targetColsSymbolsExclPartition = Symbols.listFromStream(in);
-        } else {
-            targetColsSymbolsExclPartition = Collections.emptyList();
-        }
-        if (in.readBoolean()) {
-            int length = in.readVInt();
-            targetColsExclPartitionCols = new ArrayList<>(length);
-            for (int i = 0; i < length; i++) {
-                targetColsExclPartitionCols.add(Reference.fromStream(in));
+
+        if (in.getVersion().before(Version.V_5_5_0)) {
+            if (in.readBoolean()) {
+                // Ignore targetColsSymbolsExclPartition
+                Symbols.listFromStream(in);
             }
-        } else {
-            targetColsExclPartitionCols = Collections.emptyList();
+
+            if (in.readBoolean()) {
+                // Ignore targetColsExclPartitionCols
+                int length = in.readVInt();
+                for (int i = 0; i < length; i++) {
+                    Reference.fromStream(in);
+                }
+            }
         }
 
         ignoreDuplicateKeys = in.readBoolean();
@@ -173,13 +168,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return allTargetColumns;
     }
 
-    public List<Symbol> columnSymbolsExclPartition() {
-        return targetColsSymbolsExclPartition;
-    }
 
-    public List<Reference> columnReferencesExclPartition() {
-        return targetColsExclPartitionCols;
-    }
 
     public boolean isIgnoreDuplicateKeys() {
         return ignoreDuplicateKeys;
@@ -206,9 +195,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         if (!super.equals(o)) return false;
 
         ColumnIndexWriterProjection that = (ColumnIndexWriterProjection) o;
-        return targetColsSymbolsExclPartition.equals(that.targetColsSymbolsExclPartition) &&
-               targetColsExclPartitionCols.equals(that.targetColsExclPartitionCols) &&
-               onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments) &&
+        return onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments) &&
                allTargetColumns.equals(that.allTargetColumns) &&
                Objects.equals(outputs, that.outputs) &&
                Objects.equals(returnValues, that.returnValues);
@@ -217,8 +204,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(),
-                            targetColsSymbolsExclPartition,
-                            targetColsExclPartitionCols,
                             onDuplicateKeyAssignments,
                             allTargetColumns,
                             outputs,
@@ -229,20 +214,11 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
-        if (targetColsSymbolsExclPartition == null) {
+        if (out.getVersion().before(Version.V_5_5_0)) {
+            // We used to stream targetColsSymbolsExclPartition and targetColsExclPartitionCols.
+            // Imitating null for both of them.
             out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            Symbols.toStream(targetColsSymbolsExclPartition, out);
-        }
-        if (targetColsExclPartitionCols == null) {
             out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(targetColsExclPartitionCols.size());
-            for (Reference columnIdent : targetColsExclPartitionCols) {
-                Reference.toStream(columnIdent, out);
-            }
         }
 
         out.writeBoolean(ignoreDuplicateKeys);
@@ -252,7 +228,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(true);
             out.writeVInt(onDuplicateKeyAssignments.size());
             for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
-                Reference.toStream(entry.getKey(), out);
+                Reference.toStream(out, entry.getKey());
                 Symbols.toStream(entry.getValue(), out);
             }
         }
@@ -291,8 +267,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             null,
             primaryKeys,
             allTargetColumns,
-            targetColsExclPartitionCols,
-            targetColsSymbolsExclPartition,
             ignoreDuplicateKeys,
             boundOnDuplicateKeyAssignments,
             (List<Symbol>) ids(),

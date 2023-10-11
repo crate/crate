@@ -80,14 +80,14 @@ automatically.  This name is visible in
 The ``CONSTRAINT`` definition can either be inline with a column, like this::
 
     cr> CREATE TABLE metrics1 (
-    ...     weight REAL CONSTRAINT weight_is_positive CHECK (weight >= 0),
+    ...     weight REAL CONSTRAINT weight_is_positive CHECK (weight >= 0)
     ... );
     CREATE OK, 1 row affected  (... sec)
 
 Or, also inline, but without explicit name::
 
     cr> CREATE TABLE metrics2 (
-    ...     weight REAL CHECK (weight >= 0),
+    ...     weight REAL CHECK (weight >= 0)
     ... );
     CREATE OK, 1 row affected  (... sec)
 
@@ -95,7 +95,7 @@ Or, on a table level with explicit name::
 
     cr> CREATE TABLE metrics3 (
     ...     weight REAL,
-    ...     CONSTRAINT weight_is_positive CHECK (weight >= 0),
+    ...     CONSTRAINT weight_is_positive CHECK (weight >= 0)
     ... );
     CREATE OK, 1 row affected  (... sec)
 
@@ -103,24 +103,19 @@ Or without name::
 
     cr> CREATE TABLE metrics4 (
     ...     weight REAL,
-    ...     CHECK (weight >= 0),
+    ...     CHECK (weight >= 0)
     ... );
     CREATE OK, 1 row affected  (... sec)
 
-Multiple columns can be referenced::
+You can reference multiple columns using table constraints::
 
     cr> CREATE TABLE metrics5 (
     ...     weight REAL,
     ...     qty INTEGER,
-    ...     CHECK (weight * qty != 1918),
+    ...     CHECK (weight * qty != 1918)
     ... );
     CREATE OK, 1 row affected  (... sec)
 
-    cr> CREATE TABLE metrics6 (
-    ...     weight REAL,
-    ...     qty INTEGER CHECK (qty * weight != 1918)
-    ... );
-    CREATE OK, 1 row affected  (... sec)
 
 .. WARNING::
 
@@ -132,6 +127,14 @@ Multiple columns can be referenced::
    behavior of that function. Some existing rows in the table could now violate
    the ``CHECK`` constraint. That would cause a subsequent database dump and
    reload to fail.
+
+.. NOTE::
+
+   To add a ``CHECK`` constraint to a sub-column of an object column you must
+   address the sub-column by it's full path::
+
+      cr> CREATE TABLE metrics6 (properties OBJECT AS (weight INTEGER CHECK (properties['weight'] >= 0)))
+      CREATE OK, 1 row affected (... sec)
 
 .. hide:
 

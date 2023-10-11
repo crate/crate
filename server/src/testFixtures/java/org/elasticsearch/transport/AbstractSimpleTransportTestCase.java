@@ -19,9 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.util.concurrent.TestFutureUtils;
 import org.elasticsearch.test.ESTestCase;
 
 public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
@@ -33,7 +32,7 @@ public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
      * @param node the node to connect to
      */
     public static void connectToNode(TransportService service, DiscoveryNode node) throws ConnectTransportException {
-        PlainActionFuture.get(fut -> service.connectToNode(node, ActionListener.map(fut, x -> null)));
+        TestFutureUtils.get(fut -> service.connectToNode(node, fut.map(x -> null)));
     }
 
     /**
@@ -44,6 +43,6 @@ public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
      * @param connectionProfile the connection profile to use
      */
     public static Transport.Connection openConnection(TransportService service, DiscoveryNode node, ConnectionProfile connectionProfile) {
-        return PlainActionFuture.get(fut -> service.openConnection(node, connectionProfile, fut));
+        return TestFutureUtils.get(fut -> service.openConnection(node, connectionProfile, fut));
     }
 }

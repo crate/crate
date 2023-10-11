@@ -21,14 +21,14 @@
 
 package io.crate.user;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.pgcatalog.OidHash;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.pgcatalog.OidHash;
 
 public class User {
 
@@ -103,14 +103,13 @@ public class User {
         if (isSuperUser()) {
             return true;
         }
-        Iterator<Privilege> it = privileges.iterator();
-        while (it.hasNext()) {
-            Privilege privilege = it.next();
+        for (Privilege privilege : privileges) {
             if (privilege.state() == Privilege.State.GRANT && privilege.ident().type() == type) {
                 if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
                     return true;
                 }
-                if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA && OidHash.schemaOid(privilege.ident().ident()) == schemaOid) {
+                if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA &&
+                    OidHash.schemaOid(privilege.ident().ident()) == schemaOid) {
                     return true;
                 }
             }

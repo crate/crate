@@ -22,7 +22,9 @@
 package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -39,7 +41,6 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
@@ -48,19 +49,31 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void testEquals() {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        DataType<?> dataType1 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
-        DataType<?> dataType2 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
-        Symbol defaultExpression1 = Literal.of(Map.of("f", 10));
-        Symbol defaultExpression2 = Literal.of(Map.of("f", 10));
+        var dataType1 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
+        var dataType2 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
+        Symbol defaultExpression1 = Literal.of(dataType1, List.of(Map.of("f", 10)));
+        Symbol defaultExpression2 = Literal.of(dataType2, List.of(Map.of("f", 10)));
         SimpleReference reference1 = new SimpleReference(referenceIdent,
                                                          RowGranularity.DOC,
                                                          dataType1,
+                                                         ColumnPolicy.IGNORED,
+                                                         IndexType.PLAIN,
+                                                         false,
+                                                         true,
                                                          1,
+                                                         111,
+                                                         true,
                                                          defaultExpression1);
         SimpleReference reference2 = new SimpleReference(referenceIdent,
                                                          RowGranularity.DOC,
                                                          dataType2,
+                                                         ColumnPolicy.IGNORED,
+                                                         IndexType.PLAIN,
+                                                         false,
+                                                         true,
                                                          1,
+                                                         111,
+                                                         true,
                                                          defaultExpression2);
         assertThat(reference1).isEqualTo(reference2);
     }
@@ -69,21 +82,24 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            dataType,
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
             0,
-            Literal.of(Map.of("f", 10)
+            111,
+            true,
+            Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(reference, out);
+        Reference.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
         Reference reference2 = Reference.fromStream(in);
@@ -95,22 +111,25 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void test_streaming_of_reference_position_before_4_6_0() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            dataType,
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
             0,
-            Literal.of(Map.of("f", 10)
+            COLUMN_OID_UNASSIGNED,
+            false,
+            Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_5_0);
-        Reference.toStream(reference, out);
+        Reference.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_5_0);
@@ -126,15 +145,17 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("length_limit", 40)
             .containsEntry("position", 1)
+            .containsEntry("oid", 1L)
             .containsEntry("type", "keyword")
-            .hasSize(3);
+            .doesNotContainKey("dropped")
+            .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -144,15 +165,17 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
+            .containsEntry("oid", 1L)
             .containsEntry("type", "keyword")
+            .doesNotContainKey("dropped")
             .containsEntry("doc_values", "false")
-            .hasSize(3);
+            .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -162,15 +185,17 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
                 .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
-                .containsEntry("position", 1)
-                .containsEntry("type", "float")
-                .containsEntry("doc_values", "false")
-                .hasSize(3);
+            .containsEntry("position", 1)
+            .containsEntry("oid", 1L)
+            .containsEntry("type", "float")
+            .doesNotContainKey("dropped")
+            .containsEntry("doc_values", "false")
+            .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -180,14 +205,28 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
+            .containsEntry("oid", 1L)
             .containsEntry("type", "keyword")
+            .doesNotContainKey("dropped")
             .containsEntry("default_expr", "'foo'")
-            .hasSize(3);
+            .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+    }
+
+    /**
+     * Rewrites OID explicitly as long (similar to logic in DocIndexMetadata) since
+     * Jackson optimizes writes of small long values as stores them as ints.
+     */
+    @SuppressWarnings("unchecked")
+    static Map<String, Object> columnMapping(Map<String, Object> sourceAsMap, String columnName) {
+        Map<String, Object> mapping = (Map<String, Object>) Maps.getByPath(sourceAsMap, columnName);
+        long oid = ((Number) mapping.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
+        mapping.put("oid", oid);
+        return mapping;
     }
 }

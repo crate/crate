@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -114,7 +115,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        HashSet<Symbol> toKeep = new HashSet<>();
+        HashSet<Symbol> toKeep = new LinkedHashSet<>();
         ArrayList<WindowFunction> newWindowFunctions = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
@@ -138,6 +139,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         return windowFunctions;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public ExecutionPlan build(DependencyCarrier executor,
                                PlannerContext plannerContext,
@@ -154,7 +156,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         Function<Symbol, Symbol> toInputCols = binder.andThen(s -> InputColumns.create(s, sourceSymbols));
 
-        List<WindowFunction> boundWindowFunctions = (List<WindowFunction>)(List) Lists2.map(windowFunctions, toInputCols);
+        List<WindowFunction> boundWindowFunctions = (List<WindowFunction>)(List<?>) Lists2.map(windowFunctions, toInputCols);
         List<Projection> projections = new ArrayList<>();
         WindowAggProjection windowAggProjection = new WindowAggProjection(
             windowDefinition.map(toInputCols),

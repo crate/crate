@@ -27,8 +27,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class MapsTest {
 
@@ -68,5 +70,19 @@ public class MapsTest {
 
         Maps.mergeInto(m, "o", Arrays.asList("x", "y"), 10);
         assertThat(m).isEqualTo(Map.of("o", Map.of("x", Map.of("y", 10))));
+    }
+
+    @Test
+    public void test_merge_maps() {
+        Map<Integer, Set<Integer>> m1 = Map.of(1, Set.of(1));
+        Map<Integer, Set<Integer>> m2 = Map.of(1, Set.of(2), 2, Set.of(3));
+
+        assertThat(Maps.merge(m1, m2, Sets::union)).isEqualTo(Map.of(1, Set.of(1, 2), 2, Set.of(3)));
+
+        m1 = Map.of(1, Set.of(0));
+        m2 = Map.of(1, Set.of(), 2, Set.of(0));
+
+        assertThat(Maps.merge(m1, m2, Sets::union)).isEqualTo(Map.of(1, Set.of(0), 2, Set.of(0)));
+
     }
 }

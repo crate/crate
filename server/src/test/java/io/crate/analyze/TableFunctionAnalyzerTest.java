@@ -43,19 +43,19 @@ public class TableFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void TestTableFunctionNameIsUsedWhenTableFunctionReturnsBaseDataType() {
         var analyzedRelation = e.analyze("select * from regexp_matches('a', 'a')");
-        assertThat(analyzedRelation.outputs().get(0)).isReference("regexp_matches");
+        assertThat(analyzedRelation.outputs().get(0)).isReference().hasName("regexp_matches");
 
         analyzedRelation = e.analyze("select * from regexp_matches('a', 'a') as r");
         assertThat(analyzedRelation.outputs().get(0)).isField("r");
 
         analyzedRelation = e.analyze("select * from generate_series(0, 1, 1)");
-        assertThat(analyzedRelation.outputs().get(0)).isReference("generate_series");
+        assertThat(analyzedRelation.outputs().get(0)).isReference().hasName("generate_series");
 
         analyzedRelation = e.analyze("select * from generate_series(0, 1, 1) as g");
         assertThat(analyzedRelation.outputs().get(0)).isField("g");
 
         analyzedRelation = e.analyze("select * from unnest([1])");
-        assertThat(analyzedRelation.outputs().get(0)).isReference("unnest");
+        assertThat(analyzedRelation.outputs().get(0)).isReference().hasName("unnest");
 
         analyzedRelation = e.analyze("select * from unnest([1]) as u");
         assertThat(analyzedRelation.outputs().get(0)).isField("u");

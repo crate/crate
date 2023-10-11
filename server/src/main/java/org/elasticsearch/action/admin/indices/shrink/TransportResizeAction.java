@@ -133,7 +133,8 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                     createIndexService.createIndex(
                         nodeContext,
                         updateRequest,
-                        ActionListener.map(delegate,
+                        null,
+                        delegate.map(
                             response -> new ResizeResponse(
                                 response.isAcknowledged(),
                                 response.isShardsAcknowledged(),

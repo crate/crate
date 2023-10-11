@@ -19,12 +19,6 @@
 
 package org.elasticsearch.plugins;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.bootstrap.JarHell;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -32,50 +26,41 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.common.Strings;
+
 /**
  * An in-memory representation of the plugin descriptor.
  */
-public class PluginInfo implements ToXContentObject {
+public class PluginInfo {
 
     public static final String ES_PLUGIN_PROPERTIES = "plugin-descriptor.properties";
 
     private final String name;
     private final String description;
-    private final String version;
-    private final Version elasticsearchVersion;
-    private final String javaVersion;
     private final String classname;
     private final List<String> extendedPlugins;
-    private final boolean hasNativeController;
 
     /**
      * Construct plugin info.
      *
      * @param name                  the name of the plugin
      * @param description           a description of the plugin
-     * @param version               an opaque version identifier for the plugin
-     * @param elasticsearchVersion  the version of Elasticsearch the plugin was built for
-     * @param javaVersion           the version of Java the plugin was built with
      * @param classname             the entry point to the plugin
      * @param extendedPlugins       other plugins this plugin extends through SPI
-     * @param hasNativeController   whether or not the plugin has a native controller
      */
-    public PluginInfo(String name, String description, String version, Version elasticsearchVersion, String javaVersion,
-                      String classname, List<String> extendedPlugins, boolean hasNativeController) {
+    public PluginInfo(String name,
+                      String description,
+                      String classname,
+                      List<String> extendedPlugins) {
         this.name = name;
         this.description = description;
-        this.version = version;
-        this.elasticsearchVersion = elasticsearchVersion;
-        this.javaVersion = javaVersion;
         this.classname = classname;
         this.extendedPlugins = Collections.unmodifiableList(extendedPlugins);
-        this.hasNativeController = hasNativeController;
     }
 
     /**
@@ -107,24 +92,6 @@ public class PluginInfo implements ToXContentObject {
             throw new IllegalArgumentException(
                     "property [description] is missing for plugin [" + name + "]");
         }
-        final String version = propsMap.remove("version");
-        if (version == null) {
-            throw new IllegalArgumentException(
-                    "property [version] is missing for plugin [" + name + "]");
-        }
-
-        final String crateVersionString = propsMap.remove("cratedb.version");
-        if (crateVersionString == null) {
-            throw new IllegalArgumentException(
-                    "property [cratedb.version] is missing for plugin [" + name + "]");
-        }
-        final Version crateVersion = Version.fromString(crateVersionString);
-        final String javaVersionString = propsMap.remove("java.version");
-        if (javaVersionString == null) {
-            throw new IllegalArgumentException(
-                    "property [java.version] is missing for plugin [" + name + "]");
-        }
-        JarHell.checkVersionFormat(javaVersionString);
         final String classname = propsMap.remove("classname");
         if (classname == null) {
             throw new IllegalArgumentException(
@@ -139,36 +106,16 @@ public class PluginInfo implements ToXContentObject {
             extendedPlugins = Arrays.asList(Strings.delimitedListToStringArray(extendedString, ","));
         }
 
-        final String hasNativeControllerValue = propsMap.remove("has.native.controller");
-        final boolean hasNativeController;
-        if (hasNativeControllerValue == null) {
-            hasNativeController = false;
-        } else {
-            switch (hasNativeControllerValue) {
-                case "true":
-                    hasNativeController = true;
-                    break;
-                case "false":
-                    hasNativeController = false;
-                    break;
-                default:
-                    final String message = String.format(
-                            Locale.ROOT,
-                            "property [%s] must be [%s], [%s], or unspecified but was [%s]",
-                            "has_native_controller",
-                            "true",
-                            "false",
-                            hasNativeControllerValue);
-                    throw new IllegalArgumentException(message);
-            }
-        }
-
         if (propsMap.isEmpty() == false) {
             throw new IllegalArgumentException("Unknown properties in plugin descriptor: " + propsMap.keySet());
         }
 
-        return new PluginInfo(name, description, version, crateVersion, javaVersionString,
-                              classname, extendedPlugins, hasNativeController);
+        return new PluginInfo(
+            name,
+            description,
+            classname,
+            extendedPlugins
+        );
     }
 
     /**
@@ -207,60 +154,6 @@ public class PluginInfo implements ToXContentObject {
         return extendedPlugins;
     }
 
-    /**
-     * The version of the plugin
-     *
-     * @return the version
-     */
-    public String getVersion() {
-        return version;
-    }
-
-    /**
-     * The version of Elasticsearch the plugin was built for.
-     *
-     * @return an Elasticsearch version
-     */
-    public Version getElasticsearchVersion() {
-        return elasticsearchVersion;
-    }
-
-    /**
-     * The version of Java the plugin was built with.
-     *
-     * @return a java version string
-     */
-    public String getJavaVersion() {
-        return javaVersion;
-    }
-
-    /**
-     * Whether or not the plugin has a native controller.
-     *
-     * @return {@code true} if the plugin has a native controller
-     */
-    public boolean hasNativeController() {
-        return hasNativeController;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        {
-            builder.field("name", name);
-            builder.field("version", version);
-            builder.field("elasticsearch_version", elasticsearchVersion);
-            builder.field("java_version", javaVersion);
-            builder.field("description", description);
-            builder.field("classname", classname);
-            builder.field("extended_plugins", extendedPlugins);
-            builder.field("has_native_controller", hasNativeController);
-        }
-        builder.endObject();
-
-        return builder;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -268,11 +161,7 @@ public class PluginInfo implements ToXContentObject {
 
         PluginInfo that = (PluginInfo) o;
 
-        if (!name.equals(that.name)) return false;
-        // TODO: since the plugins are unique by their directory name, this should only be a name check, version should not matter?
-        if (version != null ? !version.equals(that.version) : that.version != null) return false;
-
-        return true;
+        return name.equals(that.name);
     }
 
     @Override
@@ -290,10 +179,6 @@ public class PluginInfo implements ToXContentObject {
             .append(prefix).append("- Plugin information:\n")
             .append(prefix).append("Name: ").append(name).append("\n")
             .append(prefix).append("Description: ").append(description).append("\n")
-            .append(prefix).append("Version: ").append(version).append("\n")
-            .append(prefix).append("Elasticsearch Version: ").append(elasticsearchVersion).append("\n")
-            .append(prefix).append("Java Version: ").append(javaVersion).append("\n")
-            .append(prefix).append("Native Controller: ").append(hasNativeController).append("\n")
             .append(prefix).append("Extended Plugins: ").append(extendedPlugins).append("\n")
             .append(prefix).append(" * Classname: ").append(classname);
         return information.toString();

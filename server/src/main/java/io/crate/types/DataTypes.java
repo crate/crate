@@ -175,7 +175,8 @@ public final class DataTypes {
             entry(OidVectorType.ID, in -> OIDVECTOR),
             entry(DateType.ID, in -> DATE),
             entry(BitStringType.ID, BitStringType::new),
-            entry(JsonType.ID, in -> JsonType.INSTANCE)
+            entry(JsonType.ID, in -> JsonType.INSTANCE),
+            entry(FloatVectorType.ID, FloatVectorType::new)
         )
     );
 
@@ -306,7 +307,7 @@ public final class DataTypes {
         entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static DataType<?> guessType(Object value) {
         if (value == null) {
             return UNDEFINED;
@@ -314,8 +315,10 @@ public final class DataTypes {
             return UNTYPED_OBJECT;
         } else if (value instanceof List list) {
             return valueFromList(list);
-        } else if (value.getClass().isArray()) {
-            return valueFromList(Arrays.asList((Object[]) value));
+        } else if (value instanceof Object[] objectArray) {
+            return valueFromList(Arrays.asList(objectArray));
+        } else if (value instanceof float[] values) {
+            return new FloatVectorType(values.length);
         }
         DataType<?> dataType = POJO_TYPE_MAPPING.get(value.getClass());
         if (dataType == null) {
@@ -428,7 +431,8 @@ public final class DataTypes {
         entry(DATE.getName(), DATE),
         entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
         entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE),
-        entry("decimal", NUMERIC)
+        entry("decimal", NUMERIC),
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
     );
 
     public static DataType<?> ofName(String typeName) {
@@ -453,6 +457,7 @@ public final class DataTypes {
                 case StringType.ID -> StringType.of(parameters);
                 case CharacterType.ID -> CharacterType.of(parameters);
                 case NumericType.ID -> NumericType.of(parameters);
+                case FloatVectorType.ID -> new FloatVectorType(parameters.get(0));
                 default -> throw new IllegalArgumentException(
                     "The '" + typeName + "' type doesn't support type parameters.");
             };
@@ -483,7 +488,8 @@ public final class DataTypes {
         entry("geo_shape", DataTypes.GEO_SHAPE),
         entry("object", UNTYPED_OBJECT),
         entry("nested", UNTYPED_OBJECT),
-        entry("interval", DataTypes.INTERVAL)
+        entry("interval", DataTypes.INTERVAL),
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
@@ -503,7 +509,8 @@ public final class DataTypes {
         entry(GEO_SHAPE.id(), "geo_shape"),
         entry(GEO_POINT.id(), "geo_point"),
         entry(INTERVAL.id(), "interval"),
-        entry(BitStringType.ID, "bit")
+        entry(BitStringType.ID, "bit"),
+        entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName())
     );
 
     @Nullable
@@ -601,6 +608,28 @@ public final class DataTypes {
             }
         }
         return true;
+    }
+
+    public static DataType<?> merge(DataType<?> leftType, DataType<?> rightType) {
+        DataType<?> type;
+        if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {
+            type = ObjectType.merge((ObjectType) leftType, (ObjectType) rightType);
+        } else if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
+            type = new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
+        } else {
+            if (leftType.precedes(rightType)) {
+                if (rightType.isConvertableTo(leftType, false)) {
+                    return leftType;
+                }
+                throw new IllegalArgumentException("'" + rightType + "' is not convertible to '" + leftType + "'");
+            } else {
+                if (leftType.isConvertableTo(rightType, false)) {
+                    return rightType;
+                }
+                throw new IllegalArgumentException("'" + leftType + "' is not convertible to '" + rightType + "'");
+            }
+        }
+        return type;
     }
 
     public static DataType<?> fromId(Integer id) {

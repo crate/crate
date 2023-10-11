@@ -102,7 +102,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
         if (bestOnDiskState.empty()) {
             throw new ElasticsearchException(CS_MISSING_MSG);
         }
-        return Tuple.tuple(bestOnDiskState.currentTerm, clusterState(env, bestOnDiskState));
+        return new Tuple<>(bestOnDiskState.currentTerm, clusterState(env, bestOnDiskState));
     }
 
     protected void processNodePaths(Terminal terminal, OptionSet options, Environment env) throws IOException, UserException {

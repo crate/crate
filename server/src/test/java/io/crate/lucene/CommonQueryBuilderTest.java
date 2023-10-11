@@ -22,7 +22,6 @@
 package io.crate.lucene;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -64,6 +63,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 import io.crate.user.User;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
@@ -472,6 +472,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_is_null_on_subscript_function() {
+        Query query = convert("o_array[1]['xs'] is null");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
+
+    @Test
     public void testMatchWithOperator() {
         assertThat(convert("match(tags, 'foo bar') using best_fields with (operator='and')")).hasToString(
             "+tags:foo +tags:bar");
@@ -596,7 +602,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         var innerFunction = new Function(
             Signature.scalar(
                 "array_length",
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
@@ -662,5 +668,23 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_arr_eq_empty_array_literal_is_optimized() {
         Query query = convert("y_array = []");
         assertThat(query).hasToString("+NumTermsPerDoc: y_array +(y_array = [])");
+    }
+
+    @Test
+    public void test_any_operators_with_operands_containing_nulls() {
+        Query query = convert("x != any([1, null, 2])");
+        assertThat(query).hasToString("+(+*:* -(+x:[1 TO 1] +x:[2 TO 2])) #FieldExistsQuery [field=x]");
+
+        query = convert("x = any([1, null, 2])");
+        assertThat(query).hasToString("x:{1 2}");
+
+        query = convert("x < any([1, null, 2])");
+        assertThat(query).hasToString("(x:[-2147483648 TO 0] x:[-2147483648 TO 1])~1");
+
+        query = convert("name like any(['bar', null, 'foo'])");
+        assertThat(query).hasToString("(name:bar name:foo)~1");
+
+        query = convert("name not ilike any(['bar', null, 'foo'])");
+        assertThat(query).hasToString("+*:* -(+name:^bar$,flags:66 +name:^foo$,flags:66)");
     }
 }

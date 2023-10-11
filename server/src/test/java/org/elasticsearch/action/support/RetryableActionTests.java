@@ -34,6 +34,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
 
 public class RetryableActionTests extends ESTestCase {
@@ -47,9 +48,10 @@ public class RetryableActionTests extends ESTestCase {
         taskQueue = new DeterministicTaskQueue(settings, random());
     }
 
-    public void testRetryableActionNoRetries() {
+    @Test
+    public void testRetryableActionNoRetries() throws Exception {
         final AtomicInteger executedCount = new AtomicInteger();
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
             TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30), future) {
 
@@ -68,14 +70,15 @@ public class RetryableActionTests extends ESTestCase {
         taskQueue.runAllRunnableTasks();
 
         assertThat(executedCount.get()).isEqualTo(1);
-        assertThat(future.actionGet()).isTrue();
+        assertThat(future.get()).isTrue();
     }
 
-    public void testRetryableActionWillRetry() {
+    @Test
+    public void testRetryableActionWillRetry() throws Exception {
         int expectedRetryCount = randomIntBetween(1, 8);
         final AtomicInteger remainingFailedCount = new AtomicInteger(expectedRetryCount);
         final AtomicInteger retryCount = new AtomicInteger();
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
             TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30), future) {
 
@@ -112,13 +115,13 @@ public class RetryableActionTests extends ESTestCase {
         }
 
         assertThat(retryCount.get()).isEqualTo(expectedRetryCount);
-        assertThat(future.actionGet()).isTrue();
+        assertThat(future.get()).isTrue();
     }
 
     @Test
     public void testRetryableActionTimeout() {
         final AtomicInteger retryCount = new AtomicInteger();
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
             TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(1), future) {
 
@@ -150,13 +153,14 @@ public class RetryableActionTests extends ESTestCase {
         assertThat(taskQueue.hasDeferredTasks()).isFalse();
         assertThat(taskQueue.hasRunnableTasks()).isFalse();
 
-        assertThatThrownBy(future::actionGet)
-            .isExactlyInstanceOf(EsRejectedExecutionException.class);
+        assertThatThrownBy(future::get)
+            .hasCauseExactlyInstanceOf(EsRejectedExecutionException.class);
     }
 
+    @Test
     public void testTimeoutOfZeroMeansNoRetry() {
         final AtomicInteger executedCount = new AtomicInteger();
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
             TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(0), future) {
 
@@ -175,13 +179,14 @@ public class RetryableActionTests extends ESTestCase {
         taskQueue.runAllRunnableTasks();
 
         assertThat(executedCount.get()).isEqualTo(1);
-        assertThatThrownBy(future::actionGet)
-            .isExactlyInstanceOf(EsRejectedExecutionException.class);
+        assertThatThrownBy(future::get)
+            .hasCauseExactlyInstanceOf(EsRejectedExecutionException.class);
     }
 
+    @Test
     public void testFailedBecauseNotRetryable() {
         final AtomicInteger executedCount = new AtomicInteger();
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
             TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30), future) {
 
@@ -200,12 +205,13 @@ public class RetryableActionTests extends ESTestCase {
         taskQueue.runAllRunnableTasks();
 
         assertThat(executedCount.get()).isEqualTo(1);
-        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(future::get).hasCauseExactlyInstanceOf(IllegalStateException.class);
     }
 
+    @Test
     public void testRetryableActionCancelled() {
         final AtomicInteger executedCount = new AtomicInteger();
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
             TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30), future) {
 
@@ -233,6 +239,6 @@ public class RetryableActionTests extends ESTestCase {
 
         // A second run will not occur because it is cancelled
         assertThat(executedCount.get()).isEqualTo(1);
-        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(ElasticsearchException.class);
+        assertThatThrownBy(future::get).hasCauseExactlyInstanceOf(ElasticsearchException.class);
     }
 }

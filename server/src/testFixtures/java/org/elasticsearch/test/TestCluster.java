@@ -2248,8 +2248,9 @@ public final class TestCluster implements Closeable {
                 while (true) {
                     String routing = RandomStrings.randomAsciiLettersOfLength(random, 10);
                     final int targetShard = operationRouting
-                            .indexShards(clusterService.state(), index.getName(), null, routing)
-                            .shardId().getId();
+                        .indexShards(clusterService.state(), index.getName(), null, routing)
+                        .shardId()
+                        .id();
                     if (shard == targetShard) {
                         return routing;
                     }

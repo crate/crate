@@ -24,7 +24,6 @@ package io.crate.sql.tree;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class ColumnType<T> extends Expression {
 
@@ -73,15 +72,5 @@ public class ColumnType<T> extends Expression {
     @Override
     public int hashCode() {
         return Objects.hash(name, parameters);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <U> ColumnType<U> map(Function<? super T, ? extends U> mapper) {
-        return (ColumnType<U>) this;
-    }
-
-    public <U> ColumnType<U> mapExpressions(ColumnType<U> mappedType,
-                                            Function<? super T, ? extends U> mapper) {
-        return mappedType;
     }
 }

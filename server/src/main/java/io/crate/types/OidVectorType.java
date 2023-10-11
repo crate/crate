@@ -57,11 +57,13 @@ public class OidVectorType extends DataType<List<Integer>> {
         return DataTypes.INTEGER_ARRAY.streamer();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public List<Integer> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         return (List<Integer>) value;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public List<Integer> sanitizeValue(Object value) {
         return (List<Integer>) value;
@@ -72,6 +74,6 @@ public class OidVectorType extends DataType<List<Integer>> {
         if (value == null) {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
-        return value.size() * IntegerType.INTEGER_SIZE;
+        return (long) value.size() * IntegerType.INTEGER_SIZE;
     }
 }

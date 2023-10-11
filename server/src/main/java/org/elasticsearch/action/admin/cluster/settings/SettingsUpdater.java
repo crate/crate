@@ -19,20 +19,21 @@
 
 package org.elasticsearch.action.admin.cluster.settings;
 
+import static org.elasticsearch.cluster.ClusterState.builder;
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+
+import java.util.Map;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.Metadata;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Map;
-
-import static org.elasticsearch.cluster.ClusterState.builder;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import io.crate.common.collections.Tuple;
 
 /**
  * Updates transient and persistent cluster state settings if there are any changes
@@ -147,7 +148,7 @@ final class SettingsUpdater {
             settingsExcludingExistingArchivedSettings,
             e -> logUnknownSetting(settingsType, e, logger),
             (e, ex) -> logInvalidSetting(settingsType, e, ex, logger));
-        return Tuple.tuple(
+        return new Tuple<>(
             Settings.builder()
                 .put(settingsWithUnknownOrInvalidArchived.filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX) == false))
                 .put(existingArchivedSettings)

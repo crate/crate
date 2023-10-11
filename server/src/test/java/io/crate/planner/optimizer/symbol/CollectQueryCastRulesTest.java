@@ -21,13 +21,13 @@
 
 package io.crate.planner.optimizer.symbol;
 
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.emptyMap;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,6 +48,7 @@ import io.crate.expression.operator.Operators;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -92,7 +93,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         plannerContext = SQLExecutor.builder(clusterService).build().getPlannerContext(clusterService.state());
     }
 
-    private void assertCollectQuery(String query, String expected) {
+    private Symbol toQuery(String query) {
         var collect = new Collect(
             tr1,
             Collections.emptyList(),
@@ -116,56 +117,64 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
             }
 
         );
-        assertThat(((RoutedCollectPhase) plan.collectPhase()).where().toString(), is(expected));
+        return ((RoutedCollectPhase) plan.collectPhase()).where();
     }
 
 
     @Test
     public void test_any_operator_cast_on_left_reference_is_moved_to_cast_on_literal() {
         for (var op : AnyOperator.SUPPORTED_COMPARISONS) {
-            assertCollectQuery(
-                "name " + op + " ANY([1, 2, 2])",
-                "(name " + op + " ANY(_cast([1, 2, 2], 'array(text)')))"
-            );
+            assertThat(toQuery("name " + op + " ANY([1, 2, 2])"))
+                .isFunction("any_" + op,
+                    arg1 -> assertThat(arg1).isReference().hasName("name"),
+                    arg2 -> assertThat(arg2).isFunction("_cast")
+                );
         }
         for (var op : List.of("LIKE", "ILIKE")) {
-            assertCollectQuery(
-                "name " + op + " ANY([1, 2, 2])",
-                "(name " + op + " ANY(_cast([1, 2, 2], 'array(text)')))"
-            );
-
-            assertCollectQuery(
-                "name NOT " + op + " ANY([1, 2, 2])",
-                "(name NOT " + op + " ANY(_cast([1, 2, 2], 'array(text)')))"
-            );
+            String lowerOp = op.toLowerCase(Locale.ENGLISH);
+            assertThat(toQuery("name " + op + " ANY(d_array)"))
+                .isFunction("any_" + lowerOp,
+                    arg1 -> assertThat(arg1).isReference().hasName("name"),
+                    arg2 -> assertThat(arg2).isFunction("_cast")
+                );
+            assertThat(toQuery("name NOT " + op + " ANY(d_array)"))
+                .isFunction("any_not_" + lowerOp,
+                    arg1 -> assertThat(arg1).isReference().hasName("name"),
+                    arg2 -> assertThat(arg2).isFunction("_cast")
+                );
         }
     }
 
     @Test
     public void test_any_operator_cast_on_right_reference_is_moved_to_cast_on_literal() {
         for (var op : AnyOperator.SUPPORTED_COMPARISONS) {
-            assertCollectQuery(
-                "'1' " + op + " ANY(d_array)",
-                "(1.0 " + op + " ANY(d_array))"
+            assertThat(toQuery("'1' " + op + " ANY(d_array)")).isFunction(
+                "any_" + op,
+                arg1 -> assertThat(arg1).isLiteral(1.0),
+                arg2 -> assertThat(arg2).isReference().hasName("d_array")
             );
         }
         for (var op : List.of("LIKE", "ILIKE")) {
-            assertCollectQuery(
-                "1 " + op + " ANY(text_array)",
-                "(_cast(1, 'text') " + op + " ANY(text_array))"
+            String opLower = op.toLowerCase(Locale.ENGLISH);
+            assertThat(toQuery("id " + op + " ANY(text_array)")).isFunction(
+                "any_" + opLower,
+                arg1 -> assertThat(arg1).isFunction("_cast"),
+                arg2 -> assertThat(arg2).isReference().hasName("text_array")
             );
-            assertCollectQuery(
-                "1 NOT " + op + " ANY(text_array)",
-                "(_cast(1, 'text') NOT " + op + " ANY(text_array))"
+            assertThat(toQuery("id NOT " + op + " ANY(text_array)")).isFunction(
+                "any_not_" + opLower,
+                arg1 -> assertThat(arg1).isFunction("_cast"),
+                arg2 -> assertThat(arg2).isReference().hasName("text_array")
             );
         }
     }
 
     @Test
     public void test_any_operator_cast_on_nested_array_referewence_is_moved_to_cast_on_literal() {
-        assertCollectQuery(
-            "[1.0, 2.0, 3.0] = any(o_array['xs'])",
-            "(_cast([1.0, 2.0, 3.0], 'array(integer)') = ANY(o_array['xs']))"
+        assertThat(toQuery("[1.0, 2.0, 3.0] = any(o_array['xs'])")).isFunction(
+            "any_=",
+            arg1 -> assertThat(arg1).isFunction("_cast"),
+            arg2 -> assertThat(arg2).isReference().hasName("o_array['xs']")
         );
     }
 
@@ -187,18 +196,17 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         for (var op : Operators.COMPARISON_OPERATORS) {
             op = op.replace(Operator.PREFIX, "");
             if (op.equals(ComparisonExpression.Type.CONTAINED_WITHIN.getValue())) {
-                assertCollectQuery(
-                    "addr " + op + " '192.168.0.1/24'",
-                    "(addr << '192.168.0.1/24')"
-                );
+                assertThat(toQuery("addr " + op + " '192.168.0.1/24'")).isFunction("op_<<");
             } else {
-                assertCollectQuery(
-                    "id " + op + " 1.0",
-                    "(id " + op + " _cast(1.0, 'integer'))"
+                assertThat(toQuery("id " + op + " 1.0")).isFunction(
+                    "op_" + op,
+                    arg1 -> assertThat(arg1).isReference().hasName("id"),
+                    arg2 -> assertThat(arg2).isFunction("_cast")
                 );
-                assertCollectQuery(
-                    "1.0 " + op + " id",
-                    "(id " + getSwappedOperator(op) + " _cast(1.0, 'integer'))"
+                assertThat(toQuery("1.0 " + op + " id")).isFunction(
+                    "op_" + getSwappedOperator(op),
+                    arg1 -> assertThat(arg1).isReference().hasName("id"),
+                    arg2 -> assertThat(arg2).isFunction("_cast")
                 );
             }
         }
@@ -206,17 +214,19 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void test_operator_subscript_on_reference_cast_is_moved_to_literal_cast() {
-        assertCollectQuery(
-            "ts_array[1] = 1129224512000",
-            "(ts_array[1] = _cast(1129224512000::bigint, 'timestamp with time zone'))"
+        assertThat(toQuery("ts_array[1] = 1129224512000")).isFunction(
+            "op_=",
+            arg1 -> assertThat(arg1).isFunction("subscript"),
+            arg2 -> assertThat(arg2).isFunction("_cast")
         );
     }
 
     @Test
     public void test_operator_cast_on_array_length_with_reference_is_moved_to_literal_cast() {
-        assertCollectQuery(
-            "array_length(y_array, 1) < 1.0",
-            "(array_length(y_array, 1) < _cast(1.0, 'integer'))"
+        assertThat(toQuery("array_length(y_array, 1) < 1.0")).isFunction(
+            "op_<",
+            arg1 -> assertThat(arg1).isFunction("array_length"),
+            arg2 -> assertThat(arg2).isFunction("_cast")
         );
     }
 }

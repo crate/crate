@@ -23,15 +23,8 @@ package io.crate.analyze;
 
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -39,7 +32,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.testing.TestingHelpers;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -60,11 +52,11 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTablePlan;
-import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.TestingHelpers;
 
 public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -119,16 +111,14 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     @SuppressWarnings("unchecked")
     private <S> S analyze(String stmt, Object... arguments) {
         AnalyzedStatement analyzedStatement = e.analyze(stmt);
-        if (analyzedStatement instanceof AnalyzedCreateTable) {
-            return (S) CreateTablePlan.bind(
-                (AnalyzedCreateTable) analyzedStatement,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext(),
-                new RowN(arguments),
-                SubQueryResults.EMPTY,
+        if (analyzedStatement instanceof AnalyzedCreateTable analyzedCreateTable) {
+            return (S) analyzedCreateTable.bind(
                 new NumberOfShards(clusterService),
-                e.schemas(),
-                e.fulltextAnalyzerResolver()
+                e.fulltextAnalyzerResolver(),
+                plannerContext.nodeContext(),
+                plannerContext.transactionContext(),
+                new RowN(arguments),
+                SubQueryResults.EMPTY
             );
         } else if (analyzedStatement instanceof AnalyzedAlterTable) {
             return (S) AlterTablePlan.bind(
@@ -152,23 +142,21 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                             "  name string," +
                                             "  date timestamp with time zone" +
                                             ") partitioned by (name)");
-        assertThat(analysis.partitionedBy().size(), is(1));
-        assertThat(analysis.partitionedBy().get(0), contains("name", "keyword"));
+        assertThat(analysis.partitionedBy()).containsExactly(List.of("name", "keyword"));
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         // partitioned columns must be not indexed in mapping
         Map<String, Object> nameMapping = (Map<String, Object>) mappingProperties.get("name");
-        assertThat(mapToSortedString(nameMapping), is("index=false, position=3, type=keyword"));
+        assertThat(mapToSortedString(nameMapping)).isEqualTo("index=false, position=3, type=keyword");
 
         Map<String, Object> metaMapping = (Map<String, Object>) mapping.get("_meta");
-        assertThat((Map<String, Object>) metaMapping.get("columns"), not(hasKey("name")));
         List<List<String>> partitionedByMeta = (List<List<String>>) metaMapping.get("partitioned_by");
-        assertTrue(analysis.isPartitioned());
-        assertThat(partitionedByMeta.size(), is(1));
-        assertThat(partitionedByMeta.get(0).get(0), is("name"));
-        assertThat(partitionedByMeta.get(0).get(1), is("keyword"));
+        assertThat(analysis.isPartitioned()).isTrue();
+        assertThat(partitionedByMeta).hasSize(1);
+        assertThat(partitionedByMeta.get(0).get(0)).isEqualTo("name");
+        assertThat(partitionedByMeta.get(0).get(1)).isEqualTo("keyword");
     }
 
     @Test
@@ -178,19 +166,14 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                             "  name string," +
                                             "  date timestamp with time zone" +
                                             ") partitioned by (name, date)");
-        assertThat(analysis.partitionedBy().size(), is(2));
+        assertThat(analysis.partitionedBy()).hasSize(2);
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> properties = (Map<String, Object>) mapping.get("properties");
-        assertThat(mapToSortedString(properties),
-                   is("date={format=epoch_millis||strict_date_optional_time, index=false, position=2, type=date}, " +
-                      "name={index=false, position=1, type=keyword}"));
-        assertThat((Map<String, Object>) ((Map) mapping.get("_meta")).get("columns"),
-                   allOf(
-                       not(hasKey("name")),
-                       not(hasKey("date"))
-                   ));
-        assertThat(analysis.partitionedBy().get(0), contains("name", "keyword"));
-        assertThat(analysis.partitionedBy().get(1), contains("date", "date"));
+        assertThat(mapToSortedString(properties)).isEqualTo(
+                   "date={format=epoch_millis||strict_date_optional_time, index=false, position=2, type=date}, " +
+                   "name={index=false, position=1, type=keyword}");
+        assertThat(analysis.partitionedBy().get(0)).containsExactly("name", "keyword");
+        assertThat(analysis.partitionedBy().get(1)).containsExactly("date", "date");
     }
 
     @Test
@@ -204,80 +187,90 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                             "  )," +
                                             "  date timestamp with time zone" +
                                             ") partitioned by (date, o['name'])");
-        assertThat(analysis.partitionedBy().size(), is(2));
+        assertThat(analysis.partitionedBy()).hasSize(2);
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
         Map<String, Object> oMapping = (Map<String, Object>) mappingProperties.get("o");
-        assertThat(mapToSortedString(oMapping), is(
-            "dynamic=true, position=3, properties={name={index=false, position=4, type=keyword}}, type=object"));
-        assertThat((Map<String, Object>) ((Map) mapping.get("_meta")).get("columns"), not(hasKey("date")));
+        assertThat(mapToSortedString(oMapping)).isEqualTo(
+            "dynamic=true, position=3, properties={name={index=false, position=4, type=keyword}}, type=object");
 
-        Map metaColumns = (Map) ((Map) mapping.get("_meta")).get("columns");
-        assertNull(metaColumns);
-        assertThat(analysis.partitionedBy().get(0), contains("date", "date"));
-        assertThat(analysis.partitionedBy().get(1), contains("o.name", "keyword"));
+        assertThat(analysis.partitionedBy().get(0)).containsExactly("date", "date");
+        assertThat(analysis.partitionedBy().get(1)).containsExactly("o.name", "keyword");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionedByArrayNestedColumns() {
-        analyze("create table my_table (" +
-                "  a array(object as (" +
-                "    name string" +
-                "  ))," +
-                "  date timestamp with time zone" +
-                ") partitioned by (date, a['name'])");
+        assertThatThrownBy(() -> analyze(
+            "create table my_table (" +
+            "  a array(object as (" +
+            "    name string" +
+            "  ))," +
+            "  date timestamp with time zone" +
+            ") partitioned by (date, a['name'])"
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionedByArray() {
-        analyze("create table my_table (" +
-                "  a array(string)," +
-                "  date timestamp with time zone" +
-                ") partitioned by (a)");
+        assertThatThrownBy(() -> analyze(
+            "create table my_table (" +
+            "  a array(string)," +
+            "  date timestamp with time zone" +
+            ") partitioned by (a)"
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionedByInnerArray() {
-        analyze("create table my_table (" +
-                "  a object as (names array(string))," +
-                "  date timestamp with time zone" +
-                ") partitioned by (a['names'])");
+        assertThatThrownBy(() ->
+            analyze("create table my_table (" +
+                    "  a object as (names array(string))," +
+                    "  date timestamp with time zone" +
+                    ") partitioned by (a['names'])"
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionedByObject() {
-        analyze("create table my_table (" +
-                "  a object as(name string)," +
-                "  date timestamp with time zone" +
-                ") partitioned by (a)");
+        assertThatThrownBy(() -> analyze(
+            "create table my_table (" +
+            "  a object as(name string)," +
+            "  date timestamp with time zone" +
+            ") partitioned by (a)"
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionedByInnerObject() {
-        analyze("create table my_table (" +
-                "  a object as(b object as(name string))," +
-                "  date timestamp with time zone" +
-                ") partitioned by (a['b'])");
+        assertThatThrownBy(() -> analyze(
+            "create table my_table (" +
+            "  a object as(b object as(name string))," +
+            "  date timestamp with time zone" +
+            ") partitioned by (a['b'])"
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void testPartitionByUnknownColumn() {
-        expectedException.expect(ColumnUnknownException.class);
-        analyze("create table my_table (p string) partitioned by (a)");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testPartitionedByNotPartOfPrimaryKey() {
-        analyze("create table my_table (" +
-                "  id1 integer," +
-                "  id2 integer," +
-                "  date timestamp with time zone," +
-                "  primary key (id1, id2)" +
-                ") partitioned by (id1, date)");
+        assertThatThrownBy(() -> analyze("create table my_table (p string) partitioned by (a)"))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
     @Test
+    public void testPartitionedByNotPartOfPrimaryKey() {
+        assertThatThrownBy(() -> analyze(
+            "create table my_table (" +
+            "  id1 integer," +
+            "  id2 integer," +
+            "  date timestamp with time zone," +
+            "  primary key (id1, id2)" +
+            ") partitioned by (id1, date)"
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     public void testPartitionedByPartOfPrimaryKey() {
         BoundCreateTable analysis = analyze("create table my_table (" +
                                             "  id1 integer," +
@@ -285,150 +278,157 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                             "  date timestamp with time zone," +
                                             "  primary key (id1, id2)" +
                                             ") partitioned by (id1)");
-        assertThat(analysis.partitionedBy().size(), is(1));
-        assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
+        assertThat(analysis.partitionedBy()).containsExactly(List.of("id1", "integer"));
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         Map<String, Object> oMapping = (Map<String, Object>) mappingProperties.get("id1");
-        assertThat(mapToSortedString(oMapping), is("index=false, position=1, type=integer"));
-        assertThat((Map<String, Object>) ((Map) mapping.get("_meta")).get("columns"),
-                   not(hasKey("id1")));
+        assertThat(mapToSortedString(oMapping)).isEqualTo("index=false, position=1, type=integer");
+        Map<?, ?> meta = (Map<?, ?>) mapping.get("_meta");
+        List<List<String>> partitionedBy = (List<List<String>>) meta.get("partitioned_by");
+        assertThat(partitionedBy).containsExactly(List.of("id1", "integer"));
     }
 
     @Test
     public void testPartitionedByIndexed() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use column name with fulltext index in PARTITIONED BY clause");
-        analyze("create table my_table(" +
-                "  name string index using fulltext," +
-                "  no_index string index off," +
-                "  stuff string," +
-                "  o object as (s string)," +
-                "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
-                ") partitioned by (name)");
-
+        assertThatThrownBy(() -> analyze(
+            "create table my_table(" +
+            "  name string index using fulltext," +
+            "  no_index string index off," +
+            "  stuff string," +
+            "  o object as (s string)," +
+            "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
+            ") partitioned by (name)"
+        )).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot use column name with fulltext index in PARTITIONED BY clause");
     }
 
     @Test
     public void testPartitionedByCompoundIndex() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use column ft with fulltext index in PARTITIONED BY clause");
-        analyze("create table my_table(" +
-                "  name string index using fulltext," +
-                "  no_index string index off," +
-                "  stuff string," +
-                "  o object as (s string)," +
-                "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
-                ") partitioned by (ft)");
-
+        assertThatThrownBy(() -> analyze(
+            "create table my_table(" +
+            "  name string index using fulltext," +
+            "  no_index string index off," +
+            "  stuff string," +
+            "  o object as (s string)," +
+            "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
+            ") partitioned by (ft)"
+        )).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot use column ft with fulltext index in PARTITIONED BY clause");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionedByClusteredBy() {
-        analyze("create table my_table (" +
-                "  id integer," +
-                "  name string" +
-                ") partitioned by (id)" +
-                "  clustered by (id) into 5 shards");
+        assertThatThrownBy(() -> analyze(
+            "create table my_table (" +
+            "  id integer," +
+            "  name string" +
+            ") partitioned by (id)" +
+            "  clustered by (id) into 5 shards"
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void testAlterPartitionedTable() {
         BoundAlterTable analysis = analyze(
             "alter table parted set (number_of_replicas='0-all')");
-        assertThat(analysis.partitionName().isPresent(), is(false));
-        assertThat(analysis.isPartitioned(), is(true));
-        assertEquals("0-all", analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey()));
+        assertThat(analysis.partitionName()).isNotPresent();
+        assertThat(analysis.isPartitioned()).isTrue();
+        assertThat(analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey())).isEqualTo("0-all");
     }
 
     @Test
     public void testAlterPartitionedTablePartition() {
         BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
-        assertThat(analysis.partitionName().isPresent(), is(true));
-        assertThat(analysis.partitionName().get(), is(new PartitionName(
-            new RelationName("doc", "parted"), Collections.singletonList("1395874800000"))));
-        assertEquals("0-all", analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey()));
+        assertThat(analysis.partitionName()).isPresent();
+        assertThat(analysis.partitionName().get()).isEqualTo(new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList("1395874800000")));
+        assertThat(analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey())).isEqualTo("0-all");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAlterPartitionedTableNonExistentPartition() {
-        analyze("alter table parted partition (date='1970-01-01') set (number_of_replicas='0-all')");
+        assertThatThrownBy(() -> analyze("alter table parted partition (date='1970-01-01') set (number_of_replicas='0-all')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAlterPartitionedTableInvalidPartitionColumns() {
-        analyze("alter table parted partition (a=1) set (number_of_replicas='0-all')");
+        assertThatThrownBy(() -> analyze("alter table parted partition (a=1) set (number_of_replicas='0-all')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
+
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAlterPartitionedTableInvalidNumber() {
-        analyze("alter table multi_parted partition (date=1395874800000) set (number_of_replicas='0-all')");
+        assertThatThrownBy(() -> analyze("alter table multi_parted partition (date=1395874800000) set (number_of_replicas='0-all')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAlterNonPartitionedTableWithPartitionClause() {
-        analyze("alter table users partition (date='1970-01-01') reset (number_of_replicas)");
+        assertThatThrownBy(() -> analyze("alter table users partition (date='1970-01-01') reset (number_of_replicas)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void testAlterPartitionedTableShards() {
         BoundAlterTable analysis = analyze(
             "alter table parted set (number_of_shards=10)");
-        assertThat(analysis.partitionName().isPresent(), is(false));
-        assertThat(analysis.isPartitioned(), is(true));
-        assertEquals("10", analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
+        assertThat(analysis.partitionName()).isNotPresent();
+        assertThat(analysis.isPartitioned()).isTrue();
+        assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("10");
     }
 
     @Test
     public void testAlterTablePartitionWithNumberOfShards() {
         BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_shards=1)");
-        assertThat(analysis.partitionName().isPresent(), is(true));
-        assertThat(analysis.isPartitioned(), is(true));
-        assertEquals("1", analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
+        assertThat(analysis.partitionName()).isPresent();
+        assertThat(analysis.isPartitioned()).isTrue();
+        assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("1");
     }
 
     @Test
     public void testAlterTablePartitionResetShards() {
         BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) reset (number_of_shards)");
-        assertThat(analysis.partitionName().isPresent(), is(true));
-        assertThat(analysis.isPartitioned(), is(true));
-        assertEquals("5", analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
+        assertThat(analysis.partitionName()).isPresent();
+        assertThat(analysis.isPartitioned()).isTrue();
+        assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("5");
     }
 
     @Test
     public void testAlterPartitionedTablePartitionColumnPolicy() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid property \"column_policy\" passed to [ALTER | CREATE] TABLE statement");
-        analyze("alter table parted partition (date=1395874800000) set (column_policy='strict')");
+        assertThatThrownBy(() -> analyze("alter table parted partition (date=1395874800000) set (column_policy='strict')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid property \"column_policy\" passed to [ALTER | CREATE] TABLE statement");
     }
 
     @Test
     public void testAlterPartitionedTableOnlyWithPartition() {
-        expectedException.expect(ParsingException.class);
-        analyze("alter table ONLY parted partition (date=1395874800000) set (column_policy='strict')");
+        assertThatThrownBy(() -> analyze("alter table ONLY parted partition (date=1395874800000) set (column_policy='strict')"))
+            .isExactlyInstanceOf(ParsingException.class);
     }
 
     @Test
     public void testCreatePartitionedByGeoShape() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use column shape of type geo_shape in PARTITIONED BY clause");
-        analyze("create table shaped (id int, shape geo_shape) partitioned by (shape)");
+        assertThatThrownBy(() -> analyze("create table shaped (id int, shape geo_shape) partitioned by (shape)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot use column shape of type geo_shape in PARTITIONED BY clause");
     }
 
     @Test
     public void testAlterTableWithWaitForActiveShards() {
         BoundAlterTable analyzedStatement = analyze(
             "ALTER TABLE parted SET (\"write.wait_for_active_shards\"= 'ALL')");
-        assertThat(analyzedStatement.tableParameter().settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
-                   is("ALL"));
+        assertThat(analyzedStatement.tableParameter().settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()))
+            .isEqualTo("ALL");
 
         analyzedStatement = analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
-        assertThat(analyzedStatement.tableParameter().settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
-                   is("1"));
+        assertThat(analyzedStatement.tableParameter().settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()))
+            .isEqualTo("1");
     }
 }

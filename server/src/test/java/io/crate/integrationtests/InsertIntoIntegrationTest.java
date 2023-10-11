@@ -38,19 +38,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends IntegTestCase {
@@ -441,6 +445,25 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
+    public void test_insert_from_subquery_clustered_by_null_rejected() throws Exception {
+        execute("create table quotes (id integer, parted int, quote string) partitioned by (parted) clustered by(id) " +
+            "with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into quotes (id, parted, quote) select null, 1, 'test'");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // We need to ensure that partition is not left behind if row validation failed.
+        Metadata updatedMetadata = cluster().clusterService().state().metadata();
+        String tableTemplateName = PartitionName.templateName("doc", "quotes");
+        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
+            String indexName = cursor.value;
+            assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
+        }
+    }
+
+    @Test
     public void testInsertWithClusteredByWithoutValue() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
@@ -455,7 +478,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
     @Test
     public void testInsertFromQueryWithSysColumn() throws Exception {
-        execute("create table target (name string, a string, b string, docid int) " +
+        execute("create table target (name string, a string, docid int) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
         execute("create table source (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
@@ -463,14 +486,13 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("insert into source (name) values ('yalla')");
         execute("refresh table source");
 
-        execute("insert into target (name, a, b, docid) (select name, _raw, _id, _docid from source)");
+        execute("insert into target (name, a, docid) (select name, _id, _docid from source)");
         execute("refresh table target");
 
-        execute("select name, a, b, docid from target");
+        execute("select name, a, docid from target");
         assertThat(response.rows()[0][0]).isEqualTo("yalla");
-        assertThat(response.rows()[0][1]).isEqualTo("{\"name\":\"yalla\"}");
-        assertThat(response.rows()[0][2]).isNotNull();
-        assertThat(response.rows()[0][3]).isEqualTo(0);
+        assertThat(response.rows()[0][1]).isNotNull();
+        assertThat(response.rows()[0][2]).isEqualTo(0);
     }
 
     @Test
@@ -558,18 +580,18 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table locations");
 
         execute("create table aggs (" +
-                " c long," +
+                " c double," +
                 " s double" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
-        execute("insert into aggs (c, s) (select count(*), sum(position) from locations)");
+        execute("insert into aggs (c, s) (select avg(position), sum(position) from locations)");
         assertThat(response).hasRowCount(1L);
 
         execute("refresh table aggs");
         execute("select c, s from aggs");
         assertThat(response).hasRowCount(1L);
-        assertThat(((Number) response.rows()[0][0]).longValue()).isEqualTo(13L);
+        assertThat(((Number) response.rows()[0][0]).longValue()).isEqualTo(2L);
         assertThat((Double) response.rows()[0][1]).isEqualTo(38.0);
     }
 
@@ -828,7 +850,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertFromSubQueryWithVersion() throws Exception {
         execute("create table users (name string) clustered into 1 shards");
@@ -1335,7 +1356,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertSQLError(() -> execute("insert into test (col1) values ('a')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Primary key value must not be NULL");
+            .hasMessageContaining("A primary key value must not be NULL");
     }
 
     @Test
@@ -1350,12 +1371,12 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("select data_type from information_schema.columns where table_name='dyn_ts' and column_name='ts'");
         assertThat(response.rows()[0][0]).isEqualTo("text");
 
-        execute("select _raw from dyn_ts where id = 0");
-        assertThat((String) response.rows()[0][0]).isEqualTo("{\"id\":0,\"ts\":\"2015-01-01\"}");
+        execute("select _doc from dyn_ts where id = 0");
+        assertThat(printedTable(response.rows())).isEqualTo("{id=0, ts=2015-01-01}\n");
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testInsertFromQueryWithGeneratedPrimaryKey() throws Exception {
         execute("create table t (x int, y int, z as x + y primary key)");
         ensureYellow();
@@ -1364,8 +1385,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(execute("select * from t where z = 3").rowCount()).isEqualTo(1L);
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testInsertIntoTableWithNestedPrimaryKeyFromQuery() throws Exception {
         execute("create table t (o object as (ot object as (x int primary key)))");
         ensureYellow();
@@ -1845,5 +1866,98 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into t (id, obj) (select 1, {\"a\" = {\"b\" = null}} from sys.cluster)");
         assertThat(response.rowCount()).isEqualTo(0L);
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_values_of_the_partitioned_columns_are_validated_without_creating_partition_for_failed_rows() {
+        execute("""
+            CREATE TABLE t (
+                a INT,
+                b INT CONSTRAINT check_1 CHECK (b > 10),
+                c INT as a + 1,
+                d INT NOT NULL
+            ) PARTITIONED BY (b,c,d)
+            """
+        );
+
+        // Failing CHECK, NOT NULL constraints
+        // or wrong provided value for generated partitioned by columns
+        // should not leave invalid partitions behind.
+        // All failing scenarios followed by the last "partition does not exist" assertion.
+
+        // Failing CHECK constraint.
+        execute("insert into t (a, b, d) select 1, 9, 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // Failing NOT NULL constraint.
+        execute("insert into t (a, b, d) select 1, 12, null");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // Generated expression validation (https://github.com/crate/crate/issues/14304).
+        // insert from values used to fail as well because we used to explicitly skip that check for References with PARTITION granularity.
+        assertSQLError(() -> execute("insert into t (a, b, c, d) values (null, 12, 1, 1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Given value 1 for generated column c does not match calculation (a + 1) = null");
+
+        execute("insert into t (a, b, c, d) select null, 12, 1, 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+
+        // We need to ensure that check is done before partition creation.
+        // If check is done too late, INSERT statement might work as expected and reject invalid records but invalid partitions will left behind.
+        // At this point all failing scenarios are done and haven't written anything.
+        // Checking that neither of them has created a partition.
+        Metadata updatedMetadata = cluster().clusterService().state().metadata();
+        String tableTemplateName = PartitionName.templateName("doc", "t");
+        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
+            String indexName = cursor.value;
+            assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
+        }
+    }
+
+    @Test
+    public void test_generated_expression_updates_schema() {
+        execute("create table t (" +
+            "id int," +
+            "details object generated always as {\"a1\" = {\"b1\" = 'test'}}," +
+            "nested_gen object as (a int, gen object generated always as {\"a2\" = {\"b2\" = 'test2'}})) " +
+            "with (number_of_replicas=0, column_policy='dynamic')");
+        execute("insert into t (id, nested_gen) values (1, {\"a\" = 1})");
+        refresh();
+        execute("select * from t");
+        assertThat(response).hasRows(
+            "1| {a1={b1=test}}| {a=1, gen={a2={b2=test2}}}"
+        );
+    }
+
+    @Test
+    public void test_returning_non_deterministic_synthetics_match_actually_persisted_value() {
+        execute("""
+            create table tbl (
+                a int,
+                b text default random()::TEXT,
+                o object as (
+                    c int as round((random() + 1) * 100)
+                )
+            )
+            """
+        );
+        for (int i = 0; i < 2; i++) {
+            // Two iterations to ensure that:
+            // 1. Cached synthetics values are updated between index() calls
+            // 2. Replica gets same values for functions
+            //    which are non-deterministic even in the same transaction context: random(),gen+random_text_uuid()
+            execute("insert into tbl(a, o) values (?, {}) returning b, o['c']", new Object[]{i});
+            String returningTopLevel = (String) response.rows()[0][0];
+            Integer returningSubColumn = (Integer) response.rows()[0][1];
+            refresh();
+            execute("select b, o['c'] from tbl where a = ?", new Object[]{i});
+            String persistedTopLevel = (String) response.rows()[0][0];
+            Integer persistedSubColumn = (Integer) response.rows()[0][1];
+            assertThat(persistedTopLevel).isEqualTo(returningTopLevel);
+            assertThat(persistedSubColumn).isEqualTo(returningSubColumn);
+        }
     }
 }

@@ -52,9 +52,9 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
         @Override
         public ValueIndexer<Long> valueIndexer(RelationName table,
                                                Reference ref,
-                                               Function<ColumnIdent, FieldType> getFieldType,
+                                               Function<String, FieldType> getFieldType,
                                                Function<ColumnIdent, Reference> getRef) {
-            return new LongIndexer(ref, getFieldType.apply(ref.column()));
+            return new LongIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 
@@ -94,8 +94,8 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
                 throw new IllegalArgumentException(getName() + " value out of range: " + value);
             }
             return ((BigDecimal) value).longValue();
-        } else if (value instanceof Number) {
-            return ((Number) value).longValue();
+        } else if (value instanceof Number number) {
+            return number.longValue();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
@@ -105,8 +105,8 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     public Long sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Long) {
-            return (Long) value;
+        } else if (value instanceof Long l) {
+            return l;
         } else {
             return ((Number) value).longValue();
         }

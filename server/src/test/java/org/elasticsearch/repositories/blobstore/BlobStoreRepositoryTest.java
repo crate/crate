@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.blobstore.BlobMetadata;
@@ -50,6 +49,7 @@ import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.TestFutureUtils;
 import org.elasticsearch.repositories.ESBlobStoreTestCase;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -64,6 +64,8 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import io.crate.action.FutureActionListener;
 
 public class BlobStoreRepositoryTest extends IntegTestCase {
 
@@ -94,7 +96,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     @Test
     public void testListChildren() throws Exception {
         final BlobStoreRepository repo = getRepository();
-        final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
         final Executor genericExec = repo.threadPool().generic();
         final int testBlobLen = randomIntBetween(1, 100);
         genericExec.execute(new ActionRunnable<>(future) {
@@ -110,7 +112,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
                 future.onResponse(null);
             }
         });
-        future.actionGet();
+        future.get();
         assertChildren(repo.basePath(), Collections.singleton("foo"));
         assertBlobsByPrefix(repo.basePath(), "fo", Collections.emptyMap());
         assertChildren(repo.basePath().add("foo"), List.of("nested", "nested2"));
@@ -120,7 +122,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     void assertBlobsByPrefix(BlobPath path, String prefix, Map<String, BlobMetadata> blobs) throws Exception {
-        final PlainActionFuture<Map<String, BlobMetadata>> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Map<String, BlobMetadata>, Map<String, BlobMetadata>> future = FutureActionListener.newInstance();
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override
@@ -129,7 +131,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
                 future.onResponse(blobStore.blobContainer(path).listBlobsByPrefix(prefix));
             }
         });
-        Map<String, BlobMetadata> foundBlobs = future.actionGet();
+        Map<String, BlobMetadata> foundBlobs = future.get();
         if (blobs.isEmpty()) {
             assertThat(foundBlobs.keySet(), empty());
         } else {
@@ -141,7 +143,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     void assertChildren(BlobPath path, Collection<String> children) throws Exception {
-        final PlainActionFuture<Set<String>> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Set<String>, Set<String>> future = FutureActionListener.newInstance();
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override
@@ -150,7 +152,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
                 future.onResponse(blobStore.blobContainer(path).children().keySet());
             }
         });
-        Set<String> foundChildren = future.actionGet();
+        Set<String> foundChildren = future.get();
         if (children.isEmpty()) {
             assertThat(foundChildren, empty());
         } else {
@@ -185,7 +187,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) throws Exception {
-        PlainActionFuture.<RepositoryData, Exception>get(
+        TestFutureUtils.<RepositoryData, Exception>get(
             f -> repository.writeIndexGen(repositoryData, generation, Version.CURRENT, Function.identity(), f));
     }
 

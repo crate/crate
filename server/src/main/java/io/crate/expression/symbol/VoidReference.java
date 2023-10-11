@@ -28,7 +28,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.sql.tree.ColumnPolicy;
 
 /**
  * A reference to a column which does not exist. This is primarily used for object columns where lookups like `some_column['nested_column']` are allowed if the session `error_on_unknown_object_key` setting is set to false.
@@ -45,15 +44,13 @@ public class VoidReference extends DynamicReference {
         super(ident, granularity, position);
     }
 
-    public VoidReference(ReferenceIdent ident,
-                         RowGranularity granularity,
-                         ColumnPolicy columnPolicy,
-                         int position) {
-        super(ident, granularity, columnPolicy, position);
-    }
-
     @Override
     public SymbolType symbolType() {
         return SymbolType.VOID_REFERENCE;
+    }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitVoidReference(this, context);
     }
 }

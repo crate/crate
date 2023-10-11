@@ -141,22 +141,27 @@ In a CrateDB cluster there can only be one master node at any single time.
 The cluster only becomes available to serve requests once a master has been 
 elected, and a new election takes place if the current master node becomes 
 unavailable.
-By default all nodes are master-eligible, but 
+
+By default, all nodes are master-eligible, but
 :ref:`a node setting <node.master>`
 is available to indicate, if desired, that a node must not take on the role
-of master. To elect a master among the eligible nodes, a majority 
+of master.
+
+To elect a master among the eligible nodes, a majority
 (``floor(half)+1``), also known as *quorum*, is required among a subset of 
 all master-eligible nodes, this subset of nodes is known as the
 *voting configuration*.
 The *voting configuration* is a list which is persisted as part of the cluster
 state. It is maintained automatically in a way that makes so that split-brain
 scenarios are never possible.
+
 Every time a node joins the cluster, or leaves the cluster, even if it is 
 for a few seconds, CrateDB re-evaluates the voting configuration.
 If the new number of master-eligible nodes in the cluster is odd, CrateDB will
 put them all in the voting configuration.
 If the number is even, CrateDB will exclude one of the master-eligible nodes
 from the voting configuration.
+
 The voting configuration is not shrunk below 3 nodes, meaning that if there
 were 3 nodes in the voting configuration and one of them becomes unavailable,
 they all stay in the voting configuration and a quorum of 2 nodes is still 
@@ -169,11 +174,14 @@ the latest voting configuration.
    If you do infrastructure maintenance, please note that as nodes are shutdown 
    or rebooted, they will temporarily leave the voting configuration, and for
    the cluster to elect a master a quorum is required among the
-   nodes that were last in the voting configuration. For instance, if you
+   nodes that were last in the voting configuration.
+
+   For instance, if you
    have a 5-nodes cluster, with all nodes master-eligible, and node 1 is 
    currently the master, and you shutdown node 5, then node 4, then node 3, 
    the cluster will stay available as the voting configuration will have 
    adapted to only have nodes 1, 2, and 3 on it.
+
    If you then shutdown one more node the cluster will become unavailable as
    a quorum of 2 nodes is now required and not available.
    To bring the cluster back online at this point you will require two nodes 
@@ -269,8 +277,10 @@ Cluster behavior
 The fact that each CrateDB node in a cluster is equal allows applications and
 users to connect to any node and get the same response for the same operations.
 As already described in section :ref:`concept-node-components`, the SQL
-handler is responsible handling incoming client SQL requests, either using the
-HTTP, transport protocol or PostgreSQL wire protocol. The "handler node" that
+handler is responsible for handling incoming client SQL requests, either using
+the HTTP transport protocol, or the PostgreSQL wire protocol.
+
+The "handler node" that
 accepts the client request also returns the response to the client. It does
 neither redirect nor delegate the request to a different nodes. The handler
 node parses the incoming request into a syntax tree, analyzes it and creates

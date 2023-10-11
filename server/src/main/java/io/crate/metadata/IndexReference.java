@@ -22,24 +22,25 @@
 package io.crate.metadata;
 
 import static java.util.Objects.requireNonNull;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 
@@ -54,6 +55,8 @@ public class IndexReference extends SimpleReference {
 
         private String analyzer = null;
         private int position = 0;
+        private long oid;
+        private boolean isDropped;
 
         // Temporal source names holder, real references resolved by names on build();
         private List<String> sourceNames = new ArrayList<>();
@@ -89,16 +92,26 @@ public class IndexReference extends SimpleReference {
             return this;
         }
 
+        public Builder oid(long oid) {
+            this.oid = oid;
+            return this;
+        }
+
+        public Builder setDropped(boolean isDropped) {
+            this.isDropped = isDropped;
+            return this;
+        }
+
         public IndexReference build(Map<ColumnIdent, Reference> references) {
             assert (columns.isEmpty() ^ sourceNames.isEmpty()) : "Only one of columns/sourceNames can be set.";
             if (columns.isEmpty() == false) {
                 // columns is derived from copy_to which has been deprecated in 5.4.
                 // When a node is upgraded it can have shards on older nodes with outdated mapping (still having copy_to and no sources).
                 // This code handles outdated shards case.
-                return new IndexReference(position, ident, indexType, columns, analyzer);
+                return new IndexReference(position, oid, isDropped, ident, indexType, columns, analyzer);
             }
-            List<Reference> sources = references.values().stream().filter(ref -> sourceNames.contains(ref.column().fqn())).collect(Collectors.toList());
-            return new IndexReference(position, ident, indexType, sources, analyzer);
+            List<Reference> sources = references.values().stream().filter(ref -> sourceNames.contains(ref.storageIdent())).collect(Collectors.toList());
+            return new IndexReference(position, oid, isDropped, ident, indexType, sources, analyzer);
         }
     }
 
@@ -118,11 +131,14 @@ public class IndexReference extends SimpleReference {
     }
 
     public IndexReference(int position,
+                          long oid,
+                          boolean isDropped,
                           ReferenceIdent ident,
                           IndexType indexType,
                           List<Reference> columns,
                           @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, false, position, null);
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType,
+              false, false, position, oid, isDropped, null);
         this.columns = columns;
         this.analyzer = analyzer;
     }
@@ -135,6 +151,8 @@ public class IndexReference extends SimpleReference {
                           boolean nullable,
                           boolean hasDocValues,
                           int position,
+                          long oid,
+                          boolean isDropped,
                           Symbol defaultExpression,
                           List<Reference> columns,
                           String analyzer) {
@@ -146,6 +164,8 @@ public class IndexReference extends SimpleReference {
               nullable,
               hasDocValues,
               position,
+              oid,
+              isDropped,
               defaultExpression
         );
         this.columns = columns;
@@ -193,7 +213,7 @@ public class IndexReference extends SimpleReference {
         out.writeOptionalString(analyzer);
         out.writeVInt(columns.size());
         for (Reference reference : columns) {
-            Reference.toStream(reference, out);
+            Reference.toStream(out, reference);
         }
     }
 
@@ -208,6 +228,8 @@ public class IndexReference extends SimpleReference {
             nullable,
             hasDocValues,
             position,
+            oid,
+            isDropped,
             defaultExpression,
             columns,
             analyzer
@@ -215,17 +237,57 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        Map<String, Object> mapping = super.toMapping();
+    public Map<String, Object> toMapping(int position) {
+        Map<String, Object> mapping = super.toMapping(position);
         if (analyzer != null) {
             mapping.put("analyzer", analyzer);
         }
         mapping.put("type", "text");
 
         if (columns.isEmpty() == false) {
-            mapping.put("sources", columns.stream().map(ref -> ref.column().fqn()).toList());
+            mapping.put("sources", columns.stream().map(Reference::storageIdent).toList());
         }
 
         return mapping;
+    }
+
+    @Override
+    public Reference applyColumnOid(LongSupplier oidSupplier) {
+        if (oid != COLUMN_OID_UNASSIGNED) {
+            return this;
+        }
+        return new IndexReference(
+                ident,
+                granularity,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                hasDocValues,
+                position,
+                oidSupplier.getAsLong(),
+                isDropped,
+                defaultExpression,
+                columns,
+                analyzer
+        );
+    }
+
+    public IndexReference updateColumns(List<Reference> newColumns) {
+        return new IndexReference(
+                ident,
+                granularity,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                hasDocValues,
+                position,
+                oid,
+                isDropped,
+                defaultExpression,
+                newColumns,
+                analyzer
+        );
     }
 }

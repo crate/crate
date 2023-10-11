@@ -21,14 +21,10 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Objects;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
@@ -36,6 +32,7 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
@@ -104,8 +101,8 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     }
 
     public static void register(AggregationImplModule mod) {
-        TypeSignature returnValueType = parseTypeSignature("A");
-        TypeSignature cmpType = parseTypeSignature("B");
+        TypeSignature returnValueType = TypeSignature.parse("A");
+        TypeSignature cmpType = TypeSignature.parse("B");
         var variableConstraintA = TypeVariableConstraint.typeVariableOfAnyType("A");
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
         mod.register(
@@ -173,9 +170,19 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             case TimestampType.ID_WITHOUT_TZ:
                 var resultExpression = referenceResolver.getImplementation(aggregationReferences.get(0));
                 if (signature.getName().name().equalsIgnoreCase("min_by")) {
-                    return new MinByLong(searchRef.column().fqn(), searchType, resultExpression);
+                    return new MinByLong(
+                        searchRef.storageIdent(),
+                        searchType,
+                        resultExpression,
+                        new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
+                    );
                 } else {
-                    return new MaxByLong(searchRef.column().fqn(), searchType, resultExpression);
+                    return new MaxByLong(
+                        searchRef.storageIdent(),
+                        searchType,
+                        resultExpression,
+                        new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
+                    );
                 }
             default:
                 return null;
@@ -213,7 +220,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         if (cmpVal instanceof Comparable comparable) {
             Comparable<Object> currentValue = state.cmpValue;
             if (currentValue == null || comparable.compareTo(currentValue) == cmpResult) {
-                state.cmpValue = (Comparable<Object>) comparable;
+                state.cmpValue = comparable;
                 state.resultValue = args[0].value();
             }
         } else if (cmpVal != null) {
@@ -269,8 +276,9 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
 
         public MinByLong(String columnName,
                          DataType<?> searchType,
-                         LuceneCollectorExpression<?> resultExpression) {
-            super(Long.MAX_VALUE, columnName, searchType, resultExpression);
+                         LuceneCollectorExpression<?> resultExpression,
+                         CollectorContext collectorContext) {
+            super(Long.MAX_VALUE, columnName, searchType, resultExpression, collectorContext);
         }
 
         @Override
@@ -283,8 +291,9 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
 
         public MaxByLong(String columnName,
                          DataType<?> searchType,
-                         LuceneCollectorExpression<?> resultExpression) {
-            super(Long.MIN_VALUE, columnName, searchType, resultExpression);
+                         LuceneCollectorExpression<?> resultExpression,
+                         CollectorContext collectorContext) {
+            super(Long.MIN_VALUE, columnName, searchType, resultExpression,collectorContext);
         }
 
         @Override
@@ -303,15 +312,16 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         private SortedNumericDocValues values;
         private LeafReaderContext leafReaderContext;
 
-        public CmpByLong(long sentinelValue,
-                         String columnName,
-                         DataType<?> searchType,
-                         LuceneCollectorExpression<?> resultExpression) {
+        CmpByLong(long sentinelValue,
+                  String columnName,
+                  DataType<?> searchType,
+                  LuceneCollectorExpression<?> resultExpression,
+                  CollectorContext collectorContext) {
             this.sentinelValue = sentinelValue;
             this.columnName = columnName;
             this.searchType = searchType;
             this.resultExpression = resultExpression;
-            resultExpression.startCollect(new CollectorContext());
+            resultExpression.startCollect(collectorContext);
         }
 
         @Override
@@ -344,6 +354,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             }
         }
 
+        @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public Object partialResult(RamAccounting ramAccounting, CmpByLongState state) {
             CompareBy compareBy = new CompareBy();

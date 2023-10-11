@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -54,9 +55,7 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
 import org.joda.time.Period;
@@ -71,6 +70,10 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
@@ -81,7 +84,6 @@ import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import io.crate.types.ObjectType.Builder;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends IntegTestCase {
@@ -373,8 +375,8 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testSqlRequestWithFilter() throws Exception {
         execute("create table test (id string primary key)");
         execute("insert into test (id) values ('id1'), ('id2')");
@@ -606,8 +608,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRows("124| bar1");
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testSelectToRoutedRequestByPlanner() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
 
@@ -1463,8 +1465,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("select _doc, id from locations where id in (2,3) order by id");
         Map<String, Object> _doc1 = (Map<String, Object>) response.rows()[0][0];
         Map<String, Object> _doc2 = (Map<String, Object>) response.rows()[1][0];
-        assertEquals(_doc1.get("id"), "2");
-        assertEquals(_doc2.get("id"), "3");
+        // Ensure complete source is returned for _doc by verifying a non-selected column
+        assertEquals(_doc1.get("name"), "Outer Eastern Rim");
+        assertEquals(_doc2.get("name"), "Galactic Sector QQ7 Active J Gamma");
 
         execute("select name, kind from locations where id in (2,3) order by id");
         assertEquals(printedTable(response.rows()), "Outer Eastern Rim| Galaxy\n" +
@@ -1475,10 +1478,11 @@ public class TransportSQLActionTest extends IntegTestCase {
                                                     "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n");
 
         execute("select _raw, id from locations where id in (2,3) order by id");
-        Map<String, Object> firstRaw = JsonXContent.JSON_XCONTENT.createParser(
-            NamedXContentRegistry.EMPTY,
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            (String) response.rows()[0][0]).map();
+
+        Schemas schemas = cluster().getInstance(Schemas.class);
+        DocTableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "locations"));
+        var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
+        Map<String, Object> firstRaw = sourceParser.parse(new BytesArray((String) response.rows()[0][0]));
 
         assertThat(response.rows()[0][1]).isEqualTo("2");
         assertThat(firstRaw).containsEntry("id", "2");
@@ -1486,10 +1490,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(firstRaw).containsEntry("date", 308534400000L);
         assertThat(firstRaw).containsEntry("kind", "Galaxy");
 
-        Map<String, Object> secondRaw = JsonXContent.JSON_XCONTENT.createParser(
-            NamedXContentRegistry.EMPTY,
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            (String) response.rows()[1][0]).map();
+        Map<String, Object> secondRaw = sourceParser.parse(new BytesArray((String) response.rows()[1][0]));
         assertThat(response.rows()[1][1]).isEqualTo("3");
         assertThat(secondRaw).containsEntry("id", "3");
         assertThat(secondRaw).containsEntry("name", "Galactic Sector QQ7 Active J Gamma");
@@ -1511,7 +1512,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertEquals(response.rowCount(), 0L);
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertAndCopyHaveSameIdGeneration() throws Exception {
         execute("create table t (" +
@@ -1753,10 +1753,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table tbl");
 
         execute("select * from tbl where obj['b'] = 10");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
 
         execute("select * from (select * from tbl) as t where obj['b'] = 10");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
     }
 
 
@@ -1784,8 +1784,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void test_primary_key_lookup_with_param_that_requires_cast_to_column_type() throws Exception {
         execute("create table tbl (ts timestamp with time zone primary key, path text primary key)");
         execute("INSERT INTO tbl (ts, path) VALUES ('2017-06-21T00:00:00.000000Z', 'c1')");
@@ -1800,8 +1800,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void test_primary_key_lookups_returns_inserted_records() throws Exception {
         int numKeys = randomIntBetween(1, 3);
         Random random = RandomizedContext.current().getRandom();
@@ -1898,14 +1898,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRowCount(6L);
         execute("refresh table tbl");
 
-        execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001'");
+        execute("SELECT _doc['xs'], xs, xs::bit(3) FROM tbl WHERE xs = B'1001'");
         assertThat(response).hasRows(
-            "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'"
+            "B'1001'| B'1001'| B'100'"
         );
         // use LIMIT 1 to hit a different execution path that should load `xs` differently
-        execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001' LIMIT 1");
+        execute("SELECT _doc['xs'], xs, xs::bit(3) FROM tbl WHERE xs = B'1001' LIMIT 1");
         assertThat(response).hasRows(
-            "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'"
+            "B'1001'| B'1001'| B'100'"
         );
 
         // primary key lookup uses different execution path to decode the value
@@ -1936,31 +1936,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
-    /**
-     * Adds innerTypes to object type definitions
-     **/
-    private static DataType<?> extendedType(DataType<?> type, Object value) {
-        if (type.id() == ObjectType.ID) {
-            var entryIt = ((Map<?, ?>) value).entrySet().iterator();
-            Builder builder = ObjectType.builder();
-            while (entryIt.hasNext()) {
-                var entry = entryIt.next();
-                String innerName = (String) entry.getKey();
-                Object innerValue = entry.getValue();
-                DataType<?> innerType = DataTypes.guessType(innerValue);
-                if (innerType.id() == ObjectType.ID && innerValue instanceof Map<?, ?> m && m.containsKey("coordinates")) {
-                    innerType = DataTypes.GEO_SHAPE;
-                }
-                builder.setInnerType(innerName, extendedType(innerType, innerValue));
-            }
-            return builder.build();
-        } else {
-            return type;
-        }
-    }
 
     @Test
     @UseJdbc(0)
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void test_types_with_storage_can_be_inserted_and_queried() {
         for (var type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             if (type.equals(DataTypes.GEO_POINT)) {
@@ -1969,7 +1948,7 @@ public class TransportSQLActionTest extends IntegTestCase {
             }
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
-            var extendedType = extendedType(type, val1);
+            var extendedType = DataTypeTesting.extendedType(type, val1);
             String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.STRICT, null));
             execute("create table tbl (id int primary key, x " + typeDefinition + ")");
             execute("insert into tbl (id, x) values (?, ?)", new Object[] { 1, val1 });
@@ -1989,9 +1968,11 @@ public class TransportSQLActionTest extends IntegTestCase {
             }
 
             var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[] { 1 });
-            assertThat(resp2.rows()[0])
-                .as("primary key lookup output must match regular select output for type " + type)
-                .contains(resp1.rows()[0]);
+            assertThat(resp2.rows()[0][0]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][0]);
+            assertThat(resp2.rows()[0][1]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][1]);
+            assertThat(ObjectType.UNTYPED.sanitizeValue(resp2.rows()[0][2]))
+                .usingComparator(ObjectType.UNTYPED)
+                .isEqualTo(ObjectType.UNTYPED.sanitizeValue(resp1.rows()[0][2]));
 
             if (SemanticSortValidator.SUPPORTED_TYPES.contains(type.id())) {
                 // should use doc-values/query-without-fetch execution path due to order + limit
@@ -2025,14 +2006,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRowCount(2L);
         execute("refresh table tbl");
 
-        execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'two'");
+        execute("SELECT _doc['c'], c, c::char(1) FROM tbl WHERE c = 'two'");
         assertThat(response).hasRows(
-                "two | two | {\"c\":\"two \"}| t"
+                "two | two | t"
         );
         // use LIMIT 1 to hit a different execution path that should load `c` differently
-        execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'four' LIMIT 1");
+        execute("SELECT _doc['c'], c, c::char(1) FROM tbl WHERE c = 'four' LIMIT 1");
         assertThat(response).hasRows(
-            "four| four| {\"c\":\"four\"}| f"
+            "four| four| f"
         );
 
         var properties = new Properties();
@@ -2149,7 +2130,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     @Test
     public void test_generated_non_deterministic_value_is_consistent_on_primary_and_replica() throws Exception {
         execute("""
-            create table tbl (x int, created generated always as now())
+            create table tbl (x int, created generated always as round((random() + 1) * 100))
             clustered into 1 shards
             with (number_of_replicas = 1)
             """
@@ -2194,5 +2175,17 @@ public class TransportSQLActionTest extends IntegTestCase {
             .map(row -> (Period) row[0])
             .toList();
         assertThat(sorted).containsExactlyElementsOf(resultOrder);
+    }
+
+    @Test
+    public void test_operation_limit_cancels_query_if_using_too_much_memory() throws Exception {
+        try (var session = sqlExecutor.newSession()) {
+            execute("set session memory.operation_limit = 2", session);
+            assertThat(session.sessionSettings().memoryLimitInBytes()).isEqualTo(2);
+
+            Asserts.assertSQLError(() -> execute("select distinct name from sys.nodes", session))
+                .hasMessageContaining("\"collect: 0\" reached operation memory limit.")
+                .hasMessageEndingWith("Limit: 2b");
+        }
     }
 }

@@ -21,22 +21,24 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.function.Consumer;
 
 public class QueriedSelectRelation implements AnalyzedRelation {
 
@@ -93,16 +95,40 @@ public class QueriedSelectRelation implements AnalyzedRelation {
                 match = output;
             }
         }
-        if (match == null) {
-            // SELECT obj['x'] FROM (select...)
-            // This is to optimize `obj['x']` to a reference with path instead of building a subscript function.
-            for (AnalyzedRelation analyzedRelation : from) {
-                Symbol field = analyzedRelation.getField(column, operation, errorOnUnknownObjectKey);
-                if (field != null) {
-                    if (match != null) {
-                        throw new AmbiguousColumnException(column, field);
+        if (match != null || column.isRoot()) {
+            return match;
+        }
+        ColumnIdent root = column.getRoot();
+
+        // Try to optimize child-column access to use a Reference instead of a subscript function
+        //
+        // E.g.
+        //
+        //    SELECT obj['x'] FROM (select...)
+        //
+        // Should use Reference (obj.x) instead of Function subscript(obj, 'x')
+        // Unless an alias shadows the sub-relation column:
+        //
+        //      SELECT obj['x'] FROM (SELECT unnest(obj) as obj FROM ...)
+        //
+        // -> Resolve both root field and child-field from source again.
+        //    If the root field matches output -> it's not shadowed
+        for (AnalyzedRelation source : from) {
+            Symbol field = source.getField(column, operation, errorOnUnknownObjectKey);
+            if (field != null) {
+                if (match != null) {
+                    throw new AmbiguousColumnException(column, match);
+                }
+                Symbol rootField = source.getField(root, operation, errorOnUnknownObjectKey);
+                for (Symbol output : outputs()) {
+                    Symbol symbol = output;
+                    while (symbol instanceof AliasSymbol alias) {
+                        symbol = alias.symbol();
                     }
-                    match = field;
+                    if (symbol.equals(rootField) || output.equals(rootField)) {
+                        match = field;
+                        break;
+                    }
                 }
             }
         }

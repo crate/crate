@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import io.crate.common.SuppressForbidden;
 
 /**
  * A Terminal wraps access to reading input and writing output for a cli.

@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -144,6 +145,15 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(update.docKeys().size(), is(3));
     }
 
+    // bug: https://github.com/crate/crate/issues/14347
+    @Test
+    public void test_update_plan_with_where_clause_involving_pk_and_non_pk() throws Exception {
+        Plan update = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3) and name='dummy'");
+        assertThat(update).isExactlyInstanceOf(UpdatePlanner.Update.class);
+        update = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3) or name='dummy'");
+        assertThat(update).isExactlyInstanceOf(UpdatePlanner.Update.class);
+    }
+
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValuesPartitioned() throws Exception {
         Plan update = e.plan("update parted_pks set name='Vogon lyric fan' where " +
@@ -187,9 +197,17 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Map<LogicalPlan, SelectSymbol> rootPlanDependencies = plan.dependencies;
         LogicalPlan outerSubSelectPlan = rootPlanDependencies.keySet().iterator().next();
+        Asserts.assertThat(outerSubSelectPlan).withPlanStats(e.planStats()).hasOperators(
+            "Limit[2::bigint;0::bigint] (rows=1)",
+            "  └ MultiPhase (rows=1)",
+            "    └ HashAggregate[count(id)] (rows=1)",
+            "      └ Collect[doc.users | [id] | (id = ANY((SELECT unnest([1, 2, 3, 4]) FROM (empty_row))))] (rows=unknown)",
+            "    └ OrderBy[unnest([1, 2, 3, 4]) ASC] (rows=unknown)",
+            "      └ ProjectSet[unnest([1, 2, 3, 4])] (rows=unknown)",
+            "        └ TableFunction[empty_row | [] | true] (rows=unknown)");
         SelectSymbol outerSubSelectSymbol = rootPlanDependencies.values().iterator().next();
         assertThat(outerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_SINGLE_VALUE));
-        assertThat(e.getStats(outerSubSelectPlan).numDocs(), is(2L));
+        assertThat(e.getStats(outerSubSelectPlan).numDocs(), is(1L));
 
         LogicalPlan innerSubSelectPlan = outerSubSelectPlan.dependencies().keySet().iterator().next();
         SelectSymbol innerSubSelectSymbol = outerSubSelectPlan.dependencies().values().iterator().next();

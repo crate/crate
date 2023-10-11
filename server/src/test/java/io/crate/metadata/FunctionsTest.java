@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -46,6 +45,7 @@ import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 public class FunctionsTest extends ESTestCase {
 
@@ -166,7 +166,7 @@ public class FunctionsTest extends ESTestCase {
         register(
             Signature.scalar(
                 "foo",
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, args) ->
@@ -221,8 +221,8 @@ public class FunctionsTest extends ESTestCase {
         register(
             Signature.scalar(
                 "foo",
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("array(E)")
+                TypeSignature.parse("array(E)"),
+                TypeSignature.parse("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, args) ->
                 new DummyFunction(signature)

@@ -232,8 +232,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         BoundCopyTo analysis = analyze("COPY users (id, name) TO DIRECTORY '/tmp'");
         List<Symbol> outputs = analysis.outputs();
         assertThat(outputs).hasSize(2);
-        assertThat(outputs.get(0)).isReference("_doc['id']");
-        assertThat(outputs.get(1)).isReference("_doc['name']");
+        assertThat(outputs.get(0)).isReference().hasName("_doc['id']");
+        assertThat(outputs.get(1)).isReference().hasName("_doc['name']");
     }
 
     @Test

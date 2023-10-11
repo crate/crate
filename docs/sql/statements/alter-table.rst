@@ -26,6 +26,7 @@ Synopsis
       { SET ( parameter = value [ , ... ] )
         | RESET ( parameter [ , ... ] )
         | { ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ] } [, ... ]
+        | { DROP [ COLUMN ] [ IF EXISTS ] column_name } [, ... ]
         | OPEN
         | CLOSE
         | RENAME TO table_ident
@@ -168,10 +169,43 @@ expression <sql-literal-value>`.
   Data type of the column which should be added.
 
 :column_name:
-  Name of the column which should be added. 
+  Name of the column which should be added.
   This can be a sub-column on an existing `OBJECT`.
 
 It's possible to add multiple columns at once.
+
+.. _sql-alter-table-drop-column:
+
+``DROP COLUMN``
+---------------
+
+Can be used to drop a column from a table.
+
+:``column_name``:
+  Name of the column which should be dropped.
+  This can be a sub-column of an `OBJECT`.
+
+It's possible to drop multiple columns at once.
+
+.. NOTE::
+
+    It's not allowed to drop a column:
+
+    - which is part of a :ref:`PRIMARY KEY <primary_key_constraint>`
+    - used in :ref:`CLUSTERED BY column <gloss-clustered-by-column>`
+    - used in :ref:`PARTITIONED BY <gloss-partitioned-by-column>`
+    - is a :ref:`named index<named-index-column>` column
+    - used in an :ref:`named index<named-index-column>`
+    - is referenced in a
+      :ref:`generated column <ddl-generated-columns-expressions>`
+
+.. NOTE::
+
+   It's not allowed to drop all columns of a table.
+
+.. NOTE::
+
+   Dropping columns of a table created before version 5.5 is not supported.
 
 .. _sql-alter-table-open-close:
 
@@ -191,8 +225,8 @@ operations will exclude all closed partitions.
 ``RENAME TO``
 -------------
 
-Can be used to rename a table, while maintaining its schema and data. During
-this operation the shards of the table will become temporarily unavailable.
+Can be used to rename a table or view, while maintaining its schema and data.
+If renaming a table, the shards of it become temporarily unavailable.
 
 
 .. _sql-alter-table-reroute:

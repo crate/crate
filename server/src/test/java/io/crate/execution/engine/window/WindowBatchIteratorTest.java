@@ -22,7 +22,6 @@
 package io.crate.execution.engine.window;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.common.collections.Tuple.tuple;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,6 +43,7 @@ import org.junit.Test;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -69,7 +69,7 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testWindowBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
@@ -93,7 +93,7 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testWindowBatchIteratorWithBatchSimulatingSource() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
@@ -132,7 +132,7 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args).get(5, TimeUnit.SECONDS).spliterator(), false)
             .collect(toList());
-        var expectedBounds = tuple(0, 10);
+        var expectedBounds = new Tuple<>(0, 10);
         IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(new Object[] { i, expectedBounds})));
     }
 
@@ -157,16 +157,16 @@ public class WindowBatchIteratorTest {
         assertThat(
             result,
             contains(
-                $(-1, tuple(0, 1)),
-                $(1, tuple(0, 2)),
-                $(1, tuple(0, 2)),
-                $(2, tuple(0, 2)),
-                $(2, tuple(0, 2)),
-                $(3, tuple(0, 1)),
-                $(4, tuple(0, 1)),
-                $(5, tuple(0, 1)),
-                $(null, tuple(0, 2)),
-                $(null, tuple(0, 2))
+                $(-1, new Tuple<>(0, 1)),
+                $(1, new Tuple<>(0, 2)),
+                $(1, new Tuple<>(0, 2)),
+                $(2, new Tuple<>(0, 2)),
+                $(2, new Tuple<>(0, 2)),
+                $(3, new Tuple<>(0, 1)),
+                $(4, new Tuple<>(0, 1)),
+                $(5, new Tuple<>(0, 1)),
+                $(null, new Tuple<>(0, 2)),
+                $(null, new Tuple<>(0, 2))
             )
         );
     }
@@ -204,16 +204,16 @@ public class WindowBatchIteratorTest {
         assertThat(
             result,
             contains(
-                $(-1, -1, tuple(0, 1)),
-                $(1, 0, tuple(0, 1)),
-                $(1, 1, tuple(0, 2)),
-                $(2, -1, tuple(0, 1)),
-                $(2, 2, tuple(0, 2)),
-                $(3, 3, tuple(0, 1)),
-                $(4, 4, tuple(0, 1)),
-                $(5, 5, tuple(0, 1)),
-                $(null, null, tuple(0, 2)),
-                $(null, null, tuple(0, 2))
+                $(-1, -1, new Tuple<>(0, 1)),
+                $(1, 0, new Tuple<>(0, 1)),
+                $(1, 1, new Tuple<>(0, 2)),
+                $(2, -1, new Tuple<>(0, 1)),
+                $(2, 2, new Tuple<>(0, 2)),
+                $(3, 3, new Tuple<>(0, 1)),
+                $(4, 4, new Tuple<>(0, 1)),
+                $(5, 5, new Tuple<>(0, 1)),
+                $(null, null, new Tuple<>(0, 2)),
+                $(null, null, new Tuple<>(0, 2))
             )
         );
     }
@@ -252,17 +252,17 @@ public class WindowBatchIteratorTest {
         assertThat(
             result,
             contains(
-                $(-1, -1, tuple(0, 1)),
-                $(1, 0, tuple(0, 3)),
-                $(1, 1, tuple(1, 3)),
-                $(1, 1, tuple(1, 3)),
-                $(2, -1, tuple(0, 2)),
-                $(2, 2, tuple(1, 2)),
-                $(3, 3, tuple(0, 1)),
-                $(4, 4, tuple(0, 1)),
-                $(5, 5, tuple(0, 1)),
-                $(null, null, tuple(0, 2)),
-                $(null, null, tuple(0, 2))
+                $(-1, -1, new Tuple<>(0, 1)),
+                $(1, 0, new Tuple<>(0, 3)),
+                $(1, 1, new Tuple<>(1, 3)),
+                $(1, 1, new Tuple<>(1, 3)),
+                $(2, -1, new Tuple<>(0, 2)),
+                $(2, 2, new Tuple<>(1, 2)),
+                $(3, 3, new Tuple<>(0, 1)),
+                $(4, 4, new Tuple<>(0, 1)),
+                $(5, 5, new Tuple<>(0, 1)),
+                $(null, null, new Tuple<>(0, 2)),
+                $(null, null, new Tuple<>(0, 2))
             )
         );
     }
@@ -325,23 +325,23 @@ public class WindowBatchIteratorTest {
         assertThat(
             result,
             contains(
-                $(-1, tuple(0, 1)),
-                $(1, tuple(0, 2)),
-                $(1, tuple(1, 2)),
-                $(2, tuple(0, 2)),
-                $(2, tuple(1, 2)),
-                $(3, tuple(0, 1)),
-                $(4, tuple(0, 1)),
-                $(5, tuple(0, 1)),
-                $(null, tuple(0, 2)),
-                $(null, tuple(1, 2))
+                $(-1, new Tuple<>(0, 1)),
+                $(1, new Tuple<>(0, 2)),
+                $(1, new Tuple<>(1, 2)),
+                $(2, new Tuple<>(0, 2)),
+                $(2, new Tuple<>(1, 2)),
+                $(3, new Tuple<>(0, 1)),
+                $(4, new Tuple<>(0, 1)),
+                $(5, new Tuple<>(0, 1)),
+                $(null, new Tuple<>(0, 2)),
+                $(null, new Tuple<>(1, 2))
             )
         );
     }
 
     @Test
     public void testWindowBatchIteratorAccountsUsedMemory() {
-        RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"));
+        RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"), 0);
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
             new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccounting, 32),
@@ -423,7 +423,7 @@ public class WindowBatchIteratorTest {
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
                                   Input... args) {
-                return tuple(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
+                return new Tuple<>(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
             }
 
             @Override

@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.analyze.AnalyzedColumnDefinition.COLUMN_STORE_PROPERTY;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -199,17 +198,16 @@ public class MetadataToASTNodeResolver {
                     defaultExpression = SqlParser.createExpression(symbol);
                 }
 
-                StorageSupport<?> storageSupport = ref.valueType().storageSupport();
-                assert storageSupport != null : "Column without storage support must not appear in table meta data";
+                StorageSupport<?> storageSupport = ref.valueType().storageSupportSafe();
                 boolean hasDocValuesPerDefault = storageSupport.getComputedDocValuesDefault(ref.indexType());
                 if (hasDocValuesPerDefault != ref.hasDocValues()) {
                     GenericProperties<Expression> properties = new GenericProperties<>(Map.of(
-                        COLUMN_STORE_PROPERTY, Literal.fromObject(ref.hasDocValues())
+                        TableElementsAnalyzer.COLUMN_STORE_PROPERTY, Literal.fromObject(ref.hasDocValues())
                     ));
                     constraints.add(new ColumnStorageDefinition<>(properties));
                 }
 
-                String columnName = ident.isTopLevel() ? ident.name() : ident.path().get(ident.path().size() - 1);
+                String columnName = ident.leafName();
                 elements.add(new ColumnDefinition<>(
                     columnName,
                     defaultExpression,

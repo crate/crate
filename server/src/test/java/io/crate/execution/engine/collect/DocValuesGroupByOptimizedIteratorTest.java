@@ -23,14 +23,17 @@ package io.crate.execution.engine.collect;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -74,7 +77,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
     private Functions functions;
     private IndexSearcher indexSearcher;
 
-    private List<Object[]> rows = List.of(
+    private final List<Object[]> rows = List.of(
         new Object[]{"1", 1L, 1L},
         new Object[]{"0", 0L, 2L},
         new Object[]{"1", 1L, 3L},
@@ -121,6 +124,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null)
             ),
             mock(DocTableInfo.class),
@@ -139,6 +144,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null
             ),
             keyExpressions,
@@ -146,7 +153,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             new MatchAllDocsQuery(),
-            new CollectorContext()
+            new CollectorContext(Set.of(), Function.identity())
         );
 
         var rowConsumer = new TestingRowConsumer();
@@ -180,6 +187,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null)
             ),
             mock(DocTableInfo.class),
@@ -196,6 +205,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 1,
+                111,
+                false,
                 null
             ),
             new SimpleReference(
@@ -207,6 +218,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 2,
+                111,
+                false,
                 null
             )
         );
@@ -219,7 +232,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             new MatchAllDocsQuery(),
-            new CollectorContext()
+            new CollectorContext(Set.of(), Function.identity())
         );
 
         var rowConsumer = new TestingRowConsumer();
@@ -299,7 +312,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             (expressions) -> expressions.get(0).value(),
             (key, cells) -> cells[0] = key,
             new MatchAllDocsQuery(),
-            new CollectorContext()
+            new CollectorContext(Set.of(), Function.identity())
         );
     }
 }

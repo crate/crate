@@ -51,6 +51,7 @@ import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
@@ -81,7 +82,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         final ColumnIdent column = ref.column();
         switch (column.name()) {
             case DocSysColumns.Names.RAW:
-                if (column.isTopLevel()) {
+                if (column.isRoot()) {
                     return new RawCollectorExpression();
                 }
                 throw new UnsupportedFeatureException("_raw expression does not support subscripts: " + column);
@@ -114,12 +115,12 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                     result,
                     indexName,
                     partitionColumns,
-                    column.isTopLevel() ? column : column.shiftRight()  // Remove `_doc` prefix so that it can match the column against partitionColumns
+                    column.isRoot() ? column : column.shiftRight()  // Remove `_doc` prefix so that it can match the column against partitionColumns
                 );
             }
 
             default: {
-                int partitionPos = partitionColumns.indexOf(ref);
+                int partitionPos = Reference.indexOf(partitionColumns, column);
                 if (partitionPos >= 0) {
                     return new LiteralValueExpression(
                         ref.valueType().implicitCast(PartitionName.fromIndexOrTemplate(indexName).values().get(partitionPos))
@@ -154,8 +155,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         return result;
     }
 
-    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup, final Reference ref) {
-        final String fqn = ref.column().fqn();
+    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup,
+                                                                          final Reference ref) {
+        final String fqn = ref.storageIdent();
         final MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
             return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)
@@ -193,6 +195,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new GeoPointColumnReference(fqn);
             case ArrayType.ID:
                 return DocCollectorExpression.create(toSourceLookup(ref));
+            case FloatVectorType.ID:
+                return new FloatVectorColumnReference(fqn);
             default:
                 throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
         }
@@ -202,7 +206,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         return ref.symbolType() == SymbolType.DYNAMIC_REFERENCE && ref.columnPolicy() == ColumnPolicy.IGNORED;
     }
 
-    private static class LiteralValueExpression extends LuceneCollectorExpression<Object> {
+    static class LiteralValueExpression extends LuceneCollectorExpression<Object> {
 
         private final Object value;
 
@@ -234,6 +238,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             this.partitionPath = partitionPath;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Object value() {
             final var object = (Map<String, Object>) inner.value();
@@ -247,18 +252,22 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return object;
         }
 
+        @Override
         public void startCollect(final CollectorContext context) {
             inner.startCollect(context);
         }
 
+        @Override
         public void setNextDocId(final int doc) {
             inner.setNextDocId(doc);
         }
 
+        @Override
         public void setNextReader(ReaderContext context) throws IOException {
             inner.setNextReader(context);
         }
 
+        @Override
         public void setScorer(final Scorable scorer) {
             inner.setScorer(scorer);
         }

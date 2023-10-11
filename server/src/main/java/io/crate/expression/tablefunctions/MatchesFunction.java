@@ -21,6 +21,18 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.expression.RegexpFlags.isGlobal;
+import static io.crate.expression.RegexpFlags.parseFlags;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -38,17 +50,6 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 import io.crate.user.UserLookup;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static io.crate.expression.RegexpFlags.parseFlags;
-import static io.crate.expression.RegexpFlags.isGlobal;
 
 public final class MatchesFunction extends TableFunctionImplementation<List<Object>> {
 
@@ -92,8 +93,6 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
 
     @Nullable
     private final Pattern pattern;
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final RowType returnType;
 
     private MatchesFunction(Signature signature, BoundSignature boundSignature, RowType returnType) {
@@ -101,20 +100,9 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     }
 
     private MatchesFunction(Signature signature, BoundSignature boundSignature, @Nullable Pattern pattern, RowType returnType) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.pattern = pattern;
         this.returnType = returnType;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

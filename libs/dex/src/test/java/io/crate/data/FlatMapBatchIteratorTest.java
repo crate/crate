@@ -28,7 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -44,7 +43,7 @@ public class FlatMapBatchIteratorTest {
             new FlatMapBatchIterator<>(source,
                                        x -> Arrays.asList(new Integer[] {x, x}, new Integer[] {x, x}).iterator());
 
-        List<Integer[]> integers = BatchIterators.collect(twiceAsArray, Collectors.toList()).get(1, TimeUnit.SECONDS);
+        List<Integer[]> integers = twiceAsArray.toList().get(1, TimeUnit.SECONDS);
         assertThat(integers).containsExactly(new Integer[] {1, 1},
                                              new Integer[] {1, 1},
                                              new Integer[] {2, 2},
@@ -57,7 +56,7 @@ public class FlatMapBatchIteratorTest {
     public void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
         Function<Row, Iterator<Row>> duplicateRow =
             row -> Arrays.<Row>asList(new RowN(row.materialize()), new RowN(row.materialize())).iterator();
-        BatchIteratorTester tester = new BatchIteratorTester(() -> {
+        var tester = BatchIteratorTester.forRows(() -> {
             BatchIterator<Row> source = TestingBatchIterators.range(1, 4);
             return new FlatMapBatchIterator<>(source, duplicateRow);
         });

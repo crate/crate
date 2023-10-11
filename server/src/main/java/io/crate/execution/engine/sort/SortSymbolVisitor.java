@@ -61,6 +61,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
@@ -143,7 +144,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             return customSortField(ref.toString(), ref, context);
         }
 
-        MappedFieldType fieldType = fieldTypeLookup.get(columnIdent.fqn());
+        MappedFieldType fieldType = fieldTypeLookup.get(ref.storageIdent());
         if (fieldType == null) {
             FieldComparatorSource fieldComparatorSource = new NullFieldComparatorSource(NullSentinelValues.nullSentinelForScoreDoc(
                 ref.valueType(),
@@ -151,10 +152,12 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 context.nullFirst
             ));
             return new SortField(
-                columnIdent.fqn(),
+                ref.storageIdent(),
                 fieldComparatorSource,
                 context.reverseFlag);
-        } else if (ref.valueType().equals(DataTypes.IP) || ref.valueType().id() == BitStringType.ID) {
+        } else if (ref.valueType().equals(DataTypes.IP)
+                || ref.valueType().id() == BitStringType.ID
+                || ref.valueType().id() == FloatVectorType.ID) {
             return customSortField(ref.toString(), ref, context);
         } else {
             return mappedSortField(
@@ -169,7 +172,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     static SortField mappedSortField(Reference symbol,
                                      boolean reverse,
                                      NullValueOrder nullValueOrder) {
-        String fieldName = symbol.column().fqn();
+        String fieldName = symbol.storageIdent();
         MultiValueMode sortMode = reverse ? MultiValueMode.MAX : MultiValueMode.MIN;
         switch (symbol.valueType().id()) {
             case StringType.ID, CharacterType.ID -> {

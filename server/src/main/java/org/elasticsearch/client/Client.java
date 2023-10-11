@@ -19,15 +19,15 @@
 
 package org.elasticsearch.client;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
 
 /**
  * A client provides a one stop interface for performing actions/operations against the cluster.
  * <p>
- * All operations performed are asynchronous by nature. Each action/operation has two flavors, the first
- * simply returns an {@link org.elasticsearch.action.ActionFuture}, while the second accepts an
- * {@link org.elasticsearch.action.ActionListener}.
+ * All operations performed are asynchronous by nature and return a {@link CompletableFuture}.
  * <p>
  * A client can either be retrieved from a {@link org.elasticsearch.node.Node} started
  *

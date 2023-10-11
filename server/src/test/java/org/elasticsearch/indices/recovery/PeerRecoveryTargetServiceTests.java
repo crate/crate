@@ -53,6 +53,7 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.engine.NoOpEngine;
 import org.elasticsearch.index.mapper.SourceToParse;
@@ -93,7 +94,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
             mdFiles.stream().map(StoreFileMetadata::length).collect(Collectors.toList()),
             Collections.emptyList(), Collections.emptyList(), 0, receiveFileInfoFuture
         );
-        receiveFileInfoFuture.actionGet(5, TimeUnit.SECONDS);
+        FutureUtils.get(receiveFileInfoFuture, (long) 5, TimeUnit.SECONDS);
         List<RecoveryFileChunkRequest> requests = new ArrayList<>();
         long seqNo = 0;
         for (StoreFileMetadata md : mdFiles) {
@@ -144,7 +145,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         PlainActionFuture<Void> cleanFilesFuture = new PlainActionFuture<>();
         recoveryTarget.cleanFiles(0, Long.parseLong(sourceSnapshot.getCommitUserData().get(SequenceNumbers.MAX_SEQ_NO)),
             sourceSnapshot, cleanFilesFuture);
-        cleanFilesFuture.actionGet();
+        FutureUtils.get(cleanFilesFuture);
         recoveryTarget.decRef();
         Store.MetadataSnapshot targetSnapshot = targetShard.snapshotStoreMetadata();
         Store.RecoveryDiff diff = sourceSnapshot.recoveryDiff(targetSnapshot);

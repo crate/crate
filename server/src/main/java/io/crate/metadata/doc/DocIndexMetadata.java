@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 import java.util.ArrayList;
@@ -37,8 +38,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -46,6 +45,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.BitStringFieldMapper;
 import org.elasticsearch.index.mapper.DateFieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
@@ -83,6 +83,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
@@ -109,6 +110,8 @@ public class DocIndexMetadata {
     private final List<Reference> columns = new ArrayList<>();
     private final List<Reference> nestedColumns = new ArrayList<>();
     private final ArrayList<GeneratedReference> generatedColumnReferencesBuilder = new ArrayList<>();
+
+    private final Set<Reference> droppedColumns = new HashSet<>();
 
     private final NodeContext nodeCtx;
     private final RelationName ident;
@@ -204,7 +207,10 @@ public class DocIndexMetadata {
         return indexMetadata.getState() == IndexMetadata.State.CLOSE;
     }
 
-    private void add(int position,
+    private void add(Map<String, Object> columnProperties,
+                     int position,
+                     long oid,
+                     boolean isDropped,
                      ColumnIdent column,
                      DataType<?> type,
                      @Nullable Symbol defaultExpression,
@@ -218,15 +224,18 @@ public class DocIndexMetadata {
         if (partitionByColumn) {
             indexType = IndexType.PLAIN;
         }
+
         Reference simpleRef = new SimpleReference(
             refIdent(column),
             granularity(column),
-            type,
+            removeDroppedColsFromInnerTypes(columnProperties, type),
             columnPolicy,
             indexType,
             nullable,
             hasDocValues,
             position,
+            oid,
+            isDropped,
             defaultExpression
         );
         if (generatedExpression == null) {
@@ -234,7 +243,11 @@ public class DocIndexMetadata {
         } else {
             ref = new GeneratedReference(simpleRef, generatedExpression, null);
         }
-        if (column.isTopLevel()) {
+        if (isDropped) {
+            droppedColumns.add(ref);
+            return;
+        }
+        if (column.isRoot()) {
             columns.add(ref);
         } else {
             nestedColumns.add(ref);
@@ -245,6 +258,8 @@ public class DocIndexMetadata {
     }
 
     private void addGeoReference(Integer position,
+                                 long oid,
+                                 boolean isDropped,
                                  ColumnIdent column,
                                  Symbol defaultExpression,
                                  @Nullable String tree,
@@ -260,12 +275,19 @@ public class DocIndexMetadata {
             IndexType.PLAIN,
             nullable,
             position,
+            oid,
+            isDropped,
             defaultExpression,
             tree,
             precision,
             treeLevels,
             distanceErrorPct
         );
+        if (isDropped) {
+            droppedColumns.add(info);
+            return;
+        }
+
 
         String generatedExpression = generatedColumns.get(column.fqn());
         if (generatedExpression != null) {
@@ -273,7 +295,7 @@ public class DocIndexMetadata {
             generatedColumnReferencesBuilder.add((GeneratedReference) info);
         }
 
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             columns.add(info);
         } else {
             nestedColumns.add(info);
@@ -351,6 +373,10 @@ public class DocIndexMetadata {
                     assert length != null : "Length is required for bit string type";
                     return new BitStringType(length);
 
+                case FloatVectorType.NAME:
+                    Integer dimensions = (Integer) columnProperties.get("dimensions");
+                    return new FloatVectorType(dimensions);
+
                 default:
                     type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
             }
@@ -413,18 +439,18 @@ public class DocIndexMetadata {
         return IndexType.FULLTEXT;
     }
 
-    private static ColumnIdent childIdent(@Nullable ColumnIdent ident, String name) {
-        if (ident == null) {
+    private static ColumnIdent columnIdent(@Nullable ColumnIdent parent, String name) {
+        if (parent == null) {
             return new ColumnIdent(name);
         }
-        return ColumnIdent.getChild(ident, name);
+        return parent.getChild(name);
     }
 
     /**
      * extracts index definitions as well
      */
     @SuppressWarnings("unchecked")
-    private void internalExtractColumnDefinitions(@Nullable ColumnIdent columnIdent,
+    private void internalExtractColumnDefinitions(@Nullable ColumnIdent parent,
                                                   @Nullable Map<String, Object> propertiesMap) {
         if (propertiesMap == null) {
             return;
@@ -437,7 +463,8 @@ public class DocIndexMetadata {
         for (Map.Entry<String, Object> columnEntry : cols.entrySet()) {
             Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
             final DataType<?> columnDataType = getColumnDataType(columnProperties);
-            ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
+            String columnName = columnEntry.getKey();
+            ColumnIdent newIdent = columnIdent(parent, columnName);
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
@@ -445,7 +472,13 @@ public class DocIndexMetadata {
             // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
             int position = (int) columnProperties.getOrDefault("position", 0);
             assert !takenPositions.containsKey(position) : "Duplicate column position assigned to " + newIdent.fqn() + " and " + takenPositions.get(position);
-            takenPositions.put(position, newIdent.fqn());
+            boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
+            if (!isDropped) {
+                // Columns, added later can get positions of the dropped columns.
+                // Absolute values of the positions is not important
+                // and relative positions still meet the requirement that new columns have higher positions.
+                takenPositions.put(position, newIdent.fqn());
+            }
             String formattedDefaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
             Symbol defaultExpression = null;
             if (formattedDefaultExpression != null) {
@@ -455,11 +488,14 @@ public class DocIndexMetadata {
                     new ExpressionAnalysisContext(CoordinatorTxnCtx.systemTransactionContext().sessionSettings()));
             }
             IndexType columnIndexType = getColumnIndexType(columnProperties);
-            StorageSupport<?> storageSupport = columnDataType.storageSupport();
-            assert storageSupport != null
-                : "DataType used in table definition must have storage support: " + columnDataType;
+            StorageSupport<?> storageSupport = columnDataType.storageSupportSafe();
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(columnIndexType);
             boolean hasDocValues = Booleans.parseBoolean(columnProperties.getOrDefault(DOC_VALUES, docValuesDefault).toString());
+
+            // columnProperties.getOrDefault doesn't work here for OID values fitting into int.
+            // Jackson optimizes writes of small long values as stores them as ints:
+            long oid = ((Number) columnProperties.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
+
             DataType<?> elementType = ArrayType.unnest(columnDataType);
             if (elementType.equals(DataTypes.GEO_SHAPE)) {
                 String geoTree = (String) columnProperties.get("tree");
@@ -468,6 +504,8 @@ public class DocIndexMetadata {
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
                 addGeoReference(
                     position,
+                    oid,
+                    isDropped,
                     newIdent,
                     defaultExpression,
                     geoTree,
@@ -481,7 +519,8 @@ public class DocIndexMetadata {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, IndexType.NONE, nullable, hasDocValues);
+                add(columnProperties, position, oid, isDropped, newIdent, columnDataType, defaultExpression,
+                    columnPolicy, IndexType.NONE, nullable, hasDocValues);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -505,22 +544,27 @@ public class DocIndexMetadata {
                             nullable,
                             hasDocValues,
                             position,
+                            oid,
+                            isDropped,
                             defaultExpression
                         ));
                     }
                 }
                 // is it an index?
-                if (indicesMap.containsKey(newIdent.fqn())) {
+                var indicesKey = oid == COLUMN_OID_UNASSIGNED ? newIdent.fqn() : Long.toString(oid);
+                if (indicesMap.containsKey(indicesKey)) {
                     List<String> sources = Maps.get(columnProperties, "sources");
                     if (sources != null) {
                         IndexReference.Builder builder = getOrCreateIndexBuilder(newIdent);
                         builder.indexType(columnIndexType)
                             .position(position)
+                            .oid(oid)
                             .analyzer((String) columnProperties.get("analyzer"))
                             .sources(sources);
                     }
                 } else {
-                    add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
+                    add(columnProperties, position, oid, isDropped, newIdent, columnDataType, defaultExpression,
+                        ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
                 }
             }
         }
@@ -610,7 +654,9 @@ public class DocIndexMetadata {
     private Map<ColumnIdent, IndexReference> createIndexDefinitions() {
         MapBuilder<ColumnIdent, IndexReference> builder = MapBuilder.newMapBuilder();
         for (Map.Entry<ColumnIdent, IndexReference.Builder> entry : indicesBuilder.entrySet()) {
-            builder.put(entry.getKey(), entry.getValue().build(references));
+            var indexRef = entry.getValue().build(references);
+            assert indexRef.isDropped() == false : "A named index is not expected to be dropped";
+            builder.put(entry.getKey(), indexRef);
         }
         indices = builder.immutableMap();
         return indices;
@@ -696,7 +742,9 @@ public class DocIndexMetadata {
         for (var generatedReference : generatedColumnReferences) {
             Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
             tableReferenceResolver.references().clear();
-            generatedReference.generatedExpression(exprAnalyzer.convert(expression, analysisCtx));
+            Symbol generatedExpression = exprAnalyzer.convert(expression, analysisCtx)
+                .cast(generatedReference.valueType());
+            generatedReference.generatedExpression(generatedExpression);
             generatedReference.referencedReferences(List.copyOf(tableReferenceResolver.references()));
         }
         return this;
@@ -708,6 +756,10 @@ public class DocIndexMetadata {
 
     public Collection<Reference> columns() {
         return columns;
+    }
+
+    public Set<Reference> droppedColumns() {
+        return droppedColumns;
     }
 
     public Map<ColumnIdent, IndexReference> indices() {
@@ -774,12 +826,12 @@ public class DocIndexMetadata {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<ColumnIdent, String> getAnalyzers(ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
+    private Map<ColumnIdent, String> getAnalyzers(@Nullable ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
         MapBuilder<ColumnIdent, String> builder = MapBuilder.newMapBuilder();
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
             DataType<?> columnDataType = getColumnDataType(columnProperties);
-            ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
+            ColumnIdent newIdent = columnIdent(columnIdent, columnEntry.getKey());
             columnProperties = furtherColumnProperties(columnProperties);
             if (columnDataType.id() == ObjectType.ID
                 || (columnDataType.id() == ArrayType.ID
@@ -821,5 +873,33 @@ public class DocIndexMetadata {
 
     public boolean isClosed() {
         return closed;
+    }
+
+    /**
+     * Even though referenced marked as "dropped" are excluded from {@link #columns}, when a sub-column
+     * of an object col is dropped, the {@link ObjectType#innerTypes()} still contain those dropped sub-columns.
+     */
+    @SuppressWarnings("unchecked")
+    private DataType<?> removeDroppedColsFromInnerTypes(Map<String, Object> columnProperties, DataType<?> type) {
+        if (type.id() == ObjectType.ID) {
+            ObjectType.Builder builder = new ObjectType.Builder();
+            for (var entry : ((ObjectType) type).innerTypes().entrySet()) {
+                Map<String, Object> innerProps =
+                    ((Map<String, Object>)((Map<String, Object>) columnProperties.get("properties"))
+                        .get(entry.getKey()));
+                if (innerProps.get("dropped") == null || (Boolean) innerProps.get("dropped") == false) {
+                    builder.setInnerType(entry.getKey(), removeDroppedColsFromInnerTypes(innerProps, entry.getValue()));
+                }
+            }
+            return builder.build();
+        } else if (type.id() == ArrayType.ID) {
+            Map<String, Object> innerProps = (Map<String, Object>) columnProperties.get("inner");
+            if (innerProps == null) {
+                innerProps = columnProperties;
+            }
+            var newInnerType = removeDroppedColsFromInnerTypes(innerProps, ((ArrayType<?>) type).innerType());
+            return new ArrayType<>(newInnerType);
+        }
+        return type;
     }
 }

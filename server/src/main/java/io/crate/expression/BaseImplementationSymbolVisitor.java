@@ -33,6 +33,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -89,6 +90,11 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
     @Override
     public Input<?> visitAlias(AliasSymbol aliasSymbol, C context) {
         return aliasSymbol.symbol().accept(this, context);
+    }
+
+    @Override
+    public Input<?> visitVoidReference(VoidReference symbol, C context) {
+        return visitReference(symbol, context);
     }
 
     @Override

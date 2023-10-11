@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -193,7 +194,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("drop snapshot " + REPOSITORY_NAME + "." + snapshot))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4048)
-            .hasMessageContaining(String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown", REPOSITORY_NAME, snapshot));
+            .hasMessageContaining(String.format(Locale.ENGLISH, "[%s:%s] is missing", REPOSITORY_NAME, snapshot));
     }
 
     @Test
@@ -203,7 +204,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("drop snapshot " + repository + "." + snapshot))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4047)
-            .hasMessageContaining(String.format(Locale.ENGLISH, "Repository '%s' unknown", repository));
+            .hasMessageContaining(String.format(Locale.ENGLISH, "[%s] missing", repository));
     }
 
     @Test
@@ -283,7 +284,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(1L);
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(CONFLICT, 4099)
+            .hasHTTPError(CONFLICT, 4096)
             .hasMessageContaining("Invalid snapshot name [my_snapshot], snapshot with the same name already exists");
     }
 
@@ -292,14 +293,14 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT unknown_repo.my_snapshot ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4047)
-            .hasMessageContaining("Repository 'unknown_repo' unknown");
+            .hasMessageContaining("[unknown_repo] missing");
     }
 
     @Test
     public void testInvalidSnapshotName() throws Exception {
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(CONFLICT, 4099)
+            .hasHTTPError(CONFLICT, 4096)
             .hasMessageContaining("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase");
     }
 
@@ -801,6 +802,92 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "empty_parted1",
             "empty_parted2");
+    }
+
+    @Test
+    public void test_can_restore_snapshots_taken_after_swap_table() throws Exception {
+        execute("CREATE TABLE t01 as SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 as SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+        int i = 2;
+        boolean expectt01 = true;
+        for (; i < randomIntBetween(3, 10); i++) {
+            expectt01 = !expectt01;
+            execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+            execute("CREATE SNAPSHOT my_repo.s" + i + " ALL WITH (wait_for_completion=true)");
+        }
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s" + (i - 1) + " ALL");
+        execute("refresh table t01");
+        String[] t01 = new String[] {
+            "1",
+            "2",
+            "3"
+        };
+        String[] t02 = new String[] {
+            "10",
+            "11",
+            "12"
+        };
+        assertThat(execute("select a from t01 order by a limit 3")).hasRows(expectt01 ? t01 : t02);
+    }
+
+    @Test
+    public void test_can_restore_snapshot_taken_before_swap_table() throws Exception {
+        execute("CREATE TABLE t01 as SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 as SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+        execute("alter cluster swap table t01 to t02");
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s1 table t01");
+        execute("refresh table t01");
+        assertThat(execute("select a from t01 order by a limit 3")).hasRows(
+            "1",
+            "2",
+            "3"
+        );
+    }
+
+    @Test
+    public void test_can_restore_snapshots_after_swapped_table_back_and_forth() throws Exception {
+        execute("CREATE TABLE t01 AS SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 AS SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+        execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+        execute("ALTER CLUSTER SWAP TABLE t02 TO t01");
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
+        execute("refresh table t01");
+        assertThat(execute("select a from t01 order by a limit 3")).hasRows(
+            "1",
+            "2",
+            "3"
+        );
+    }
+
+    @Test
+    public void test_can_restore_snapshot_after_swap_table_with_drop_source() throws Exception {
+        execute("CREATE TABLE t01 AS SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 AS SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+
+        execute("ALTER CLUSTER SWAP TABLE t01 TO t02 WITH (drop_source = true)");
+
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
+        execute("refresh table t02");
+        assertThat(execute("select a from t02 order by a limit 3")).hasRows(
+            "1",
+            "2",
+            "3"
+        );
     }
 
     private void createSnapshotWithTablesAndMetadata() throws Exception {

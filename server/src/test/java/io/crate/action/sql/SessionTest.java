@@ -23,7 +23,7 @@ package io.crate.action.sql;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -32,14 +32,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -51,25 +49,17 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.Relations;
-import io.crate.analyze.TableDefinitions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.ParameterSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.Portal;
-import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
@@ -77,57 +67,6 @@ import io.crate.types.DataTypes;
 
 public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
-    @Test
-    public void testParameterTypeExtractorNotApplicable() {
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        assertThat(typeExtractor.getParameterTypes(s -> {}).length).isEqualTo(0);
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testParameterTypeExtractor() {
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        List<Symbol> symbolsToVisit = new ArrayList<>();
-        symbolsToVisit.add(Literal.of(1));
-        symbolsToVisit.add(Literal.of("foo"));
-        symbolsToVisit.add(new ParameterSymbol(1, DataTypes.LONG));
-        symbolsToVisit.add(new ParameterSymbol(0, DataTypes.INTEGER));
-        symbolsToVisit.add(new ParameterSymbol(3, DataTypes.STRING));
-        symbolsToVisit.add(Literal.of("bar"));
-        symbolsToVisit.add(new ParameterSymbol(2, DataTypes.DOUBLE));
-        symbolsToVisit.add(new ParameterSymbol(1, DataTypes.LONG));
-        symbolsToVisit.add(new ParameterSymbol(0, DataTypes.INTEGER));
-        symbolsToVisit.add(Literal.of(1.2));
-
-        Consumer<Consumer<? super Symbol>> symbolVisitor = c -> {
-            for (Symbol symbol : symbolsToVisit) {
-                c.accept(symbol);
-            }
-        };
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(symbolVisitor);
-        assertThat(parameterTypes).containsExactly(
-            DataTypes.INTEGER,
-            DataTypes.LONG,
-            DataTypes.DOUBLE,
-            DataTypes.STRING
-        );
-
-        symbolsToVisit.add(new ParameterSymbol(4, DataTypes.BOOLEAN));
-        parameterTypes = typeExtractor.getParameterTypes(symbolVisitor);
-        assertThat(parameterTypes).containsExactly(
-            DataTypes.INTEGER,
-            DataTypes.LONG,
-            DataTypes.DOUBLE,
-            DataTypes.STRING,
-            DataTypes.BOOLEAN
-        );
-
-        // remove the double parameter => make the input invalid
-        symbolsToVisit.remove(6);
-        assertThatThrownBy(() -> typeExtractor.getParameterTypes(symbolVisitor))
-            .isExactlyInstanceOf(IllegalStateException.class)
-            .hasMessage("The assembled list of ParameterSymbols is invalid. Missing parameters.");
-    }
 
     @Test
     public void test_out_of_bounds_getParamType_fails() throws Exception {
@@ -207,154 +146,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         CompletableFuture<?> sync = session.sync();
         assertThat(sync).isSameAs(activeExecution);
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testExtractTypesFromDelete() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
-        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
-            SqlParser.createStatement("delete from users where name = ?"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors);
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
-
-        assertThat(parameterTypes).isEqualTo(new DataType[] { DataTypes.STRING });
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testExtractTypesFromUpdate() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
-        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
-            SqlParser.createStatement("update users set name = ? || '_updated' where id = ?"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors);
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
-
-        assertThat(parameterTypes).isEqualTo(new DataType[] { DataTypes.STRING, DataTypes.LONG });
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testExtractTypesFromInsertValues() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
-        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
-            SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?)"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors
-        );
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
-
-        assertThat(parameterTypes).isEqualTo(new DataType[] { DataTypes.LONG, DataTypes.STRING });
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testExtractTypesFromInsertFromQuery() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
-            .build();
-        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
-            SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
-                                      "WHERE name = ?)"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors
-        );
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
-
-        assertThat(parameterTypes).isEqualTo(new DataType[]{DataTypes.STRING});
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testExtractTypesFromInsertWithOnDuplicateKey() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
-            .build();
-        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
-            SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +
-                                      "ON CONFLICT (id) DO UPDATE SET name = ?"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors);
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
-
-        assertThat(parameterTypes).isEqualTo(new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING});
-
-        analyzedStatement = e.analyzer.analyze(
-            SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
-                                      "WHERE name = ?) ON CONFLICT (id) DO UPDATE SET name = ?"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors);
-        typeExtractor = new ParameterTypeExtractor();
-        parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
-
-        assertThat(parameterTypes).isEqualTo(new DataType[]{DataTypes.STRING, DataTypes.STRING});
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testTypesCanBeResolvedIfParametersAreInSubRelation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).build();
-
-        AnalyzedStatement stmt = e.analyzer.analyze(
-            SqlParser.createStatement("select * from (select $1::int + $2) t"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors
-        );
-        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
-            consumer -> Relations.traverseDeepSymbols(stmt, consumer));
-        assertThat(parameterTypes).containsExactly(DataTypes.INTEGER, DataTypes.INTEGER);
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testTypesCanBeResolvedIfParametersAreInSubRelationOfInsertStatement() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x int)")
-            .build();
-
-        AnalyzedStatement stmt = e.analyzer.analyze(
-            SqlParser.createStatement("insert into t (x) (select * from (select $1::int + $2) t)"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors
-        );
-        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
-            consumer -> Relations.traverseDeepSymbols(stmt, consumer));
-        assertThat(parameterTypes).containsExactly(DataTypes.INTEGER, DataTypes.INTEGER);
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void testTypesCanBeResolvedIfParametersAreInSubQueryInDeleteStatement() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x int)")
-            .build();
-
-        AnalyzedStatement stmt = e.analyzer.analyze(
-            SqlParser.createStatement("delete from t where x = (select $1::long)"),
-            CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY,
-            e.cursors
-        );
-        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
-            consumer -> Relations.traverseDeepSymbols(stmt, consumer));
-        assertThat(parameterTypes).containsExactly(DataTypes.LONG);
     }
 
     @Test
@@ -587,41 +378,5 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         verify(client, times(1))
             .execute(Mockito.eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
-    }
-
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void test_can_extract_parameters_from_match_predicate() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text, keywords text)")
-            .build();
-        AnalyzedStatement statement = e.analyze(
-            "select * from users where match(keywords, ?) using best_fields with (fuzziness= ?) and name = ?");
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(statement::visitSymbols);
-        assertThat(parameterTypes).containsExactly(DataTypes.STRING, DataTypes.UNDEFINED, DataTypes.STRING);
-    }
-
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    public void test_can_extract_parameters_from_join_condition() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table subscriptions (id text primary key, name text not null)")
-            .addTable("create table clusters (id text, subscription_id text)")
-            .build();
-
-        AnalyzedStatement stmt = e.analyze(
-            """
-                    select
-                        *
-                    from subscriptions
-                    join clusters on clusters.subscription_id = subscriptions.id
-                        AND subscriptions.name = ?
-                """);
-        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(stmt::visitSymbols);
-        assertThat(parameterTypes).containsExactly(DataTypes.STRING);
     }
 }

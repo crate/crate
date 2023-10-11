@@ -35,6 +35,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
+import io.crate.action.sql.Sessions;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
@@ -42,7 +43,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
+import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
+
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 
 @Singleton
 public class SessionSettingRegistry {
@@ -50,12 +54,13 @@ public class SessionSettingRegistry {
     private static final String SEARCH_PATH_KEY = "search_path";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
     static final String MAX_INDEX_KEYS = "max_index_keys";
+    static final String MAX_IDENTIFIER_LENGTH = "max_identifier_length";
     static final String SERVER_VERSION_NUM = "server_version_num";
     static final String SERVER_VERSION = "server_version";
     static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
     static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     static final String DATE_STYLE_KEY = "datestyle";
-    static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<String>(
+    static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<>(
         "application_name",
         inputs -> {},
         inputs -> DataTypes.STRING.implicitCast(inputs[0]),
@@ -65,8 +70,8 @@ public class SessionSettingRegistry {
         "Optional application name. Can be set by a client to identify the application which created the connection",
         DataTypes.STRING
     );
-    static final SessionSetting<String> DATE_STYLE = new SessionSetting<String>(
-        "datestyle",
+    static final SessionSetting<String> DATE_STYLE = new SessionSetting<>(
+        DATE_STYLE_KEY,
         inputs -> validateDateStyleFrom(objectsToStringArray(inputs)),
         inputs -> DEFAULT_DATE_STYLE,
         CoordinatorSessionSettings::setDateStyle,
@@ -76,7 +81,7 @@ public class SessionSettingRegistry {
         DataTypes.STRING
     );
 
-    static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<TimeValue>(
+    static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<>(
         "statement_timeout",
         inputs -> {},
         inputs -> {
@@ -103,6 +108,17 @@ public class SessionSettingRegistry {
         () -> "0",
         "The maximum duration of any statement before it gets killed. Infinite/disabled if 0",
         DataTypes.INTERVAL
+    );
+
+    static final SessionSetting<Integer> MEMORY_LIMIT = new SessionSetting<>(
+        Sessions.MEMORY_LIMIT.getKey(),
+        input -> {},
+        inputs -> DataTypes.INTEGER.implicitCast(inputs[0]),
+        CoordinatorSessionSettings::memoryLimit,
+        settings -> Integer.toString(settings.memoryLimitInBytes()),
+        () -> "0",
+        "Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits",
+        DataTypes.INTEGER
     );
 
     private final Map<String, SessionSetting<?>> settings;
@@ -146,6 +162,18 @@ public class SessionSettingRegistry {
                      () -> String.valueOf(32),
                      "Shows the maximum number of index keys.",
                      DataTypes.INTEGER))
+            .put(MAX_IDENTIFIER_LENGTH,
+                 new SessionSetting<>(
+                     MAX_IDENTIFIER_LENGTH,
+                     objects -> {},
+                     Function.identity(),
+                     (s, v) -> {
+                         throw new UnsupportedOperationException("\"" + MAX_IDENTIFIER_LENGTH + "\" cannot be changed.");
+                     },
+                     s -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
+                     () -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
+                     "Shows the maximum length of identifiers in bytes.",
+                     DataTypes.INTEGER))
             .put(SERVER_VERSION_NUM,
                  new SessionSetting<>(
                      SERVER_VERSION_NUM,
@@ -177,11 +205,14 @@ public class SessionSettingRegistry {
             .put(STANDARD_CONFORMING_STRINGS,
                  new SessionSetting<>(
                      STANDARD_CONFORMING_STRINGS,
-                     objects -> {},
-                     Function.identity(),
-                     (s, v) -> {
-                         throw new UnsupportedOperationException("\"" + STANDARD_CONFORMING_STRINGS + "\" cannot be changed.");
+                     objects -> {
+                         if (objects.length != 1) {
+                             throw new IllegalArgumentException(STANDARD_CONFORMING_STRINGS + " should have only one argument.");
+                         }
+                         validateStandardConformingStrings(objectsToStringArray(objects)[0]);
                      },
+                     Function.identity(),
+                     (s, v) -> {},
                      s -> "on",
                      () -> "on",
                      "Causes '...' strings to treat backslashes literally.",
@@ -205,7 +236,8 @@ public class SessionSettingRegistry {
             )
             .put(APPLICATION_NAME.name(), APPLICATION_NAME)
             .put(DATE_STYLE.name(), DATE_STYLE)
-            .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT);
+            .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT)
+            .put(MEMORY_LIMIT.name(), MEMORY_LIMIT);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {
@@ -244,23 +276,31 @@ public class SessionSettingRegistry {
                 // date format style
                 case "ISO":
                     break;
-                case "SQL":
-                case "POSTGRES":
-                case "GERMAN":
-                    throw new IllegalArgumentException("Invalid value for parameter \"datestyle\": \"" + dateStyle + "\". Valid values include: [\"ISO\"].");
+                case "SQL",
+                     "POSTGRES",
+                      "GERMAN":
+                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
+                                                        dateStyle + "\". Valid values include: [\"ISO\"].");
                 // date order style
-                case "MDY":
-                case "NONEURO":
-                case "NONEUROPEAN":
-                case "US":
-                case "DMY":
-                case "EURO":
-                case "EUROPEAN":
-                case "YMD":
+                case "MDY",
+                     "NONEURO",
+                     "NONEUROPEAN",
+                     "US",
+                     "DMY",
+                     "EURO",
+                     "EUROPEAN",
+                     "YMD":
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid value for parameter \"datestyle\": \"" + dateStyle + "\". Valid values include: [\"ISO\"].");
+                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
+                                                       dateStyle + "\". Valid values include: [\"ISO\"].");
             }
+        }
+    }
+
+    private static void validateStandardConformingStrings(String str) {
+        if (BooleanType.INSTANCE.implicitCast(str) == Boolean.FALSE) {
+            throw new UnsupportedOperationException("\"" + STANDARD_CONFORMING_STRINGS + "\" cannot be changed.");
         }
     }
 }

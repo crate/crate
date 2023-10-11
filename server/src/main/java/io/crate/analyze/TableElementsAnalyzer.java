@@ -21,343 +21,736 @@
 
 package io.crate.analyze;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
+import org.elasticsearch.common.UUIDs;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.expression.symbol.Literal;
+import io.crate.analyze.ddl.GeoSettingsApplier;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.annotations.NotThreadSafe;
+import io.crate.common.collections.Lists2;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ColumnValidationException;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.scalar.cast.CastMode;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
+import io.crate.planner.operators.EnsureNoMatchPredicate;
 import io.crate.sql.tree.AddColumnDefinition;
+import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
+import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.DropCheckConstraint;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.NotNullColumnConstraint;
 import io.crate.sql.tree.ObjectColumnType;
+import io.crate.sql.tree.PartitionedBy;
 import io.crate.sql.tree.PrimaryKeyColumnConstraint;
 import io.crate.sql.tree.PrimaryKeyConstraint;
-import io.crate.sql.tree.TableElement;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
+import io.crate.types.StorageSupport;
 
-public class TableElementsAnalyzer {
+@NotThreadSafe
+public class TableElementsAnalyzer implements FieldProvider<Reference> {
 
-    public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
-                                                       RelationName relationName,
-                                                       @Nullable TableInfo tableInfo,
-                                                       boolean isAddColumn) {
-        return analyze(tableElements, relationName, tableInfo, true, isAddColumn);
-    }
+    public static final Set<Integer> UNSUPPORTED_INDEX_TYPE_IDS = Set.of(
+        ObjectType.ID,
+        DataTypes.GEO_POINT.id(),
+        DataTypes.GEO_SHAPE.id()
+    );
+    public static final Set<Integer> UNSUPPORTED_PK_TYPE_IDS = Set.of(
+        ObjectType.ID,
+        DataTypes.GEO_POINT.id(),
+        DataTypes.GEO_SHAPE.id()
+    );
+
+    public static final String COLUMN_STORE_PROPERTY = "columnstore";
+
+    private final RelationName tableName;
+    private final ExpressionAnalyzer expressionAnalyzer;
+    private final ExpressionAnalysisContext expressionContext;
+    /**
+     * Columns are in the order as they appear in the statement
+     */
+    private final Map<ColumnIdent, RefBuilder> columns = new LinkedHashMap<>();
+    private final PeekColumns peekColumns;
+    private final ColumnAnalyzer columnAnalyzer;
+    private final Function<Expression, Symbol> toSymbol;
+    private final Set<ColumnIdent> primaryKeys = new HashSet<>();
+    private final Map<String, AnalyzedCheck> checks = new LinkedHashMap<>();
 
     /**
-     *
-     * @param isAddColumn When set to true, column positions of the analyzed table elements will contain negative column estimates
-     *                    representing the ordering of the columns to be added dynamically. The estimates will be assigned by {@link ColumnDefinitionContext#increaseCurrentPosition()}
-     *                    then re-calculated to be the exact column positions by {@link org.elasticsearch.cluster.metadata.ColumnPositionResolver}
+     * Only set in ALTER TABLE
      */
-    public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
-                                                       RelationName relationName,
-                                                       @Nullable TableInfo tableInfo,
-                                                       boolean logWarnings,
-                                                       boolean isAddColumn) {
-        AnalyzedTableElements<T> analyzedTableElements = new AnalyzedTableElements<>();
-        int positionOffset = isAddColumn ? 0 : (tableInfo == null ? 0 : tableInfo.columns().size());
-        InnerTableElementsAnalyzer<T> analyzer = new InnerTableElementsAnalyzer<>();
-        for (int i = 0; i < tableElements.size(); i++) {
-            TableElement<T> tableElement = tableElements.get(i);
-            int position = positionOffset + (isAddColumn ? -1 : 1);
-            ColumnDefinitionContext<T> ctx = new ColumnDefinitionContext<>(
-                position,
-                null,
-                analyzedTableElements,
-                relationName,
-                tableInfo,
-                logWarnings);
+    @Nullable
+    private final DocTableInfo table;
+    /**
+     * Indicates if the expressionAnalyzer is allowed to return a Reference for
+     * columns neither present in {@link #columns} (populated with peekColumns) nor
+     * in {@link #table}
+     */
+    private boolean resolveMissing = false;
+    private final EvaluatingNormalizer normalizer;
+    private final CoordinatorTxnCtx txnCtx;
 
-            tableElement.accept(analyzer, ctx);
-            if (ctx.analyzedColumnDefinition.ident() != null) {
-                analyzedTableElements.add(ctx.analyzedColumnDefinition, isAddColumn);
-            }
-            positionOffset = ctx.currentColumnPosition;
-        }
-        return analyzedTableElements;
+    public TableElementsAnalyzer(RelationName tableName,
+                                 CoordinatorTxnCtx txnCtx,
+                                 NodeContext nodeCtx,
+                                 ParamTypeHints paramTypeHints) {
+        this(null, tableName, txnCtx, nodeCtx, paramTypeHints);
     }
 
-    private static class ColumnDefinitionContext<T> {
-
-        AnalyzedColumnDefinition<T> analyzedColumnDefinition;
-        final AnalyzedTableElements<T> analyzedTableElements;
-        final RelationName relationName;
-        @Nullable
-        final TableInfo tableInfo;
-        final boolean logWarnings;
-        int currentColumnPosition;
-
-        ColumnDefinitionContext(int position,
-                                @Nullable AnalyzedColumnDefinition<T> parent,
-                                AnalyzedTableElements<T> analyzedTableElements,
-                                RelationName relationName,
-                                @Nullable TableInfo tableInfo,
-                                boolean logWarnings) {
-            this.analyzedColumnDefinition = new AnalyzedColumnDefinition<>(position, parent);
-            this.analyzedTableElements = analyzedTableElements;
-            this.relationName = relationName;
-            this.tableInfo = tableInfo;
-            this.logWarnings = logWarnings;
-            this.currentColumnPosition = position;
-        }
-
-        public void increaseCurrentPosition() {
-            if (currentColumnPosition > 0) {
-                currentColumnPosition++;
-            } else {
-                currentColumnPosition--;
-            }
-        }
+    public TableElementsAnalyzer(DocTableInfo table,
+                                 CoordinatorTxnCtx txnCtx,
+                                 NodeContext nodeCtx,
+                                 ParamTypeHints paramTypeHints) {
+        this(table, table.ident(), txnCtx, nodeCtx, paramTypeHints);
     }
 
-    private static class InnerTableElementsAnalyzer<T> extends DefaultTraversalVisitor<Void, ColumnDefinitionContext<T>> {
+    private TableElementsAnalyzer(@Nullable DocTableInfo table,
+                                 RelationName tableName,
+                                 CoordinatorTxnCtx txnCtx,
+                                 NodeContext nodeCtx,
+                                 ParamTypeHints paramTypeHints) {
+        this.table = table;
+        this.tableName = tableName;
+        this.txnCtx = txnCtx;
+        this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
+        this.expressionAnalyzer = new ExpressionAnalyzer(
+            txnCtx,
+            nodeCtx,
+            paramTypeHints,
+            this,
+            null
+        );
+        this.expressionContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+        this.columnAnalyzer = new ColumnAnalyzer();
+        this.peekColumns = new PeekColumns();
+        this.toSymbol = x -> expressionAnalyzer.convert(x, expressionContext);
+    }
 
-        @Override
-        @SuppressWarnings("unchecked")
-        public Void visitColumnDefinition(ColumnDefinition<?> node, ColumnDefinitionContext<T> context) {
-            ColumnDefinition<T> columnDefinition = (ColumnDefinition<T>) node;
-            context.analyzedColumnDefinition.name(node.ident());
-            for (ColumnConstraint<T> columnConstraint : columnDefinition.constraints()) {
-                columnConstraint.accept(this, context);
-            }
-            ColumnType<T> type = columnDefinition.type();
-            if (type != null) {
-                type.accept(this, context);
-            }
-            context.analyzedColumnDefinition.setGenerated(columnDefinition.isGenerated());
-            if (columnDefinition.defaultExpression() != null) {
-                context.analyzedColumnDefinition.defaultExpression(columnDefinition.defaultExpression());
-            }
-            if (columnDefinition.generatedExpression() != null) {
-                context.analyzedColumnDefinition.generatedExpression(columnDefinition.generatedExpression());
-            }
-            return null;
+    static class RefBuilder {
+
+        private final ColumnIdent name;
+        private DataType<?> type;
+
+        private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
+        private IndexType indexType = IndexType.PLAIN;
+        private RowGranularity rowGranularity = RowGranularity.DOC;
+        private String indexMethod;
+        private boolean nullable = true;
+        private GenericProperties<Symbol> indexProperties = GenericProperties.empty();
+        private boolean primaryKey;
+        private Symbol generated;
+        private Symbol defaultExpression;
+        private GenericProperties<Symbol> storageProperties = GenericProperties.empty();
+        private List<Symbol> indexSources = List.of();
+
+
+        /**
+         * cached result
+         **/
+        private Reference builtReference;
+
+        public RefBuilder(ColumnIdent name, DataType<?> type) {
+            this.name = name;
+            this.type = type;
         }
 
-        @Override
-        @SuppressWarnings("unchecked")
-        public Void visitAddColumnDefinition(AddColumnDefinition<?> node, ColumnDefinitionContext<T> context) {
-            AddColumnDefinition<T> addColumnDefinition = (AddColumnDefinition<T>) node;
-            assert addColumnDefinition.name() instanceof Literal : "column name is expected to be a literal already";
-            ColumnIdent column = ColumnIdent.fromPath(((Literal<?>) addColumnDefinition.name()).value().toString());
-            context.analyzedColumnDefinition.name(column.name());
+        public boolean isPrimaryKey() {
+            return primaryKey;
+        }
 
-            assert context.tableInfo != null : "Table must be available for `addColumnDefinition`";
+        public Reference build(Map<ColumnIdent, RefBuilder> columns,
+                               RelationName tableName,
+                               Function<Symbol, Symbol> bindParameter,
+                               Function<Symbol, Object> toValue) {
+            if (builtReference != null) {
+                return builtReference;
+            }
 
-            final AnalyzedColumnDefinition<T> root = context.analyzedColumnDefinition;
-            if (!column.path().isEmpty()) {
-                AnalyzedColumnDefinition<T> parent = context.analyzedColumnDefinition;
-                AnalyzedColumnDefinition<T> leaf = parent;
-                for (String name : column.path()) {
-                    parent.dataType(ObjectType.NAME);
-                    // Check if parent is already defined.
-                    // If it is an array, set the collection type to array, or if it's an object keep the object column
-                    // policy.
-                    Reference parentRef = context.tableInfo.getReference(parent.ident());
-                    if (parentRef != null) {
-                        parent.position(parentRef.position());
-                        if (parentRef.valueType().id() == ArrayType.ID) {
-                            parent.collectionType(ArrayType.NAME);
-                        } else {
-                            parent.objectType(parentRef.columnPolicy());
-                        }
+            StorageSupport<?> storageSupport = type.storageSupportSafe();
+            Symbol columnStoreSymbol = storageProperties.get(COLUMN_STORE_PROPERTY);
+            if (!storageSupport.supportsDocValuesOff() && columnStoreSymbol != null) {
+                throw new IllegalArgumentException("Invalid storage option \"columnstore\" for data type \"" + type.getName() + "\" for column: " + name);
+            }
+            boolean hasDocValues = columnStoreSymbol == null
+                ? storageSupport.getComputedDocValuesDefault(indexType)
+                : DataTypes.BOOLEAN.implicitCast(toValue.apply(columnStoreSymbol));
+            Reference ref;
+            ReferenceIdent refIdent = new ReferenceIdent(tableName, name);
+            int position = -1;
+
+
+            if (defaultExpression != null) {
+                defaultExpression = bindParameter.apply(defaultExpression);
+            }
+
+            if (!indexSources.isEmpty() || indexType == IndexType.FULLTEXT || indexProperties.properties().containsKey("analyzer")) {
+                List<Reference> sources = new ArrayList<>(indexSources.size());
+                for (Symbol indexSource : indexSources) {
+                    if (!ArrayType.unnest(indexSource.valueType()).equals(DataTypes.STRING)) {
+                        throw new IllegalArgumentException(String.format(
+                            Locale.ENGLISH,
+                            "INDEX source columns require `string` types. Cannot use `%s` (%s) as source for `%s`",
+                            Symbols.pathFromSymbol(indexSource),
+                            indexSource.valueType().getName(),
+                            name
+                            ));
                     }
-                    parent.markAsParentColumn();
-                    assert context.currentColumnPosition < 0 : "ADD COLUMN's column positions should be negative, representing column ordering";
-                    leaf = new AnalyzedColumnDefinition<>(context.currentColumnPosition, parent);
-                    leaf.name(name);
-                    parent.addChild(leaf);
-                    parent = leaf;
+                    Reference source = (Reference) RefReplacer.replaceRefs(bindParameter.apply(indexSource), x -> {
+                        if (x instanceof DynamicReference) {
+                            RefBuilder column = columns.get(x.column());
+                            return column.build(columns, tableName, bindParameter, toValue);
+                        }
+                        return x;
+                    });
+                    if (Reference.indexOf(sources, source.column()) > -1) {
+                        throw new IllegalArgumentException("Index " + name + " contains duplicate columns: " + sources);
+                    }
+                    sources.add(source);
                 }
-                context.analyzedColumnDefinition = leaf;
-            }
-
-            for (ColumnConstraint<T> columnConstraint : addColumnDefinition.constraints()) {
-                columnConstraint.accept(this, context);
-            }
-            ColumnType<?> type = node.type();
-            if (type != null) {
-                type.accept(this, context);
-            }
-            context.analyzedColumnDefinition.setGenerated(addColumnDefinition.isGenerated());
-            if (addColumnDefinition.generatedExpression() != null) {
-                context.analyzedColumnDefinition.generatedExpression(addColumnDefinition.generatedExpression());
-            }
-
-            context.analyzedColumnDefinition = root;
-            return null;
-        }
-
-        @Override
-        public Void visitColumnType(ColumnType<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.dataType(node.name(), node.parameters());
-            return null;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public Void visitObjectColumnType(ObjectColumnType<?> node, ColumnDefinitionContext<T> context) {
-            ObjectColumnType<T> objectColumnType = (ObjectColumnType<T>) node;
-            context.analyzedColumnDefinition.dataType(objectColumnType.name());
-            context.analyzedColumnDefinition.objectType(objectColumnType.objectType().orElse(ColumnPolicy.DYNAMIC));
-            for (int i = 0; i < objectColumnType.nestedColumns().size(); i++) {
-                ColumnDefinition<T> columnDefinition = objectColumnType.nestedColumns().get(i);
-                context.increaseCurrentPosition();
-                ColumnDefinitionContext<T> childContext = new ColumnDefinitionContext<>(
-                    context.currentColumnPosition,
-                    context.analyzedColumnDefinition,
-                    context.analyzedTableElements,
-                    context.relationName,
-                    context.tableInfo,
-                    context.logWarnings
+                String analyzer = DataTypes.STRING.sanitizeValue(indexProperties.map(toValue).get("analyzer"));
+                ref = new IndexReference(
+                    refIdent,
+                    rowGranularity,
+                    type,
+                    columnPolicy,
+                    indexType,
+                    nullable,
+                    hasDocValues,
+                    position,
+                    COLUMN_OID_UNASSIGNED,
+                    false,
+                    defaultExpression,
+                    sources,
+                    analyzer == null ? (indexType == IndexType.PLAIN ? "keyword" : "standard") : analyzer
                 );
-                columnDefinition.accept(this, childContext);
-                context.currentColumnPosition = childContext.currentColumnPosition;
-                context.analyzedColumnDefinition.addChild(childContext.analyzedColumnDefinition);
-            }
-
-            return null;
-        }
-
-        @Override
-        public Void visitCollectionColumnType(CollectionColumnType<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.collectionType(ArrayType.NAME);
-
-            if (node.innerType() instanceof CollectionColumnType) {
-                throw new UnsupportedOperationException("Nesting ARRAY or SET types is not supported");
-            }
-
-            node.innerType().accept(this, context);
-            return null;
-        }
-
-
-        @Override
-        public Void visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.setPrimaryKeyConstraint();
-            return null;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint<?> node, ColumnDefinitionContext<T> context) {
-            PrimaryKeyConstraint<T> primaryKeyConstraint = (PrimaryKeyConstraint<T>) node;
-            for (T name : primaryKeyConstraint.columns()) {
-                context.analyzedTableElements.addPrimaryKey(name);
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitCheckConstraint(CheckConstraint<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedTableElements.addCheckConstraint(context.relationName, node);
-            return null;
-        }
-
-        @Override
-        public Void visitCheckColumnConstraint(CheckColumnConstraint<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedTableElements.addCheckColumnConstraint(context.relationName, node);
-            return null;
-        }
-
-        @Override
-        public Void visitDropCheckConstraint(DropCheckConstraint<?> node, ColumnDefinitionContext<T> context) {
-            return null;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public Void visitIndexColumnConstraint(IndexColumnConstraint<?> node, ColumnDefinitionContext<T> context) {
-            if (node.indexMethod().equals("fulltext")) {
-                setAnalyzer((GenericProperties<T>) node.properties(), context, node.indexMethod());
-            } else if (node.indexMethod().equalsIgnoreCase("plain")) {
-                context.analyzedColumnDefinition.indexConstraint(IndexType.PLAIN);
-            } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
-                context.analyzedColumnDefinition.indexConstraint(IndexType.NONE);
-            } else if (node.indexMethod().equals("quadtree") || node.indexMethod().equals("geohash")) {
-                setGeoType((GenericProperties<T>) node.properties(), context, node.indexMethod());
+            } else if (type.id() == GeoShapeType.ID) {
+                Map<String, Object> geoMap = new HashMap<>();
+                GeoSettingsApplier.applySettings(geoMap, indexProperties.map(toValue), indexMethod);
+                Float distError = (Float) geoMap.get("distance_error_pct");
+                ref = new GeoReference(
+                    refIdent,
+                    type,
+                    columnPolicy,
+                    indexType,
+                    nullable,
+                    position,
+                    COLUMN_OID_UNASSIGNED,
+                    false,
+                    defaultExpression,
+                    indexMethod,
+                    (String) geoMap.get("precision"),
+                    (Integer) geoMap.get("tree_levels"),
+                    distError == null ? null : distError.doubleValue()
+                );
             } else {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid index method \"%s\"", node.indexMethod()));
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitNotNullColumnConstraint(NotNullColumnConstraint<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.setNotNullConstraint();
-            return null;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public Void visitIndexDefinition(IndexDefinition<?> node, ColumnDefinitionContext<T> context) {
-            IndexDefinition<T> indexDefinition = (IndexDefinition<T>) node;
-            context.analyzedColumnDefinition.setAsIndexColumn();
-            context.analyzedColumnDefinition.dataType("string");
-            context.analyzedColumnDefinition.name(indexDefinition.ident());
-
-            setAnalyzer(indexDefinition.properties(), context, indexDefinition.method());
-
-            Set<T> uniqueColumns = new HashSet<>(indexDefinition.columns());
-            if (uniqueColumns.size() != indexDefinition.columns().size()) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Index %s contains duplicate columns.", indexDefinition.ident())
+                ref = new SimpleReference(
+                    refIdent,
+                    rowGranularity,
+                    type,
+                    columnPolicy,
+                    indexType,
+                    nullable,
+                    hasDocValues,
+                    position,
+                    COLUMN_OID_UNASSIGNED,
+                    false,
+                    defaultExpression
                 );
             }
-            for (T symbol : indexDefinition.columns()) {
-                context.analyzedTableElements.addFTSource(
-                    symbol,
-                    indexDefinition.ident());
+            if (generated != null) {
+                generated = RefReplacer.replaceRefs(bindParameter.apply(generated), x -> {
+                    if (x instanceof DynamicReference dynamicRef) {
+                        RefBuilder column = columns.get(dynamicRef.column());
+                        x = column.build(columns, tableName, bindParameter, toValue);
+                    }
+                    if (x instanceof GeneratedReference) {
+                        throw new ColumnValidationException(name.sqlFqn(), tableName, "Generated column cannot be based on generated column `" + x.column() + "`");
+                    }
+                    return x;
+                });
+                ref = new GeneratedReference(ref, generated.toString(Style.UNQUALIFIED), generated);
             }
+
+            builtReference = ref;
+            return ref;
+        }
+
+        public void visitSymbols(Consumer<? super Symbol> consumer) {
+            if (defaultExpression != null) {
+                consumer.accept(defaultExpression);
+            }
+            if (generated != null) {
+                consumer.accept(generated);
+            }
+            indexProperties.properties().values().forEach(consumer);
+            storageProperties.properties().values().forEach(consumer);
+        }
+    }
+
+    @Override
+    public Reference resolveField(QualifiedName qualifiedName,
+                                  @Nullable List<String> path,
+                                  Operation operation,
+                                  boolean errorOnUnknownObjectKey) {
+        var columnIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
+        if (table != null) {
+            Reference reference = table.getReference(columnIdent);
+            if (reference != null) {
+                return reference;
+            }
+        }
+        var columnBuilder = columns.get(columnIdent);
+        var dynamicReference = new DynamicReference(new ReferenceIdent(tableName, columnIdent), RowGranularity.DOC, -1);
+        if (columnBuilder == null) {
+            if (resolveMissing) {
+                return dynamicReference;
+            }
+            throw new ColumnUnknownException(columnIdent, tableName);
+        }
+        dynamicReference.valueType(columnBuilder.type);
+        return dynamicReference;
+    }
+
+    public AnalyzedCreateTable analyze(CreateTable<Expression> createTable) {
+        for (var tableElement : createTable.tableElements()) {
+            tableElement.accept(peekColumns, null);
+        }
+        for (var tableElement : createTable.tableElements()) {
+            tableElement.accept(columnAnalyzer, null);
+        }
+        GenericProperties<Symbol> properties = createTable.properties().map(toSymbol);
+        Optional<ClusteredBy<Symbol>> clusteredBy = createTable.clusteredBy().map(x -> x.map(toSymbol));
+
+        Optional<PartitionedBy<Symbol>> partitionedBy = createTable.partitionedBy().map(x -> x.map(toSymbol));
+        partitionedBy.ifPresent(p -> p.columns().forEach(partitionColumn -> {
+            ColumnIdent partitionColumnIdent = Symbols.pathFromSymbol(partitionColumn);
+            RefBuilder column = columns.get(partitionColumnIdent);
+            if (column == null) {
+                throw new ColumnUnknownException(partitionColumnIdent, tableName);
+            }
+            ensureValidPartitionColumn(clusteredBy, partitionColumnIdent, column);
+            column.indexType = IndexType.NONE;
+            column.rowGranularity = RowGranularity.PARTITION;
+        }));
+
+        return new AnalyzedCreateTable(
+            tableName,
+            createTable.ifNotExists(),
+            columns,
+            checks,
+            properties,
+            partitionedBy,
+            clusteredBy
+        );
+    }
+
+    public AnalyzedAlterTableAddColumn analyze(AlterTableAddColumn<Expression> alterTable) {
+        assert table != null : "Must use CTOR that sets the DocTableInfo instance";
+        List<AddColumnDefinition<Expression>> tableElements = alterTable.tableElements();
+        for (var addColumnDefinition : tableElements) {
+            addColumnDefinition.accept(peekColumns, null);
+        }
+        for (var addColumnDefinition : tableElements) {
+            addColumnDefinition.accept(columnAnalyzer, null);
+        }
+        return new AnalyzedAlterTableAddColumn(table, columns, checks);
+    }
+
+    private void ensureValidPartitionColumn(Optional<ClusteredBy<Symbol>> clusteredBy, ColumnIdent partitionColumnIdent, RefBuilder column) {
+        if (partitionColumnIdent.isSystemColumn()) {
+            throw new IllegalArgumentException("Cannot use system column `" + partitionColumnIdent + "` in PARTITIONED BY clause");
+        }
+        if (!primaryKeys.isEmpty() && !primaryKeys.contains(partitionColumnIdent)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Cannot use non primary key column '%s' in PARTITIONED BY clause if primary key is set on table",
+                partitionColumnIdent.sqlFqn()));
+        }
+        if (!DataTypes.isPrimitive(column.type)) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Cannot use column %s of type %s in PARTITIONED BY clause",
+                partitionColumnIdent.sqlFqn(),
+                column.type
+            ));
+        }
+        for (ColumnIdent parent : partitionColumnIdent.parents()) {
+            RefBuilder parentColumn = columns.get(parent);
+            if (parentColumn.type instanceof ArrayType<?>) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Cannot use array column %s in PARTITIONED BY clause", partitionColumnIdent.sqlFqn()));
+            }
+        }
+        if (column.indexType == IndexType.FULLTEXT) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Cannot use column %s with fulltext index in PARTITIONED BY clause",
+                partitionColumnIdent.sqlFqn()
+            ));
+        }
+        clusteredBy.flatMap(ClusteredBy::column).ifPresent(clusteredBySymbol -> {
+            ColumnIdent clusteredByColumnIdent = Symbols.pathFromSymbol(clusteredBySymbol);
+            if (partitionColumnIdent.equals(clusteredByColumnIdent)) {
+                throw new IllegalArgumentException("Cannot use CLUSTERED BY column `" + clusteredByColumnIdent + "` in PARTITIONED BY clause");
+            }
+        });
+    }
+
+    class PeekColumns extends DefaultTraversalVisitor<Void, Void> {
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Void visitColumnDefinition(ColumnDefinition<?> node, Void context) {
+            ColumnDefinition<Expression> columnDefinition = (ColumnDefinition<Expression>) node;
+            ColumnType<Expression> type = columnDefinition.type();
+            ColumnIdent columnName = ColumnIdent.fromNameSafe(columnDefinition.ident(), List.of());
+            DataType<?> dataType = type == null ? DataTypes.UNDEFINED : DataTypeAnalyzer.convert(type);
+
+            addColumn(columnName, dataType);
             return null;
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public Void visitColumnStorageDefinition(ColumnStorageDefinition<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.setStorageProperties((GenericProperties<T>) node.properties());
+        public Void visitAddColumnDefinition(AddColumnDefinition<?> node, Void context) {
+            assert table != null : "Must use CTOR that sets the DocTableInfo instance for ALTER TABLE ADD COLUMN";
+            AddColumnDefinition<Expression> columnDefinition = (AddColumnDefinition<Expression>) node;
+            Expression name = columnDefinition.name();
+            resolveMissing = true;
+            Symbol columnSymbol = expressionAnalyzer.convert(name, expressionContext);
+            resolveMissing = false;
+            ColumnIdent columnName = Symbols.pathFromSymbol(columnSymbol);
+            for (ColumnIdent parent : columnName.parents()) {
+                Reference parentRef = table.getReference(parent);
+                if (parentRef != null) {
+                    RefBuilder parentBuilder = new RefBuilder(parent, parentRef.valueType());
+                    parentBuilder.builtReference = parentRef;
+                    columns.put(parent, parentBuilder);
+                } else {
+                    columns.put(parent, new RefBuilder(parent, ObjectType.UNTYPED));
+                }
+            }
+            Reference reference = table.getReference(columnName);
+            if (reference != null) {
+                throw new IllegalArgumentException("The table " + tableName + " already has a column named " + columnName);
+            }
+            ColumnType<Expression> type = columnDefinition.type();
+            DataType<?> dataType = type == null ? DataTypes.UNDEFINED : DataTypeAnalyzer.convert(type);
+            addColumn(columnName, dataType);
             return null;
         }
 
-        private void setGeoType(GenericProperties<T> properties, ColumnDefinitionContext<T> context, String indexMethod) {
-            context.analyzedColumnDefinition.geoTree(indexMethod);
-            context.analyzedColumnDefinition.geoProperties(properties);
+        @Override
+        @SuppressWarnings("unchecked")
+        public Void visitIndexDefinition(IndexDefinition<?> node, Void context) {
+            IndexDefinition<Expression> indexDefinition = (IndexDefinition<Expression>) node;
+            String name = indexDefinition.ident();
+            ColumnIdent columnName = ColumnIdent.fromNameSafe(name, List.of());
+            addColumn(columnName, DataTypes.STRING);
+            return null;
         }
 
-        private void setAnalyzer(GenericProperties<T> properties,
-                                 ColumnDefinitionContext<T> context,
-                                 String indexMethod) {
-            context.analyzedColumnDefinition.indexConstraint(IndexType.FULLTEXT);
+        private void addColumn(ColumnIdent columnName, DataType<?> dataType) {
+            RefBuilder builder = new RefBuilder(columnName, dataType);
+            RefBuilder exists = columns.put(columnName, builder);
+            if (exists != null) {
+                throw new IllegalArgumentException("column \"" + columnName.sqlFqn() + "\" specified more than once");
+            }
+            if (table != null) {
+                builder.builtReference = table.getReference(columnName);
+            }
+            while (dataType instanceof ArrayType<?> arrayType) {
+                dataType = arrayType.innerType();
+            }
+            if (dataType instanceof ObjectType objectType) {
+                for (var entry : objectType.innerTypes().entrySet()) {
+                    String childName = entry.getKey();
+                    ColumnIdent childColumn = ColumnIdent.getChildSafe(columnName, childName);
+                    DataType<?> childType = entry.getValue();
+                    addColumn(childColumn, childType);
+                }
+            }
+        }
+    }
 
-            T analyzerName = properties.get("analyzer");
-            if (analyzerName == null) {
-                context.analyzedColumnDefinition.indexMethod(indexMethod);
+    class ColumnAnalyzer extends DefaultTraversalVisitor<Void, ColumnIdent> {
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Void visitColumnDefinition(ColumnDefinition<?> node, ColumnIdent parent) {
+            ColumnDefinition<Expression> columnDefinition = (ColumnDefinition<Expression>) node;
+            ColumnIdent columnName = parent == null
+                ? new ColumnIdent(columnDefinition.ident())
+                : ColumnIdent.getChildSafe(parent, columnDefinition.ident());
+            RefBuilder builder = columns.get(columnName);
+
+            Expression defaultExpression = columnDefinition.defaultExpression();
+            if (defaultExpression != null) {
+                if (builder.type.id() == ObjectType.ID) {
+                    throw new IllegalArgumentException("Default values are not allowed for object columns: " + columnName);
+                }
+                Symbol defaultSymbol = expressionAnalyzer.convert(defaultExpression, expressionContext);
+                builder.defaultExpression = defaultSymbol.cast(builder.type, CastMode.IMPLICIT);
+                // only used to validate; result is not used to preserve functions like `current_timestamp`
+                normalizer.normalize(builder.defaultExpression, txnCtx);
+                RefVisitor.visitRefs(builder.defaultExpression, x -> {
+                    throw new UnsupportedOperationException(
+                        "Cannot reference columns in DEFAULT expression of `" + columnName + "`. " +
+                        "Maybe you wanted to use a string literal with single quotes instead: '" + x.column().name() + "'");
+                });
+                EnsureNoMatchPredicate.ensureNoMatchPredicate(defaultSymbol, "Cannot use MATCH in CREATE TABLE statements");
+            }
+
+            setGeneratedExpression(builder, columnDefinition.generatedExpression());
+            for (var constraint : columnDefinition.constraints()) {
+                processConstraint(builder, constraint);
+            }
+
+            ColumnType<Expression> type = columnDefinition.type();
+            while (type instanceof CollectionColumnType collectionColumnType) {
+                type = collectionColumnType.innerType();
+            }
+            if (type instanceof ObjectColumnType<Expression> objectColumnType) {
+                builder.columnPolicy = objectColumnType.columnPolicy().orElse(ColumnPolicy.DYNAMIC);
+                for (ColumnDefinition<Expression> nestedColumn : objectColumnType.nestedColumns()) {
+                    nestedColumn.accept(this, columnName);
+                }
+            }
+
+            return null;
+        }
+
+        private void setGeneratedExpression(RefBuilder builder, @Nullable Expression generatedExpression) {
+            if (generatedExpression == null) {
                 return;
             }
-            context.analyzedColumnDefinition.analyzer(analyzerName);
+            builder.generated = expressionAnalyzer.convert(generatedExpression, expressionContext);
+            EnsureNoMatchPredicate.ensureNoMatchPredicate(builder.generated, "Cannot use MATCH in CREATE TABLE statements");
+            if (builder.type == DataTypes.UNDEFINED) {
+                builder.type = builder.generated.valueType();
+            } else {
+                builder.generated = builder.generated.cast(builder.type, CastMode.IMPLICIT);
+            }
+            // only used to validate; result is not used to preserve functions like `current_timestamp`
+            normalizer.normalize(builder.generated, txnCtx);
+        }
+
+        private void processConstraint(RefBuilder builder, ColumnConstraint<Expression> constraint) {
+            ColumnIdent columnName = builder.name;
+            if (constraint instanceof CheckColumnConstraint<Expression> checkConstraint) {
+                resolveMissing = true;
+                Symbol checkSymbol = expressionAnalyzer.convert(checkConstraint.expression(), expressionContext);
+                addCheck(checkConstraint.name(), checkConstraint.expressionStr(), checkSymbol, columnName);
+                resolveMissing = false;
+            } else if (constraint instanceof ColumnStorageDefinition<Expression> storageDefinition) {
+                GenericProperties<Symbol> storageProperties = storageDefinition.properties().map(toSymbol);
+                for (String storageProperty : storageProperties.keys()) {
+                    if (!COLUMN_STORE_PROPERTY.equals(storageProperty)) {
+                        throw new IllegalArgumentException("Invalid STORAGE WITH option `" + storageProperty + "` for column `" + columnName.sqlFqn() + "`");
+                    }
+                }
+                builder.storageProperties = storageProperties;
+            } else if (constraint instanceof IndexColumnConstraint<Expression> indexConstraint) {
+                builder.indexMethod = indexConstraint.indexMethod();
+                builder.indexProperties = indexConstraint.properties().map(toSymbol);
+                builder.indexType = IndexType.of(builder.indexMethod);
+                if (builder.indexType == IndexType.FULLTEXT && !DataTypes.STRING.equals(ArrayType.unnest(builder.type))) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Can't use an Analyzer on column %s because analyzers are only allowed on " +
+                        "columns of type \"%s\" of the unbound length limit.",
+                        columnName.sqlFqn(),
+                        DataTypes.STRING.getName()
+                    ));
+                }
+                if (builder.indexType != IndexType.PLAIN && UNSUPPORTED_INDEX_TYPE_IDS.contains(builder.type.id())) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "INDEX constraint cannot be used on columns of type \"%s\": `%s`", builder.type, columnName));
+                }
+            } else if (constraint instanceof NotNullColumnConstraint<Expression>) {
+                builder.nullable = false;
+            } else if (constraint instanceof PrimaryKeyColumnConstraint<Expression>) {
+                markAsPrimaryKey(builder);
+            }
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Void visitAddColumnDefinition(AddColumnDefinition<?> node, ColumnIdent parent) {
+            assert parent == null : "ADD COLUMN doesn't allow parents";
+            AddColumnDefinition<Expression> columnDefinition = (AddColumnDefinition<Expression>) node;
+            Expression name = columnDefinition.name();
+            ColumnIdent columnName = Symbols.pathFromSymbol(expressionAnalyzer.convert(name, expressionContext));
+            RefBuilder builder = columns.get(columnName);
+
+            setGeneratedExpression(builder, columnDefinition.generatedExpression());
+            for (var constraint : columnDefinition.constraints()) {
+                processConstraint(builder, constraint);
+            }
+
+            ColumnType<Expression> type = columnDefinition.type();
+            while (type instanceof CollectionColumnType<Expression> collectionColumnType) {
+                type = collectionColumnType.innerType();
+            }
+            if (type instanceof ObjectColumnType<Expression> objectColumnType) {
+                builder.columnPolicy = objectColumnType.columnPolicy().orElse(ColumnPolicy.DYNAMIC);
+                for (ColumnDefinition<Expression> nestedColumn : objectColumnType.nestedColumns()) {
+                    nestedColumn.accept(this, columnName);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint<?> node, ColumnIdent parent) {
+            PrimaryKeyConstraint<Expression> pkConstraint = (PrimaryKeyConstraint<Expression>) node;
+            List<Expression> pkColumns = pkConstraint.columns();
+
+            for (Expression pk : pkColumns) {
+                Symbol pkColumn = toSymbol.apply(pk);
+                ColumnIdent columnIdent = Symbols.pathFromSymbol(pkColumn);
+                RefBuilder column = columns.get(columnIdent);
+                if (column == null) {
+                    throw new ColumnUnknownException(columnIdent, tableName);
+                }
+                markAsPrimaryKey(column);
+            }
+
+            return null;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Void visitIndexDefinition(IndexDefinition<?> node, ColumnIdent parent) {
+            IndexDefinition<Expression> indexDefinition = (IndexDefinition<Expression>) node;
+            String name = indexDefinition.ident();
+            ColumnIdent columnIdent = parent == null ? new ColumnIdent(name) : ColumnIdent.getChildSafe(parent, name);
+            RefBuilder builder = columns.get(columnIdent);
+            builder.indexMethod = indexDefinition.method();
+            builder.indexProperties = indexDefinition.properties().map(toSymbol);
+            builder.indexSources = Lists2.map(indexDefinition.columns(), toSymbol);
+            builder.indexType = IndexType.of(builder.indexMethod);
+            return null;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Void visitCheckConstraint(CheckConstraint<?> node, ColumnIdent parent) {
+            CheckConstraint<Expression> checkConstraint = (CheckConstraint<Expression>) node;
+            Symbol checkSymbol = toSymbol.apply(checkConstraint.expression());
+            addCheck(checkConstraint.name(), checkConstraint.expressionStr(), checkSymbol, null);
+            return null;
+        }
+    }
+
+    private void addCheck(@Nullable String constraintName, String expression, Symbol expressionSymbol, @Nullable ColumnIdent column) {
+        if (constraintName == null) {
+            do {
+                constraintName = genUniqueConstraintName(tableName, column);
+            } while (checks.containsKey(constraintName));
+        }
+        var analyzedCheck = new AnalyzedCheck(expression, expressionSymbol, null);
+        if (column != null) {
+            RefVisitor.visitRefs(expressionSymbol, ref -> {
+                if (!ref.column().equals(column)) {
+                    throw new UnsupportedOperationException(
+                        "CHECK constraint on column `" + column + "` cannot refer to column `" + ref.column() +
+                        "`. Use full path to refer to a sub-column or a table check constraint instead");
+                }
+            });
+        }
+        AnalyzedCheck exists = checks.put(constraintName, analyzedCheck);
+        if (exists != null) {
+            throw new IllegalArgumentException(
+                "a check constraint of the same name is already declared [" + constraintName + "]");
+        }
+    }
+
+    private static String genUniqueConstraintName(RelationName table, ColumnIdent column) {
+        StringBuilder sb = new StringBuilder(table.fqn().replace(".", "_"));
+        if (column != null) {
+            sb.append("_").append(column.fqn().replace(".", "_"));
+        }
+        sb.append("_check_");
+        String uuid = UUIDs.dirtyUUID().toString();
+        int idx = uuid.lastIndexOf("-");
+        sb.append(idx > 0 ? uuid.substring(idx + 1) : uuid);
+        return sb.toString();
+    }
+
+    private void markAsPrimaryKey(RefBuilder column) {
+        column.primaryKey = true;
+        ColumnIdent columnName = column.name;
+        DataType<?> type = column.type;
+        if (type instanceof ArrayType) {
+            throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "Cannot use column \"%s\" with type \"%s\" as primary key", columnName.sqlFqn(), type));
+        }
+        if (UNSUPPORTED_PK_TYPE_IDS.contains(type.id())) {
+            throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", type));
+        }
+        for (ColumnIdent parent : columnName.parents()) {
+            RefBuilder parentColumn = columns.get(parent);
+            if (parentColumn.type instanceof ArrayType<?>) {
+                throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "Cannot use column \"%s\" as primary key within an array object", columnName.leafName()));
+            }
+        }
+        boolean wasNew = primaryKeys.add(column.name);
+        if (!wasNew) {
+            throw new IllegalArgumentException("Columns `" + column.name + "` appears twice in primary key constraint");
         }
     }
 }

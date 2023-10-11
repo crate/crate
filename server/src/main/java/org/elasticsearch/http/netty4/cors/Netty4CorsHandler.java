@@ -19,6 +19,11 @@
 
 package org.elasticsearch.http.netty4.cors;
 
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.common.Strings;
+
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -30,10 +35,6 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.ReferenceCounted;
-import org.elasticsearch.common.Strings;
-
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Handles <a href="http://www.w3.org/TR/cors/">Cross Origin Resource Sharing</a> (CORS) requests.
@@ -135,7 +136,7 @@ public class Netty4CorsHandler extends ChannelDuplexHandler {
     }
 
     private static boolean isSameOrigin(final String origin, final String host) {
-        if (Strings.isNullOrEmpty(host) == false) {
+        if (Strings.hasLength(host)) {
             // strip protocol from origin
             final String originDomain = SCHEME_PATTERN.matcher(origin).replaceFirst("");
             if (host.equals(originDomain)) {
@@ -157,7 +158,7 @@ public class Netty4CorsHandler extends ChannelDuplexHandler {
 
     private boolean setOrigin(final HttpResponse response) {
         final String origin = request.headers().get(HttpHeaderNames.ORIGIN);
-        if (!Strings.isNullOrEmpty(origin)) {
+        if (Strings.hasLength(origin)) {
             if ("null".equals(origin) && config.isNullOriginAllowed()) {
                 setAnyOrigin(response);
                 return true;

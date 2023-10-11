@@ -45,22 +45,8 @@ public final class PgFunctionIsVisibleFunction extends Scalar<Boolean, Integer> 
     }
 
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public PgFunctionIsVisibleFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

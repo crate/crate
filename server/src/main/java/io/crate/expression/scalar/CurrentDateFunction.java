@@ -43,12 +43,8 @@ public final class CurrentDateFunction extends Scalar<Long, String> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public CurrentDateFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -56,15 +52,5 @@ public final class CurrentDateFunction extends Scalar<Long, String> {
     public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>... args) {
         long millis = txnCtx.currentInstant().toEpochMilli();
         return millis - millis % 86400000;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

@@ -62,29 +62,16 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
         module.register(
             Signature.scalar(
                 "null_or_empty",
-                TypeSignature.parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.BOOLEAN.getTypeSignature()
             ).withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("E")),
             NullOrEmptyFunction::new
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     private NullOrEmptyFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -116,7 +103,7 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
                 .setMinimumNumberShouldMatch(1);
             for (var entry : objectType.innerTypes().entrySet()) {
                 String childColumn = entry.getKey();
-                Reference childRef = context.getRef(ref.column().append(childColumn));
+                Reference childRef = context.getRef(ref.column().getChild(childColumn));
                 if (childRef == null) {
                     return null;
                 }
@@ -128,7 +115,7 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
             }
             return Queries.not(booleanQuery.build());
         } else if (valueType instanceof ArrayType<?> && ref.hasDocValues()) {
-            return Queries.not(new FieldExistsQuery(ref.column().fqn()));
+            return Queries.not(new FieldExistsQuery(ref.storageIdent()));
         }
         return null;
     }

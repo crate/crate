@@ -31,15 +31,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.index.IndexService;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.index.IndexService;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
@@ -173,7 +172,11 @@ public class NodeFetchOperation {
 
         // RamAccounting is per doFetch call instead of per FetchTask/fetchPhase
         // To be able to free up the memory count when the operation is complete
-        final var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("fetch-" + fetchTask.id(), circuitBreaker);
+        final var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
+            "fetch-" + fetchTask.id(),
+            circuitBreaker,
+            fetchTask.memoryLimitInBytes()
+        );
         ArrayList<Supplier<StreamBucket>> collectors = new ArrayList<>(toFetch.size());
         for (IntObjectCursor<IntArrayList> toFetchCursor : toFetch) {
             final int readerId = toFetchCursor.key;

@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar.geo;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
+import org.locationtech.spatial4j.shape.Shape;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
@@ -33,9 +37,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import org.locationtech.spatial4j.shape.Shape;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public class IntersectsFunction extends Scalar<Boolean, Object> {
 
@@ -53,12 +54,8 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public IntersectsFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -75,16 +72,6 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         Shape leftShape = GeoJSONUtils.map2Shape(DataTypes.GEO_SHAPE.sanitizeValue(left));
         Shape rightShape = GeoJSONUtils.map2Shape(DataTypes.GEO_SHAPE.sanitizeValue(right));
         return leftShape.relate(rightShape).intersects();
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

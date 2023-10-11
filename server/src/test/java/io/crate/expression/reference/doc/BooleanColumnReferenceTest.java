@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -40,7 +39,7 @@ import io.crate.expression.reference.doc.lucene.BooleanColumnReference;
 
 public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "b";
+    private static final String COLUMN = "b";
 
     public BooleanColumnReferenceTest() {
         super("create table t (b boolean)");
@@ -51,14 +50,14 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new NumericDocValuesField(column, i % 2 == 0 ? 1 : 0));
+            doc.add(new NumericDocValuesField(COLUMN, i % 2 == 0 ? 1 : 0));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testBooleanExpression() throws Exception {
-        BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
+        BooleanColumnReference booleanColumn = new BooleanColumnReference(COLUMN);
         booleanColumn.startCollect(ctx);
         booleanColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -66,7 +65,7 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             booleanColumn.setNextDocId(doc.doc);
-            assertThat(booleanColumn.value(), is(i % 2 == 0));
+            assertThat(booleanColumn.value()). isEqualTo(i % 2 == 0);
             i++;
         }
     }

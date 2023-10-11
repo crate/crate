@@ -19,22 +19,18 @@
 
 package org.elasticsearch.action.support;
 
-import org.elasticsearch.common.CheckedConsumer;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.util.concurrent.BaseFuture;
 
-public class PlainActionFuture<T> extends AdapterActionFuture<T, T> {
+public class PlainActionFuture<T> extends BaseFuture<T> implements ActionListener<T> {
 
-    public static <T> PlainActionFuture<T> newFuture() {
-        return new PlainActionFuture<>();
-    }
-
-    public static <T, E extends Exception> T get(CheckedConsumer<PlainActionFuture<T>, E> e) throws E {
-        PlainActionFuture<T> fut = newFuture();
-        e.accept(fut);
-        return fut.actionGet();
+    @Override
+    public void onResponse(T result) {
+        set(result);
     }
 
     @Override
-    protected T convert(T listenerResponse) {
-        return listenerResponse;
+    public void onFailure(Exception e) {
+        setException(e);
     }
 }

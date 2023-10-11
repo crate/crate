@@ -43,7 +43,7 @@ import org.apache.lucene.index.TermVectors;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.index.VectorSimilarityFunction;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.KnnCollector;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
@@ -106,14 +106,6 @@ final class TranslogLeafReader extends LeafReader {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public TopDocs searchNearestVectors(String field,
-                                        float[] target,
-                                        int k,
-                                        Bits acceptDocs,
-                                        int visitedLimit) throws IOException {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public FieldInfos getFieldInfos() {
@@ -181,8 +173,18 @@ final class TranslogLeafReader extends LeafReader {
     }
 
     @Override
-    public TopDocs searchNearestVectors(String field, byte[] target, int k, Bits acceptDocs, int visitedLimit)
-            throws IOException {
+    public void searchNearestVectors(String field,
+                                     float[] target,
+                                     KnnCollector knnCollector,
+                                     Bits acceptDocs) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void searchNearestVectors(String field,
+                                     byte[] target,
+                                     KnnCollector knnCollector,
+                                     Bits acceptDocs) throws IOException {
         throw new UnsupportedOperationException();
     }
 

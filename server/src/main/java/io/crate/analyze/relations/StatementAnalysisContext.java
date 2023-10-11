@@ -21,14 +21,16 @@
 
 package io.crate.analyze.relations;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
 import io.crate.analyze.ParamTypeHints;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class StatementAnalysisContext {
 
@@ -101,5 +103,25 @@ public class StatementAnalysisContext {
 
     List<? extends Symbol> parentOutputColumns() {
         return parentOutputColumns;
+    }
+
+    public <T> T withSearchPath(SearchPath searchPath, Function<StatementAnalysisContext, T> fn) {
+        CoordinatorSessionSettings sessionSettings = coordinatorTxnCtx.sessionSettings();
+        StatementAnalysisContext newContext = new StatementAnalysisContext(
+            paramTypeHints,
+            currentOperation,
+            new CoordinatorTxnCtx(
+                new CoordinatorSessionSettings(
+                    sessionSettings.authenticatedUser(),
+                    sessionSettings.sessionUser(),
+                    searchPath,
+                    sessionSettings.hashJoinsEnabled(),
+                    sessionSettings.excludedOptimizerRules(),
+                    sessionSettings.errorOnUnknownObjectKey(),
+                    sessionSettings.memoryLimitInBytes()
+                )),
+            parentOutputColumns
+        );
+        return fn.apply(newContext);
     }
 }

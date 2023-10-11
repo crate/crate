@@ -45,6 +45,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.statement.DeletePlanner;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -77,6 +78,15 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
         DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
         List<Symbol> partitionSymbols = plan.partitions().get(0);
         assertThat(partitionSymbols).satisfiesExactly(exactlyInstanceOf(ParameterSymbol.class));
+    }
+
+    // bug: https://github.com/crate/crate/issues/14347
+    @Test
+    public void test_delete_plan_with_where_clause_involving_pk_and_non_pk() throws Exception {
+        Plan delete = e.plan("delete from users where id in (1,2,3) and name='dummy'");
+        assertThat(delete).isExactlyInstanceOf(DeletePlanner.Delete.class);
+        delete = e.plan("delete from users where id in (1,2,3) or name='dummy'");
+        assertThat(delete).isExactlyInstanceOf(DeletePlanner.Delete.class);
     }
 
     @Test

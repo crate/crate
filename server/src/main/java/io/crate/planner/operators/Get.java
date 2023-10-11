@@ -28,8 +28,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -57,10 +55,8 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -73,15 +69,18 @@ public class Get implements LogicalPlan {
     final DocKeys docKeys;
     final Symbol query;
     private final List<Symbol> outputs;
+    private final boolean queryHasPkSymbolsOnly;
 
     public Get(DocTableRelation table,
                DocKeys docKeys,
                Symbol query,
-               List<Symbol> outputs) {
+               List<Symbol> outputs,
+               boolean queryHasPkSymbolsOnly) {
         this.tableRelation = table;
         this.docKeys = docKeys;
         this.query = query;
         this.outputs = outputs;
+        this.queryHasPkSymbolsOnly = queryHasPkSymbolsOnly;
     }
 
     @Override
@@ -155,32 +154,14 @@ public class Get implements LogicalPlan {
             pkAndVersions.add(new PKAndVersion(id, version, sequenceNumber, primaryTerm));
         }
 
-        var docKeyColumns = new ArrayList<>(docTableInfo.primaryKey());
-        docKeyColumns.addAll(docTableInfo.partitionedBy());
-        docKeyColumns.add(docTableInfo.clusteredBy());
-        docKeyColumns.add(DocSysColumns.VERSION);
-        docKeyColumns.add(DocSysColumns.SEQ_NO);
-        docKeyColumns.add(DocSysColumns.PRIMARY_TERM);
-
         var binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
         var boundQuery = binder.apply(query);
-
-        // Collect all columns which are used inside the query
-        // If the query contains only DocKeys, no filter is needed as all DocKeys are handled by the PKLookupOperation
-        AtomicBoolean requiresAdditionalFilteringOnNonDocKeyColumns = new AtomicBoolean(false);
-        var toCollectSet = new LinkedHashSet<>(boundOutputs);
-        Consumer<Reference> addRefIfMatch = ref -> {
-            toCollectSet.add(ref);
-            if (docKeyColumns.contains(ref.column()) == false) {
-                requiresAdditionalFilteringOnNonDocKeyColumns.set(true);
-            }
-        };
-        RefVisitor.visitRefs(boundQuery, addRefIfMatch);
-
         var toCollect = boundOutputs;
         ArrayList<Projection> projections = new ArrayList<>();
-        if (requiresAdditionalFilteringOnNonDocKeyColumns.get()) {
+        if (!queryHasPkSymbolsOnly) {
+            var toCollectSet = new LinkedHashSet<>(boundOutputs);
+            RefVisitor.visitRefs(boundQuery, toCollectSet::add);
             toCollect = List.copyOf(toCollectSet);
             var filterProjection = ProjectionBuilder.filterProjection(toCollect, boundQuery);
             filterProjection.requiredGranularity(RowGranularity.SHARD);
@@ -223,8 +204,8 @@ public class Get implements LogicalPlan {
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
-        return Set.of(tableRelation.relationName());
+    public List<RelationName> getRelationNames() {
+        return List.of(tableRelation.relationName());
     }
 
     @Override
@@ -250,7 +231,7 @@ public class Get implements LogicalPlan {
             }
         }
         if (excludedAny) {
-            return new Get(tableRelation, docKeys, query, newOutputs);
+            return new Get(tableRelation, docKeys, query, newOutputs, queryHasPkSymbolsOnly);
         }
         return this;
     }

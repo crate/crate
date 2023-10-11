@@ -23,13 +23,19 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.metadata.table.Operation.isReplicated;
 
-import io.crate.analyze.BoundAlterTable;
+import java.util.function.Function;
+
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.AnalyzedAlterTable;
+import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
-import io.crate.analyze.TablePropertiesAnalyzer;
+import io.crate.analyze.TableProperties;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -47,11 +53,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.function.Function;
 
 public class AlterTablePlan implements Plan {
 
@@ -126,9 +127,9 @@ public class AlterTablePlan implements Plan {
     public static TableParameter getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
         TableParameter tableParameter = new TableParameter();
         if (!node.genericProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyzeWithBoundValues(tableParameter, tableParameters, node.genericProperties(), false);
+            TableProperties.analyze(tableParameter, tableParameters, node.genericProperties(), false);
         } else if (!node.resetProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyzeResetProperties(tableParameter, tableParameters, node.resetProperties());
+            TableProperties.analyzeResetProperties(tableParameter, tableParameters, node.resetProperties());
         }
         return tableParameter;
     }

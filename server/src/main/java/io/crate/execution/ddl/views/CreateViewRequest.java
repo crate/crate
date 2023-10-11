@@ -21,30 +21,39 @@
 
 package io.crate.execution.ddl.views;
 
-import io.crate.metadata.RelationName;
+import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
+
+import java.io.IOException;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
 
-import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 
 public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest> implements AckedRequest {
 
     private final RelationName name;
     private final String query;
     private final boolean replaceExisting;
+    private final SearchPath searchPath;
     @Nullable
     private final String owner;
 
-    public CreateViewRequest(RelationName name, String query, boolean replaceExisting, @Nullable String owner) {
+    public CreateViewRequest(RelationName name,
+                             String query,
+                             boolean replaceExisting,
+                             SearchPath searchPath,
+                             @Nullable String owner) {
         this.name = name;
         this.query = query;
         this.replaceExisting = replaceExisting;
+        this.searchPath = searchPath;
         this.owner = owner;
     }
 
@@ -58,6 +67,10 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
 
     boolean replaceExisting() {
         return replaceExisting;
+    }
+
+    public SearchPath searchPath() {
+        return searchPath;
     }
 
     @Nullable
@@ -76,6 +89,12 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         query = in.readString();
         replaceExisting = in.readBoolean();
         owner = in.readOptionalString();
+        Version version = in.getVersion();
+        if (version.after(Version.V_5_3_4) && !version.equals(Version.V_5_4_0)) {
+            searchPath = SearchPath.createSearchPathFrom(in);
+        } else {
+            searchPath = SearchPath.pathWithPGCatalogAndDoc();
+        }
     }
 
     @Override
@@ -85,5 +104,9 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         out.writeString(query);
         out.writeBoolean(replaceExisting);
         out.writeOptionalString(owner);
+        Version version = out.getVersion();
+        if (version.after(Version.V_5_3_4) && !version.equals(Version.V_5_4_0)) {
+            searchPath.writeTo(out);
+        }
     }
 }

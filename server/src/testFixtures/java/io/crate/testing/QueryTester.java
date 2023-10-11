@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import static java.util.Objects.requireNonNull;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,7 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.LongSupplier;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -44,7 +45,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Iterables;
-import io.crate.data.BatchIterators;
 import io.crate.data.Input;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
@@ -75,10 +75,8 @@ public final class QueryTester implements AutoCloseable {
     public static class Builder {
 
         private final DocTableInfo table;
-        private final SQLExecutor sqlExecutor;
         private final SqlExpressions expressions;
         private final PlannerContext plannerContext;
-        private final DocTableRelation docTableRelation;
         private final IndexEnv indexEnv;
         private final LuceneQueryBuilder queryBuilder;
 
@@ -88,8 +86,12 @@ public final class QueryTester implements AutoCloseable {
                        Version indexVersion,
                        String createTableStmt,
                        AbstractModule... additionalModules) throws IOException {
-            sqlExecutor = SQLExecutor
+            // Disable OID generation for columns/references in order to be able to compare the query outcome with
+            // expected ones.
+            LongSupplier columnOidSupplier = () -> COLUMN_OID_UNASSIGNED;
+            var sqlExecutor = SQLExecutor
                 .builder(clusterService, additionalModules)
+                .setColumnOidSupplier(columnOidSupplier)
                 .addTable(createTableStmt)
                 .build();
             plannerContext = sqlExecutor.getPlannerContext(clusterService.state());
@@ -106,7 +108,7 @@ public final class QueryTester implements AutoCloseable {
                 tempDir
             );
             queryBuilder = new LuceneQueryBuilder(plannerContext.nodeContext());
-            docTableRelation = new DocTableRelation(table);
+            var docTableRelation = new DocTableRelation(table);
             expressions = new SqlExpressions(
                 Collections.singletonMap(table.ident(), docTableRelation),
                 docTableRelation
@@ -120,20 +122,21 @@ public final class QueryTester implements AutoCloseable {
             return this;
         }
 
-        void indexValue(String column, Object value) throws IOException {
+        public Builder indexValue(String column, Object value) throws IOException {
             MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
                 table.concreteIndices()[0],
                 table,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                col -> mapperService.getLuceneFieldType(col.fqn()),
+                mapperService::getLuceneFieldType,
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
                 null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), new Object[] { value }, -1L, -1L);
             ParsedDocument parsedDocument = indexer.index(item);
             indexEnv.writer().addDocument(parsedDocument.doc());
+            return this;
         }
 
         private LuceneBatchIterator getIterator(ColumnIdent column, Query query) {
@@ -153,7 +156,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(),
+                new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey()),
                 Collections.singletonList(input),
                 ctx.expressions()
             );
@@ -217,10 +220,10 @@ public final class QueryTester implements AutoCloseable {
     public List<Object> runQuery(String resultColumn, String expression, Object ... params) throws Exception {
         Query query = toQuery(expression, params);
         LuceneBatchIterator batchIterator = getIterator.apply(ColumnIdent.fromPath(resultColumn), query);
-        return BatchIterators.collect(
-            batchIterator,
-            Collectors.mapping(row -> row.get(0), Collectors.toList())
-        ).get(5, TimeUnit.SECONDS);
+        return batchIterator
+            .map(row -> row.get(0))
+            .toList()
+            .get(5, TimeUnit.SECONDS);
     }
 
     @Override

@@ -1,0 +1,248 @@
+.. _version_5.4.0:
+
+=============
+Version 5.4.0
+=============
+
+Released on 2023-07-11.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.4.0.
+
+    We recommend that you upgrade to the latest 5.3 release before moving to
+    5.4.0.
+
+    A rolling upgrade from 5.3.x to 5.4.0 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Known Issues
+============
+
+- Version 5.0.0 introduced a regression which can cause some ``JOIN`` queries
+  to return no results when the query optimizer re-orders the joined tables.
+  As a workaround, users should apply the following session settings before
+  running such queries to prevent the query optimizer from re-ordering them
+  and therefore produce the correct results:
+
+  On CrateDB >= 5.4.0::
+
+    SET optimizer_reorder_hash_join = false
+    SET optimizer_reorder_nested_loop_join = false
+
+  On CrateDB < 5.4.0 (this will disable the hash-join algorithm which may lead
+  to poor performance)::
+
+    SET enable_hashjoin = false
+
+Breaking Changes
+================
+
+- Implemented several changes to the ``pg_catalog`` tables, involving the
+  addition and removal of columns, and modification of column data types, to
+  align with PostgreSQL version 14:
+
+  - ``pg_attribute``
+
+    - **Added**: ``atthasmissing``, ``attmissingval``
+    - **Type Changed**: ``spcacl`` from ``OBJECT[]`` to ``STRING[]``
+
+  - ``pg_class``
+
+    - **Added**: ``relrewrite``
+    - **Removed**: ``relhasoids``, ``relhaspkey``
+    - **Type Changed**: ``relacl`` from ``OBJECT[]`` to ``STRING[]``
+  - ``pg_constraint``
+
+    - **Added**: ``conparentid``
+    - **Removed**: ``consrc``
+    - **Type Changed**: ``conbin`` from ``OBJECT`` to ``STRING``
+
+  - ``pg_index``
+
+    - **Added**: ``indnkeyatts``
+
+  - ``pg_namespace``
+
+    - **Type Changed**: ``nspacl`` from ``OBJECT[]`` to ``STRING[]``
+
+  - ``pg_proc``
+
+    - **Added**: ``prokind``, ``prosqlbody``, ``prosupport``
+    - **Removed**: ``proisagg``, ``proiswindow``, ``protransform``
+    - **Type Changed**: ``proargdefaults`` from ``OBJECT[]`` to ``STRING``
+
+  - ``pg_type``
+
+    - **Added**: ``typacl``, ``typalign``, ``typanalyze``,
+      ``typdefaultbin``, ``typmodin``, ``typmodout``, ``typstorage``,
+      ``typsubscript``
+
+- Raise an exception if duplicate columns are detected on
+  :ref:`named index column definition <named-index-column>` instead of
+  silently ignoring them.
+
+- Adjusted allowed array index range to be from ``Integer.MIN_VALUE`` to
+  ``Integer.MAX_VALUE``. The behavior is now also consistent between subscripts
+  on array literals and on columns, and between index literals and index
+  expressions. That means something like ``tags[-1]`` will now return ``NULL``
+  just like ``ARRAY['AUT', 'GER'][-1]`` or ``ARRAY['AUT', 'GER'][1 - 5]`` did.
+
+
+Deprecations
+============
+
+None
+
+
+Changes
+=======
+
+SQL Statements
+--------------
+
+- Extended the :ref:`EXPLAIN <ref-explain>` statement output to include the
+  estimated row count in the output of the execution plan. The statement also
+  has now options for `ANALYZE` and `COSTS` to have better control on
+  the generated output plan.
+
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
+
+- Bumped the version of PostgreSQL wire protocol to ``14`` since ``10`` has been
+  deprecated.
+
+- Added ``any_value`` as an alias to the ``arbitrary`` aggregation function, for
+  compliance with the SQL2023 standard. Extended the aggregations to support any
+  type.
+
+- Changed literal :ref:`INTERVAL data type <type-interval>` to do normalization
+  up to day units, and comply with PostgreSQL behavior, e.g.::
+
+    cr> SELECT INTERVAL '1 month 42 days 126 hours 512 mins 7123 secs';
+    +------------------------------+
+    | 'P1M47DT16H30M43S'::interval |
+    +------------------------------+
+    | 1 mon 47 days 16:30:43       |
+    +------------------------------+
+
+- Added ``attgenerated`` column to ``pg_catalog.pg_attribute`` table which
+  returns ``''`` (empty string) for normal columns and ``'s'`` for
+  :ref:`generated columns <ddl-generated-columns>`.
+
+- Added the ``pg_catalog.pg_cursors`` table to expose open cursors.
+
+- Added the
+  :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>`
+  read-only session setting for improved compatibility with PostgreSQL clients.
+
+- Allow casts in both forms: ``CAST(<literal or parameter> AS <datatype>)`` and
+  ``<literal or parameter>::<datatype>`` for ``LIMIT`` and ``OFFSET`` clauses,
+
+  e.g.::
+
+    SELECT * FROM test OFFSET CAST(? AS long) LIMIT '20'::int
+
+
+- Added support for ``ORDER BY``, ``MAX``, ``MIN`` and comparison operators on
+  expressions of type ``INTERVAL``.
+
+- Added support for setting session settings via a ``"options"`` property in the
+  startup message for PostgreSQL wire protocol clients.
+
+  An example for JDBC::
+
+    Properties props = new Properties();
+    props.setProperty("options", "-c statement_timeout=90000");
+    Connection conn = DriverManager.getConnection(url, props);
+
+- Added support for underscores in numeric literals. Example::
+
+    SELECT 1_000_000;
+
+- Added support for updating arrays by elements, e.g.::
+
+    UPDATE t SET a[1] = 2 WHERE id = 1;
+
+- Array comparisons like ``= ANY`` will now automatically unnest the array
+  argument to the required dimensions.
+
+  An example::
+
+    cr> SELECT 1 = ANY([ [1, 2], [3, 4] ]);   -- automatic unnesting
+    True
+
+    cr> SELECT [1] = ANY([ [1, 2], [3, 4] ]); -- no unnesting
+    False
+
+Scalar and Aggregation Functions
+--------------------------------
+
+- Added support for :ref:`AVG() aggregation <aggregation-avg>` on
+  :ref:`INTERVAL data type <type-interval>`.
+
+- Added a :ref:`array_unnest <scalar-array_unnest>` scalar function.
+
+- Added a :ref:`btrim <scalar-btrim>` scalar function.
+
+- Added :ref:`array_set <scalar-array_set>` scalar function.
+
+Performance and Resilience Improvements
+---------------------------------------
+
+- Improved the partition filtering logic to also narrow partitions if the
+  partition is based on a generated column using the :ref:`date_bin <date-bin>`
+  scalar.
+
+- Improved ``COPY FROM`` retry logic to retry with a delay which increases
+  exponentially on temporary network timeout and general network errors.
+
+Data Types
+----------
+
+- Added support to disable :ref:`column storage <ddl-storage-columnstore>` for
+  :ref:`numeric data types <data-types-numeric>`,
+  :ref:`timestamp <type-timestamp>` and
+  :ref:`timestamp with timezone<type-timestamp-with-tz>`.
+
+Administration and Operations
+-----------------------------
+
+- Added optimizer rules for reordering of joins for hash and nested-loop joins.
+  This allows now to control the join-reordering and disable it, if desired, with
+  session settings::
+
+    SET optimizer_reorder_hash_join = false
+    SET optimizer_reorder_nested_loop_join = false
+
+  Note that these settings are experimental, and may change in the future.
+
+- Added a :ref:`statement_timeout <conf-session-statement-timeout>` session
+  setting and :ref:`cluster setting <statement_timeout>` that allows to set a
+  timeout for queries.
+
+- The severity of the node checks on the metadata gateway recovery settings
+  has been lowered from `HIGH` to `MEDIUM` as leaving these to default
+  or suboptimal values does not translate into data corruption or loss.
+
+- Added the ability to set a
+  :ref:`storage_class <sql-create-repo-s3-storage_class>` for S3 repositories.

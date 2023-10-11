@@ -235,20 +235,22 @@ public class ShowIntegrationTest extends IntegTestCase {
                 ")");
         execute("show create table test_generated_column");
         assertFirstRow().startsWith(
-            "CREATE TABLE IF NOT EXISTS \"doc\".\"test_generated_column\" (\n" +
-            "   \"day1\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-            "   \"day2\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
-            "   \"day3\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-            "   \"day4\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-            "   \"col1\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS \"ts\" + CAST(1 AS bigint),\n" +
-            "   \"col2\" TEXT GENERATED ALWAYS AS _cast((\"ts\" + CAST(1 AS bigint)), 'text'),\n" +
-            "   \"col3\" TEXT GENERATED ALWAYS AS _cast((\"ts\" + CAST(1 AS bigint)), 'text'),\n" +
-            "   \"name\" TEXT GENERATED ALWAYS AS concat(\"user\"['name'], 'foo'),\n" +
-            "   \"ts\" TIMESTAMP WITH TIME ZONE,\n" +
-            "   \"user\" OBJECT(DYNAMIC) AS (\n" +
-            "      \"name\" TEXT\n" +
-            "   )\n" +
-            ")");
+            """
+            CREATE TABLE IF NOT EXISTS "doc"."test_generated_column" (
+               "day1" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts"),
+               "day2" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts") INDEX OFF,
+               "day3" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts"),
+               "day4" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts"),
+               "col1" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
+               "col2" TEXT GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
+               "col3" TEXT GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
+               "name" TEXT GENERATED ALWAYS AS concat("user"['name'], 'foo'),
+               "ts" TIMESTAMP WITH TIME ZONE,
+               "user" OBJECT(DYNAMIC) AS (
+                  "name" TEXT
+               )
+            """
+        );
     }
 
     @Test
@@ -400,8 +402,11 @@ public class ShowIntegrationTest extends IntegTestCase {
             "datestyle| ISO| Display format for date and time values.",
             "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.",
             "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.",
+            "max_identifier_length| 255| Shows the maximum length of identifiers in bytes.",
             "max_index_keys| 32| Shows the maximum number of index keys.",
+            "memory.operation_limit| 0| Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits",
             "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.",
+            "optimizer_eliminate_cross_join| true| Indicates if the optimizer rule EliminateCrossJoin is activated.",
             "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.",
             "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.",
             "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.",

@@ -51,7 +51,8 @@ Parameters
 :column_ident:
     The name of a column in the table identified by ``table_ident``. It is also
     possible to use :ref:`object subscript <sql-object-subscript>` to address
-    the inner fields of an object column.
+    the inner fields of an object column and
+    :ref:`array subscript <sql-array-subscript>` elements of an array.
 
 :expression:
     An :ref:`expression <gloss-expression>` to assign to the column.

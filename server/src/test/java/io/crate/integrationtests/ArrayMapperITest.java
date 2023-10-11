@@ -21,12 +21,11 @@
 
 package io.crate.integrationtests;
 
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class ArrayMapperITest extends IntegTestCase {
@@ -38,10 +37,10 @@ public class ArrayMapperITest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select xs from t where id = 1"); // pk lookup
-        assertThat((List<Object>) response.rows()[0][0], Matchers.contains(0.0d, 99.9d, -100.5678d));
+        assertThat(response).hasRows(new Object[]{List.of(0.0d, 99.9d, -100.5678d)});
 
         execute("select xs from t");
-        assertThat((List<Object>) response.rows()[0][0], Matchers.contains(0.0d, 99.9d, -100.5678d));
+        assertThat(response).hasRows(new Object[]{List.of(0.0d, 99.9d, -100.5678d)});
     }
 
     @Test
@@ -51,7 +50,7 @@ public class ArrayMapperITest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select xs from t where 0.0 = any (xs)");
-        assertThat((List<Object>) response.rows()[0][0], Matchers.contains(0.0d, 99.9d, -100.5678d));
+        assertThat(response).hasRows(new Object[]{List.of(0.0d, 99.9d, -100.5678d)});
     }
 
     @Test
@@ -61,6 +60,6 @@ public class ArrayMapperITest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select xs from t");
-        assertThat((List<Object>) response.rows()[0][0], Matchers.empty());
+        assertThat(response).hasRows(new Object[]{List.of()});
     }
 }

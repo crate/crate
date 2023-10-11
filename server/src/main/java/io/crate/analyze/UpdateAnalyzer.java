@@ -208,6 +208,8 @@ public final class UpdateAnalyzer {
                             targetCol.isNullable(),
                             targetCol.hasDocValues(),
                             targetCol.position(),
+                            targetCol.oid(),
+                            targetCol.isDropped(),
                             targetCol.defaultExpression()
                         );
 

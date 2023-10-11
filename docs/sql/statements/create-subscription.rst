@@ -30,7 +30,6 @@ Synopsis
     CREATE SUBSCRIPTION subscription_name
     CONNECTION 'conninfo'
     PUBLICATION publication_name [, ...]
-    [ WITH (parameter_name [= value], [, ...]) ]
 
 .. _sql-create-subscription-desc:
 
@@ -121,26 +120,3 @@ Parameters
 
 **PUBLICATION publication_name**
   Names of the publications on the publisher to subscribe to
-
-Clauses
-=======
-
-``WITH``
---------
-
-You can use the ``WITH`` clause to specify one or more repository parameter
-values:
-
-::
-
-    [ WITH (parameter_name [= value], [, ...]) ]
-
-Parameters
-----------
-
-This clause specifies optional parameters for a subscription. The following
-parameters are supported:
-
-**enabled**
-  Specifies whether the subscription should be actively replicating, or whether
-  it should be just setup but not started yet. The default is ``true``.

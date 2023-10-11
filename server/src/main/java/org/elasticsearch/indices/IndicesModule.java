@@ -41,6 +41,7 @@ import org.elasticsearch.index.mapper.BitStringFieldMapper;
 import org.elasticsearch.index.mapper.BooleanFieldMapper;
 import org.elasticsearch.index.mapper.DateFieldMapper;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
+import org.elasticsearch.index.mapper.FloatVectorFieldMapper;
 import org.elasticsearch.index.mapper.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.IdFieldMapper;
@@ -64,6 +65,7 @@ import org.elasticsearch.plugins.MapperPlugin;
 
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.engine.SubscriberEngine;
+import io.crate.types.FloatVectorType;
 
 /**
  * Configures classes and services that are shared by indices on each node.
@@ -99,6 +101,7 @@ public class IndicesModule extends AbstractModule {
         mappers.put(ObjectMapper.CONTENT_TYPE, new ObjectMapper.TypeParser());
         mappers.put(GeoPointFieldMapper.CONTENT_TYPE, new GeoPointFieldMapper.TypeParser());
         mappers.put(BitStringFieldMapper.CONTENT_TYPE, new BitStringFieldMapper.TypeParser());
+        mappers.put(FloatVectorType.INSTANCE_ONE.getName(), new FloatVectorFieldMapper.TypeParser());
         mappers.put(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
 
         if (ShapesAvailability.JTS_AVAILABLE && ShapesAvailability.SPATIAL4J_AVAILABLE) {

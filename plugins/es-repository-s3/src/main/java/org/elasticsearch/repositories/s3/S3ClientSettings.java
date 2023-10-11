@@ -51,6 +51,7 @@ import com.amazonaws.auth.BasicSessionCredentials;
 final class S3ClientSettings {
 
     /** Credentials to authenticate with s3. */
+    @Nullable
     final AWSCredentials credentials;
 
     /** The s3 endpoint the client should talk to, or empty string to use the default. */
@@ -82,7 +83,7 @@ final class S3ClientSettings {
     /** Whether the s3 client should use an exponential backoff retry policy. */
     final boolean throttleRetries;
 
-    private S3ClientSettings(AWSCredentials credentials,
+    private S3ClientSettings(@Nullable AWSCredentials credentials,
                              String endpoint,
                              Protocol protocol,
                              String proxyHost,
@@ -182,8 +183,14 @@ final class S3ClientSettings {
 
     @Override
     public int hashCode() {
-        return Objects.hash(credentials.getAWSAccessKeyId(),
-                            credentials.getAWSSecretKey(),
+        String accessKey = null;
+        String secretKey = null;
+        if (credentials != null) {
+            accessKey = credentials.getAWSAccessKeyId();
+            secretKey = credentials.getAWSSecretKey();
+        }
+        return Objects.hash(accessKey,
+                            secretKey,
                             endpoint,
                             protocol,
                             proxyHost,

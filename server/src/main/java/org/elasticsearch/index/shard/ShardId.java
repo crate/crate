@@ -21,18 +21,15 @@ package org.elasticsearch.index.shard;
 
 import java.io.IOException;
 
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.Index;
 
 /**
  * Allows for shard level components to be injected with the shard id.
  */
-public class ShardId implements Writeable, ToXContentFragment, Comparable<ShardId> {
+public class ShardId implements Writeable, Comparable<ShardId> {
 
     private final Index index;
     private final int shardId;
@@ -72,29 +69,9 @@ public class ShardId implements Writeable, ToXContentFragment, Comparable<ShardI
         return this.shardId;
     }
 
-    public int getId() {
-        return id();
-    }
-
     @Override
     public String toString() {
         return "[" + index.getName() + "][" + shardId + "]";
-    }
-
-    /**
-     * Parse the string representation of this shardId back to an object.
-     * We lose index uuid information here, but since we use toString in
-     * rest responses, this is the best we can do to reconstruct the object
-     * on the client side.
-     */
-    public static ShardId fromString(String shardIdString) {
-        int splitPosition = shardIdString.indexOf("][");
-        if (splitPosition <= 0 || shardIdString.charAt(0) != '[' || shardIdString.charAt(shardIdString.length() - 1) != ']') {
-            throw new IllegalArgumentException("Unexpected shardId string format, expected [indexName][shardId] but got " + shardIdString);
-        }
-        String indexName = shardIdString.substring(1, splitPosition);
-        int shardId = Integer.parseInt(shardIdString.substring(splitPosition + 2, shardIdString.length() - 1));
-        return new ShardId(new Index(indexName, IndexMetadata.INDEX_UUID_NA_VALUE), shardId);
     }
 
     @Override
@@ -118,18 +95,13 @@ public class ShardId implements Writeable, ToXContentFragment, Comparable<ShardI
 
     @Override
     public int compareTo(ShardId o) {
-        if (o.getId() == shardId) {
+        if (o.id() == shardId) {
             int compare = index.getName().compareTo(o.getIndex().getName());
             if (compare != 0) {
                 return compare;
             }
             return index.getUUID().compareTo(o.getIndex().getUUID());
         }
-        return Integer.compare(shardId, o.getId());
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.value(toString());
+        return Integer.compare(shardId, o.id());
     }
 }

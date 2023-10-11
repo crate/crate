@@ -21,66 +21,137 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.TableElement;
-
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class AnalyzedCreateTable implements DDLStatement {
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
 
-    private final RelationName relationName;
-    private final CreateTable<Symbol> createTable;
-    private final AnalyzedTableElements<Symbol> analyzedTableElements;
-    private final AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions;
+import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
+import io.crate.common.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.operators.SubQueryAndParamBinder;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.ClusteredBy;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.PartitionedBy;
 
-    public AnalyzedCreateTable(RelationName relationName,
-                               CreateTable<Symbol> createTable,
-                               AnalyzedTableElements<Symbol> analyzedTableElements,
-                               AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions) {
-        this.relationName = relationName;
-        this.createTable = createTable;
-        this.analyzedTableElements = analyzedTableElements;
-        this.analyzedTableElementsWithExpressions = analyzedTableElementsWithExpressions;
-    }
-
-    public CreateTable<Symbol> createTable() {
-        return createTable;
-    }
-
-    public RelationName relationName() {
-        return relationName;
-    }
-
-    public AnalyzedTableElements<Symbol> analyzedTableElements() {
-        return analyzedTableElements;
-    }
-
-    public AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions() {
-        return analyzedTableElementsWithExpressions;
-    }
+public record AnalyzedCreateTable(
+        RelationName relationName,
+        boolean ifNotExists,
+        /**
+         * In order of definition
+         */
+        Map<ColumnIdent, RefBuilder> columns,
+        /**
+         * By constraint name; In order of definition
+         **/
+        Map<String, AnalyzedCheck> checks,
+        GenericProperties<Symbol> properties,
+        Optional<PartitionedBy<Symbol>> partitionedBy,
+        Optional<ClusteredBy<Symbol>> clusteredBy) implements DDLStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
-        for (Assignment<Symbol> partitionProperty : createTable.name().partitionProperties()) {
-            consumer.accept(partitionProperty.expression());
-            partitionProperty.expressions().forEach(consumer);
+        for (var refBuilder : columns.values()) {
+            refBuilder.visitSymbols(consumer);
         }
-        for (TableElement<Symbol> tableElement : createTable.tableElements()) {
-            tableElement.visit(consumer);
+        for (AnalyzedCheck check : checks.values()) {
+            consumer.accept(check.check());
         }
-        createTable.clusteredBy().ifPresent(x -> {
+        properties.properties().values().forEach(consumer);
+        partitionedBy.ifPresent(x -> x.columns().forEach(consumer));
+        clusteredBy.ifPresent(x -> {
             x.column().ifPresent(consumer);
             x.numberOfShards().ifPresent(consumer);
         });
-        createTable.partitionedBy().ifPresent(x -> x.columns().forEach(consumer));
-        createTable.properties().properties().values().forEach(consumer);
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitCreateTable(this, context);
+    }
+
+    public BoundCreateTable bind(NumberOfShards numberOfShards,
+                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                 NodeContext nodeCtx,
+                                 TransactionContext txnCtx,
+                                 Row params,
+                                 SubQueryResults subQueryResults) {
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        SymbolEvaluator evaluator = new SymbolEvaluator(txnCtx, nodeCtx, subQueryResults);
+        Function<Symbol, Object> toValue = evaluator.bind(params);
+
+        Integer numShards = clusteredBy
+            .flatMap(ClusteredBy::numberOfShards)
+            .map(toValue)
+            .map(numberOfShards::fromNumberOfShards)
+            .orElseGet(numberOfShards::defaultNumberOfShards);
+
+        TableParameter tableParameter = new TableParameter();
+        tableParameter.settingsBuilder().put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards);
+
+        Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
+        LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
+        for (var entry : columns.entrySet()) {
+            ColumnIdent columnIdent = entry.getKey();
+            RefBuilder column = entry.getValue();
+            Reference reference = column.build(columns, relationName, paramBinder, toValue);
+            references.put(columnIdent, reference);
+            if (column.isPrimaryKey()) {
+                primaryKeys.add(reference);
+            }
+            if (reference instanceof IndexReference indexRef) {
+                String analyzer = indexRef.analyzer();
+                if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzer)) {
+                    Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzer);
+                    tableParameter.settingsBuilder().put(settings);
+                }
+            }
+        }
+
+        TableProperties.analyze(
+            tableParameter, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue), true);
+
+        Optional<ColumnIdent> optClusteredBy = clusteredBy
+            .flatMap(ClusteredBy::column)
+            .map(Symbols::pathFromSymbol);
+        optClusteredBy.ifPresent(c -> {
+            if (!primaryKeys.isEmpty() && Reference.indexOf(primaryKeys, c) < 0) {
+                throw new IllegalArgumentException(
+                    "Clustered by column `" + c + "` must be part of primary keys: " + Lists2.map(primaryKeys, Reference::column));
+            }
+        });
+        ColumnIdent routingColumn = optClusteredBy.orElse(DocSysColumns.ID);
+
+        List<Symbol> partitionedByColumns = partitionedBy
+            .map(PartitionedBy::columns)
+            .orElse(List.of());
+
+        return new BoundCreateTable(
+            relationName,
+            ifNotExists,
+            references,
+            tableParameter,
+            List.copyOf(primaryKeys),
+            checks,
+            routingColumn,
+            partitionedByColumns
+        );
     }
 }

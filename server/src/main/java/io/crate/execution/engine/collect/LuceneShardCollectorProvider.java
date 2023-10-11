@@ -24,12 +24,6 @@ package io.crate.execution.engine.collect;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.SentinelRow;
-import io.crate.execution.engine.export.FileOutputFactory;
-import io.crate.metadata.NodeContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.ElasticsearchClient;
@@ -42,14 +36,18 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
+import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.sort.LuceneSortGenerator;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
@@ -61,6 +59,7 @@ import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
@@ -78,7 +77,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final FieldTypeLookup fieldTypeLookup;
     private final RelationName relationName;
 
-    private LuceneReferenceResolver referenceResolver;
+    private final LuceneReferenceResolver referenceResolver;
 
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
@@ -159,7 +158,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext.query(),
             queryContext.minScore(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
-            new CollectorContext(sharedShardContext.readerId()),
+            new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey()),
             docCtx.topLevelInputs(),
             docCtx.expressions()
         );
@@ -232,7 +231,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexService.cache()
         );
         ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
-        collectorContext = new CollectorContext(sharedShardContext.readerId());
+        collectorContext = new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey());
         int batchSize = collectPhase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",

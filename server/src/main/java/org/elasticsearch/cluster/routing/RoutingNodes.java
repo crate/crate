@@ -458,7 +458,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         assignedShardsAdd(target);
         addRecovery(target);
         changes.relocationStarted(startedShard, target);
-        return Tuple.tuple(source, target);
+        return new Tuple<>(source, target);
     }
 
     /**

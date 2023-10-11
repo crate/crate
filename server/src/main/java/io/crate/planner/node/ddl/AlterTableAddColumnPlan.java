@@ -21,32 +21,12 @@
 
 package io.crate.planner.node.ddl;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Function;
-
-import com.carrotsearch.hppc.IntArrayList;
-
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
-import io.crate.analyze.AnalyzedColumnDefinition;
-import io.crate.analyze.AnalyzedTableElements;
-import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -71,96 +51,13 @@ public class AlterTableAddColumnPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        var tableElements = validate(
-            alterTable,
+        AddColumnRequest request = alterTable.bind(
+            plannerContext.nodeContext(),
             plannerContext.transactionContext(),
-            dependencies.nodeContext(),
-            params,
-            subQueryResults,
-            dependencies.fulltextAnalyzerResolver()
-        );
-        var addColumnRequest = createRequest(tableElements, alterTable.tableInfo().ident());
-
-        dependencies.alterTableOperation().executeAlterTableAddColumn(addColumnRequest)
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
-    }
-
-    /**
-     * @param tableElements has to be finalized and validated before passing to this method.
-     * collectReferences is called with bound = true meaning that it expects analyzer, geo properties to be resolved at this point.
-     */
-    public static AddColumnRequest createRequest(AnalyzedTableElements<Object> tableElements, RelationName relationName) {
-
-        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
-        IntArrayList pKeysIndices = new IntArrayList();
-        tableElements.collectReferences(relationName, references, pKeysIndices, true);
-
-        return new AddColumnRequest(
-            relationName,
-            new ArrayList<>(references.values()), // We don't use Map in the request itself since we need directly indexed structure referred by pKeysIndices.
-            tableElements.getCheckConstraints(),
-            pKeysIndices
-        );
-    }
-
-
-    /**
-     * Validates statement, resolves generated and default expressions.
-     */
-    public static AnalyzedTableElements<Object> validate(AnalyzedAlterTableAddColumn alterTable,
-                                                         CoordinatorTxnCtx txnCtx,
-                                                         NodeContext nodeCtx,
-                                                         Row params,
-                                                         SubQueryResults subQueryResults,
-                                                         FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
-            txnCtx,
-            nodeCtx,
-            x,
             params,
             subQueryResults
         );
-        DocTableInfo tableInfo = alterTable.tableInfo();
-        AnalyzedTableElements<Object> tableElements = alterTable.analyzedTableElements().map(eval);
-
-        for (AnalyzedColumnDefinition<Object> column : tableElements.columns()) {
-            ensureColumnLeafsAreNew(column, tableInfo);
-        }
-
-        ensureNoIndexDefinitions(tableElements.columns());
-
-        AnalyzedTableElements.validateAndBuildSettings(tableElements, fulltextAnalyzerResolver);
-
-        AnalyzedTableElements.finalizeAndValidate(
-            alterTable.tableInfo().ident(),
-            alterTable.analyzedTableElementsWithExpressions(),
-            tableElements
-        );
-
-        return tableElements;
-    }
-
-
-
-    private static void ensureColumnLeafsAreNew(AnalyzedColumnDefinition<Object> column, TableInfo tableInfo) {
-        if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReference(column.ident()) != null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "The table %s already has a column named %s",
-                                                             tableInfo.ident().sqlFqn(),
-                                                             column.ident().sqlFqn()));
-        }
-        for (AnalyzedColumnDefinition<Object> child : column.children()) {
-            ensureColumnLeafsAreNew(child, tableInfo);
-        }
-    }
-
-    private static void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition<Object>> columns) {
-        for (AnalyzedColumnDefinition<Object> column : columns) {
-            if (column.isIndexColumn()) {
-                throw new UnsupportedOperationException(
-                    "Adding an index using ALTER TABLE ADD COLUMN is not supported");
-            }
-            ensureNoIndexDefinitions(column.children());
-        }
+        dependencies.alterTableOperation().addColumn(request)
+            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

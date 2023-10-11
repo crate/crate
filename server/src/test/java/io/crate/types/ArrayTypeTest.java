@@ -21,71 +21,39 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.Streamer;
+import io.crate.testing.DataTypeTesting;
 
-public class ArrayTypeTest extends ESTestCase {
+public class ArrayTypeTest extends DataTypeTestCase<List<Object>> {
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public DataType<List<Object>> getType() {
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomType();
+        return new ArrayType<>(randomType);
+    }
+
+    @Override
+    public void test_doc_values_write_and_read_roundtrip_inclusive_doc_mapper_parse() throws Exception {
+        // skip base class case. It doesn't deal with arrays:
+        // - doesn't initialize sources correctly
+        // - doesn't expect multi values per field
+    }
 
     @Test
     public void test_pg_string_array_literal_can_be_converted_to_values() {
         ArrayType<String> strArray = new ArrayType<>(DataTypes.STRING);
         List<String> values = strArray.implicitCast("{a,abc,A,ABC,null,\"null\",NULL,\"NULL\"}");
-        assertThat(
-            values,
-            contains("a", "abc", "A", "ABC", null, "null", null, "NULL")
-        );
-    }
-
-    @Test
-    public void testArrayTypeSerialization() throws Exception {
-        // nested string array: [ ["x"], ["y"] ]
-        ArrayType<?> arrayType = new ArrayType<>(new ArrayType<>(StringType.INSTANCE));
-        BytesStreamOutput out = new BytesStreamOutput();
-
-        DataTypes.toStream(arrayType, out);
-
-        StreamInput in = out.bytes().streamInput();
-
-        DataType<?> readType = DataTypes.fromStream(in);
-        assertThat(readType, instanceOf(ArrayType.class));
-
-        ArrayType<?> readArrayType = (ArrayType<?>) readType;
-        assertThat(readArrayType.innerType(), instanceOf(ArrayType.class));
-
-        ArrayType<?> readInnerArrayType = (ArrayType<?>) readArrayType.innerType();
-        assertThat(readInnerArrayType.innerType(), is(StringType.INSTANCE));
-    }
-
-    @Test
-    public void testValueSerialization() throws Exception {
-        ArrayType<String> arrayType = new ArrayType<>(StringType.INSTANCE);
-        Streamer<List<String>> streamer = arrayType.streamer();
-        List<String> serArray = Arrays.asList(
-            "foo",
-            "bar",
-            "foobar"
-        );
-        BytesStreamOutput out = new BytesStreamOutput();
-        streamer.writeValueTo(out, serArray);
-
-        StreamInput in = out.bytes().streamInput();
-
-        assertThat(streamer.readValueFrom(in), is(serArray));
+        assertThat(values).containsExactly("a", "abc", "A", "ABC", null, "null", null, "NULL");
     }
 
     @Test
@@ -98,7 +66,7 @@ public class ArrayTypeTest extends ESTestCase {
         streamer.writeValueTo(out, null);
 
         StreamInput in = out.bytes().streamInput();
-        assertThat(streamer.readValueFrom(in), is(nullValue()));
+        assertThat(streamer.readValueFrom(in)).isNull();
 
         out.reset();
         List<String> listWithNullItem = new ArrayList<>();
@@ -106,7 +74,7 @@ public class ArrayTypeTest extends ESTestCase {
         streamer.writeValueTo(out, listWithNullItem);
 
         in = out.bytes().streamInput();
-        assertThat(streamer.readValueFrom(in), contains(nullValue()));
+        assertThat(streamer.readValueFrom(in)).isEqualTo(listWithNullItem);
     }
 
     @Test
@@ -115,7 +83,7 @@ public class ArrayTypeTest extends ESTestCase {
             DataTypes.STRING_ARRAY.sanitizeValue("{'a', null}"),
             DataTypes.STRING_ARRAY.sanitizeValue("{'a', 'b'}")
         );
-        assertThat(cmp, is(-1));
+        assertThat(cmp).isEqualTo(-1);
     }
 
     @Test
@@ -123,7 +91,7 @@ public class ArrayTypeTest extends ESTestCase {
         var array = new ArrayList<>();
         array.add(null);
         array.add("string");
-        assertThat(DataTypes.STRING_ARRAY.fromAnyArray(array), is(array));
+        assertThat(DataTypes.STRING_ARRAY.fromAnyArray(array)).isEqualTo(array);
     }
 
     @Test
@@ -134,9 +102,8 @@ public class ArrayTypeTest extends ESTestCase {
                     List.of(Map.of("key", "value")),
                     List.of(List.of("nested"))
                 )
-            ),
-            is(List.of("[{\"key\":\"value\"}]", "[[\"nested\"]]"))
-        );
+            )
+        ).isEqualTo(List.of("[{\"key\":\"value\"}]", "[[\"nested\"]]"));
     }
 
     @Test
@@ -147,9 +114,7 @@ public class ArrayTypeTest extends ESTestCase {
                     Map.of("key1", List.of("test")),
                     Map.of("key2", Map.of("key", "value"))
                 )
-            ),
-            is(List.of("{\"key1\":[\"test\"]}", "{\"key2\":{\"key\":\"value\"}}"))
-        );
+            )
+        ).isEqualTo(List.of("{\"key1\":[\"test\"]}", "{\"key2\":{\"key\":\"value\"}}"));
     }
-
 }

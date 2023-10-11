@@ -21,65 +21,73 @@
 
 package io.crate.replication.logical.metadata;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidArgumentException;
+import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 
 public class ConnectionInfoTest extends ESTestCase {
 
     @Test
     public void test_url_has_valid_prefix() {
-        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL("postgres:"))
-            .isExactlyInstanceOf(InvalidArgumentException.class)
+        assertThatThrownBy(() -> ConnectionInfo.fromURL("postgres:"))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("The connection string must start with \"crate://\" but was: \"postgres:\"");
     }
 
     @Test
     public void test_url_is_not_empty() {
-        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL(""))
-            .isExactlyInstanceOf(InvalidArgumentException.class)
+        assertThatThrownBy(() -> ConnectionInfo.fromURL(""))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("The connection string must start with \"crate://\" but was: \"\"");
     }
 
     @Test
+    public void test_db_not_allowed() {
+        assertThatThrownBy(() -> ConnectionInfo.fromURL("crate:///customdb"))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
+            .hasMessageContaining("Database name \"customdb\" is not supported inside the connection string: crate:///customdb");
+        assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://host1:123,host2:456/customdb"))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
+            .hasMessageContaining("Database name \"customdb\" is not supported inside the connection string: crate://host1:123,host2:456/customdb");
+    }
+
+    @Test
     public void test_simple_url() {
-        var connInfo = ConnectionInfo.fromURL("crate://example.com:1234");
-        assertThat(connInfo.hosts(), contains("example.com:1234"));
-        assertThat(connInfo.settings(), is(Settings.EMPTY));
+        var connInfo = ConnectionInfo.fromURL("crate://example.com:1234" + (randomBoolean() ? "/" : ""));
+        assertThat(connInfo.hosts()).containsExactly("example.com:1234");
+        assertThat(connInfo.settings()).isEqualTo(Settings.EMPTY);
     }
 
     @Test
     public void test_url_without_host() {
-        var connInfo = ConnectionInfo.fromURL("crate://");
-        assertThat(connInfo.hosts(), contains(":4300"));
-        assertThat(connInfo.settings(), is(Settings.EMPTY));
+        var connInfo = ConnectionInfo.fromURL("crate://" + (randomBoolean() ? "/" : ""));
+        assertThat(connInfo.hosts()).containsExactly(":4300");
+        assertThat(connInfo.settings()).isEqualTo(Settings.EMPTY);
     }
 
     @Test
     public void test_url_without_port() {
-        var connInfo = ConnectionInfo.fromURL("crate://123.123.123.123");
-        assertThat(connInfo.hosts(), contains("123.123.123.123:4300"));
-        assertThat(connInfo.settings(), is(Settings.EMPTY));
+        var connInfo = ConnectionInfo.fromURL("crate://123.123.123.123" + (randomBoolean() ? "/" : ""));
+        assertThat(connInfo.hosts()).containsExactly("123.123.123.123:4300");
+        assertThat(connInfo.settings()).isEqualTo(Settings.EMPTY);
     }
 
     @Test
     public void test_port_defaults_to_5432_in_pg_tunnel_mode() {
         var connInfo = ConnectionInfo.fromURL("crate://123.123.123.123?mode=pg_tunnel");
-        assertThat(connInfo.hosts(), contains("123.123.123.123:5432"));
+        assertThat(connInfo.hosts()).containsExactly("123.123.123.123:5432");
     }
 
     @Test
     public void test_multiple_hosts() {
         var connInfo = ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123");
-        assertThat(connInfo.hosts(), contains("example.com:4310","123.123.123.123:4300"));
-        assertThat(connInfo.settings(), is(Settings.EMPTY));
+        assertThat(connInfo.hosts()).containsExactly("example.com:4310","123.123.123.123:4300");
+        assertThat(connInfo.settings()).isEqualTo(Settings.EMPTY);
     }
 
     @Test
@@ -88,56 +96,53 @@ public class ConnectionInfoTest extends ESTestCase {
             "user=my_user&password=1234&" +
             "sslmode=disable"
         );
-        assertThat(connInfo.settings(), is(
+        assertThat(connInfo.settings()).isEqualTo(
             Settings.builder()
                 .put("user", "my_user")
                 .put("password", "1234")
                 .put("sslmode", "disable")
                 .build()
-        ));
+        );
     }
 
     @Test
     public void test_safe_connection_string() {
-        var connInfoSniff = ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123?" +
+        var connInfoSniff = ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123" +
+            (randomBoolean() ? "/?" : "?") +
             "user=my_user&password=1234&" +
             "sslmode=disable"       // <- sslMode is ignored on SNIFF mode
         );
-        assertThat(connInfoSniff.safeConnectionString(),
-            is("crate://example.com:4310,123.123.123.123:4300?" +
+        assertThat(connInfoSniff.safeConnectionString()).isEqualTo(
+            "crate://example.com:4310,123.123.123.123:4300?" +
                 "user=*&password=*&" +
-                "mode=sniff"
-            )
-        );
+                "mode=sniff");
         var connInfoPg = ConnectionInfo.fromURL("crate://example.com?" +
             "user=my_user&password=1234&" +
             "mode=pg_tunnel&" +
             "sslmode=disable"
         );
-        assertThat(connInfoPg.safeConnectionString(),
-            is("crate://example.com:5432?" +
+        assertThat(connInfoPg.safeConnectionString()).isEqualTo(
+            "crate://example.com:5432?" +
                 "user=*&password=*&" +
                 "mode=pg_tunnel&" +
-                "sslmode=disable"
-            )
-        );
+                "sslmode=disable");
     }
 
     @Test
     public void test_invalid_argument() {
-        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://?foo=bar"))
-            .isExactlyInstanceOf(InvalidArgumentException.class)
+        assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://?foo=bar"))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("Connection string argument 'foo' is not supported");
     }
 
     @Test
     public void test_setting_invalid_mode_raises_error_including_valid_options() {
-        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://example.com?mode=foo"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://example.com?mode=foo"))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`");
 
-        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://example.com:5432?mode=foo"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://example.com:5432?mode=foo"))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`");
     }
 }

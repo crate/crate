@@ -169,6 +169,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 xRef.isNullable(),
                 false,
                 xRef.position(),
+                xRef.oid(),
+                xRef.isDropped(),
                 xRef.defaultExpression())
             ),
             table

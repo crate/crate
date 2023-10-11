@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * A symbol visitor which replaces all symbols mapped in the map given as context.
  */
-public class MappingSymbolVisitor extends FunctionCopyVisitor<Map<? extends Symbol, ? extends Symbol>> {
+public final class MappingSymbolVisitor extends FunctionCopyVisitor<Map<? extends Symbol, ? extends Symbol>> {
 
     private static final MappingSymbolVisitor COPYING = new MappingSymbolVisitor();
 

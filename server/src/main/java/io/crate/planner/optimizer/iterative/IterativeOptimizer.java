@@ -34,6 +34,7 @@ import org.elasticsearch.Version;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.PrintContext;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
@@ -70,6 +71,13 @@ public class IterativeOptimizer {
             // not a group reference, return same node
             return node;
         };
+
+        if (LOGGER.isTraceEnabled()) {
+            PrintContext printContext = new PrintContext(planStatsWithMemo);
+            plan.print(printContext);
+            LOGGER.trace("Optimize plan: \n " + printContext);
+        }
+
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
         exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo));
         return memo.extract();
@@ -131,14 +139,16 @@ public class IterativeOptimizer {
                     isTraceEnabled
                 );
                 if (transformed != null) {
-                    if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
-                    }
                     // the plan changed, update memo to reference to the new plan
                     context.memo.replace(group, transformed);
                     node = transformed;
                     done = false;
                     progress = true;
+                    if (isTraceEnabled) {
+                        var printContext = new PrintContext(context.planStats);
+                        context.memo.extract().print(printContext);
+                        LOGGER.trace("Rule " + rule.sessionSettingName() + " transformed the logical plan: \n" + printContext);
+                    }
                 }
             }
         }

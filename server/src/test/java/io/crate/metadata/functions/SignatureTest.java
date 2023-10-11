@@ -22,7 +22,6 @@
 package io.crate.metadata.functions;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -35,6 +34,7 @@ import org.junit.Test;
 import io.crate.metadata.FunctionType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.TypeSignature;
 
 public class SignatureTest {
 
@@ -48,7 +48,7 @@ public class SignatureTest {
             .name("foo")
             .kind(FunctionType.SCALAR)
             .argumentTypes(
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
                 objectType.getTypeSignature()
             )

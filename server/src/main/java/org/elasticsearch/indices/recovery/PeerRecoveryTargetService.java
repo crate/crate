@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -71,6 +69,7 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.unit.TimeValue;
@@ -201,7 +200,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
     protected void reestablishRecovery(final StartRecoveryRequest request, final String reason, TimeValue retryAfter) {
         final long recoveryId = request.recoveryId();
         LOGGER.trace("will try to reestablish recovery with id [{}] in [{}] (reason [{}])", recoveryId, retryAfter, reason);
-        threadPool.schedule(new RecoveryRunner(recoveryId, request), retryAfter, ThreadPool.Names.GENERIC);
+        threadPool.scheduleUnlessShuttingDown(retryAfter, ThreadPool.Names.GENERIC, new RecoveryRunner(recoveryId, request));
     }
 
     private void doRecovery(final long recoveryId, final StartRecoveryRequest preExistingRequest) {
@@ -249,7 +248,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         RecoveryResponseHandler responseHandler = new RecoveryResponseHandler(startRequest, timer);
 
         try {
-            cancellableThreads.executeIO(() ->
+            cancellableThreads.execute(() ->
                 // we still execute under cancelableThreads here to ensure we interrupt any blocking call to the network if any
                 // on the underlying transport. It's unclear if we need this here at all after moving to async execution but
                 // the issues that a missing call to this could cause are sneaky and hard to debug. If we don't need it on this
@@ -263,7 +262,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             responseHandler.onException(e);
         }
     }
-
 
     /**
      * Prepare the start recovery request.
@@ -312,7 +310,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             metadataSnapshot = Store.MetadataSnapshot.EMPTY;
         }
         LOGGER.trace("{} local file count [{}]", recoveryTarget.shardId(), metadataSnapshot.size());
-
         request = new StartRecoveryRequest(
             recoveryTarget.shardId(),
             recoveryTarget.indexShard().routingEntry().allocationId().getId(),
@@ -528,7 +525,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                                                         final CheckedFunction<Void, TransportResponse, Exception> responseFn) {
         final RecoveryTarget recoveryTarget = recoveryRef.target();
         final ActionListener<TransportResponse> channelListener = new ChannelActionListener<>(channel, action, request);
-        final ActionListener<Void> voidListener = ActionListener.map(channelListener, responseFn);
+        final ActionListener<Void> voidListener = channelListener.map(responseFn);
 
         final long requestSeqNo = request.requestSeqNo();
         final ActionListener<Void> listener;

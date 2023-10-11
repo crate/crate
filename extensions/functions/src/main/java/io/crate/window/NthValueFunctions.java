@@ -21,6 +21,13 @@
 
 package io.crate.window;
 
+import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -31,13 +38,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-
-import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public class NthValueFunctions implements WindowFunction {
 
@@ -161,8 +162,8 @@ public class NthValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 FIRST_VALUE_NAME,
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new NthValueFunctions(
@@ -175,8 +176,8 @@ public class NthValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 LAST_VALUE_NAME,
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new NthValueFunctions(
@@ -189,9 +190,9 @@ public class NthValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 NTH_VALUE_NAME,
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
-                parseTypeSignature("E")
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new NthValueFunctions(

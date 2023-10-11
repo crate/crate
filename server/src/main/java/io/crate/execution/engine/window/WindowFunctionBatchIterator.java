@@ -21,20 +21,8 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.common.collections.Iterables;
-import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
-import io.crate.data.Buckets;
-import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.breaker.RowAccounting;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.sort.Sort;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import static io.crate.common.collections.Lists2.findFirstNonPeer;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -44,9 +32,20 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
-import java.util.stream.Collectors;
 
-import static io.crate.common.collections.Lists2.findFirstNonPeer;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.logging.Loggers;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.Iterables;
+import io.crate.data.BatchIterator;
+import io.crate.data.Buckets;
+import io.crate.data.CollectingBatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.sort.Sort;
 
 /**
  * BatchIterator which computes window functions (incl. partitioning + ordering)
@@ -98,8 +97,7 @@ public final class WindowFunctionBatchIterator {
         };
         return CollectingBatchIterator.newInstance(
             source,
-            src -> BatchIterators
-                .collect(src, Collectors.mapping(materialize, Collectors.toList()))
+            src -> src.map(materialize).toList()
                 .thenCompose(rows -> sortAndComputeWindowFunctions(
                     rows,
                     computeFrameStart,

@@ -45,7 +45,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
 import javax.net.ssl.SNIHostName;
 
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
@@ -164,6 +163,7 @@ import org.elasticsearch.transport.RemoteClusters;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthSettings;
@@ -172,7 +172,9 @@ import io.crate.auth.AuthenticationModule;
 import io.crate.auth.HostBasedAuthentication;
 import io.crate.blob.BlobModule;
 import io.crate.blob.BlobService;
+import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.v2.BlobIndicesModule;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -706,6 +708,14 @@ public class Node implements Closeable {
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
 
+            BlobIndicesService blobIndicesService = new BlobIndicesService(settings, clusterService);
+            BlobTransferTarget blobTransferTarget = new BlobTransferTarget(
+                blobIndicesService,
+                threadPool,
+                transportService,
+                clusterService
+            );
+
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
                     b.bind(NodeService.class).toInstance(nodeService);
@@ -738,17 +748,25 @@ public class Node implements Closeable {
                     b.bind(SnapshotsService.class).toInstance(snapshotsService);
                     b.bind(SnapshotShardsService.class).toInstance(snapshotShardsService);
                     b.bind(RestoreService.class).toInstance(restoreService);
+                    b.bind(BlobIndicesService.class).toInstance(blobIndicesService);
+                    b.bind(BlobTransferTarget.class).toInstance(blobTransferTarget);
                     b.bind(Discovery.class).toInstance(discoveryModule.getDiscovery());
                     {
                         processRecoverySettings(settingsModule.getClusterSettings(), recoverySettings);
-                        b.bind(PeerRecoverySourceService.class).toInstance(new PeerRecoverySourceService(transportService,
-                                                                                                         indicesService,
-                                                                                                         clusterService,
-                                                                                                         recoverySettings));
-                        b.bind(PeerRecoveryTargetService.class).toInstance(new PeerRecoveryTargetService(threadPool,
-                                                                                                         transportService,
-                                                                                                         recoverySettings,
-                                                                                                         clusterService));
+                        b.bind(PeerRecoverySourceService.class).toInstance(
+                                new PeerRecoverySourceService(
+                                    transportService,
+                                    indicesService,
+                                    clusterService,
+                                    recoverySettings,
+                                    blobTransferTarget,
+                                    blobIndicesService));
+                        b.bind(PeerRecoveryTargetService.class).toInstance(
+                            new PeerRecoveryTargetService(
+                                threadPool,
+                                transportService,
+                                recoverySettings,
+                                clusterService));
                     }
                     b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
                     b.bind(ShardLimitValidator.class).toInstance(shardLimitValidator);
@@ -967,6 +985,7 @@ public class Node implements Closeable {
         // start after transport service so the local disco is known
         discovery.start(); // start before cluster service so that it can set initial state on ClusterApplierService
         clusterService.start();
+
         assert clusterService.localNode().equals(localNodeFactory.getNode())
             : "clusterService has a different local node than the factory provided";
         transportService.acceptIncomingRequests();

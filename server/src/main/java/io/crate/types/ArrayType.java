@@ -33,8 +33,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
@@ -44,10 +42,12 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
+import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -97,7 +97,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
                 @Override
                 public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
-                                                    Function<ColumnIdent, FieldType> getFieldType,
+                                                    Function<String, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
                     return new ArrayIndexer<>(
                         innerStorage.valueIndexer(table, ref, getFieldType, getRef));
@@ -248,11 +248,13 @@ public class ArrayType<T> extends DataType<List<T>> {
                 );
             } catch (PgArrayParsingException e) {
                 byte[] utf8Bytes = string.getBytes(StandardCharsets.UTF_8);
-                if (innerType instanceof JsonType) {
+                if (innerType instanceof JsonType || innerType instanceof ObjectType) {
                     try {
-                        return (List<T>) parseJsonList(utf8Bytes, sessionSettings);
+                        return parseJsonList(utf8Bytes, sessionSettings, innerType);
                     } catch (IOException ioEx) {
-                        throw new UncheckedIOException(ioEx);
+                        var conversionException = new ConversionException(string, innerType);
+                        conversionException.addSuppressed(ioEx);
+                        throw conversionException;
                     }
                 } else {
                     throw new IllegalArgumentException("Cannot parse `" + value + "` as array", e);
@@ -260,7 +262,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             }
         } else if (value instanceof Point point && DataTypes.isNumericPrimitive(innerType)) {
             // As per docs: [<lon_value>, <lat_value>]
-            return (List<T>) List.of(
+            return List.of(
                 innerType.sanitizeValue(point.getLon()),
                 innerType.sanitizeValue(point.getLat()));
         } else {
@@ -268,13 +270,13 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
     }
 
-    private static List<String> parseJsonList(byte[] utf8Bytes, SessionSettings sessionSettings) throws IOException {
+    private static <T> List<T> parseJsonList(byte[] utf8Bytes, SessionSettings sessionSettings, DataType<T> innerType) throws IOException {
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists2.map(parser.list(), value -> StringType.INSTANCE.explicitCast(value, sessionSettings));
+        return Lists2.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {
@@ -314,8 +316,10 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
-        return other.id() == UndefinedType.ID || other.id() == GeoPointType.ID ||
-               ((other instanceof ArrayType)
+        return other.id() == UndefinedType.ID
+            || other.id() == GeoPointType.ID
+            || other.id() == FloatVectorType.ID
+            || ((other instanceof ArrayType)
                 && this.innerType.isConvertableTo(((ArrayType<?>) other).innerType(), explicitCast));
     }
 
@@ -417,7 +421,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
         if (innerType instanceof FixedWidthType fixedWidthType) {
-            return fixedWidthType.fixedSize() * values.size();
+            return fixedWidthType.fixedSize() * (long) values.size();
         }
         long bytes = RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         for (var value : values) {

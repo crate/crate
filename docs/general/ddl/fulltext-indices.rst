@@ -25,11 +25,11 @@ Index definition
 In CrateDB, every column's data is indexed using the ``plain`` index method by
 default. Currently there are three choices related to index definition:
 
-  - `Disable indexing`_
+- `Disable indexing`_
 
-  - `Plain index (Default)`_
+- `Plain index (Default)`_
 
-  - `Fulltext index with analyzer`_
+- `Fulltext index with analyzer`_
 
 .. WARNING::
 
@@ -175,6 +175,11 @@ Composite indices can include nested columns within object columns as well::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+.. NOTE::
+
+    If ``plain`` index method is used, this internally translates to
+    ``fulltext with (analyzer = 'keyword')``.
+
 .. _sql-ddl-custom-analyzer:
 
 .. _create_custom_analyzer:
@@ -216,7 +221,7 @@ Here is a simple Example::
 .. hide: Test table creation with custom analyzer::
 
     cr> create table hidden_test_table (
-    ...     fc text index using fulltext with(analyzer=myanalyzer)
+    ...     fc text index using fulltext with (analyzer = 'myanalyzer')
     ... );
     CREATE OK...
 
@@ -313,7 +318,7 @@ and will override the tokenizer with ``mypattern``.
    detailed information on the available analyzers.
 
 
-.. hide: Drop created custom analyzers::
+.. hide: Drop created tables and custom analyzers::
 
     cr> drop ANALYZER myanalyzer;
     DROP OK, 1 row affected (... sec)
@@ -322,4 +327,22 @@ and will override the tokenizer with ``mypattern``.
     cr> drop ANALYZER german_snowball;
     DROP OK, 1 row affected (... sec)
     cr> drop ANALYZER e2;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_a;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_b1;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_b2;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_c;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_d;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_e;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_f;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE documents_a;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE documents_b;
     DROP OK, 1 row affected (... sec)

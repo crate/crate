@@ -32,11 +32,10 @@ import java.io.IOException;
  */
 public abstract class LuceneCollectorExpression<ReturnType> implements Input<ReturnType> {
 
-    public LuceneCollectorExpression() {
+    protected LuceneCollectorExpression() {
     }
 
     public void startCollect(CollectorContext context) {
-
     }
 
     public void setNextDocId(int doc) {
@@ -46,6 +45,5 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     }
 
     public void setScorer(Scorable scorer) {
-
     }
 }

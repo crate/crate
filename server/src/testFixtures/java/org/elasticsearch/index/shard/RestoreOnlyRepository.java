@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -52,6 +50,7 @@ import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class RestoreOnlyRepository implements Repository {
 
@@ -97,11 +96,17 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public void getRepositoryData(ActionListener<RepositoryData> listener) {
+    public CompletableFuture<RepositoryData> getRepositoryData() {
         final IndexId indexId = new IndexId(indexName, "blah");
-        listener.onResponse(new RepositoryData(EMPTY_REPO_GEN, Map.of(), Map.of(), Map.of(),
-                                               Map.of(indexId, List.of()), ShardGenerations.EMPTY,
-                                               IndexMetaDataGenerations.EMPTY));
+        return CompletableFuture.completedFuture(new RepositoryData(
+            EMPTY_REPO_GEN,
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(indexId, List.of()),
+            ShardGenerations.EMPTY,
+            IndexMetaDataGenerations.EMPTY
+        ));
     }
 
     @Override

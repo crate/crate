@@ -88,7 +88,7 @@ public class ShardRowContext {
         this.sizeSupplier = sizeSupplier;
         ShardId shardId = indexShard.shardId();
         String indexName = shardId.getIndexName();
-        this.id = shardId.getId();
+        this.id = shardId.id();
         this.indexParts = new IndexParts(indexName);
         if (indexParts.isPartitioned()) {
             partitionIdent = indexParts.getPartitionIdent();
@@ -106,11 +106,6 @@ public class ShardRowContext {
 
     public IndexShard indexShard() {
         return indexShard;
-    }
-
-    @Nullable
-    BlobShard blobShard() {
-        return blobShard;
     }
 
     public ClusterService clusterService() {
@@ -140,11 +135,6 @@ public class ShardRowContext {
     @Nullable
     public String blobPath() {
         return blobPath;
-    }
-
-    @Nullable
-    String aliasName() {
-        return aliasName;
     }
 
     @Nullable

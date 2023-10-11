@@ -29,6 +29,7 @@ import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
+import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
@@ -95,6 +96,7 @@ import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -232,6 +234,11 @@ public final class AccessControlImpl implements AccessControl {
             for (var source : relation.from()) {
                 source.accept(this, context);
             }
+            relation.visitSymbols(symbol -> {
+                for (var rel : SymbolVisitors.extractAnalyzedRelations(symbol)) {
+                    rel.accept(this, context);
+                }
+            });
             return null;
         }
 
@@ -515,7 +522,7 @@ public final class AccessControlImpl implements AccessControl {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
-                analysis.sourceTableInfo().toString(),
+                analysis.sourceName().fqn(),
                 user,
                 defaultSchema);
             return null;
@@ -565,7 +572,19 @@ public final class AccessControlImpl implements AccessControl {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
-                analysis.tableInfo().ident().toString(),
+                analysis.table().ident().toString(),
+                user,
+                defaultSchema);
+            return null;
+        }
+
+        @Override
+        public Void visitAlterTableDropColumn(AnalyzedAlterTableDropColumn analysis,
+                                              User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.DDL,
+                Privilege.Clazz.TABLE,
+                analysis.table().ident().toString(),
                 user,
                 defaultSchema);
             return null;

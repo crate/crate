@@ -19,11 +19,7 @@
 
 package org.elasticsearch.monitor.fs;
 
-import io.crate.common.collections.Tuple;
-import org.apache.lucene.util.Constants;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.env.NodeEnvironment.NodePath;
-import org.elasticsearch.test.ESTestCase;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.FileStore;
@@ -38,7 +34,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.lucene.util.Constants;
+import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.env.NodeEnvironment.NodePath;
+import org.elasticsearch.test.ESTestCase;
+
+import io.crate.common.collections.Tuple;
 
 
 public class FsProbeTests extends ESTestCase {
@@ -169,8 +170,8 @@ public class FsProbeTests extends ESTestCase {
         };
 
         final Set<Tuple<Integer, Integer>> devicesNumbers = new HashSet<>();
-        devicesNumbers.add(Tuple.tuple(253, 0));
-        devicesNumbers.add(Tuple.tuple(253, 2));
+        devicesNumbers.add(new Tuple<>(253, 0));
+        devicesNumbers.add(new Tuple<>(253, 2));
         final FsInfo.IoStats first = probe.ioStats(devicesNumbers, null);
         assertThat(first).isNotNull();
         assertThat(first.devicesStats[0].majorDeviceNumber).isEqualTo(253);

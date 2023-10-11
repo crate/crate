@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -161,8 +162,8 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
             .hasMessageContaining(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on primary key lookup for _version query
     public void testSelectWhereVersionWithPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("insert into test (col1, col2) values (1, 'foo')");
@@ -170,8 +171,8 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("1");
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on primary key lookup for _version query
     public void testSelectGroupByVersion() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("insert into test (col1, col2) values (1, 'bar'), (2, 'bar')");

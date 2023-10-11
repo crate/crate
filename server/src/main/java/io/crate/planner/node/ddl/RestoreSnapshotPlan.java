@@ -21,10 +21,30 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
+import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
+import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
+import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.SnapshotInfo;
+
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.BoundRestoreSnapshot;
-import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
@@ -50,28 +70,8 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
-
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.snapshots.SnapshotInfo;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
-import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
-import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 public class RestoreSnapshotPlan implements Plan {
 
@@ -161,10 +161,10 @@ public class RestoreSnapshotPlan implements Plan {
             subQueryResults
         );
 
-        Settings settings = GenericPropertiesConverter.genericPropertiesToSettings(
-            restoreSnapshot.properties().map(eval),
-            SnapshotSettings.SETTINGS
-        );
+        GenericProperties<Object> properties = restoreSnapshot.properties()
+            .ensureContainsOnly(SnapshotSettings.SETTINGS.keySet())
+            .map(eval);
+        Settings settings = Settings.builder().put(properties).build();
 
         HashSet<BoundRestoreSnapshot.RestoreTableInfo> restoreTables = new HashSet<>(restoreSnapshot.tables().size());
         for (Table<Symbol> table : restoreSnapshot.tables()) {

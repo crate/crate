@@ -168,7 +168,7 @@ public abstract class MultiChunkTransfer<Source, Request extends MultiChunkTrans
             if (request.lastChunk()) {
                 currentSource = null;
             }
-            return Tuple.tuple(md, request);
+            return new Tuple<>(md, request);
         } catch (Exception e) {
             handleError(currentSource, e);
             throw e;

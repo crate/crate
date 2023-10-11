@@ -31,6 +31,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -38,6 +39,7 @@ import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 
 public class IntIndexer implements ValueIndexer<Number> {
@@ -48,7 +50,7 @@ public class IntIndexer implements ValueIndexer<Number> {
 
     public IntIndexer(Reference ref, @Nullable FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
     }
 
@@ -56,22 +58,27 @@ public class IntIndexer implements ValueIndexer<Number> {
     public void indexValue(Number value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.value(value);
         int intValue = value.intValue();
-        if (ref.hasDocValues()) {
-            addField.accept(new IntField(name, intValue));
+        if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
+            addField.accept(new IntField(name, intValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
         } else {
-            addField.accept(new IntPoint(name, intValue));
-            addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
-                name,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-        }
-        if (fieldType.stored()) {
-            addField.accept(new StoredField(name, intValue));
+            if (ref.indexType() != IndexType.NONE) {
+                addField.accept(new IntPoint(name, intValue));
+            }
+            if (ref.hasDocValues()) {
+                addField.accept(new SortedNumericDocValuesField(name, intValue));
+            } else {
+                addField.accept(new Field(
+                        FieldNamesFieldMapper.NAME,
+                        name,
+                        FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+            }
+            if (fieldType.stored()) {
+                addField.accept(new StoredField(name, intValue));
+            }
         }
     }
 }

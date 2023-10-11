@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,7 +37,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.ListenableFuture;
 import org.elasticsearch.common.util.concurrent.RunOnce;
 
 import io.crate.common.io.IOUtils;
@@ -51,7 +51,7 @@ public class ClusterConnectionManager implements ConnectionManager {
     private static final Logger LOGGER = LogManager.getLogger(ClusterConnectionManager.class);
 
     private final ConcurrentMap<DiscoveryNode, Transport.Connection> connectedNodes = ConcurrentCollections.newConcurrentMap();
-    private final ConcurrentMap<DiscoveryNode, ListenableFuture<Void>> pendingConnections = ConcurrentCollections.newConcurrentMap();
+    private final ConcurrentMap<DiscoveryNode, CompletableFuture<Void>> pendingConnections = ConcurrentCollections.newConcurrentMap();
     private final AbstractRefCounted connectingRefCounter = new AbstractRefCounted("connection manager") {
         @Override
         protected void closeInternal() {
@@ -123,19 +123,19 @@ public class ClusterConnectionManager implements ConnectionManager {
             return;
         }
 
-        final ListenableFuture<Void> currentListener = new ListenableFuture<>();
-        final ListenableFuture<Void> existingListener = pendingConnections.putIfAbsent(node, currentListener);
+        final CompletableFuture<Void> currentListener = new CompletableFuture<>();
+        final CompletableFuture<Void> existingListener = pendingConnections.putIfAbsent(node, currentListener);
         if (existingListener != null) {
             try {
                 // wait on previous entry to complete connection attempt
-                existingListener.addListener(listener, EsExecutors.directExecutor());
+                existingListener.whenCompleteAsync(listener, EsExecutors.directExecutor());
             } finally {
                 connectingRefCounter.decRef();
             }
             return;
         }
 
-        currentListener.addListener(listener, EsExecutors.directExecutor());
+        currentListener.whenCompleteAsync(listener, EsExecutors.directExecutor());
 
         final RunOnce releaseOnce = new RunOnce(connectingRefCounter::decRef);
         internalOpenConnection(node, defaultProfile, ActionListener.wrap(conn -> {
@@ -160,10 +160,10 @@ public class ClusterConnectionManager implements ConnectionManager {
                             }
                         }
                     } finally {
-                        ListenableFuture<Void> future = pendingConnections.remove(node);
+                        CompletableFuture<Void> future = pendingConnections.remove(node);
                         assert future == currentListener : "Listener in pending map is different than the expected listener";
                         releaseOnce.run();
-                        future.onResponse(null);
+                        future.complete(null);
                     }
                 }, e -> {
                     assert Transports.assertNotTransportThread("connection validator failure");
@@ -253,7 +253,7 @@ public class ClusterConnectionManager implements ConnectionManager {
 
     private void internalOpenConnection(DiscoveryNode node, ConnectionProfile connectionProfile,
                                         ActionListener<Transport.Connection> listener) {
-        transport.openConnection(node, connectionProfile, ActionListener.map(listener, connection -> {
+        transport.openConnection(node, connectionProfile, listener.map(connection -> {
             assert Transports.assertNotTransportThread("internalOpenConnection success");
             try {
                 connectionListener.onConnectionOpened(connection);
@@ -267,12 +267,12 @@ public class ClusterConnectionManager implements ConnectionManager {
         }));
     }
 
-    private void failConnectionListeners(DiscoveryNode node, RunOnce releaseOnce, Exception e, ListenableFuture<Void> expectedListener) {
-        ListenableFuture<Void> future = pendingConnections.remove(node);
+    private void failConnectionListeners(DiscoveryNode node, RunOnce releaseOnce, Exception e, CompletableFuture<Void> expectedListener) {
+        CompletableFuture<Void> future = pendingConnections.remove(node);
         releaseOnce.run();
         if (future != null) {
             assert future == expectedListener : "Listener in pending map is different than the expected listener";
-            future.onFailure(e);
+            future.completeExceptionally(e);
         }
     }
 

@@ -26,10 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+
+import io.crate.execution.dml.IndexItem;
+import org.elasticsearch.common.TriFunction;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
@@ -48,7 +50,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
-    implements BiFunction<ShardedRequests<TReq, TItem>, Row, TItem>,
+    implements TriFunction<ShardedRequests<TReq, TItem>, Row, Boolean, TItem>,
                BiConsumer<ShardedRequests<TReq, TItem>, Row> {
 
     private static final Logger LOGGER = LogManager.getLogger(GroupRowsByShard.class);
@@ -67,7 +69,10 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final UnsafeArrayRow spareRow = new UnsafeArrayRow();
     private Object[] spareCells;
 
+    private final BiConsumer<String, IndexItem> constraintsChecker;
+
     public GroupRowsByShard(ClusterService clusterService,
+                            BiConsumer<String, IndexItem> constraintsChecker,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
@@ -78,6 +83,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             : "expressions should be a RandomAccess list for zero allocation iterations";
 
         this.clusterService = clusterService;
+        this.constraintsChecker = constraintsChecker;
         this.rowShardResolver = rowShardResolver;
         this.indexNameResolver = indexNameResolver;
         this.expressions = expressions;
@@ -91,12 +97,14 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
     public GroupRowsByShard(ClusterService clusterService,
+                            BiConsumer<String, IndexItem> constraintsChecker,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices) {
         this(clusterService,
+             constraintsChecker,
              rowShardResolver,
              indexNameResolver,
              expressions,
@@ -105,13 +113,16 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
              UpsertResultContext.forRowCount());
     }
 
+    /**
+     * BiConsumer is needed for compatibility of the grouper with BatchIterators.partition
+     */
     @Override
     public void accept(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
-        apply(shardedRequests, row);
+        apply(shardedRequests, row, false);
     }
 
     @Override
-    public TItem apply(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
+    public TItem apply(ShardedRequests<TReq, TItem> shardedRequests, Row row, Boolean propagateError) {
         // `Row` can be a `InputRow` which may be backed by expressions which have expensive `.value()` implementations
         // The code below (RowShardResolver.setNextRow, and estimateRowSize)
         // would lead to multiple `.value()` calls on the same underlying instance
@@ -159,6 +170,11 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             RowSourceInfo rowSourceInfo = RowSourceInfo.emptyMarkerOrNewInstance(sourceUri, lineNumber);
             ShardLocation shardLocation = getShardLocation(indexName, id, routing);
             if (shardLocation == null) {
+                // Validation is done before creating an index in order to ensure
+                // that no "bad partitions" will be left behind in case of validation failure.
+                if (item instanceof IndexItem indexItem) {
+                    constraintsChecker.accept(indexName, indexItem);
+                }
                 shardedRequests.add(item, indexName, routing, rowSourceInfo);
             } else {
                 shardedRequests.add(item, shardLocation, rowSourceInfo);
@@ -167,6 +183,9 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         } catch (CircuitBreakingException e) {
             throw e;
         } catch (Throwable t) {
+            if (propagateError) {
+                throw t;
+            }
             itemFailureRecorder.accept(shardedRequests, t.getMessage());
             return null;
         }

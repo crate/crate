@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.Collectors;
@@ -39,6 +40,7 @@ import org.junit.Test;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -68,9 +70,12 @@ public class ViewsITest extends IntegTestCase {
         }
         assertThat(execute("select * from v1")).hasRows("1");
         assertThat(execute("select view_definition from information_schema.views")).hasRows(
-                "SELECT *",
-                "FROM \"t1\"",
-                "WHERE \"x\" > 0");
+            """
+            SELECT *
+            FROM "t1"
+            WHERE "x" > 0
+            """
+        );
         execute("drop view v1");
         for (ClusterService clusterService : cluster().getInstances(ClusterService.class)) {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
@@ -196,5 +201,22 @@ public class ViewsITest extends IntegTestCase {
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
                 .hasMessageContaining("Creating a view that references itself is not allowed");
+    }
+
+    @Test
+    public void test_can_rename_existing_view() throws Exception {
+        execute("create view v1 as select * from sys.cluster");
+        assertThat(execute("select * from v1")).hasRowCount(1);
+
+        execute("alter table v1 rename to v2");
+        assertThat(execute("select * from v2")).hasRowCount(1);
+        Asserts.assertSQLError(() -> execute("select * from v1"))
+            .hasPGError(PGErrorStatus.UNDEFINED_TABLE)
+            .hasHTTPError(HttpResponseStatus.NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'v1' unknown");
+
+        assertThat(execute("select table_name from information_schema.views")).hasRows(
+            "v2"
+        );
     }
 }

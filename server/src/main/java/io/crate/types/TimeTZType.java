@@ -21,15 +21,16 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static io.crate.types.TimeTZParser.exceptionForInvalidLiteral;
+import static io.crate.types.TimeTZParser.timeTZOf;
 
 import java.io.IOException;
 import java.util.Locale;
 
-import static io.crate.types.TimeTZParser.timeTZOf;
-import static io.crate.types.TimeTZParser.exceptionForInvalidLiteral;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
 
 public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType, Streamer<TimeTZ> {
 
@@ -90,16 +91,16 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     public TimeTZ implicitCast(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof TimeTZ) {
-            return (TimeTZ) value;
-        } else if (value instanceof String) {
+        } else if (value instanceof TimeTZ timetz) {
+            return timetz;
+        } else if (value instanceof String timetzStr) {
             try {
-                return TimeTZParser.parse((String) value);
+                return TimeTZParser.parse(timetzStr);
             } catch (IllegalArgumentException e0) {
                 try {
                     return timeTZOf(
                         TimeTZType.class.getSimpleName(),
-                        Long.valueOf((String) value));
+                        Long.parseLong(timetzStr));
                 } catch (NumberFormatException e1) {
                     throw exceptionForInvalidLiteral(value);
                 }
@@ -117,7 +118,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     }
 
     @Override
-    public TimeTZ valueForInsert(Object value) {
+    public TimeTZ valueForInsert(TimeTZ value) {
         throw new UnsupportedOperationException(String.format(
             Locale.ENGLISH,
             "%s cannot be used in insert statements",

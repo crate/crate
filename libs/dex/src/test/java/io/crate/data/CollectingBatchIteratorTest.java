@@ -56,7 +56,7 @@ public class CollectingBatchIteratorTest {
 
     @Test
     public void testCollectingBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L))
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
@@ -64,7 +64,7 @@ public class CollectingBatchIteratorTest {
 
     @Test
     public void testCollectingBatchIteratorWithPagedSource() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> CollectingBatchIterator.summingLong(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0L, 10L), 2, 5, executor)
             )

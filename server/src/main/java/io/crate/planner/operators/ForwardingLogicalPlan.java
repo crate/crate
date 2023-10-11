@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.SelectSymbol;
@@ -65,7 +64,7 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
+    public List<RelationName> getRelationNames() {
         return source.getRelationNames();
     }
 

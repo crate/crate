@@ -69,9 +69,7 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
                         nestedLoop.joinType().invert(),
                         nestedLoop.joinCondition(),
                         nestedLoop.isFiltered(),
-                        nestedLoop.topMostLeftRelation(),
                         nestedLoop.orderByWasPushedDown(),
-                        nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                         nestedLoop.isJoinConditionOptimised(),
                         nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
                     ),

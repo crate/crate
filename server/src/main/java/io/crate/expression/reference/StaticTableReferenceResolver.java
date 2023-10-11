@@ -51,7 +51,7 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<Nestab
         if (factory != null) {
             return factory.create();
         }
-        if (columnIdent.isTopLevel()) {
+        if (columnIdent.isRoot()) {
             return null;
         }
         return getImplementationByRootTraversal(factories, columnIdent);
@@ -69,7 +69,6 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<Nestab
         NestableInput<?> childByPath = NestableInput.getChildByPath(refImpl, columnIdent.path());
         assert childByPath instanceof NestableCollectExpression
             : "Child " + columnIdent.path() + " of " + refImpl + " must be a NestableCollectExpression";
-        //noinspection unchecked
         return (NestableCollectExpression<R, ?>) childByPath;
     }
 }

@@ -43,7 +43,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
@@ -112,50 +111,22 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
         return hasValue(expectedValue);
     }
 
-    public SymbolAssert isReference(String expectedName) {
+    public ReferenceAssert isReference() {
         isNotNull();
         isInstanceOf(Reference.class);
-        assertThat(((Reference) actual).column().sqlFqn())
-            .as("sqlFqn")
-            .isEqualTo(expectedName);
-        return this;
+        return new ReferenceAssert((Reference) actual);
     }
 
-    public SymbolAssert isReference(ColumnIdent expectedColumn,
-                                    RelationName expectedRelName,
-                                    DataType<?> expectedType) {
+    public ReferenceAssert isVoidReference() {
         isNotNull();
-        isInstanceOf(Reference.class);
-        assertThat(((Reference) actual).column())
-            .as("column")
-            .isEqualTo(expectedColumn);
-        assertThat(((Reference) actual).ident().tableIdent())
-            .as("relationName")
-            .isEqualTo(expectedRelName);
-        hasDataType(expectedType);
-        return this;
-    }
-
-    public SymbolAssert isReference(final String expectedName, @Nullable DataType<?> expectedType) {
-        isNotNull();
-        isInstanceOf(Reference.class);
-        assertThat(((Reference) actual).column().sqlFqn())
-            .as("sqlFqn")
-            .isEqualTo(expectedName);
-        hasDataType(expectedType);
-        return this;
-    }
-
-    public SymbolAssert isVoidReference(String expectedName) {
-        isReference(expectedName);
         isExactlyInstanceOf(VoidReference.class);
-        return this;
+        return new ReferenceAssert((Reference) actual);
     }
 
-    public SymbolAssert isDynamicReference(String expectedName) {
-        isReference(expectedName);
+    public ReferenceAssert isDynamicReference() {
+        isNotNull();
         isExactlyInstanceOf(DynamicReference.class);
-        return this;
+        return new ReferenceAssert((Reference) actual);
     }
 
     public SymbolAssert isFetchStub(String expectedColumnName) {

@@ -25,6 +25,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -40,11 +41,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -61,7 +62,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
  * <pre>
  *     Filter (lhs.x = 1 AND rhs.x = 2)
  *       |
- *     NestedLoop (outerJoin)
+ *     Outer-Join
  *       /  \
  *     LHS  RHS
  * </pre>
@@ -71,7 +72,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
  * <pre>
  *     Filter
  *       |
- *     NestedLoop (innerJoin)
+ *     Inner-Join
  *       /      \
  *   Filter      Filter
  * (lhs.x = 1)    (rhs.x = 2)
@@ -100,14 +101,14 @@ import io.crate.planner.optimizer.matcher.Pattern;
  */
 public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
 
-    private final Capture<NestedLoopJoin> nlCapture;
+    private final Capture<JoinPlan> nlCapture;
     private final Pattern<Filter> pattern;
 
     public RewriteFilterOnOuterJoinToInnerJoin() {
         this.nlCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
-                .with(source(), typeOf(NestedLoopJoin.class).capturedAs(nlCapture)
-                    .with(nl -> nl.joinType().isOuter() && !nl.isRewriteFilterOnOuterJoinToInnerJoinDone())
+                .with(source(), typeOf(JoinPlan.class).capturedAs(nlCapture)
+                    .with(j -> j.joinType().isOuter() && !j.isRewriteFilterOnOuterJoinToInnerJoinDone())
                 );
     }
 
@@ -124,17 +125,17 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         final var symbolEvaluator = new NullSymbolEvaluator(txnCtx, nodeCtx);
-        NestedLoopJoin nl = captures.get(nlCapture);
+        JoinPlan join = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        var sources = Lists2.map(nl.sources(), resolvePlan);
+        var sources = Lists2.map(join.sources(), resolvePlan);
         LogicalPlan lhs = sources.get(0);
         LogicalPlan rhs = sources.get(1);
-        Set<RelationName> leftName = lhs.getRelationNames();
-        Set<RelationName> rightName = rhs.getRelationNames();
+        Set<RelationName> leftName = new HashSet<>(lhs.getRelationNames());
+        Set<RelationName> rightName = new HashSet<>(rhs.getRelationNames());
 
         Symbol leftQuery = splitQueries.remove(leftName);
         Symbol rightQuery = splitQueries.remove(rightName);
@@ -142,7 +143,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         final LogicalPlan newLhs;
         final LogicalPlan newRhs;
         final boolean newJoinIsInnerJoin;
-        switch (nl.joinType()) {
+        switch (join.joinType()) {
             case LEFT:
                 /* LEFT OUTER JOIN -> NULL rows are generated for the RHS if the join-condition doesn't match
                  *
@@ -246,24 +247,20 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                 break;
             default:
                 throw new UnsupportedOperationException(
-                    "The Rule to rewrite filter+outer-joins to inner joins must not be run on joins of type=" + nl.joinType());
+                    "The Rule to rewrite filter+outer-joins to inner joins must not be run on joins of type=" + join.joinType());
         }
         if (newLhs == lhs && newRhs == rhs) {
             return null;
         }
-        NestedLoopJoin newJoin = new NestedLoopJoin(
+        JoinPlan newJoin = new JoinPlan(
             newLhs,
             newRhs,
-            newJoinIsInnerJoin ? JoinType.INNER : nl.joinType(),
-            nl.joinCondition(),
-            nl.isFiltered(),
-            nl.topMostLeftRelation(),
-            nl.orderByWasPushedDown(),
-            true,
-            nl.isJoinConditionOptimised(),
-            nl.isRewriteNestedLoopJoinToHashJoinDone()
+            newJoinIsInnerJoin ? JoinType.INNER : join.joinType(),
+            join.joinCondition(),
+            join.isFiltered(),
+            true
         );
-        assert newJoin.outputs().equals(nl.outputs()) : "Outputs after rewrite must be the same as before";
+        assert newJoin.outputs().equals(join.outputs()) : "Outputs after rewrite must be the same as before";
         return splitQueries.isEmpty() ? newJoin : new Filter(newJoin, AndOperator.join(splitQueries.values()));
     }
 

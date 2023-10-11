@@ -106,6 +106,9 @@ public final class AnyRangeOperator extends AnyOperator {
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
         for (Object value : (Iterable<?>) candidates.value()) {
+            if (value == null) {
+                continue;
+            }
             booleanQuery.add(
                 CmpOperator.toQuery(comparison.innerOpName, probe, value),
                 BooleanClause.Occur.SHOULD);

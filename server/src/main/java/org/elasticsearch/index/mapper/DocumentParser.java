@@ -26,8 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -36,6 +34,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Tuple;
 import io.crate.metadata.doc.DocSysColumns;
@@ -88,8 +87,7 @@ final class DocumentParser {
             context.sourceToParse().id(),
             context.doc(),
             context.sourceToParse().source(),
-            createDynamicUpdate(mapping, docMapper, context.getDynamicMappers()),
-            List.of()
+            createDynamicUpdate(mapping, docMapper, context.getDynamicMappers())
         );
     }
 
@@ -160,7 +158,7 @@ final class DocumentParser {
             for (String part : parts) {
                 if (Strings.hasText(part) == false) {
                     // check if the field name contains only whitespace
-                    if (Strings.isEmpty(part) == false) {
+                    if (Strings.hasLength(part)) {
                         throw new IllegalArgumentException(
                                 "object field cannot contain only whitespace: ['" + fullFieldPath + "']");
                     }
@@ -170,7 +168,7 @@ final class DocumentParser {
             }
             return parts;
         } else {
-            if (Strings.isEmpty(fullFieldPath)) {
+            if (Strings.isNullOrEmpty(fullFieldPath)) {
                 throw new IllegalArgumentException("field name cannot be an empty string");
             }
             return new String[] {fullFieldPath};

@@ -51,7 +51,6 @@ import java.util.stream.Collectors;
 
 import org.apache.lucene.util.SameThreadExecutorService;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
@@ -65,6 +64,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -77,6 +77,7 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 
@@ -105,7 +106,7 @@ public final class BlobStoreTestUtil {
      *                 of this assertion must pass an executor on those when using such an implementation.
      */
     public static void assertConsistency(BlobStoreRepository repository, Executor executor) {
-        final PlainActionFuture<AssertionError> listener = PlainActionFuture.newFuture();
+        final FutureActionListener<AssertionError, AssertionError> listener = FutureActionListener.newInstance();
         executor.execute(ActionRunnable.supply(listener, () -> {
             try {
                 final BlobContainer blobContainer = repository.blobContainer();
@@ -130,7 +131,7 @@ public final class BlobStoreTestUtil {
                 return e;
             }
         }));
-        final AssertionError err = listener.actionGet(TimeValue.timeValueMinutes(1L));
+        final AssertionError err = FutureUtils.get(listener, TimeValue.timeValueMinutes(1L));
         if (err != null) {
             throw new AssertionError(err);
         }

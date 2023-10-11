@@ -23,10 +23,6 @@ package io.crate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -36,10 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
@@ -57,50 +50,28 @@ import io.crate.types.UndefinedType;
 public class DataTypeTest extends ESTestCase {
 
     @Test
-    public void testStreaming() throws Exception {
-        String s1 = "hello";
-        BytesStreamOutput out = new BytesStreamOutput();
-        Streamer streamer = DataTypes.STRING.streamer();
-        streamer.writeValueTo(out, s1);
-        StreamInput in = out.bytes().streamInput();
-        String b2 = (String) streamer.readValueFrom(in);
-        assertEquals(s1, b2);
-    }
-
-    @Test
-    public void testStreamingNull() throws Exception {
-        String s1 = null;
-        BytesStreamOutput out = new BytesStreamOutput();
-        Streamer streamer = DataTypes.STRING.streamer();
-        streamer.writeValueTo(out, s1);
-        StreamInput in = out.bytes().streamInput();
-        String s2 = (String) streamer.readValueFrom(in);
-        assertNull(s2);
-    }
-
-    @Test
     public void testForValueWithList() {
         List<String> strings = Arrays.asList("foo", "bar");
-        DataType dataType = DataTypes.guessType(strings);
-        assertEquals(dataType, new ArrayType(DataTypes.STRING));
+        DataType<?> dataType = DataTypes.guessType(strings);
+        assertThat(dataType).isEqualTo(new ArrayType<>(DataTypes.STRING));
 
         List<Integer> integers = Arrays.asList(1, 2, 3);
         dataType = DataTypes.guessType(integers);
-        assertEquals(dataType, new ArrayType(DataTypes.INTEGER));
+        assertThat(dataType).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
     }
 
     @Test
     public void testForValueWithArray() {
         Boolean[] booleans = new Boolean[]{true, false};
-        DataType dataType = DataTypes.guessType(booleans);
-        assertEquals(dataType, new ArrayType(DataTypes.BOOLEAN));
+        DataType<?> dataType = DataTypes.guessType(booleans);
+        assertThat(dataType).isEqualTo(new ArrayType<>(DataTypes.BOOLEAN));
     }
 
     @Test
     public void testForValueWithTimestampArrayAsString() {
         String[] strings = {"2013-09-10T21:51:43", "2013-11-10T21:51:43"};
-        DataType dataType = DataTypes.guessType(strings);
-        assertEquals(dataType, new ArrayType(DataTypes.STRING));
+        DataType<?> dataType = DataTypes.guessType(strings);
+        assertThat(dataType).isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
@@ -117,13 +88,13 @@ public class DataTypeTest extends ESTestCase {
 
         List<Object> objects = List.of(objA, objB);
         DataType<?> dataType = DataTypes.guessType(objects);
-        assertEquals(dataType, new ArrayType<>(DataTypes.UNTYPED_OBJECT));
+        assertThat(dataType).isEqualTo(new ArrayType<>(DataTypes.UNTYPED_OBJECT));
     }
 
     @Test
     public void testForValueWithArrayWithNullValues() {
-        DataType dataType = DataTypes.guessType(new String[]{"foo", null, "bar"});
-        assertEquals(dataType, new ArrayType(DataTypes.STRING));
+        DataType<?> dataType = DataTypes.guessType(new String[]{"foo", null, "bar"});
+        assertThat(dataType).isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
@@ -131,13 +102,15 @@ public class DataTypeTest extends ESTestCase {
         List<List<String>> nestedStrings = Arrays.asList(
             Arrays.asList("foo", "bar"),
             Arrays.asList("f", "b"));
-        assertEquals(new ArrayType(new ArrayType(DataTypes.STRING)), DataTypes.guessType(nestedStrings));
+        assertThat(DataTypes.guessType(nestedStrings)).isEqualTo(
+            new ArrayType<>(new ArrayType<>(DataTypes.STRING)));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testForValueMixedDataTypeInList() {
         List<Object> objects = Arrays.<Object>asList("foo", 1);
-        DataTypes.guessType(objects);
+        assertThatThrownBy(() -> DataTypes.guessType(objects))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -145,35 +118,35 @@ public class DataTypeTest extends ESTestCase {
         List<Object> objects = Arrays.asList(1, null, 1.2f, 0);
         Collections.shuffle(objects);
         DataType<?> dataType = DataTypes.guessType(objects);
-        assertThat(dataType, Matchers.is(new ArrayType(DataTypes.FLOAT)));
+        assertThat(dataType).isEqualTo(new ArrayType<>(DataTypes.FLOAT));
     }
 
     @Test
     public void testForValueWithEmptyList() {
         List<Object> objects = Arrays.<Object>asList();
-        DataType type = DataTypes.guessType(objects);
-        assertEquals(type, new ArrayType(DataTypes.UNDEFINED));
+        DataType<?> type = DataTypes.guessType(objects);
+        assertThat(type).isEqualTo(new ArrayType<>(DataTypes.UNDEFINED));
     }
 
     @Test
     public void test_is_compatible_type_with_same_names_different_inner_types() {
         ObjectType obj1 = ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build();
         ObjectType obj2 = ObjectType.builder().setInnerType("a", DataTypes.STRING).build();
-        assertThat(DataTypes.isCompatibleType(obj1, obj2), is(false));
+        assertThat(DataTypes.isCompatibleType(obj1, obj2)).isFalse();
     }
 
     @Test
     public void test_is_compatible_type_with_same_names_same_inner_types() {
         ObjectType obj1 = ObjectType.builder().setInnerType("a", DataTypes.STRING).build();
         ObjectType obj2 = ObjectType.builder().setInnerType("a", DataTypes.STRING).build();
-        assertThat(DataTypes.isCompatibleType(obj1, obj2), is(true));
+        assertThat(DataTypes.isCompatibleType(obj1, obj2)).isTrue();
     }
 
     @Test
     public void test_is_compatible_type_with_different_names_same_inner_types() {
         ObjectType obj1 = ObjectType.builder().setInnerType("a", DataTypes.STRING).build();
         ObjectType obj2 = ObjectType.builder().setInnerType("b", DataTypes.STRING).build();
-        assertThat(DataTypes.isCompatibleType(obj1, obj2), is(true));
+        assertThat(DataTypes.isCompatibleType(obj1, obj2)).isTrue();
     }
 
     @Test
@@ -184,7 +157,7 @@ public class DataTypeTest extends ESTestCase {
         ObjectType obj2 = ObjectType.builder()
             .setInnerType("obj",
                           ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build()).build();
-        assertThat(DataTypes.isCompatibleType(obj1, obj2), is(true));
+        assertThat(DataTypes.isCompatibleType(obj1, obj2)).isTrue();
     }
 
     @Test
@@ -195,7 +168,7 @@ public class DataTypeTest extends ESTestCase {
         ObjectType obj2 = ObjectType.builder()
             .setInnerType("obj",
                           ObjectType.builder().setInnerType("a", DataTypes.STRING).build()).build();
-        assertThat(DataTypes.isCompatibleType(obj1, obj2), is(false));
+        assertThat(DataTypes.isCompatibleType(obj1, obj2)).isFalse();
     }
 
     @Test
@@ -206,7 +179,7 @@ public class DataTypeTest extends ESTestCase {
         ObjectType obj2 = ObjectType.builder()
             .setInnerType("obj2",
                           ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build()).build();
-        assertThat(DataTypes.isCompatibleType(obj1, obj2), is(true));
+        assertThat(DataTypes.isCompatibleType(obj1, obj2)).isTrue();
 
         ObjectType obj3 = ObjectType.builder()
             .setInnerType("obj",
@@ -214,7 +187,7 @@ public class DataTypeTest extends ESTestCase {
         ObjectType obj4 = ObjectType.builder()
             .setInnerType("obj",
                           ObjectType.builder().setInnerType("b", DataTypes.INTEGER).build()).build();
-        assertThat(DataTypes.isCompatibleType(obj3, obj4), is(true));
+        assertThat(DataTypes.isCompatibleType(obj3, obj4)).isTrue();
     }
 
     @Test

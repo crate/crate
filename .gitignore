@@ -3,12 +3,10 @@
 Icon\r\r
 .floo
 .flooignore
-.gradletasknamecache
 *~
 
 # Java files
 .classpath
-.gradle/
 .project
 .settings
 build/
@@ -63,5 +61,8 @@ sandbox/crate/data/
 sandbox/crate/repo/
 sandbox/crate2/data/
 sandbox/crate2/repo/
-**/antlr/
 **/gen/
+target/
+*.factorypath
+.mvn/wrapper/maven-wrapper.jar
+pom.xml.versionsBackup

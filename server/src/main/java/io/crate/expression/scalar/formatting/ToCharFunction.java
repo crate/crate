@@ -21,6 +21,15 @@
 
 package io.crate.expression.scalar.formatting;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.TimeZone;
+
+import org.elasticsearch.common.TriFunction;
+import org.jetbrains.annotations.Nullable;
+import org.joda.time.Period;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
@@ -32,14 +41,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
-import org.elasticsearch.common.TriFunction;
-import org.joda.time.Period;
-
-import org.jetbrains.annotations.Nullable;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.TimeZone;
 
 
 public class ToCharFunction extends Scalar<String, Object> {
@@ -81,8 +82,6 @@ public class ToCharFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final DataType expressionType;
     private final TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc;
     @Nullable
@@ -98,8 +97,7 @@ public class ToCharFunction extends Scalar<String, Object> {
                           BoundSignature boundSignature,
                           TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc,
                           @Nullable DateTimeFormatter formatter) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
 
         assert boundSignature.argTypes().size() == 2 : "Number of arguments to to_char must be 2";
         this.expressionType = boundSignature.argTypes().get(0);
@@ -162,15 +160,5 @@ public class ToCharFunction extends Scalar<String, Object> {
         String pattern = (String) ((Input<?>) arguments.get(1)).value();
         DateTimeFormatter formatter = new DateTimeFormatter(pattern);
         return new ToCharFunction(signature, boundSignature, evaluatorFunc, formatter);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

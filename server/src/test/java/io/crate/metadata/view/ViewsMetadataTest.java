@@ -21,9 +21,9 @@
 
 package io.crate.metadata.view;
 
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Map;
@@ -39,14 +39,19 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
+
 public class ViewsMetadataTest extends ESTestCase {
 
     public static ViewsMetadata createMetadata() {
+        SearchPath searchPath1 = SearchPath.createSearchPathFrom("foo", "bar", "doc");
         Map<String, ViewMetadata> map = Map.of(
             "doc.my_view",
-            new ViewMetadata("SELECT x, y FROM t1 WHERE z = 'a'", "user_a"),
+            new ViewMetadata("SELECT x, y FROM t1 WHERE z = 'a'", "user_a", searchPath1),
             "my_schema.other_view",
-            new ViewMetadata("SELECT a, b FROM t2 WHERE c = 1", "user_b"));
+            new ViewMetadata("SELECT a, b FROM t2 WHERE c = 1", "user_b", searchPath1));
         return new ViewsMetadata(map);
     }
 
@@ -58,8 +63,7 @@ public class ViewsMetadataTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         ViewsMetadata views2 = new ViewsMetadata(in);
-        assertEquals(views, views2);
-
+        assertThat(views).isEqualTo(views2);
     }
 
     @Test
@@ -79,10 +83,31 @@ public class ViewsMetadataTest extends ESTestCase {
             BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         ViewsMetadata views2 = ViewsMetadata.fromXContent(parser);
-        assertEquals(views, views2);
+        assertThat(views).isEqualTo(views2);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
+        assertThat(parser.nextToken()).isNull();
+    }
+
+
+    @Test
+    public void test_raises_error_on_rename_if_source_is_missing() throws Exception {
+        ViewsMetadata views = createMetadata();
+        assertThatThrownBy(() -> views.rename(new RelationName("missing", "views"), new RelationName("doc", "v2")))
+            .isExactlyInstanceOf(RelationUnknown.class);
+    }
+
+    @Test
+    public void test_rename_creates_new_instance_with_old_view_removed_and_new_added() throws Exception {
+        ViewsMetadata views = createMetadata();
+        RelationName source = new RelationName("doc", "my_view");
+        ViewMetadata sourceView = views.getView(source);
+        RelationName target = new RelationName("doc", "v2");
+        ViewsMetadata result = views.rename(source, target);
+        assertThat(views).isNotSameAs(result);
+        assertThat(result.contains(target)).isTrue();
+        assertThat(result.contains(source)).isFalse();
+        assertThat(result.getView(target)).isEqualTo(sourceView);
     }
 
 }

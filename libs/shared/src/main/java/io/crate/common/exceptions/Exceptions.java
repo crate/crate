@@ -53,19 +53,19 @@ public final class Exceptions {
             // later to get the real cause. RuntimeExceptions are never unwrapped.
             return (Exception) t;
         }
-        if (t instanceof Exception) {
-            return (Exception) t;
+        if (t instanceof Exception e) {
+            return e;
         } else {
             return new RuntimeException(t);
         }
     }
 
     public static RuntimeException toRuntimeException(Throwable t) {
-        if (t instanceof CompletionException | t instanceof ExecutionException) {
+        if (t instanceof CompletionException || t instanceof ExecutionException) {
             t = t.getCause();
         }
-        if (t instanceof RuntimeException) {
-            return (RuntimeException) t;
+        if (t instanceof RuntimeException re) {
+            return re;
         } else {
             return new RuntimeException(t);
         }

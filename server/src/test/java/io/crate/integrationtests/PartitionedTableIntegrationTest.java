@@ -32,7 +32,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -59,7 +58,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.testing.UseRandomizedOptimizerRules;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
@@ -83,13 +81,18 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedOptimizerRules(0)
@@ -1742,6 +1745,14 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("alter table t add name string");
+
+        // Verify that ADD COLUMN gets advanced OID.
+        Schemas schemas = cluster().getMasterNodeInstance(Schemas.class);
+        DocTableInfo table = schemas.getTableInfo(RelationName.fromIndexName("t"));
+        var dateRef = table.getReference(new ColumnIdent("date"));
+        var nameRef = table.getReference(new ColumnIdent("name"));
+        assertThat(nameRef.oid()).isGreaterThan(dateRef.oid());
+
         execute("select * from t");
         assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "id", "name"));
 
@@ -2058,6 +2069,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("alter table t set (number_of_replicas = 0)");
     }
 
+    @UseNewCluster
     @Test
     public void testPartitionedColumnIsNotIn_Raw() throws Exception {
         execute("create table t (p string primary key, v string) " +
@@ -2067,7 +2079,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into t (p, v) values ('a', 'Marvin')");
         execute("refresh table t");
         execute("select _raw from t");
-        assertThat(((String) response.rows()[0][0]), is("{\"v\":\"Marvin\"}"));
+        assertThat(((String) response.rows()[0][0]), is("{\"2\":\"Marvin\"}"));
     }
 
     @Test
@@ -2338,6 +2350,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(printedTable(execute("SELECT count(*) FROM test").rows()), is("2\n"));
     }
 
+    @UseNewCluster
     @Test
     public void test_nested_partition_column_is_included_when_selecting_the_object_but_not_in_the_source() {
         execute("create table tbl (pk object as (id text, part text), primary key (pk['id'], pk['part'])) " +
@@ -2348,8 +2361,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select _raw, pk, pk['id'], pk['part'] from tbl order by pk['id'] asc");
         assertThat(
             printedTable(response.rows()),
-            is("{\"pk\":{\"id\":\"1\"}}| {id=1, part=x}| 1| x\n" +
-               "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
+            is("{\"1\":{\"2\":\"1\"}}| {id=1, part=x}| 1| x\n" +
+               "{\"1\":{\"2\":\"2\"}}| {id=2, part=x}| 2| x\n")
         );
 
         execute("SELECT _raw, pk, pk['id'], pk['part'] FROM tbl " +
@@ -2358,8 +2371,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 " ORDER BY pk['id'] ASC");
         assertThat(
             printedTable(response.rows()),
-            is("{\"pk\":{\"id\":\"1\"}}| {id=1, part=x}| 1| x\n" +
-               "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
+            is("{\"1\":{\"2\":\"1\"}}| {id=1, part=x}| 1| x\n" +
+               "{\"1\":{\"2\":\"2\"}}| {id=2, part=x}| 2| x\n")
         );
     }
 
@@ -2418,5 +2431,23 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("ALTER TABLE p_t SET (\"number_of_replicas\" = '3')");
         execute("select number_of_replicas from information_schema.table_partitions");
         assertThat(printedTable(response.rows())).isEqualTo("3\n3\n");
+    }
+
+    @Test
+    @UseJdbc(0) // Jdbc layer would convert timestamp
+    public void test_can_select_casted_partitioned_column() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+                ts TIMESTAMP,
+                year TIMESTAMP GENERATED ALWAYS AS date_trunc('year',ts)
+            ) PARTITIONED BY (year)
+            """
+        );
+        execute("INSERT INTO tbl (ts) SELECT now()");
+        execute("refresh table tbl");
+        execute("select year, year::TEXT, ts from tbl LIMIT 10");
+        assertThat(response.rows()[0][0].toString())
+            .as("Column values must match: " + Arrays.toString(response.rows()[0]))
+            .isEqualTo(response.rows()[0][1]);
     }
 }

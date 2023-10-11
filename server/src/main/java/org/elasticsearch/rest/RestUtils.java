@@ -19,10 +19,10 @@
 
 package org.elasticsearch.rest;
 
-import org.elasticsearch.common.Strings;
-
 import java.util.Arrays;
 import java.util.regex.Pattern;
+
+import org.elasticsearch.common.Strings;
 
 public class RestUtils {
 

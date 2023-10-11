@@ -1,0 +1,159 @@
+.. _version_5.5.0:
+
+==========================
+Version 5.5.0 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+
+.. NOTE::
+
+    In development. 5.5.0 isn't released yet. These are the release notes for
+    the upcoming release.
+
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.5.0.
+
+    We recommend that you upgrade to the latest 5.4 release before moving to
+    5.5.0.
+
+    A rolling upgrade from 5.4.x to 5.5.0 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+Breaking Changes
+================
+
+- Added ``CURRENT_DATE``, ``CURRENT_TIME`` and ``CURRENT_TIMESTAMP`` to
+  non-reserved keywords.
+
+- Validation for ``COPY FROM`` is now enforced. The ``validation`` parameter is
+  deprecated and using it results in a deprecation message in the logs.
+
+- `UPDATE`` statements will continue on row failures instead of always showing 
+  an error. The affected rows are displayed by the resulting row count.
+
+Deprecations
+============
+
+None
+
+
+Changes
+=======
+
+SQL Statements
+--------------
+
+- Changed the ``CREATE TABLE`` analysis to be more strict. Before it was
+  possible to use unqualified names in place of string literals to define values
+  within ``WITH`` clauses. Now string literals are required.
+
+  For example, instead of::
+
+    my_column text index using fulltext with (analyzer = myanalyzer)
+
+  It is necessary to use::
+
+    my_column text index using fulltext with (analyzer = 'myanalyzer')
+
+
+- Changed ``CREATE TABLE`` to allow defining ``CHECK`` constraints inline on
+  sub-columns of object columns. Before it was necessary to use table check
+  constraints.
+
+- Added support for
+  :ref:`ALTER TABLE DROP COLUMN <sql-alter-table-drop-column>` statement.
+
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
+
+- Allowed statements that set
+  :ref:`standard_conforming_strings session setting<conf-session-standard_conforming_strings>`
+  to the default value (``on``).
+ 
+- Added a new read-only session setting ``max_identifier_length``.
+
+- Added support for :ref:`INTERVAL <type-interval>` multiplication by integers.
+
+Data Types
+----------
+
+- Added support for explicit casts from strings in JSON list format to
+  ``object[]``.
+
+- Added a :ref:`FLOAT_VECTOR <type-float_vector>` type to store dense vectors of
+  float values which can be searched using a k-nearest neighbour algorithm via a
+  new :ref:`KNN_MATCH <scalar_knn_match>` scalar.
+
+
+Scalar and Aggregation Functions
+--------------------------------
+
+- Added a :ref:`KNN_MATCH <scalar_knn_match>` scalar.
+
+- Added a ``(string FROM string)`` overload to :ref:`scalar-substr` to extract a
+  substring from a string that matches a POSIX regular expression pattern.
+
+
+Performance and Resilience Improvements
+---------------------------------------
+
+- Limited the amount of errors returned by ``RETURN SUMMARY`` of ``COPY FROM``
+  to prevent running into circuit breaker errors due to memory constraints.
+
+
+Administration and Operations
+-----------------------------
+
+- Added an optimizer rule for cross-join elimination which will reorder
+  the joined relations of a query to eliminate cross-joins e.g.::
+
+    SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t3.z = t1.x AND t3.z = t2.y
+
+  This query can be reordered to t1, t3, t2 to eliminate the cross-join between
+  t1 and t2. This will result in the following logical plan::
+
+    Eval[x, y, z]
+      └ Join[INNER | (z = y)]
+        ├ Join[INNER | (x = z)]
+        │  ├ Collect[doc.t1 | [x] | true]
+        │  └ Collect[doc.t3 | [z] | true]
+        └ Collect[doc.t2 | [y] | true]
+
+   This optimizer rule can be disabled with the session settings::
+
+    SET optimizer_eliminate_cross_join = false
+
+  Note that this setting is experimental, and may change in the future.
+
+- Added support for renaming views via ``ALTER TABLE <view> RENAME TO <newName>``.
+
+- Changed permissions on ``sys.jobs`` and ``sys.jobs_log`` to allow users with
+  the ``AL`` privileges to see entries from other users.
+
+- Added a new :ref:`memory.operation_limit` cluster and session setting.
+
+- Added support for endpoint and secondary endpoint to
+  :ref:`CREATE REPOSITORY for Azure storage <sql-create-repo-azure>`.

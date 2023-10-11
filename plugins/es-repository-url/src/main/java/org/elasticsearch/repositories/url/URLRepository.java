@@ -19,6 +19,15 @@
 
 package org.elasticsearch.repositories.url;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -37,14 +46,6 @@ import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 
 import io.crate.types.DataTypes;
-
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
 
 /**
  * Read-only URL-based implementation of the BlobStoreRepository
@@ -68,11 +69,11 @@ public class URLRepository extends BlobStoreRepository {
     public static final Setting<List<URIPattern>> ALLOWED_URLS_SETTING =
         Setting.listSetting("repositories.url.allowed_urls", Collections.emptyList(), URIPattern::new, DataTypes.STRING_ARRAY, Property.NodeScope);
 
-    public static final Setting<URL> URL_SETTING = new Setting<>("url", "http:", URLRepository::parseURL, DataTypes.STRING, Property.NodeScope);
+    public static final Setting<URL> URL_SETTING = new Setting<>("url", "http:///", URLRepository::parseURL, DataTypes.STRING, Property.NodeScope);
 
     public static final Setting<URL> REPOSITORIES_URL_SETTING = new Setting<>(
         "repositories.url.url",
-        (s) -> s.get("repositories.uri.url", "http:"),
+        (s) -> s.get("repositories.uri.url", "http:///"),
         URLRepository::parseURL,
         DataTypes.STRING,
         Property.NodeScope
@@ -178,8 +179,8 @@ public class URLRepository extends BlobStoreRepository {
 
     private static URL parseURL(String s) {
         try {
-            return new URL(s);
-        } catch (MalformedURLException e) {
+            return new URI(s).toURL();
+        } catch (URISyntaxException | MalformedURLException e) {
             throw new IllegalArgumentException("Unable to parse URL repository setting", e);
         }
     }

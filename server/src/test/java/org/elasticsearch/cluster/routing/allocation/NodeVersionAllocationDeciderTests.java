@@ -334,17 +334,17 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         RoutingTable routingTable = RoutingTable.builder()
             .add(IndexRoutingTable.builder(shard1.getIndex())
                      .addIndexShard(new IndexShardRoutingTable.Builder(shard1)
-                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndexName(), shard1.getId(), newNode.getId(),
+                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndexName(), shard1.id(), newNode.getId(),
                                                                                    null, true, ShardRoutingState.STARTED, allocationId1P))
-                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndexName(), shard1.getId(), oldNode1.getId(),
+                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndexName(), shard1.id(), oldNode1.getId(),
                                                                                    null, false, ShardRoutingState.STARTED, allocationId1R))
                                         .build())
             )
             .add(IndexRoutingTable.builder(shard2.getIndex())
                      .addIndexShard(new IndexShardRoutingTable.Builder(shard2)
-                                        .addShard(TestShardRouting.newShardRouting(shard2.getIndexName(), shard2.getId(), newNode.getId(),
+                                        .addShard(TestShardRouting.newShardRouting(shard2.getIndexName(), shard2.id(), newNode.getId(),
                                                                                    null, true, ShardRoutingState.STARTED, allocationId2P))
-                                        .addShard(TestShardRouting.newShardRouting(shard2.getIndexName(), shard2.getId(), oldNode1.getId(),
+                                        .addShard(TestShardRouting.newShardRouting(shard2.getIndexName(), shard2.id(), oldNode1.getId(),
                                                                                    null, false, ShardRoutingState.STARTED, allocationId2R))
                                         .build())
             )
@@ -588,9 +588,9 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         RoutingTable routingTable = RoutingTable.builder()
             .add(IndexRoutingTable.builder(shard1.getIndex())
                      .addIndexShard(new IndexShardRoutingTable.Builder(shard1)
-                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndex(), shard1.getId(), newNode1.getId(),
+                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndex(), shard1.id(), newNode1.getId(),
                                                                                    null, true, ShardRoutingState.STARTED, allocationId1P))
-                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndex(), shard1.getId(), newNode2.getId(),
+                                        .addShard(TestShardRouting.newShardRouting(shard1.getIndex(), shard1.id(), newNode2.getId(),
                                                                                    null, false, ShardRoutingState.STARTED, allocationId1R))
                                         .build())
             )

@@ -221,11 +221,11 @@ Exact queries
 *Exact* queries are done using the following :ref:`scalar functions
 <scalar-functions>`:
 
- * :ref:`scalar-intersects`
+- :ref:`scalar-intersects`
 
- * :ref:`scalar-within`
+- :ref:`scalar-within`
 
- * :ref:`scalar-distance`
+- :ref:`scalar-distance`
 
 They are exact, but this comes at the price of performance.
 

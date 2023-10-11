@@ -21,19 +21,19 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.Expression;
-
-import java.util.List;
-
-import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefinitions;
+import io.crate.types.DataType;
 
 public class CreateFunctionAnalyzer {
 
@@ -47,21 +47,24 @@ public class CreateFunctionAnalyzer {
                                           ParamTypeHints paramTypeHints,
                                           CoordinatorTxnCtx txnCtx,
                                           SearchPath searchPath) {
-        var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
+        var expressionAnalyzer = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
-        CreateFunction<Symbol> createFunction = node.map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));
-
-        List<String> parts = createFunction.name().getParts();
+        DataType<?> returnType = DataTypeAnalyzer.convert(node.returnType());
+        Symbol definition = expressionAnalyzer.convert(node.definition(), exprCtx);
+        Symbol language = expressionAnalyzer.convert(node.language(), exprCtx);
+        List<String> parts = node.name().getParts();
         return new AnalyzedCreateFunction(
             resolveSchemaName(parts, searchPath.currentSchema()),
             resolveFunctionName(parts),
-            createFunction.replace(),
-            toFunctionArgumentDefinitions(createFunction.arguments()),
-            DataTypeAnalyzer.convert(createFunction.returnType()),
-            createFunction.language(),
-            createFunction.definition()
+            node.replace(),
+            Lists2.map(
+                node.arguments(),
+                arg -> FunctionArgumentDefinition.of(arg.name(), DataTypeAnalyzer.convert(arg.type()))),
+            returnType,
+            language,
+            definition
         );
     }
 

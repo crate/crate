@@ -25,6 +25,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +39,6 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends IntegTestCase {
@@ -338,7 +338,6 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(selectedObject.get("another_new_col")).isEqualTo("1970-01-01T00:00:00");
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertNewColumnToStrictObject() throws Exception {
         setUpObjectTable();
@@ -428,10 +427,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "id| smallint",
             "tags| text_array"
         );
-        assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
-            """
-            {"id":1,"tags":["wow","much","wow"],"new":[]}
-            """
+        assertThat(execute("select _doc from arr")).hasRows(
+            "{id=1, new=[], tags=[wow, much, wow]}"
         );
     }
 
@@ -440,7 +437,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
-        execute("insert into arr (id, tags, new) values (2, ['wow', 'much', 'wow'], [null])");
+        execute("insert into arr (id, tags, new, \"2\") values (2, ['wow', 'much', 'wow'], [null], [])");
         refresh();
         waitNoPendingTasksOnAll();
         execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
@@ -448,10 +445,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "id| smallint",
             "tags| text_array"
         );
-        assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
-            """
-            {"id":2,"tags":["wow","much","wow"],"new":[null]}
-            """
+        assertThat(execute("select _doc from arr")).hasRows(
+            "{2=[], id=2, new=[null], tags=[wow, much, wow]}"
         );
     }
 
@@ -468,9 +463,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         });
     }
 
-    /**
-     * https://github.com/crate/crate/issues/13990
-     */
+    // https://github.com/crate/crate/issues/13990
     @Test
     public void test_dynamic_null_array_overridden_to_integer_becomes_null() {
         execute("create table t (a int) with (column_policy ='dynamic')");
@@ -481,11 +474,23 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).contains("NULL| NULL", "NULL| 1");
         // takes different paths than without order by like above
         execute("select * from t order by x nulls first");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            """
-                NULL| NULL
-                NULL| 1
-                """);
+        assertThat(response).hasRows(
+            "NULL| NULL",
+            "NULL| 1"
+        );
+    }
+
+    // https://github.com/crate/crate/issues/13990
+    @Test
+    public void test_dynamic_null_array_get_by_pk() {
+        execute("create table t (a int primary key, o object(dynamic))");
+        execute("insert into t (a, o) values (1, {x={y=[]}})");
+        execute("insert into t (a, o) values (2, {x={y={}}})");
+        execute("refresh table t");
+        execute("select * from t where a = 1");
+        assertThat(response).hasRows("1| {x={y=NULL}}");
+        execute("select * from t where a = 2");
+        assertThat(response).hasRows("2| {x={y={}}}");
     }
 
     @Test

@@ -21,20 +21,27 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import java.util.Set;
+import java.util.function.Function;
+
 import io.crate.metadata.Reference;
 
 public class CollectorContext {
 
     private final int readerId;
+    private final Set<Reference> droppedColumns;
+    private final Function<String, String> lookupNameBySourceKey;
 
     private SourceLookup sourceLookup;
 
-    public CollectorContext() {
-        this(-1);
+    public CollectorContext(Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+        this(-1, droppedColumns, lookupNameBySourceKey);
     }
 
-    public CollectorContext(int readerId) {
+    public CollectorContext(int readerId, Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
         this.readerId = readerId;
+        this.droppedColumns = droppedColumns;
+        this.lookupNameBySourceKey = lookupNameBySourceKey;
     }
 
     public int readerId() {
@@ -43,14 +50,14 @@ public class CollectorContext {
 
     public SourceLookup sourceLookup() {
         if (sourceLookup == null) {
-            sourceLookup = new SourceLookup();
+            sourceLookup = new SourceLookup(droppedColumns, lookupNameBySourceKey);
         }
         return sourceLookup;
     }
 
     public SourceLookup sourceLookup(Reference ref) {
         if (sourceLookup == null) {
-            sourceLookup = new SourceLookup();
+            sourceLookup = new SourceLookup(droppedColumns, lookupNameBySourceKey);
         }
         return sourceLookup.registerRef(ref);
     }

@@ -1,0 +1,62 @@
+.. _version_5.4.2:
+
+=============
+Version 5.4.2
+=============
+
+Released on 2023-08-11.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.4.2.
+
+    We recommend that you upgrade to the latest 5.3 release before moving to
+    5.4.2.
+
+    A rolling upgrade from 5.3.x to 5.4.2 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.4.0` release notes for a full list of changes in the
+5.4 series.
+
+Known Issues
+============
+
+- Version 5.0.0 introduced a regression which can cause some ``JOIN`` queries
+  to return no results when the query optimizer re-orders the joined tables.
+  As a workaround, users should apply the following session settings before
+  running such queries to prevent the query optimizer from re-ordering them
+  and therefore produce the correct results:
+
+  On CrateDB >= 5.4.0::
+
+    SET optimizer_reorder_hash_join = false
+    SET optimizer_reorder_nested_loop_join = false
+
+  On CrateDB < 5.4.0 (this will disable the hash-join algorithm which may lead
+  to poor performance)::
+
+    SET enable_hashjoin = false
+
+Fixes
+=====
+
+- Fixed an issue that led to serialization errors on a rolling upgrade to 5.4.1
+  if the cluster contained user defined views.

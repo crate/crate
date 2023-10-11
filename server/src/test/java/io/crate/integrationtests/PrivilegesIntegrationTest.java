@@ -27,6 +27,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
@@ -67,7 +68,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     private Session testUserSession(String defaultSchema) {
         User user = userLookup.findUser(TEST_USERNAME);
         assertThat(user).isNotNull();
-        return sqlOperations.createSession(defaultSchema, user);
+        return sqlOperations.newSession(defaultSchema, user);
     }
 
     @Override
@@ -205,6 +206,16 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
             execute(stmt, null, testUserSession);
         }
         assertThat(response).hasRows("privileges_test_user| select 1");
+
+        executeAsSuperuser("grant AL to " + TEST_USERNAME);
+        try (Session testUserSession = testUserSession()) {
+            execute(stmt, null, testUserSession);
+        }
+        assertThat(response).hasRows(
+            "privileges_test_user| select 1",
+            "crate| select 2",
+            "crate| select 3"
+        );
     }
 
     @Test

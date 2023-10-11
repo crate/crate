@@ -31,34 +31,34 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.RandomAccess;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists2;
 import io.crate.sql.ExpressionFormatter;
-import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.BitStringContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.CloseContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.ConflictTargetContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.DeclareContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.DeclareCursorParamsContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.DirectionContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.DiscardContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.FetchContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.IsolationLevelContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.QueryContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.QueryOptParensContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.SetTransactionContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.StatementsContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser.TransactionModeContext;
-import io.crate.sql.parser.antlr.v4.SqlBaseParserBaseVisitor;
+import io.crate.sql.parser.antlr.SqlBaseLexer;
+import io.crate.sql.parser.antlr.SqlBaseParser;
+import io.crate.sql.parser.antlr.SqlBaseParser.BitStringContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.CloseContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.ConflictTargetContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DeclareContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DeclareCursorParamsContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DirectionContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DiscardContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.FetchContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.IsolationLevelContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.QueryContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.QueryOptParensContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.SetTransactionContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.StatementsContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.TransactionModeContext;
+import io.crate.sql.parser.antlr.SqlBaseParserBaseVisitor;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
@@ -68,6 +68,7 @@ import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
@@ -125,6 +126,7 @@ import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropCheckConstraint;
+import io.crate.sql.tree.DropColumnDefinition;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
@@ -250,6 +252,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     private static final String TABLE = "TABLE";
     private static final String VIEW = "VIEW";
 
+    @Nullable
+    private final Function<String, Expression> parseStringLiteral;
+
+    public AstBuilder(@Nullable Function<String, Expression> parseStringLiteral) {
+        this.parseStringLiteral = parseStringLiteral;
+    }
 
     @Override
     public Node visitSingleStatement(SqlBaseParser.SingleStatementContext context) {
@@ -1297,6 +1305,19 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Override
+    public Node visitDropColumn(SqlBaseParser.DropColumnContext ctx) {
+        var columnDefinitions = Lists2.map(ctx.dropColumnDefinition(), x -> (TableElement<Expression>) visit(x));
+        return new AlterTableDropColumn((Table<?>) visit(ctx.alterTableDefinition()), columnDefinitions);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
+    public Node visitDropColumnDefinition(SqlBaseParser.DropColumnDefinitionContext ctx) {
+        return new DropColumnDefinition(visit(ctx.subscriptSafe()), ctx.EXISTS() != null);
+    }
+
     @Override
     public Node visitAlterTableOpenClose(SqlBaseParser.AlterTableOpenCloseContext context) {
         return new AlterTableOpenClose<>(
@@ -2079,7 +2100,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitStringLiteral(SqlBaseParser.StringLiteralContext context) {
         if (context.STRING() != null) {
-            return new StringLiteral(unquote(context.STRING().getText()));
+            var text = unquote(context.STRING().getText());
+            if (parseStringLiteral != null) {
+                try {
+                    return parseStringLiteral.apply(text);
+                } catch (Exception e) {
+                    return new StringLiteral(text);
+                }
+            }
+            return new StringLiteral(text);
         }
         return visitDollarQuotedStringLiteral(context.dollarQuotedStringLiteral());
     }

@@ -501,7 +501,7 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
                 builder.startObject();
                 {
                     builder.field("index", shardId.getIndex());
-                    builder.field("shard", shardId.getId());
+                    builder.field("shard", shardId.id());
                     builder.field("state", status.state());
                 }
                 builder.endObject();

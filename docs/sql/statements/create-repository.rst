@@ -175,7 +175,7 @@ Parameters
   | *Type:*    ``text``
   | *Required*
 
-  An absolute or relative path to the directory where CreateDB will store
+  An absolute or relative path to the directory where CrateDB will store
   snapshots. If the path is relative, CrateDB will append it to the first entry
   in the :ref:`path.repo <path.repo>` setting.
 
@@ -378,6 +378,15 @@ Parameters
   When CrateDB creates new buckets and objects, the specified `Canned ACL`_ is
   added.
 
+.. _sql-create-repo-s3-storage_class:
+
+**storage_class**
+  | *Type:*    ``text``
+  | *Values:*  ``standard``, ``reduced_redundancy`` or ``standard_ia``
+  | *Default:* ``standard``
+
+  The S3 storage class used for objects stored in the repository. This only 
+  affects the S3 storage class used for newly created objects in the repository.
 
 .. _sql-create-repo-azure:
 
@@ -416,6 +425,35 @@ Parameters
       CrateDB masks this parameter. You cannot query the parameter value from
       the :ref:`sys.repositories <sys-repositories>` table.
 
+.. _sql-create-repo-azure-endpoint:
+
+**endpoint**
+  | *Type:*    ``text``
+
+  The Azure Storage account endpoint.
+
+  .. TIP::
+
+      You can use an `sql-create-repo-azure-endpoint`_ to access Azure Storage
+      instances served on private endpoints.
+
+  .. NOTE::
+
+      ``endpoint`` cannot be used in combination with
+      `sql-create-repo-azure-endpoint_suffix`_.
+
+.. _sql-create-repo-azure-secondary_endpoint:
+
+**secondary_endpoint**
+  | *Type:*    ``text``
+
+  The Azure Storage account secondary endpoint.
+
+  .. NOTE::
+
+      ``secondary_endpoint`` cannot be used if
+      `sql-create-repo-azure-endpoint`_ is not specified.
+
 .. _sql-create-repo-azure-endpoint_suffix:
 
 **endpoint_suffix**
@@ -426,8 +464,8 @@ Parameters
 
   .. TIP::
 
-      You can use an `endpoint suffix`_ to force the use of a specific `Azure
-      service region`_.
+      You can use an `endpoint suffix`_ to force the use of a specific
+      `Azure service region`_.
 
 .. _sql-create-repo-azure-container:
 
@@ -484,7 +522,8 @@ Parameters
 
 **location_mode**
   | *Type:*    ``text``
-  | *Values:*  ``primary_only``, ``secondary_only``
+  | *Values:*  ``primary_only``, ``secondary_only``, ``primary_then_secondary``,
+               ``secondary_then_primary``
   | *Default:* ``primary_only``
 
   The location mode for storing blob data.

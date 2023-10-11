@@ -21,7 +21,21 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.user.Privilege;
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
+
+import org.elasticsearch.cluster.RestoreInProgress;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.repositories.RepositoriesService;
+
 import io.crate.execution.engine.collect.files.SummitsIterable;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.StaticTableDefinition;
@@ -33,19 +47,9 @@ import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import org.elasticsearch.cluster.RestoreInProgress;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.repositories.RepositoriesService;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
-
-import static java.util.concurrent.CompletableFuture.completedFuture;
+import io.crate.user.Privilege;
+import io.crate.user.Privilege.Clazz;
+import io.crate.user.Privilege.Type;
 
 public class SysTableDefinitions {
 
@@ -71,15 +75,27 @@ public class SysTableDefinitions {
         ));
         var sysJobsTable = SysJobsTableInfo.create(localNode);
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(jobsLogs.activeJobs()),
+            (txnCtx, user) -> completedFuture(
+                () -> StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false)
+                    .filter(x ->
+                        user.isSuperUser()
+                        || user.name().equals(x.username())
+                        || user.hasPrivilege(Type.AL, Clazz.CLUSTER, null, txnCtx.sessionSettings().currentSchema()))
+                    .iterator()
+            ),
             sysJobsTable.expressions(),
-            (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username()),
             false));
         var sysJobsLogTable = SysJobsLogTableInfo.create(localNode);
         tableDefinitions.put(SysJobsLogTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(jobsLogs.jobsLog()),
+            (txnCtx, user) -> completedFuture(
+                () -> StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false)
+                    .filter(x ->
+                        user.isSuperUser()
+                        || user.name().equals(x.username())
+                        || user.hasPrivilege(Type.AL, Clazz.CLUSTER, null, txnCtx.sessionSettings().currentSchema()))
+                    .iterator()
+            ),
             sysJobsLogTable.expressions(),
-            (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username()),
             false));
         tableDefinitions.put(SysOperationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeOperations()),

@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.postgres;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
@@ -31,8 +33,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public class PgEncodingToCharFunction extends Scalar<String, Integer> {
 
@@ -49,22 +49,8 @@ public class PgEncodingToCharFunction extends Scalar<String, Integer> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public PgEncodingToCharFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs

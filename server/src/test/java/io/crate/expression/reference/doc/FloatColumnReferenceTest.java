@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -39,7 +38,7 @@ import io.crate.expression.reference.doc.lucene.FloatColumnReference;
 
 public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "f";
+    private static final String COLUMN = "f";
 
     public FloatColumnReferenceTest() {
         super("create table t (f float)");
@@ -49,14 +48,14 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
     protected void insertValues(IndexWriter writer) throws Exception {
         for (float f = -0.5f; f < 10.0f; f++) {
             Document doc = new Document();
-            doc.add(new SortedNumericDocValuesField(column, NumericUtils.floatToSortableInt(f)));
+            doc.add(new SortedNumericDocValuesField(COLUMN, NumericUtils.floatToSortableInt(f)));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        FloatColumnReference floatColumn = new FloatColumnReference(column);
+        FloatColumnReference floatColumn = new FloatColumnReference(COLUMN);
         floatColumn.startCollect(ctx);
         floatColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -64,7 +63,7 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
         float f = -0.5f;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             floatColumn.setNextDocId(doc.doc);
-            assertThat(floatColumn.value(), is(f));
+            assertThat(floatColumn.value()).isEqualTo(f);
             f++;
         }
     }

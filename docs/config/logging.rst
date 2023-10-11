@@ -155,7 +155,7 @@ garbage collection logging.
 
   .. NOTE::
 
-      Since since CrateDB 3.0, Garbage collection logging is enabled by default.
+      Since CrateDB 3.0, Garbage collection logging is enabled by default.
 
 ``CRATE_GC_LOG_DIR``: *path to logs directory* (default: varies)
   The log file directory.

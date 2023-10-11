@@ -48,6 +48,7 @@ import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -652,11 +653,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t3.z = t1.x AND t3.z = t2.y
             """);
         assertThat(logicalPlan).hasOperators(
-            "HashJoin[((z = x) AND (z = y))]",
-            "  ├ NestedLoopJoin[CROSS]",
-            "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
-            "  │  └ Collect[doc.t2 | [b, y, i] | true]",
-            "  └ Collect[doc.t3 | [c, z] | true]"
+            "Eval[a, x, i, b, y, i, c, z]",
+            "  └ HashJoin[(z = y)]",
+            "    ├ HashJoin[(z = x)]",
+            "    │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "    │  └ Collect[doc.t3 | [c, z] | true]",
+            "    └ Collect[doc.t2 | [b, y, i] | true]"
         );
     }
 
@@ -1029,5 +1031,40 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                 └ Collect[doc.j3 | [z] | true]
                 """
         );
+    }
+
+    @Test
+    public void test_relationnames_order_in_nested_loop_join() throws Exception {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("CREATE TABLE doc.t1 (a INT)")
+            .addTable("CREATE TABLE doc.t2 (b INT)")
+            .addTable("CREATE TABLE doc.t3 (c INT)")
+            .build();
+
+        // optimizer_reorder_nested_loop_join moves the smaller table to the right side,
+        // therefore we make t2 bigger and it becomes the top-most-left-table
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), new Stats(10, 10, Map.of()));
+        rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t2"), new Stats(200, 200, Map.of()));
+        executor.updateTableStats(rowCountByTable);
+
+        QueriedSelectRelation mss = e.analyze(
+            "Select * from t1 INNER JOIN t2 on t1.a = t2.b INNER JOIN T3 on t2.b = t3.c");
+
+        var plannerCtx = executor.getPlannerContext(clusterService.state());
+        plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        NestedLoopJoin result = (NestedLoopJoin) buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).isEqualTo(
+            "NestedLoopJoin[INNER | (b = c)]\n" +
+            "  ├ Eval[a, b]\n" +
+            "  │  └ NestedLoopJoin[INNER | (a = b)]\n" +
+            "  │    ├ Collect[doc.t2 | [b] | true]\n" +
+            "  │    └ Collect[doc.t1 | [a] | true]\n" +
+            "  └ Collect[doc.t3 | [c] | true]"
+        );
+        assertThat(result.getRelationNames().get(0).toString()).isEqualTo("doc.t2");
+        assertThat(result.getRelationNames().get(1).toString()).isEqualTo("doc.t1");
+        assertThat(result.getRelationNames().get(2).toString()).isEqualTo("doc.t3");
     }
 }

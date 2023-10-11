@@ -23,15 +23,12 @@ package io.crate.expression.operator;
 
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.net.InetAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FloatPoint;
@@ -52,6 +49,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Uid;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.NumTermsPerDocQuery;
@@ -60,6 +58,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -81,6 +80,7 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
+import io.crate.types.TypeSignature;
 
 public final class EqOperator extends Operator<Object> {
 
@@ -88,8 +88,8 @@ public final class EqOperator extends Operator<Object> {
 
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
-        parseTypeSignature("E"),
-        parseTypeSignature("E"),
+        TypeSignature.parse("E"),
+        TypeSignature.parse("E"),
         Operator.RETURN_TYPE.getTypeSignature()
     ).withTypeVariableConstraints(typeVariable("E"));
 
@@ -100,16 +100,17 @@ public final class EqOperator extends Operator<Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
+    private final DataType<Object> argType;
 
+    @SuppressWarnings("unchecked")
     private EqOperator(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
+        this.argType = (DataType<Object>) boundSignature.argTypes().get(0);
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 2 : "number of args must be 2";
         Object left = args[0].value();
         if (left == null) {
@@ -119,17 +120,7 @@ public final class EqOperator extends Operator<Object> {
         if (right == null) {
             return null;
         }
-        return left.equals(right);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        return argType.compare(left, right) == 0;
     }
 
     @Override
@@ -139,6 +130,7 @@ public final class EqOperator extends Operator<Object> {
             return null;
         }
         String fqn = ref.column().fqn();
+        String storageIdentifier = ref.storageIdent();
         Object value = literal.value();
         if (value == null) {
             return new MatchNoDocsQuery("`" + fqn + "` = null is always null");
@@ -152,12 +144,12 @@ public final class EqOperator extends Operator<Object> {
             case ObjectType.ID -> refEqObject(function, fqn, (ObjectType) dataType, (Map<String, Object>) value, context);
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
-                ref.column().fqn(),
+                storageIdentifier,
                 ArrayType.unnest(dataType),
-                (Collection) value,
+                (Collection<?>) value,
                 context
             );
-            default -> fromPrimitive(dataType, fqn, value);
+            default -> fromPrimitive(dataType, storageIdentifier, value);
         };
     }
 
@@ -201,6 +193,10 @@ public final class EqOperator extends Operator<Object> {
             builder.add(EqOperator.fromPrimitive(type, column, term), Occur.SHOULD);
         }
         return new ConstantScoreQuery(builder.build());
+    }
+
+    public static Function of(Symbol first, Symbol second) {
+        return new Function(SIGNATURE, List.of(first, second), Operator.RETURN_TYPE);
     }
 
     private static Query termsAndGenericFilter(Function function, String column, DataType<?> elementType, Collection<?> values, LuceneQueryBuilder.Context context) {
@@ -287,11 +283,14 @@ public final class EqOperator extends Operator<Object> {
                 continue;
             }
             String fqNestedColumn = fqn + '.' + key;
+            var columnIdent = ColumnIdent.fromPath(fqNestedColumn);
+            var nestedRef = context.getRef(columnIdent);
+            var nestedStorageIdentifier = nestedRef != null ? nestedRef.storageIdent() : columnIdent.fqn();
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
-                innerQuery = termsAndGenericFilter(eq, fqNestedColumn, innerType, (Collection<?>) entry.getValue(), context);
+                innerQuery = termsAndGenericFilter(eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context);
             } else {
-                innerQuery = fromPrimitive(innerType, fqNestedColumn, entry.getValue());
+                innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue());
             }
             if (innerQuery == null) {
                 continue;
@@ -300,7 +299,7 @@ public final class EqOperator extends Operator<Object> {
             preFilters++;
             boolBuilder.add(innerQuery, BooleanClause.Occur.MUST);
         }
-        if (preFilters == value.size()) {
+        if (preFilters > 0 && preFilters == value.size()) {
             return boolBuilder.build();
         } else {
             Query genericEqFilter = genericFunctionFilter(eq, context);

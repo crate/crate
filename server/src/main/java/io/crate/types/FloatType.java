@@ -96,9 +96,9 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         @Override
         public ValueIndexer<Float> valueIndexer(RelationName table,
                                                 Reference ref,
-                                                Function<ColumnIdent, FieldType> getFieldType,
+                                                Function<String, FieldType> getFieldType,
                                                 Function<ColumnIdent, Reference> getRef) {
-            return new FloatIndexer(ref, getFieldType.apply(ref.column()));
+            return new FloatIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 

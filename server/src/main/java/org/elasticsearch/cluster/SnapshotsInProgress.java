@@ -452,7 +452,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                     builder.startObject();
                     {
                         builder.field(INDEX, shardId.getIndex());
-                        builder.field(SHARD, shardId.getId());
+                        builder.field(SHARD, shardId.id());
                         builder.field(STATE, status.state());
                         builder.field(NODE, status.nodeId());
                     }

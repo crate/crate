@@ -45,8 +45,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
@@ -67,6 +65,7 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
@@ -106,7 +105,9 @@ import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
 
@@ -282,10 +283,10 @@ public abstract class IndexShardTestCase extends ESTestCase {
         shard.flush(new FlushRequest(shard.shardId().getIndexName()).force(force));
     }
 
-    public static boolean recoverFromStore(IndexShard newShard) {
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+    public static boolean recoverFromStore(IndexShard newShard) throws IOException {
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         newShard.recoverFromStore(future);
-        return future.actionGet();
+        return FutureUtils.get(future);
     }
 
     /**
@@ -823,7 +824,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         try {
             PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
             recovery.recoverToTarget(future);
-            future.actionGet();
+            FutureUtils.get(future);
             recoveryTarget.markAsDone();
         } catch (Exception e) {
             recoveryTarget.fail(new RecoveryFailedException(request, e), false);
@@ -941,14 +942,14 @@ public abstract class IndexShardTestCase extends ESTestCase {
             new RecoverySource.SnapshotRecoverySource(UUIDs.randomBase64UUID(), snapshot, version, indexId);
         final ShardRouting shardRouting = newShardRouting(shardId, node.getId(), true, ShardRoutingState.INITIALIZING, recoverySource);
         shard.markAsRecovering("from snapshot", new RecoveryState(shardRouting, node, null));
-        final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
         repository.restoreShard(shard.store(),
                                 snapshot.getSnapshotId(),
                                 indexId,
                                 shard.shardId(),
                                 shard.recoveryState(),
                                 future);
-        future.actionGet();
+        FutureUtils.get(future);
     }
 
     /**
@@ -963,13 +964,13 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final IndexId indexId = new IndexId(index.getName(), index.getUUID());
         final IndexShardSnapshotStatus snapshotStatus = IndexShardSnapshotStatus.newInitializing(
             ESBlobStoreTestCase.getRepositoryData(repository).shardGenerations().getShardGen(
-                indexId, shard.shardId().getId()));
-        final PlainActionFuture<String> future = PlainActionFuture.newFuture();
+                indexId, shard.shardId().id()));
+        final FutureActionListener<String, String> future = FutureActionListener.newInstance();
         final String shardGen;
         try (Engine.IndexCommitRef indexCommitRef = shard.acquireLastIndexCommit(true)) {
             repository.snapshotShard(shard.store(), shard.mapperService(), snapshot.getSnapshotId(), indexId,
                                      indexCommitRef.getIndexCommit(), null, snapshotStatus, Version.CURRENT, future);
-            shardGen = future.actionGet();
+            shardGen = FutureUtils.get(future);
         }
 
         final IndexShardSnapshotStatus.Copy lastSnapshotStatus = snapshotStatus.asCopy();

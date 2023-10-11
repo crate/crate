@@ -19,12 +19,8 @@
 
 package org.elasticsearch.index.shard;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.Assertions;
-import io.crate.common.collections.Tuple;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
+import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -39,8 +35,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.Assertions;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Represents a collection of global checkpoint listeners. This collection can be added to, and all listeners present at the time of an
@@ -121,11 +122,11 @@ public class GlobalCheckpointListeners implements Closeable {
             notifyListener(listener, lastKnownGlobalCheckpoint, null);
         } else {
             if (timeout == null) {
-                listeners.put(listener, Tuple.tuple(waitingForGlobalCheckpoint, null));
+                listeners.put(listener, new Tuple<>(waitingForGlobalCheckpoint, null));
             } else {
                 listeners.put(
                     listener,
-                    Tuple.tuple(
+                    new Tuple<>(
                         waitingForGlobalCheckpoint,
                         scheduler.schedule(
                             () -> {

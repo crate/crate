@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar;
 
+import java.util.function.Function;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -28,8 +30,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
-
-import java.util.function.Function;
 
 
 /**
@@ -40,30 +40,17 @@ import java.util.function.Function;
 public class UnaryScalar<R, T> extends Scalar<R, T> {
 
     private final Function<T, R> func;
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final DataType<T> type;
 
     public UnaryScalar(Signature signature,
                        BoundSignature boundSignature,
                        DataType<T> type,
                        Function<T, R> func) {
+        super(signature, boundSignature);
         assert boundSignature.argTypes().get(0).id() == type.id() :
             "The bound argument type of the signature must match the type argument";
-        this.signature = signature;
-        this.boundSignature = boundSignature;
         this.type = type;
         this.func = func;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @SafeVarargs

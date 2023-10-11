@@ -21,12 +21,8 @@
 
 package io.crate.expression.reference;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.function.Supplier;
-
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 public final class Doc {
 
@@ -87,25 +83,6 @@ public final class Doc {
 
     public String getIndex() {
         return index;
-    }
-
-    public Doc withUpdatedSource(Map<String, Object> updatedSource) {
-        return new Doc(
-            docId,
-            index,
-            id,
-            version,
-            seqNo,
-            primaryTerm,
-            updatedSource,
-            () -> {
-                try {
-                    return Strings.toString(JsonXContent.builder().map(updatedSource));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        );
     }
 
     @Override

@@ -21,8 +21,6 @@
 
 package io.crate.expression.symbol;
 
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -31,11 +29,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
@@ -67,7 +64,7 @@ public class Symbols {
     }
 
     public static boolean isAggregate(Symbol s) {
-        return s instanceof Function && ((Function) s).signature().getKind() == FunctionType.AGGREGATE;
+        return s instanceof Function fn && fn.signature().getKind() == FunctionType.AGGREGATE;
     }
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
@@ -102,7 +99,7 @@ public class Symbols {
             if (key instanceof Reference ref && ref.column().equals(column)) {
                 return entry.getValue();
             }
-            if (key instanceof ScopedSymbol && ((ScopedSymbol) key).column().equals(column)) {
+            if (key instanceof ScopedSymbol scopedSymbol && scopedSymbol.column().equals(column)) {
                 return entry.getValue();
             }
         }
@@ -150,8 +147,8 @@ public class Symbols {
     }
 
     public static void toStream(Symbol symbol, StreamOutput out) throws IOException {
-        if (out.getVersion().before(Version.V_4_2_0) && symbol instanceof AliasSymbol) {
-            toStream(((AliasSymbol) symbol).symbol(), out);
+        if (out.getVersion().before(Version.V_4_2_0) && symbol instanceof AliasSymbol aliasSymbol) {
+            toStream(aliasSymbol.symbol(), out);
         } else {
             int ordinal = symbol.symbolType().ordinal();
             out.writeVInt(ordinal);
@@ -177,10 +174,10 @@ public class Symbols {
     }
 
     public static ColumnIdent pathFromSymbol(Symbol symbol) {
-        if (symbol instanceof AliasSymbol) {
-            return new ColumnIdent(((AliasSymbol) symbol).alias());
-        } else if (symbol instanceof ScopedSymbol) {
-            return ((ScopedSymbol) symbol).column();
+        if (symbol instanceof AliasSymbol aliasSymbol) {
+            return new ColumnIdent(aliasSymbol.alias());
+        } else if (symbol instanceof ScopedSymbol scopedSymbol) {
+            return scopedSymbol.column();
         } else if (symbol instanceof Reference ref) {
             return ref.column();
         }
@@ -222,9 +219,8 @@ public class Symbols {
     }
 
     public static Symbol unwrapReferenceFromCast(Symbol symbol) {
-        if (symbol instanceof Function
-            && CAST_FUNCTION_NAMES.contains(((Function) symbol).name())) {
-            return ((Function) symbol).arguments().get(0);
+        if (symbol instanceof Function fn && fn.isCast()) {
+            return fn.arguments().get(0);
         }
         return symbol;
     }
@@ -251,7 +247,7 @@ public class Symbols {
             if (((Symbol) fetchReference.fetchId()).accept(this, column)) {
                 return true;
             }
-            return ((Symbol) fetchReference.ref()).accept(this, column);
+            return fetchReference.ref().accept(this, column);
         }
 
         @Override
@@ -270,7 +266,9 @@ public class Symbols {
             pathFromSymbol(symbol).sqlFqn(), // allow ObjectTypes to return col name in subscript notation
             null,
             null,
-            symbol.valueType().toColumnType(ColumnPolicy.STRICT, null),
+            symbol.valueType().toColumnType(
+                symbol instanceof Reference reference ? reference.columnPolicy() : ColumnPolicy.DYNAMIC,
+                null),
             List.of());
     }
 }

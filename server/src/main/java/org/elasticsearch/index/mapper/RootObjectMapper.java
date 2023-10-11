@@ -27,6 +27,8 @@ import org.elasticsearch.common.settings.Settings;
 
 import io.crate.Constants;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 public class RootObjectMapper extends ObjectMapper {
 
     private ColumnPositionResolver<Mapper> columnPositionResolver = new ColumnPositionResolver<>();
@@ -44,8 +46,14 @@ public class RootObjectMapper extends ObjectMapper {
         }
 
         @Override
-        protected ObjectMapper createMapper(String name, int position, String fullPath, Dynamic dynamic,
-                Map<String, Mapper> mappers, Settings settings) {
+        protected ObjectMapper createMapper(String name,
+                                            int position,
+                                            long columnOID,
+                                            boolean isDropped,
+                                            String fullPath,
+                                            Dynamic dynamic,
+                                            Map<String, Mapper> mappers,
+                                            Settings settings) {
             assert name.equals(Constants.DEFAULT_MAPPING_TYPE) : "Name of root mapper must match `default`: " + name;
             return new RootObjectMapper(
                 name,
@@ -78,7 +86,7 @@ public class RootObjectMapper extends ObjectMapper {
                      Dynamic dynamic,
                      Map<String, Mapper> mappers,
                      Settings settings) {
-        super(name, NOT_TO_BE_POSITIONED, name, dynamic, mappers, settings);
+        super(name, NOT_TO_BE_POSITIONED, COLUMN_OID_UNASSIGNED, false, name, dynamic, mappers, settings);
     }
 
     @Override

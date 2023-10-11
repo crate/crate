@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +59,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
+import io.crate.types.TypeSignature;
 
 /**
  * Supported subscript expressions:
@@ -82,9 +82,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(object)"),
+                TypeSignature.parse("array(object)"),
                 DataTypes.STRING.getTypeSignature(),
-                parseTypeSignature("array(undefined)")
+                TypeSignature.parse("array(undefined)")
             ).withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
@@ -98,9 +98,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             Signature
                 .scalar(
                     NAME,
-                    parseTypeSignature("array(E)"),
+                    TypeSignature.parse("array(E)"),
                     DataTypes.INTEGER.getTypeSignature(),
-                    parseTypeSignature("E"))
+                    TypeSignature.parse("E"))
                 .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new SubscriptFunction(
@@ -147,26 +147,13 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final TriFunction<Object, Object, Boolean, Object> lookup;
 
     private SubscriptFunction(Signature signature,
                               BoundSignature boundSignature,
                               TriFunction<Object, Object, Boolean, Object> lookup) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.lookup = lookup;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override
@@ -245,8 +232,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         //       inner
         if (!(inner.arguments().get(0) instanceof Reference ref
-                && inner.arguments().get(1) instanceof Literal<?>
-                && parent.arguments().get(1) instanceof Literal<?> cmpLiteral)) {
+              && inner.arguments().get(1) instanceof Literal<?>
+              && parent.arguments().size() == 2 // parent could for example be `op_isnull`
+              && parent.arguments().get(1) instanceof Literal<?> cmpLiteral)) {
             return null;
         }
         if (DataTypes.isArray(ref.valueType())) {
@@ -254,7 +242,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             if (preFilterQueryBuilder == null) {
                 return null;
             }
-            MappedFieldType fieldType = context.getFieldTypeOrNull(ref.column().fqn());
+            MappedFieldType fieldType = context.getFieldTypeOrNull(ref.storageIdent());
             DataType<?> innerType = ArrayType.unnest(ref.valueType());
             if (fieldType == null) {
                 if (innerType.id() == ObjectType.ID) {
@@ -270,7 +258,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(
-                preFilterQueryBuilder.buildQuery(ref.column().fqn(), eqQuery, cmpLiteral.value(), ref.hasDocValues()),
+                preFilterQueryBuilder.buildQuery(ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues()),
                 BooleanClause.Occur.MUST);
             builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
             return builder.build();

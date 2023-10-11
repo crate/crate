@@ -81,9 +81,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             assignmentColumns,
             missingAssignmentColumns,
             null,
-            jobId,
-            false
-            ).newRequest(shardId);
+            jobId).newRequest(shardId);
 
         request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
@@ -133,8 +131,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             assignmentColumns,
             missingAssignmentColumns,
             null,
-            jobId,
-            false
+            jobId
         ).newRequest(shardId);
 
         request.add(123, ShardUpsertRequest.Item.forInsert(
@@ -178,15 +175,14 @@ public class ShardUpsertRequestTest extends ESTestCase {
         UUID jobId = UUID.randomUUID();
         SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-                new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
-                TimeValue.timeValueSeconds(30),
-                DuplicateKeyAction.UPDATE_OR_FAIL,
-                false,
-                assignmentColumns,
-                missingAssignmentColumns,
-                null,
-                jobId,
-                false
+            new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
+            TimeValue.timeValueSeconds(30),
+            DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            assignmentColumns,
+            missingAssignmentColumns,
+            null,
+            jobId
         ).newRequest(shardId);
 
         request.add(42, ShardUpsertRequest.Item.forInsert(

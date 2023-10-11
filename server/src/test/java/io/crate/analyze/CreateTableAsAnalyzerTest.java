@@ -21,14 +21,21 @@
 
 package io.crate.analyze;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.common.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataType;
 
 public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -48,7 +55,7 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             )
             .build();
 
-        var expected = (AnalyzedCreateTable) e.analyze(
+        var expected = ((AnalyzedCreateTable) e.analyze(
             "create table cpy (" +
             "   col_default_object object as (" +
             "       col_nested_integer integer," +
@@ -57,15 +64,31 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             "       )" +
             "   )" +
             ")"
+        )).bind(
+            new NumberOfShards(clusterService),
+            e.fulltextAnalyzerResolver(),
+            e.nodeCtx,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY
         );
 
         AnalyzedCreateTableAs analyzedCreateTableAs = e.analyze(
             "create table cpy as select * from  tbl"
         );
-        var actual = analyzedCreateTableAs.analyzedCreateTable();
+        var actual = analyzedCreateTableAs.analyzedCreateTable().bind(
+            new NumberOfShards(clusterService),
+            e.fulltextAnalyzerResolver(),
+            e.nodeCtx,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
 
-        assertEquals(expected.relationName(), actual.relationName());
-        //used toString() to avoid testing nested elements. handled by SymbolToColumnDefinitionConverterTest
-        assertEquals(expected.createTable().toString(), actual.createTable().toString());
+        assertThat(expected.tableName()).isEqualTo(actual.tableName());
+        assertThat(expected.columns().keySet()).containsExactlyElementsOf(actual.columns().keySet());
+        List<DataType<?>> expectedTypes = Lists2.map(expected.columns().values(), Symbol::valueType);
+        List<DataType<?>> actualTypes = Lists2.map(actual.columns().values(), Symbol::valueType);
+        assertThat(expectedTypes).containsExactlyElementsOf(actualTypes);
     }
 }

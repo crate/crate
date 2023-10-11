@@ -2336,7 +2336,7 @@ public class InternalEngineTests extends EngineTestCase {
                         values.add(added);
                         Engine.Index index = new Engine.Index(uidTerm,
                                                               testParsedDocument("1", testDocument(),
-                                                                                 bytesArray(Strings.collectionToCommaDelimitedString(values)), null),
+                                                                                 bytesArray(String.join(",", values)), null),
                                                               UNASSIGNED_SEQ_NO, 2,
                                                               get.docIdAndVersion().version, VersionType.INTERNAL,
                                                               PRIMARY, System.currentTimeMillis(), -1, false, UNASSIGNED_SEQ_NO, 0);
@@ -4900,8 +4900,7 @@ public class InternalEngineTests extends EngineTestCase {
                 id,
                 document,
                 source,
-                null,
-                List.of()
+                null
             );
 
             final Engine.Index index = new Engine.Index(

@@ -72,7 +72,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
-                                                              Function<ColumnIdent, FieldType> getFieldType,
+                                                              Function<String, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {
             return new ObjectIndexer(table, ref, getFieldType, getRef);
         }
@@ -84,6 +84,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
         public Builder setInnerType(String key, DataType<?> innerType) {
             innerTypesBuilder.put(key, innerType);
+            return this;
+        }
+
+        public Builder mergeInnerType(String key, DataType<?> innerType, BiFunction<DataType<?>, DataType<?>, DataType<?>> remappingFunction) {
+            innerTypesBuilder.merge(key, innerType, remappingFunction);
             return this;
         }
 
@@ -258,6 +263,17 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             }
         }
         return true;
+    }
+
+    public static ObjectType merge(ObjectType left, ObjectType right) {
+        ObjectType.Builder mergedObjectBuilder = ObjectType.builder();
+        for (var e : left.innerTypes().entrySet()) {
+            mergedObjectBuilder.setInnerType(e.getKey(), e.getValue());
+        }
+        for (var e : right.innerTypes().entrySet()) {
+            mergedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), DataTypes::merge);
+        }
+        return mergedObjectBuilder.build();
     }
 
     @Override

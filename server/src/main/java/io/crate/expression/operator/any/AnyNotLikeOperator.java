@@ -34,6 +34,7 @@ import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -55,19 +56,26 @@ public final class AnyNotLikeOperator extends AnyOperator {
 
     @Override
     boolean matches(Object probe, Object candidate) {
-        return !LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
+        // Accept both sides of arguments to be patterns
+        return !LikeOperators.matches((String) probe, (String) candidate, caseSensitivity) &&
+               !LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
     }
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
-        String columnName = probe.column().fqn();
+        String columnName = probe.storageIdent();
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
         Iterable<?> values = (Iterable<?>) candidates.value();
         for (Object value : values) {
-            andLikeQueries.add(
-                caseSensitivity.likeQuery(columnName, (String) value),
-                BooleanClause.Occur.MUST);
+            if (value == null) {
+                continue;
+            }
+            var likeQuery = caseSensitivity.likeQuery(columnName, (String) value, probe.indexType() != IndexType.NONE);
+            if (likeQuery == null) {
+                return null;
+            }
+            andLikeQueries.add(likeQuery, BooleanClause.Occur.MUST);
         }
         return Queries.not(andLikeQueries.build());
     }
@@ -80,7 +88,7 @@ public final class AnyNotLikeOperator extends AnyOperator {
         String notLike = negateWildcard(regexString);
 
         return new RegexpQuery(new Term(
-            candidates.column().fqn(),
+            candidates.storageIdent(),
             notLike),
             RegexpFlag.COMPLEMENT.value()
         );

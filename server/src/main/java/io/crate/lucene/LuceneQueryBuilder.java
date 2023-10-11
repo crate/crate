@@ -28,11 +28,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,6 +44,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -124,11 +121,6 @@ public class LuceneQueryBuilder {
             LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", query.toString(Style.UNQUALIFIED), ctx.query);
         }
         return ctx;
-    }
-
-    static List asList(Literal literal) {
-        Object val = literal.value();
-        return (List) ((List) val).stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     public static class Context {
@@ -281,7 +273,7 @@ public class LuceneQueryBuilder {
             if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                 String columnName = ((Reference) left).column().name();
                 if (Context.FILTERED_FIELDS.contains(columnName)) {
-                    context.filteredFieldValues.put(columnName, ((Input) right).value());
+                    context.filteredFieldValues.put(columnName, ((Input<?>) right).value());
                     return true;
                 }
                 String unsupportedMessage = Context.UNSUPPORTED_FIELDS.get(columnName);
@@ -324,13 +316,13 @@ public class LuceneQueryBuilder {
                 if (ref.indexType() == IndexType.NONE) {
                     return new MatchNoDocsQuery("column does not exist in this index");
                 }
-                return new TermQuery(new Term(ref.column().fqn(), new BytesRef("T")));
+                return new TermQuery(new Term(ref.storageIdent(), new BytesRef("T")));
             }
             return super.visitReference(ref, context);
         }
 
         @Override
-        public Query visitLiteral(Literal literal, Context context) {
+        public Query visitLiteral(Literal<?> literal, Context context) {
             Object value = literal.value();
             if (value == null) {
                 return new MatchNoDocsQuery("WHERE null -> no match");
@@ -369,7 +361,7 @@ public class LuceneQueryBuilder {
         @SuppressWarnings("unchecked")
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-        final CollectorContext collectorContext = new CollectorContext();
+        final CollectorContext collectorContext = new CollectorContext(context.table.droppedColumns(), context.table.lookupNameBySourceKey());
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }

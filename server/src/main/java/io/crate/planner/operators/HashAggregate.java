@@ -26,6 +26,7 @@ import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -76,6 +77,12 @@ public class HashAggregate extends ForwardingLogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
+        // Avoid source look-ups for performance reasons. Global aggregations are a pipeline breaker using all data.
+        // So use column store instead, because it is likely more efficient.
+        if (planHints.contains(PlanHint.PREFER_SOURCE_LOOKUP)) {
+            planHints = new HashSet<>(planHints);
+            planHints.remove(PlanHint.PREFER_SOURCE_LOOKUP);
+        }
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 

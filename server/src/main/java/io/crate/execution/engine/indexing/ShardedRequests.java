@@ -57,9 +57,6 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         this.ramAccounting = ramAccounting;
     }
 
-    /**
-     * @param itemSizeInBytes an estimate of how many bytes the item occupies in memory
-     */
     public void add(TItem item, String indexName, String routing, RowSourceInfo rowSourceInfo) {
         long itemSizeInBytes = item.ramBytesUsed();
         ramAccounting.addBytes(itemSizeInBytes);

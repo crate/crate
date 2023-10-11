@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -29,9 +31,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public abstract class LogFunction extends Scalar<Number, Number> {
 
@@ -43,22 +43,8 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         LnFunction.registerLnFunctions(module);
     }
 
-    protected final Signature signature;
-    protected final BoundSignature boundSignature;
-
     LogFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     /**
@@ -85,7 +71,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     NAME,
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature(),
-                    parseTypeSignature("double precision")),
+                    TypeSignature.parse("double precision")),
                 LogBaseFunction::new
             );
         }

@@ -27,9 +27,8 @@ import java.util.Locale;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.TriFunction;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.MissingPrivilegeException;
@@ -44,9 +43,6 @@ import io.crate.user.User;
 import io.crate.user.UserLookup;
 
 public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
-
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     private final BiFunction<UserLookup, Object, User> getUser;
 
@@ -84,20 +80,9 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
                                    BoundSignature boundSignature,
                                    BiFunction<UserLookup, Object, User> getUser,
                                    TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override
@@ -135,7 +120,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         var sessionUser = USER_BY_NAME.apply(userLookup, currentUser);
         User user = getUser.apply(userLookup, userValue);
         validateCallPrivileges(sessionUser, user);
-        return new CompiledHasPrivilege(sessionUser, user, compiledPrivileges);
+        return new CompiledHasPrivilege(signature, boundSignature, sessionUser, user, compiledPrivileges);
     }
 
 
@@ -190,7 +175,12 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         // when function provides pre-computed results
         private final Function<Object, Collection<Privilege.Type>> getPrivileges;
 
-        private CompiledHasPrivilege(User sessionUser, User user, @Nullable Collection<Privilege.Type> compiledPrivileges) {
+        private CompiledHasPrivilege(Signature signature,
+                                     BoundSignature boundSignature,
+                                     User sessionUser,
+                                     User user,
+                                     @Nullable Collection<Privilege.Type> compiledPrivileges) {
+            super(signature, boundSignature);
             this.sessionUser = sessionUser;
             this.user = user;
             if (compiledPrivileges != null) {
@@ -198,16 +188,6 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             } else {
                 getPrivileges = s -> parsePrivileges((String) s);
             }
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override

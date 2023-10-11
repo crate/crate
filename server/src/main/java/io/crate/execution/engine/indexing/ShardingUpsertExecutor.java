@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.indexing;
 
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +31,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +50,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
@@ -60,6 +59,7 @@ import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
@@ -103,6 +103,7 @@ public class ShardingUpsertExecutor
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
 
     ShardingUpsertExecutor(ClusterService clusterService,
+                           BiConsumer<String, IndexItem> constraintsChecker,
                            NodeLimits nodeJobsCounter,
                            CircuitBreaker queryCircuitBreaker,
                            RamAccounting ramAccounting,
@@ -136,6 +137,7 @@ public class ShardingUpsertExecutor
         this.ramAccounting = new BlockBasedRamAccounting(ramAccounting::addBytes, (int) ByteSizeUnit.MB.toBytes(2));
         this.grouper = new GroupRowsByShard<>(
             clusterService,
+            constraintsChecker,
             rowShardResolver,
             indexNameResolver,
             expressions,
@@ -264,7 +266,7 @@ public class ShardingUpsertExecutor
         final ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
         long startTime = nodeLimit.startSample();
         var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
-        var reqBatchIterator = BatchIterators.partition(
+        var reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
             () -> new ShardedRequests<>(requestFactory, ramAccounting),

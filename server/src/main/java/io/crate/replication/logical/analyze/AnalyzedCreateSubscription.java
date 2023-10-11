@@ -21,13 +21,13 @@
 
 package io.crate.replication.logical.analyze;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.DDLStatement;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 public class AnalyzedCreateSubscription implements DDLStatement {
 

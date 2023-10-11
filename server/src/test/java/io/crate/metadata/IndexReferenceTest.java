@@ -21,20 +21,20 @@
 
 package io.crate.metadata;
 
+import static io.crate.metadata.ReferenceTest.columnMapping;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import io.crate.common.collections.Maps;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.StringType;
 
 public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
@@ -48,11 +48,13 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
         ReferenceIdent indexReferenceIdent = new ReferenceIdent(relationName, "index_column");
         IndexReference indexReferenceInfo = new IndexReference(
             2,
+            123,
+            true,
             indexReferenceIdent,
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(indexReferenceInfo, out);
+        Reference.toStream(out, indexReferenceInfo);
 
         StreamInput in = out.bytes().streamInput();
         IndexReference indexReferenceInfo2 = Reference.fromStream(in);
@@ -70,13 +72,18 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         IndexReference reference = table.indexColumn(new ColumnIdent("title_desc_fulltext"));
-        Map<String, Object> mapping = reference.toMapping();
+        var titleRef = table.getReference(new ColumnIdent("title"));
+        var descRef = table.getReference(new ColumnIdent("description"));
+
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
-            .containsEntry("sources", List.of("title", "description"))
+            .containsEntry("sources", List.of(titleRef.storageIdent(), descRef.storageIdent()))
+            .containsEntry("oid", 3L)
             .containsEntry("analyzer", "stop");
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(Maps.getByPath(sourceAsMap, "properties.title_desc_fulltext")).isEqualTo(mapping);
+        assertThat(columnMapping(sourceAsMap, "properties.title_desc_fulltext")).isEqualTo(mapping);
     }
+
 
 }

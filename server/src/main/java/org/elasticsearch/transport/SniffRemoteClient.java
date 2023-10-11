@@ -29,11 +29,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
@@ -49,6 +46,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService.HandshakeResponse;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Lists2;
@@ -303,26 +301,21 @@ public final class SniffRemoteClient extends AbstractClient {
     }
 
     @Override
-    protected <Request extends TransportRequest, Response extends TransportResponse> void doExecute(
-            ActionType<Response> action,
-            Request request,
-            ActionListener<Response> listener) {
+    public <Req extends TransportRequest, Resp extends TransportResponse> CompletableFuture<Resp> execute(ActionType<Resp> action, Req request) {
         DiscoveryNode targetNode = request instanceof RemoteClusterAwareRequest remoteClusterAware
             ? remoteClusterAware.getPreferredTargetNode()
             : null;
-        ensureConnected(targetNode).whenComplete((conn, err) -> {
-            if (err == null) {
-                var connection = targetNode == null ? conn : new ProxyConnection(conn, targetNode);
-                transportService.sendRequest(
-                    connection,
-                    action.name(),
-                    request,
-                    TransportRequestOptions.EMPTY,
-                    new ActionListenerResponseHandler<>(listener, action.getResponseReader())
-                );
-            } else {
-                listener.onFailure(Exceptions.toException(err));
-            }
+        return ensureConnected(targetNode).thenCompose(conn -> {
+            FutureActionListener<Resp, Resp> future = FutureActionListener.newInstance();
+            var connection = targetNode == null ? conn : new ProxyConnection(conn, targetNode);
+            transportService.sendRequest(
+                connection,
+                action.name(),
+                request,
+                TransportRequestOptions.EMPTY,
+                new ActionListenerResponseHandler<>(future, action.getResponseReader())
+            );
+            return future;
         });
     }
 

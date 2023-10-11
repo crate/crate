@@ -58,6 +58,10 @@ public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
     @Override
     public void moveToStart() {
         source.moveToStart();
+        sourceExhausted = false;
+        mappedElements = null;
+        nextAction = NextAction.SOURCE;
+        current = null;
     }
 
     @Override

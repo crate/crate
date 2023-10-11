@@ -26,6 +26,7 @@ import java.util.List;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
@@ -101,17 +102,23 @@ class AlterTableAnalyzer {
             throw new IllegalArgumentException("Target table name must not include a schema");
         }
 
-        RelationName relationName;
+        RelationName sourceName;
         if (node.blob()) {
-            relationName = RelationName.fromBlobTable(node.table());
+            sourceName = RelationName.fromBlobTable(node.table());
         } else {
-            relationName = schemas.resolveRelation(node.table().getName(), sessionSettings.searchPath());
+            sourceName = schemas.resolveRelation(node.table().getName(), sessionSettings.searchPath());
         }
 
-        DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_TABLE_RENAME);
-        RelationName newRelationName = new RelationName(relationName.schema(), newIdentParts.get(0));
-        newRelationName.ensureValidForRelationCreation();
-        return new AnalyzedAlterTableRename(tableInfo, newRelationName);
+        boolean isPartitioned = false;
+        RelationName targetName = new RelationName(sourceName.schema(), newIdentParts.get(0));
+        targetName.ensureValidForRelationCreation();
+        try {
+            DocTableInfo tableInfo = schemas.getTableInfo(sourceName, Operation.ALTER_TABLE_RENAME);
+            isPartitioned = tableInfo.isPartitioned();
+        } catch (RelationUnknown e) {
+            schemas.resolveView(node.table().getName(), sessionSettings.searchPath());
+        }
+        return new AnalyzedAlterTableRename(sourceName, targetName, isPartitioned);
     }
 
     public AnalyzedAlterTableOpenClose analyze(AlterTableOpenClose<Expression> node,

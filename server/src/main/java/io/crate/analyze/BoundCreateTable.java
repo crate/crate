@@ -21,114 +21,78 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.RelationAlreadyExists;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.types.DataTypes;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-
-public class BoundCreateTable {
-
-    private final RelationName relationName;
-    private final AnalyzedTableElements<Object> analyzedTableElements;
-    private final TableParameter tableParameter;
-    private final ColumnIdent routingColumn;
-    private final boolean noOp;
-    private final boolean ifNotExists;
-
-    public BoundCreateTable(RelationName relationName,
-                            AnalyzedTableElements<Object> tableElements,
-                            TableParameter tableParameter,
-                            @Nullable ColumnIdent routingColumn,
-                            boolean ifNotExists,
-                            Schemas schemas) {
-        relationName.ensureValidForRelationCreation();
-        boolean tableExists = schemas.tableExists(relationName);
-        boolean viewExists = schemas.viewExists(relationName);
-        if (ifNotExists && !viewExists) {
-            noOp = tableExists;
-        } else if (tableExists || viewExists) {
-            throw new RelationAlreadyExists(relationName);
-        } else {
-            noOp = false;
-        }
-        this.ifNotExists = ifNotExists;
-        this.relationName = relationName;
-        this.analyzedTableElements = tableElements;
-        this.tableParameter = tableParameter;
-
-        if (routingColumn != null && routingColumn.name().equalsIgnoreCase("_id") == false) {
-            this.routingColumn = routingColumn;
-        } else {
-            this.routingColumn = null;
-        }
-    }
-
-    public boolean noOp() {
-        return noOp;
-    }
-
-    public boolean ifNotExists() {
-        return ifNotExists;
-    }
-
-    @NotNull
-    public List<List<String>> partitionedBy() {
-        return analyzedTableElements().partitionedBy();
-    }
+public record BoundCreateTable(
+        RelationName tableName,
+        boolean ifNotExists,
+        /**
+         * In order of definition
+         */
+        Map<ColumnIdent, Reference> columns,
+        TableParameter tableParameter,
+        List<Reference> primaryKeys,
+        /**
+         * By constraint name; In order of definition
+         **/
+        Map<String, AnalyzedCheck> checks,
+        ColumnIdent routingColumn,
+        List<Symbol> partitionedByColumns) {
 
     public boolean isPartitioned() {
-        return !analyzedTableElements().partitionedByColumns.isEmpty();
+        return !partitionedByColumns.isEmpty();
     }
 
-    /**
-     * name of the template to create
-     *
-     * @return the name of the template to create or <code>null</code>
-     * if no template is created
-     */
     @Nullable
     public String templateName() {
-        if (isPartitioned()) {
-            return PartitionName.templateName(tableIdent().schema(), tableIdent().name());
-        }
-        return null;
+        return partitionedByColumns.isEmpty() ? null : PartitionName.templateName(tableName.schema(), tableName.name());
     }
 
-    @Nullable
     public String templatePrefix() {
-        if (isPartitioned()) {
-            return PartitionName.templatePrefix(tableIdent().schema(), tableIdent().name());
+        return partitionedByColumns.isEmpty() ? null : PartitionName.templatePrefix(tableName.schema(), tableName.name());
+    }
+
+    public List<List<String>> partitionedBy() {
+        return Lists2.map(partitionedByColumns, BoundCreateTable::toPartitionMapping);
+    }
+
+    private static List<String> toPartitionMapping(Symbol symbol) {
+        String fqn = Symbols.pathFromSymbol(symbol).fqn();
+        String typeMappingName = DataTypes.esMappingNameFrom(symbol.valueType().id());
+        return List.of(fqn, typeMappingName);
+    }
+
+    public Map<String, String> getCheckConstraints() {
+        Map<String, String> checksMapping = new LinkedHashMap<>();
+        for (var entry: checks.entrySet()) {
+            String constraintName = entry.getKey();
+            AnalyzedCheck analyzedCheck = entry.getValue();
+            checksMapping.put(constraintName, analyzedCheck.expression());
         }
-        return null;
+        return checksMapping;
     }
 
-    public RelationName tableIdent() {
-        return relationName;
-    }
-
-    @Nullable
-    public String routingColumn() {
-        return routingColumn != null ? routingColumn.fqn() : null;
-    }
-
-    /**
-     * return true if a columnDefinition with name <code>columnIdent</code> exists
-     */
-    boolean hasColumnDefinition(ColumnIdent columnIdent) {
-        return (analyzedTableElements().columnIdents().contains(columnIdent) ||
-                columnIdent.name().equalsIgnoreCase("_id"));
-    }
-
-    public AnalyzedTableElements<Object> analyzedTableElements() {
-        return analyzedTableElements;
-    }
-
-    public TableParameter tableParameter() {
-        return tableParameter;
+    public IntArrayList primaryKeysIndices() {
+        IntArrayList pkKeyIndices = new IntArrayList(primaryKeys.size());
+        for (Reference pk : primaryKeys) {
+            int idx = Reference.indexOf(columns.values(), pk.column());
+            pkKeyIndices.add(idx);
+        }
+        return pkKeyIndices;
     }
 }

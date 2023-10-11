@@ -21,15 +21,6 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import io.crate.common.annotations.VisibleForTesting;
-
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -37,6 +28,15 @@ import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.Streamer;
+import io.crate.common.annotations.VisibleForTesting;
 
 public class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
 
@@ -143,7 +143,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
-    public BigDecimal valueForInsert(Object value) {
+    public BigDecimal valueForInsert(BigDecimal value) {
         throw new UnsupportedOperationException(
             getName() + " type cannot be used in insert statements");
     }
@@ -155,7 +155,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         // BigInteger overhead 20 bytes
         // BigDecimal overhead 16 bytes
         // size of unscaled value
-        return 36 + value.unscaledValue().bitLength() / 8 + 1;
+        return 36 + value.unscaledValue().bitLength() / 8L + 1;
     }
 
     public static long sizeDiff(@NotNull BigDecimal first, @NotNull BigDecimal second) {

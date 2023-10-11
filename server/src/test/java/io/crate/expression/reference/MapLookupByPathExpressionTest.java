@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public class MapLookupByPathExpressionTest {
         HashMap<String, Object> m = new HashMap<>();
         m.put("correct", 10);
         MapLookupByPathExpression<Map<String, Object>> expr =
-            new MapLookupByPathExpression<>(Function.identity(), Collections.singletonList("incorrect"), Function.identity());
+            new MapLookupByPathExpression<>(Function.identity(), Collections.singletonList("incorrect"), UnaryOperator.identity());
 
         expr.setNextRow(m);
         assertThat(expr.value(), Matchers.nullValue());
@@ -49,7 +50,7 @@ public class MapLookupByPathExpressionTest {
         HashMap<String, Object> m = new HashMap<>();
         m.put("correct", 10);
         MapLookupByPathExpression<Map<String, Object>> expr =
-            new MapLookupByPathExpression<>(Function.identity(), Collections.singletonList("correct"), Function.identity());
+            new MapLookupByPathExpression<>(Function.identity(), Collections.singletonList("correct"), UnaryOperator.identity());
 
         expr.setNextRow(m);
         assertThat(expr.value(), Matchers.is(10));

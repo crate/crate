@@ -115,7 +115,7 @@ public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory
 
         double randomIOExceptionRate = RANDOM_IO_EXCEPTION_RATE_SETTING.get(indexSettings);
         double randomIOExceptionRateOnOpen = RANDOM_IO_EXCEPTION_RATE_ON_OPEN_SETTING.get(indexSettings);
-        random.nextInt(shardId.getId() + 1); // some randomness per shard
+        random.nextInt(shardId.id() + 1); // some randomness per shard
         MockDirectoryWrapper.Throttling throttle = MockDirectoryWrapper.Throttling.NEVER;
         boolean crashIndex = CRASH_INDEX_SETTING.get(indexSettings);
         final ElasticsearchMockDirectoryWrapper w = new ElasticsearchMockDirectoryWrapper(random, dir, crashIndex);

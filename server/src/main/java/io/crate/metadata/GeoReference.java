@@ -21,13 +21,13 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.expression.symbol.Symbol;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
@@ -38,8 +38,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
+import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
@@ -65,6 +67,8 @@ public class GeoReference extends SimpleReference {
                         IndexType indexType,
                         boolean nullable,
                         int position,
+                        long oid,
+                        boolean isDropped,
                         Symbol defaultExpression,
                         String geoTree,
                         String precision,
@@ -78,6 +82,8 @@ public class GeoReference extends SimpleReference {
             nullable,
             false, //Geo shapes don't have doc values
             position,
+            oid,
+            isDropped,
             defaultExpression
         );
         this.geoTree = Objects.requireNonNullElse(geoTree, DEFAULT_TREE);
@@ -166,6 +172,8 @@ public class GeoReference extends SimpleReference {
             indexType,
             nullable,
             position,
+            oid,
+            isDropped,
             defaultExpression,
             geoTree,
             precision,
@@ -175,8 +183,30 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        Map<String, Object> mapping = super.toMapping();
+    public Reference applyColumnOid(LongSupplier oidSupplier) {
+        if (oid != COLUMN_OID_UNASSIGNED) {
+            return this;
+        }
+        return new GeoReference(
+                ident,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                position,
+                oidSupplier.getAsLong(),
+                isDropped,
+                defaultExpression,
+                geoTree,
+                precision,
+                treeLevels,
+                distanceErrorPct
+        );
+    }
+
+    @Override
+    public Map<String, Object> toMapping(int position) {
+        Map<String, Object> mapping = super.toMapping(position);
         Maps.putNonNull(mapping, "tree", geoTree);
         Maps.putNonNull(mapping, "precision", precision);
         Maps.putNonNull(mapping, "tree_levels", treeLevels);

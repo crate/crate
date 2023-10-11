@@ -21,6 +21,8 @@
 
 package io.crate.expression.tablefunctions;
 
+import java.util.List;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.NodeContext;
@@ -29,8 +31,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
-
-import java.util.List;
 
 /**
  * Generates a one row, no column, empty table.
@@ -48,22 +48,8 @@ public class EmptyRowTableFunction {
 
     static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation<Object> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
-
         private EmptyRowTableFunctionImplementation(Signature signature, BoundSignature boundSignature) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
+            super(signature, boundSignature);
         }
 
         @Override

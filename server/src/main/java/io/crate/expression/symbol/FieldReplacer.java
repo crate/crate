@@ -54,8 +54,8 @@ public final class FieldReplacer extends FunctionCopyVisitor<Function<? super Sc
         HashMap<Symbol, Symbol> newIdentBoost = new HashMap<>();
         for (var entry : matchPredicate.identBoostMap().entrySet()) {
             var key = entry.getKey();
-            if (key instanceof ScopedSymbol) {
-                Symbol newKey = mapper.apply((ScopedSymbol) key);
+            if (key instanceof ScopedSymbol scopedSymbol) {
+                Symbol newKey = mapper.apply(scopedSymbol);
                 newIdentBoost.put(newKey, entry.getValue().accept(this, mapper));
             } else {
                 newIdentBoost.put(key, entry.getValue().accept(this, mapper));

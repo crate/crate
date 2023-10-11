@@ -23,7 +23,9 @@ package io.crate.expression.reference;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import io.crate.common.collections.Maps;
@@ -36,6 +38,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from {@link Doc}
@@ -112,13 +116,31 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                     } catch (ClassCastException | ConversionException e) {
                         // due to a bug: https://github.com/crate/crate/issues/13990
                         Object value = ValueExtractors.fromMap(response.getSource(), column);
-                        if (value instanceof List<?> list && list.stream().allMatch(Objects::isNull) &&
-                            !(ref.valueType() instanceof ArrayType<?>)) {
-                            return null;
-                        }
-                        throw e;
+                        return replaceArraysWithNull(value, ref.valueType(), e);
                     }
                 });
+
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object replaceArraysWithNull(Object value, DataType<?> valueType, RuntimeException e)
+        throws RuntimeException {
+
+        if (value instanceof List<?> list && list.stream().allMatch(Objects::isNull) &&
+            valueType.id() != ArrayType.ID) {
+            return null;
+        } else if (value instanceof Map<?, ?> valueMap) {
+            Map newMap = new HashMap<>(valueMap.size());
+            for (var entry : valueMap.entrySet()) {
+                Object entryKey = entry.getKey();
+                Object entryValue = entry.getValue();
+                DataType<?> innerType = ((ObjectType) valueType).innerType((String) entryKey);
+                newMap.put(entryKey, replaceArraysWithNull(entryValue, innerType, e));
+            }
+            return newMap;
+        } else {
+            throw e;
         }
     }
 }

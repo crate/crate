@@ -33,8 +33,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -48,6 +46,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
@@ -104,9 +103,9 @@ public class StringType extends DataType<String> implements Streamer<String> {
         @SuppressWarnings({"rawtypes", "unchecked"})
         public ValueIndexer<Object> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            FieldType fieldType = getFieldType.apply(ref.column());
+            FieldType fieldType = getFieldType.apply(ref.storageIdent());
             if (fieldType == null) {
                 return (ValueIndexer) new StringIndexer(ref, fieldType);
             }
@@ -232,12 +231,12 @@ public class StringType extends DataType<String> implements Streamer<String> {
                     getName().toUpperCase(Locale.ENGLISH)
                 )
             );
-        } else if (value instanceof TimeValue) {
-            return ((TimeValue) value).getStringRep();
-        } else if (value instanceof Regproc) {
-            return ((Regproc) value).name();
-        } else if (value instanceof Regclass) {
-            return ((Regclass) value).name();
+        } else if (value instanceof TimeValue timeValue) {
+            return timeValue.getStringRep();
+        } else if (value instanceof Regproc regproc) {
+            return regproc.name();
+        } else if (value instanceof Regclass regclass) {
+            return regclass.name();
         } else if (value instanceof BitString bitString) {
             return bitString.asPrefixedBitString();
         } else {
@@ -259,24 +258,21 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String valueForInsert(Object value) {
+    public String valueForInsert(String value) {
         if (value == null) {
             return null;
         }
-        assert value instanceof String
-            : "valueForInsert must be called only on objects of String type";
-        var string = (String) value;
-        if (unbound() || string.length() <= lengthLimit) {
-            return string;
+        if (unbound() || value.length() <= lengthLimit) {
+            return value;
         } else {
-            if (isBlank(string, lengthLimit, string.length())) {
-                return string.substring(0, lengthLimit);
+            if (isBlank(value, lengthLimit, value.length())) {
+                return value.substring(0, lengthLimit);
             } else {
-                if (string.length() > 20) {
-                    string = string.substring(0, 20) + "...";
+                if (value.length() > 20) {
+                    value = value.substring(0, 20) + "...";
                 }
                 throw new IllegalArgumentException(
-                    "'" + string + "' is too long for the text type of length: " + lengthLimit);
+                    "'" + value + "' is too long for the text type of length: " + lengthLimit);
             }
         }
     }
@@ -285,8 +281,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public String sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof BytesRef) {
-            return ((BytesRef) value).utf8ToString();
+        } else if (value instanceof BytesRef bytesRef) {
+            return bytesRef.utf8ToString();
         } else {
             return (String) value;
         }
@@ -296,12 +292,13 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
         if (explicitCast) {
             if (other instanceof ArrayType<?> arrayType) {
-                if (arrayType.innerType().id() == ID) {
-                    return true;
-                }
-                if (arrayType.innerType().id() == JsonType.ID) {
-                    return true;
-                }
+                int innerTypeId = arrayType.innerType().id();
+                return switch (innerTypeId) {
+                    case ID -> true;
+                    case JsonType.ID -> true;
+                    case ObjectType.ID -> true;
+                    default -> super.isConvertableTo(other, explicitCast);
+                };
             } else if (other.id() == IntervalType.ID) {
                 return true;
             }

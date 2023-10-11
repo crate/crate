@@ -79,9 +79,9 @@ public class OidHashTest extends CrateDummyClusterServiceUnitTest {
     public void test_argTypesToStr() {
         assertThat(OidHash
                        .argTypesToStr(List.of(
-                           TypeSignature.parseTypeSignature("array(array(E))"),
-                           TypeSignature.parseTypeSignature("array(Q)"),
-                           TypeSignature.parseTypeSignature("P"),
+                           TypeSignature.parse("array(array(E))"),
+                           TypeSignature.parse("array(Q)"),
+                           TypeSignature.parse("P"),
                            DataTypes.INTEGER.getTypeSignature()
                        )), is("array_array_E array_Q P integer"));
     }
