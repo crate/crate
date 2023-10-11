@@ -47,7 +47,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
-    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, true, null) {
+    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
 
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
