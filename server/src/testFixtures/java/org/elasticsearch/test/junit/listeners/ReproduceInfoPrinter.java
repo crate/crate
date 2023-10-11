@@ -30,8 +30,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.runner.Description;
 import org.junit.runner.notification.Failure;
@@ -73,20 +73,19 @@ public class ReproduceInfoPrinter extends RunListener {
             return;
         }
 
-        final String gradlew = Constants.WINDOWS ? "gradlew" : "./gradlew";
-        final StringBuilder b = new StringBuilder("REPRODUCE WITH: " + gradlew + " ");
-        b.append(System.getProperty("tests.task"));
-        // append Gradle test runner test filter string
-        b.append(" --tests \"");
+        final String mvnw = Constants.WINDOWS ? "mvnw" : "./mvnw";
+        final StringBuilder b = new StringBuilder("REPRODUCE WITH: " + mvnw);
+        b.append(" -pl server test");
+        b.append(" \"-Dtest=");
         b.append(failure.getDescription().getClassName());
         String methodName = failure.getDescription().getMethodName();
         if (methodName != null) {
-            b.append(".");
+            b.append("#");
             b.append(methodName);
         }
         b.append("\"");
-        GradleMessageBuilder gradleMessageBuilder = new GradleMessageBuilder(b);
-        gradleMessageBuilder.appendAllOpts(failure.getDescription());
+        MessageBuilder messageBuilder = new MessageBuilder(b);
+        messageBuilder.appendAllOpts(failure.getDescription());
 
         printToErr(b.toString());
     }
@@ -96,9 +95,9 @@ public class ReproduceInfoPrinter extends RunListener {
         System.err.println(s);
     }
 
-    protected static class GradleMessageBuilder extends ReproduceErrorMessageBuilder {
+    protected static class MessageBuilder extends ReproduceErrorMessageBuilder {
 
-        public GradleMessageBuilder(StringBuilder b) {
+        public MessageBuilder(StringBuilder b) {
             super(b);
         }
 
