@@ -114,6 +114,9 @@ public record JoinGraph(
     }
 
     JoinGraph withFilters(List<Symbol> filters) {
+        if (filters.isEmpty()) {
+            return this;
+        }
         var newFilters = Lists2.concat(this.filters, filters);
         return new JoinGraph(this.nodes, edges, newFilters, this.hasCrossJoin);
     }
@@ -181,6 +184,7 @@ public record JoinGraph(
 
             var joinCondition = joinPlan.joinCondition();
             var edgeCollector = new EdgeCollector();
+            var filters = new ArrayList<Symbol>();
             if (joinCondition != null) {
                 var split = QuerySplitter.split(joinCondition);
                 for (var entry : split.entrySet()) {
@@ -191,10 +195,12 @@ public record JoinGraph(
                     // two keys.
                     if (entry.getKey().size() == 2) {
                         entry.getValue().accept(edgeCollector, context);
+                    } else {
+                        filters.add(entry.getValue());
                     }
                 }
             }
-            return left.joinWith(right).withEdges(edgeCollector.edges);
+            return left.joinWith(right).withEdges(edgeCollector.edges).withFilters(filters);
         }
 
         private static class EdgeCollector extends SymbolVisitor<Map<Symbol, LogicalPlan>, Void> {

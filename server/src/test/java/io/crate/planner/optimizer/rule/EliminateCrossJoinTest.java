@@ -501,4 +501,33 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.c | [z] | true]"
         );
     }
+
+    /**
+     * https://github.com/crate/crate/issues/14854
+     */
+    @Test
+    public void test_graph_with_constant_join_conditions_become_filters() throws Exception {
+        var joinCondition = e.asSymbol("a.x = b.y AND a.x > 1");
+        var join = new JoinPlan(a, b, JoinType.INNER, joinCondition);
+
+        assertThat(join).hasOperators(
+            "Join[INNER | ((x = y) AND (x > 1))]",
+            "  ├ Collect[doc.a | [x] | true]",
+            "  └ Collect[doc.b | [y] | true]"
+        );
+
+        JoinGraph joinGraph = JoinGraph.create(join, Function.identity());
+        assertThat(joinGraph.nodes()).containsExactly(a, b);
+        assertThat(joinGraph.edges()).hasSize(2);
+        assertThat(joinGraph.filters()).hasSize(1);
+        assertThat(joinGraph.filters().get(0)).isEqualTo(e.asSymbol("a.x > 1"));
+
+        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(b, a));
+        assertThat(reordered).hasOperators(
+          "Filter[(x > 1)]",
+              "  └ Join[INNER | (x = y)]",
+              "    ├ Collect[doc.b | [y] | true]",
+              "    └ Collect[doc.a | [x] | true]"
+        );
+    }
 }
