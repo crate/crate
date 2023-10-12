@@ -65,11 +65,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed an issue that caused privileges checks to be bypassed when using scalar
-  sub-selects in various clauses of a query: ``SELECT``, ``WHERE``, ``HAVING``,
-  etc.
-
-- Fixed an issue that led to file not found errors when trying to restore a
-  snapshot that was taken after a table had been swapped. A new snapshot
-  must be taken to apply the fix and solve the issue. This issue was not fully
-  addressed with :ref:`version_5.2.9`.
+None
