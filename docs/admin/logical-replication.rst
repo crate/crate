@@ -30,6 +30,8 @@ Logical replication is useful for the following use cases:
 - Ensure high availability if one cluster becomes unavailable.
 
 - Replicating between different compatible versions of CrateDB.
+  Replicating tables created on a cluster with higher major/minor version to a
+  cluster with lower major/minor version is not supported.
 
 
 .. SEEALSO::

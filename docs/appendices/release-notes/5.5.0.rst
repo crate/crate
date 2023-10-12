@@ -54,6 +54,10 @@ Breaking Changes
 - `UPDATE`` statements will continue on row failures instead of always showing 
   an error. The affected rows are displayed by the resulting row count.
 
+- Restricted :ref:`Logical Replication <administration-logical-replication>` of
+  tables created on a cluster with higher major/minor version to a cluster with
+  major/minor lower version.
+
 Deprecations
 ============
 
