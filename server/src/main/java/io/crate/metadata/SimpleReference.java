@@ -351,6 +351,9 @@ public class SimpleReference implements Reference {
         if (oid != reference.oid) {
             return false;
         }
+        if (isDropped != reference.isDropped()) {
+            return false;
+        }
         return Objects.equals(defaultExpression, reference.defaultExpression);
     }
 
@@ -365,6 +368,7 @@ public class SimpleReference implements Reference {
         result = 31 * result + (nullable ? 1 : 0);
         result = 31 * result + (hasDocValues ? 1 : 0);
         result = 31 * result + Long.hashCode(oid);
+        result = 31 * result + Boolean.hashCode(isDropped);
         result = 31 * result + (defaultExpression != null ? defaultExpression.hashCode() : 0);
         return result;
     }
