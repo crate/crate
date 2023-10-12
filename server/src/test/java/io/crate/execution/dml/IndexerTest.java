@@ -1336,4 +1336,40 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 """
         );
     }
+
+    /**
+     * The {@link DocumentMapper#parse(SourceToParse)} is used to parse translog entries, ensure it can parse
+     * a document containing OID's instead of column names.
+     */
+    @UseNewCluster
+    @Test
+    public void test_document_parser_can_read_source_with_oids() throws Exception {
+        var tableName = "tbl";
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (i int, o object as (x int))")
+            .build();
+
+        Indexer indexer = getIndexer(e, tableName, NumberFieldMapper.FIELD_TYPE, "i", "o");
+
+        ParsedDocument doc = indexer.index(item(1, Map.of("x", 2)));
+        // Ensure source contains OID's instead of column names
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"1":1,"2":{"3":2}}
+            """
+        );
+
+        var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
+        var mapping = clusterService.state().metadata().index(indexName).mapping().source().uncompressed().utf8ToString();
+        DocumentMapper mapper = mapper(indexName, mapping);
+
+        // Assert that a field mapper is registered using a OID instead of column name
+        assertThat(mapper.mappers().getMapper("1")).isNotNull();
+
+        // Ensure source containing OID's instead of column names can be parsed by the document mapper
+        ParsedDocument docFromSource = mapper.parse(
+            new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
+        );
+        assertThat(doc.source()).isEqualTo(docFromSource.source());
+    }
 }
