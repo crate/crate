@@ -62,19 +62,22 @@ public class IntIndexer implements ValueIndexer<Number> {
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.value(value);
         int intValue = value.intValue();
-        if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            addField.accept(new IntField(name, intValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
-        } else {
-            if (ref.indexType() != IndexType.NONE) {
+        if (ref.indexType() != IndexType.NONE) {
+            if (ref.hasDocValues()) {
+                addField.accept(new IntField(name, intValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
+            } else {
                 addField.accept(new IntPoint(name, intValue));
+                addField.accept(new Field(
+                    FieldNamesFieldMapper.NAME,
+                    name,
+                    FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                if (fieldType.stored()) {
+                    addField.accept(new StoredField(name, intValue));
+                }
             }
+        } else {
             if (ref.hasDocValues()) {
                 addField.accept(new SortedNumericDocValuesField(name, intValue));
-            } else {
-                addField.accept(new Field(
-                        FieldNamesFieldMapper.NAME,
-                        name,
-                        FieldNamesFieldMapper.Defaults.FIELD_TYPE));
             }
             if (fieldType.stored()) {
                 addField.accept(new StoredField(name, intValue));

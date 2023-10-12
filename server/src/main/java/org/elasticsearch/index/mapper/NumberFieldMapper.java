@@ -445,17 +445,18 @@ public class NumberFieldMapper extends FieldMapper {
             numericValue = fieldType().type.parse(value, true);
         }
 
+        boolean isSearchable = fieldType().isSearchable();
         boolean docValued = fieldType().hasDocValues();
         boolean stored = fieldType.stored();
         fieldType().type.createFields(
             onField,
             fieldType().name(),
             numericValue,
-            fieldType().isSearchable(),
+            isSearchable,
             docValued,
             stored
         );
-        if (docValued == false && (stored || fieldType().isSearchable())) {
+        if (isSearchable && !docValued) {
             createFieldNamesField(context, onField);
         }
     }
