@@ -76,6 +76,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
                                                          true,
                                                          defaultExpression2);
         assertThat(reference1).isEqualTo(reference2);
+        assertThat(reference2).isNotEqualTo(reference2.withDropped(false));
     }
 
     @Test
