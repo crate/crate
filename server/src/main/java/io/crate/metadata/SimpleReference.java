@@ -144,7 +144,7 @@ public class SimpleReference implements Reference {
      * Returns a cloned Reference with the given ident
      */
     @Override
-    public Reference getRelocated(ReferenceIdent newIdent) {
+    public Reference withReferenceIdent(ReferenceIdent newIdent) {
         return new SimpleReference(
             newIdent,
             granularity,
@@ -161,7 +161,7 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference applyColumnOid(LongSupplier oidSupplier) {
+    public Reference withColumnOid(LongSupplier oidSupplier) {
         if (oid != COLUMN_OID_UNASSIGNED) {
             return this;
         }
@@ -177,6 +177,23 @@ public class SimpleReference implements Reference {
                 oidSupplier.getAsLong(),
                 isDropped,
                 defaultExpression
+        );
+    }
+
+    @Override
+    public Reference withDropped(boolean dropped) {
+        return new SimpleReference(
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            dropped,
+            defaultExpression
         );
     }
 
@@ -258,11 +275,6 @@ public class SimpleReference implements Reference {
         return isDropped;
     }
 
-    @Override
-    public void setDropped() {
-        this.isDropped = true;
-    }
-
     @Nullable
     @Override
     public Symbol defaultExpression() {
@@ -339,6 +351,9 @@ public class SimpleReference implements Reference {
         if (oid != reference.oid) {
             return false;
         }
+        if (isDropped != reference.isDropped()) {
+            return false;
+        }
         return Objects.equals(defaultExpression, reference.defaultExpression);
     }
 
@@ -353,6 +368,7 @@ public class SimpleReference implements Reference {
         result = 31 * result + (nullable ? 1 : 0);
         result = 31 * result + (hasDocValues ? 1 : 0);
         result = 31 * result + Long.hashCode(oid);
+        result = 31 * result + Boolean.hashCode(isDropped);
         result = 31 * result + (defaultExpression != null ? defaultExpression.hashCode() : 0);
         return result;
     }

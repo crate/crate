@@ -74,8 +74,6 @@ public interface Reference extends Symbol {
 
     boolean isDropped();
 
-    void setDropped();
-
     boolean hasDocValues();
 
     @Nullable
@@ -83,9 +81,11 @@ public interface Reference extends Symbol {
 
     boolean isGenerated();
 
-    Reference getRelocated(ReferenceIdent referenceIdent);
+    Reference withReferenceIdent(ReferenceIdent referenceIdent);
 
-    Reference applyColumnOid(LongSupplier oidSupplier);
+    Reference withColumnOid(LongSupplier oidSupplier);
+
+    Reference withDropped(boolean dropped);
 
     /**
      * Return the identifier of this column used inside the storage engine

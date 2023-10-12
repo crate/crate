@@ -94,7 +94,7 @@ public final class DocReferences {
         }
         if (reference.granularity() == RowGranularity.DOC && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())
             && condition.test(reference)) {
-            return reference.getRelocated(
+            return reference.withReferenceIdent(
                 new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.Names.DOC)));
         }
         return reference;
@@ -103,7 +103,7 @@ public final class DocReferences {
     public static Reference docRefToRegularRef(Reference ref) {
         ColumnIdent column = ref.column();
         if (!column.isRoot() && column.name().equals(DocSysColumns.Names.DOC)) {
-            return ref.getRelocated(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));
+            return ref.withReferenceIdent(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));
         }
         return ref;
     }
@@ -113,7 +113,7 @@ public final class DocReferences {
         List<Reference> references = new ArrayList<>(sourceReferences.size());
         Map<ColumnIdent, Reference> referencesMap = new HashMap<>(sourceReferences.size());
         for (var ref : sourceReferences) {
-            var newRef = ref.applyColumnOid(columnOidSupplier);
+            var newRef = ref.withColumnOid(columnOidSupplier);
             references.add(newRef);
             referencesMap.put(newRef.column(), newRef);
         }
