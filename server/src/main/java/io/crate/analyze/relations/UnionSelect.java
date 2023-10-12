@@ -89,12 +89,16 @@ public class UnionSelect implements AnalyzedRelation {
 
     @Override
     public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
+        Symbol field = null;
         for (var output : outputs) {
             if (output.column().equals(column)) {
-                return output;
+                if (field != null) {
+                    throw new AmbiguousColumnException(output.column(), output);
+                }
+                field = output;
             }
         }
-        return null;
+        return field;
     }
 
     @Override
