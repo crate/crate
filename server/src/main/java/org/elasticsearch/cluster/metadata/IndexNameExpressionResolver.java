@@ -237,7 +237,6 @@ public class IndexNameExpressionResolver {
                 AliasOrIndex.Alias alias = (AliasOrIndex.Alias) aliasOrIndex;
                 for (Tuple<String, AliasMetadata> item : alias.getConcreteIndexAndAliasMetadatas()) {
                     String concreteIndex = item.v1();
-                    AliasMetadata aliasMetadata = item.v2();
                     if (!norouting.contains(concreteIndex)) {
                         // Non-routing alias
                         if (!norouting.contains(concreteIndex)) {

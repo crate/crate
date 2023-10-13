@@ -917,6 +917,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         assertThat(relation.where()).isSQL("(doc.users.name = 'Arthur')");
         AnalyzedRelation users = relation.from().get(0);
+        assertThat(users.relationName().fqn()).isEqualTo("doc.users");
     }
 
     public void testSelfJoinSyntaxWithWhereClause() throws Exception {

@@ -898,7 +898,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (x int, y int generated always as x + 1)")
             .build();
-        DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x");
         IndexItem item = item(new Object[] { null });
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
@@ -1053,7 +1052,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_indexing_ip_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
-        var idx = 0;
         var tableName = "tbl";
         var dt = IpType.INSTANCE;
         SQLExecutor e = SQLExecutor.builder(clusterService)
@@ -1091,7 +1089,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_indexing_bitstring_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
-        var idx = 0;
         var tableName = "tbl";
         var dt = BitStringType.INSTANCE_ONE;
         SQLExecutor e = SQLExecutor.builder(clusterService)
@@ -1130,7 +1127,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_indexing_boolean_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
-        var idx = 0;
         var tableName = "tbl";
         var dt = BooleanType.INSTANCE;
         SQLExecutor e = SQLExecutor.builder(clusterService)

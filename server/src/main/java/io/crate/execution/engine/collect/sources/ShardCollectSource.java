@@ -34,8 +34,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -58,6 +56,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
@@ -394,7 +393,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 return CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
             }
             throw Exceptions.toRuntimeException(err);
-        } else if (err instanceof ShardNotFoundException || err instanceof IllegalIndexShardStateException e) {
+        } else if (err instanceof ShardNotFoundException || err instanceof IllegalIndexShardStateException) {
             // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
             // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
             // and the reader required in the fetchPhase would be missing.

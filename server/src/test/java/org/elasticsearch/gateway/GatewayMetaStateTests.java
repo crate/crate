@@ -240,29 +240,6 @@ public class GatewayMetaStateTests extends ESTestCase {
         }
     }
 
-    private static class CustomMetadata2 extends TestCustomMetadata {
-        public static final String TYPE = "custom_md_2";
-
-        protected CustomMetadata2(String data) {
-            super(data);
-        }
-
-        @Override
-        public String getWriteableName() {
-            return TYPE;
-        }
-
-        @Override
-        public Version getMinimalSupportedVersion() {
-            return Version.CURRENT;
-        }
-
-        @Override
-        public EnumSet<Metadata.XContentContext> context() {
-            return EnumSet.of(Metadata.XContentContext.GATEWAY);
-        }
-    }
-
     public static Metadata randomMetadata(TestCustomMetadata... customMetadatas) {
         Metadata.Builder builder = Metadata.builder();
         for (TestCustomMetadata customMetadata : customMetadatas) {

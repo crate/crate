@@ -416,7 +416,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     "Mappings are not available on the replica yet, triggered update: " + newColumns);
             }
 
-            ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);
+            ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
 
             Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
             boolean isRetry = false;
@@ -569,7 +569,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
 
-        ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);
+        ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
 
         // Replica must use the same values for undeterministic defaults/generated columns
         // This check must be done after index() call to let values/indexers size check compare original array sizes.

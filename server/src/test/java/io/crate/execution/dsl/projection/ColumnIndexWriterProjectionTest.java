@@ -88,8 +88,4 @@ public class ColumnIndexWriterProjectionTest {
     private Reference ref(ColumnIdent column, DataType<?> type) {
         return new SimpleReference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, 0, null);
     }
-
-    private Reference partitionRef(ColumnIdent column, DataType<?> type) {
-        return new SimpleReference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, 0, null);
-    }
 }
