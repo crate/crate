@@ -16,6 +16,17 @@
 
 package org.elasticsearch.common.inject.util;
 
+import static java.util.Collections.unmodifiableSet;
+
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Binder;
 import org.elasticsearch.common.inject.Binding;
@@ -29,17 +40,6 @@ import org.elasticsearch.common.inject.spi.Element;
 import org.elasticsearch.common.inject.spi.Elements;
 import org.elasticsearch.common.inject.spi.PrivateElements;
 import org.elasticsearch.common.inject.spi.ScopeBinding;
-
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static java.util.Collections.unmodifiableSet;
 
 /**
  * Static utility methods for creating and working with instances of {@link Module}.
@@ -153,7 +153,7 @@ public final class Modules {
                     final List<Element> elements = Elements.getElements(baseModules);
                     final List<Element> overrideElements = Elements.getElements(overrides);
 
-                    final Set<Key> overriddenKeys = new HashSet<>();
+                    final Set<Key<?>> overriddenKeys = new HashSet<>();
                     final Set<Class<? extends Annotation>> overridesScopeAnnotations = new HashSet<>();
 
                     // execute the overrides module, keeping track of which keys and scopes are bound
@@ -216,8 +216,7 @@ public final class Modules {
                             // we're not skipping deep exposes, but that should be okay. If we ever need to, we
                             // have to search through this set of elements for PrivateElements, recursively
                             for (Element element : privateElements.getElements()) {
-                                if (element instanceof Binding
-                                        && skippedExposes.contains(((Binding) element).getKey())) {
+                                if (element instanceof Binding<?> b && skippedExposes.contains(b.getKey())) {
                                     continue;
                                 }
                                 element.applyTo(privateBinder);
@@ -256,7 +255,7 @@ public final class Modules {
                 }
 
                 private Scope getScopeInstanceOrNull(Binding<?> binding) {
-                    return binding.acceptScopingVisitor(new DefaultBindingScopingVisitor<Scope>() {
+                    return binding.acceptScopingVisitor(new DefaultBindingScopingVisitor<>() {
                         @Override
                         public Scope visitScope(Scope scope) {
                             return scope;

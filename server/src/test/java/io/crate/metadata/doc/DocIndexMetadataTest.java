@@ -1138,7 +1138,6 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
         ViewInfoFactory viewInfoFactory = new ViewInfoFactory(() -> null);
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, nodeCtx, udfService, viewInfoFactory, docTableInfoFactory);
         Path homeDir = createTempDir();
         FulltextAnalyzerResolver fulltextAnalyzerResolver = new FulltextAnalyzerResolver(
             clusterService,

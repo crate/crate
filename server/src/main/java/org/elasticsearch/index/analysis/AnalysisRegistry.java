@@ -469,12 +469,11 @@ public final class AnalysisRegistry implements Closeable {
 
         Index index = indexSettings.getIndex();
         analyzerProviders = new HashMap<>(analyzerProviders);
-        Map<String, NamedAnalyzer> analyzerAliases = new HashMap<>();
         Map<String, NamedAnalyzer> analyzers = new HashMap<>();
         Map<String, NamedAnalyzer> normalizers = new HashMap<>();
         Map<String, NamedAnalyzer> whitespaceNormalizers = new HashMap<>();
         for (Map.Entry<String, AnalyzerProvider<?>> entry : analyzerProviders.entrySet()) {
-            processAnalyzerFactory(indexSettings, entry.getKey(), entry.getValue(), analyzerAliases, analyzers,
+            processAnalyzerFactory(indexSettings, entry.getKey(), entry.getValue(), analyzers,
                 tokenFilterFactoryFactories, charFilterFactoryFactories, tokenizerFactoryFactories);
         }
         for (Map.Entry<String, AnalyzerProvider<?>> entry : normalizerProviders.entrySet()) {
@@ -483,20 +482,10 @@ public final class AnalysisRegistry implements Closeable {
             processNormalizerFactory(entry.getKey(), entry.getValue(), whitespaceNormalizers,
                     "whitespace", WhitespaceTokenizer::new, tokenFilterFactoryFactories, charFilterFactoryFactories);
         }
-        for (Map.Entry<String, NamedAnalyzer> entry : analyzerAliases.entrySet()) {
-            String key = entry.getKey();
-            if (analyzers.containsKey(key) &&
-                ("default".equals(key) || "default_search".equals(key) || "default_search_quoted".equals(key)) == false) {
-                throw new IllegalStateException("already registered analyzer with name: " + key);
-            } else {
-                NamedAnalyzer configured = entry.getValue();
-                analyzers.put(key, configured);
-            }
-        }
 
         if (!analyzers.containsKey("default")) {
             processAnalyzerFactory(indexSettings, "default", new StandardAnalyzerProvider(indexSettings, null, "default", Settings.Builder.EMPTY_SETTINGS),
-                analyzerAliases, analyzers, tokenFilterFactoryFactories, charFilterFactoryFactories, tokenizerFactoryFactories);
+                analyzers, tokenFilterFactoryFactories, charFilterFactoryFactories, tokenizerFactoryFactories);
         }
         if (!analyzers.containsKey("default_search")) {
             analyzers.put("default_search", analyzers.get("default"));
@@ -538,9 +527,10 @@ public final class AnalysisRegistry implements Closeable {
     private void processAnalyzerFactory(IndexSettings indexSettings,
                                         String name,
                                         AnalyzerProvider<?> analyzerFactory,
-                                        Map<String, NamedAnalyzer> analyzerAliases,
-                                        Map<String, NamedAnalyzer> analyzers, Map<String, TokenFilterFactory> tokenFilters,
-                                        Map<String, CharFilterFactory> charFilters, Map<String, TokenizerFactory> tokenizers) {
+                                        Map<String, NamedAnalyzer> analyzers,
+                                        Map<String, TokenFilterFactory> tokenFilters,
+                                        Map<String, CharFilterFactory> charFilters,
+                                        Map<String, TokenizerFactory> tokenizers) {
         /*
          * Lucene defaults positionIncrementGap to 0 in all analyzers but
          * Elasticsearch defaults them to 0 only before version 2.0
@@ -548,8 +538,8 @@ public final class AnalysisRegistry implements Closeable {
          * doesn't match here.
          */
         int overridePositionIncrementGap = TextFieldMapper.Defaults.POSITION_INCREMENT_GAP;
-        if (analyzerFactory instanceof CustomAnalyzerProvider) {
-            ((CustomAnalyzerProvider) analyzerFactory).build(tokenizers, charFilters, tokenFilters);
+        if (analyzerFactory instanceof CustomAnalyzerProvider customAnalyzerProvider) {
+            customAnalyzerProvider.build(tokenizers, charFilters, tokenFilters);
             /*
              * Custom analyzers already default to the correct, version
              * dependent positionIncrementGap and the user is be able to

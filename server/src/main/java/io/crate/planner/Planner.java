@@ -95,7 +95,6 @@ import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.consumer.CreateTableAsPlan;
 import io.crate.planner.consumer.UpdatePlanner;
@@ -163,7 +162,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final LogicalPlanner logicalPlanner;
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
-    private final Schemas schemas;
     private final UserManager userManager;
     private final SessionSettingRegistry sessionSettingRegistry;
 
@@ -176,7 +174,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    TableStats tableStats,
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
-                   Schemas schemas,
                    UserManager userManager,
                    SessionSettingRegistry sessionSettingRegistry) {
         this.clusterService = clusterService;
@@ -184,7 +181,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this.logicalPlanner = new LogicalPlanner(nodeCtx, () -> clusterService.state().nodes().getMinNodeVersion());
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
-        this.schemas = schemas;
         this.userManager = userManager;
         this.sessionSettingRegistry = sessionSettingRegistry;
         initAwarenessAttributes(settings);

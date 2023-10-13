@@ -197,9 +197,6 @@ public class Session implements AutoCloseable {
     /**
      * Execute a query in one step, avoiding the parse/bind/execute/sync procedure.
      * Opposed to using parse/bind/execute/sync this method is thread-safe.
-     *
-     * @param parse A function to parse the statement; This can be used to cache the parsed statement.
-     *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
      */
     public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
@@ -605,23 +602,22 @@ public class Session implements AutoCloseable {
                 LOGGER.debug("method=sync deferredExecutions=0");
                 return CompletableFuture.completedFuture(null);
             case 1: {
-                var entry = deferredExecutionsByStmt.entrySet().iterator().next();
+                var deferredExecutions = deferredExecutionsByStmt.values().iterator().next();
                 deferredExecutionsByStmt.clear();
-                return exec(entry.getKey(), entry.getValue());
+                return exec(deferredExecutions);
             }
             default: {
                 // sequentiallize execution to ensure client receives row counts in correct order
                 CompletableFuture<?> allCompleted = null;
                 for (var entry : deferredExecutionsByStmt.entrySet()) {
-                    var statement = entry.getKey();
                     var deferredExecutions = entry.getValue();
                     if (allCompleted == null) {
-                        allCompleted = exec(statement, deferredExecutions);
+                        allCompleted = exec(deferredExecutions);
                     } else {
                         allCompleted = allCompleted
                             // individual rowReceiver will receive failure; must not break execution chain due to failures.
                             .exceptionally(swallowException -> null)
-                            .thenCompose(ignored -> exec(statement, deferredExecutions));
+                            .thenCompose(ignored -> exec(deferredExecutions));
                     }
                 }
                 deferredExecutionsByStmt.clear();
@@ -630,16 +626,16 @@ public class Session implements AutoCloseable {
         }
     }
 
-    private CompletableFuture<?> exec(Statement statement, List<DeferredExecution> executions) {
+    private CompletableFuture<?> exec(List<DeferredExecution> executions) {
         if (executions.size() == 1) {
             var toExec = executions.get(0);
             return singleExec(toExec.portal(), toExec.resultReceiver(), toExec.maxRows());
         } else {
-            return bulkExec(statement, executions);
+            return bulkExec(executions);
         }
     }
 
-    private CompletableFuture<?> bulkExec(Statement statement, List<DeferredExecution> toExec) {
+    private CompletableFuture<?> bulkExec(List<DeferredExecution> toExec) {
         assert toExec.size() >= 1 : "Must have at least 1 deferred execution for bulk exec";
         mostRecentJobID = UUIDs.dirtyUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());

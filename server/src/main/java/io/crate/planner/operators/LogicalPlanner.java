@@ -230,12 +230,7 @@ public class LogicalPlanner {
         }
         PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, fetchSize);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
-        var planBuilder = new PlanBuilder(
-            subqueryPlanner,
-            txnCtx,
-            plannerContext.planStats(),
-            subSelectPlannerContext.params()
-        );
+        var planBuilder = new PlanBuilder(subqueryPlanner, plannerContext.planStats());
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
@@ -277,12 +272,7 @@ public class LogicalPlanner {
                             boolean avoidTopLevelFetch) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         PlanStats planStats = plannerContext.planStats();
-        var planBuilder = new PlanBuilder(
-            subqueryPlanner,
-            coordinatorTxnCtx,
-            planStats,
-            plannerContext.params()
-        );
+        var planBuilder = new PlanBuilder(subqueryPlanner, planStats);
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx);
@@ -311,15 +301,11 @@ public class LogicalPlanner {
 
         private final SubqueryPlanner subqueryPlanner;
         private final PlanStats planStats;
-        private final Row params;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
-                            CoordinatorTxnCtx txnCtx,
-                            PlanStats planStats,
-                            Row params) {
+                            PlanStats planStats) {
             this.subqueryPlanner = subqueryPlanner;
             this.planStats = planStats;
-            this.params = params;
         }
 
         @Override

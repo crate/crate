@@ -138,8 +138,7 @@ public class JoinPlanBuilder {
                 nextRel,
                 joinNames,
                 joinPairsByRelations,
-                queryParts,
-                lhs
+                queryParts
             );
             joinNames.add(nextRel.relationName());
         }
@@ -198,8 +197,7 @@ public class JoinPlanBuilder {
                                             AnalyzedRelation nextRel,
                                             Set<RelationName> joinNames,
                                             Map<Set<RelationName>, JoinPair> joinPairs,
-                                            Map<Set<RelationName>, Symbol> queryParts,
-                                            AnalyzedRelation leftRelation) {
+                                            Map<Set<RelationName>, Symbol> queryParts) {
         RelationName nextName = nextRel.relationName();
 
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);

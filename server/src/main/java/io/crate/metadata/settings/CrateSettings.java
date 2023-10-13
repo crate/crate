@@ -129,7 +129,7 @@ public final class CrateSettings {
     public static void flattenSettings(Settings.Builder settingsBuilder,
                                        String key,
                                        Object value) {
-        if (value instanceof Map<?, ?> m) {
+        if (value instanceof Map<?, ?>) {
             for (Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()) {
                 flattenSettings(
                     settingsBuilder,
