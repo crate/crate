@@ -12,7 +12,6 @@ Icon\r\r
 build/
 
 # intellij files
-.idea/
 .shelf/
 *.iml
 *.ipr

@@ -218,7 +218,7 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Reference getRelocated(ReferenceIdent newIdent) {
+    public Reference withReferenceIdent(ReferenceIdent newIdent) {
         return new IndexReference(
             newIdent,
             granularity,
@@ -230,6 +230,47 @@ public class IndexReference extends SimpleReference {
             position,
             oid,
             isDropped,
+            defaultExpression,
+            columns,
+            analyzer
+        );
+    }
+
+    @Override
+    public Reference withColumnOid(LongSupplier oidSupplier) {
+        if (oid != COLUMN_OID_UNASSIGNED) {
+            return this;
+        }
+        return new IndexReference(
+                ident,
+                granularity,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                hasDocValues,
+                position,
+                oidSupplier.getAsLong(),
+                isDropped,
+                defaultExpression,
+                columns,
+                analyzer
+        );
+    }
+
+    @Override
+    public Reference withDropped(boolean dropped) {
+        return new IndexReference(
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            dropped,
             defaultExpression,
             columns,
             analyzer
@@ -249,28 +290,6 @@ public class IndexReference extends SimpleReference {
         }
 
         return mapping;
-    }
-
-    @Override
-    public Reference applyColumnOid(LongSupplier oidSupplier) {
-        if (oid != COLUMN_OID_UNASSIGNED) {
-            return this;
-        }
-        return new IndexReference(
-                ident,
-                granularity,
-                type,
-                columnPolicy,
-                indexType,
-                nullable,
-                hasDocValues,
-                position,
-                oidSupplier.getAsLong(),
-                isDropped,
-                defaultExpression,
-                columns,
-                analyzer
-        );
     }
 
     public IndexReference updateColumns(List<Reference> newColumns) {

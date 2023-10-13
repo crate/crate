@@ -106,10 +106,10 @@ public class MappingConstants {
             ",\"properties\":{" +
                 "\"author\":{\"position\":3,\"dynamic\":\"true\",\"properties\":{" +
                     "\"birthday\":{\"type\":\"date\",\"position\":5,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                    "\"name\":{\"type\":\"keyword\",\"position\":4,\"copy_to\":[\"nested_col_fulltext\"]}}}," +
-                "\"description\":{\"type\":\"keyword\",\"position\":2,\"copy_to\":[\"title_desc_fulltext\"]}," +
+                    "\"name\":{\"type\":\"keyword\",\"position\":4}}}," +
+                "\"description\":{\"type\":\"keyword\",\"position\":2}," +
                 "\"nested_col_fulltext\":{\"type\":\"text\",\"position\":7,\"analyzer\":\"stop\",\"sources\":[\"author.name\",\"title\"]}," +
-                "\"title\":{\"type\":\"keyword\",\"position\":1,\"copy_to\":[\"nested_col_fulltext\",\"title_desc_fulltext\"]}," +
+                "\"title\":{\"type\":\"keyword\",\"position\":1}," +
                 "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":6,\"analyzer\":\"standard\",\"sources\":[\"description\",\"title\"]}}}}";
 
     // Obtained by executing test_copy_deep_nested_object_to_partitioned_table_results_in_dynamic_mapping_updates manually.
