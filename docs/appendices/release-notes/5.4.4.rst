@@ -88,25 +88,25 @@ Fixes
   of object types created by ``CREATE TABLE AS`` to be overridden to
   ``strict``.
 
- - Fixed an issue that caused ``RETURNING`` clause, referring to
-   non-deterministic ``GENERATED`` or ``DEFAULT`` columns, return a value, not
-   equal to the actually persisted one.
+- Fixed an issue that caused ``RETURNING`` clause, referring to
+  non-deterministic ``GENERATED`` or ``DEFAULT`` columns, return a value, not
+  equal to the actually persisted one.
 
- - Fixed an issue that caused storing inconsistent values on primary and
-   replica for ``GENERATED`` or ``DEFAULT`` columns, using non-deterministic
-   functions, returning different values even within the scope of a single
-   query. e.g.:: ``gen_random_text_uuid`` and ``random``. Functions like
-   ``NOW`` or ``CURRENT_TIMESTAMP`` are unaffected by this issue.
+- Fixed an issue that caused storing inconsistent values on primary and
+  replica for ``GENERATED`` or ``DEFAULT`` columns, using non-deterministic
+  functions, returning different values even within the scope of a single
+  query. e.g.:: ``gen_random_text_uuid`` and ``random``. Functions like
+  ``NOW`` or ``CURRENT_TIMESTAMP`` are unaffected by this issue.
 
 - Fixed an issue that caused privileges checks to be bypassed when using scalar
   sub-selects in various clauses of a query: ``SELECT``, ``WHERE``, ``HAVING``,
   etc.
 
- - Fixed an issue that caused ``any`` operators such as ``!= any``,
-   ``not like any`` or range operators like ``< any`` to throw
-   ``NullPointerExceptions`` or return invalid results when the left hand side
-   argument is a column and the right hand side argument array contains at
-   least one ``null``.
+- Fixed an issue that caused ``any`` operators such as ``!= any``,
+  ``not like any`` or range operators like ``< any`` to throw
+  ``NullPointerExceptions`` or return invalid results when the left hand side
+  argument is a column and the right hand side argument array contains at
+  least one ``null``.
 
 - Fixed an issue that caused ``(I)LIKE ANY`` operators to fail with an exception
   when comparing non-string expressions.
