@@ -570,7 +570,7 @@ createStmt
     : CREATE TABLE (IF NOT EXISTS)? table
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
          partitionedByOrClusteredInto withProperties?                                #createTable
-    | CREATE TABLE table AS insertSource                                             #createTableAs
+    | CREATE TABLE (IF NOT EXISTS)? table AS insertSource                            #createTableAs
     | CREATE BLOB TABLE table numShards=blobClusteredInto? withProperties?           #createBlobTable
     | CREATE REPOSITORY name=ident TYPE type=ident withProperties?                   #createRepository
     | CREATE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?        #createSnapshot
