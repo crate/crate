@@ -86,6 +86,9 @@ SQL Statements
 - Added support for
   :ref:`ALTER TABLE DROP COLUMN <sql-alter-table-drop-column>` statement.
 
+- Added support for
+  :ref:`CREATE TABLE IF NOT EXISTS <table-name> AS <other-table>` statement.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
