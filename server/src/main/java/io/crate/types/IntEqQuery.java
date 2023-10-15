@@ -21,6 +21,8 @@
 
 package io.crate.types;
 
+import java.util.List;
+
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.Query;
@@ -59,6 +61,17 @@ public class IntEqQuery implements EqQuery<Number> {
         }
         if (hasDocValues) {
             return SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper);
+        }
+        return null;
+    }
+
+    @Override
+    public Query termsQuery(String field, List<Number> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+        if (isIndexed) {
+            return IntPoint.newSetQuery(field, nonNullValues.stream().mapToInt(Number::intValue).toArray());
+        }
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowSetQuery(field, nonNullValues.stream().mapToLong(Number::longValue).toArray());
         }
         return null;
     }

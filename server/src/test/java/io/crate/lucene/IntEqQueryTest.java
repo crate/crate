@@ -23,6 +23,8 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.junit.Test;
 
@@ -34,7 +36,11 @@ public class IntEqQueryTest extends LuceneQueryBuilderTest {
                 a1 int,
                 a2 int index off,
                 a3 int storage with (columnstore = false),
-                a4 int index off storage with (columnstore = false)
+                a4 int index off storage with (columnstore = false),
+                arr1 int[],
+                arr2 int[] index off,
+                arr3 int[] storage with (columnstore = false),
+                arr4 int[] index off storage with (columnstore = false)
             )
             """;
     }
@@ -77,5 +83,33 @@ public class IntEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("a4 <= 1");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
         assertThat(query).hasToString("(a4 <= 1)");
+    }
+
+    @Test
+    public void test_IntEqQuery_termsQuery() {
+        Query query = convert("arr1 = [1,2,3]");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        assertThat(query.getClass().getName()).endsWith("IntPoint$3");
+        assertThat(query).hasToString("arr1:{1 2 3}");
+
+        query = convert("arr2 = [1,2,3]");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
+        assertThat(query).hasToString("arr2: [1, 2, 3]");
+
+        query = convert("arr3 = [1,2,3]");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        assertThat(query.getClass().getName()).endsWith("IntPoint$3");
+        assertThat(query).hasToString("arr3:{1 2 3}");
+
+        query = convert("arr4 = [1,2,3]");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("(arr4 = [1, 2, 3])");
     }
 }
