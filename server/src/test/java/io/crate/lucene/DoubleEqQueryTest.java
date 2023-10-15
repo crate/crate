@@ -24,6 +24,8 @@ package io.crate.lucene;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.NumericUtils;
 import org.junit.Test;
@@ -36,7 +38,11 @@ public class DoubleEqQueryTest extends LuceneQueryBuilderTest {
                 a1 double,
                 a2 double index off,
                 a3 double storage with (columnstore = false),
-                a4 double index off storage with (columnstore = false)
+                a4 double index off storage with (columnstore = false),
+                arr1 array(double),
+                arr2 array(double) index off,
+                arr3 array(double) storage with (columnstore = false),
+                arr4 array(double) index off storage with (columnstore = false)
             )
             """;
     }
@@ -82,5 +88,35 @@ public class DoubleEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("a4 <= 1.1");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
         assertThat(query).hasToString("(a4 <= 1.1)");
+    }
+
+    @Test
+    public void test_DoubleEqQuery_termsQuery() {
+        Query query = convert("arr1 = [1.1]");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        assertThat(query.getClass().getName()).endsWith("DoublePoint$3"); // the query class is anonymous
+        assertThat(query).hasToString("arr1:{1.1}");
+
+        query = convert("arr2 = [1.1]");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        // SortedNumericDocValuesRangeQuery.class is not public
+        assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
+        long l = NumericUtils.doubleToSortableLong(1.1);
+        assertThat(query).hasToString("arr2: [" + l + "]");
+
+        query = convert("arr3 = [1.1]");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        assertThat(query.getClass().getName()).endsWith("DoublePoint$3"); // the query class is anonymous
+        assertThat(query).hasToString("arr3:{1.1}");
+
+        query = convert("arr4 = [1.1]");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("(arr4 = [1.1])");
     }
 }

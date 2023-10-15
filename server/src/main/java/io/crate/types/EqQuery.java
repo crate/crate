@@ -21,6 +21,8 @@
 
 package io.crate.types;
 
+import java.util.List;
+
 import org.apache.lucene.search.Query;
 
 /**
@@ -45,4 +47,6 @@ public interface EqQuery<T> {
                      boolean includeUpper,
                      boolean hasDocValues,
                      boolean isIndexed);
+
+    Query termsQuery(String field, List<T> nonNullValues, boolean hasDocValues, boolean isIndexed);
 }

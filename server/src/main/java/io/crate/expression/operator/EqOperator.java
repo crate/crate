@@ -24,17 +24,11 @@ package io.crate.expression.operator;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
-import java.net.InetAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.lucene.document.DoublePoint;
-import org.apache.lucene.document.FloatPoint;
-import org.apache.lucene.document.InetAddressPoint;
-import org.apache.lucene.document.IntPoint;
-import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -45,8 +39,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
@@ -65,20 +57,12 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
-import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
 import io.crate.types.EqQuery;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.IpType;
-import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
-import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
 import io.crate.types.UndefinedType;
 
@@ -171,22 +155,12 @@ public final class EqOperator extends Operator<Object> {
             }
             return new TermInSetQuery(column, bytesRefs);
         }
-        return switch (type.id()) {
-            case StringType.ID -> new TermInSetQuery(column, nonNullValues.stream().map(BytesRefs::toBytesRef).toList());
-            case IntegerType.ID -> IntPoint.newSetQuery(column, (List<Integer>) nonNullValues);
-            case LongType.ID -> LongPoint.newSetQuery(column, (List<Long>) nonNullValues);
-            case FloatType.ID -> FloatPoint.newSetQuery(column, (List<Float>) nonNullValues);
-            case DoubleType.ID -> DoublePoint.newSetQuery(column, (List<Double>) nonNullValues);
-            case IpType.ID -> InetAddressPoint.newSetQuery(
-                column,
-                nonNullValues.stream().map(x -> InetAddresses.forString((String) x)).toArray(InetAddress[]::new)
-            );
-            case BitStringType.ID -> new TermInSetQuery(
-                column,
-                nonNullValues.stream().map(x -> new BytesRef(((BitString) x).bitSet().toByteArray())).toList()
-            );
-            default -> booleanShould(column, type, nonNullValues, hasDocValues, indexType);
-        };
+        StorageSupport<?> storageSupport = type.storageSupport();
+        EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
+        if (eqQuery == null) {
+            return booleanShould(column, type, nonNullValues, hasDocValues, indexType);
+        }
+        return ((EqQuery<Object>) eqQuery).termsQuery(column, (List<Object>) nonNullValues, hasDocValues, indexType != IndexType.NONE);
     }
 
     @Nullable

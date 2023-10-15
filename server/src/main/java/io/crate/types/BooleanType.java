@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -30,6 +31,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
@@ -88,6 +90,18 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                     field,
                     lowerTerm ? 1 : 0,
                     upperTerm ? 1 : 0);
+            }
+        }
+
+        @Override
+        public Query termsQuery(String field, List<Boolean> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                return new TermInSetQuery(field, nonNullValues.stream().map(v -> indexedValue(v)).toArray(BytesRef[]::new));
+            } else {
+                assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+                return SortedNumericDocValuesField.newSlowSetQuery(
+                    field,
+                    nonNullValues.stream().mapToLong(v -> v ? 1 : 0).toArray());
             }
         }
     };
