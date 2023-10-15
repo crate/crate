@@ -73,6 +73,7 @@ public abstract class StorageSupport<T> {
         return supportsDocValuesOff;
     }
 
+    @Nullable
     public EqQuery<T> eqQuery() {
         return eqQuery;
     }

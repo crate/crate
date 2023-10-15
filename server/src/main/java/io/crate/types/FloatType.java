@@ -24,6 +24,7 @@ package io.crate.types;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
@@ -92,6 +93,17 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                         field,
                         NumericUtils.floatToSortableInt(lower),
                         NumericUtils.floatToSortableInt(upper));
+                }
+                return null;
+            }
+
+            @Override
+            public Query termsQuery(String field, List<Float> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return FloatPoint.newSetQuery(field, nonNullValues);
+                }
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowSetQuery(field, nonNullValues.stream().mapToLong(NumericUtils::floatToSortableInt).toArray());
                 }
                 return null;
             }
