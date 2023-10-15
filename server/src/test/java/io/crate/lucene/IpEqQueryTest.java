@@ -23,7 +23,11 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.junit.Test;
 
 public class IpEqQueryTest extends LuceneQueryBuilderTest {
@@ -33,7 +37,9 @@ public class IpEqQueryTest extends LuceneQueryBuilderTest {
         return """
                 create table m (
                 a1 ip,
-                a2 ip index off
+                a2 ip index off,
+                arr1 array(ip),
+                arr2 array(ip) index off
             )
             """;
     }
@@ -60,5 +66,24 @@ public class IpEqQueryTest extends LuceneQueryBuilderTest {
         // SortedSetDocValuesRangeQuery.class is not public
         assertThat(query.getClass().getName()).endsWith("SortedSetDocValuesRangeQuery");
         assertThat(query).hasToString("a2:[[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] TO [0 0 0 0 0 0 0 0 0 0 ff ff 1 1 1 0]]");
+    }
+
+    @Test
+    public void test_IpEqQuery_termsQuery() {
+        Query query = convert("arr1 = ['1.1.1.1']");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        assertThat(query.getClass().getName()).endsWith("InetAddressPoint$4"); // the query class is anonymous
+        assertThat(query).hasToString("arr1:{1.1.1.1}");
+
+        query = convert("arr2 = ['1.1.1.1']");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        // SortedSetDocValuesField.newSlowSetQuery is equal to TermInSetQuery + MultiTermQuery.DOC_VALUES_REWRITE
+        assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
+        assertThat(((TermInSetQuery) query).getRewriteMethod()).isEqualTo(MultiTermQuery.DOC_VALUES_REWRITE);
+        assertThat(query).hasToString("arr2:([0 0 0 0 0 0 0 0 0 0 ff ff 1 1 1 1])");
     }
 }

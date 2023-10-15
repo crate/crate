@@ -72,6 +72,11 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
                                 boolean isIndexed) {
             return null;
         }
+
+        @Override
+        public Query termsQuery(String field, List<float[]> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+            return null;
+        }
     };
 
     private static final StorageSupport<? super float[]> STORAGE_SUPPORT = new StorageSupport<>(

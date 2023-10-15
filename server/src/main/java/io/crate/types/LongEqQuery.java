@@ -21,6 +21,8 @@
 
 package io.crate.types;
 
+import java.util.List;
+
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.Query;
@@ -57,6 +59,17 @@ public class LongEqQuery implements EqQuery<Long> {
         }
         if (hasDocValues) {
             return SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper);
+        }
+        return null;
+    }
+
+    @Override
+    public Query termsQuery(String field, List<Long> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+        if (isIndexed) {
+            return LongPoint.newSetQuery(field, nonNullValues);
+        }
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowSetQuery(field, nonNullValues.stream().mapToLong(Long::longValue).toArray());
         }
         return null;
     }

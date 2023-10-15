@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.List;
 import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
@@ -96,6 +97,17 @@ public class IpType extends DataType<String> implements Streamer<String> {
                         new BytesRef(InetAddressPoint.encode(inclusiveUpper)),
                         true,
                         true);
+                }
+            }
+
+            @Override
+            public Query termsQuery(String field, List<String> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return InetAddressPoint.newSetQuery(field, nonNullValues.stream().map(InetAddresses::forString).toArray(InetAddress[]::new));
+                } else {
+                    assert hasDocValues == true : "hasDocValues must be true for Ip types since 'columnstore=false' is not supported.";
+                    return SortedSetDocValuesField.newSlowSetQuery(
+                        field, nonNullValues.stream().map(v -> new BytesRef(InetAddressPoint.encode(InetAddresses.forString(v)))).toArray(BytesRef[]::new));
                 }
             }
         }
