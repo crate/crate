@@ -97,6 +97,7 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CommitStatement;
@@ -2226,11 +2227,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         );
     }
 
-    private static String getObjectType(Token type) {
-        if (type == null) return null;
+    @Nullable
+    private static ColumnPolicy getObjectType(Token type) {
+        if (type == null) {
+            return null;
+        }
         return switch (type.getType()) {
-            case SqlBaseLexer.DYNAMIC, SqlBaseLexer.STRICT, SqlBaseLexer.IGNORED ->
-                type.getText().toLowerCase(Locale.ENGLISH);
+            case SqlBaseLexer.DYNAMIC -> ColumnPolicy.DYNAMIC;
+            case SqlBaseLexer.STRICT -> ColumnPolicy.STRICT;
+            case SqlBaseLexer.IGNORED -> ColumnPolicy.IGNORED;
             default -> throw new UnsupportedOperationException("Unsupported object type: " + type.getText());
         };
     }

@@ -71,7 +71,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.table.Operation;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.parser.SqlParser;
@@ -518,7 +517,7 @@ public class DocIndexMetadata {
             } else if (columnDataType.id() == ObjectType.ID
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
-                ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
+                ColumnPolicy columnPolicy = ColumnPolicy.fromMappingValue(columnProperties.get("dynamic"));
                 add(columnProperties, position, oid, isDropped, newIdent, columnDataType, defaultExpression,
                     columnPolicy, IndexType.NONE, nullable, hasDocValues);
 
@@ -643,7 +642,7 @@ public class DocIndexMetadata {
     }
 
     private ColumnPolicy getColumnPolicy() {
-        return ColumnPolicies.decodeMappingValue(mappingMap.get("dynamic"));
+        return ColumnPolicy.fromMappingValue(mappingMap.get("dynamic"));
     }
 
     private void createColumnDefinitions() {

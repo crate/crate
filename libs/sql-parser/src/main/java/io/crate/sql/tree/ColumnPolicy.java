@@ -24,16 +24,55 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Locale;
 
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.Booleans;
+
 
 public enum ColumnPolicy {
-    DYNAMIC,
-    STRICT,
-    IGNORED;
+    DYNAMIC {
+        @Override
+        public String toMappingValue() {
+            return String.valueOf(true);
+        }
+    },
+    STRICT {
+        @Override
+        public String toMappingValue() {
+            return "strict";
+        }
+    },
+    IGNORED {
+        @Override
+        public String toMappingValue() {
+            return String.valueOf(false);
+        }
+    };
 
     public static final List<ColumnPolicy> VALUES = List.of(values());
+    public static final String MAPPING_KEY = "dynamic";
 
     public String lowerCaseName() {
         return name().toLowerCase(Locale.ENGLISH);
+    }
+
+    public abstract String toMappingValue();
+
+    public static ColumnPolicy fromMappingValue(@Nullable Object value) {
+        if (value == null) {
+            return DYNAMIC;
+        }
+        String str = value.toString();
+        if (Booleans.isTrue(str)) {
+            return DYNAMIC;
+        }
+        if (Booleans.isFalse(str)) {
+            return IGNORED;
+        }
+        if (str.equalsIgnoreCase("strict")) {
+            return STRICT;
+        }
+        throw new IllegalArgumentException("Invalid column policy: " + value);
     }
 
     public static ColumnPolicy of(String value) {
@@ -52,5 +91,4 @@ public enum ColumnPolicy {
                     "Invalid column policy: " + value + " use one of [dynamic, strict, ignored]");
         }
     }
-
 }

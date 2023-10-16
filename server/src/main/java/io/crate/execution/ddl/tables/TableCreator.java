@@ -49,7 +49,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 
 @Singleton
@@ -87,8 +86,8 @@ public class TableCreator {
 
         Map<ColumnIdent, Reference> references = createTable.columns();
         IntArrayList pKeysIndices = createTable.primaryKeysIndices();
-        var policy = (String) createTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
-        var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
+        var policy = createTable.tableParameter().mappings().get(ColumnPolicy.MAPPING_KEY);
+        var tableColumnPolicy = policy != null ? ColumnPolicy.fromMappingValue(policy) : ColumnPolicy.STRICT;
 
         String routingColumn = createTable.routingColumn().equals(DocSysColumns.ID) ? null : createTable.routingColumn().fqn();
         if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {

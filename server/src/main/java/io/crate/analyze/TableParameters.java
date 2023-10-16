@@ -29,9 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.crate.common.annotations.Immutable;
-import io.crate.common.annotations.ThreadSafe;
-
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -49,11 +46,12 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.Store;
 
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.common.annotations.Immutable;
+import io.crate.common.annotations.ThreadSafe;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.settings.NumberOfReplicasSetting;
 import io.crate.metadata.settings.Validators;
-import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -69,12 +67,12 @@ public class TableParameters {
     // all available table settings
     static final NumberOfReplicasSetting NUMBER_OF_REPLICAS = new NumberOfReplicasSetting();
     static final Setting<String> COLUMN_POLICY = new Setting<>(
-        new Setting.SimpleKey(ColumnPolicies.ES_MAPPING_NAME),
+        new Setting.SimpleKey(ColumnPolicy.MAPPING_KEY),
         s -> ColumnPolicy.STRICT.lowerCaseName(),
-        s -> ColumnPolicies.encodeMappingValue(ColumnPolicy.of(s)),
+        s -> ColumnPolicy.of(s).toMappingValue(),
         o -> {
-            if (ColumnPolicies.encodeMappingValue(ColumnPolicy.IGNORED).equals(o)) {
-                throw new IllegalArgumentException("Invalid value for argument '" + ColumnPolicies.CRATE_NAME + "'");
+            if (ColumnPolicy.IGNORED.toMappingValue().equals(o)) {
+                throw new IllegalArgumentException("Invalid value for argument 'column_policy'");
             }
         },
         DataTypes.STRING,

@@ -28,7 +28,6 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
-import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import org.apache.lucene.index.Term;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -55,12 +55,10 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexService;
@@ -69,13 +67,17 @@ import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.engine.Engine.IndexResult;
+import org.elasticsearch.index.mapper.IdFieldMapper;
+import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.Store;
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
@@ -94,6 +96,10 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
+import io.crate.execution.ddl.tables.MappingUtil;
+import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
+import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.Indexer;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -126,13 +132,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ArrayType;
-import io.crate.types.BitStringType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.StringType;
+import io.crate.types.StorageSupport;
 
 public abstract class AggregationTestCase extends ESTestCase {
 
@@ -209,7 +211,8 @@ public abstract class AggregationTestCase extends ESTestCase {
                 );
             }
         }
-        var shard = newStartedPrimaryShard(buildMapping(actualArgumentTypes));
+        List<Reference> targetColumns = toReference(actualArgumentTypes);
+        var shard = newStartedPrimaryShard(buildMapping(targetColumns));
         var mapperService = shard.mapperService();
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
@@ -221,7 +224,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         when(indexServices.indexServiceSafe(shard.routingEntry().index()))
             .thenReturn(indexService);
         try {
-            insertDataIntoShard(shard, data);
+            insertDataIntoShard(shard, data, targetColumns);
             shard.refresh("test");
 
             List<Row> partialResultWithDocValues = execPartialAggregationWithDocValues(
@@ -242,7 +245,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
                     refResolver,
-                    toReference(actualArgumentTypes),
+                    targetColumns,
                     mock(DocTableInfo.class),
                     List.of()
                 );
@@ -375,80 +378,86 @@ public abstract class AggregationTestCase extends ESTestCase {
     }
 
     private void insertDataIntoShard(IndexShard shard,
-                                     Object[][] data) throws IOException {
-        // We should adapt all this code to utilize the InsertSourceGen/IndexEnv
-        // To ensure we index the values the same way we do in real production code.
-        for (int i = 0; i < data.length; i++) {
-            var cell = data[i];
-            XContentBuilder builder = JsonXContent.builder().startObject();
-            boolean containsMaps = false;
-            for (int j = 0; j < cell.length; j++) {
-                Object value = cell[j];
-                containsMaps = containsMaps || value instanceof Map;
-                if (value instanceof BitString bs) {
-                    builder.field(Integer.toString(j), bs.bitSet().toByteArray());
-                } else {
-                    builder.field(Integer.toString(j), value);
-                }
-            }
-            builder.endObject();
+                                     Object[][] data,
+                                     List<Reference> targetColumns) throws IOException {
 
-            var result = shard.applyIndexOperationOnPrimary(
+        DocTableInfo table = new DocTableInfo(
+            new RelationName("doc", shard.shardId().getIndexName()),
+            targetColumns,
+            Set.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            List.of(),
+            List.of(),
+            null,
+            true,
+            new String[] { shard.shardId().getIndexName() },
+            new String[] { shard.shardId().getIndexName() },
+            1,
+            "0",
+            Settings.EMPTY,
+            List.of(),
+            List.of(),
+            ColumnPolicy.STRICT,
+            Version.CURRENT,
+            null,
+            false,
+            Set.of()
+        );
+        Indexer indexer = new Indexer(
+            shard.shardId().getIndexName(),
+            table,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            nodeCtx,
+            column -> shard.mapperService().getLuceneFieldType(column),
+            targetColumns,
+            null
+        );
+
+        final long startTime = System.nanoTime();
+        for (Object[] row : data) {
+            String id = UUIDs.randomBase64UUID();
+            for (int i = 0; i < row.length; i++) {
+                row[i] = targetColumns.get(i).valueType().implicitCast(row[i]);
+            }
+            IndexItem.StaticItem item = new IndexItem.StaticItem(id, List.of(id), row, 1, 1);
+            ParsedDocument parsedDoc = indexer.index(item);
+            Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+            Engine.Index index = new Engine.Index(
+                uid,
+                parsedDoc,
+                SequenceNumbers.UNASSIGNED_SEQ_NO,
+                shard.getOperationPrimaryTerm(),
                 Versions.MATCH_ANY,
                 VersionType.INTERNAL,
-                new SourceToParse(
-                    shard.shardId().getIndexName(),
-                    Integer.toString(i),
-                    new BytesArray(Strings.toString(builder)),
-                    XContentType.JSON
-                ),
+                Engine.Operation.Origin.PRIMARY,
+                startTime,
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                false,
                 SequenceNumbers.UNASSIGNED_SEQ_NO,
-                0,
-                UNSET_AUTO_GENERATED_TIMESTAMP,
-                false);
-            if (containsMaps) {
-                assertThat(result.getResultType()).isIn(
-                    Engine.Result.Type.MAPPING_UPDATE_REQUIRED,
-                    Engine.Result.Type.SUCCESS
-                );
-            } else {
-                assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
-            }
+                SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+            );
+            IndexResult result = shard.index(index);
+            assertThat(result.getResultType()).isIn(
+                Engine.Result.Type.MAPPING_UPDATE_REQUIRED,
+                Engine.Result.Type.SUCCESS
+            );
         }
     }
 
-    private XContentBuilder buildMapping(List<DataType<?>> argumentTypes) throws IOException {
-        XContentBuilder builder = JsonXContent.builder()
+    private XContentBuilder buildMapping(List<Reference> targetColumns) throws IOException {
+        Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
+            AllocPosition.forNewTable(),
+            Reference.buildTree(targetColumns)
+        );
+        return JsonXContent.builder()
             .startObject()
-            .startObject("properties");
-        for (int i = 0; i < argumentTypes.size(); i++) {
-            var type = argumentTypes.get(i);
-            builder
-                .startObject(Integer.toString(i));
-            if (DataTypes.isArray(type)) {
-                builder
-                    .field("type", "array")
-                    .startObject("inner")
-                    .field(
-                        "type",
-                        DataTypes.esMappingNameFrom(
-                            ((ArrayType<?>) type).innerType().id()))
-                    .field("position", i + 1)
-                    .endObject();
-            } else if (type instanceof BitStringType bs) {
-                builder.field("type", bs.getName());
-                builder.field("length", bs.length());
-                builder.field("position", i + 1);
-            } else if (type.id() == StringType.ID) {
-                builder.field("type", "keyword");
-                builder.field("position", i + 1);
-            } else {
-                builder.field("type", DataTypes.esMappingNameFrom(type.id()));
-                builder.field("position", i + 1);
-            }
-            builder.endObject();
-        }
-        return builder.endObject().endObject();
+            .field("properties", properties == null ? Map.of() : properties)
+            .endObject();
     }
 
     /**
@@ -616,15 +625,17 @@ public abstract class AggregationTestCase extends ESTestCase {
     public static List<Reference> toReference(List<DataType<?>> dataTypes) {
         var references = new ArrayList<Reference>(dataTypes.size());
         for (int i = 0; i < dataTypes.size(); i++) {
+            DataType<?> type = dataTypes.get(i);
+            StorageSupport<?> storageSupport = type.storageSupportSafe();
             references.add(
                 new SimpleReference(
                     new ReferenceIdent(new RelationName(null, "dummy"), Integer.toString(i)),
                     RowGranularity.DOC,
-                    dataTypes.get(i),
+                    type,
                     ColumnPolicy.DYNAMIC,
                     IndexType.PLAIN,
                     true,
-                    true,
+                    storageSupport.docValuesDefault(),
                     i + 1,
                     COLUMN_OID_UNASSIGNED,
                     false,
