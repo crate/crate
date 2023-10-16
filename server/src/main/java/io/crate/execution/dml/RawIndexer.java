@@ -52,7 +52,6 @@ public class RawIndexer {
     private final DocTableInfo table;
     private final TransactionContext txnCtx;
     private final NodeContext nodeCtx;
-    private final Function<ColumnIdent, Reference> getRef;
     private final Function<String, FieldType> getFieldType;
     private final Symbol[] returnValues;
 
@@ -74,7 +73,6 @@ public class RawIndexer {
         this.table = table;
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
-        this.getRef = table::getReference;
         this.getFieldType = getFieldType;
         this.returnValues = returnValues;
         this.nonDeterministicSynthetics = nonDeterministicSynthetics;
