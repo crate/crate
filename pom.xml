@@ -204,7 +204,7 @@
     <versions.annotations>24.0.1</versions.annotations>
     <versions.log4j>2.20.0</versions.log4j>
     <versions.assertj>3.23.1</versions.assertj>
-    <versions.junit5>5.9.3</versions.junit5>
+    <versions.junit5>5.10.0</versions.junit5>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
     <versions.jackson>2.15.2</versions.jackson>
