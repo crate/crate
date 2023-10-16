@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -438,7 +439,7 @@ public class CountAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_count_with_geo_point_argument() throws Exception {
-        assertThat(executeAggregation(DataTypes.GEO_POINT, new Object[][]{{new double[]{1, 2}}})).isEqualTo(1L);
+        assertThat(executeAggregation(DataTypes.GEO_POINT, new Object[][]{{new Double[]{1.0, 2.0}}})).isEqualTo(1L);
     }
 
     @Test
