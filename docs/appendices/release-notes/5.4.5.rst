@@ -46,4 +46,9 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that caused ``UNION`` to throw ``SQLParseExceptions`` instead
+  of ``AmbiguousColumnExceptions``, when 2 or more columns are assigned the
+  same name. e.g.::
+
+    SELECT a FROM (SELECT a, b AS a FROM t UNION SELECT 1, 1) t2;
+    -- selecting 'a' from 't2' is ambiguous since there are 'a' and 'b AS a'
