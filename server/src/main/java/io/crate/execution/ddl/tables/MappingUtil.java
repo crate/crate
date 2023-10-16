@@ -22,7 +22,6 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.metadata.Reference.buildTree;
-import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
@@ -41,7 +40,6 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -112,7 +110,7 @@ public final class MappingUtil {
         }
 
         if (tableColumnPolicy != null) {
-            mapping.put(ES_MAPPING_NAME, ColumnPolicies.encodeMappingValue(tableColumnPolicy));
+            mapping.put(ColumnPolicy.MAPPING_KEY, tableColumnPolicy.toMappingValue());
         }
 
         Map<String, Object> indices = new HashMap<>();
@@ -248,7 +246,7 @@ public final class MappingUtil {
                                       Map<String, Object> propertiesMap,
                                       Reference reference,
                                       HashMap<ColumnIdent, List<Reference>> tree) {
-        propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
+        propertiesMap.put(ColumnPolicy.MAPPING_KEY, reference.columnPolicy().toMappingValue());
         Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);

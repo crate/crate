@@ -31,9 +31,9 @@ public class ObjectColumnType<T> extends ColumnType<T> {
     private final Optional<ColumnPolicy> columnPolicy;
     private final List<ColumnDefinition<T>> nestedColumns;
 
-    public ObjectColumnType(@Nullable String columnPolicy, List<ColumnDefinition<T>> nestedColumns) {
+    public ObjectColumnType(@Nullable ColumnPolicy columnPolicy, List<ColumnDefinition<T>> nestedColumns) {
         super("object");
-        this.columnPolicy = columnPolicy == null ? Optional.empty() : Optional.of(ColumnPolicy.of(columnPolicy));
+        this.columnPolicy = Optional.ofNullable(columnPolicy);
         this.nestedColumns = nestedColumns;
     }
 

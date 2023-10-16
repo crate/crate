@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.common.collections.Maps.getByPath;
-import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertThat;
@@ -370,7 +369,8 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(decodeMappingValue(mapping.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(ColumnPolicy.fromMappingValue(mapping.get(ColumnPolicy.MAPPING_KEY)))
+            .isEqualTo(ColumnPolicy.STRICT);
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
             new Object[]{6, true, false});
@@ -378,7 +378,8 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY)))
+            .isEqualTo(ColumnPolicy.STRICT);
 
         Asserts.assertSQLError(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
                                    new Object[]{28, true, false, true}))
@@ -406,7 +407,8 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(decodeMappingValue(mapping.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(ColumnPolicy.fromMappingValue(mapping.get(ColumnPolicy.MAPPING_KEY)))
+            .isEqualTo(ColumnPolicy.STRICT);
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
             new Object[]{6, true, false});
@@ -414,7 +416,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.STRICT);
 
         Asserts.assertSQLError(() -> execute("update numbers set num=?, perfect=? where num=6",
                                    new Object[]{28, true}))
@@ -509,11 +511,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("alter table dynamic_table set (column_policy = 'dynamic')");
         waitNoPendingTasksOnAll();
-        assertThat(decodeMappingValue(getSourceMap("dynamic_table").get("dynamic")))
+        assertThat(ColumnPolicy.fromMappingValue(getSourceMap("dynamic_table").get(ColumnPolicy.MAPPING_KEY)))
             .isEqualTo(ColumnPolicy.DYNAMIC);
         execute("alter table dynamic_table reset (column_policy)");
         waitNoPendingTasksOnAll();
-        assertThat(decodeMappingValue(getSourceMap("dynamic_table").get("dynamic")))
+        assertThat(ColumnPolicy.fromMappingValue(getSourceMap("dynamic_table").get(ColumnPolicy.MAPPING_KEY)))
             .isEqualTo(ColumnPolicy.STRICT);
     }
 
@@ -531,11 +533,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         String indexName = new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName();
         Map<String, Object> sourceMap = getSourceMap(indexName);
-        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.DYNAMIC);
         execute("alter table dynamic_table reset (column_policy)");
         waitNoPendingTasksOnAll();
         sourceMap = getSourceMap(indexName);
-        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.STRICT);
     }
 
     @Test
@@ -569,7 +571,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(decodeMappingValue(mapping.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicy.fromMappingValue(mapping.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
 
         execute("insert into dynamic_table (id, score, new_col) values (?, ?, ?)",
             new Object[]{6, 3, "hello"});
@@ -578,15 +580,15 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.DYNAMIC);
 
         sourceMap = getSourceMap(new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("5.0")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.DYNAMIC);
 
         sourceMap = getSourceMap(new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("3.0")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.DYNAMIC);
     }
 
 }
