@@ -23,6 +23,7 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.ExplainAnalyzedStatement;
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.QueriedSelectRelation;
 
 import java.util.Locale;
@@ -42,6 +43,10 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     }
 
     public R visitDocTableRelation(DocTableRelation relation, C context) {
+        return visitAnalyzedRelation(relation, context);
+    }
+
+    public R visitJoinRelation(JoinRelation relation, C context) {
         return visitAnalyzedRelation(relation, context);
     }
 

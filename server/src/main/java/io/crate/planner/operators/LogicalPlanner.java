@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -37,6 +38,7 @@ import org.elasticsearch.Version;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
@@ -99,6 +101,7 @@ import io.crate.planner.optimizer.rule.MoveFilterBeneathProjectSet;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathRename;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathUnion;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathWindowAgg;
+import io.crate.planner.optimizer.rule.MoveFilterIntoCrossJoin;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathEval;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathEval;
@@ -157,11 +160,12 @@ public class LogicalPlanner {
         new RewriteGroupByKeysLimitToLimitDistinct(),
         new MoveConstantJoinConditionsBeneathNestedLoop(),
         new EliminateCrossJoin(),
-        new RewriteJoinPlan(),
-        new RewriteNestedLoopJoinToHashJoin()
+        new RewriteNestedLoopJoinToHashJoin(),
+        new MoveFilterIntoCrossJoin()
     );
 
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
+        new RewriteJoinPlan(),
         new ReorderHashJoin(),
         new ReorderNestedLoopJoin()
     );
@@ -320,6 +324,13 @@ public class LogicalPlanner {
         }
 
         @Override
+        public LogicalPlan visitJoinRelation(JoinRelation join, List<Symbol> context) {
+            var left = join.left().accept(this, context);
+            var right = join.right().accept(this, context);
+            return new JoinPlan(left, right, join.joinType(), join.joinCondition());
+        }
+
+        @Override
         public LogicalPlan visitTableFunctionRelation(TableFunctionRelation relation, List<Symbol> outputs) {
             // MultiPhase is needed here but not in `DocTableRelation` or `TableRelation` because
             // `TableFunctionRelation` is also used for top-level `VALUES`
@@ -334,7 +345,13 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitDocTableRelation(DocTableRelation relation, List<Symbol> outputs) {
-            return new Collect(relation, outputs, WhereClause.MATCH_ALL);
+            var outputsForRelation = new ArrayList<Symbol>();
+            for (Symbol output : outputs) {
+                if (relation.outputs().contains(output)) {
+                    outputsForRelation.add(output);
+                }
+            }
+            return new Collect(relation, outputsForRelation, WhereClause.MATCH_ALL);
         }
 
         @Override

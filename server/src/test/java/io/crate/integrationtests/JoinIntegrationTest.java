@@ -38,6 +38,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Test;
 
@@ -1606,10 +1607,10 @@ public class JoinIntegrationTest extends IntegTestCase {
         );
     }
 
-    /**
-     * https://github.com/crate/crate/issues/14961
-     */
-    @Test
+
+
+
+    @UseJdbc(0)
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
     @UseHashJoins(1)
@@ -1639,4 +1640,41 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("1| 2| 1| 2| 1");
     }
 
+    public void test_simple_implicit_join() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+
+        String stmt = "explain (costs false) SELECT * FROM t1, t2 WHERE t1.x = t2.y";
+        execute(stmt);
+
+        assertThat(response.rows()[0][0]).isEqualTo(
+            "HashJoin[(x = y)]\n" +
+                "  ├ Collect[doc.t1 | [x] | true]\n" +
+                "  └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @TestLogging("io.crate.planner.optimizer.iterative:TRACE")
+    @UseJdbc(0)
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_multiple_implicit_join() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+        execute("create table t3 (z int)");
+
+        String stmt = "explain (costs false) SELECT * FROM t1, t2, t3 WHERE t1.x = t2.y AND t2.y = t3.z";
+        execute(stmt);
+
+        assertThat(response.rows()[0][0]).isEqualTo(
+            "HashJoin[(y = z)]\n" +
+                "  ├ HashJoin[(x = y)]\n" +
+                "  │  ├ Collect[doc.t1 | [x] | true]\n" +
+                "  │  └ Collect[doc.t2 | [y] | true]\n" +
+                "  └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+>>>>>>> da67068048 (Convert implicit joins to cross-joins with filters)
 }

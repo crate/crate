@@ -21,9 +21,13 @@
 
 package io.crate.analyze;
 
+import static io.crate.types.DataTypes.merge;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.elasticsearch.common.UUIDs;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,7 +36,9 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -40,28 +46,36 @@ import io.crate.sql.tree.JoinType;
 
 /**
  * Join Relation represents a Join containing its lhs and rhs as {@link AnalyzedRelation'}.
- * It is used inside {@link io.crate.analyze.relations.RelationAnalyzer} to
- * determine join pairs and for internal validation.
- * It is not possible to generate a logical plan from a JoinRelation.
  */
 public class JoinRelation implements AnalyzedRelation {
 
     private final AnalyzedRelation left;
     private final AnalyzedRelation right;
-    private final List<Symbol> outputs;
+    private final List<ScopedSymbol> outputs;
     private final JoinType joinType;
     private final Symbol joinCondition;
-    private static final String UNSUPPORTED_OPERATION = "Joins do not support this operation";
+    private final RelationName name;
 
     public JoinRelation(AnalyzedRelation left,
                         AnalyzedRelation right,
                         JoinType joinType,
                         @Nullable Symbol joinCondition) {
-        this.outputs = Lists.concat(left.outputs(), right.outputs());
         this.left = left;
         this.right = right;
         this.joinType = joinType;
         this.joinCondition = joinCondition;
+        this.name = new RelationName(null, UUIDs.dirtyUUID().toString());
+        ArrayList<ScopedSymbol> outputs = new ArrayList<>();
+        for (int i = 0; i < left.outputs().size(); i++) {
+            var l = left.outputs().get(i);
+            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(l), merge(l.valueType(), l.valueType())));
+
+        }
+        for (int i = 0; i < right.outputs().size(); i++) {
+            var r = right.outputs().get(i);
+            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(r), merge(r.valueType(), r.valueType())));
+        }
+        this.outputs = List.copyOf(outputs);
     }
 
     public AnalyzedRelation left() {
@@ -83,15 +97,17 @@ public class JoinRelation implements AnalyzedRelation {
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        throw new UnsupportedOperationException(UNSUPPORTED_OPERATION);
+        return visitor.visitJoinRelation(this, context);
     }
 
-    @Nullable
     @Override
-    public Symbol getField(ColumnIdent column,
-                           Operation operation,
-                           boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
-        throw new UnsupportedOperationException(UNSUPPORTED_OPERATION);
+    public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
+        for (var output : outputs) {
+            if (output.column().equals(column)) {
+                return output;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -101,17 +117,20 @@ public class JoinRelation implements AnalyzedRelation {
         }
         left.visitSymbols(consumer);
         right.visitSymbols(consumer);
-        consumer.accept(joinCondition);
+        if (joinCondition != null) {
+            consumer.accept(joinCondition);
+        }
     }
 
     @Override
     public RelationName relationName() {
-        throw new UnsupportedOperationException(UNSUPPORTED_OPERATION);
+        return name;
     }
 
     @NotNull
     @Override
     public List<Symbol> outputs() {
-        return outputs;
+        return (List<Symbol>)(List) outputs;
     }
+
 }

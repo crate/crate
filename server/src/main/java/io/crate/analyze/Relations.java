@@ -107,6 +107,14 @@ public class Relations {
         }
 
         @Override
+        public Void visitJoinRelation(JoinRelation join, Consumer<? super Symbol> consumer) {
+            join.visitSymbols(consumer);
+            join.left().accept(this, consumer);
+            join.right().accept(this, consumer);
+            return null;
+        }
+
+        @Override
         public Void visitView(AnalyzedView analyzedView, Consumer<? super Symbol> consumer) {
             analyzedView.visitSymbols(consumer);
             analyzedView.relation().accept(this, consumer);

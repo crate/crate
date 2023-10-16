@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -90,6 +91,7 @@ import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
+import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.Node;
@@ -375,11 +377,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         List<Relation> from = node.getFrom().isEmpty() ? EMPTY_ROW_TABLE_RELATION : node.getFrom();
         RelationAnalysisContext currentRelationContext = statementContext.startRelation();
 
+        var analyzedRelations = new ArrayList<AnalyzedRelation>();
         for (Relation relation : from) {
             // different from relations have to be isolated from each other
             RelationAnalysisContext innerContext = statementContext.startRelation();
-            relation.accept(this, statementContext);
+            var analyzedRelation = relation.accept(this, statementContext);
             statementContext.endRelation();
+            analyzedRelations.add(analyzedRelation);
             for (Map.Entry<RelationName, AnalyzedRelation> entry : innerContext.sources().entrySet()) {
                 currentRelationContext.addSourceRelation(entry.getValue());
             }
@@ -387,6 +391,19 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 currentRelationContext.addJoinPair(joinPair);
             }
         }
+
+        AnalyzedRelation analyzedRelation = null;
+        if (!analyzedRelations.isEmpty()) {
+            // Convert implicit joins to cross-joins
+            Iterator<AnalyzedRelation> iterator = analyzedRelations.iterator();
+            AnalyzedRelation relation = iterator.next();
+
+            while (iterator.hasNext()) {
+                relation = new JoinRelation(relation, iterator.next(), JoinType.CROSS, null);
+            }
+            analyzedRelation = relation;
+        }
+
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
         CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
@@ -430,7 +447,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         QueriedSelectRelation relation = new QueriedSelectRelation(
             isDistinct,
-            List.copyOf(context.sources().values()),
+            List.of(analyzedRelation),
             context.joinPairs(),
             selectAnalysis.outputSymbols(),
             where,
