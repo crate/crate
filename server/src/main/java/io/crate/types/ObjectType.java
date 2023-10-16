@@ -360,7 +360,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                                                @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         if (convertChildColumn == null) {
             return new ObjectColumnType<>(
-                columnPolicy.name(),
+                columnPolicy,
                 Lists2.map(innerTypes.entrySet(), e -> new ColumnDefinition<>(
                     e.getKey(),
                     null,
@@ -370,7 +370,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                 ))
             );
         } else {
-            return new ObjectColumnType<>(columnPolicy.name(), convertChildColumn.get());
+            return new ObjectColumnType<>(columnPolicy, convertChildColumn.get());
         }
     }
 

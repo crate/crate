@@ -87,7 +87,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.settings.session.SessionSettingModule;
-import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -427,8 +426,8 @@ public class TestingHelpers {
     public static Map<String, Object> toMapping(LongSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
         IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 
-        var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
-        var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
+        var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicy.MAPPING_KEY);
+        var tableColumnPolicy = policy != null ? ColumnPolicy.fromMappingValue(policy) : ColumnPolicy.STRICT;
 
         List<Reference> references;
         if (columnOidSupplier != null) {

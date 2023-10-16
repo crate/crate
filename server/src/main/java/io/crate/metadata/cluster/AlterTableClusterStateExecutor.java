@@ -21,7 +21,6 @@
 
 package io.crate.metadata.cluster;
 
-import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 import java.io.IOException;
@@ -64,6 +63,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
 
@@ -155,10 +155,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
-            if (indexMapping.get(ES_MAPPING_NAME).equals(mappingDelta.get(ES_MAPPING_NAME))) {
+            if (indexMapping.get(ColumnPolicy.MAPPING_KEY).equals(mappingDelta.get(ColumnPolicy.MAPPING_KEY))) {
                 return currentState;
             }
-            indexMapping.put(ES_MAPPING_NAME, mappingDelta.get(ES_MAPPING_NAME));
+            indexMapping.put(ColumnPolicy.MAPPING_KEY, mappingDelta.get(ColumnPolicy.MAPPING_KEY));
 
 
             MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);

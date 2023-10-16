@@ -46,7 +46,6 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 
 /**
@@ -102,7 +101,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
             Map.of(),
             Settings.EMPTY,
             null,
-            ColumnPolicies.decodeMappingValue(ColumnPolicy.STRICT),
+            ColumnPolicy.STRICT,
             List.of()
         );
         this.createIndexRequest = createIndexRequest;
@@ -117,7 +116,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
             Map.of(),
             Settings.EMPTY,
             null,
-            ColumnPolicies.decodeMappingValue(ColumnPolicy.STRICT),
+            ColumnPolicy.STRICT,
             List.of()
         );
         this.createIndexRequest = null;
