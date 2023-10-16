@@ -23,9 +23,6 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.Objects;
 
 import org.elasticsearch.common.bytes.BytesReference;
@@ -93,57 +90,6 @@ public abstract class Streams {
                 IOUtils.closeWhileHandlingException(in, out);
             }
         }
-    }
-
-    //---------------------------------------------------------------------
-    // Copy methods for java.io.Reader / java.io.Writer
-    //---------------------------------------------------------------------
-
-    /**
-     * Copy the contents of the given Reader to the given Writer.
-     * Closes both when done.
-     *
-     * @param in  the Reader to copy from
-     * @param out the Writer to copy to
-     * @return the number of characters copied
-     * @throws IOException in case of I/O errors
-     */
-    public static int copy(Reader in, Writer out) throws IOException {
-        Objects.requireNonNull(in, "No Reader specified");
-        Objects.requireNonNull(out, "No Writer specified");
-        boolean success = false;
-        try {
-            int byteCount = 0;
-            char[] buffer = new char[BUFFER_SIZE];
-            int bytesRead;
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-                byteCount += bytesRead;
-            }
-            out.flush();
-            success = true;
-            return byteCount;
-        } finally {
-            if (success) {
-                IOUtils.close(in, out);
-            } else {
-                IOUtils.closeWhileHandlingException(in, out);
-            }
-        }
-    }
-
-    /**
-     * Copy the contents of the given Reader into a String.
-     * Closes the reader when done.
-     *
-     * @param in the reader to copy from
-     * @return the String that has been copied to
-     * @throws IOException in case of I/O errors
-     */
-    public static String copyToString(Reader in) throws IOException {
-        StringWriter out = new StringWriter();
-        copy(in, out);
-        return out.toString();
     }
 
     public static int readFully(InputStream reader, byte[] dest) throws IOException {
