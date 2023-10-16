@@ -101,7 +101,7 @@ public final class MappingUtil {
                                                     @Nullable String routingColumn) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
-        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree);
+        Map<String, Map<String, Object>> propertiesMap = toProperties(allocPosition, null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
         Map<String, Object> mapping = new HashMap<>();
@@ -134,41 +134,49 @@ public final class MappingUtil {
         return mapping;
     }
 
-    public static Map<String, Object> createMappingForDroppedCols(DocTableInfo tableInfo,
-                                                                  HashMap<ColumnIdent, List<Reference>> tree) {
-        Map<String, Map<String, Object>> propertiesMap =
-            createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree);
-
-        Map<String, Object> mapping = new HashMap<>();
-        mapping.put("_meta", Map.of());
-        mapping.put("properties", propertiesMap);
-        return mapping;
+    /**
+     * Similar to {@link #toProperties(AllocPosition, HashMap)} but instead of adding the full schema for a column, this only adds the names.
+     *
+     * Example output:
+     * {
+     *     col1: {
+     *        * optional, only for nested objects *
+     *        properties: {
+     *            nested_col1: {...},
+     *            nested_col2: {...},
+     *        }
+     *     },
+     *     col2: {...}
+     * }
+     */
+    public static Map<String, Object> toNamesOnlyProperties(HashMap<ColumnIdent, List<Reference>> tree) {
+        return toNamesOnlyProperties(tree, null);
     }
 
-
-    /**
-     * Creates a mapping containing only column names, can be nested.
-     */
-    public static Map<String, Object> createMappingToRemove(HashMap<ColumnIdent, List<Reference>> tree,
-                                                            @Nullable ColumnIdent currentNode) {
-        List<Reference> children = tree.get(currentNode);
+    @Nullable
+    private static Map<String, Object> toNamesOnlyProperties(HashMap<ColumnIdent, List<Reference>> tree, @Nullable ColumnIdent node) {
+        List<Reference> children = tree.get(node);
         if (children == null) {
-            assert currentNode != null : "Root must have children nodes";
+            assert node != null : "Root must have children";
             return null;
         }
-
-        Map<String, Object> allColumnsMap = new HashMap<>();
-        for (Reference child: children) {
-            allColumnsMap.put(child.column().leafName(), createMappingToRemove(tree, child.column()));
+        Map<String, Object> columns = HashMap.newHashMap(children.size());
+        for (Reference child : children) {
+            ColumnIdent column = child.column();
+            columns.put(column.leafName(), toNamesOnlyProperties(tree, column));
         }
-
-        Map<String, Object> mapping = new HashMap<>();
-        mapping.put("properties", allColumnsMap);
+        if (node == null) {
+            return columns;
+        }
+        HashMap<String, Object> mapping = HashMap.newHashMap(1);
+        mapping.put("properties", columns);
         return mapping;
     }
 
     /**
-     * Returns properties map including all nested sub-columns if there any.
+     * Creates the "properties" part of a mapping.
+     * Includes all nested sub-columns.
+     *
      * Format of the top level properties field:
      * {
      *     col1: {
@@ -184,12 +192,19 @@ public final class MappingUtil {
      *     },
      *     col2: {...}
      * }
+     */
+    public static Map<String, Map<String, Object>> toProperties(AllocPosition allocPosition,
+                                                                HashMap<ColumnIdent, List<Reference>> tree) {
+        return toProperties(allocPosition, null, tree);
+    }
 
+    /**
+     * See {@link #toProperties(AllocPosition, HashMap)}
      */
     @Nullable
-    private static Map<String, Map<String, Object>> createPropertiesMap(AllocPosition position,
-                                                                        @Nullable ColumnIdent currentNode,
-                                                                        HashMap<ColumnIdent, List<Reference>> tree) {
+    private static Map<String, Map<String, Object>> toProperties(AllocPosition position,
+                                                                 @Nullable ColumnIdent currentNode,
+                                                                 HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
@@ -234,7 +249,7 @@ public final class MappingUtil {
                                       Reference reference,
                                       HashMap<ColumnIdent, List<Reference>> tree) {
         propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree);
+        Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }
