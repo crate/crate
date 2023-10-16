@@ -21,9 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
-import static io.crate.execution.ddl.tables.MappingUtil.createMappingForDroppedCols;
-import static io.crate.execution.ddl.tables.MappingUtil.createMappingToRemove;
+import static io.crate.execution.ddl.tables.MappingUtil.toProperties;
 import static io.crate.metadata.Reference.buildTree;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
 
@@ -33,8 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -47,10 +43,14 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 
 import io.crate.analyze.AlterTableDropColumnAnalyzer;
+import io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -97,9 +97,12 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
             }
         }
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(references);
-
-        Map<String, Object> mapping = createMappingForDroppedCols(currentTable, tree);
-        Map<String, Object> mappingToRemove = createMappingToRemove(tree, null);
+        Map<String, Map<String, Object>> properties = toProperties(AllocPosition.forTable(currentTable), tree);
+        Map<String, Object> mapping = Map.of(
+            "_meta", Map.of(),
+            "properties", properties
+        );
+        Map<String, Object> mappingToRemove = Map.of("properties", MappingUtil.toNamesOnlyProperties(tree));
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
@@ -120,7 +123,7 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
             currentState,
             metadataBuilder,
             request.relationName().indexNameOrAlias(),
-            (Map<String, Map<String, Object>>) mapping.get("properties"),
+            properties,
             mappingToRemove
         );
         // ensure the table can still be parsed into a DocTableInfo to avoid breaking the table.
