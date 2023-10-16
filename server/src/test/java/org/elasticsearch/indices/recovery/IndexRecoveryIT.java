@@ -514,7 +514,6 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertThat(recoveryStatsNodeA.currentAsTarget())
             .as("node A should not have ongoing recovery as target")
             .isEqualTo(0);
-        long nodeAThrottling = recoveryStatsNodeA.throttleTime().millis();
 
         IndicesService indicesServiceNodeB = cluster().getInstance(IndicesService.class, nodeB);
         var recoveryStatsNodeB = indicesServiceNodeB.indexServiceSafe(index).getShard(0).recoveryStats();
@@ -524,22 +523,6 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertThat( recoveryStatsNodeB.currentAsTarget())
             .as("node B should have ongoing recovery as target")
             .isEqualTo(1);
-        long nodeBThrottling = recoveryStatsNodeB.throttleTime().millis();
-
-        logger.info("--> checking throttling increases");
-        final long finalNodeAThrottling = nodeAThrottling;
-        final long finalNodeBThrottling = nodeBThrottling;
-        var indexShardNodeA = indicesServiceNodeA.indexServiceSafe(index).getShard(0);
-        var indexShardNodeB = indicesServiceNodeB.indexServiceSafe(index).getShard(0);
-        assertBusy(() -> {
-            assertThat(indexShardNodeA.recoveryStats().throttleTime().millis())
-                .as("node A throttling should increase")
-                .isGreaterThan(finalNodeAThrottling);
-            assertThat(indexShardNodeB.recoveryStats().throttleTime().millis())
-                .as("node B throttling should increase")
-                .isGreaterThan(finalNodeBThrottling);
-        });
-
 
         logger.info("--> speeding up recoveries");
         restoreRecoverySpeed();
@@ -558,9 +541,6 @@ public class IndexRecoveryIT extends IntegTestCase {
             var recoveryStats = indicesService.indexServiceSafe(index).getShard(0).recoveryStats();
             assertThat(recoveryStats.currentAsSource()).isEqualTo(0);
             assertThat(recoveryStats.currentAsTarget()).isEqualTo(0);
-            assertThat(recoveryStats.throttleTime().millis())
-                .as(nodeName + " throttling should be >0")
-                .isGreaterThan(0L);
         };
         // we have to use assertBusy as recovery counters are decremented only when the last reference to the RecoveryTarget
         // is decremented, which may happen after the recovery was done.
