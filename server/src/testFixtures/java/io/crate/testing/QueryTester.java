@@ -86,9 +86,24 @@ public final class QueryTester implements AutoCloseable {
                        Version indexVersion,
                        String createTableStmt,
                        AbstractModule... additionalModules) throws IOException {
-            // Disable OID generation for columns/references in order to be able to compare the query outcome with
-            // expected ones.
-            LongSupplier columnOidSupplier = () -> COLUMN_OID_UNASSIGNED;
+            this(tempDir,
+                threadPool,
+                clusterService,
+                indexVersion,
+                createTableStmt,
+                // Disable OID generation for columns/references in order to be able to compare the query outcome with
+                // expected ones.
+                () -> COLUMN_OID_UNASSIGNED,
+                additionalModules);
+        }
+
+        public Builder(Path tempDir,
+                       ThreadPool threadPool,
+                       ClusterService clusterService,
+                       Version indexVersion,
+                       String createTableStmt,
+                       LongSupplier columnOidSupplier,
+                       AbstractModule... additionalModules) throws IOException {
             var sqlExecutor = SQLExecutor
                 .builder(clusterService, additionalModules)
                 .setColumnOidSupplier(columnOidSupplier)
