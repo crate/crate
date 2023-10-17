@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -256,7 +257,8 @@ public class InboundDecoderTests extends ESTestCase {
         InboundDecoder decoder = new InboundDecoder(Version.CURRENT, PageCacheRecycler.NON_RECYCLING_INSTANCE);
         final ArrayList<Object> fragments = new ArrayList<>();
         final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(bytes);
-        expectThrows(IllegalStateException.class, () -> decoder.decode(releasable1, fragments::add));
+        assertThatThrownBy(() -> decoder.decode(releasable1, fragments::add))
+            .isExactlyInstanceOf(IllegalStateException.class);
         // No bytes are retained
         assertEquals(1, releasable1.refCount());
     }

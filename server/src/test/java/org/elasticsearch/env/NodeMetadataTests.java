@@ -18,11 +18,9 @@
  */
 package org.elasticsearch.env;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -104,19 +102,18 @@ public class NodeMetadataTests extends ESTestCase {
 
     @Test
     public void testDoesNotUpgradeFutureVersion() {
-        final IllegalStateException illegalStateException = expectThrows(IllegalStateException.class,
-                                                                         () -> new NodeMetadata(randomAlphaOfLength(10), tooNewVersion())
-                                                                             .upgradeToCurrentVersion());
-        assertThat(illegalStateException.getMessage(),
-                   allOf(startsWith("cannot downgrade a node from version ["), endsWith("] to version [" + Version.CURRENT + "]")));
+        assertThatThrownBy(() -> new NodeMetadata(randomAlphaOfLength(10), tooNewVersion()) .upgradeToCurrentVersion())
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("cannot downgrade a node from version [")
+            .hasMessageEndingWith("] to version [" + Version.CURRENT + "]");
     }
 
     @Test
     public void testDoesNotUpgradeAncientVersion() {
-        final IllegalStateException illegalStateException = expectThrows(IllegalStateException.class,
-                                                                         () -> new NodeMetadata(randomAlphaOfLength(10), tooOldVersion()).upgradeToCurrentVersion());
-        assertThat(illegalStateException.getMessage(),
-                   allOf(startsWith("cannot upgrade a node from version ["), endsWith("] directly to version [" + Version.CURRENT + "]")));
+        assertThatThrownBy(() -> new NodeMetadata(randomAlphaOfLength(10), tooOldVersion()).upgradeToCurrentVersion())
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("cannot upgrade a node from version [")
+            .hasMessageEndingWith("] directly to version [" + Version.CURRENT + "]");
     }
 
     public static Version tooNewVersion() {

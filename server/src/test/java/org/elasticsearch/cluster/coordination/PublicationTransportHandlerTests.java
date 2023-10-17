@@ -18,10 +18,7 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -41,9 +38,11 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.CapturingTransport;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Test;
 
 public class PublicationTransportHandlerTests extends ESTestCase {
 
+    @Test
     public void testDiffSerializationFailure() {
         DeterministicTaskQueue deterministicTaskQueue =
             new DeterministicTaskQueue(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), "test").build(), random());
@@ -84,10 +83,10 @@ public class PublicationTransportHandlerTests extends ESTestCase {
             }
         };
 
-        ElasticsearchException e = expectThrows(ElasticsearchException.class, () ->
-            handler.newPublicationContext(new ClusterChangedEvent("test", unserializableClusterState, clusterState)));
-        assertNotNull(e.getCause());
-        assertThat(e.getCause(), instanceOf(IOException.class));
-        assertThat(e.getCause().getMessage(), containsString("Simulated failure of diff serialization"));
+        assertThatThrownBy(() -> handler.newPublicationContext(new ClusterChangedEvent("test", unserializableClusterState, clusterState)))
+            .isExactlyInstanceOf(ElasticsearchException.class)
+            .cause()
+                .isExactlyInstanceOf(IOException.class)
+                .hasMessageContaining("Simulated failure of diff serialization");
     }
 }

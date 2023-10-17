@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.common.util.concurrent;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -149,7 +150,8 @@ public class AbstractAsyncTaskTests extends ESTestCase {
         assertEquals(1, count.get());
         assertFalse(task.isScheduled());
         barrier.reset();
-        expectThrows(TimeoutException.class, () -> barrier.await(10, TimeUnit.MILLISECONDS));
+        assertThatThrownBy(() -> barrier.await(10, TimeUnit.MILLISECONDS))
+            .isExactlyInstanceOf(TimeoutException.class);
         assertEquals(1, count.get());
         barrier.reset();
         task.rescheduleIfNecessary();

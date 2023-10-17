@@ -19,6 +19,7 @@
 
 package org.elasticsearch.index.shard;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -327,15 +328,17 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
     @Test
     public void testRetentionLeasesActionsFailWithSoftDeletesDisabled() throws Exception {
         IndexShard shard = newStartedShard(true, Settings.builder().put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false).build());
-        assertThat(expectThrows(AssertionError.class, () -> shard.addRetentionLease(randomAlphaOfLength(10),
-            randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE), "test", ActionListener.wrap(() -> {}))).getMessage(),
-            equalTo("retention leases requires soft deletes but [index] does not have soft deletes enabled"));
-        assertThat(expectThrows(AssertionError.class, () -> shard.renewRetentionLease(
-            randomAlphaOfLength(10), randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE), "test")).getMessage(),
-            equalTo("retention leases requires soft deletes but [index] does not have soft deletes enabled"));
-        assertThat(expectThrows(AssertionError.class, () -> shard.removeRetentionLease(
-            randomAlphaOfLength(10), ActionListener.wrap(() -> {}))).getMessage(),
-            equalTo("retention leases requires soft deletes but [index] does not have soft deletes enabled"));
+        assertThatThrownBy(() -> shard.addRetentionLease(randomAlphaOfLength(10),
+            randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE), "test", ActionListener.wrap(() -> {}))
+        ).isExactlyInstanceOf(AssertionError.class)
+            .hasMessage("retention leases requires soft deletes but [index] does not have soft deletes enabled");
+        assertThatThrownBy(() -> shard.renewRetentionLease(
+            randomAlphaOfLength(10), randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE), "test")
+        ).isExactlyInstanceOf(AssertionError.class)
+            .hasMessage("retention leases requires soft deletes but [index] does not have soft deletes enabled");
+        assertThatThrownBy(() -> shard.removeRetentionLease(randomAlphaOfLength(10), ActionListener.wrap(() -> {})))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessage("retention leases requires soft deletes but [index] does not have soft deletes enabled");
         shard.syncRetentionLeases();
         closeShards(shard);
     }

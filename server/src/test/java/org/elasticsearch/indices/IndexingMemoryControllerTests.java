@@ -20,6 +20,7 @@ package org.elasticsearch.indices;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.PROCESSORS_SETTING;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -255,36 +256,37 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
     }
 
     public void testNegativeMinIndexBufferSize() {
-        Exception e = expectThrows(IllegalArgumentException.class,
-                                   () -> new MockController(Settings.builder()
-                                                                .put("indices.memory.min_index_buffer_size", "-6mb").build()));
-        assertEquals("failed to parse setting [indices.memory.min_index_buffer_size] with value [-6mb] as a size in bytes", e.getMessage());
+        assertThatThrownBy(() -> new MockController(Settings.builder()
+            .put("indices.memory.min_index_buffer_size", "-6mb").build())
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse setting [indices.memory.min_index_buffer_size] with value [-6mb] as a size in bytes");
 
     }
 
     public void testNegativeInterval() {
-        Exception e = expectThrows(IllegalArgumentException.class,
-                                   () -> new MockController(Settings.builder()
-                                                                .put("indices.memory.interval", "-42s").build()));
-        assertEquals("failed to parse setting [indices.memory.interval] with value " +
-            "[-42s] as a time value: negative durations are not supported", e.getMessage());
+        assertThatThrownBy(() -> new MockController(Settings.builder()
+                .put("indices.memory.interval", "-42s").build())
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "failed to parse setting [indices.memory.interval] with value " +
+                "[-42s] as a time value: negative durations are not supported");
 
     }
 
     public void testNegativeShardInactiveTime() {
-        Exception e = expectThrows(IllegalArgumentException.class,
-                                   () -> new MockController(Settings.builder()
-                                                                .put("indices.memory.shard_inactive_time", "-42s").build()));
-        assertEquals("failed to parse setting [indices.memory.shard_inactive_time] with value " +
-            "[-42s] as a time value: negative durations are not supported", e.getMessage());
+        assertThatThrownBy(() -> new MockController(Settings.builder()
+            .put("indices.memory.shard_inactive_time", "-42s").build())
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "failed to parse setting [indices.memory.shard_inactive_time] with value " +
+                "[-42s] as a time value: negative durations are not supported");
     }
 
     public void testNegativeMaxIndexBufferSize() {
-        Exception e = expectThrows(IllegalArgumentException.class,
-                                   () -> new MockController(Settings.builder()
-                                                                .put("indices.memory.max_index_buffer_size", "-6mb").build()));
-        assertEquals("failed to parse setting [indices.memory.max_index_buffer_size] with value [-6mb] as a size in bytes", e.getMessage());
-
+        assertThatThrownBy(() -> new MockController(Settings.builder()
+                .put("indices.memory.max_index_buffer_size", "-6mb").build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse setting [indices.memory.max_index_buffer_size] with value [-6mb] as a size in bytes");
     }
 
     public void testMaxBufferSizes() {

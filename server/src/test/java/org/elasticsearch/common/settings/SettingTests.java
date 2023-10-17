@@ -20,6 +20,7 @@
  */
 package org.elasticsearch.common.settings;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -94,9 +95,10 @@ public class SettingTests extends ESTestCase {
                         new ByteSizeValue(Integer.MAX_VALUE, ByteSizeUnit.BYTES));
         final long value = 20_000_000 - randomIntBetween(1, 1024);
         final Settings settings = Settings.builder().put("a.byte.size", value + "b").build();
-        final IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> byteSizeValueSetting.get(settings));
         final String expectedMessage = "failed to parse value [" + value + "b] for setting [a.byte.size], must be >= [20000000b]";
-        assertThat(e, hasToString(containsString(expectedMessage)));
+        assertThatThrownBy(() -> byteSizeValueSetting.get(settings))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(expectedMessage);
     }
 
     @Test
@@ -109,9 +111,10 @@ public class SettingTests extends ESTestCase {
                         new ByteSizeValue(Integer.MAX_VALUE, ByteSizeUnit.BYTES));
         final long value = (1L << 31) - 1 + randomIntBetween(1, 1024);
         final Settings settings = Settings.builder().put("a.byte.size", value + "b").build();
-        final IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> byteSizeValueSetting.get(settings));
         final String expectedMessage = "failed to parse value [" + value + "b] for setting [a.byte.size], must be <= [2147483647b]";
-        assertThat(e, hasToString(containsString(expectedMessage)));
+        assertThatThrownBy(() -> byteSizeValueSetting.get(settings))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(expectedMessage);
     }
 
     public void testByteSizeSettingValidation() {
@@ -194,8 +197,9 @@ public class SettingTests extends ESTestCase {
     public void testValidateStringSetting() {
         Settings settings = Settings.builder().putList("foo.bar", Arrays.asList("bla-a", "bla-b")).build();
         Setting<String> stringSetting = Setting.simpleString("foo.bar", Property.NodeScope);
-        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> stringSetting.get(settings));
-        assertEquals("Found list type value for setting [foo.bar] but but did not expect a list for it.", e.getMessage());
+        assertThatThrownBy(() -> stringSetting.get(settings))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Found list type value for setting [foo.bar] but but did not expect a list for it.");
     }
 
     private static final Setting<String> FOO_BAR_SETTING = new Setting<>(
@@ -488,8 +492,9 @@ public class SettingTests extends ESTestCase {
         assertEquals(5, c.b.intValue());
 
         Settings invalid = Settings.builder().put("foo.int.bar.a", -2).put("foo.int.bar.b", 5).build();
-        IllegalArgumentException exc = expectThrows(IllegalArgumentException.class, () -> settingUpdater.apply(invalid, previous));
-        assertThat(exc.getMessage(), equalTo("boom"));
+        assertThatThrownBy(() -> settingUpdater.apply(invalid, previous))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("boom");
 
         // reset to default
         assertTrue(settingUpdater.apply(Settings.EMPTY, build));
@@ -650,12 +655,14 @@ public class SettingTests extends ESTestCase {
         assertTrue(concreteSetting.get(Settings.builder().put("foo.bar.enable", "true").build()));
         assertFalse(concreteSetting.get(Settings.builder().put("foo.baz.enable", "true").build()));
 
-        IllegalArgumentException exc = expectThrows(IllegalArgumentException.class, () -> setting.getConcreteSetting("foo"));
-        assertEquals("key [foo] must match [foo.*.enable] but didn't.", exc.getMessage());
+        assertThatThrownBy(() -> setting.getConcreteSetting("foo"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("key [foo] must match [foo.*.enable] but didn't.");
 
-        exc = expectThrows(IllegalArgumentException.class, () -> Setting.affixKeySetting("foo", "enable",
-            (key) -> Setting.boolSetting(key, false, Property.NodeScope)));
-        assertEquals("prefix must end with a '.'", exc.getMessage());
+        assertThatThrownBy(() -> Setting.affixKeySetting("foo", "enable",
+            (key) -> Setting.boolSetting(key, false, Property.NodeScope))
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("prefix must end with a '.'");
 
         Setting<List<String>> listAffixSetting = Setting.affixKeySetting("foo.", "bar",
             (key) -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope));
@@ -730,8 +737,10 @@ public class SettingTests extends ESTestCase {
     public void testAffixSettingsFailOnGet() {
         Setting.AffixSetting<List<String>> listAffixSetting = Setting.affixKeySetting("foo.", "bar",
             (key) -> Setting.listSetting(key, Collections.singletonList("testelement"), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope));
-        expectThrows(UnsupportedOperationException.class, () -> listAffixSetting.get(Settings.EMPTY));
-        expectThrows(UnsupportedOperationException.class, () -> listAffixSetting.getRaw(Settings.EMPTY));
+        assertThatThrownBy(() -> listAffixSetting.get(Settings.EMPTY))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> listAffixSetting.getRaw(Settings.EMPTY))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
         assertEquals(Collections.singletonList("testelement"), listAffixSetting.getDefault(Settings.EMPTY));
         assertEquals("[\"testelement\"]", listAffixSetting.getDefaultRaw(Settings.EMPTY));
     }
@@ -786,40 +795,37 @@ public class SettingTests extends ESTestCase {
      */
     @Test
     public void testRejectNullProperties() {
-        IllegalArgumentException ex = expectThrows(IllegalArgumentException.class,
-            () -> Setting.simpleString("foo.bar", (Property[]) null));
-        assertThat(ex.getMessage(), containsString("properties cannot be null for setting"));
+        assertThatThrownBy(() -> Setting.simpleString("foo.bar", (Property[]) null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("properties cannot be null for setting");
     }
 
     @Test
     public void testRejectConflictingDynamicAndFinalProperties() {
-        IllegalArgumentException ex = expectThrows(IllegalArgumentException.class,
-            () -> Setting.simpleString("foo.bar", Property.Final, Property.Dynamic));
-        assertThat(ex.getMessage(), containsString("final setting [foo.bar] cannot be dynamic"));
+        assertThatThrownBy(() -> Setting.simpleString("foo.bar", Property.Final, Property.Dynamic))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("final setting [foo.bar] cannot be dynamic");
     }
 
     @Test
     public void testRejectNonIndexScopedNotCopyableOnResizeSetting() {
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> Setting.simpleString("foo.bar", Property.NotCopyableOnResize));
-        assertThat(e, hasToString(containsString("non-index-scoped setting [foo.bar] can not have property [NotCopyableOnResize]")));
+        assertThatThrownBy(() -> Setting.simpleString("foo.bar", Property.NotCopyableOnResize))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("non-index-scoped setting [foo.bar] can not have property [NotCopyableOnResize]");
     }
 
     @Test
     public void testRejectNonIndexScopedInternalIndexSetting() {
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> Setting.simpleString("foo.bar", Property.InternalIndex));
-        assertThat(e, hasToString(containsString("non-index-scoped setting [foo.bar] can not have property [InternalIndex]")));
+        assertThatThrownBy(() -> Setting.simpleString("foo.bar", Property.InternalIndex))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("non-index-scoped setting [foo.bar] can not have property [InternalIndex]");
     }
 
     @Test
     public void testRejectNonIndexScopedPrivateIndexSetting() {
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> Setting.simpleString("foo.bar", Property.PrivateIndex));
-        assertThat(e, hasToString(containsString("non-index-scoped setting [foo.bar] can not have property [PrivateIndex]")));
+        assertThatThrownBy(() -> Setting.simpleString("foo.bar", Property.PrivateIndex))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("non-index-scoped setting [foo.bar] can not have property [PrivateIndex]");
     }
 
     @Test
@@ -842,11 +848,9 @@ public class SettingTests extends ESTestCase {
         assertThat(settingWithLowerBound.get(Settings.EMPTY), equalTo(TimeValue.timeValueSeconds(10)));
 
         assertThat(settingWithLowerBound.get(Settings.builder().put("foo", "5000ms").build()), equalTo(TimeValue.timeValueSeconds(5)));
-        IllegalArgumentException illegalArgumentException
-            = expectThrows(IllegalArgumentException.class,
-            () -> settingWithLowerBound.get(Settings.builder().put("foo", "4999ms").build()));
-
-        assertThat(illegalArgumentException.getMessage(), equalTo("failed to parse value [4999ms] for setting [foo], must be >= [5s]"));
+        assertThatThrownBy(() -> settingWithLowerBound.get(Settings.builder().put("foo", "4999ms").build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse value [4999ms] for setting [foo], must be >= [5s]");
 
         Setting<TimeValue> settingWithBothBounds = Setting.timeSetting("bar",
             TimeValue.timeValueSeconds(10), TimeValue.timeValueSeconds(5), TimeValue.timeValueSeconds(20));
@@ -854,15 +858,13 @@ public class SettingTests extends ESTestCase {
 
         assertThat(settingWithBothBounds.get(Settings.builder().put("bar", "5000ms").build()), equalTo(TimeValue.timeValueSeconds(5)));
         assertThat(settingWithBothBounds.get(Settings.builder().put("bar", "20000ms").build()), equalTo(TimeValue.timeValueSeconds(20)));
-        illegalArgumentException
-            = expectThrows(IllegalArgumentException.class,
-            () -> settingWithBothBounds.get(Settings.builder().put("bar", "4999ms").build()));
-        assertThat(illegalArgumentException.getMessage(), equalTo("failed to parse value [4999ms] for setting [bar], must be >= [5s]"));
+        assertThatThrownBy(() -> settingWithBothBounds.get(Settings.builder().put("bar", "4999ms").build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse value [4999ms] for setting [bar], must be >= [5s]");
 
-        illegalArgumentException
-            = expectThrows(IllegalArgumentException.class,
-            () -> settingWithBothBounds.get(Settings.builder().put("bar", "20001ms").build()));
-        assertThat(illegalArgumentException.getMessage(), equalTo("failed to parse value [20001ms] for setting [bar], must be <= [20s]"));
+        assertThatThrownBy(() -> settingWithBothBounds.get(Settings.builder().put("bar", "20001ms").build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse value [20001ms] for setting [bar], must be <= [20s]");
     }
 
     @Test

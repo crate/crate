@@ -21,12 +21,11 @@
 
 package org.elasticsearch.common.settings;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -87,11 +86,12 @@ public class SettingsTests extends ESTestCase {
     public void testReplacePropertiesPlaceholderSystemVariablesHaveNoEffect() {
         final String value = System.getProperty("java.home");
         assertNotNull(value);
-        final IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> Settings.builder()
+        assertThatThrownBy(() -> Settings.builder()
             .put("setting1", "${java.home}")
             .replacePropertyPlaceholders()
-            .build());
-        assertThat(e, hasToString(containsString("Could not resolve placeholder 'java.home'")));
+            .build()
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Could not resolve placeholder 'java.home'");
     }
 
     @Test
@@ -335,8 +335,8 @@ public class SettingsTests extends ESTestCase {
         assertTrue(filteredSettings.keySet().contains("a.b"));
         assertTrue(filteredSettings.keySet().contains("a.b.c"));
         assertTrue(filteredSettings.keySet().contains("a.b.c.d"));
-        expectThrows(UnsupportedOperationException.class, () ->
-            filteredSettings.keySet().remove("a.b"));
+        assertThatThrownBy(() -> filteredSettings.keySet().remove("a.b"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
         assertEquals("ab1", filteredSettings.get("a.b"));
         assertEquals("ab2", filteredSettings.get("a.b.c"));
         assertEquals("ab3", filteredSettings.get("a.b.c.d"));
@@ -355,7 +355,8 @@ public class SettingsTests extends ESTestCase {
         }
         assertEquals("a.b.c.d", iterator.next());
         assertFalse(iterator.hasNext());
-        expectThrows(NoSuchElementException.class, () -> iterator.next());
+        assertThatThrownBy(() -> iterator.next())
+            .isExactlyInstanceOf(NoSuchElementException.class);
 
     }
 
@@ -383,8 +384,8 @@ public class SettingsTests extends ESTestCase {
         assertTrue(prefixMap.keySet().contains("b"));
         assertTrue(prefixMap.keySet().contains("b.c"));
         assertTrue(prefixMap.keySet().contains("b.c.d"));
-        expectThrows(UnsupportedOperationException.class, () ->
-            prefixMap.keySet().remove("a.b"));
+        assertThatThrownBy(() -> prefixMap.keySet().remove("a.b"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
         assertEquals("ab1", prefixMap.get("b"));
         assertEquals("ab2", prefixMap.get("b.c"));
         assertEquals("ab3", prefixMap.get("b.c.d"));
@@ -406,7 +407,8 @@ public class SettingsTests extends ESTestCase {
         }
         assertEquals("c", prefixIterator.next());
         assertFalse(prefixIterator.hasNext());
-        expectThrows(NoSuchElementException.class, () -> prefixIterator.next());
+        assertThatThrownBy(() -> prefixIterator.next())
+            .isExactlyInstanceOf(NoSuchElementException.class);
     }
 
     @Test
@@ -444,8 +446,8 @@ public class SettingsTests extends ESTestCase {
         assertFalse(filteredSettings.keySet().contains("a.b"));
         assertFalse(filteredSettings.keySet().contains("a.b.c"));
         assertFalse(filteredSettings.keySet().contains("a.b.c.d"));
-        expectThrows(UnsupportedOperationException.class, () ->
-            filteredSettings.keySet().remove("a.b"));
+        assertThatThrownBy(() -> filteredSettings.keySet().remove("a.b"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
         assertNull(filteredSettings.get("a.b"));
         assertNull(filteredSettings.get("a.b.c"));
         assertNull(filteredSettings.get("a.b.c.d"));
@@ -454,7 +456,8 @@ public class SettingsTests extends ESTestCase {
         for (int i = 0; i < 10; i++) {
             assertFalse(iterator.hasNext());
         }
-        expectThrows(NoSuchElementException.class, () -> iterator.next());
+        assertThatThrownBy(() -> iterator.next())
+            .isExactlyInstanceOf(NoSuchElementException.class);
     }
 
     @Test
@@ -482,14 +485,13 @@ public class SettingsTests extends ESTestCase {
 
     @Test
     public void testGetAsArrayFailsOnDuplicates() {
-        final IllegalStateException e = expectThrows(IllegalStateException.class, () -> Settings.builder()
+        assertThatThrownBy(() -> Settings.builder()
             .put("foobar.0", "bar")
             .put("foobar.1", "baz")
             .put("foobar", "foo")
-            .build());
-        assertThat(e,
-                   hasToString(containsString(
-                       "settings builder can't contain values for [foobar=foo] and [foobar.0=bar]")));
+            .build()
+        ).isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("settings builder can't contain values for [foobar=foo] and [foobar.0=bar]");
     }
 
     @Test
@@ -592,9 +594,9 @@ public class SettingsTests extends ESTestCase {
         assertEquals("baz", Settings.builder().copy("foo.bar.baz", settings).build().get("foo.bar.baz"));
         assertNull(Settings.builder().copy("foo.bar.baz", settings).build().get("test"));
         assertTrue(Settings.builder().copy("test", settings).build().keySet().contains("test"));
-        IllegalArgumentException iae = expectThrows(IllegalArgumentException.class,
-                                                    () -> Settings.builder().copy("not_there", settings));
-        assertEquals("source key not found in the source settings", iae.getMessage());
+        assertThatThrownBy(() -> Settings.builder().copy("not_there", settings))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("source key not found in the source settings");
     }
 
     @Test

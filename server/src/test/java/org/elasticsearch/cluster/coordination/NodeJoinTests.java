@@ -22,8 +22,9 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
@@ -85,9 +86,6 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-
-
-import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 
 public class NodeJoinTests extends ESTestCase {
 
@@ -310,9 +308,9 @@ public class NodeJoinTests extends ESTestCase {
         assertFalse(isLocalNodeElectedMaster());
         long newTerm = initialTerm + randomLongBetween(1, 10);
         long higherVersion = initialVersion + randomLongBetween(1, 10);
-        expectThrows(CoordinationStateRejectedException.class,
-            () -> joinNodeAndRun(new JoinRequest(node1, newTerm,
-                Optional.of(new Join(node1, node0, newTerm, initialTerm, higherVersion)))));
+        assertThatThrownBy(() -> joinNodeAndRun(new JoinRequest(node1, newTerm,
+                Optional.of(new Join(node1, node0, newTerm, initialTerm, higherVersion)))))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class);
         assertFalse(isLocalNodeElectedMaster());
     }
 
@@ -499,9 +497,9 @@ public class NodeJoinTests extends ESTestCase {
         long newTerm = initialTerm + randomLongBetween(1, 10);
         handleStartJoinFrom(node1, newTerm);
         handleFollowerCheckFrom(node1, newTerm);
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> joinNodeAndRun(new JoinRequest(node1, newTerm, Optional.empty()))).getMessage(),
-            containsString("join target is a follower"));
+        assertThatThrownBy(() -> joinNodeAndRun(new JoinRequest(node1, newTerm, Optional.empty())))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("join target is a follower");
         assertFalse(isLocalNodeElectedMaster());
     }
 
@@ -520,9 +518,9 @@ public class NodeJoinTests extends ESTestCase {
         assertFalse(isLocalNodeElectedMaster());
         handleFollowerCheckFrom(node1, newTerm);
         assertFalse(isLocalNodeElectedMaster());
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> FutureUtils.get(fut)).getMessage(),
-            containsString("became follower"));
+        assertThatThrownBy(() -> FutureUtils.get(fut))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("became follower");
         assertFalse(isLocalNodeElectedMaster());
     }
 

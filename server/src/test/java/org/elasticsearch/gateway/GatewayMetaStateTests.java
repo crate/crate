@@ -19,6 +19,7 @@
 
 package org.elasticsearch.gateway;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -141,9 +142,9 @@ public class GatewayMetaStateTests extends ESTestCase {
             customs -> {
                 throw new IllegalStateException("template is incompatible");
             }));
-        String message = expectThrows(IllegalStateException.class,
-                                      () -> GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader)).getMessage();
-        assertThat(message, equalTo("template is incompatible"));
+        assertThatThrownBy(() -> GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("template is incompatible");
     }
 
 

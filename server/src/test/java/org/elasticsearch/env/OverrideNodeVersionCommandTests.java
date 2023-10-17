@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.env;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -83,10 +84,12 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
     public void testFailsOnEmptyPath() {
         final Path emptyPath = createTempDir();
         final MockTerminal mockTerminal = new MockTerminal();
-        final ElasticsearchException elasticsearchException = expectThrows(ElasticsearchException.class, () ->
-            new OverrideNodeVersionCommand().processNodePaths(mockTerminal, new Path[]{emptyPath}, noOptions, environment));
-        assertThat(elasticsearchException.getMessage(), equalTo(OverrideNodeVersionCommand.NO_METADATA_MESSAGE));
-        expectThrows(IllegalStateException.class, () -> mockTerminal.readText(""));
+        assertThatThrownBy(() ->
+            new OverrideNodeVersionCommand().processNodePaths(mockTerminal, new Path[]{emptyPath}, noOptions, environment)
+        ).isExactlyInstanceOf(ElasticsearchException.class)
+            .hasMessage(OverrideNodeVersionCommand.NO_METADATA_MESSAGE);
+        assertThatThrownBy(() -> mockTerminal.readText(""))
+            .isExactlyInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -94,13 +97,16 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
         final Version nodeVersion = Version.fromId(between(Version.CURRENT.minimumIndexCompatibilityVersion().internalId, Version.CURRENT.internalId));
         PersistedClusterStateService.overrideVersion(nodeVersion, nodePaths);
         final MockTerminal mockTerminal = new MockTerminal();
-        final ElasticsearchException elasticsearchException = expectThrows(ElasticsearchException.class, () ->
-            new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment));
-        assertThat(elasticsearchException.getMessage(), allOf(
-            containsString("compatible with current version"),
-            containsString(Version.CURRENT.toString()),
-            containsString(nodeVersion.toString())));
-        expectThrows(IllegalStateException.class, () -> mockTerminal.readText(""));
+        assertThatThrownBy(() ->
+            new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment)
+        ).isExactlyInstanceOf(ElasticsearchException.class)
+            .hasMessageContainingAll(
+                "compatible with current version",
+                Version.CURRENT.toString(),
+                nodeVersion.toString()
+            );
+        assertThatThrownBy(() -> mockTerminal.readText(""))
+            .isExactlyInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -109,16 +115,18 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
         PersistedClusterStateService.overrideVersion(nodeVersion, nodePaths);
         final MockTerminal mockTerminal = new MockTerminal();
         mockTerminal.addTextInput("n\n");
-        final ElasticsearchException elasticsearchException = expectThrows(ElasticsearchException.class, () ->
-            new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment));
-        assertThat(elasticsearchException.getMessage(), equalTo("aborted by user"));
+        assertThatThrownBy(() ->
+            new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment)
+        ).isExactlyInstanceOf(ElasticsearchException.class)
+            .hasMessage("aborted by user");
         assertThat(mockTerminal.getOutput(), allOf(
             containsString("too old"),
             containsString("data loss"),
             containsString("You should not use this tool"),
             containsString(Version.CURRENT.toString()),
             containsString(nodeVersion.toString())));
-        expectThrows(IllegalStateException.class, () -> mockTerminal.readText(""));
+        assertThatThrownBy(() -> mockTerminal.readText(""))
+            .isExactlyInstanceOf(IllegalStateException.class);
 
         final NodeMetadata nodeMetadata = PersistedClusterStateService.nodeMetadata(nodePaths);
         assertThat(nodeMetadata.nodeVersion(), equalTo(nodeVersion));
@@ -130,15 +138,17 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
         PersistedClusterStateService.overrideVersion(nodeVersion, nodePaths);
         final MockTerminal mockTerminal = new MockTerminal();
         mockTerminal.addTextInput(randomFrom("yy", "Yy", "n", "yes", "true", "N", "no"));
-        final ElasticsearchException elasticsearchException = expectThrows(ElasticsearchException.class, () ->
-            new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment));
-        assertThat(elasticsearchException.getMessage(), equalTo("aborted by user"));
+        assertThatThrownBy(() ->
+            new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment)
+        ).isExactlyInstanceOf(ElasticsearchException.class)
+            .hasMessage("aborted by user");
         assertThat(mockTerminal.getOutput(), allOf(
             containsString("data loss"),
             containsString("You should not use this tool"),
             containsString(Version.CURRENT.toString()),
             containsString(nodeVersion.toString())));
-        expectThrows(IllegalStateException.class, () -> mockTerminal.readText(""));
+        assertThatThrownBy(() -> mockTerminal.readText(""))
+            .isExactlyInstanceOf(IllegalStateException.class);
 
         final NodeMetadata nodeMetadata = PersistedClusterStateService.nodeMetadata(nodePaths);
         assertThat(nodeMetadata.nodeVersion(), equalTo(nodeVersion));
@@ -158,7 +168,8 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
             containsString(Version.CURRENT.toString()),
             containsString(nodeVersion.toString()),
             containsString(OverrideNodeVersionCommand.SUCCESS_MESSAGE)));
-        expectThrows(IllegalStateException.class, () -> mockTerminal.readText(""));
+        assertThatThrownBy(() -> mockTerminal.readText(""))
+            .isExactlyInstanceOf(IllegalStateException.class);
 
         final NodeMetadata nodeMetadata = PersistedClusterStateService.nodeMetadata(nodePaths);
         assertThat(nodeMetadata.nodeVersion(), equalTo(Version.CURRENT));
@@ -177,7 +188,8 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
             containsString(Version.CURRENT.toString()),
             containsString(nodeVersion.toString()),
             containsString(OverrideNodeVersionCommand.SUCCESS_MESSAGE)));
-        expectThrows(IllegalStateException.class, () -> mockTerminal.readText(""));
+        assertThatThrownBy(() -> mockTerminal.readText(""))
+            .isExactlyInstanceOf(IllegalStateException.class);
 
         final NodeMetadata nodeMetadata = PersistedClusterStateService.nodeMetadata(nodePaths);
         assertThat(nodeMetadata.nodeVersion(), equalTo(Version.CURRENT));

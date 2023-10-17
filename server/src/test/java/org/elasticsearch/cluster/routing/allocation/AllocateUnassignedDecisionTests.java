@@ -22,6 +22,7 @@ package org.elasticsearch.cluster.routing.allocation;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -55,12 +56,18 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
     public void testDecisionNotTaken() {
         AllocateUnassignedDecision allocateUnassignedDecision = AllocateUnassignedDecision.NOT_TAKEN;
         assertFalse(allocateUnassignedDecision.isDecisionTaken());
-        expectThrows(IllegalStateException.class, () -> allocateUnassignedDecision.getAllocationDecision());
-        expectThrows(IllegalStateException.class, () -> allocateUnassignedDecision.getAllocationStatus());
-        expectThrows(IllegalStateException.class, () -> allocateUnassignedDecision.getAllocationId());
-        expectThrows(IllegalStateException.class, () -> allocateUnassignedDecision.getTargetNode());
-        expectThrows(IllegalStateException.class, () -> allocateUnassignedDecision.getNodeDecisions());
-        expectThrows(IllegalStateException.class, () -> allocateUnassignedDecision.getExplanation());
+        assertThatThrownBy(() -> allocateUnassignedDecision.getAllocationDecision())
+            .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> allocateUnassignedDecision.getAllocationStatus())
+            .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> allocateUnassignedDecision.getAllocationId())
+            .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> allocateUnassignedDecision.getTargetNode())
+            .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> allocateUnassignedDecision.getNodeDecisions())
+            .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> allocateUnassignedDecision.getExplanation())
+            .isExactlyInstanceOf(IllegalStateException.class);
     }
 
     public void testNoDecision() {
@@ -105,7 +112,8 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         assertNull(noDecision.getAllocationId());
 
         // test bad values
-        expectThrows(NullPointerException.class, () -> AllocateUnassignedDecision.no(null, null));
+        assertThatThrownBy(() -> AllocateUnassignedDecision.no(null, null))
+            .isExactlyInstanceOf(NullPointerException.class);
     }
 
     public void testThrottleDecision() {
