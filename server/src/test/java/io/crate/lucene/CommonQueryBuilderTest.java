@@ -44,6 +44,7 @@ import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
@@ -59,6 +60,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.testing.QueryTester;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
@@ -686,5 +688,22 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         query = convert("name not ilike any(['bar', null, 'foo'])");
         assertThat(query).hasToString("+*:* -(+name:^bar$,flags:66 +name:^foo$,flags:66)");
+    }
+
+    @Test
+    public void test_any_neq_operator_maps_column_names_to_oids() throws Exception {
+        final long oid = 123;
+        try (QueryTester tester = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a text)",
+            () -> oid
+        ).indexValues("a", "s", "t").build()) {
+            Query query = tester.toQuery("a != any(['s', 't'])");
+            assertThat(query).hasToString(String.format("+(+*:* -(+%s:s +%s:t)) #FieldExistsQuery [field=%s]", oid, oid, oid));
+            assertThat(tester.runQuery("a", "a != any(['s'])")).containsExactly("t");
+        }
     }
 }
