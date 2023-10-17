@@ -93,7 +93,7 @@ final class DocumentParser {
 
     private static void internalParseDocument(Mapping mapping, MetadataFieldMapper[] metadataFieldsMappers,
                                               ParseContext.InternalParseContext context, XContentParser parser) throws IOException {
-        final boolean emptyDoc = isEmptyDoc(mapping, parser);
+        final boolean emptyDoc = isEmptyDoc(parser);
 
         for (MetadataFieldMapper metadataMapper : metadataFieldsMappers) {
             metadataMapper.preParse(context);
@@ -126,7 +126,7 @@ final class DocumentParser {
         }
     }
 
-    private static boolean isEmptyDoc(Mapping mapping, XContentParser parser) throws IOException {
+    private static boolean isEmptyDoc(XContentParser parser) throws IOException {
         final XContentParser.Token token = parser.nextToken();
         if (token == XContentParser.Token.END_OBJECT) {
             // empty doc, we can handle it...
@@ -386,7 +386,7 @@ final class DocumentParser {
     static void parseObject(final ParseContext context, ObjectMapper mapper, String currentFieldName, String[] paths) throws IOException {
         assert currentFieldName != null;
 
-        Mapper objectMapper = getMapper(mapper, currentFieldName, paths);
+        Mapper objectMapper = getMapper(mapper, paths);
         if (objectMapper != null) {
             context.path().add(currentFieldName);
             parseObjectOrField(context, objectMapper);
@@ -431,7 +431,7 @@ final class DocumentParser {
                                    String[] paths) throws IOException {
         String arrayFieldName = lastFieldName;
 
-        Mapper mapper = getMapper(parentMapper, lastFieldName, paths);
+        Mapper mapper = getMapper(parentMapper, paths);
         if (mapper != null) {
             // There is a concrete mapper for this field already. Need to check if the mapper
             // expects an array, if so we pass the context straight to the mapper and if not
@@ -511,7 +511,7 @@ final class DocumentParser {
         if (currentFieldName == null) {
             throw new MapperParsingException("object mapping [" + parentMapper.name() + "] trying to serialize a value with no field associated with it, current value [" + context.parser().textOrNull() + "]");
         }
-        Mapper mapper = getMapper(parentMapper, currentFieldName, paths);
+        Mapper mapper = getMapper(parentMapper, paths);
         if (mapper != null) {
             parseObjectOrField(context, mapper);
         } else {
@@ -528,7 +528,7 @@ final class DocumentParser {
     private static void parseNullValue(ParseContext context, ObjectMapper parentMapper, String lastFieldName,
                                        String[] paths) throws IOException {
         // we can only handle null values if we have mappings for them
-        Mapper mapper = getMapper(parentMapper, lastFieldName, paths);
+        Mapper mapper = getMapper(parentMapper, paths);
         if (mapper != null) {
             // TODO: passing null to an object seems bogus?
             parseObjectOrField(context, mapper);
@@ -713,7 +713,7 @@ final class DocumentParser {
     }
 
     // looks up a child mapper, but takes into account field names that expand to objects
-    private static Mapper getMapper(ObjectMapper objectMapper, String fieldName, String[] subfields) {
+    private static Mapper getMapper(ObjectMapper objectMapper, String[] subfields) {
         for (int i = 0; i < subfields.length - 1; ++i) {
             Mapper mapper = objectMapper.getMapper(subfields[i]);
             if (mapper == null || (mapper instanceof ObjectMapper) == false) {

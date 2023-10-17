@@ -17,9 +17,8 @@
 
 package org.elasticsearch.common.inject.internal;
 
-import org.elasticsearch.common.inject.ConfigurationException;
-import org.elasticsearch.common.inject.TypeLiteral;
-import org.elasticsearch.common.inject.spi.Message;
+import static java.util.Collections.singleton;
+import static java.util.Collections.unmodifiableMap;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -37,8 +36,9 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-import static java.util.Collections.singleton;
-import static java.util.Collections.unmodifiableMap;
+import org.elasticsearch.common.inject.ConfigurationException;
+import org.elasticsearch.common.inject.TypeLiteral;
+import org.elasticsearch.common.inject.spi.Message;
 
 /**
  * Static methods for working with types that we aren't publishing in the
@@ -635,7 +635,6 @@ public class MoreTypes {
         private final int modifiers;
         private final boolean synthetic;
         private final Class<? extends Member> memberType;
-        private final String memberKey;
 
         private MemberImpl(Member member) {
             this.declaringClass = member.getDeclaringClass();
@@ -643,11 +642,10 @@ public class MoreTypes {
             this.modifiers = member.getModifiers();
             this.synthetic = member.isSynthetic();
             this.memberType = memberType(member);
-            this.memberKey = memberKey(member);
         }
 
         @Override
-        public Class getDeclaringClass() {
+        public Class<?> getDeclaringClass() {
             return declaringClass;
         }
 

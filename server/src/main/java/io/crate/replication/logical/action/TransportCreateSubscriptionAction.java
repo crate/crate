@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -33,10 +34,12 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -45,6 +48,7 @@ import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
+import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.user.UserLookup;
@@ -109,6 +113,30 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                     if (response.unknownPublications().isEmpty() == false) {
                         throw new PublicationUnknownException(response.unknownPublications().get(0));
                     }
+
+                    // Published tables can have metadata or documents which subscriber with a lower version might not process.
+                    // We check published tables version and not publisher cluster's MinNodeVersion.
+                    // Publisher cluster can have a higher version but contain old tables, restored from a snapshot,
+                    // in this case subscription works fine.
+                    for (RelationMetadata relationMetadata: response.relationsInPublications().values()) {
+                        if (relationMetadata.template() != null) {
+                            checkVersionCompatibility(
+                                relationMetadata.name().fqn(),
+                                state.nodes().getMinNodeVersion(),
+                                relationMetadata.template().settings()
+                            );
+                        }
+                        if (!relationMetadata.indices().isEmpty()) {
+                            // All indices belong to the same table and has same metadata.
+                            IndexMetadata indexMetadata = relationMetadata.indices().get(0);
+                            checkVersionCompatibility(
+                                relationMetadata.name().fqn(),
+                                state.nodes().getMinNodeVersion(),
+                                indexMetadata.getSettings()
+                            );
+                        }
+                    }
+
                     logicalReplicationService.verifyTablesDoNotExist(request.name(), response);
                     return submitClusterStateTask(request, response);
                 }
@@ -122,6 +150,21 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                     }
                 }
             );
+    }
+
+    private static void checkVersionCompatibility(String tableFqn, Version subscriberMinNodeVersion, Settings settings) {
+        Version publishedTableVersion = settings.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, null);
+        assert publishedTableVersion != null : "All published tables must have version created setting";
+        if (subscriberMinNodeVersion.beforeMajorMinor(publishedTableVersion)) {
+            throw new IllegalStateException(String.format(
+                Locale.ENGLISH,
+                "One of the published tables has version higher than subscriber's minimal node version." +
+                " Table=%s, Table-Version=%s, Local-Minimal-Version: %s",
+                tableFqn,
+                publishedTableVersion,
+                subscriberMinNodeVersion
+            ));
+        }
     }
 
     private CompletableFuture<Void> submitClusterStateTask(CreateSubscriptionRequest request,

@@ -122,14 +122,13 @@ public class RemoteCollectorFactory {
                 return Exceptions.rethrowRuntimeException(e);
             }
         } else {
-            return remoteBatchIterator(primaryRouting, collectPhase, collectTask, collectorFactory, requiresScroll);
+            return remoteBatchIterator(primaryRouting, collectPhase, collectTask, requiresScroll);
         }
     }
 
     private CompletableFuture<BatchIterator<Row>> remoteBatchIterator(ShardRouting primaryRouting,
                                                                       RoutedCollectPhase collectPhase,
                                                                       CollectTask collectTask,
-                                                                      ShardCollectorProviderFactory collectorFactory,
                                                                       boolean requiresScroll) {
         CapturingRowConsumer consumer = new CapturingRowConsumer(requiresScroll, new CompletableFuture<>());
         String remoteNodeId = primaryRouting.currentNodeId();

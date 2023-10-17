@@ -78,8 +78,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 );
     }
 
-    private static boolean eagerTerminateIsLikely(TransactionContext txnCtx,
-                                                  Limit limit,
+    private static boolean eagerTerminateIsLikely(Limit limit,
                                                   GroupHashAggregate groupAggregate,
                                                   PlanStats planStats) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
@@ -174,7 +173,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(txnCtx, limit, groupBy, planStats)) {
+        if (!eagerTerminateIsLikely(limit, groupBy, planStats)) {
             return null;
         }
         return new LimitDistinct(

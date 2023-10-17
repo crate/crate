@@ -424,7 +424,6 @@ public class SQLExecutor {
                         tableStats,
                         null,
                         null,
-                        schemas,
                         userManager,
                         sessionSettingRegistry
                     ),

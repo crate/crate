@@ -233,7 +233,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             if (type.storageSupport() == null || type instanceof FloatVectorType) {
                 continue;
             }
-            if (type instanceof ObjectType objectType) {
+            if (type instanceof ObjectType) {
                 DataType<?> innerType = DataTypeTesting.randomType();
                 while (innerType instanceof FloatVectorType || innerType instanceof ObjectType) {
                     innerType = DataTypeTesting.randomType();

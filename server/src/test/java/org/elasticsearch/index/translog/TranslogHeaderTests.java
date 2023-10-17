@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
@@ -100,19 +99,5 @@ public class TranslogHeaderTests extends ESTestCase {
             }
         });
         assertThat(error, either(instanceOf(IllegalStateException.class)).or(instanceOf(TranslogCorruptedException.class)));
-    }
-
-    private <E extends Exception> void checkFailsToOpen(String file, Class<E> expectedErrorType, String expectedMessage) {
-        final Path translogFile = getDataPath(file);
-        assertThat("test file [" + translogFile + "] should exist", Files.exists(translogFile), equalTo(true));
-        final E error = expectThrows(expectedErrorType, () -> {
-            final Checkpoint checkpoint = new Checkpoint(Files.size(translogFile), 1, 1,
-                SequenceNumbers.NO_OPS_PERFORMED, SequenceNumbers.NO_OPS_PERFORMED,
-                SequenceNumbers.NO_OPS_PERFORMED, 1, SequenceNumbers.NO_OPS_PERFORMED);
-            try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
-                TranslogReader.open(channel, translogFile, checkpoint, null);
-            }
-        });
-        assertThat(error.getMessage(), containsString(expectedMessage));
     }
 }

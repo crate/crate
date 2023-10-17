@@ -35,9 +35,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import io.crate.exceptions.SQLExceptions;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -57,6 +54,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -68,8 +66,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                               TAcc,
                               TResult extends Iterable<? extends Row>>
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
-
-    private static final Logger LOGGER = LogManager.getLogger(ShardDMLExecutor.class);
 
     public static final int DEFAULT_BULK_SIZE = 10_000;
 
@@ -226,17 +222,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             req -> nodeLimits.get(resolveNodeId(req)).getLastRtt(TimeUnit.MILLISECONDS)
         ).consumeIteratorAndExecute()
             .thenApply(collector.finisher());
-    }
-
-    @Nullable
-    private static String getLocalNodeId(ClusterService clusterService) {
-        String nodeId = null;
-        try {
-            nodeId = clusterService.localNode().getId();
-        } catch (IllegalStateException e) {
-            LOGGER.debug("Unable to get local node id", e);
-        }
-        return nodeId;
     }
 
     public static void maybeRaiseFailure(@Nullable Exception exception) {
