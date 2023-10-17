@@ -655,9 +655,8 @@ element that is not ``netball``::
 
 .. NOTE::
 
-    When using the ``!= ANY(<array_col>))`` syntax, the default maximum size of
-    the array can be 8192. To use larger arrays, you must configure the
-    :ref:`indices.query.bool.max_clause_count
+    When ``!= ANY(<array_col>))`` causes ``TooManyClauses`` errors you could
+    consider increasing :ref:`indices.query.bool.max_clause_count
     <indices.query.bool.max_clause_count>` setting as appropriate on each node.
 
 Negating the same query with a preceding ``not`` returns all rows where
@@ -685,9 +684,9 @@ This behaviour applies to:
     logic`_. For better performance, consider using the :ref:`ignore3vl
     <scalar-ignore3vl>` function.
 
-    Additionally, When using ``NOT`` with ``LIKE ANY`` or ``NOT LIKE ANY``, the
-    default maximum size of the array can be 8192. To use larger arrays, you
-    must configure the :ref:`indices.query.bool.max_clause_count
+    Additionally, When ``NOT`` with ``LIKE ANY`` or ``NOT LIKE ANY`` on
+    arrays causes ``TooManyClauses`` errors, you could consider increasing
+    :ref:`indices.query.bool.max_clause_count
     <indices.query.bool.max_clause_count>` setting as appropriate on each node.
 
 .. _sql_dql_exists:
