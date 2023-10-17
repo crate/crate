@@ -19,9 +19,8 @@
 
 package org.elasticsearch.common.io.stream;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.closeTo;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -114,7 +113,8 @@ public class BytesStreamsTests extends ESTestCase {
         BytesStreamOutput out = new BytesStreamOutput();
 
         // bulk-write with wrong args
-        expectThrows(IllegalArgumentException.class, () -> out.writeBytes(new byte[]{}, 0, 1));
+        assertThatThrownBy(() -> out.writeBytes(new byte[]{}, 0, 1))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
         out.close();
     }
 
@@ -255,8 +255,9 @@ public class BytesStreamsTests extends ESTestCase {
         assertEquals(position, out.position());
         assertEquals(position, BytesReference.toBytes(out.bytes()).length);
 
-        IllegalArgumentException iae = expectThrows(IllegalArgumentException.class, () -> out.seek(Integer.MAX_VALUE + 1L));
-        assertEquals("BytesStreamOutput cannot hold more than 2GB of data", iae.getMessage());
+        assertThatThrownBy(() -> out.seek(Integer.MAX_VALUE + 1L))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("BytesStreamOutput cannot hold more than 2GB of data");
 
         out.close();
     }
@@ -271,8 +272,9 @@ public class BytesStreamsTests extends ESTestCase {
         out.skip(forward);
         assertEquals(position + forward, out.position());
 
-        IllegalArgumentException iae = expectThrows(IllegalArgumentException.class, () -> out.skip(Integer.MAX_VALUE - 50));
-        assertEquals("BytesStreamOutput cannot hold more than 2GB of data", iae.getMessage());
+        assertThatThrownBy(() -> out.skip(Integer.MAX_VALUE - 50))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("BytesStreamOutput cannot hold more than 2GB of data");
 
         out.close();
     }
@@ -349,13 +351,13 @@ public class BytesStreamsTests extends ESTestCase {
         Object dt = in.readGenericValue();
         assertThat(dt, is(dtOut));
         assertEquals(0, in.available());
-        IOException ex = expectThrows(IOException.class, () -> out.writeGenericValue(new Object() {
+        assertThatThrownBy(() -> out.writeGenericValue(new Object() {
             @Override
             public String toString() {
                 return "This object cannot be serialized by writeGeneric method";
             }
-        }));
-        assertThat(ex.getMessage(), containsString("can not write type"));
+        })).isExactlyInstanceOf(IOException.class)
+            .hasMessageContaining("can not write type");
         in.close();
         out.close();
     }
@@ -402,8 +404,9 @@ public class BytesStreamsTests extends ESTestCase {
             TestNamedWriteable testNamedWriteable = new TestNamedWriteable("test1", "test2");
             out.writeNamedWriteable(testNamedWriteable);
             StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
-            Exception e = expectThrows(UnsupportedOperationException.class, () -> in.readNamedWriteable(BaseNamedWriteable.class));
-            assertThat(e.getMessage(), is("can't read named writeable from StreamInput"));
+            assertThatThrownBy(() -> in.readNamedWriteable(BaseNamedWriteable.class))
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("can't read named writeable from StreamInput");
         }
     }
 
@@ -417,8 +420,9 @@ public class BytesStreamsTests extends ESTestCase {
             byte[] bytes = BytesReference.toBytes(out.bytes());
             try (StreamInput in = new NamedWriteableAwareStreamInput(StreamInput.wrap(bytes), namedWriteableRegistry)) {
                 assertEquals(in.available(), bytes.length);
-                IOException e = expectThrows(IOException.class, () -> in.readNamedWriteable(BaseNamedWriteable.class));
-                assertThat(e.getMessage(), endsWith("] returned null which is not allowed and probably means it screwed up the stream."));
+                assertThatThrownBy(() -> in.readNamedWriteable(BaseNamedWriteable.class))
+                     .isExactlyInstanceOf(IOException.class)
+                     .hasMessageEndingWith("] returned null which is not allowed and probably means it screwed up the stream.");
             }
         }
     }
@@ -427,8 +431,9 @@ public class BytesStreamsTests extends ESTestCase {
         try (BytesStreamOutput out = new BytesStreamOutput()) {
             out.writeOptionalWriteable(new TestNamedWriteable(randomAlphaOfLengthBetween(1, 10), randomAlphaOfLengthBetween(1, 10)));
             StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
-            IOException e = expectThrows(IOException.class, () -> in.readOptionalWriteable((StreamInput ignored) -> null));
-            assertThat(e.getMessage(), endsWith("] returned null which is not allowed and probably means it screwed up the stream."));
+            assertThatThrownBy(() -> in.readOptionalWriteable((StreamInput ignored) -> null))
+                .isExactlyInstanceOf(IOException.class)
+                .hasMessageEndingWith("] returned null which is not allowed and probably means it screwed up the stream.");
         }
     }
 
@@ -448,9 +453,9 @@ public class BytesStreamsTests extends ESTestCase {
             byte[] bytes = BytesReference.toBytes(out.bytes());
             try (StreamInput in = new NamedWriteableAwareStreamInput(StreamInput.wrap(bytes), namedWriteableRegistry)) {
                 assertEquals(in.available(), bytes.length);
-                AssertionError e = expectThrows(AssertionError.class, () -> in.readNamedWriteable(BaseNamedWriteable.class));
-                assertThat(e.getMessage(),
-                        endsWith(" claims to have a different name [intentionally-broken] than it was read from [test-named-writeable]."));
+                assertThatThrownBy(() -> in.readNamedWriteable(BaseNamedWriteable.class))
+                    .isExactlyInstanceOf(AssertionError.class)
+                    .hasMessageEndingWith(" claims to have a different name [intentionally-broken] than it was read from [test-named-writeable].");
             }
         }
     }
@@ -710,8 +715,8 @@ public class BytesStreamsTests extends ESTestCase {
     public void testWriteMapWithConsistentOrderWithLinkedHashMapShouldThrowAssertError() throws IOException {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
             Map<String, Object> map = new LinkedHashMap<>();
-            Throwable e = expectThrows(AssertionError.class, () -> output.writeMapWithConsistentOrder(map));
-            assertEquals(AssertionError.class, e.getClass());
+            assertThatThrownBy(() -> output.writeMapWithConsistentOrder(map))
+                .isExactlyInstanceOf(AssertionError.class);
         }
     }
 
@@ -773,7 +778,8 @@ public class BytesStreamsTests extends ESTestCase {
                 for (int i = 0; i < 10; i ++) {
                     assertEquals(i, ints[i]);
                 }
-                expectThrows(IllegalStateException.class, () -> streamInput.readIntArray());
+                assertThatThrownBy(() -> streamInput.readIntArray())
+                    .isExactlyInstanceOf(IllegalStateException.class);
             }
         }
     }
@@ -794,8 +800,9 @@ public class BytesStreamsTests extends ESTestCase {
                 for (int i = 0; i < 10; i ++) {
                     assertEquals(i, ints[i]);
                 }
-                EOFException eofException = expectThrows(EOFException.class, () -> streamInput.readIntArray());
-                assertEquals("tried to read: 100 bytes but this stream is limited to: 82", eofException.getMessage());
+                assertThatThrownBy(() -> streamInput.readIntArray())
+                    .isExactlyInstanceOf(EOFException.class)
+                    .hasMessage("tried to read: 100 bytes but this stream is limited to: 82");
             }
         }
     }
@@ -816,8 +823,9 @@ public class BytesStreamsTests extends ESTestCase {
                 for (int i = 0; i < 10; i ++) {
                     assertEquals(i, ints[i]);
                 }
-                NegativeArraySizeException exception = expectThrows(NegativeArraySizeException.class, () -> streamInput.readIntArray());
-                assertEquals("array size must be positive but was: -2147483648", exception.getMessage());
+                assertThatThrownBy(() -> streamInput.readIntArray())
+                    .isExactlyInstanceOf(NegativeArraySizeException.class)
+                    .hasMessage("array size must be positive but was: -2147483648");
             }
         }
     }
@@ -842,8 +850,9 @@ public class BytesStreamsTests extends ESTestCase {
         if (value < 0) {
             // Write doesn't work for negative numbers
             BytesStreamOutput output = new BytesStreamOutput();
-            Exception e = expectThrows(IllegalStateException.class, () -> output.writeVLong(value));
-            assertEquals("Negative longs unsupported, use writeLong or writeZLong for negative numbers [" + value + "]", e.getMessage());
+            assertThatThrownBy(() -> output.writeVLong(value))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Negative longs unsupported, use writeLong or writeZLong for negative numbers [" + value + "]");
         }
     }
 
@@ -871,8 +880,9 @@ public class BytesStreamsTests extends ESTestCase {
         if (validEnum) {
             assertEquals(TestEnum.values()[randomNumber], input.readEnum(TestEnum.class));
         } else {
-            IOException ex = expectThrows(IOException.class, () -> input.readEnum(TestEnum.class));
-            assertEquals("Unknown TestEnum ordinal [" + randomNumber + "]", ex.getMessage());
+            assertThatThrownBy(() -> input.readEnum(TestEnum.class))
+                .isExactlyInstanceOf(IOException.class)
+                .hasMessage("Unknown TestEnum ordinal [" + randomNumber + "]");
         }
         assertEquals(0, input.available());
     }
@@ -908,9 +918,10 @@ public class BytesStreamsTests extends ESTestCase {
         rootEx.addSuppressed(ace); // circular reference
 
         BytesStreamOutput testOut = new BytesStreamOutput();
-        AssertionError error = expectThrows(AssertionError.class, () -> testOut.writeException(rootEx));
-        assertThat(error.getMessage(), containsString("too many nested exceptions"));
-        assertThat(error.getCause(), equalTo(rootEx));
+        assertThatThrownBy(() -> testOut.writeException(rootEx))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessageContaining("too many nested exceptions")
+            .hasCauseReference(rootEx);
 
         BytesStreamOutput prodOut = new BytesStreamOutput() {
             @Override

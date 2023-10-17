@@ -90,7 +90,8 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             final String blobName = randomAlphaOfLength(10);
             final int lengthWritten = randomIntBetween(1, 100);
             final byte[] blobData = randomByteArrayOfLength(lengthWritten);
-            expectThrows(NoSuchFileException.class, () -> blobContainer.readBlob(blobName));
+            assertThatThrownBy(() -> blobContainer.readBlob(blobName))
+                .isExactlyInstanceOf(NoSuchFileException.class);
             blobContainer.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten, true);
             assertThrowsOnInconsistentRead(blobContainer, blobName);
         }
@@ -111,7 +112,8 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             blobContainer.deleteBlobsIgnoringIfNotExists(Collections.singletonList(blobName));
             assertThrowsOnInconsistentRead(blobContainer, blobName);
             blobStoreContext.forceConsistent();
-            expectThrows(NoSuchFileException.class, () -> blobContainer.readBlob(blobName));
+            assertThatThrownBy(() -> blobContainer.readBlob(blobName))
+                .isExactlyInstanceOf(NoSuchFileException.class);
         }
     }
 

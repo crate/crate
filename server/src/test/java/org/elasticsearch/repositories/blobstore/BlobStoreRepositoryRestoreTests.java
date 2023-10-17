@@ -19,11 +19,10 @@
 
 package org.elasticsearch.repositories.blobstore;
 
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;
@@ -191,9 +190,9 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
                         .map(IndexId::getName).collect(Collectors.toList()), 0L, null, 1L, 6,
                         Collections.emptyList(), true),
                     Version.CURRENT, Function.identity(), f));
-            IndexShardSnapshotFailedException isfe = expectThrows(IndexShardSnapshotFailedException.class,
-                                                                  () -> snapshotShard(shard, snapshotWithSameName, repository));
-            assertThat(isfe.getMessage(), containsString("Duplicate snapshot name"));
+            assertThatThrownBy(() -> snapshotShard(shard, snapshotWithSameName, repository))
+                .isExactlyInstanceOf(IndexShardSnapshotFailedException.class)
+                .hasMessageContaining("Duplicate snapshot name");
         } finally {
             if (shard != null && shard.state() != IndexShardState.CLOSED) {
                 try {

@@ -124,7 +124,8 @@ public class CoordinationStateTests extends ESTestCase {
 
         StartJoinRequest startJoinRequest2 = new StartJoinRequest(randomFrom(node1, node2),
             randomLongBetween(0, startJoinRequest1.getTerm()));
-        expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleStartJoin(startJoinRequest2));
+        assertThatThrownBy(() -> cs1.handleStartJoin(startJoinRequest2))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class);
     }
 
     public void testStartJoinAfterBootstrap() {

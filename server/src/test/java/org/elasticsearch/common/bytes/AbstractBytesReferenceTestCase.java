@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common.bytes;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -152,8 +153,8 @@ public abstract class AbstractBytesReferenceTestCase extends ESTestCase {
 
         // try to read more than the stream contains
         si.reset();
-        expectThrows(IndexOutOfBoundsException.class, () ->
-            si.readBytes(targetBuf, 0, length * 2));
+        assertThatThrownBy(() -> si.readBytes(targetBuf, 0, length * 2))
+            .isExactlyInstanceOf(IndexOutOfBoundsException.class);
     }
 
     public void testStreamInputMarkAndReset() throws IOException {

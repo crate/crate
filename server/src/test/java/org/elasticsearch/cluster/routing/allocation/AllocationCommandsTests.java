@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.routing.allocation;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
@@ -30,7 +31,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -610,9 +610,11 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         RoutingAllocation routingAllocation = new RoutingAllocation(new AllocationDeciders(Collections.emptyList()),
             new RoutingNodes(clusterState, false), clusterState, ClusterInfo.EMPTY, SnapshotShardSizeInfo.EMPTY, System.nanoTime());
         logger.info("--> executing move allocation command to non-data node");
-        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> command.execute(routingAllocation, false));
-        assertEquals("[move_allocation] can't move [test][0] from " + node1 + " to " +
-            node2 + ": source [" + node2.getName() + "] is not a data node.", e.getMessage());
+        assertThatThrownBy(() -> command.execute(routingAllocation, false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "[move_allocation] can't move [test][0] from " + node1 + " to " +
+                node2 + ": source [" + node2.getName() + "] is not a data node.");
     }
 
     @Test
@@ -649,9 +651,12 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         RoutingAllocation routingAllocation = new RoutingAllocation(new AllocationDeciders(Collections.emptyList()),
             new RoutingNodes(clusterState, false), clusterState, ClusterInfo.EMPTY, SnapshotShardSizeInfo.EMPTY, System.nanoTime());
         logger.info("--> executing move allocation command from non-data node");
-        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> command.execute(routingAllocation, false));
-        assertEquals("[move_allocation] can't move [test][0] from " + node2 + " to " + node1 +
-            ": source [" + node2.getName() + "] is not a data node.", e.getMessage());
+        assertThatThrownBy(() -> command.execute(routingAllocation, false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "[move_allocation] can't move [test][0] from " + node2 + " to " + node1 +
+                ": source [" + node2.getName() + "] is not a data node."
+            );
     }
 
     @Test
@@ -711,21 +716,23 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         final ClusterState finalClusterState = allocation.reroute(clusterState, "reroute");
 
         logger.info("--> allocating same index primary in multiple commands should fail");
-        assertThat(expectThrows(IllegalArgumentException.class, () -> {
+        assertThatThrownBy(() -> {
             allocation.reroute(finalClusterState,
                 new AllocationCommands(
                     new AllocateStalePrimaryAllocationCommand(index1, 0, node1, true),
                     new AllocateStalePrimaryAllocationCommand(index1, 0, node2, true)
                 ), false, false);
-        }).getMessage(), containsString("primary [" + index1 + "][0] is already assigned"));
+        }).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("primary [" + index1 + "][0] is already assigned");
 
-        assertThat(expectThrows(IllegalArgumentException.class, () -> {
+        assertThatThrownBy(() -> {
             allocation.reroute(finalClusterState,
                 new AllocationCommands(
                     new AllocateEmptyPrimaryAllocationCommand(index2, 0, node1, true),
                     new AllocateEmptyPrimaryAllocationCommand(index2, 0, node2, true)
                 ), false, false);
-        }).getMessage(), containsString("primary [" + index2 + "][0] is already assigned"));
+        }).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("primary [" + index2 + "][0] is already assigned");
 
 
         clusterState = allocation.reroute(clusterState,
@@ -736,12 +743,13 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         assertThat(updatedClusterState.getRoutingNodes().node(node1).shardsWithState(STARTED).size(), equalTo(1));
 
         logger.info("--> subsequent replica allocation fails as all configured replicas have been allocated");
-        assertThat(expectThrows(IllegalArgumentException.class, () -> {
+        assertThatThrownBy(() -> {
             allocation.reroute(updatedClusterState,
                 new AllocationCommands(
                     new AllocateReplicaAllocationCommand(index3, 0, node2),
                     new AllocateReplicaAllocationCommand(index3, 0, node2)
                 ), false, false);
-        }).getMessage(), containsString("all copies of [" + index3 + "][0] are already assigned. Use the move allocation command instead"));
+        }).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("all copies of [" + index3 + "][0] are already assigned. Use the move allocation command instead");
     }
 }

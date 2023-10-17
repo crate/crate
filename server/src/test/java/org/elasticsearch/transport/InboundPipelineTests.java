@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -208,13 +209,14 @@ public class InboundPipelineTests extends ESTestCase {
 
             final BytesReference reference = message.serialize(streamOutput);
             try (ReleasableBytesReference releasable = ReleasableBytesReference.wrap(reference)) {
-                expectThrows(IllegalStateException.class, () -> pipeline.handleBytes(fakeChannel(), releasable));
+                assertThatThrownBy(() -> pipeline.handleBytes(fakeChannel(), releasable))
+                    .isExactlyInstanceOf(IllegalStateException.class);
             }
 
             // Pipeline cannot be reused after uncaught exception
-            final IllegalStateException ise = expectThrows(IllegalStateException.class,
-                () -> pipeline.handleBytes(fakeChannel(), ReleasableBytesReference.wrap(BytesArray.EMPTY)));
-            assertEquals("Pipeline state corrupted by uncaught exception", ise.getMessage());
+            assertThatThrownBy(() -> pipeline.handleBytes(fakeChannel(), ReleasableBytesReference.wrap(BytesArray.EMPTY)))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Pipeline state corrupted by uncaught exception");
         }
     }
 

@@ -689,8 +689,10 @@ public class InternalEngineTests extends EngineTestCase {
         engine.close();
 
         engine = new InternalEngine(engine.config());
-        expectThrows(IllegalStateException.class, engine::ensureCanFlush);
-        expectThrows(IllegalStateException.class, () -> engine.flush(true, true));
+        assertThatThrownBy(engine::ensureCanFlush)
+            .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> engine.flush(true, true))
+            .isExactlyInstanceOf(IllegalStateException.class);
         if (randomBoolean()) {
             engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
         } else {
@@ -2953,7 +2955,8 @@ public class InternalEngineTests extends EngineTestCase {
                     engine.syncTranslog(); // to advance persisted local checkpoint
                     assertEquals(engine.getProcessedLocalCheckpoint(), engine.getPersistedLocalCheckpoint());
                     globalCheckpoint.set(engine.getPersistedLocalCheckpoint());
-                    expectThrows(IllegalStateException.class, () -> engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE));
+                    assertThatThrownBy(() -> engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE))
+                        .isExactlyInstanceOf(IllegalStateException.class);
                     Map<String, String> userData = engine.getLastCommittedSegmentInfos().getUserData();
                     assertEquals(engine.getTranslog().getTranslogUUID(), userData.get(Translog.TRANSLOG_UUID_KEY));
                 }
@@ -2962,7 +2965,8 @@ public class InternalEngineTests extends EngineTestCase {
             {
                 for (int i = 0; i < 2; i++) {
                     try (InternalEngine engine = new InternalEngine(config)) {
-                        expectThrows(IllegalStateException.class, engine::ensureCanFlush);
+                        assertThatThrownBy(engine::ensureCanFlush)
+                            .isExactlyInstanceOf(IllegalStateException.class);
                         Map<String, String> userData = engine.getLastCommittedSegmentInfos().getUserData();
                         assertEquals(engine.getTranslog().getTranslogUUID(), userData.get(Translog.TRANSLOG_UUID_KEY));
                         engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
@@ -3103,8 +3107,11 @@ public class InternalEngineTests extends EngineTestCase {
                 assertEquals(engine.getProcessedLocalCheckpoint(), engine.getPersistedLocalCheckpoint());
                 globalCheckpoint.set(engine.getPersistedLocalCheckpoint());
                 throwErrorOnCommit.set(true);
-                FlushFailedEngineException e = expectThrows(FlushFailedEngineException.class, engine::flush);
-                assertThat(e.getCause().getMessage(), equalTo("power's out"));
+                assertThatThrownBy(engine::flush)
+                    .isExactlyInstanceOf(FlushFailedEngineException.class)
+                    .hasMessage("Flush failed")
+                    .cause()
+                        .hasMessage("power's out");
             }
             try (InternalEngine engine =
                      new InternalEngine(config(indexSettings, store, translogPath, newMergePolicy(), null, null,
@@ -3279,7 +3286,8 @@ public class InternalEngineTests extends EngineTestCase {
             primaryTerm::get,
             tombstoneDocSupplier()
         );
-        expectThrows(EngineCreationFailureException.class, () -> new InternalEngine(brokenConfig));
+        assertThatThrownBy(() -> new InternalEngine(brokenConfig))
+            .isExactlyInstanceOf(EngineCreationFailureException.class);
 
         engine = createEngine(store, primaryTranslogDir); // and recover again!
         assertVisibleCount(engine, numDocs, true);
@@ -3470,9 +3478,8 @@ public class InternalEngineTests extends EngineTestCase {
                 engine.close();
 
                 // now the engine is closed check we respond correctly
-                expectThrows(AlreadyClosedException.class, () -> engine.index(indexForDoc(doc1)));
-                expectThrows(AlreadyClosedException.class,
-                             () -> engine.delete(new Engine.Delete(
+                assertThatThrownBy(() -> engine.index(indexForDoc(doc1))).isExactlyInstanceOf(AlreadyClosedException.class);
+                assertThatThrownBy(() -> engine.delete(new Engine.Delete(
                                  "1",
                                  newUid(doc1),
                                  UNASSIGNED_SEQ_NO,
@@ -3482,14 +3489,13 @@ public class InternalEngineTests extends EngineTestCase {
                                  Engine.Operation.Origin.PRIMARY,
                                  System.nanoTime(),
                                  UNASSIGNED_SEQ_NO,
-                                 0)));
-                expectThrows(AlreadyClosedException.class,
-                             () -> engine.noOp(
+                                 0))).isExactlyInstanceOf(AlreadyClosedException.class);
+                assertThatThrownBy(() -> engine.noOp(
                                  new Engine.NoOp(engine.getLocalCheckpointTracker().generateSeqNo(),
                                                  engine.config().getPrimaryTermSupplier().getAsLong(),
                                                  randomFrom(Engine.Operation.Origin.values()),
                                                  randomNonNegativeLong(),
-                                                 "test")));
+                                                 "test"))).isExactlyInstanceOf(AlreadyClosedException.class);
             }
         }
     }
@@ -3522,7 +3528,7 @@ public class InternalEngineTests extends EngineTestCase {
             try (InternalEngine engine = createEngine(config)) {
                 final ParsedDocument doc = testParsedDocument("1", testDocumentWithTextField(), SOURCE, null);
                 engine.index(indexForDoc(doc));
-                expectThrows(IllegalStateException.class, () -> engine.delete(
+                assertThatThrownBy(() -> engine.delete(
                     new Engine.Delete(
                         "1",
                         newUid(doc),
@@ -3534,7 +3540,7 @@ public class InternalEngineTests extends EngineTestCase {
                         System.nanoTime(),
                         UNASSIGNED_SEQ_NO,
                         0
-                    )));
+                    ))).isExactlyInstanceOf(IllegalStateException.class);
                 assertTrue(engine.isClosed.get());
                 assertSame(tragicException, engine.failedEngine.get());
             }
@@ -5733,7 +5739,8 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testAcquireSearcherOnClosingEngine() throws Exception {
         engine.close();
-        expectThrows(AlreadyClosedException.class, () -> engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL));
+        assertThatThrownBy(() -> engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL))
+            .isExactlyInstanceOf(AlreadyClosedException.class);
     }
 
     @Test
@@ -5748,8 +5755,9 @@ public class InternalEngineTests extends EngineTestCase {
         try (Store store = createStore();
              InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
             engine.close();
-            expectThrows(AlreadyClosedException.class, () -> engine.noOp(
-                new Engine.NoOp(2, primaryTerm.get(), LOCAL_TRANSLOG_RECOVERY, System.nanoTime(), "reason")));
+            assertThatThrownBy(() -> engine.noOp(
+                new Engine.NoOp(2, primaryTerm.get(), LOCAL_TRANSLOG_RECOVERY, System.nanoTime(), "reason"))
+            ).isExactlyInstanceOf(AlreadyClosedException.class);
         }
     }
 
@@ -5765,7 +5773,8 @@ public class InternalEngineTests extends EngineTestCase {
         try (Store store = createStore();
              InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
             engine.close();
-            expectThrows(AlreadyClosedException.class, () -> engine.delete(replicaDeleteForDoc("test", 42, 7, System.nanoTime())));
+            assertThatThrownBy(() -> engine.delete(replicaDeleteForDoc("test", 42, 7, System.nanoTime())))
+                .isExactlyInstanceOf(AlreadyClosedException.class);
         }
     }
 
@@ -5892,9 +5901,9 @@ public class InternalEngineTests extends EngineTestCase {
                 IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(Settings.builder().
                     put(defaultSettings.getSettings()).put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false)).build());
             try (InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), newMergePolicy(), null))) {
-                AssertionError error = expectThrows(AssertionError.class,
-                                                    () -> engine.newChangesSnapshot("test", createMapperService("test"), 0, randomNonNegativeLong(), randomBoolean()));
-                assertThat(error.getMessage(), containsString("does not have soft-deletes enabled"));
+                assertThatThrownBy(() -> engine.newChangesSnapshot("test", createMapperService("test"), 0, randomNonNegativeLong(), randomBoolean()))
+                    .isExactlyInstanceOf(AssertionError.class)
+                    .hasMessageContaining("does not have soft-deletes enabled");
             }
         }
     }
@@ -6119,7 +6128,8 @@ public class InternalEngineTests extends EngineTestCase {
                 UNASSIGNED_SEQ_NO,
                 UNASSIGNED_PRIMARY_TERM);
             addDocException.set(new IOException("simulated"));
-            expectThrows(IOException.class, () -> engine.index(index));
+            assertThatThrownBy(() -> engine.index(index))
+                .isExactlyInstanceOf(IOException.class);
             assertTrue(engine.isClosed.get());
             assertNotNull(engine.failedEngine.get());
         }
@@ -6174,8 +6184,9 @@ public class InternalEngineTests extends EngineTestCase {
 
              }, null, null, config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
             final Engine.NoOp op = new Engine.NoOp(0, 0, PRIMARY, System.currentTimeMillis(), "test");
-            final IllegalArgumentException e = expectThrows(IllegalArgumentException. class, () -> engine.noOp(op));
-            assertThat(e.getMessage(), equalTo("fatal"));
+            assertThatThrownBy(() -> engine.noOp(op))
+                .isExactlyInstanceOf(IllegalArgumentException. class)
+                .hasMessage("fatal");
             assertTrue(engine.isClosed.get());
             assertThat(engine.failedEngine.get(), not(nullValue()));
             assertThat(engine.failedEngine.get(), instanceOf(IllegalArgumentException.class));
@@ -6223,8 +6234,9 @@ public class InternalEngineTests extends EngineTestCase {
             final Engine.Delete op = new Engine.Delete("0", newUid("0"), primaryTerm.get());
             consumer.accept(engine, op);
             iw.get().setThrowFailure(() -> new IllegalArgumentException("fatal"));
-            final IllegalArgumentException e = expectThrows(IllegalArgumentException. class, () -> engine.delete(op));
-            assertThat(e.getMessage(), equalTo("fatal"));
+            assertThatThrownBy(() -> engine.delete(op))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("fatal");
             assertTrue(engine.isClosed.get());
             assertThat(engine.failedEngine.get(), not(nullValue()));
             assertThat(engine.failedEngine.get(), instanceOf(IllegalArgumentException.class));
@@ -6375,9 +6387,11 @@ public class InternalEngineTests extends EngineTestCase {
                 if (randomBoolean()) {
                     engine.index(indexForDoc(createParsedDoc("id")));
                 }
-                threadPool.executor(ThreadPool.Names.REFRESH).execute(() ->
-                    expectThrows(AlreadyClosedException.class,
-                        () -> engine.refresh("test", randomFrom(Engine.SearcherScope.values()), true)));
+                threadPool.executor(ThreadPool.Names.REFRESH).execute(
+                    () -> assertThatThrownBy(
+                            () -> engine.refresh("test", randomFrom(Engine.SearcherScope.values()), true)
+                        ).isExactlyInstanceOf(AlreadyClosedException.class)
+                );
                 refreshStarted.await();
                 engine.close();
                 engineClosed.countDown();
@@ -6424,8 +6438,9 @@ public class InternalEngineTests extends EngineTestCase {
             );
 
             iw.get().setThrowFailure(() -> new IllegalArgumentException("fatal"));
-            final IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> engine.delete(op));
-            assertThat(e.getMessage(), equalTo("fatal"));
+            assertThatThrownBy(() -> engine.delete(op))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("fatal");
             assertThat(engine.isClosed.get(), is(true));
             assertThat(engine.failedEngine.get(), not(nullValue()));
             assertThat(engine.failedEngine.get(), instanceOf(IllegalArgumentException.class));
@@ -6514,12 +6529,12 @@ public class InternalEngineTests extends EngineTestCase {
             engine = new InternalTestEngine(engine.config(), maxDocs, LocalCheckpointTracker::new);
             int numDocs = between(maxDocs + 1, maxDocs * 2);
             List<Engine.Operation> operations = generateHistoryOnReplica(numDocs, randomBoolean(), randomBoolean());
-            final IllegalArgumentException error = expectThrows(IllegalArgumentException.class, () -> {
+            assertThatThrownBy(() -> {
                 for (Engine.Operation op : operations) {
                     applyOperation(engine, op);
                 }
-            });
-            assertThat(error.getMessage(), containsString("number of documents in the index cannot exceed " + maxDocs));
+            }).isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("number of documents in the index cannot exceed " + maxDocs);
             assertTrue(engine.isClosed.get());
         } finally {
             restoreIndexWriterMaxDocs();

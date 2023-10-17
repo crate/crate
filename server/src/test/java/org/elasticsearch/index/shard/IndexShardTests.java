@@ -304,16 +304,16 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard indexShard = newStartedShard();
         closeShards(indexShard);
         assertThat(indexShard.getActiveOperationsCount()).isEqualTo(0);
-        expectThrows(IndexShardClosedException.class,
-            () -> indexShard.acquirePrimaryOperationPermit(null, ThreadPool.Names.WRITE, ""));
-        expectThrows(IndexShardClosedException.class,
-            () -> indexShard.acquireAllPrimaryOperationsPermits(null, TimeValue.timeValueSeconds(30L)));
-        expectThrows(IndexShardClosedException.class,
-            () -> indexShard.acquireReplicaOperationPermit(indexShard.getPendingPrimaryTerm(), SequenceNumbers.UNASSIGNED_SEQ_NO,
-                randomNonNegativeLong(), null, ThreadPool.Names.WRITE, ""));
-        expectThrows(IndexShardClosedException.class,
-            () -> indexShard.acquireAllReplicaOperationsPermits(indexShard.getPendingPrimaryTerm(), SequenceNumbers.UNASSIGNED_SEQ_NO,
-                randomNonNegativeLong(), null, TimeValue.timeValueSeconds(30L)));
+        assertThatThrownBy(() -> indexShard.acquirePrimaryOperationPermit(null, ThreadPool.Names.WRITE, ""))
+            .isExactlyInstanceOf(IndexShardClosedException.class);
+        assertThatThrownBy(() -> indexShard.acquireAllPrimaryOperationsPermits(null, TimeValue.timeValueSeconds(30L)))
+            .isExactlyInstanceOf(IndexShardClosedException.class);
+        assertThatThrownBy(() -> indexShard.acquireReplicaOperationPermit(indexShard.getPendingPrimaryTerm(), SequenceNumbers.UNASSIGNED_SEQ_NO,
+                randomNonNegativeLong(), null, ThreadPool.Names.WRITE, "")
+        ).isExactlyInstanceOf(IndexShardClosedException.class);
+        assertThatThrownBy(() -> indexShard.acquireAllReplicaOperationsPermits(indexShard.getPendingPrimaryTerm(), SequenceNumbers.UNASSIGNED_SEQ_NO,
+                randomNonNegativeLong(), null, TimeValue.timeValueSeconds(30L))
+        ).isExactlyInstanceOf(IndexShardClosedException.class);
     }
 
     @Test
@@ -1147,7 +1147,8 @@ public class IndexShardTests extends IndexShardTestCase {
             .isGreaterThan(1);
         AtomicBoolean stop = new AtomicBoolean(false);
         CountDownLatch latch = new CountDownLatch(1);
-        expectThrows(AlreadyClosedException.class, newShard::getEngine); // no engine
+        assertThatThrownBy(newShard::getEngine)
+            .isExactlyInstanceOf(AlreadyClosedException.class); // no engine
         Thread thread = new Thread(() -> {
             latch.countDown();
             while (stop.get() == false) {
@@ -1227,10 +1228,9 @@ public class IndexShardTests extends IndexShardTestCase {
             EMPTY_EVENT_LISTENER
         );
 
-        IndexShardRecoveryException indexShardRecoveryException = expectThrows(
-            IndexShardRecoveryException.class,
-            () -> newStartedShard(p -> corruptedShard, true));
-        assertThat(indexShardRecoveryException.getMessage()).isEqualTo("failed recovery");
+        assertThatThrownBy(() -> newStartedShard(p -> corruptedShard, true))
+            .isExactlyInstanceOf(IndexShardRecoveryException.class)
+            .hasMessage("failed recovery");
 
         // check that corrupt marker is there
         Files.walkFileTree(indexPath, corruptedVisitor);
@@ -1280,11 +1280,10 @@ public class IndexShardTests extends IndexShardTestCase {
             EMPTY_EVENT_LISTENER
         );
 
-        IndexShardRecoveryException exception1 = expectThrows(
-            IndexShardRecoveryException.class,
-            () -> newStartedShard(p -> corruptedShard, true)
-        );
-        assertThat(exception1.getCause().getMessage()).isEqualTo(corruptionMessage + " (resource=preexisting_corruption)");
+        assertThatThrownBy(() -> newStartedShard(p -> corruptedShard, true))
+            .isExactlyInstanceOf(IndexShardRecoveryException.class)
+            .cause()
+                .hasMessage(corruptionMessage + " (resource=preexisting_corruption)");
         closeShards(corruptedShard);
 
         AtomicInteger corruptedMarkerCount = new AtomicInteger();
@@ -1313,11 +1312,10 @@ public class IndexShardTests extends IndexShardTestCase {
             EMPTY_EVENT_LISTENER
         );
 
-        final IndexShardRecoveryException exception2 = expectThrows(
-            IndexShardRecoveryException.class,
-            () -> newStartedShard(p -> corruptedShard2, true)
-        );
-        assertThat(exception2.getCause().getMessage()).isEqualTo(corruptionMessage + " (resource=preexisting_corruption)");
+        assertThatThrownBy(() -> newStartedShard(p -> corruptedShard2, true))
+            .isExactlyInstanceOf(IndexShardRecoveryException.class)
+            .cause()
+                .hasMessage(corruptionMessage + " (resource=preexisting_corruption)");
         closeShards(corruptedShard2);
 
         // check that corrupt marker is there
@@ -1584,14 +1582,15 @@ public class IndexShardTests extends IndexShardTestCase {
     @Test
     public void testRejectOperationPermitWithHigherTermWhenNotStarted() throws Exception {
         IndexShard indexShard = newShard(false);
-        expectThrows(IndexShardNotStartedException.class, () ->
+        assertThatThrownBy(() ->
             randomReplicaOperationPermitAcquisition(
                 indexShard,
                 indexShard.getPendingPrimaryTerm() + randomIntBetween(1, 100),
                 UNASSIGNED_SEQ_NO,
                 randomNonNegativeLong(),
                 null,
-                ""));
+                "")
+        ).isExactlyInstanceOf(IndexShardNotStartedException.class);
         closeShards(indexShard);
     }
 
@@ -2781,7 +2780,8 @@ public class IndexShardTests extends IndexShardTestCase {
             } else {
                 exceptionToThrow.set(() -> new IOException("Test IOException"));
             }
-            ElasticsearchException e = expectThrows(ElasticsearchException.class, shard::storeStats);
+            assertThatThrownBy(shard::storeStats)
+                .isExactlyInstanceOf(ElasticsearchException.class);
             assertThat(failureCallbackTriggered.get()).isEqualTo(true);
 
             if (corruptIndexException && !throwWhenMarkingStoreCorrupted.get()) {
@@ -2953,12 +2953,11 @@ public class IndexShardTests extends IndexShardTestCase {
         // recovery can be now finalized
         recoveryThread.join();
         assertThat(shard.isRelocatedPrimary()).isEqualTo(true);
-        ExecutionException e = expectThrows(
-            ExecutionException.class,
-            () -> acquirePrimaryOperationPermitBlockingly(shard));
-        assertThat(e.getCause())
-            .isExactlyInstanceOf(ShardNotInPrimaryModeException.class)
-            .hasMessageContaining("shard is not in primary mode");
+        assertThatThrownBy(() -> acquirePrimaryOperationPermitBlockingly(shard))
+            .isExactlyInstanceOf(ExecutionException.class)
+            .cause()
+                .isExactlyInstanceOf(ShardNotInPrimaryModeException.class)
+                .hasMessageContaining("shard is not in primary mode");
 
         closeShards(shard);
     }
@@ -3012,22 +3011,20 @@ public class IndexShardTests extends IndexShardTestCase {
                 relocationStarted.await();
                 onLockAcquired = new PlainActionFuture<>();
                 assertions.add(() -> {
-                    ExecutionException e = expectThrows(
-                        ExecutionException.class,
-                        () -> onLockAcquired.get(30, TimeUnit.SECONDS));
-                    assertThat(e.getCause())
-                        .isExactlyInstanceOf(ShardNotInPrimaryModeException.class)
-                        .hasMessageContaining("shard is not in primary mode");
+                    assertThatThrownBy(() -> onLockAcquired.get(30, TimeUnit.SECONDS))
+                        .isExactlyInstanceOf(ExecutionException.class)
+                        .cause()
+                            .isExactlyInstanceOf(ShardNotInPrimaryModeException.class)
+                            .hasMessageContaining("shard is not in primary mode");
                 });
             } else {
                 onLockAcquired = new PlainActionFuture<>();
                 assertions.add(() -> {
-                    ExecutionException e = expectThrows(
-                        ExecutionException.class,
-                        () -> onLockAcquired.get(30, TimeUnit.SECONDS));
-                    assertThat(e.getCause())
-                        .isExactlyInstanceOf(ShardNotInPrimaryModeException.class)
-                        .hasMessageContaining("shard is not in primary mode");
+                    assertThatThrownBy(() -> onLockAcquired.get(30, TimeUnit.SECONDS))
+                        .isExactlyInstanceOf(ExecutionException.class)
+                        .cause()
+                            .isExactlyInstanceOf(ShardNotInPrimaryModeException.class)
+                            .hasMessageContaining("shard is not in primary mode");
                 });
             }
             shard.acquirePrimaryOperationPermit(onLockAcquired, ThreadPool.Names.WRITE, "i_" + i);
@@ -3101,9 +3098,8 @@ public class IndexShardTests extends IndexShardTestCase {
         ShardRouting routing = ShardRoutingHelper.relocate(originalRouting, "other_node");
         IndexShardTestCase.updateRoutingEntry(shard, routing);
         shard.relocated(routing.getTargetRelocatingShard().allocationId().getId(), primaryContext -> { });
-        expectThrows(
-            IllegalIndexShardStateException.class,
-            () -> IndexShardTestCase.updateRoutingEntry(shard, originalRouting));
+        assertThatThrownBy(() -> IndexShardTestCase.updateRoutingEntry(shard, originalRouting))
+            .isInstanceOf(IllegalIndexShardStateException.class);
         closeShards(shard);
     }
 
@@ -3114,12 +3110,11 @@ public class IndexShardTests extends IndexShardTestCase {
         ShardRouting relocationRouting = ShardRoutingHelper.relocate(originalRouting, "other_node");
         IndexShardTestCase.updateRoutingEntry(shard, relocationRouting);
         IndexShardTestCase.updateRoutingEntry(shard, originalRouting);
-        expectThrows(
-            IllegalIndexShardStateException.class,
-            () -> shard.relocated(
+        assertThatThrownBy(() -> shard.relocated(
                 relocationRouting.getTargetRelocatingShard().allocationId().getId(),
                 primaryContext -> {
-                }));
+                })
+        ).isExactlyInstanceOf(IllegalIndexShardStateException.class);
         closeShards(shard);
     }
 
@@ -3591,9 +3586,9 @@ public class IndexShardTests extends IndexShardTestCase {
         if (randomBoolean()) {
             closeShards(indexShard);
 
-            expectThrows(AlreadyClosedException.class, indexShard::seqNoStats);
-            expectThrows(AlreadyClosedException.class, indexShard::commitStats);
-            expectThrows(AlreadyClosedException.class, indexShard::storeStats);
+            assertThatThrownBy(indexShard::seqNoStats).isExactlyInstanceOf(AlreadyClosedException.class);
+            assertThatThrownBy(indexShard::commitStats).isExactlyInstanceOf(AlreadyClosedException.class);
+            assertThatThrownBy(indexShard::storeStats).isExactlyInstanceOf(AlreadyClosedException.class);
         } else {
             SeqNoStats seqNoStats = indexShard.seqNoStats();
             assertThat(seqNoStats.getLocalCheckpoint()).isEqualTo(2L);
@@ -3789,9 +3784,9 @@ public class IndexShardTests extends IndexShardTestCase {
                 r -> {
                     try (r) {
                         Translog.Snapshot snapshot = TestTranslog.newSnapshotFromOperations(operations);
-                        final MapperParsingException error = expectThrows(MapperParsingException.class,
-                            () -> shard.runTranslogRecovery(shard.getEngine(), snapshot, Engine.Operation.Origin.LOCAL_RESET, () -> {}));
-                        assertThat(error.getMessage()).contains("failed to parse field [foo] of type [text]");
+                        assertThatThrownBy(() -> shard.runTranslogRecovery(shard.getEngine(), snapshot, Engine.Operation.Origin.LOCAL_RESET, () -> {}))
+                            .isExactlyInstanceOf(MapperParsingException.class)
+                            .hasMessageContaining("failed to parse field [foo] of type [text]");
                     } finally {
                         engineResetLatch.countDown();
                     }
@@ -3877,10 +3872,11 @@ public class IndexShardTests extends IndexShardTestCase {
         final ShardRouting toNode2 = ShardRoutingHelper.relocate(original, "node_2");
         IndexShardTestCase.updateRoutingEntry(shard, toNode2);
         final AtomicBoolean relocated = new AtomicBoolean();
-        final IllegalStateException error = expectThrows(IllegalStateException.class,
-            () -> shard.relocated(toNode1.getTargetRelocatingShard().allocationId().getId(), ctx -> relocated.set(true)));
-        assertThat(error.getMessage()).isEqualTo("relocation target [" + toNode1.getTargetRelocatingShard().allocationId().getId()
-            + "] is no longer part of the replication group");
+        assertThatThrownBy(() -> shard.relocated(toNode1.getTargetRelocatingShard().allocationId().getId(), ctx -> relocated.set(true)))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage(
+                "relocation target [" + toNode1.getTargetRelocatingShard().allocationId().getId()
+                + "] is no longer part of the replication group");
         assertThat(relocated.get()).isFalse();
         shard.relocated(toNode2.getTargetRelocatingShard().allocationId().getId(), ctx -> relocated.set(true));
         assertThat(relocated.get()).isTrue();

@@ -18,9 +18,8 @@
  */
 package org.elasticsearch.gateway;
 
-import static io.crate.testing.Asserts.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
@@ -74,6 +73,7 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
 
@@ -186,6 +186,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testFailsOnMismatchedNodeIds() throws IOException {
         final Path[] dataPaths1 = createDataPaths();
         final Path[] dataPaths2 = createDataPaths();
@@ -217,12 +218,18 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         final Path[] combinedPaths = Stream.concat(Arrays.stream(dataPaths1), Arrays.stream(dataPaths2)).toArray(Path[]::new);
 
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(combinedPaths)) {
-            final String message = expectThrows(IllegalStateException.class, () -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState()).getMessage();
-            assertThat(message, allOf(containsString("unexpected node ID in metadata"), containsString(nodeIds[0])));
-            assertTrue("[" + message + "] should match " + Arrays.toString(dataPaths2), Arrays.stream(dataPaths2).anyMatch(p -> message.contains(p.toString())));
+            assertThatThrownBy(() -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState())
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContainingAll(
+                    "unexpected node ID in metadata",
+                    nodeIds[0]
+                )
+                .as("Message should match: " + Arrays.toString(dataPaths2))
+                .satisfies(t -> Arrays.stream(dataPaths2).anyMatch(p -> t.getMessage().contains(p.toString())));
         }
     }
 
+    @Test
     public void testFailsOnMismatchedCommittedClusterUUIDs() throws IOException {
         final Path[] dataPaths1 = createDataPaths();
         final Path[] dataPaths2 = createDataPaths();
@@ -267,14 +274,16 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
 
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(combinedPaths)) {
-            final String message = expectThrows(IllegalStateException.class,
-                                                () -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState()).getMessage();
-            assertThat(message,
-                       allOf(containsString("mismatched cluster UUIDs in metadata"), containsString(clusterUUID1), containsString(clusterUUID2)));
-            assertTrue("[" + message + "] should match " + Arrays.toString(dataPaths1),
-                       Arrays.stream(dataPaths1).anyMatch(p -> message.contains(p.toString())));
-            assertTrue("[" + message + "] should match " + Arrays.toString(dataPaths2),
-                       Arrays.stream(dataPaths2).anyMatch(p -> message.contains(p.toString())));
+            assertThatThrownBy(() -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState())
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContainingAll(
+                    "mismatched cluster UUIDs in metadata",
+                    clusterUUID1,
+                    clusterUUID2)
+                .as("Message should match " + Arrays.toString(dataPaths1))
+                .satisfies(t -> Arrays.stream(dataPaths1).anyMatch(p -> t.getMessage().contains(p.toString())))
+                .as("Message should match " + Arrays.toString(dataPaths2))
+                .satisfies(t -> Arrays.stream(dataPaths2).anyMatch(p -> t.getMessage().contains(p.toString())));
         }
     }
 
@@ -325,19 +334,19 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
 
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(combinedPaths)) {
-            final String message = expectThrows(IllegalStateException.class,
-                                                () -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState()).getMessage();
-            assertThat(message, allOf(
-                containsString("inconsistent terms found"),
-                containsString(Long.toString(staleCurrentTerm)),
-                containsString(Long.toString(freshCurrentTerm))));
-            assertTrue("[" + message + "] should match " + Arrays.toString(dataPaths1),
-                       Arrays.stream(dataPaths1).anyMatch(p -> message.contains(p.toString())));
-            assertTrue("[" + message + "] should match " + Arrays.toString(dataPaths2),
-                       Arrays.stream(dataPaths2).anyMatch(p -> message.contains(p.toString())));
+            assertThatThrownBy(() -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState())
+                .hasMessageContainingAll(
+                    "inconsistent terms found",
+                    Long.toString(staleCurrentTerm),
+                    Long.toString(freshCurrentTerm))
+                .as("Message should match " + Arrays.toString(dataPaths1))
+                .satisfies(t -> Arrays.stream(dataPaths1).anyMatch(p -> t.getMessage().contains(p.toString())))
+                .as("Message should match " + Arrays.toString(dataPaths2))
+                .satisfies(t -> Arrays.stream(dataPaths2).anyMatch(p -> t.getMessage().contains(p.toString())));
         }
     }
 
+    @Test
     public void testFailsGracefullyOnExceptionDuringFlush() throws IOException {
         final AtomicBoolean throwException = new AtomicBoolean();
 
@@ -369,9 +378,9 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                                   .version(randomLongBetween(1L, Long.MAX_VALUE)))
                     .incrementVersion().build();
                 throwException.set(true);
-                assertThat(expectThrows(IOException.class, () ->
-                               writeState(writer, newTerm, newState, clusterState)).getMessage(),
-                           containsString("simulated"));
+                assertThatThrownBy(() -> writeState(writer, newTerm, newState, clusterState))
+                    .isExactlyInstanceOf(IOException.class)
+                    .hasMessageContaining("simulated");
             }
         }
     }
@@ -404,14 +413,14 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                                   .version(randomLongBetween(1L, Long.MAX_VALUE)))
                     .incrementVersion().build();
                 throwException.set(true);
-                assertThat(expectThrows(OutOfMemoryError.class, () -> {
-                               if (randomBoolean()) {
-                                   writeState(writer, newTerm, newState, clusterState);
-                               } else {
-                                   writer.commit(newTerm, newState.version());
-                               }
-                           }).getMessage(),
-                           containsString("simulated"));
+                assertThatThrownBy(() -> {
+                    if (randomBoolean()) {
+                        writeState(writer, newTerm, newState, clusterState);
+                    } else {
+                        writer.commit(newTerm, newState.version());
+                    }
+                }).isExactlyInstanceOf(OutOfMemoryError.class)
+                    .hasMessageContaining("simulated");
                 assertFalse(writer.isOpen());
             }
 
@@ -452,14 +461,14 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                                   .version(randomLongBetween(1L, Long.MAX_VALUE)))
                     .incrementVersion().build();
                 throwException.set(true);
-                assertThat(expectThrows(IOError.class, () -> {
-                               if (randomBoolean()) {
-                                   writeState(writer, newTerm, newState, clusterState);
-                               } else {
-                                   writer.commit(newTerm, newState.version());
-                               }
-                           }).getMessage(),
-                           containsString("simulated"));
+                assertThatThrownBy(() -> {
+                    if (randomBoolean()) {
+                        writeState(writer, newTerm, newState, clusterState);
+                    } else {
+                        writer.commit(newTerm, newState.version());
+                    }
+                }).isExactlyInstanceOf(IOError.class)
+                    .hasMessageContaining("simulated");
                 assertFalse(writer.isOpen());
             }
 
@@ -470,6 +479,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testFailsIfGlobalMetadataIsMissing() throws IOException {
         // if someone attempted surgery on the metadata index by hand, e.g. deleting broken segments, then maybe the global metadata
         // isn't there any more
@@ -490,12 +500,13 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                 }
             }
 
-            final String message = expectThrows(IllegalStateException.class,
-                                                () -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState()).getMessage();
-            assertThat(message, allOf(containsString("no global metadata found"), containsString(brokenPath.toString())));
+            assertThatThrownBy(() -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState())
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContainingAll("no global metadata found", brokenPath.toString());
         }
     }
 
+    @Test
     public void testFailsIfGlobalMetadataIsDuplicated() throws IOException {
         // if someone attempted surgery on the metadata index by hand, e.g. deleting broken segments, then maybe the global metadata
         // is duplicated
@@ -521,12 +532,16 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                 }
             }
 
-            final String message = expectThrows(IllegalStateException.class,
-                                                () -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState()).getMessage();
-            assertThat(message, allOf(containsString("duplicate global metadata found"), containsString(brokenPath.toString())));
+            assertThatThrownBy(() -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState())
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContainingAll(
+                    "duplicate global metadata found",
+                    brokenPath.toString()
+                );
         }
     }
 
+    @Test
     public void testFailsIfIndexMetadataIsDuplicated() throws IOException {
         // if someone attempted surgery on the metadata index by hand, e.g. deleting broken segments, then maybe some index metadata
         // is duplicated
@@ -567,13 +582,14 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                 }
             }
 
-            final String message = expectThrows(IllegalStateException.class,
-                                                () -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState()).getMessage();
-            assertThat(message, allOf(
-                containsString("duplicate metadata found"),
-                containsString(brokenPath.toString()),
-                containsString(indexName),
-                containsString(indexUUID)));
+            assertThatThrownBy(() -> newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState())
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContainingAll(
+                    "duplicate metadata found",
+                    brokenPath.toString(),
+                    indexName,
+                    indexUUID
+                );
         }
     }
 

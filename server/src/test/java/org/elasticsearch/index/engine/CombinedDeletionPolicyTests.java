@@ -19,6 +19,7 @@
 
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.Matchers.equalTo;
@@ -132,7 +133,7 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
             for (int n = 0; n < captures; n++) {
                 boolean safe = randomBoolean();
                 final IndexCommit snapshot = indexPolicy.acquireIndexCommit(safe);
-                expectThrows(UnsupportedOperationException.class, snapshot::delete);
+                assertThatThrownBy(snapshot::delete).isExactlyInstanceOf(UnsupportedOperationException.class);
                 snapshottingCommits.add(snapshot);
                 if (safe) {
                     assertThat(snapshot.getUserData(), equalTo(commitList.get(safeIndex).getUserData()));

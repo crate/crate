@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.common.util.concurrent;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -177,8 +178,8 @@ public class AsyncIOProcessorTests extends ESTestCase {
             }
         };
 
-        expectThrows(NullPointerException.class, () -> processor.put(null, (e) -> {}));
-        expectThrows(NullPointerException.class, () -> processor.put(new Object(), null));
+        assertThatThrownBy(() -> processor.put(null, (e) -> {})).isExactlyInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> processor.put(new Object(), null)).isExactlyInstanceOf(NullPointerException.class);
     }
 
 

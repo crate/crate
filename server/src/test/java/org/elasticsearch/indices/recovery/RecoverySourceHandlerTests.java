@@ -618,10 +618,10 @@ public class RecoverySourceHandlerTests extends ESTestCase {
 
         };
         PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
-        expectThrows(IndexShardRelocatedException.class, () -> {
+        assertThatThrownBy(() -> {
             handler.recoverToTarget(future);
             FutureUtils.get(future);
-        });
+        }).isExactlyInstanceOf(IndexShardRelocatedException.class);
         assertFalse(phase1Called.get());
         assertFalse(prepareTargetForTranslogCalled.get());
         assertFalse(phase2Called.get());
@@ -862,15 +862,15 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs),
             newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs)));
 
-        AssertionError error = expectThrows(AssertionError.class, () -> {
+        assertThatThrownBy(() -> {
             long localCheckpointOnTarget = randomValueOtherThan(localCheckpoint,
                 () -> randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE));
             long maxSeqNoOnTarget = randomValueOtherThan(maxSeqNo,
                 () -> randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE));
             handler.canSkipPhase1(newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs),
                 newMetadataSnapshot(syncId, Long.toString(localCheckpointOnTarget), Long.toString(maxSeqNoOnTarget), numDocs));
-        });
-        assertThat(error.getMessage(), containsString("try to recover [index][1] with sync id but seq_no stats are mismatched:"));
+        }).isExactlyInstanceOf(AssertionError.class)
+            .hasMessageContaining("try to recover [index][1] with sync id but seq_no stats are mismatched:");
     }
 
     private Store.MetadataSnapshot newMetadataSnapshot(String syncId, String localCheckpoint, String maxSeqNo, int numDocs) {

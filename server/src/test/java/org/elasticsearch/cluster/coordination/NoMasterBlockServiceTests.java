@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_ALL;
 import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_SETTING;
 import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_WRITES;
@@ -55,8 +56,9 @@ public class NoMasterBlockServiceTests extends ESTestCase {
     }
 
     public void testRejectsInvalidSetting() {
-        expectThrows(IllegalArgumentException.class, () ->
-            createService(Settings.builder().put(NO_MASTER_BLOCK_SETTING.getKey(), "unknown").build()));
+        assertThatThrownBy(() ->
+            createService(Settings.builder().put(NO_MASTER_BLOCK_SETTING.getKey(), "unknown").build())
+        ).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     public void testSettingCanBeUpdated() {

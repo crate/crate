@@ -20,9 +20,8 @@
  */
 package org.elasticsearch.common.settings;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -75,9 +74,10 @@ public class ScopedSettingsTests extends ESTestCase {
         ClusterSettings service = new ClusterSettings(currentSettings
             , new HashSet<>(Arrays.asList(dynamicSetting, staticSetting)));
 
-        expectThrows(IllegalArgumentException.class, () ->
-        service.updateDynamicSettings(Settings.builder().put("some.dyn.setting", 8).putNull("some.static.setting").build(),
-            Settings.builder().put(currentSettings), Settings.builder(), "node"));
+        assertThatThrownBy(() -> service.updateDynamicSettings(
+                Settings.builder().put("some.dyn.setting", 8).putNull("some.static.setting").build(),
+                Settings.builder().put(currentSettings), Settings.builder(), "node")
+        ).isExactlyInstanceOf(IllegalArgumentException.class);
 
         Settings.Builder target = Settings.builder().put(currentSettings);
         Settings.Builder update = Settings.builder();
@@ -186,9 +186,9 @@ public class ScopedSettingsTests extends ESTestCase {
 
         AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(intSetting, stringSetting)));
 
-        IllegalArgumentException iae = expectThrows(IllegalArgumentException.class,
-            () -> service.validate(Settings.builder().put("foo.test.bar", 7).build(), true));
-        assertEquals("missing required setting [foo.test.name] for setting [foo.test.bar]", iae.getMessage());
+        assertThatThrownBy(() -> service.validate(Settings.builder().put("foo.test.bar", 7).build(), true))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("missing required setting [foo.test.name] for setting [foo.test.bar]");
 
         service.validate(Settings.builder()
             .put("foo.test.name", "test")
@@ -225,10 +225,9 @@ public class ScopedSettingsTests extends ESTestCase {
 
         AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(intSetting, stringSetting)));
 
-        SettingsException iae = expectThrows(
-            SettingsException.class,
-            () -> service.validate(Settings.builder().put("foo.test.bar", 7).put("foo.test.name", "invalid").build(), true));
-        assertEquals("[foo.test.bar] is set but [name] is [invalid]", iae.getMessage());
+        assertThatThrownBy(() -> service.validate(Settings.builder().put("foo.test.bar", 7).put("foo.test.name", "invalid").build(), true))
+            .isExactlyInstanceOf(SettingsException.class)
+            .hasMessage("[foo.test.bar] is set but [name] is [invalid]");
 
         service.validate(Settings.builder()
                 .put("foo.test.bar", 7)
@@ -265,10 +264,9 @@ public class ScopedSettingsTests extends ESTestCase {
         final AbstractScopedSettings service =
                 new ClusterSettings(Settings.EMPTY,new HashSet<>(Arrays.asList(nameFallbackSetting, nameSetting, barSetting)));
 
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> service.validate(Settings.builder().put("foo.test.bar", 7).build(), true));
-        assertThat(e, hasToString(containsString("missing required setting [foo.test.name] for setting [foo.test.bar]")));
+        assertThatThrownBy(() -> service.validate(Settings.builder().put("foo.test.bar", 7).build(), true))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("missing required setting [foo.test.name] for setting [foo.test.bar]");
 
         service.validate(Settings.builder().put("foo.test.name", "test").put("foo.test.bar", 7).build(), true);
         service.validate(Settings.builder().put("fallback.test.name", "test").put("foo.test.bar", 7).build(), true);
@@ -637,9 +635,9 @@ public class ScopedSettingsTests extends ESTestCase {
         IndexScopedSettings settings = new IndexScopedSettings(
             Settings.EMPTY,
             IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
-        IllegalArgumentException iae = expectThrows(IllegalArgumentException.class,
-            () -> settings.validate(Settings.builder().put("index.numbe_of_replica", "1").build(), false));
-        assertEquals(iae.getMessage(), "unknown setting [index.numbe_of_replica] did you mean [index.number_of_replicas]?");
+        assertThatThrownBy(() -> settings.validate(Settings.builder().put("index.numbe_of_replica", "1").build(), false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("unknown setting [index.numbe_of_replica] did you mean [index.number_of_replicas]?");
     }
 
     @Test
@@ -651,17 +649,20 @@ public class ScopedSettingsTests extends ESTestCase {
             " removed settings";
         settings.validate(Settings.builder().put("index.store.type", "boom").build(), false);
 
-        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () ->
-            settings.validate(Settings.builder().put("index.store.type", "boom").put("i.am.not.a.setting", true).build(), false));
-        assertEquals("unknown setting [i.am.not.a.setting]" + unknownMsgSuffix, e.getMessage());
+        assertThatThrownBy(() ->
+            settings.validate(Settings.builder().put("index.store.type", "boom").put("i.am.not.a.setting", true).build(), false)
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("unknown setting [i.am.not.a.setting]" + unknownMsgSuffix);
 
-        e = expectThrows(IllegalArgumentException.class, () ->
-            settings.validate(Settings.builder().put("index.store.type", "boom").put("index.number_of_replicas", true).build(), false));
-        assertEquals("Failed to parse value [true] for setting [index.number_of_replicas]", e.getMessage());
+        assertThatThrownBy(() ->
+            settings.validate(Settings.builder().put("index.store.type", "boom").put("index.number_of_replicas", true).build(), false)
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Failed to parse value [true] for setting [index.number_of_replicas]");
 
-        e = expectThrows(IllegalArgumentException.class, () ->
-            settings.validate("index.number_of_replicas", Settings.builder().put("index.number_of_replicas", "true").build(), false));
-        assertEquals("Failed to parse value [true] for setting [index.number_of_replicas]", e.getMessage());
+        assertThatThrownBy(() ->
+            settings.validate("index.number_of_replicas", Settings.builder().put("index.number_of_replicas", "true").build(), false)
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Failed to parse value [true] for setting [index.number_of_replicas]");
     }
 
     public static IndexMetadata newIndexMeta(String name, Settings indexSettings) {
@@ -743,11 +744,9 @@ public class ScopedSettingsTests extends ESTestCase {
         Settings.Builder builder = Settings.builder().put("logger.level", property);
         try {
             ClusterSettings settings = new ClusterSettings(builder.build(), ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-            IllegalArgumentException ex =
-                expectThrows(
-                    IllegalArgumentException.class,
-                    () -> settings.validate(Settings.builder().put("logger._root", "boom").build(), false));
-            assertEquals("Unknown level constant [BOOM].", ex.getMessage());
+            assertThatThrownBy(() -> settings.validate(Settings.builder().put("logger._root", "boom").build(), false))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Unknown level constant [BOOM].");
             assertEquals(level, LogManager.getRootLogger().getLevel());
             settings.applySettings(Settings.builder().put("logger._root", "TRACE").build());
             assertEquals(Level.TRACE, LogManager.getRootLogger().getLevel());
@@ -805,11 +804,10 @@ public class ScopedSettingsTests extends ESTestCase {
     public void testUpdateNumberOfShardsFail() {
         IndexScopedSettings settings = new IndexScopedSettings(Settings.EMPTY,
             IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
-        IllegalArgumentException ex = expectThrows(IllegalArgumentException.class,
-            () -> settings.updateSettings(Settings.builder().put("index.number_of_shards", 8).build(),
-                Settings.builder(), Settings.builder(), "index"));
-        assertThat(ex.getMessage(),
-            containsString("final index setting [index.number_of_shards], not updateable"));
+        assertThatThrownBy(() -> settings.updateSettings(Settings.builder().put("index.number_of_shards", 8).build(),
+                Settings.builder(), Settings.builder(), "index")
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("final index setting [index.number_of_shards], not updateable");
     }
 
     @Test
@@ -823,25 +821,29 @@ public class ScopedSettingsTests extends ESTestCase {
         ClusterSettings service = new ClusterSettings(currentSettings
             , new HashSet<>(Arrays.asList(finalSetting, finalGroupSetting)));
 
-        IllegalArgumentException exc = expectThrows(IllegalArgumentException.class, () ->
+        assertThatThrownBy(() ->
             service.updateDynamicSettings(Settings.builder().put("some.final.setting", 8).build(),
-                Settings.builder().put(currentSettings), Settings.builder(), "node"));
-        assertThat(exc.getMessage(), containsString("final node setting [some.final.setting]"));
+                Settings.builder().put(currentSettings), Settings.builder(), "node")
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("final node setting [some.final.setting]");
 
-        exc = expectThrows(IllegalArgumentException.class, () ->
+        assertThatThrownBy(() ->
             service.updateDynamicSettings(Settings.builder().putNull("some.final.setting").build(),
-                Settings.builder().put(currentSettings), Settings.builder(), "node"));
-        assertThat(exc.getMessage(), containsString("final node setting [some.final.setting]"));
+                Settings.builder().put(currentSettings), Settings.builder(), "node")
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("final node setting [some.final.setting]");
 
-        exc = expectThrows(IllegalArgumentException.class, () ->
+        assertThatThrownBy(() ->
             service.updateSettings(Settings.builder().put("some.final.group.new", 8).build(),
-                Settings.builder().put(currentSettings), Settings.builder(), "node"));
-        assertThat(exc.getMessage(), containsString("final node setting [some.final.group.new]"));
+                Settings.builder().put(currentSettings), Settings.builder(), "node")
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("final node setting [some.final.group.new]");
 
-        exc = expectThrows(IllegalArgumentException.class, () ->
+        assertThatThrownBy(() ->
             service.updateSettings(Settings.builder().put("some.final.group.foo", 5).build(),
-                Settings.builder().put(currentSettings), Settings.builder(), "node"));
-        assertThat(exc.getMessage(), containsString("final node setting [some.final.group.foo]"));
+                Settings.builder().put(currentSettings), Settings.builder(), "node")
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("final node setting [some.final.group.foo]");
     }
 
     @Test
@@ -849,14 +851,11 @@ public class ScopedSettingsTests extends ESTestCase {
         final Setting<String> indexInternalSetting = Setting.simpleString("index.internal", Property.InternalIndex, Property.IndexScope);
         final IndexScopedSettings indexScopedSettings =
                 new IndexScopedSettings(Settings.EMPTY, Collections.singleton(indexInternalSetting));
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> {
-                    final Settings settings = Settings.builder().put("index.internal", "internal").build();
-                    indexScopedSettings.validate(settings, false, /* validateInternalOrPrivateIndex */ true);
-                });
-        final String message = "can not update internal setting [index.internal]; this setting is managed via a dedicated API";
-        assertThat(e, hasToString(containsString(message)));
+        assertThatThrownBy(() -> {
+            final Settings settings = Settings.builder().put("index.internal", "internal").build();
+            indexScopedSettings.validate(settings, false, /* validateInternalOrPrivateIndex */ true);
+        }).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("can not update internal setting [index.internal]; this setting is managed via a dedicated API");
     }
 
     @Test
@@ -864,14 +863,11 @@ public class ScopedSettingsTests extends ESTestCase {
         final Setting<String> indexInternalSetting = Setting.simpleString("index.private", Property.PrivateIndex, Property.IndexScope);
         final IndexScopedSettings indexScopedSettings =
                 new IndexScopedSettings(Settings.EMPTY, Collections.singleton(indexInternalSetting));
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> {
-                    final Settings settings = Settings.builder().put("index.private", "private").build();
-                    indexScopedSettings.validate(settings, false, /* validateInternalOrPrivateIndex */ true);
-                });
-        final String message = "can not update private setting [index.private]; this setting is managed by CrateDB";
-        assertThat(e, hasToString(containsString(message)));
+        assertThatThrownBy(() -> {
+            final Settings settings = Settings.builder().put("index.private", "private").build();
+            indexScopedSettings.validate(settings, false, /* validateInternalOrPrivateIndex */ true);
+        }).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("can not update private setting [index.private]; this setting is managed by CrateDB");
     }
 
     @Test

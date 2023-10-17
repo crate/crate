@@ -19,7 +19,7 @@
 
 package org.elasticsearch.index.engine;
 
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -40,6 +40,7 @@ import org.elasticsearch.index.translog.SnapshotMatchers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Before;
+import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
 
@@ -63,9 +64,9 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         long toSeqNo = randomLongBetween(fromSeqNo, Long.MAX_VALUE);
         // Empty engine
         try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapperService, fromSeqNo, toSeqNo, true)) {
-            IllegalStateException error = expectThrows(IllegalStateException.class, () -> drainAll(snapshot));
-            assertThat(error.getMessage(),
-                       containsString("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found"));
+            assertThatThrownBy(() -> drainAll(snapshot))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
         }
         try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapperService, fromSeqNo, toSeqNo, false)) {
             assertThat(snapshot, SnapshotMatchers.size(0));
@@ -106,9 +107,9 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
                 searcher, mapperService, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
                 searcher = null;
-                IllegalStateException error = expectThrows(IllegalStateException.class, () -> drainAll(snapshot));
-                assertThat(error.getMessage(),
-                           containsString("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found"));
+                assertThatThrownBy(() -> drainAll(snapshot))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
             }finally {
                 IOUtils.close(searcher);
             }
@@ -127,10 +128,10 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
                 searcher, mapperService, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
                 searcher = null;
-                IllegalStateException error = expectThrows(IllegalStateException.class, () -> drainAll(snapshot));
-                assertThat(error.getMessage(),
-                           containsString("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found"));
-            }finally {
+                assertThatThrownBy(() -> drainAll(snapshot))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
+            } finally {
                 IOUtils.close(searcher);
             }
             toSeqNo = randomLongBetween(fromSeqNo, refreshedSeqNo);
@@ -294,13 +295,14 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         return operations;
     }
 
+    @Test
     public void testOverFlow() throws Exception {
         long fromSeqNo = randomLongBetween(0, 5);
         long toSeqNo = randomLongBetween(Long.MAX_VALUE - 5, Long.MAX_VALUE);
         try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapperService, fromSeqNo, toSeqNo, true)) {
-            IllegalStateException error = expectThrows(IllegalStateException.class, () -> drainAll(snapshot));
-            assertThat(error.getMessage(),
-                       containsString("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found"));
+            assertThatThrownBy(() -> drainAll(snapshot))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
         }
     }
 }

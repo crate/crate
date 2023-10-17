@@ -19,8 +19,8 @@
 
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -73,8 +73,9 @@ public class NoOpEngineTests extends EngineTestCase {
         // Ensure that we can't open two noop engines for the same store
         final EngineConfig engineConfig = noOpConfig(INDEX_SETTINGS, store, primaryTranslogDir);
         try (NoOpEngine ignored = new NoOpEngine(engineConfig)) {
-            UncheckedIOException e = expectThrows(UncheckedIOException.class, () -> new NoOpEngine(engineConfig));
-            assertThat(e.getCause(), instanceOf(LockObtainFailedException.class));
+            assertThatThrownBy(() -> new NoOpEngine(engineConfig))
+                .isExactlyInstanceOf(UncheckedIOException.class)
+                .hasCauseExactlyInstanceOf(LockObtainFailedException.class);
         }
     }
 

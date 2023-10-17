@@ -19,13 +19,12 @@
 
 package org.elasticsearch.index.seqno;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.hasToString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -141,10 +140,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final String source = randomAlphaOfLength(8);
         replicationTracker.addRetentionLease(id, retainingSequenceNumber, source, ActionListener.wrap(() -> {}));
         final long nextRetaininSequenceNumber = randomLongBetween(retainingSequenceNumber, Long.MAX_VALUE);
-        final RetentionLeaseAlreadyExistsException e = expectThrows(
-                RetentionLeaseAlreadyExistsException.class,
-                () -> replicationTracker.addRetentionLease(id, nextRetaininSequenceNumber, source, ActionListener.wrap(() -> {})));
-        assertThat(e, hasToString(containsString("retention lease with ID [" + id + "] already exists")));
+        assertThatThrownBy(() -> replicationTracker.addRetentionLease(id, nextRetaininSequenceNumber, source, ActionListener.wrap(() -> {})))
+            .isExactlyInstanceOf(RetentionLeaseAlreadyExistsException.class)
+            .hasMessageContaining("retention lease with ID [" + id + "] already exists");
     }
 
     @Test
@@ -167,10 +165,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 routingTable(Collections.emptySet(), allocationId));
         replicationTracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
         final String id = randomAlphaOfLength(8);
-        final RetentionLeaseNotFoundException e = expectThrows(
-                RetentionLeaseNotFoundException.class,
-                () -> replicationTracker.renewRetentionLease(id, randomNonNegativeLong(), randomAlphaOfLength(8)));
-        assertThat(e, hasToString(containsString("retention lease with ID [" + id + "] not found")));
+        assertThatThrownBy(() -> replicationTracker.renewRetentionLease(id, randomNonNegativeLong(), randomAlphaOfLength(8)))
+            .isExactlyInstanceOf(RetentionLeaseNotFoundException.class)
+            .hasMessageContaining("retention lease with ID [" + id + "] not found");
     }
 
     @Test
@@ -295,9 +292,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             routingTable(Collections.emptySet(), allocationId));
         replicationTracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
 
-        assertThat(expectThrows(RetentionLeaseNotFoundException.class,
-            () -> replicationTracker.cloneRetentionLease("nonexistent-lease-id", "target", ActionListener.wrap(() -> {}))).getMessage(),
-            equalTo("retention lease with ID [nonexistent-lease-id] not found"));
+        assertThatThrownBy(() -> replicationTracker.cloneRetentionLease("nonexistent-lease-id", "target", ActionListener.wrap(() -> {})))
+            .isExactlyInstanceOf(RetentionLeaseNotFoundException.class)
+            .hasMessage("retention lease with ID [nonexistent-lease-id] not found");
     }
 
     @Test
@@ -322,9 +319,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         replicationTracker.addRetentionLease("source", randomLongBetween(0L, Long.MAX_VALUE), "test-source", ActionListener.wrap(() -> {}));
         replicationTracker.addRetentionLease("exists", randomLongBetween(0L, Long.MAX_VALUE), "test-source", ActionListener.wrap(() -> {}));
 
-        assertThat(expectThrows(RetentionLeaseAlreadyExistsException.class,
-            () -> replicationTracker.cloneRetentionLease("source", "exists", ActionListener.wrap(() -> {}))).getMessage(),
-            equalTo("retention lease with ID [exists] already exists"));
+        assertThatThrownBy(() -> replicationTracker.cloneRetentionLease("source", "exists", ActionListener.wrap(() -> {})))
+            .isExactlyInstanceOf(RetentionLeaseAlreadyExistsException.class)
+            .hasMessage("retention lease with ID [exists] already exists");
     }
 
 
@@ -348,10 +345,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 routingTable(Collections.emptySet(), allocationId));
         replicationTracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
         final String id = randomAlphaOfLength(8);
-        final RetentionLeaseNotFoundException e = expectThrows(
-                RetentionLeaseNotFoundException.class,
-                () -> replicationTracker.removeRetentionLease(id, ActionListener.wrap(() -> {})));
-        assertThat(e, hasToString(containsString("retention lease with ID [" + id + "] not found")));
+        assertThatThrownBy(() -> replicationTracker.removeRetentionLease(id, ActionListener.wrap(() -> {})))
+            .isExactlyInstanceOf(RetentionLeaseNotFoundException.class)
+            .hasMessageContaining("retention lease with ID [" + id + "] not found");
     }
 
     @Test
@@ -743,11 +739,12 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final String source = randomAlphaOfLength(8);
         replicationTracker.addRetentionLease(id, retainingSequenceNumber, source, ActionListener.wrap(() -> {}));
         final long lowerRetainingSequenceNumber = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, retainingSequenceNumber - 1);
-        final RetentionLeaseInvalidRetainingSeqNoException e = expectThrows(RetentionLeaseInvalidRetainingSeqNoException.class,
-            () -> replicationTracker.renewRetentionLease(id, lowerRetainingSequenceNumber, source));
-        assertThat(e, hasToString(containsString("the current retention lease with [" + id + "]" +
-            " is retaining a higher sequence number [" + retainingSequenceNumber + "]" +
-            " than the new retaining sequence number [" + lowerRetainingSequenceNumber + "] from [" + source + "]")));
+        assertThatThrownBy(() -> replicationTracker.renewRetentionLease(id, lowerRetainingSequenceNumber, source))
+            .isExactlyInstanceOf(RetentionLeaseInvalidRetainingSeqNoException.class)
+            .hasMessageContaining(
+                "the current retention lease with [" + id + "]" +
+                " is retaining a higher sequence number [" + retainingSequenceNumber + "]" +
+                " than the new retaining sequence number [" + lowerRetainingSequenceNumber + "] from [" + source + "]");
     }
 
     private void assertRetentionLeases(

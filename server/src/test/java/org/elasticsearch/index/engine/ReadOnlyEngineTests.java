@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader.getElasticsearchDirectoryReader;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -197,16 +198,19 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 globalCheckpoint.set(engine.getPersistedLocalCheckpoint() - 1);
                 engine.flushAndClose();
 
-                IllegalStateException exception = expectThrows(IllegalStateException.class,
-                                                               () -> new ReadOnlyEngine(config, null, null, true, Function.identity(), true) {
-                                                                   @Override
-                                                                   protected boolean assertMaxSeqNoEqualsToGlobalCheckpoint(final long maxSeqNo, final long globalCheckpoint) {
-                                                                       // we don't want the assertion to trip in this test
-                                                                       return true;
-                                                                   }
-                                                               });
-                assertThat(exception.getMessage(), equalTo("Maximum sequence number [" + maxSeqNo
-                                                           + "] from last commit does not match global checkpoint [" + globalCheckpoint.get() + "]"));
+                assertThatThrownBy(
+                    () -> new ReadOnlyEngine(config, null, null, true, Function.identity(), true) {
+                        @Override
+                        protected boolean assertMaxSeqNoEqualsToGlobalCheckpoint(final long maxSeqNo,
+                                final long globalCheckpoint) {
+                            // we don't want the assertion to trip in this test
+                            return true;
+                        }
+                    })
+                    .isExactlyInstanceOf(IllegalStateException.class)
+                    .hasMessage(
+                        "Maximum sequence number [" + maxSeqNo
+                        + "] from last commit does not match global checkpoint [" + globalCheckpoint.get() + "]");
             }
         }
     }
@@ -228,11 +232,14 @@ public class ReadOnlyEngineTests extends EngineTestCase {
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(
                 config, null, new TranslogStats(0, 0, 0, 0), true, Function.identity(), true)
             ) {
-                Class<? extends Throwable> expectedException = UnsupportedOperationException.class;
-                expectThrows(expectedException, () -> readOnlyEngine.index(null));
-                expectThrows(expectedException, () -> readOnlyEngine.delete(null));
-                expectThrows(expectedException, () -> readOnlyEngine.noOp(null));
-                expectThrows(UnsupportedOperationException.class, () -> readOnlyEngine.syncFlush(null, null));
+                assertThatThrownBy(() -> readOnlyEngine.index(null))
+                    .isExactlyInstanceOf(UnsupportedOperationException.class);
+                assertThatThrownBy(() -> readOnlyEngine.delete(null))
+                    .isExactlyInstanceOf(UnsupportedOperationException.class);
+                assertThatThrownBy(() -> readOnlyEngine.noOp(null))
+                    .isExactlyInstanceOf(UnsupportedOperationException.class);
+                assertThatThrownBy(() -> readOnlyEngine.syncFlush(null, null))
+                    .isExactlyInstanceOf(UnsupportedOperationException.class);
             }
         }
     }

@@ -19,14 +19,12 @@
 
 package org.elasticsearch.test.test;
 
-import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -49,37 +47,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.RandomObjects;
 
-import junit.framework.AssertionFailedError;
-
 public class ESTestCaseTests extends ESTestCase {
-
-    public void testExpectThrows() {
-        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> {
-            throw new IllegalArgumentException("bad arg");
-        });
-        assertEquals("bad arg", e.getMessage());
-
-        try {
-            expectThrows(IllegalArgumentException.class, () -> {
-               throw new IllegalStateException("bad state");
-            });
-            fail("expected assertion error");
-        } catch (AssertionFailedError assertFailed) {
-            assertEquals("Unexpected exception type, expected IllegalArgumentException but got java.lang.IllegalStateException: bad state",
-                    assertFailed.getMessage());
-            assertNotNull(assertFailed.getCause());
-            assertEquals("bad state", assertFailed.getCause().getMessage());
-        }
-
-        try {
-            expectThrows(IllegalArgumentException.class, () -> {});
-            fail("expected assertion error");
-        } catch (AssertionFailedError assertFailed) {
-            assertNull(assertFailed.getCause());
-            assertEquals("Expected exception IllegalArgumentException but no exception was thrown",
-                    assertFailed.getMessage());
-        }
-    }
 
     public void testShuffleMap() throws IOException {
         BytesReference source = RandomObjects.randomSource(random(), 5);

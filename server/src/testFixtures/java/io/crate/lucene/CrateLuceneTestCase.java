@@ -64,7 +64,6 @@ import org.apache.lucene.tests.store.MockDirectoryWrapper;
 import org.apache.lucene.tests.util.FailureMarker;
 import org.apache.lucene.tests.util.LuceneJUnit3MethodProvider;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.tests.util.LuceneTestCase.ThrowingRunnable;
 import org.apache.lucene.tests.util.QuickPatchThreadsFilter;
 import org.apache.lucene.tests.util.RunListenerPrintReproduceInfo;
 import org.apache.lucene.tests.util.TestRuleMarkFailure;
@@ -301,14 +300,6 @@ public abstract class CrateLuceneTestCase {
 
     public void assertPointsEquals(String info, IndexReader leftReader, IndexReader rightReader) throws IOException {
         luceneTestCase.assertPointsEquals(info, leftReader, rightReader);
-    }
-
-    /**
-     * Checks a specific exception class is thrown by the given runnable, and
-     * returns it.
-     */
-    public static <T extends Throwable> T expectThrows(Class<T> expectedType, ThrowingRunnable runnable) {
-        return LuceneTestCase.expectThrows(expectedType, runnable);
     }
 
     /**

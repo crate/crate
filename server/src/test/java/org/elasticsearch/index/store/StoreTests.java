@@ -19,15 +19,13 @@
 package org.elasticsearch.index.store;
 
 import static java.util.Collections.unmodifiableMap;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -153,8 +151,8 @@ public class StoreTests extends ESTestCase {
         store.decRef();
         assertThat(store.refCount(), Matchers.equalTo(0));
         assertFalse(store.tryIncRef());
-        expectThrows(IllegalStateException.class, store::incRef);
-        expectThrows(IllegalStateException.class, store::ensureOpen);
+        assertThatThrownBy(store::incRef).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(store::ensureOpen).isInstanceOf(IllegalStateException.class);
     }
 
     public void testVerifyingIndexOutput() throws IOException {
@@ -1001,9 +999,9 @@ public class StoreTests extends ESTestCase {
                 CodecUtil.writeHeader(output, Store.CODEC, Store.CORRUPTED_MARKER_CODEC_VERSION + randomFrom(1, 2, -1, -2, -3));
                 // we only need the header to trigger the exception
             }
-            final IOException ioException = expectThrows(IOException.class, store::failIfCorrupted);
-            assertThat(ioException, anyOf(instanceOf(IndexFormatTooOldException.class), instanceOf(IndexFormatTooNewException.class)));
-            assertThat(ioException.getMessage(), containsString(corruptionMarkerName));
+            assertThatThrownBy(store::failIfCorrupted)
+                .isInstanceOfAny(IndexFormatTooOldException.class, IndexFormatTooNewException.class)
+                .hasMessageContaining(corruptionMarkerName);
         }
     }
 
