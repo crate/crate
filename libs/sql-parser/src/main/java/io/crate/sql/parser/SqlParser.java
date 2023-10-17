@@ -91,10 +91,6 @@ public class SqlParser {
         )).statements();
     }
 
-    private Statement generateStatements(String sql) {
-        return (Statement) invokeParser("statements", sql, SqlBaseParser::statements, null);
-    }
-
     private Statement generateStatement(String sql) {
         return (Statement) invokeParser("statement", sql, SqlBaseParser::singleStatement, null);
     }

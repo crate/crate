@@ -439,7 +439,7 @@ public class Indexer {
         int position = -1;
         for (var ref : targetColumns) {
             ValueIndexer<?> valueIndexer;
-            if (ref instanceof DynamicReference dynamic) {
+            if (ref instanceof DynamicReference) {
                 if (table.columnPolicy() == ColumnPolicy.STRICT) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,

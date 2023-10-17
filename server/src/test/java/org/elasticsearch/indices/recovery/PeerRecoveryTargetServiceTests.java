@@ -267,7 +267,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
             false,
             Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_3_0_1).build()
         );
-        SeqNoStats seqNoStats = populateRandomData(shard);
+        populateRandomData(shard);
         var globalCheckpoint = UNASSIGNED_SEQ_NO;
         var replica = reinitShard(shard, ShardRoutingHelper.initWithSameId(shard.routingEntry(),
                                                                        RecoverySource.PeerRecoverySource.INSTANCE));

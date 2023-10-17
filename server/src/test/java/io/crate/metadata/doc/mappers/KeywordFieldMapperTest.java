@@ -34,10 +34,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.indices.IndicesModule;
 import org.junit.Test;
 
@@ -48,7 +45,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
 
     private static final String TYPE = Constants.DEFAULT_MAPPING_TYPE;
 
-    private static DocumentMapperParser parser(Mapper.TypeParser parser) throws IOException {
+    private static DocumentMapperParser parser() throws IOException {
         MapperService mapperService = MapperTestUtils.newMapperService(
             NamedXContentRegistry.EMPTY,
             createTempDir(),
@@ -76,7 +73,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
                     .endObject()
                 .endObject());
 
-        var parser = parser(new KeywordFieldMapper.TypeParser());
+        var parser = parser();
         // string -> doXContentBody -> parse -> string
         var compressedXContent = new CompressedXContent(expectedMapping);
         var mapper = parser.parse(compressedXContent);
@@ -90,7 +87,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_keywords_fields_mapping_merge_fail_on_different_length_limit() throws Exception {
-        var parser = parser(new TextFieldMapper.TypeParser());
+        var parser = parser();
 
         var mapper = parser.parse(new CompressedXContent(Strings.toString(
             JsonXContent.builder()

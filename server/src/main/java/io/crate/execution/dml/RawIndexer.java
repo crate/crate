@@ -158,7 +158,7 @@ public class RawIndexer {
      * {@link #collectSchemaUpdates(IndexItem)}) have been added to the cluster
      * state.
      */
-    public ParsedDocument index(IndexItem item) throws IOException {
+    public ParsedDocument index() throws IOException {
         assert currentRowIndexer != null : "Must be used only after collecting schema updates.";
 
         ParsedDocument parsedDoc = currentRowIndexer.index(currentItem);

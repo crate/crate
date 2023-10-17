@@ -1946,7 +1946,6 @@ public class IndexShardTests extends IndexShardTestCase {
         }
 
         if (Assertions.ENABLED && indexShard.routingEntry().isRelocationTarget() == false) {
-            FutureActionListener<Object, Object> newInstance = FutureActionListener.newInstance();
             assertThatThrownBy(
                 () -> indexShard.acquireReplicaOperationPermit(
                         pendingPrimaryTerm,

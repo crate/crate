@@ -446,7 +446,6 @@ public class TranslogTests extends ESTestCase {
 
         {
             final TranslogStats stats = stats();
-            final BytesStreamOutput out = new BytesStreamOutput();
             assertThat(stats.estimatedNumberOfOperations(), equalTo(4));
             assertThat(stats.getTranslogSizeInBytes(), equalTo(339L));
         }

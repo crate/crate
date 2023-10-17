@@ -24,6 +24,7 @@ package io.crate.analyze;
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -31,6 +32,7 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.util.Objects;
 
+import io.crate.exceptions.AmbiguousColumnException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -235,5 +237,13 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         UnionSelect unionSelect = analyze("select obj from v1 union all select obj from v2");
         Asserts.assertThat(unionSelect.outputs().get(0)).isField("obj");
+    }
+
+    @Test
+    public void test_union_containing_duplicates_in_outputs_list_may_throw_AmbiguousColumnException() throws IOException {
+        SQLExecutor.builder(clusterService).addTable("create table t (a int, b int)");
+        assertThatThrownBy(() -> analyze("select a from (select a, b as a from t union select 1, 1) t2"))
+            .isExactlyInstanceOf(AmbiguousColumnException.class)
+            .hasMessage("Column \"a\" is ambiguous");
     }
 }
