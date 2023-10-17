@@ -20,6 +20,7 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -114,10 +115,8 @@ public class TcpTransportTests extends ESTestCase {
     }
 
     public void testRejectsPortRanges() {
-        expectThrows(
-            NumberFormatException.class,
-            () -> TcpTransport.parse("[::1]:100-200", 1000)
-        );
+        assertThatThrownBy(() -> TcpTransport.parse("[::1]:100-200", 1000))
+            .isExactlyInstanceOf(NumberFormatException.class);
     }
 
     public void testDefaultSeedAddressesWithDefaultPort() {

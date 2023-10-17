@@ -19,6 +19,7 @@
 
 package org.elasticsearch.test.test;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -168,9 +169,9 @@ public class LoggingListenerTests extends ESTestCase {
 
         final Description suiteDescription = Description.createSuiteDescription(InvalidClass.class);
 
-        final IllegalArgumentException e =
-            expectThrows(IllegalArgumentException.class, () -> loggingListener.testRunStarted(suiteDescription));
-        assertThat(e.getMessage(), equalTo("invalid test logging annotation [abc]"));
+        assertThatThrownBy(() -> loggingListener.testRunStarted(suiteDescription))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid test logging annotation [abc]");
     }
 
     public void testInvalidMethodTestLoggingAnnotation() throws Exception {
@@ -183,9 +184,9 @@ public class LoggingListenerTests extends ESTestCase {
         final Method method = InvalidMethod.class.getMethod("invalidMethod");
         final TestLogging annotation = method.getAnnotation(TestLogging.class);
         Description testDescription = Description.createTestDescription(InvalidMethod.class, "invalidMethod", annotation);
-        final IllegalArgumentException e =
-            expectThrows(IllegalArgumentException.class, () -> loggingListener.testStarted(testDescription));
-        assertThat(e.getMessage(), equalTo("invalid test logging annotation [abc:INFO:WARN]"));
+        assertThatThrownBy(() -> loggingListener.testStarted(testDescription))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid test logging annotation [abc:INFO:WARN]");
     }
 
     /**

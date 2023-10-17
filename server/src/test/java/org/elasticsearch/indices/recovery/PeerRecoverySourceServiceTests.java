@@ -21,8 +21,7 @@
 
 package org.elasticsearch.indices.recovery;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -68,12 +67,9 @@ public class PeerRecoverySourceServiceTests extends IndexShardTestCase {
         peerRecoverySourceService.start();
         RecoverySourceHandler handler = peerRecoverySourceService.ongoingRecoveries
             .addNewRecovery(startRecoveryRequest, primary);
-        DelayRecoveryException delayRecoveryException = expectThrows(
-            DelayRecoveryException.class,
-            () -> peerRecoverySourceService.ongoingRecoveries.addNewRecovery(
-                startRecoveryRequest,
-                primary));
-        assertThat(delayRecoveryException.getMessage(), containsString("recovery with same target already registered"));
+        assertThatThrownBy(() -> peerRecoverySourceService.ongoingRecoveries.addNewRecovery(startRecoveryRequest, primary))
+            .isExactlyInstanceOf(DelayRecoveryException.class)
+            .hasMessageContaining("recovery with same target already registered");
         peerRecoverySourceService.ongoingRecoveries.remove(primary, handler);
         // re-adding after removing previous attempt works
         handler = peerRecoverySourceService.ongoingRecoveries.addNewRecovery(startRecoveryRequest, primary);

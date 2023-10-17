@@ -21,7 +21,7 @@
 
 package org.elasticsearch.common.settings;
 
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
@@ -77,8 +77,9 @@ public class SecureStringTests extends ESTestCase {
             // close another time and no exception is thrown
             copy.close();
         }
-        IllegalStateException e = expectThrows(IllegalStateException.class, copy::getChars);
-        assertThat(e.getMessage(), containsString("already been closed"));
+        assertThatThrownBy(copy::getChars)
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("already been closed");
     }
 
     @Test
@@ -91,8 +92,9 @@ public class SecureStringTests extends ESTestCase {
             // close another time and no exception is thrown
             secureString.close();
         }
-        IllegalStateException e = expectThrows(IllegalStateException.class, secureString::clone);
-        assertThat(e.getMessage(), containsString("already been closed"));
+        assertThatThrownBy(secureString::clone)
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("already been closed");
     }
 
     private void assertSecureStringEqualToChars(char[] expected, SecureString secureString) {

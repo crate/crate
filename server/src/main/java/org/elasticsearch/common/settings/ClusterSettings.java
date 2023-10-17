@@ -103,7 +103,6 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.AuthSettings;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.jobs.NodeLimits;
@@ -211,7 +210,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         IndicesQueryCache.INDICES_CACHE_QUERY_COUNT_SETTING,
         IndicesQueryCache.INDICES_QUERIES_CACHE_ALL_SEGMENTS_SETTING,
         IndicesService.WRITE_DANGLING_INDICES_INFO_SETTING,
-        SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING,
         Metadata.SETTING_READ_ONLY_SETTING,
         Metadata.SETTING_READ_ONLY_ALLOW_DELETE_SETTING,
         ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE,

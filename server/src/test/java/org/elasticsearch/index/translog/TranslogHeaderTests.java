@@ -19,12 +19,10 @@
 
 package org.elasticsearch.index.translog;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.nio.channels.FileChannel;
@@ -54,14 +52,14 @@ public class TranslogHeaderTests extends ESTestCase {
             assertThat(inHeader.getPrimaryTerm(), equalTo(outHeader.getPrimaryTerm()));
             assertThat(inHeader.sizeInBytes(), equalTo((int)channel.position()));
         }
-        final TranslogCorruptedException mismatchUUID = expectThrows(TranslogCorruptedException.class, () -> {
+        assertThatThrownBy(() -> {
             try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
                 TranslogHeader.read(randomValueOtherThan(translogUUID, UUIDs::randomBase64UUID), translogFile, channel);
             }
-        });
-        assertThat(mismatchUUID.getMessage(), containsString("this translog file belongs to a different translog"));
+        }).isExactlyInstanceOf(TranslogCorruptedException.class)
+            .hasMessageContaining("this translog file belongs to a different translog");
         TestTranslog.corruptFile(logger, random(), translogFile, false);
-        final TranslogCorruptedException corruption = expectThrows(TranslogCorruptedException.class, () -> {
+        assertThatThrownBy(() -> {
             try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
                 TranslogHeader.read(randomBoolean() ? outHeader.getTranslogUUID() : UUIDs.randomBase64UUID(), translogFile, channel);
                 final TranslogHeader translogHeader = TranslogHeader.read(outHeader.getTranslogUUID(), translogFile, channel);
@@ -77,8 +75,8 @@ public class TranslogHeaderTests extends ESTestCase {
                         containsString("pre-6.3 translog found")));
                 throw new TranslogCorruptedException(translogFile.toString(), "adjusted translog version", e);
             }
-        });
-        assertThat(corruption.getMessage(), not(containsString("this translog file belongs to a different translog")));
+        }).isExactlyInstanceOf(TranslogCorruptedException.class)
+            .hasMessageNotContaining("this translog file belongs to a different translog");
     }
 
     @Test
@@ -93,11 +91,10 @@ public class TranslogHeaderTests extends ESTestCase {
             assertThat(outHeader.sizeInBytes(), equalTo((int) channel.position()));
         }
         TestTranslog.corruptFile(logger, random(), translogFile, false);
-        final Exception error = expectThrows(Exception.class, () -> {
+        assertThatThrownBy(() -> {
             try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
                 TranslogHeader.read(randomValueOtherThan(translogUUID, UUIDs::randomBase64UUID), translogFile, channel);
             }
-        });
-        assertThat(error, either(instanceOf(IllegalStateException.class)).or(instanceOf(TranslogCorruptedException.class)));
+        }).isInstanceOfAny(IllegalStateException.class, TranslogCorruptedException.class);
     }
 }

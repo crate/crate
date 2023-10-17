@@ -19,7 +19,10 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.PreVoteCollector.REQUEST_PRE_VOTE_ACTION_NAME;
+import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SAME;
 import static org.hamcrest.Matchers.equalTo;
@@ -56,10 +59,6 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
-
-
-import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
-import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 public class PreVoteCollectorTests extends ESTestCase {
 
@@ -194,9 +193,9 @@ public class PreVoteCollectorTests extends ESTestCase {
         final long term = randomNonNegativeLong();
         healthStatus = new StatusInfo(UNHEALTHY, "unhealthy-info");
         final DiscoveryNode otherNode = new DiscoveryNode("other-node", buildNewFakeTransportAddress(), Version.CURRENT);
-        RemoteTransportException remoteTransportException = expectThrows(RemoteTransportException.class, () ->
-            handlePreVoteRequestViaTransportService(new PreVoteRequest(otherNode, term)));
-        assertThat(remoteTransportException.getCause(), instanceOf(NodeHealthCheckFailureException.class));
+        assertThatThrownBy(() -> handlePreVoteRequestViaTransportService(new PreVoteRequest(otherNode, term)))
+            .isExactlyInstanceOf(RemoteTransportException.class)
+            .hasCauseExactlyInstanceOf(NodeHealthCheckFailureException.class);
     }
 
     public void testDoesNotStartElectionIfStopped() {
@@ -341,9 +340,9 @@ public class PreVoteCollectorTests extends ESTestCase {
         PreVoteResponse newPreVoteResponse = new PreVoteResponse(currentTerm, lastAcceptedTerm, lastAcceptedVersion);
         preVoteCollector.update(newPreVoteResponse, leaderNode);
 
-        RemoteTransportException remoteTransportException = expectThrows(RemoteTransportException.class, () ->
-            handlePreVoteRequestViaTransportService(new PreVoteRequest(otherNode, term)));
-        assertThat(remoteTransportException.getCause(), instanceOf(CoordinationStateRejectedException.class));
+        assertThatThrownBy(() -> handlePreVoteRequestViaTransportService(new PreVoteRequest(otherNode, term)))
+            .isExactlyInstanceOf(RemoteTransportException.class)
+            .hasCauseExactlyInstanceOf(CoordinationStateRejectedException.class);
     }
 
     public void testResponseToRequestFromLeader() {

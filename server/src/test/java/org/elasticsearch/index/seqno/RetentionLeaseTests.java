@@ -19,9 +19,8 @@
 
 package org.elasticsearch.index.seqno;
 
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasToString;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -33,35 +32,29 @@ import org.elasticsearch.test.ESTestCase;
 public class RetentionLeaseTests extends ESTestCase {
 
     public void testEmptyId() {
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> new RetentionLease("", randomNonNegativeLong(), randomNonNegativeLong(), "source"));
-        assertThat(e, hasToString(containsString("retention lease ID can not be empty")));
+        assertThatThrownBy(() -> new RetentionLease("", randomNonNegativeLong(), randomNonNegativeLong(), "source"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("retention lease ID can not be empty");
     }
 
     public void testRetainingSequenceNumberOutOfRange() {
         final long retainingSequenceNumber = randomLongBetween(Long.MIN_VALUE, -1);
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> new RetentionLease("id", retainingSequenceNumber, randomNonNegativeLong(), "source"));
-        assertThat(
-                e,
-                hasToString(containsString("retention lease retaining sequence number [" + retainingSequenceNumber + "] out of range")));
+        assertThatThrownBy(() -> new RetentionLease("id", retainingSequenceNumber, randomNonNegativeLong(), "source"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("retention lease retaining sequence number [" + retainingSequenceNumber + "] out of range");
     }
 
     public void testTimestampOutOfRange() {
         final long timestamp = randomLongBetween(Long.MIN_VALUE, -1);
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> new RetentionLease("id", randomNonNegativeLong(), timestamp, "source"));
-        assertThat(e, hasToString(containsString("retention lease timestamp [" + timestamp + "] out of range")));
+        assertThatThrownBy(() -> new RetentionLease("id", randomNonNegativeLong(), timestamp, "source"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("retention lease timestamp [" + timestamp + "] out of range");
     }
 
     public void testEmptySource() {
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> new RetentionLease("id", randomNonNegativeLong(), randomNonNegativeLong(), ""));
-        assertThat(e, hasToString(containsString("retention lease source can not be empty")));
+        assertThatThrownBy(() -> new RetentionLease("id", randomNonNegativeLong(), randomNonNegativeLong(), ""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("retention lease source can not be empty");
     }
 
     public void testRetentionLeaseSerialization() throws IOException {

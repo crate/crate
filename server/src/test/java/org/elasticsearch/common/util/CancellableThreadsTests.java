@@ -20,6 +20,7 @@
  */
 package org.elasticsearch.common.util;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -179,9 +180,11 @@ public class CancellableThreadsTests extends ESTestCase {
                     .count())
         );
         if (throwInOnCancel) {
-            expectThrows(ThrowOnCancelException.class, cancellableThreads::checkForCancel);
+            assertThatThrownBy(cancellableThreads::checkForCancel)
+                .isExactlyInstanceOf(ThrowOnCancelException.class);
         } else {
-            expectThrows(ExecutionCancelledException.class, cancellableThreads::checkForCancel);
+            assertThatThrownBy(cancellableThreads::checkForCancel)
+                .isExactlyInstanceOf(ExecutionCancelledException.class);
         }
         assertThat(
             invokeTimes.longValue(),

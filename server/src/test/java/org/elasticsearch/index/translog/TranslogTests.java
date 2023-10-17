@@ -19,18 +19,17 @@
 
 package org.elasticsearch.index.translog;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
 import static org.elasticsearch.index.translog.SnapshotMatchers.containsOperationsInAnyOrder;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
@@ -488,23 +487,22 @@ public class TranslogTests extends ESTestCase {
 
     @Test
     public void testNegativeNumberOfOperations() {
-        IllegalArgumentException e =
-            expectThrows(IllegalArgumentException.class,
-                () -> new TranslogStats(-1, 1, 1, 1));
-        assertThat(e, hasToString(containsString("numberOfOperations must be >= 0")));
-        e = expectThrows(IllegalArgumentException.class,
-            () -> new TranslogStats(1, 1, -1, 1));
-        assertThat(e, hasToString(containsString("uncommittedOperations must be >= 0")));
+        assertThatThrownBy(() -> new TranslogStats(-1, 1, 1, 1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("numberOfOperations must be >= 0");
+        assertThatThrownBy(() -> new TranslogStats(1, 1, -1, 1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("uncommittedOperations must be >= 0");
     }
 
     @Test
     public void testNegativeSizeInBytes() {
-        IllegalArgumentException e =
-            expectThrows(IllegalArgumentException.class, () -> new TranslogStats(1, -1, 1, 1));
-        assertThat(e, hasToString(containsString("translogSizeInBytes must be >= 0")));
-        e = expectThrows(IllegalArgumentException.class,
-            () -> new TranslogStats(1, 1, 1, -1));
-        assertThat(e, hasToString(containsString("uncommittedSizeInBytes must be >= 0")));
+        assertThatThrownBy(() -> new TranslogStats(1, -1, 1, 1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("translogSizeInBytes must be >= 0");
+        assertThatThrownBy(() -> new TranslogStats(1, 1, 1, -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("uncommittedSizeInBytes must be >= 0");
     }
 
     @Test
@@ -580,8 +578,9 @@ public class TranslogTests extends ESTestCase {
         assertTrue(Files.exists(translogDir.resolve(Translog.getFilename(1))));
         translog.add(new Translog.Index("1", 0, primaryTerm.get(), new byte[]{1}));
         translog.close();
-        AlreadyClosedException ex = expectThrows(AlreadyClosedException.class, () -> translog.newSnapshot());
-        assertEquals(ex.getMessage(), "translog is already closed");
+        assertThatThrownBy(() -> translog.newSnapshot())
+            .isExactlyInstanceOf(AlreadyClosedException.class)
+            .hasMessage("translog is already closed");
     }
 
     @Test
@@ -771,14 +770,15 @@ public class TranslogTests extends ESTestCase {
 
         TestTranslog.corruptRandomTranslogFile(logger, random(), translogDir, 0);
 
-        assertThat(expectThrows(TranslogCorruptedException.class, () -> {
+        assertThatThrownBy(() -> {
             try (Translog translog = openTranslog(config, uuid);
                  Translog.Snapshot snapshot = translog.newSnapshot()) {
                 for (int i = 0; i < locations.size(); i++) {
                     snapshot.next();
                 }
             }
-        }).getMessage(), containsString(translogDir.toString()));
+        }).isExactlyInstanceOf(TranslogCorruptedException.class)
+            .hasMessageContaining(translogDir.toString());
 
         expectIntactTranslog = false;
     }
@@ -1687,13 +1687,14 @@ public class TranslogTests extends ESTestCase {
             corrupted, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
         final String translogUUID = translog.getTranslogUUID();
         final TranslogDeletionPolicy deletionPolicy = translog.getDeletionPolicy();
-        final TranslogCorruptedException translogCorruptedException = expectThrows(TranslogCorruptedException.class, () ->
-            new Translog(config, translogUUID, deletionPolicy, () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> { }));
-        assertThat(translogCorruptedException.getMessage(), endsWith(
-            "] is corrupted, checkpoint file translog-3.ckp already exists but has corrupted content: expected Checkpoint{offset=2695, " +
+        assertThatThrownBy(() ->
+            new Translog(config, translogUUID, deletionPolicy, () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> { })
+        ).isExactlyInstanceOf(TranslogCorruptedException.class)
+            .hasMessageEndingWith(
+                "] is corrupted, checkpoint file translog-3.ckp already exists but has corrupted content: expected Checkpoint{offset=2695, " +
                 "numOps=55, generation=3, minSeqNo=45, maxSeqNo=99, globalCheckpoint=-1, minTranslogGeneration=1, trimmedAboveSeqNo=-2} " +
                 "but got Checkpoint{offset=0, numOps=0, generation=0, minSeqNo=-1, maxSeqNo=-1, globalCheckpoint=-1, " +
-                "minTranslogGeneration=0, trimmedAboveSeqNo=-2}"));
+                "minTranslogGeneration=0, trimmedAboveSeqNo=-2}");
         Checkpoint.write(FileChannel::open, config.getTranslogPath().resolve(Translog.getCommitCheckpointFileName(read.generation)),
             read, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
         try (Translog translog = new Translog(config, translogUUID, deletionPolicy,
@@ -1745,9 +1746,11 @@ public class TranslogTests extends ESTestCase {
             translog.add(operation);
         }
 
-        AssertionError error = expectThrows(AssertionError.class, () -> translog.trimOperations(primaryTerm.get(), 0));
-        assertThat(error.getMessage(), is("current should not have any operations with seq#:primaryTerm "
-            + "[1:" + (primaryTerm.get() - 1) + "] > 0:" + primaryTerm.get()));
+        assertThatThrownBy(() -> translog.trimOperations(primaryTerm.get(), 0))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessage(
+                "current should not have any operations with seq#:primaryTerm "
+                + "[1:" + (primaryTerm.get() - 1) + "] > 0:" + primaryTerm.get());
 
         primaryTerm.incrementAndGet();
         translog.rollGeneration();
@@ -1901,9 +1904,9 @@ public class TranslogTests extends ESTestCase {
             fileChannels.stream().filter(f -> f.isOpen()).findFirst().isPresent(), is(false));
 
         assertThat(failableTLog.isOpen(), is(false));
-        final AlreadyClosedException alreadyClosedException = expectThrows(AlreadyClosedException.class, () -> failableTLog.newSnapshot());
-        assertThat(alreadyClosedException.getMessage(),
-            is("translog is already closed"));
+        assertThatThrownBy(() -> failableTLog.newSnapshot())
+            .isExactlyInstanceOf(AlreadyClosedException.class)
+            .hasMessage("translog is already closed");
 
         fail.failNever();
 
@@ -2723,10 +2726,14 @@ public class TranslogTests extends ESTestCase {
         // don't copy the new file
         Files.createFile(config.getTranslogPath().resolve("translog-" + (read.generation + 1) + ".tlog"));
 
-        TranslogException ex = expectThrows(TranslogException.class, () -> new Translog(config, translog.getTranslogUUID(),
-            translog.getDeletionPolicy(), () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {}));
-        assertEquals(ex.getMessage(), "failed to create new translog file");
-        assertEquals(ex.getCause().getClass(), FileAlreadyExistsException.class);
+        assertThatThrownBy(() -> new Translog(
+            config,
+            translog.getTranslogUUID(),
+            translog.getDeletionPolicy(),
+            () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {})
+        ).isExactlyInstanceOf(TranslogException.class)
+            .hasMessage("failed to create new translog file")
+            .hasCauseExactlyInstanceOf(FileAlreadyExistsException.class);
     }
 
     @Test
@@ -2758,11 +2765,14 @@ public class TranslogTests extends ESTestCase {
                 Integer.toString(1).getBytes(Charset.forName("UTF-8"))));
         }
 
-        TranslogException ex = expectThrows(TranslogException.class,
-                () -> new Translog(config, translogUUID, deletionPolicy, () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get,
-                    seqNo -> {}));
-        assertEquals(ex.getMessage(), "failed to create new translog file");
-        assertEquals(ex.getCause().getClass(), FileAlreadyExistsException.class);
+        assertThatThrownBy(() -> new Translog(
+            config,
+            translogUUID,
+            deletionPolicy,
+            () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {})
+        ).isExactlyInstanceOf(TranslogException.class)
+            .hasMessage("failed to create new translog file")
+            .hasCauseExactlyInstanceOf(FileAlreadyExistsException.class);
     }
 
     /**
@@ -3208,7 +3218,8 @@ public class TranslogTests extends ESTestCase {
         translog.rollGeneration();
         translog.close();
         assertThat(Translog.readGlobalCheckpoint(translogDir, translogUUID), equalTo(globalCheckpoint.get()));
-        expectThrows(TranslogCorruptedException.class, () -> Translog.readGlobalCheckpoint(translogDir, UUIDs.randomBase64UUID()));
+        assertThatThrownBy(() -> Translog.readGlobalCheckpoint(translogDir, UUIDs.randomBase64UUID()))
+            .isExactlyInstanceOf(TranslogCorruptedException.class);
     }
 
     @Test
@@ -3317,9 +3328,12 @@ public class TranslogTests extends ESTestCase {
         MisbehavingTranslog misbehavingTranslog = new MisbehavingTranslog(translogConfig, translogUUID, deletionPolicy,
             () -> globalCheckpoint.get(), primaryTerm::get);
 
-        expectThrows(AssertionError.class, () -> misbehavingTranslog.callCloseDirectly());
-        expectThrows(AssertionError.class, () -> misbehavingTranslog.callCloseUsingIOUtils());
-        expectThrows(AssertionError.class, () -> misbehavingTranslog.callCloseUsingIOUtilsWithExceptionHandling());
+        assertThatThrownBy(() -> misbehavingTranslog.callCloseDirectly())
+            .isExactlyInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> misbehavingTranslog.callCloseUsingIOUtils())
+            .isExactlyInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> misbehavingTranslog.callCloseUsingIOUtilsWithExceptionHandling())
+            .isExactlyInstanceOf(AssertionError.class);
         misbehavingTranslog.callCloseOnTragicEvent();
     }
 
@@ -3406,7 +3420,9 @@ public class TranslogTests extends ESTestCase {
         try (Translog brokenTranslog = create(filterFileSystemProvider.getPath(path.toUri()))) {
             failOnCopy.set(true);
             primaryTerm.incrementAndGet(); // increment primary term to force rolling generation
-            assertThat(expectThrows(IOException.class, brokenTranslog::rollGeneration).getMessage(), equalTo(expectedExceptionMessage));
+            assertThatThrownBy(brokenTranslog::rollGeneration)
+                .isExactlyInstanceOf(IOException.class)
+                .hasMessage(expectedExceptionMessage);
             assertFalse(brokenTranslog.isOpen());
 
             try (Translog recoveredTranslog = new Translog(getTranslogConfig(path), brokenTranslog.getTranslogUUID(),
@@ -3523,11 +3539,11 @@ public class TranslogTests extends ESTestCase {
         try (translog) {
             translog.add(new Translog.Index("1", 1, primaryTerm.get(), new byte[]{1}));
             failedToSyncCheckpoint.set(true);
-            expectThrows(IOException.class, translog::rollGeneration);
-            final AlreadyClosedException alreadyClosedException = expectThrows(AlreadyClosedException.class, translog::rollGeneration);
-            if (hasCircularReference(alreadyClosedException)) {
-                throw new AssertionError("detect circular reference exception", alreadyClosedException);
-            }
+            assertThatThrownBy(translog::rollGeneration)
+                .isExactlyInstanceOf(IOException.class);
+            assertThatThrownBy(translog::rollGeneration)
+                .isExactlyInstanceOf(AlreadyClosedException.class)
+                .satisfies(ex -> assertThat(hasCircularReference(ex)).isFalse());
         }
     }
 
@@ -3547,7 +3563,7 @@ public class TranslogTests extends ESTestCase {
         assertThat(index.getSource(), is(index2.getSource()));
     }
 
-    static boolean hasCircularReference(Exception cause) {
+    static boolean hasCircularReference(Throwable cause) {
         final Queue<Throwable> queue = new LinkedList<>();
         queue.add(cause);
         final Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());

@@ -21,6 +21,7 @@
 
 package org.elasticsearch.repositories.blobstore;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.repositories.RepositoryDataTests.generateRandomRepoData;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
@@ -229,8 +230,8 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
 
         // write repo data again to index generational file, errors because we already wrote to the
         // N+1 generation from which this repository data instance was created
-        expectThrows(RepositoryException.class,
-                     () -> writeIndexGen(repository, repositoryData.withGenId(startingGeneration + 1), repositoryData.getGenId()));
+        assertThatThrownBy(() -> writeIndexGen(repository, repositoryData.withGenId(startingGeneration + 1), repositoryData.getGenId()))
+            .isExactlyInstanceOf(RepositoryException.class);
     }
 
     protected BlobStoreRepository getRepository() throws Exception {

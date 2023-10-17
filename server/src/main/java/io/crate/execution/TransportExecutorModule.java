@@ -23,7 +23,6 @@ package io.crate.execution;
 
 import org.elasticsearch.common.inject.AbstractModule;
 
-import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
@@ -62,7 +61,6 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportDropTableAction.class).asEagerSingleton();
         bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();
-        bind(TransportSchemaUpdateAction.class).asEagerSingleton();
         bind(TransportCreateViewAction.class).asEagerSingleton();
         bind(TransportDropViewAction.class).asEagerSingleton();
         bind(TransportSwapRelationsAction.class).asEagerSingleton();

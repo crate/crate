@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.snapshots;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileExists;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -327,7 +328,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         Files.write(repo.resolve("index-" + repositoryData.getGenId()), randomByteArrayOfLength(randomIntBetween(1, 100)));
 
         logger.info("--> verify loading repository data throws RepositoryException");
-        expectThrows(RepositoryException.class, () -> getRepositoryData(repository));
+        assertThatThrownBy(() -> getRepositoryData(repository))
+            .isExactlyInstanceOf(RepositoryException.class);
 
         logger.info("--> mount repository path in a new repository");
         final String otherRepoName = "other-repo";
@@ -335,7 +337,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final Repository otherRepo = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(otherRepoName);
 
         logger.info("--> verify loading repository data from newly mounted repository throws RepositoryException");
-        expectThrows(RepositoryException.class, () -> getRepositoryData(otherRepo));
+        assertThatThrownBy(() -> getRepositoryData(otherRepo))
+            .isExactlyInstanceOf(RepositoryException.class);
     }
 
     @Test
