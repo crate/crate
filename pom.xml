@@ -27,6 +27,9 @@
             <include>**/*Test.java</include>
             <include>**/*Tests.java</include>
           </includes>
+          <systemPropertyVariables>
+            <worker.id>$${surefire.forkNumber}</worker.id>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
       <plugin>

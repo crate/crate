@@ -181,9 +181,10 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     // Allows distinguishing between parallel test processes
     public static final String TEST_WORKER_VM_ID;
 
-    public static final String TEST_WORKER_SYS_PROPERTY = "org.gradle.test.worker";
+    // Set in pom.xml based on surefire.forkNumber
+    public static final String TEST_WORKER_SYS_PROPERTY = "worker.id";
 
-    public static final String DEFAULT_TEST_WORKER_ID = "--not-gradle--";
+    public static final String DEFAULT_TEST_WORKER_ID = "--not-mvn--";
 
     static {
         TEST_WORKER_VM_ID = System.getProperty(TEST_WORKER_SYS_PROPERTY, DEFAULT_TEST_WORKER_ID);
@@ -1050,13 +1051,8 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         // a different default port range per JVM unless the incoming settings override it
         // use a non-default base port otherwise some cluster in this JVM might reuse a port
 
-        // We rely on Gradle implementation details here, the worker IDs are long values incremented by one  for the
-        // lifespan of the daemon this means that they can get larger than the allowed port range.
-        // Ephemeral ports on Linux start at 32768 so we modulo to make sure that we don't exceed that.
-        // This is safe as long as we have fewer than 224 Gradle workers running in parallel
-        // See also: https://github.com/elastic/elasticsearch/issues/44134
         String workerId = System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY);
-        int startAt = workerId == null ? 0 : Math.floorMod(Long.valueOf(workerId), 223);
+        int startAt = workerId == null ? 0 : Integer.valueOf(workerId);
         assert startAt >= 0 : "Unexpected test worker Id, resulting port range would be negative";
         return 10300 + (startAt * 100);
     }
