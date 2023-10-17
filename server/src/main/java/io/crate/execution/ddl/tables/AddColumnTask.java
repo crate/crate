@@ -51,7 +51,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Maps;
-import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
@@ -191,7 +190,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
             mergeDeltaIntoExistingMapping(indexMapping, references, pkeyIndices, checkConstraints, propertiesMap);
-            TransportSchemaUpdateAction.populateColumnPositions(indexMapping);
+            DDLClusterStateHelpers.populateColumnPositions(indexMapping);
 
             MapperService mapperService = createMapperService.apply(indexMetadata);
 

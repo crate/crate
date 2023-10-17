@@ -23,7 +23,6 @@ package io.crate.execution.dml.upsert;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -43,7 +42,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -51,9 +49,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.mapper.ContentPath;
-import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
@@ -71,8 +66,6 @@ import org.junit.Test;
 import org.mockito.Answers;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.RawIndexer;
@@ -130,13 +123,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         public TestingTransportShardUpsertAction(ThreadPool threadPool,
                                                  ClusterService clusterService,
                                                  TransportService transportService,
-                                                 SchemaUpdateClient schemaUpdateClient,
                                                  TasksService tasksService,
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
                                                  NodeContext nodeCtx,
                                                  Schemas schemas) {
-            super(Settings.EMPTY, threadPool, clusterService, transportService, schemaUpdateClient, mock(TransportAddColumnAction.class),
+            super(Settings.EMPTY, threadPool, clusterService, transportService, mock(TransportAddColumnAction.class),
                 tasksService, indicesService, shardStateAction, nodeCtx, schemas);
         }
 
@@ -203,7 +195,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             mock(ThreadPool.class),
             clusterService,
             MockTransportService.createNewService(Settings.EMPTY, VersionUtils.randomVersion(random()), THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings()),
-            mock(SchemaUpdateClient.class),
             mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),
@@ -260,27 +251,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         assertThat(response.failures()).satisfiesExactly(
             f -> assertThat(f.message()).isEqualTo(
                 "[1]: version conflict, document with id: 1 already exists in 'characters'"));
-    }
-
-    @Test
-    public void testValidateMapping() throws Exception {
-        // Create valid nested mapping with underscore.
-        Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build();
-        var builderContext = new Mapper.BuilderContext(settings, new ContentPath());
-        var outerBuilder = new ObjectMapper.Builder<>("valid");
-        var innerBuilder = new ObjectMapper.Builder<>("_invalid");
-        outerBuilder.position(1);
-        innerBuilder.position(2);
-        Mapper outerMapper = outerBuilder.build(builderContext);
-        TransportShardUpsertAction.validateMapping(Collections.singletonList(outerMapper).iterator(), false);
-
-        // Create invalid mapping
-        outerBuilder = new ObjectMapper.Builder<>("_invalid");
-        outerBuilder.position(1);
-        Mapper mapper = outerBuilder.build(builderContext);
-        assertThatThrownBy(() -> transportShardUpsertAction.validateMapping(Collections.singletonList(mapper).iterator(), false))
-            .isExactlyInstanceOf(InvalidColumnNameException.class)
-            .hasMessage("\"_invalid\" conflicts with system column pattern");
     }
 
     @Test
