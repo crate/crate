@@ -66,7 +66,6 @@ import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.IndexItem;
@@ -107,7 +106,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
-                                      SchemaUpdateClient schemaUpdateClient,
                                       TransportAddColumnAction addColumnAction,
                                       TasksService tasksService,
                                       IndicesService indicesService,
@@ -123,8 +121,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             tasksService,
             threadPool,
             shardStateAction,
-            ShardUpsertRequest::new,
-            schemaUpdateClient
+            ShardUpsertRequest::new
         );
         this.schemas = schemas;
         this.nodeCtx = nodeCtx;

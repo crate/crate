@@ -50,7 +50,6 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.execution.ddl.SchemaUpdateClient;
 
 /**
  * Tests relating to the loss of the master.
@@ -215,12 +214,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
     @Test
     public void testMappingNewFieldsTimeoutDoesntAffectCheckpoints() throws Exception {
         TestCluster internalCluster = cluster();
-        internalCluster.startNodes(3,
-                                   Settings.builder()
-                                       .put(SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
-                                            "500ms")
-                                       .build()
-        );
+        internalCluster.startNodes(3);
         ensureStableCluster(3);
 
         logger.info("creating table t with 1 shards and 1 replica");

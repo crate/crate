@@ -155,7 +155,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import io.crate.action.sql.Sessions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.jobs.TasksService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
@@ -594,10 +593,6 @@ public final class TestCluster implements Closeable {
             builder.put(TransportSettings.CONNECTIONS_PER_NODE_REG.getKey(), random.nextInt(6) + 1);
         }
 
-        if (random.nextBoolean()) {
-            builder.put(SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
-                    timeValueSeconds(RandomNumbers.randomIntBetween(random, 10, 30)).getStringRep());
-        }
 
         if (random.nextInt(10) == 0) {
             builder.put(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_TYPE_SETTING.getKey(), "noop");
