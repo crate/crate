@@ -43,7 +43,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.JobKilledException;
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.jobs.TasksService;
@@ -58,8 +57,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                       IndicesService indicesService,
                                       TasksService tasksService,
                                       ThreadPool threadPool,
-                                      ShardStateAction shardStateAction,
-                                      SchemaUpdateClient schemaUpdateClient) {
+                                      ShardStateAction shardStateAction) {
         super(
             settings,
             ShardDeleteAction.NAME,
@@ -69,8 +67,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             tasksService,
             threadPool,
             shardStateAction,
-            ShardDeleteRequest::new,
-            schemaUpdateClient
+            ShardDeleteRequest::new
         );
     }
 

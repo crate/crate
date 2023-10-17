@@ -50,7 +50,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.RelationName;
@@ -88,8 +87,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
             indicesService,
             mock(TasksService.class),
             mock(ThreadPool.class),
-            mock(ShardStateAction.class),
-            mock(SchemaUpdateClient.class)
+            mock(ShardStateAction.class)
         );
     }
 

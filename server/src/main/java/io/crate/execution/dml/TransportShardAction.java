@@ -21,27 +21,18 @@
 
 package io.crate.execution.dml;
 
-import io.crate.common.CheckedSupplier;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.JobKilledException;
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.jobs.kill.KillableCallable;
-import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.MappingUpdatePerformer;
-import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -54,7 +45,6 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 
 /**
  * Base class for performing Crate-specific TransportWriteActions like Delete or Upsert.
@@ -65,7 +55,6 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         implements KillAllListener {
 
     private final ConcurrentHashMap<TaskId, KillableCallable<?>> activeOperations = new ConcurrentHashMap<>();
-    private final MappingUpdatePerformer mappingUpdate;
     private final TasksService tasksService;
 
     protected TransportShardAction(Settings settings,
@@ -76,8 +65,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                                    TasksService tasksService,
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
-                                   Writeable.Reader<Request> reader,
-                                   SchemaUpdateClient schemaUpdateClient) {
+                                   Writeable.Reader<Request> reader) {
         super(
             settings,
             actionName,
@@ -91,10 +79,6 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             ThreadPool.Names.WRITE,
             false
         );
-        this.mappingUpdate = (update, shardId) -> {
-            validateMapping(update.root().iterator(), false);
-            schemaUpdateClient.blockingUpdateOnMaster(shardId.getIndex(), update);
-        };
         this.tasksService = tasksService;
     }
 
@@ -199,42 +183,6 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         @Override
         public void kill(@Nullable Throwable t) {
             killed.getAndSet(true);
-        }
-    }
-
-    protected <T extends Engine.Result> T executeOnPrimaryHandlingMappingUpdate(ShardId shardId,
-                                                                                CheckedSupplier<T, IOException> execute,
-                                                                                Function<Exception, T> onMappingUpdateError) throws IOException {
-        T result = execute.get();
-        if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-            try {
-                mappingUpdate.updateMappings(result.getRequiredMappingUpdate(), shardId);
-            } catch (Exception e) {
-                return onMappingUpdateError.apply(e);
-            }
-            result = execute.get();
-            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                // double mapping update. We assume that the successful mapping update wasn't yet processed on the node
-                // and retry the entire request again.
-                throw new ReplicationOperation.RetryOnPrimaryException(shardId,
-                    "Dynamic mappings are not available on the node that holds the primary yet");
-            }
-        }
-        assert result.getFailure() instanceof ReplicationOperation.RetryOnPrimaryException == false :
-            "IndexShard shouldn't use RetryOnPrimaryException. got " + result.getFailure();
-        return result;
-    }
-
-    @VisibleForTesting
-    public static void validateMapping(Iterator<Mapper> mappers, boolean nested) {
-        while (mappers.hasNext()) {
-            Mapper mapper = mappers.next();
-            if (nested) {
-                ColumnIdent.validateObjectKey(mapper.simpleName());
-            } else {
-                ColumnIdent.validateColumnName(mapper.simpleName());
-            }
-            validateMapping(mapper.iterator(), true);
         }
     }
 }
