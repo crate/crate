@@ -22,7 +22,6 @@ package org.elasticsearch.repositories.azure;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -79,8 +78,8 @@ public class AzureHttpHandler implements HttpHandler {
 
             } else if (Regex.simpleMatch("PUT /" + container + "/*comp=blocklist*", request)) {
                 // Put Block List (https://docs.microsoft.com/en-us/rest/api/storageservices/put-block-list)
-                final String blockList = Streams.copyToString(new InputStreamReader(exchange.getRequestBody(),
-                                                                                    StandardCharsets.UTF_8));
+
+                String blockList = Streams.readFully(exchange.getRequestBody()).utf8ToString();
                 final List<String> blockIds = Arrays.stream(blockList.split("<Latest>"))
                     .filter(line -> line.contains("</Latest>"))
                     .map(line -> line.substring(0, line.indexOf("</Latest>"))).toList();

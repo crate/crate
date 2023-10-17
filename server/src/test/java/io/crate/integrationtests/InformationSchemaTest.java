@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.util.Collections;
@@ -1363,5 +1362,22 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response).hasRows(
             "col1| NULL",
             "col2| 1");
+    }
+
+    @Test
+    public void test_dropped_columns_are_not_shown_in_information_schema() {
+        execute("create table t(a integer, o object AS(oo object AS(a int)))");
+
+        execute("alter table t drop column a");
+        execute("alter table t drop column o['oo']"); // Implicitly drops children.
+
+        // Only object column's root is left.
+        execute("""
+            select column_name, ordinal_position
+            from information_schema.columns
+            where table_name = 't'
+            order by ordinal_position"""
+        );
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("o| 2\n");
     }
 }
