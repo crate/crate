@@ -15,7 +15,7 @@ jobs:
         os: [windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Gradle Java
+      - name: Setup Maven Java
         uses: actions/setup-java@v3
         with:
           java-version: "17"

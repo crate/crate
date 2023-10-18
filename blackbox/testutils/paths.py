@@ -43,8 +43,8 @@ def crate_path():
     tarball = next(app_build.glob("crate-*.tar.gz"), None)
     if not tarball:
         cpus = multiprocessing.cpu_count()
-        gradlew = root / "mvnw"
-        run([str(gradlew), "-T", str(cpus), "package", "-DskipTests=true"], cwd=root)
+        mvnw = root / "mvnw"
+        run([str(mvnw), "-T", str(cpus), "package", "-DskipTests=true"], cwd=root)
         tarball = next(app_build.glob("crate-*.tar.gz"), None)
     uri = tarball.as_uri()
     return get_crate(uri)

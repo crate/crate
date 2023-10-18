@@ -1,7 +1,7 @@
 pipeline {
   agent any
   tools {
-    // used to run gradle
+    // used to run maven
     jdk 'jdk11'
   }
   options {

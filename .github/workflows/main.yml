@@ -6,7 +6,6 @@ on:
       - '**.java'
       - 'pom.xml'
       - '**/pom.xml'
-      - 'gradle/version.properties'
   push:
     branches:
       - master
@@ -24,7 +23,7 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Gradle Java
+      - name: Setup Maven Java
         uses: actions/setup-java@v3
         with:
           java-version: "21"
@@ -42,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Gradle Java
+      - name: Setup Maven Java
         uses: actions/setup-java@v3
         with:
           java-version: "17"
@@ -57,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Gradle Java
+      - name: Setup Maven Java
         uses: actions/setup-java@v3
         with:
           java-version: 17

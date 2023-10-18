@@ -80,7 +80,7 @@ Before creating a new distribution, a new version and tag should be created:
 
 To build a release tarball, run::
 
-    $ ./gradlew release
+    $ ./mvnw clean package -DskipTests=true -P release
 
 This task runs the ``distTar`` task but also checks that the output of
 ``git describe --tag`` matches the current version of CrateDB.
