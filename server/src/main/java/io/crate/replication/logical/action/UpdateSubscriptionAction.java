@@ -26,11 +26,11 @@ import java.util.HashMap;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.action.support.master.MasterNodeReadRequest;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -141,20 +141,15 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
                                        ActionListener<AcknowledgedResponse> listener) throws Exception {
             clusterService.submitStateUpdateTask(
                 "update-subscription",
-                new ClusterStateUpdateTask() {
+                new AckedClusterStateUpdateTask<>(request, listener) {
                     @Override
                     public ClusterState execute(ClusterState currentState) throws Exception {
                         return update(currentState, request.subscriptionName, request.subscription);
                     }
 
                     @Override
-                    public void onFailure(String source, Exception e) {
-                        listener.onFailure(e);
-                    }
-
-                    @Override
-                    public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                        listener.onResponse(new AcknowledgedResponse(true));
+                    protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                        return new AcknowledgedResponse(acknowledged);
                     }
                 }
             );
@@ -169,7 +164,7 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
     }
 
 
-    public static class Request extends MasterNodeReadRequest<Request> {
+    public static class Request extends AcknowledgedRequest<Request> {
 
         private final String subscriptionName;
         private final Subscription subscription;
