@@ -16,6 +16,12 @@ jobs:
     steps:
       - run: 'echo "No build required" '
 
+  forbiddenApis:
+    name: forbiddenApis
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "No build required" '
+
   checkstyle:
     name: checkstyle
     runs-on: ubuntu-latest
