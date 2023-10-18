@@ -682,4 +682,13 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("obj = {x=1, y=2, z=3}"); // z undefined
         assertThat(query).hasToString("+obj.x:[1 TO 1] +obj.y:[2 TO 2] #(obj = {\"x\"=1, \"y\"=2, \"z\"=3})");
     }
+
+    @Test
+    public void test_equality_query_on_double_array_with_index_off_and_no_docvalues_falls_back_to_generic_query() {
+        Query query = convert("d_array_index_off_no_docvalues[1] = 12.34");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+
+        query = convert("12.34 != any(d_array_index_off_no_docvalues)");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
 }

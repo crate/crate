@@ -108,27 +108,28 @@ public final class AnyNeqOperator extends AnyOperator {
         Object value = probe.value();
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
-        query.add(
-            eqQuery.rangeQuery(
-                columnName, value,
-                null,
-                false,
-                false,
-                candidates.hasDocValues(),
-                candidates.indexType() != IndexType.NONE),
-            BooleanClause.Occur.SHOULD
-        );
-        query.add(
-            eqQuery.rangeQuery(
-                columnName,
-                null,
-                value,
-                false,
-                false,
-                candidates.hasDocValues(),
-                candidates.indexType() != IndexType.NONE),
-            BooleanClause.Occur.SHOULD
-        );
+        var gt = eqQuery.rangeQuery(
+            columnName,
+            value,
+            null,
+            false,
+            false,
+            candidates.hasDocValues(),
+            candidates.indexType() != IndexType.NONE);
+        var lt = eqQuery.rangeQuery(
+            columnName,
+            null,
+            value,
+            false,
+            false,
+            candidates.hasDocValues(),
+            candidates.indexType() != IndexType.NONE);
+        assert lt != null || gt == null : "If lt is null, gt must be null";
+        if (lt == null && gt == null) {
+            return null;
+        }
+        query.add(gt, BooleanClause.Occur.SHOULD);
+        query.add(lt, BooleanClause.Occur.SHOULD);
         return query.build();
     }
 }

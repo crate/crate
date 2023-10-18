@@ -259,9 +259,12 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 return null;
             }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
-            builder.add(
-                preFilterQueryBuilder.buildQuery(ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues(), ref.indexType() != IndexType.NONE),
-                BooleanClause.Occur.MUST);
+            var preFilterQuery = preFilterQueryBuilder.buildQuery(
+                ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues(), ref.indexType() != IndexType.NONE);
+            if (preFilterQuery == null) {
+                return null;
+            }
+            builder.add(preFilterQuery, BooleanClause.Occur.MUST);
             builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
             return builder.build();
         }
