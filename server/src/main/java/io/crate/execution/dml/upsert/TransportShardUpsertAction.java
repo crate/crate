@@ -558,6 +558,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 new IntArrayList(0)
             );
             addColumnAction.execute(addColumnRequest).get();
+            schemas.tableExists(relationName); // triggers cache invalidation
             DocTableInfo actualTable = schemas.getTableInfo(relationName, Operation.READ);
             if (rawIndexer != null) {
                 rawIndexer.updateTargets(actualTable::getReference);
