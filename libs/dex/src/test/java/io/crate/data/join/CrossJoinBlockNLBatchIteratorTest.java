@@ -29,14 +29,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.Name;
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -47,33 +43,42 @@ import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class CrossJoinBlockNLBatchIteratorTest {
 
-    private final int id;
-    private final Supplier<BatchIterator<Row>> left;
-    private final Supplier<BatchIterator<Row>> right;
-    private final IntSupplier blockSizeCalculator;
-    private final TestingRowAccounting testingRowAccounting;
-    private final List<Object[]> expectedResults;
-    private int expectedRowsLeft;
-    private int expectedRowsRight;
+    private static class Params {
+        private final int id;
+        private final Supplier<BatchIterator<Row>> left;
+        private final Supplier<BatchIterator<Row>> right;
+        private final IntSupplier blockSizeCalculator;
+        private final TestingRowAccounting testingRowAccounting;
+        private final List<Object[]> expectedResults;
+        private final int expectedRowsLeft;
+        private final int expectedRowsRight;
 
-    public CrossJoinBlockNLBatchIteratorTest(@Name("id") int id,
-                                             Supplier<BatchIterator<Row>> left,
-                                             Supplier<BatchIterator<Row>> right,
-                                             IntSupplier blockSizeCalculator) throws Exception {
+        @SuppressWarnings("unchecked")
+        private Params(int id,
+                       Supplier<BatchIterator<Row>> left,
+                       Supplier<BatchIterator<Row>> right,
+                       IntSupplier blockSizeCalculator) throws Exception {
+            this.id = id;
+            this.left = left;
+            this.right = right;
+            this.blockSizeCalculator = blockSizeCalculator;
+            this.testingRowAccounting = new TestingRowAccounting();
+            Object[] expected = createExpectedResult(left.get(), right.get());
+            this.expectedRowsLeft = (int) expected[0];
+            this.expectedRowsRight = (int) expected[1];
+            this.expectedResults = (List<Object[]>) expected[2];
+        }
 
-        this.id = id;
-        this.left = left;
-        this.right = right;
-        this.blockSizeCalculator = blockSizeCalculator;
-        this.testingRowAccounting = new TestingRowAccounting();
-        this.expectedResults = createExpectedResult(left.get(), right.get());
+        @Override
+        public String toString() {
+            return id + "";
+        }
     }
 
-    private List<Object[]> createExpectedResult(BatchIterator<Row> left, BatchIterator<Row> right) throws Exception {
+    private static Object[] createExpectedResult(BatchIterator<Row> left,
+                                                 BatchIterator<Row> right) throws Exception {
         TestingRowConsumer leftConsumer = new TestingRowConsumer();
         leftConsumer.accept(left, null);
         TestingRowConsumer rightConsumer = new TestingRowConsumer();
@@ -83,8 +88,8 @@ public class CrossJoinBlockNLBatchIteratorTest {
 
         List<Object[]> leftResults = leftConsumer.getResult();
         List<Object[]> rightResults = rightConsumer.getResult();
-        expectedRowsLeft = leftResults.size();
-        expectedRowsRight = rightResults.size();
+        int expectedRowsLeft = leftResults.size();
+        int expectedRowsRight = rightResults.size();
 
         for (Object[] leftRow : leftResults) {
             for (Object[] rightRow : rightResults) {
@@ -93,134 +98,152 @@ public class CrossJoinBlockNLBatchIteratorTest {
                 expectedResults.add(combinedRow);
             }
         }
-        return expectedResults;
+        return new Object[] {expectedRowsLeft, expectedRowsRight, expectedResults};
     }
 
-    @ParametersFactory
-    public static Iterable<Object[]> parameters() {
-        return Arrays.asList(
-            $(0, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 1),
-            $(1, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), () -> 2),
-            $(2, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 3),
-            $(3, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 10),
-            $(4, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), () -> 100),
-            $(5, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 10000),
-            $(6, () -> TestingBatchIterators.range(0, 100), () -> TestingBatchIterators.range(0, 30), () -> 1),
-            $(7, () -> TestingBatchIterators.range(0, 10), () -> TestingBatchIterators.range(0, 250), () -> 2),
-            $(8, () -> TestingBatchIterators.range(0, 30), () -> TestingBatchIterators.range(0, 100), () -> 3),
-            $(9, () -> TestingBatchIterators.range(0, 250), () -> TestingBatchIterators.range(0, 30), () -> 10),
-            $(10, () -> TestingBatchIterators.range(0, 100), () -> TestingBatchIterators.range(0, 50), () -> 100),
-            $(11, () -> TestingBatchIterators.range(0, 30), () -> TestingBatchIterators.range(0, 200), () -> 10000)
-        );
+    static Stream<Params> parameters() throws Exception {
+        return Stream.of(
+            new Params(0, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 1),
+            new Params(1, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), () -> 2),
+            new Params(2, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 3),
+            new Params(3, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 10),
+            new Params(4, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), () -> 100),
+            new Params(5,
+                () -> TestingBatchIterators.range(0, 3),
+                () -> TestingBatchIterators.range(0, 3),
+                () -> 10000),
+            new Params(6, () -> TestingBatchIterators.range(0, 100), () -> TestingBatchIterators.range(0, 30), () -> 1),
+            new Params(7, () -> TestingBatchIterators.range(0, 10), () -> TestingBatchIterators.range(0, 250), () -> 2),
+            new Params(8, () -> TestingBatchIterators.range(0, 30), () -> TestingBatchIterators.range(0, 100), () -> 3),
+            new Params(9,
+                () -> TestingBatchIterators.range(0, 250),
+                () -> TestingBatchIterators.range(0, 30),
+                () -> 10),
+            new Params(10,
+                () -> TestingBatchIterators.range(0, 100),
+                () -> TestingBatchIterators.range(0, 50),
+                () -> 100),
+            new Params(11,
+                () -> TestingBatchIterators.range(0, 30),
+                () -> TestingBatchIterators.range(0, 200),
+                () -> 10000));
     }
 
-    private static Object[] $(int id,
-                              Supplier<BatchIterator<Row>> left,
-                              Supplier<BatchIterator<Row>> right,
-                              IntSupplier blockSize) {
-        return new Object[]{
-            id, left, right, blockSize
-        };
-    }
-
-    @Test
-    public void testNestedLoopBatchIterator() throws Exception {
+    @ParameterizedTest(name = "{arguments}")
+    @MethodSource("parameters")
+    public void testNestedLoopBatchIterator(Params params) throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> new CrossJoinBlockNLBatchIterator(
-                left.get(),
-                right.get(),
+                params.left.get(),
+                params.right.get(),
                 new CombinedRow(1, 1),
-                blockSizeCalculator,
-                testingRowAccounting
+                params.blockSizeCalculator,
+                params.testingRowAccounting
             )
         );
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResults,
+        tester.verifyResultAndEdgeCaseBehaviour(params.expectedResults,
             it -> {
-                assertThat(testingRowAccounting.numRows).isEqualTo(expectedRowsLeft);
-                assertThat(testingRowAccounting.numReleaseCalled).isGreaterThan(
-                    expectedRowsLeft / blockSizeCalculator.getAsInt());
+                assertThat(params.testingRowAccounting.numRows)
+                    .isEqualTo(params.expectedRowsLeft);
+                assertThat(params.testingRowAccounting.numReleaseCalled)
+                    .isGreaterThan(
+                        params.expectedRowsLeft /
+                            params.blockSizeCalculator.getAsInt());
             });
     }
 
-    @Test
-    public void testNestedLoopWithBatchedSource() throws Exception {
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void testNestedLoopWithBatchedSource(Params params) throws Exception {
         int batchSize = 50;
         var tester = BatchIteratorTester.forRows(
             () -> new CrossJoinBlockNLBatchIterator(
-                new BatchSimulatingIterator<>(left.get(), batchSize, expectedRowsLeft / batchSize + 1, null),
-                new BatchSimulatingIterator<>(right.get(), batchSize, expectedRowsRight / batchSize + 1, null),
+                new BatchSimulatingIterator<>(params.left.get(),
+                    batchSize,
+                    params.expectedRowsLeft / batchSize + 1,
+                    null),
+                new BatchSimulatingIterator<>(params.right.get(),
+                    batchSize,
+                    params.expectedRowsRight / batchSize + 1,
+                    null),
                 new CombinedRow(1, 1),
-                blockSizeCalculator,
-                testingRowAccounting
+                params.blockSizeCalculator,
+                params.testingRowAccounting
             )
         );
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResults,
+        tester.verifyResultAndEdgeCaseBehaviour(params.expectedResults,
             it -> {
-                assertThat(testingRowAccounting.numRows).isEqualTo(expectedRowsLeft);
-                assertThat(testingRowAccounting.numReleaseCalled).isGreaterThan(
-                    expectedRowsLeft / blockSizeCalculator.getAsInt());
+                assertThat(params.testingRowAccounting.numRows)
+                    .isEqualTo(params.expectedRowsLeft);
+                assertThat(params.testingRowAccounting.numReleaseCalled)
+                    .isGreaterThan(params.expectedRowsLeft /
+                        params.blockSizeCalculator.getAsInt());
             });
     }
 
-    @Test
-    public void testNestedLoopLeftAndRightEmpty() throws Exception {
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void testNestedLoopLeftAndRightEmpty(Params params) throws Exception {
         BatchIterator<Row> iterator = new CrossJoinBlockNLBatchIterator(
             InMemoryBatchIterator.empty(SENTINEL),
             InMemoryBatchIterator.empty(SENTINEL),
             new CombinedRow(0, 0),
-            blockSizeCalculator,
-            testingRowAccounting
+            params.blockSizeCalculator,
+            params.testingRowAccounting
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult()).isEmpty();
     }
 
-    @Test
-    public void testNestedLoopLeftEmpty() throws Exception {
+    @ParameterizedTest(name = "{argumentsWithNames}")
+    @MethodSource("parameters")
+    public void testNestedLoopLeftEmpty(Params params) throws Exception {
         BatchIterator<Row> iterator = new CrossJoinBlockNLBatchIterator(
             InMemoryBatchIterator.empty(SENTINEL),
-            right.get(),
+            params.right.get(),
             new CombinedRow(0, 1),
-            blockSizeCalculator,
-            testingRowAccounting
+            params.blockSizeCalculator,
+            params.testingRowAccounting
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult()).isEmpty();
     }
 
-    @Test
-    public void testNestedLoopRightEmpty() throws Exception {
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void testNestedLoopRightEmpty(Params params) throws Exception {
         BatchIterator<Row> iterator = new CrossJoinBlockNLBatchIterator(
-            left.get(),
+            params.left.get(),
             InMemoryBatchIterator.empty(SENTINEL),
             new CombinedRow(1, 0),
-            blockSizeCalculator,
-            testingRowAccounting
+            params.blockSizeCalculator,
+            params.testingRowAccounting
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult()).isEmpty();
     }
 
-    @Test
-    public void testMoveToStartWhileRightSideIsActive() {
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void testMoveToStartWhileRightSideIsActive(Params params) {
         BatchIterator<Row> batchIterator = new CrossJoinBlockNLBatchIterator(
-            left.get(),
-            right.get(),
+            params.left.get(),
+            params.right.get(),
             new CombinedRow(1, 1),
-            blockSizeCalculator,
-            testingRowAccounting
+            params.blockSizeCalculator,
+            params.testingRowAccounting
         );
 
         assertThat(batchIterator.moveNext()).isTrue();
-        assertThat(expectedResults).contains(batchIterator.currentElement().materialize());
+        assertThat(params.expectedResults).contains(batchIterator.currentElement().materialize());
 
         batchIterator.moveToStart();
 
         assertThat(batchIterator.moveNext()).isTrue();
-        assertThat(expectedResults).contains(batchIterator.currentElement().materialize());
+        assertThat(params.expectedResults).contains(batchIterator.currentElement().materialize());
     }
 
     private static class TestingRowAccounting implements RowAccounting<Object[]> {

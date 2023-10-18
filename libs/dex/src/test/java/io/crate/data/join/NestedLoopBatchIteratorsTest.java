@@ -30,8 +30,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -54,7 +54,7 @@ public class NestedLoopBatchIteratorsTest {
         return row -> Objects.equals(row.get(0), row.get(1));
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         threeXThreeRows = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
