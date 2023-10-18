@@ -26,7 +26,7 @@ jobs:
     - run: git checkout HEAD^2
       if: ${{ github.event_name == 'pull_request' }}
 
-    - name: Setup Gradle Java
+    - name: Setup Maven Java
       uses: actions/setup-java@v2
       with:
         java-version: 17

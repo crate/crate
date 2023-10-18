@@ -79,7 +79,8 @@ Once that is complete, you should:
 - Be descriptive in your PR and commit messages. What is it for? Why is it
   needed? And so on.
 
-- If applicable, run ``./gradlew test itest`` to check that all tests pass.
+- If applicable, run ``./mvnw test && ./blackbox/bin/test`` to check that all
+  tests pass.
 
 - Squash related commits.
 

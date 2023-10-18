@@ -6,12 +6,18 @@ on:
   pull_request:
     paths-ignore:
       - '**.java'
-      - '**.gradle'
-      - 'gradle/version.properties'
+      - 'pom.xml'
+      - '**/pom.xml'
 
 jobs:
   test:
     name: Test CrateDB SQL on ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "No build required" '
+
+  forbiddenApis:
+    name: forbiddenApis
     runs-on: ubuntu-latest
     steps:
       - run: 'echo "No build required" '
