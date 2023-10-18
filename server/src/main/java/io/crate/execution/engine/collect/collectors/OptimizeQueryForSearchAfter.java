@@ -82,29 +82,30 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                 if (nullsFirst) {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
+                    Query rangeQuery;
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(
-                            eqQuery.rangeQuery(
-                                storageIdent,
-                                null,
-                                value,
-                                false,
-                                true,
-                                ref.hasDocValues(),
-                                ref.indexType() != IndexType.NONE),
-                            BooleanClause.Occur.MUST_NOT);
+                        rangeQuery = eqQuery.rangeQuery(
+                            storageIdent,
+                            null,
+                            value,
+                            false,
+                            true,
+                            ref.hasDocValues(),
+                            ref.indexType() != IndexType.NONE);
                     } else {
-                        booleanQuery.add(
-                            eqQuery.rangeQuery(
-                                storageIdent,
-                                value,
-                                null,
-                                true,
-                                false,
-                                ref.hasDocValues(),
-                                ref.indexType() != IndexType.NONE),
-                            BooleanClause.Occur.MUST_NOT);
+                        rangeQuery = eqQuery.rangeQuery(
+                            storageIdent,
+                            value,
+                            null,
+                            true,
+                            false,
+                            ref.hasDocValues(),
+                            ref.indexType() != IndexType.NONE);
                     }
+                    if (rangeQuery == null) {
+                        return null;
+                    }
+                    booleanQuery.add(rangeQuery, BooleanClause.Occur.MUST_NOT);
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
@@ -125,6 +126,9 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                             false,
                             ref.hasDocValues(),
                             ref.indexType() != IndexType.NONE);
+                    }
+                    if (orderQuery == null) {
+                        return null;
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);

@@ -88,4 +88,25 @@ public class OptimizeQueryForSearchAfterTest {
         assertThat(booleanQuery.clauses()).satisfiesExactly(
                 x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class));
     }
+
+    @Test
+    public void test_range_query_on_short_without_doc_values_and_unindexed_return_null() {
+        for (boolean reverseFlag : List.of(true, false)) {
+            for (boolean nullsFirst : List.of(true, false)) {
+                OrderBy orderBy = new OrderBy(
+                    List.of(
+                        new SimpleReference(
+                            new ReferenceIdent(new RelationName("doc", "dummy"), "x1"),
+                            RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC, IndexType.NONE, true,
+                            false, 1, COLUMN_OID_UNASSIGNED, false, null)),
+                    new boolean[]{reverseFlag},
+                    new boolean[]{nullsFirst}
+                );
+                var optimize = new OptimizeQueryForSearchAfter(orderBy);
+                FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[]{(short) 10});
+                Query query = optimize.apply(lastCollected);
+                assertThat(query).isNull();
+            }
+        }
+    }
 }
