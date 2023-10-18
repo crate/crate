@@ -28,23 +28,22 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
 
-
-public class OctalTest {
+class OctalTest {
 
     @Test
-    public void testOnlyPrintableCharacters() {
+    void testOnlyPrintableCharacters() {
         final byte[] expected = {97, 98, 99, 100};
         assertThat(Octal.decode("abcd")).isEqualTo(expected);
     }
 
     @Test
-    public void testValidEncodedString() {
+    void testValidEncodedString() {
         final byte[] expected = {48, 49, 50, 92, 51, 52, 53, 0, 1};
         assertThat(Octal.decode("012\\\\345\\000\\001")).isEqualTo(expected);
     }
 
     @Test
-    public void testIncompleteEscapeSequence() {
+    void testIncompleteEscapeSequence() {
         assertThatThrownBy(() -> Octal.decode("abc\\"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Invalid escape sequence at index 3");
@@ -54,21 +53,21 @@ public class OctalTest {
      * Octal number should span 3 characters
      */
     @Test
-    public void testInvalidOctalNumber1() {
+    void testInvalidOctalNumber1() {
         assertThatThrownBy(() -> Octal.decode("\\00"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Invalid escape sequence at index 0");
     }
 
     @Test
-    public void testInvalidOctalNumber2() {
+    void testInvalidOctalNumber2() {
         assertThatThrownBy(() -> Octal.decode("\\008"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Illegal octal character 8 at index 3");
     }
 
     @Test
-    public void testEscapes() {
+    void testEscapes() {
         // backslashes
         assertThat(Octal.decode("\\\\ \\134")).isEqualTo(new byte[] {92, 32, 92});
         // single quotes
@@ -76,7 +75,7 @@ public class OctalTest {
     }
 
     @Test
-    public void testEncode() {
+    void testEncode() {
         assertThat(Octal.encode("a\bb\\c".getBytes(StandardCharsets.UTF_8))).isEqualTo("a\\010b\\\\c");
     }
 

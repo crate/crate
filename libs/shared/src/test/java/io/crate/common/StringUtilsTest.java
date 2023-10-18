@@ -25,29 +25,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-
-public final class StringUtilsTest {
+final class StringUtilsTest {
 
     @Test
-    public void test_split_str_by_dots() {
+    void test_split_str_by_dots() {
         var parts = StringUtils.splitToList('.', "a.b.c");
         assertThat(parts).containsExactly("a", "b", "c");
     }
 
     @Test
-    public void test_split_str_with_repeated_delim() {
+    void test_split_str_with_repeated_delim() {
         var parts = StringUtils.splitToList('.', "a..c");
         assertThat(parts).containsExactly("a", "", "c");
     }
 
     @Test
-    public void test_split_empty_str() {
+    void test_split_empty_str() {
         var parts = StringUtils.splitToList('.', "");
         assertThat(parts).containsExactly("");
     }
 
     @Test
-    public void test_tryParseLong() {
+    void test_tryParseLong() {
         /* Created after reviewing https://github.com/AdoptOpenJDK/openjdk-jdk/blob/master/test/jdk/java/lang/Long/ParsingTest.java */
         boolean wasLong = false;
         long[] outputLong = new long[1];

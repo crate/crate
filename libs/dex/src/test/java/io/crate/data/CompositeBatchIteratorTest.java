@@ -34,7 +34,7 @@ import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class CompositeBatchIteratorTest {
+class CompositeBatchIteratorTest {
 
     private static final List<Object[]> EXPECTED_RESULT = IntStream.concat(IntStream.range(0, 5),
                                                                            IntStream.range(5, 10))
@@ -42,7 +42,7 @@ public class CompositeBatchIteratorTest {
         .collect(Collectors.toList());
 
     @Test
-    public void testDataRowInputsCanBeRetrievedEagerly() {
+    void testDataRowInputsCanBeRetrievedEagerly() {
         BatchIterator<Row> iterator = CompositeBatchIterator.seqComposite(
             TestingBatchIterators.range(0, 1),
             TestingBatchIterators.range(1, 2)
@@ -55,7 +55,7 @@ public class CompositeBatchIteratorTest {
     }
 
     @Test
-    public void testCompositeBatchIterator() throws Exception {
+    void testCompositeBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> CompositeBatchIterator.seqComposite(
                 TestingBatchIterators.range(0, 5),
@@ -65,7 +65,7 @@ public class CompositeBatchIteratorTest {
     }
 
     @Test
-    public void testCompositeBatchIteratorWithBatchedSources() throws Exception {
+    void testCompositeBatchIteratorWithBatchedSources() throws Exception {
         List<Object[]> expectedResult = new ArrayList<>();
         // consumes the unbatched/loaded iterator first
         expectedResult.add(new Object[] { 5 });

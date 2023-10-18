@@ -31,13 +31,13 @@ import org.junit.jupiter.api.Test;
 import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class FilteringBatchIteratorTest {
+class FilteringBatchIteratorTest {
 
     private static final Predicate<Row> EVEN_ROW = row -> (int) row.get(0) % 2 == 0;
 
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void testFilteringBatchIterator() throws Exception {
+    void testFilteringBatchIterator() throws Exception {
         List<Object[]> expectedResult = IntStream.iterate(0, l -> l + 2).limit(10).mapToObj(
             l -> new Object[]{l}).collect(Collectors.toList());
 

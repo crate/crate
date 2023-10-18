@@ -30,10 +30,10 @@ import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
 
-public class TopNDistinctBatchIteratorTest {
+class TopNDistinctBatchIteratorTest {
 
     @Test
-    public void test_topN_distinct_bi_outputs_n_distinct_items() throws Throwable {
+    void test_topN_distinct_bi_outputs_n_distinct_items() throws Throwable {
         var source = InMemoryBatchIterator.of(List.of(1, 1, 1, 2, 3), null, false);
         var topNDistinct = new TopNDistinctBatchIterator<>(source, 2, x -> x);
 
@@ -42,7 +42,7 @@ public class TopNDistinctBatchIteratorTest {
     }
 
     @Test
-    public void test_topN_distinct_bi_outputs_lt_n_distinct_items_if_source_contains_less() throws Throwable {
+    void test_topN_distinct_bi_outputs_lt_n_distinct_items_if_source_contains_less() throws Throwable {
         var source = InMemoryBatchIterator.of(List.of(1, 1, 1, 2, 3), null, false);
         var topNDistinct = new TopNDistinctBatchIterator<>(source, 5, x -> x);
 
@@ -51,7 +51,7 @@ public class TopNDistinctBatchIteratorTest {
     }
 
     @Test
-    public void test_topN_distinct_fulfills_bi_contracts() throws Throwable {
+    void test_topN_distinct_fulfills_bi_contracts() throws Throwable {
         var tester = BatchIteratorTester.forRows(() -> {
             var source = InMemoryBatchIterator.of(
                 List.<Row>of(

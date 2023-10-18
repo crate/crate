@@ -31,7 +31,7 @@ import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class SkippingBatchIteratorTest {
+class SkippingBatchIteratorTest {
 
     private static final int OFFSET = 3;
 
@@ -40,7 +40,7 @@ public class SkippingBatchIteratorTest {
         .collect(Collectors.toList());
 
     @Test
-    public void testSkippingBatchIterator() throws Exception {
+    void testSkippingBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> new SkippingBatchIterator<>(TestingBatchIterators.range(0, 10), OFFSET)
         );
@@ -48,7 +48,7 @@ public class SkippingBatchIteratorTest {
     }
 
     @Test
-    public void testSkippingBatchIteratorWithBatchedSource() throws Exception {
+    void testSkippingBatchIteratorWithBatchedSource() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> {
                 BatchIterator<Row> source = TestingBatchIterators.range(0, 10);

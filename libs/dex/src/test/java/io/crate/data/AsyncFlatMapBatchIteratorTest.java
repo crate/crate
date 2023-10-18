@@ -38,7 +38,7 @@ import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class AsyncFlatMapBatchIteratorTest {
+class AsyncFlatMapBatchIteratorTest {
 
     @SafeVarargs
     private static <T> CloseableIterator<T> mkIter(T... rows) {
@@ -46,7 +46,7 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void test_async_flat_map_on_fully_loaded_source() throws Exception {
+    void test_async_flat_map_on_fully_loaded_source() throws Exception {
         InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         AsyncFlatMapBatchIterator<Integer, Integer[]> twiceAsArray = new AsyncFlatMapBatchIterator<>(
             source,
@@ -62,7 +62,7 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void test_async_flatMap_does_not_fail_if_consumer_calls_moveNext_after_negative_moveNext_result() {
+    void test_async_flatMap_does_not_fail_if_consumer_calls_moveNext_after_negative_moveNext_result() {
         InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         var asyncFlatMap = new AsyncFlatMapBatchIterator<>(
             source,
@@ -74,7 +74,7 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void test_async_flatMap_on_source_that_has_batches() throws Exception {
+    void test_async_flatMap_on_source_that_has_batches() throws Exception {
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         var source = new BatchSimulatingIterator<>(
             new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false),
@@ -101,7 +101,7 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
+    void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
         AsyncFlatMapper<Row, Row> duplicateRow = (row, isLast) ->
             CompletableFuture.completedFuture(mkIter(
                                                   new RowN(row.materialize()),
@@ -125,7 +125,7 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void test_repeats_source_after_intermediate_move_to_start() throws Exception {
+    void test_repeats_source_after_intermediate_move_to_start() throws Exception {
         var source = TestingBatchIterators.range(1, 4);
         AsyncFlatMapper<Row, Row> duplicateRow = (row, isLast) -> {
             CloseableIterator<Row> result = mkIter(
@@ -160,7 +160,7 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void test_calls_mapper_with_isLast_set_to_false_after_move_to_start() throws Exception {
+    void test_calls_mapper_with_isLast_set_to_false_after_move_to_start() throws Exception {
         AtomicInteger numCalls = new AtomicInteger();
         AtomicBoolean wasLast = new AtomicBoolean();
         AsyncFlatMapper<Row, Row> duplicateRow = (row, isLast) -> {

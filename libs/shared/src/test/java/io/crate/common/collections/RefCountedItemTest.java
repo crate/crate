@@ -30,11 +30,10 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
-
-public class RefCountedItemTest {
+class RefCountedItemTest {
 
     @Test
-    public void test_failing_factory_does_not_increment_ref_count() throws Exception {
+    void test_failing_factory_does_not_increment_ref_count() throws Exception {
         AtomicInteger count = new AtomicInteger(0);
         AtomicBoolean closeCalled = new AtomicBoolean(false);
         Function<String, Integer> failOnFirst = source -> {

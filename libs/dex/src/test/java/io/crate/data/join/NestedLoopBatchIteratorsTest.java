@@ -41,7 +41,7 @@ import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 
-public class NestedLoopBatchIteratorsTest {
+class NestedLoopBatchIteratorsTest {
 
     private ArrayList<Object[]> threeXThreeRows;
     private ArrayList<Object[]> leftJoinResult;
@@ -96,7 +96,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testNestedLoopBatchIterator() throws Exception {
+    void testNestedLoopBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> new CrossJoinNLBatchIterator<>(
                 TestingBatchIterators.range(0, 3),
@@ -108,7 +108,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testNestedLoopWithBatchedSource() throws Exception {
+    void testNestedLoopWithBatchedSource() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> new CrossJoinNLBatchIterator<>(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
@@ -120,7 +120,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testNestedLoopLeftAndRightEmpty() throws Exception {
+    void testNestedLoopLeftAndRightEmpty() throws Exception {
         BatchIterator<Row> iterator = new CrossJoinNLBatchIterator<>(
             InMemoryBatchIterator.empty(SENTINEL),
             InMemoryBatchIterator.empty(SENTINEL),
@@ -132,7 +132,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testNestedLoopLeftEmpty() throws Exception {
+    void testNestedLoopLeftEmpty() throws Exception {
         BatchIterator<Row> iterator = new CrossJoinNLBatchIterator<>(
             InMemoryBatchIterator.empty(SENTINEL),
             TestingBatchIterators.range(0, 5),
@@ -144,7 +144,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testNestedLoopRightEmpty() throws Exception {
+    void testNestedLoopRightEmpty() throws Exception {
         BatchIterator<Row> iterator = new CrossJoinNLBatchIterator<>(
             TestingBatchIterators.range(0, 5),
             InMemoryBatchIterator.empty(SENTINEL),
@@ -157,7 +157,7 @@ public class NestedLoopBatchIteratorsTest {
 
 
     @Test
-    public void testLeftJoin() throws Exception {
+    void testLeftJoin() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new LeftJoinNLBatchIterator<>(
             TestingBatchIterators.range(0, 4),
             TestingBatchIterators.range(2, 6),
@@ -169,7 +169,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testLeftJoinBatchedSource() throws Exception {
+    void testLeftJoinBatchedSource() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new LeftJoinNLBatchIterator<>(
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 4), 2, 2, null),
             new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
@@ -181,7 +181,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testRightJoin() throws Exception {
+    void testRightJoin() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new RightJoinNLBatchIterator<>(
             TestingBatchIterators.range(0, 4),
             TestingBatchIterators.range(2, 6),
@@ -193,7 +193,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testRightJoinBatchedSource() throws Exception {
+    void testRightJoinBatchedSource() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new RightJoinNLBatchIterator<>(
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 4), 2, 2, null),
             new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
@@ -205,7 +205,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testFullOuterJoin() throws Exception {
+    void testFullOuterJoin() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new FullOuterJoinNLBatchIterator<>(
             TestingBatchIterators.range(0, 4),
             TestingBatchIterators.range(2, 6),
@@ -217,7 +217,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testFullOuterJoinBatchedSource() throws Exception {
+    void testFullOuterJoinBatchedSource() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new FullOuterJoinNLBatchIterator<>(
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 4), 2, 2, null),
             new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
@@ -229,7 +229,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testMoveToStartWhileRightSideIsActive() {
+    void testMoveToStartWhileRightSideIsActive() {
         BatchIterator<Row> batchIterator = new CrossJoinNLBatchIterator<>(
             TestingBatchIterators.range(0, 3),
             TestingBatchIterators.range(10, 20),
@@ -248,7 +248,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testSemiJoin() throws Exception {
+    void testSemiJoin() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new SemiJoinNLBatchIterator<>(
             TestingBatchIterators.range(0, 5),
             TestingBatchIterators.range(2, 6),
@@ -260,7 +260,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testSemiJoinBatchedSource() throws Exception {
+    void testSemiJoinBatchedSource() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new SemiJoinNLBatchIterator<>(
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
             new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
@@ -272,7 +272,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testSemiJoinLeftEmpty() throws Exception {
+    void testSemiJoinLeftEmpty() throws Exception {
         BatchIterator<Row> iterator = new SemiJoinNLBatchIterator<>(
             InMemoryBatchIterator.empty(SENTINEL),
             TestingBatchIterators.range(0, 5),
@@ -285,7 +285,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testSemiJoinRightEmpty() throws Exception {
+    void testSemiJoinRightEmpty() throws Exception {
         BatchIterator<Row> iterator = new SemiJoinNLBatchIterator<>(
             TestingBatchIterators.range(0, 5),
             InMemoryBatchIterator.empty(SENTINEL),
@@ -298,7 +298,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testAntiJoin() throws Exception {
+    void testAntiJoin() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new AntiJoinNLBatchIterator<>(
             TestingBatchIterators.range(0, 5),
             TestingBatchIterators.range(2, 4),
@@ -310,7 +310,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testAntiJoinBatchedSource() throws Exception {
+    void testAntiJoinBatchedSource() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new AntiJoinNLBatchIterator<>(
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
             new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 4), 2, 2, null),
@@ -322,7 +322,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testAntiJoinLeftEmpty() throws Exception {
+    void testAntiJoinLeftEmpty() throws Exception {
         BatchIterator<Row> iterator = new AntiJoinNLBatchIterator<>(
             InMemoryBatchIterator.empty(SENTINEL),
             TestingBatchIterators.range(0, 5),
@@ -335,7 +335,7 @@ public class NestedLoopBatchIteratorsTest {
     }
 
     @Test
-    public void testAntiJoinRightEmpty() throws Exception {
+    void testAntiJoinRightEmpty() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new AntiJoinNLBatchIterator<>(
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
             InMemoryBatchIterator.empty(SENTINEL),

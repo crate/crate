@@ -31,14 +31,14 @@ import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class LimitingBatchIteratorTest {
+class LimitingBatchIteratorTest {
 
     private static final int LIMIT = 5;
     private static final List<Object[]> EXPECTED_RESULT = IntStream.range(0, 10).limit(LIMIT)
         .mapToObj(l -> new Object[] {l}).collect(Collectors.toList());
 
     @Test
-    public void testLimitingBatchIterator() throws Exception {
+    void testLimitingBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), LIMIT)
         );
@@ -46,7 +46,7 @@ public class LimitingBatchIteratorTest {
     }
 
     @Test
-    public void testLimitingBatchIteratorWithBatchedSource() throws Exception {
+    void testLimitingBatchIteratorWithBatchedSource() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> {
                 BatchSimulatingIterator<Row> batchSimulatingIt = new BatchSimulatingIterator<>(
