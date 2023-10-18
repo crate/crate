@@ -27,9 +27,9 @@ jobs:
       if: ${{ github.event_name == 'pull_request' }}
 
     - name: Setup Maven Java
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
-        java-version: 17
+        java-version: "21"
         distribution: 'temurin'
 
     - name: Initialize CodeQL
