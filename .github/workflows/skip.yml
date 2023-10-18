@@ -6,8 +6,8 @@ on:
   pull_request:
     paths-ignore:
       - '**.java'
-      - '**.gradle'
-      - 'gradle/version.properties'
+      - 'pom.xml'
+      - '**/pom.xml'
 
 jobs:
   test:

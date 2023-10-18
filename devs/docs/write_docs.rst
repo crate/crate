@@ -49,7 +49,7 @@ You can run the doctests with::
     $ ./blackbox/bin/test-docs
 
 
-This will implicitly use `Gradle`_ to build a tarball from source if it is
+This will implicitly use `Maven`_ to build a tarball from source if it is
 missing and then run all executable examples within the documentation against a
 local CrateDB instance..
 
@@ -64,15 +64,15 @@ You can run the doctests for a specific file (e.g., ``filename.rst``)::
 
     If you receive an exception like ``java.lang.IllegalStateException: jar hell!``,
     it might be coming from outdated builds in your working tree. Resolving the
-    situation mostly works by running ``./gradlew clean``.
+    situation mostly works by running ``./mvnw clean``.
 
 
 Reset the docs build
 ====================
 
-To recreate the CrateDB tarball, run::
+To force recreation of the CrateDB tarball, run::
 
-    $ ./gradlew clean distTar
+    $ ./mvnw clean
 
 To clear the docs, run::
 
@@ -108,9 +108,8 @@ force an update, speak to a sysadmin (or create an issue) and ask to clear the
 docs web cache (we have a Jenkins job for this purpose).
 
 
-.. _build script: https://github.com/crate/crate/blob/master/blackbox/build.gradle
 .. _doctests: https://github.com/crate/crate/blob/master/blackbox/test_docs.py
-.. _Gradle: https://gradle.org
+.. _Maven: https://maven.apache.org
 .. _Java: http://www.java.com
 .. _Python virtual environment: https://docs.python.org/3/tutorial/venv.html
 .. _Python: http://www.python.org
