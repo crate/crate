@@ -90,8 +90,22 @@ public final class PgCatalogTableDefinitions {
             false));
         tableDefinitions.put(PgNamespaceTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
-            (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name())
-                         || isPgCatalogOrInformationSchema(s.name()),
+            (user, s) -> {
+                if (user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()) || isPgCatalogOrInformationSchema(s.name())) {
+                    return true;
+                }
+                for (var table : s.getTables()) {
+                    if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, table.ident().fqn())) {
+                        return true;
+                    }
+                }
+                for (var view : s.getViews()) {
+                    if (user.hasAnyPrivilege(Privilege.Clazz.VIEW, view.ident().fqn())) {
+                        return true;
+                    }
+                }
+                return false;
+            },
             PgNamespaceTable.create().expressions()
         ));
         tableDefinitions.put(PgAttrDefTable.IDENT, new StaticTableDefinition<>(

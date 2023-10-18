@@ -22,8 +22,9 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import io.crate.testing.TestingHelpers;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -32,13 +33,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.action.sql.Sessions;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.view.ViewInfo;
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.user.UserLookup;
 
 public class PgCatalogITest extends IntegTestCase {
 
@@ -54,8 +61,15 @@ public class PgCatalogITest extends IntegTestCase {
     }
 
     @After
-    public void dropView() {
-        execute("drop view doc.v1");
+    public void dropViews() {
+        Schemas schemas = cluster().getInstance(Schemas.class);
+        List<String> fqQuotedViews = new ArrayList<>();
+        for (SchemaInfo schema : schemas) {
+            for (ViewInfo view : schema.getViews()) {
+                fqQuotedViews.add(view.ident().sqlFqn());
+            }
+        }
+        execute("drop view " + String.join(", ", fqQuotedViews));
     }
 
     @Test
@@ -83,6 +97,37 @@ public class PgCatalogITest extends IntegTestCase {
             "NULL| information_schema| 0| 204690627",
             "NULL| pg_catalog| 0| -68025646",
             "NULL| sys| 0| -458336339");
+    }
+
+    @Test
+    public void testPgNamespaceTable_shows_namespace_if_user_can_see_a_table() {
+        execute("create table vip.tbl (x int)");
+        execute("create user hoschi");
+        execute("grant dql on table doc.t1 to hoschi");
+
+        UserLookup userLookup = cluster().getInstance(UserLookup.class);
+        Sessions sessions = cluster().getInstance(Sessions.class);
+        try (var session = sessions.newSession("doc", userLookup.findUser("hoschi"))) {
+            execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
+            // shows doc due to table permission, but not vip
+            assertThat(response).hasRows(
+                "doc",
+                "information_schema",
+                "pg_catalog"
+            );
+        }
+
+        execute("create view vip.v1 as select 1");
+        execute("grant dql on view vip.v1 to hoschi");
+        try (var session = sessions.newSession("doc", userLookup.findUser("hoschi"))) {
+            execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
+            assertThat(response).hasRows(
+                "doc",
+                "information_schema",
+                "pg_catalog",
+                "vip"
+            );
+        }
     }
 
     @Test
