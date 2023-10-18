@@ -63,5 +63,8 @@ sandbox/crate2/repo/
 **/gen/
 target/
 *.factorypath
+
+# Maven
 .mvn/wrapper/maven-wrapper.jar
 pom.xml.versionsBackup
+benchmarks/dependency-reduced-pom.xml

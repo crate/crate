@@ -4,7 +4,7 @@ Benchmarks
 
 Microbenchmarks are written using `JMH`_. To execute them, first build the JAR::
 
-    $ ./mvnw -T 1C package -DskipTests=true
+    $ ./mvnw package -DskipTests=true -P benchmark
 
 Then run the JAR::
 

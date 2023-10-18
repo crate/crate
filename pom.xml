@@ -224,6 +224,15 @@
     <versions.jmh>1.37</versions.jmh>
   </properties>
 
+  <profiles>
+    <profile>
+      <id>benchmark</id>
+      <modules>
+        <module>benchmarks</module>
+      </modules>
+    </profile>
+  </profiles>
+
   <modules>
     <module>libs/shared</module>
     <module>libs/dex</module>
@@ -246,6 +255,5 @@
     <module>extensions/jmx-monitoring</module>
     <module>jlink-jdk</module>
     <module>app</module>
-    <module>benchmarks</module>
   </modules>
 </project>
