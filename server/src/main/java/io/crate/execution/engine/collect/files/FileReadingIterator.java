@@ -347,7 +347,6 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
         closeReader();
         reset();
         killed = BatchIterator.CLOSED;
-        backOffPolicy.forEachRemaining((delay) -> {});
     }
 
     private void reset() {
