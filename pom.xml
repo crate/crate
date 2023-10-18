@@ -30,6 +30,11 @@
           <systemPropertyVariables>
             <worker.id>$${surefire.forkNumber}</worker.id>
           </systemPropertyVariables>
+          <properties>
+            <configurationParameters>
+              junit.jupiter.execution.parallel.enabled = true
+            </configurationParameters>
+          </properties>
         </configuration>
       </plugin>
       <plugin>

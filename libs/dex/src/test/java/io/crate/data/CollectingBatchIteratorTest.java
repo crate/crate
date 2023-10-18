@@ -30,9 +30,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.BatchSimulatingIterator;
@@ -43,12 +43,12 @@ public class CollectingBatchIteratorTest {
     private static final List<Object[]> EXPECTED_RESULT = Collections.singletonList(new Object[] {45L});
     private ExecutorService executor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         executor = Executors.newFixedThreadPool(2);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         executor.shutdown();
         executor.awaitTermination(5, TimeUnit.SECONDS);

@@ -81,17 +81,5 @@
       <version>${versions.junit5}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
-      <version>${versions.junit5}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.carrotsearch.randomizedtesting</groupId>
-      <artifactId>randomizedtesting-runner</artifactId>
-      <version>${versions.randomizedrunner}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 </project>
