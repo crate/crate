@@ -23,7 +23,6 @@ from os.path import dirname, join
 from pathlib import Path
 from cr8.run_crate import get_crate
 from subprocess import run
-import multiprocessing
 
 here = dirname(__file__)  # blackbox/testutils
 project_root = dirname(dirname(here))
@@ -42,9 +41,17 @@ def crate_path():
     app_build = root / "app" / "target"
     tarball = next(app_build.glob("crate-*.tar.gz"), None)
     if not tarball:
-        cpus = multiprocessing.cpu_count()
         mvnw = root / "mvnw"
-        run([str(mvnw), "-T", str(cpus), "package", "-DskipTests=true"], cwd=root)
+        cmd = [
+            str(mvnw),
+            "-T1C",
+            "package",
+            "-DskipTests=true",
+            "-Dcheckstyle.skip",
+            "-Dforbiddenapis.skip=true",
+            "-Dmaven.javadoc.skip=true"
+        ]
+        run(cmd, cwd=root)
         tarball = next(app_build.glob("crate-*.tar.gz"), None)
     uri = tarball.as_uri()
     return get_crate(uri)
