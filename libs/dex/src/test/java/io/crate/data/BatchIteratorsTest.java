@@ -38,16 +38,16 @@ import org.junit.jupiter.api.Test;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.FailingBatchIterator;
 
-public class BatchIteratorsTest {
+class BatchIteratorsTest {
 
     @Test
-    public void testExceptionOnAllLoadedIsSetOntoFuture() {
+    void testExceptionOnAllLoadedIsSetOntoFuture() {
         CompletableFuture<Long> future = FailingBatchIterator.failOnAllLoaded().collect(Collectors.counting());
         assertThat(future.isCompletedExceptionally()).isTrue();
     }
 
     @Test
-    public void testBatchBySize() {
+    void testBatchBySize() {
         var batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false);
         BatchIterator<List<Integer>> batchedIt = BatchIterators.chunks(batchIterator,
                                                                           2,
@@ -64,7 +64,7 @@ public class BatchIteratorsTest {
     }
 
     @Test
-    public void testBatchBySizeWithBatchedSource() throws Exception {
+    void testBatchBySizeWithBatchedSource() throws Exception {
         BatchIterator<Integer> batchIterator = new BatchSimulatingIterator<>(
             InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false),
             3,
@@ -82,7 +82,7 @@ public class BatchIteratorsTest {
     }
 
     @Test
-    public void testBatchBySizeWithDynamicLimiter() {
+    void testBatchBySizeWithDynamicLimiter() {
         var batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false);
         final AtomicInteger rowCount = new AtomicInteger();
         BatchIterator<List<Integer>> batchedIt = BatchIterators.chunks(

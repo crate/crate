@@ -34,10 +34,10 @@ import org.junit.jupiter.api.Test;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class CollectingRowConsumerTest {
+class CollectingRowConsumerTest {
 
     @Test
-    public void testBatchedIteratorConsumption() throws Exception {
+    void testBatchedIteratorConsumption() throws Exception {
         List<Object[]> expectedResult = IntStream.range(0, 10)
             .mapToObj(i -> new Object[]{i})
             .collect(Collectors.toList());

@@ -41,14 +41,14 @@ import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 
-public class AsyncCompositeBatchIteratorTest {
+class AsyncCompositeBatchIteratorTest {
 
     private static final List<Object[]> EXPECTED_RESULT = IntStream.range(0, 10)
         .mapToObj(i -> new Object[] {i})
         .collect(Collectors.toList());
 
     @Test
-    public void testCompositeBatchIterator() throws Exception {
+    void testCompositeBatchIterator() throws Exception {
         Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new BatchSimulatingIterator<>(
             TestingBatchIterators.range(5, 10),
             2,
@@ -76,7 +76,7 @@ public class AsyncCompositeBatchIteratorTest {
     }
 
     @Test
-    public void testIteratorDoesNotHandleRejectedExecutionException() throws Exception {
+    void testIteratorDoesNotHandleRejectedExecutionException() throws Exception {
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(1, 1, 0L,
             TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1));
 

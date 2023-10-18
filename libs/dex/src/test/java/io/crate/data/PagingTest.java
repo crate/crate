@@ -25,23 +25,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-public class PagingTest {
+class PagingTest {
 
     @Test
-    public void testGetNodePageSize() {
+    void testGetNodePageSize() {
         double weight = 1.0d / 8.0d;
         int pageSize = Paging.getWeightedPageSize(10_000, weight);
         assertThat(pageSize).isEqualTo(1875);
     }
 
     @Test
-    public void testSmallLimitWithManyExecutionNodes() {
+    void testSmallLimitWithManyExecutionNodes() {
         int pageSize = Paging.getWeightedPageSize(10, 1.0 / 20.0);
         assertThat(pageSize).isEqualTo(10);
     }
 
     @Test
-    public void testSmallLimitIsUnchanged() {
+    void testSmallLimitIsUnchanged() {
         assertThat(Paging.getWeightedPageSize(10, 1.0d / 4)).isEqualTo(10);
     }
 }

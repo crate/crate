@@ -35,8 +35,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
-public class Lists2Test {
+class Lists2Test {
 
     private Comparator<Integer> integerComparator;
 
@@ -46,42 +45,42 @@ public class Lists2Test {
     }
 
     @Test
-    public void testConcatReturnsANewListWithOneItemAdded() {
+    void testConcatReturnsANewListWithOneItemAdded() {
         assertThat(Lists2.concat(Arrays.asList(1, 2), 3)).containsExactly(1, 2, 3);
     }
 
     @Test
-    public void testFindFirstWithAllUnique() {
+    void testFindFirstWithAllUnique() {
         var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
         assertThat(findFirstNonPeer(numbers, 0, numbers.size() - 1, integerComparator)).isEqualTo(1);
     }
 
     @Test
-    public void testFindFirstNonPeerAllSame() {
+    void testFindFirstNonPeerAllSame() {
         var numbers = List.of(1, 1, 1, 1, 1, 1, 1, 1);
         assertThat(findFirstNonPeer(numbers, 0, numbers.size() - 1, integerComparator)).isEqualTo(numbers.size() - 1);
     }
 
     @Test
-    public void testFindFirstPreviousPeerReturnZeroForNullComparator() {
+    void testFindFirstPreviousPeerReturnZeroForNullComparator() {
         var numbers = List.of(1, 1, 2, 4, 4, 4, 4, 5);
         assertThat(findFirstPreviousPeer(numbers, 5, null)).isEqualTo(0);
     }
 
     @Test
-    public void testFindFirstPreviousPeerForFirstElementReturnsZero() {
+    void testFindFirstPreviousPeerForFirstElementReturnsZero() {
         var numbers = List.of(1, 1, 2, 4, 4, 4, 4, 5);
         assertThat(findFirstPreviousPeer(numbers, 0, integerComparator)).isEqualTo(0);
     }
 
     @Test
-    public void testFindFirstPreviousPeerReturnsFirstOccuranceOfPeer() {
+    void testFindFirstPreviousPeerReturnsFirstOccuranceOfPeer() {
         var numbers = List.of(1, 1, 2, 4, 4, 4, 4, 5);
         assertThat(findFirstPreviousPeer(numbers, 5, integerComparator)).isEqualTo(3);
     }
 
     @Test
-    public void testFindFirstPreviousPeerReturnsItemIndexIfThereAreNoPeers() {
+    void testFindFirstPreviousPeerReturnsItemIndexIfThereAreNoPeers() {
         var numbers = List.of(1, 2, 3, 4, 5, 6);
         for (int i = 0; i < numbers.size(); i++) {
             assertThat(findFirstPreviousPeer(numbers, i, integerComparator)).isEqualTo(i);
@@ -89,45 +88,45 @@ public class Lists2Test {
     }
 
     @Test
-    public void test_find_first_gte_probe_when_exists_in_slice() {
+    void test_find_first_gte_probe_when_exists_in_slice() {
         var numbers = List.of(1, 2, 3, 6, 7, 8);
         assertThat(findFirstGTEProbeValue(numbers, 0, 4, 4, integerComparator)).isEqualTo(3);
     }
 
     @Test
-    public void test_find_first_gte_probe_when_greater_than_all_items_is_minus_one() {
+    void test_find_first_gte_probe_when_greater_than_all_items_is_minus_one() {
         var numbers = List.of(1, 2, 3, 6, 7, 8);
         assertThat(findFirstGTEProbeValue(numbers, 0, 3, 4, integerComparator)).isEqualTo(-1);
     }
 
     @Test
-    public void test_find_first_lte_probe_when_exists_in_slice() {
+    void test_find_first_lte_probe_when_exists_in_slice() {
         var numbers = List.of(1, 2, 3, 6, 7, 8);
         assertThat(findFirstLTEProbeValue(numbers, numbers.size(), 3, 7, integerComparator)).isEqualTo(4);
     }
 
     @Test
-    public void test_find_first_lte_probe_when_less_than_all_items_is_minus_one() {
+    void test_find_first_lte_probe_when_less_than_all_items_is_minus_one() {
         var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
         assertThat(findFirstLTEProbeValue(numbers, numbers.size(), 5, 0, integerComparator)).isEqualTo(-1);
     }
 
     @Test
-    public void test_collections_are_equal() {
+    void test_collections_are_equal() {
         var list = List.of(1, 2, 3);
         var set = new LinkedHashSet<>(List.of(1, 2, 3));
         assertThat(Lists2.equals(list, set)).isTrue();
     }
 
     @Test
-    public void test_collections_different_order_arent_equal() {
+    void test_collections_different_order_arent_equal() {
         var list = List.of(1, 2, 3);
         var set = new LinkedHashSet<>(List.of(1, 3, 2));
         assertThat(Lists2.equals(list, set)).isFalse();
     }
 
     @Test
-    public void test_collections_different_size_arent_equal() {
+    void test_collections_different_size_arent_equal() {
         var list = List.of(1, 2, 3);
         var set = new LinkedHashSet<>(List.of(1, 2));
         assertThat(Lists2.equals(list, set)).isFalse();
