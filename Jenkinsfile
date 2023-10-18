@@ -1,7 +1,7 @@
 pipeline {
   agent any
   tools {
-    // used to run gradle
+    // used to run maven
     jdk 'jdk11'
   }
   options {
@@ -32,8 +32,11 @@ pipeline {
             sh '''
               x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw test \
                 -DforkCount=8 \
-                -Dtests.crate.slow=true \
+                -DthreadCount=2 \
                 -Dcheckstyle.skip \
+                -Dforbiddenapis.skip=true \
+                -Dmaven.javadoc.skip=true \
+                -Dtests.crate.slow=true \
                 jacoco:report
             '''.stripIndent()
 

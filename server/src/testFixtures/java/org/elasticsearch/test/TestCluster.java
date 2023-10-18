@@ -50,6 +50,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -75,9 +76,10 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ClusterBootstrapService;
@@ -126,7 +128,6 @@ import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -153,6 +154,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
 import io.crate.action.sql.Sessions;
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.jobs.TasksService;
@@ -450,13 +452,21 @@ public final class TestCluster implements Closeable {
      */
     public void wipeAllTemplates() {
         if (size() > 0) {
-            GetIndexTemplatesResponse response = FutureUtils.get(client().admin().indices().getTemplates(new GetIndexTemplatesRequest()));
-            for (IndexTemplateMetadata indexTemplate : response.getIndexTemplates()) {
-                try {
-                    FutureUtils.get(client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.getName())));
-                } catch (IndexTemplateMissingException e) {
-                    // ignore
+            IndicesAdminClient indices = client().admin().indices();
+            var result = indices.getTemplates(new GetIndexTemplatesRequest()).thenCompose(response -> {
+                List<IndexTemplateMetadata> indexTemplates = response.getIndexTemplates();
+                List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>(indexTemplates.size());
+                for (IndexTemplateMetadata indexTemplate : indexTemplates) {
+                    CompletableFuture<AcknowledgedResponse> deleteTemplate = indices
+                        .deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.getName()));
+                    futures.add(deleteTemplate);
                 }
+                return CompletableFutures.allAsList(futures);
+            });
+            try {
+                List<AcknowledgedResponse> responses = result.get();
+                responses.forEach(r -> assertAcked(r));
+            } catch (Exception ignore) {
             }
         }
     }
