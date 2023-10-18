@@ -52,6 +52,13 @@ The output of ``EXPLAIN ANALYZE`` also includes a break down of the query
 execution if the statement being explained involves queries which are executed
 using Lucene.
 
+.. NOTE::
+
+   When a query involves an empty partitioned table you will see no breakdown
+   concerning that table until at least one partition is created by inserting
+   a record.
+
+
 The output includes verbose low level information per queried shard. Since SQL
 query :ref:`expressions <gloss-expression>` do not always have a direct 1:1
 mapping to Lucene queries, the output may be more complex but in most cases it
