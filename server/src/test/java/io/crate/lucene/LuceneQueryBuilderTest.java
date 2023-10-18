@@ -97,7 +97,8 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
                " addr ip," +
                " vchar_name varchar(40)," +
                " byte_col byte, " +
-               " bool_col boolean " +
+               " bool_col boolean, " +
+               " d_array_index_off_no_docvalues array(double) index off storage with (columnstore = false) " +
                ")";
     }
 
