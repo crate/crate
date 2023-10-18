@@ -19,14 +19,14 @@
 
 package org.elasticsearch;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 
 public final class Build {
 
@@ -42,10 +42,8 @@ public final class Build {
             if (inputStream != null) {
                 props.load(inputStream);
             }
-            hash = props.getProperty("hash", hash);
-            if (hash.length() >= 7) {
-                hashShort = hash.substring(0, 7);
-            }
+            hash = props.getProperty("git.commit.id.full", hash);
+            hashShort = props.getProperty("git.commit.id.abbrev", hashShort);
             String gitTimestampRaw = props.getProperty("timestamp");
             if (gitTimestampRaw != null) {
                 timestamp = ISODateTimeFormat.dateTimeNoMillis().withZone(DateTimeZone.UTC).print(Long.parseLong(gitTimestampRaw));
