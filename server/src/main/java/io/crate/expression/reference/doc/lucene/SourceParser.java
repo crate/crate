@@ -141,7 +141,6 @@ public final class SourceParser {
             }
             return parseObject(
                 parser,
-                null,
                 requiredColumns,
                 droppedColumns,
                 lookupNameBySourceKey,
@@ -180,7 +179,7 @@ public final class SourceParser {
                 type = ((ArrayType<?>) type).innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                values.add(parseValue(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey, colPath));
+                values.add(parseValue(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey, colPath, false));
             }
             return values;
         }
@@ -188,7 +187,6 @@ public final class SourceParser {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static Map<String, Object> parseObject(XContentParser parser,
-                                                   @Nullable DataType<?> type,
                                                    @Nullable Map<String, Object> requiredColumns,
                                                    Set<String> droppedColumns,
                                                    Function<String, String> lookupNameBySourceKey,
@@ -230,34 +228,27 @@ public final class SourceParser {
                 // We should not call parseObject() as current object's innerTypes can interfere with sibling columns
                 // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
                 values.put(fieldName, null);
-            } else if (required instanceof ObjectType objectType) {
-                var prevLength = appendToColPath(colPath, fieldName);
-                values.put(fieldName, parseObject(
-                    parser,
-                    objectType,
-                    (Map) objectType.innerTypes(),
-                    droppedColumns,
-                    lookupNameBySourceKey,
-                    colPath,
-                    true)
-                );
-                colPath.delete(prevLength, colPath.length());
-            } else if (required instanceof DataType<?> dataType) {
-                if (dataType instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID) {
-                    var prevLength = appendToColPath(colPath, fieldName);
-                    values.put(fieldName, parseValue(parser, arrayType.innerType(),
-                        (Map) ((ObjectType) arrayType.innerType()).innerTypes(), droppedColumns,
-                        lookupNameBySourceKey, colPath)
-                    );
-                    colPath.delete(prevLength, colPath.length());
-                } else {
-                    values.put(fieldName, parseValue(parser, dataType, null, droppedColumns,
-                        lookupNameBySourceKey, colPath)
-                    );
-                }
             } else {
-                values.put(fieldName, parseValue(parser, null, (Map) required, droppedColumns,
-                    lookupNameBySourceKey, colPath));
+                var prevLength = appendToColPath(colPath, fieldName);
+
+                boolean currentTreeIncludeUnknown = false;
+                DataType<?> type = null;
+                if (required instanceof DataType<?> dataType) {
+                    type = dataType;
+                    required = null;
+                    if (dataType instanceof ObjectType objectType) {
+                        // Use inner types to parse the object sub-columns for type aware parsing
+                        required = objectType.innerTypes();
+                        // When parsing a complete object, we need to parse also possible ignored sub-columns
+                        // (We do not know if the object supports ignored sub-columns or not)
+                        currentTreeIncludeUnknown = true;
+                    }
+                }
+
+                values.put(fieldName, parseValue(parser, type, (Map) required, droppedColumns,
+                        lookupNameBySourceKey, colPath, currentTreeIncludeUnknown));
+
+                colPath.delete(prevLength, colPath.length());
             }
         }
         return values;
@@ -283,13 +274,14 @@ public final class SourceParser {
                                      @Nullable Map<String, Object> requiredColumns,
                                      Set<String> droppedColumns,
                                      Function<String, String> lookupNameBySourceKey,
-                                     StringBuilder colPath) throws IOException {
+                                     StringBuilder colPath,
+                                     boolean includeUnknown) throws IOException {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
             case START_ARRAY -> parseArray(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey,
                 colPath);
-            case START_OBJECT -> parseObject(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey,
-                colPath, false);
+            case START_OBJECT -> parseObject(parser, requiredColumns, droppedColumns, lookupNameBySourceKey,
+                colPath, includeUnknown);
             case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
             case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
             case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);

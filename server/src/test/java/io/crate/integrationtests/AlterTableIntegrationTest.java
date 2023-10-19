@@ -29,14 +29,14 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseNewCluster;
+import java.util.Locale;
+
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
-
-import java.util.Locale;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseNewCluster;
 
 public class AlterTableIntegrationTest extends IntegTestCase {
 
@@ -204,6 +204,26 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             .hasPGError(UNDEFINED_COLUMN)
             .hasHTTPError(NOT_FOUND, 4043)
             .hasMessageContaining("Column a unknown");
+    }
+
+    @Test
+    public void test_drop_sub_column_readd_and_update() {
+        execute("CREATE TABLE t1 (id int, obj object as (x int, y int))");
+        execute("INSERT INTO t1 (id, obj) VALUES (1, {x=11, y=21})");
+        refresh();
+        execute("SELECT id, obj FROM t1");
+        assertThat(response).hasRows("1| {x=11, y=21}");
+
+        execute("ALTER TABLE t1 DROP COLUMN obj['y']");
+        execute("SELECT id, obj FROM t1");
+        assertThat(response).hasRows("1| {x=11}");
+
+        execute("ALTER TABLE t1 ADD COLUMN obj['y'] TEXT");
+        execute("UPDATE t1 SET obj['y'] = 'foo'");
+        assertThat(response.rowCount()).isEqualTo(1L);
+        refresh();
+        execute("SELECT id, obj FROM t1");
+        assertThat(response).hasRows("1| {x=11, y=foo}");
     }
 
     @Test

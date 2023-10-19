@@ -335,11 +335,7 @@ public class SourceParserTest extends ESTestCase {
     }
 
     @Test
-    public void test_drop_sub_column_with_children() {
-        SourceParser sourceParser = new SourceParser(
-                Set.of(createReference(new ColumnIdent("o", List.of("oo")), DataTypes.INTEGER)),
-                Function.identity()
-        );
+    public void test_drop_sub_column_with_children_collect_parent_column() {
         var ooType = new ObjectType.Builder()
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
@@ -350,16 +346,40 @@ public class SourceParserTest extends ESTestCase {
             .setInnerType("b", DataTypes.INTEGER)
             .build();
 
-
+        SourceParser sourceParser = new SourceParser(
+                Set.of(createReference(new ColumnIdent("o", List.of("oo")), ooType)),
+                Function.identity()
+        );
+        // Register parent column in order to collect ony this one, ignoring any other column
         sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
-                {"o": {"a" : 1, "b": 2, "oo": {"a": 11, "b": 22, "c": 3}}}
+                {"o": {"a" : 1, "b": 2, "oo": {"a": 11, "b": 22, "c": 3}}, "x": 4}
             """));
 
         assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
         assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
         assertThat(Maps.getByPath(result, "o.oo")).isNull();
+        assertThat(Maps.getByPath(result, "x")).isNull();
+    }
+
+    @Test
+    public void test_drop_sub_column_with_children_collect_all() {
+        SourceParser sourceParser = new SourceParser(
+                Set.of(createReference(new ColumnIdent("o", List.of("oo")), DataTypes.UNTYPED_OBJECT)),
+                Function.identity()
+        );
+
+        // We don't register any column to the SourceParser in order to parse the complete document
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {"o": {"a" : 1, "b": 2, "oo": {"a": 11, "b": 22, "c": 3}}, "x": 4}
+            """));
+
+        assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
+        assertThat(Maps.getByPath(result, "o.oo")).isNull();
+        assertThat(Maps.getByPath(result, "x")).isEqualTo(4);
     }
 
     @Test
@@ -399,6 +419,36 @@ public class SourceParserTest extends ESTestCase {
         Map<String, Object> innerObj = (Map<String, Object>) ((List<?>) Maps.getByPath(result, "o.oo")).get(0);
         assertThat(innerObj).containsExactly(
             Map.entry("a", 11),
+            Map.entry("c", 33),
             Map.entry("s", 33));
+    }
+
+    @Test
+    public void test_nested_dropped_columns_are_not_collected() {
+        var ooType = new ObjectType.Builder()
+                .setInnerType("a", DataTypes.INTEGER)
+                .setInnerType("b", DataTypes.INTEGER)
+                .build();
+        var oType = new ObjectType.Builder()
+                .setInnerType("oo", ooType)
+                .setInnerType("a", DataTypes.INTEGER)
+                .setInnerType("b", DataTypes.INTEGER)
+                .build();
+
+        SourceParser sourceParser = new SourceParser(
+                Set.of(createReference(new ColumnIdent("o", List.of("oo")), ooType)),
+                Function.identity()
+        );
+
+        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+                """
+                    {"o": {"a" : 1, "b": 2, "oo": {"a": 11, "b": 22, "c": 3}}}
+                """));
+
+        assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
+        assertThat(Maps.getByPath(result, "o.oo")).isNull();
+
     }
 }
