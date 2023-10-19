@@ -61,3 +61,8 @@ Fixes
   cause ``INSERT INTO ... ON CONFLICT .. `` queries to fail with unexpected
   errors or even updating wrong sub-columns when using a sub-column expression
   in the ``ON CONFLICT`` clause.
+
+- Fixed a regression, introduced in :ref:`version_4.2.0` which caused wrong
+  :ref:`HTTP error code <http-error-codes>` to be returned, when some internal
+  issue occurred during the creation of execution plan for a query, e.g.: shards
+  of a table involved in the query become unavailable.

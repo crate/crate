@@ -21,24 +21,31 @@
 
 package io.crate.planner;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.action.sql.Cursors;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.UnavailableShardsException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -57,8 +64,10 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
-        e = SQLExecutor.builder(clusterService).build();
+    public void prepare() throws IOException {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.tbl(a int)")
+            .build();
     }
 
     @Test
@@ -123,5 +132,24 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             ))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessageContaining("Cannot cast value `foo` to type `text_array`");
+    }
+
+    @Test
+    public void test_execution_exception_is_not_wrapped_in_logical_planner() {
+        LogicalPlan plan = e.logicalPlan("select * from doc.tbl");
+        var mockedPlannerCtx = mock(PlannerContext.class);
+        when(mockedPlannerCtx.transactionContext()).thenThrow(
+            new UnavailableShardsException(new ShardId("tbl", "uuid", 11)));
+
+        assertSQLError(() -> LogicalPlanner.getNodeOperationTree(
+                plan,
+                mock(DependencyCarrier.class),
+                mockedPlannerCtx,
+                new Row1("foo"),
+                SubQueryResults.EMPTY
+            ))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5002)
+            .hasMessageContaining("the shard 11 of table [tbl/uuid] is not available");
     }
 }
