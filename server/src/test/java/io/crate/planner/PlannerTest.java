@@ -23,11 +23,9 @@ package io.crate.planner;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertSQLError;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -36,7 +34,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
@@ -74,25 +71,25 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSetPlan() throws Exception {
         UpdateSettingsPlan plan = e.plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
-        assertThat(plan.settings(), contains(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024)))));
-        assertThat(plan.isPersistent(), is(true));
+        assertThat(plan.settings()).containsExactly(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024))));
+        assertThat(plan.isPersistent()).isTrue();
 
         plan = e.plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
 
-        assertThat(plan.settings().size(), is(2));
-        assertThat(plan.isPersistent(), is(false));
+        assertThat(plan.settings()).hasSize(2);
+        assertThat(plan.isPersistent()).isFalse();
     }
 
     @Test
     public void testSetSessionTransactionModeIsNoopPlan() throws Exception {
         Plan plan = e.plan("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
-        assertThat(plan, instanceOf(NoopPlan.class));
+        assertThat(plan).isExactlyInstanceOf(NoopPlan.class);
     }
 
     @Test
     public void testSetTimeZone() throws Exception {
         Plan plan = e.plan("SET TIME ZONE 'Europe/Vienna'");
-        assertThat(plan, instanceOf(NoopPlan.class));
+        assertThat(plan).isExactlyInstanceOf(NoopPlan.class);
     }
 
     @Test
@@ -110,20 +107,22 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             e.planStats()
         );
 
-        assertThat(plannerContext.nextExecutionPhaseId(), is(0));
-        assertThat(plannerContext.nextExecutionPhaseId(), is(1));
+        assertThat(plannerContext.nextExecutionPhaseId()).isEqualTo(0);
+        assertThat(plannerContext.nextExecutionPhaseId()).isEqualTo(1);
     }
 
     @Test
     public void testDeallocate() {
-        assertThat(e.plan("deallocate all"), instanceOf(NoopPlan.class));
-        assertThat(e.plan("deallocate test_prep_stmt"), instanceOf(NoopPlan.class));
+        var plan = e.plan("deallocate all");
+        assertThat(plan).isExactlyInstanceOf(NoopPlan.class);
+        plan = e.plan("deallocate test_prep_stmt");
+        assertThat(plan).isExactlyInstanceOf(NoopPlan.class);
     }
 
     @Test
     public void test_invalid_any_param_leads_to_clear_error_message() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name = ANY(?) from sys.cluster");
-        Assertions.assertThatThrownBy(() -> LogicalPlanner.getNodeOperationTree(
+        assertThatThrownBy(() -> LogicalPlanner.getNodeOperationTree(
                 plan,
                 mock(DependencyCarrier.class),
                 e.getPlannerContext(clusterService.state()),
