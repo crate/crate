@@ -232,7 +232,7 @@ public final class UpdateToInsert {
                 continue;
             }
             ColumnIdent root = column.getRoot();
-            int idx = Reference.indexOf(table.columns(), root);
+            int idx = Reference.indexOf(columns, root);
             assert idx > -1 : "Root of updateColumns must exist in table columns";
             Symbol assignment = updateAssignments[i];
             Object value = assignment.accept(eval, values).value();

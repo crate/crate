@@ -284,6 +284,47 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         assertThat(item.insertValues()).containsExactly(3, 1, 20);
     }
 
+    /**
+     * Tests a regression where the wrong column list was used resulting in OutOfBounds exceptions or updating the
+     * wrong column.
+     * See https://github.com/crate/crate/issues/14906.
+     */
+    @Test
+    public void test_preserves_insert_column_order_when_updating_sub_column() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+                .addTable("create table tbl (x int, y object as (a int), z int)")
+                .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y['a'] = ?
+        Reference[] insertColumns = new Reference[] { table.getReference(new ColumnIdent("z")) };
+        String[] updateColumns = new String[] { "y.a" };
+        UpdateToInsert updateToInsert = new UpdateToInsert(
+                e.nodeCtx,
+                new CoordinatorTxnCtx(e.getSessionSettings()),
+                table,
+                updateColumns,
+                insertColumns
+        );
+        assertThat(updateToInsert.columns())
+            .as("Start References of columns() must match insertColumns")
+            .satisfiesExactly(
+                x -> assertThat(x).isReference("z"),
+                x -> assertThat(x).isReference("x"),
+                x -> assertThat(x).isReference("y")
+            );
+
+        Map<String, Object> source = Map.of("x", 1, "y", Map.of("a", 2), "z", 3);
+        Doc doc = doc(table.concreteIndices()[0], source);
+        IndexItem item = updateToInsert.convert(
+                doc,
+                new Symbol[] { Literal.of(20) },
+                new Object[] { Literal.of(3) }
+        );
+        assertThat(item.insertValues()).containsExactly(3, 1, Map.of("a", 20));
+
+    }
+
     @Test
     public void test_generates_missing_generated_pk_columns() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
