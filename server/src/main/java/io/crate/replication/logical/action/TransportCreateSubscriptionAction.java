@@ -24,14 +24,13 @@ package io.crate.replication.logical.action;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -108,43 +107,38 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                 request.publications(),
                 request.connectionInfo()
             )
-            .thenCompose(
-                response -> {
-                    if (response.unknownPublications().isEmpty() == false) {
-                        throw new PublicationUnknownException(response.unknownPublications().get(0));
-                    }
-
-                    // Published tables can have metadata or documents which subscriber with a lower version might not process.
-                    // We check published tables version and not publisher cluster's MinNodeVersion.
-                    // Publisher cluster can have a higher version but contain old tables, restored from a snapshot,
-                    // in this case subscription works fine.
-                    for (RelationMetadata relationMetadata: response.relationsInPublications().values()) {
-                        if (relationMetadata.template() != null) {
-                            checkVersionCompatibility(
-                                relationMetadata.name().fqn(),
-                                state.nodes().getMinNodeVersion(),
-                                relationMetadata.template().settings()
-                            );
-                        }
-                        if (!relationMetadata.indices().isEmpty()) {
-                            // All indices belong to the same table and has same metadata.
-                            IndexMetadata indexMetadata = relationMetadata.indices().get(0);
-                            checkVersionCompatibility(
-                                relationMetadata.name().fqn(),
-                                state.nodes().getMinNodeVersion(),
-                                indexMetadata.getSettings()
-                            );
-                        }
-                    }
-
-                    logicalReplicationService.verifyTablesDoNotExist(request.name(), response);
-                    return submitClusterStateTask(request, response);
-                }
-            )
             .whenComplete(
-                (ignore, err) -> {
+                (response, err) -> {
                     if (err == null) {
-                        listener.onResponse(new AcknowledgedResponse(true));
+                        if (response.unknownPublications().isEmpty() == false) {
+                            throw new PublicationUnknownException(response.unknownPublications().get(0));
+                        }
+
+                        // Published tables can have metadata or documents which subscriber with a lower version might not process.
+                        // We check published tables version and not publisher cluster's MinNodeVersion.
+                        // Publisher cluster can have a higher version but contain old tables, restored from a snapshot,
+                        // in this case subscription works fine.
+                        for (RelationMetadata relationMetadata: response.relationsInPublications().values()) {
+                            if (relationMetadata.template() != null) {
+                                checkVersionCompatibility(
+                                    relationMetadata.name().fqn(),
+                                    state.nodes().getMinNodeVersion(),
+                                    relationMetadata.template().settings()
+                                );
+                            }
+                            if (!relationMetadata.indices().isEmpty()) {
+                                // All indices belong to the same table and has same metadata.
+                                IndexMetadata indexMetadata = relationMetadata.indices().get(0);
+                                checkVersionCompatibility(
+                                    relationMetadata.name().fqn(),
+                                    state.nodes().getMinNodeVersion(),
+                                    indexMetadata.getSettings()
+                                );
+                            }
+                        }
+
+                        logicalReplicationService.verifyTablesDoNotExist(request.name(), response);
+                        submitClusterStateTask(request, response, listener);
                     } else {
                         listener.onFailure(Exceptions.toException(err));
                     }
@@ -167,12 +161,12 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
         }
     }
 
-    private CompletableFuture<Void> submitClusterStateTask(CreateSubscriptionRequest request,
-                                                           PublicationsStateAction.Response publicationsStateResponse) {
-        var future = new CompletableFuture<Void>();
+    private void submitClusterStateTask(CreateSubscriptionRequest request,
+                                        PublicationsStateAction.Response publicationsStateResponse,
+                                        ActionListener<AcknowledgedResponse> listener) {
         clusterService.submitStateUpdateTask(
             source,
-            new ClusterStateUpdateTask() {
+            new AckedClusterStateUpdateTask<>(request, listener) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     Metadata currentMetadata = currentState.metadata();
@@ -209,17 +203,11 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                 }
 
                 @Override
-                public void onFailure(String source, Exception e) {
-                    future.completeExceptionally(e);
-                }
-
-                @Override
-                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    future.complete(null);
+                protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                    return new AcknowledgedResponse(acknowledged);
                 }
             }
         );
-        return future;
     }
 
     @Override
