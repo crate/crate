@@ -35,6 +35,9 @@
               junit.jupiter.execution.parallel.enabled = true
             </configurationParameters>
           </properties>
+          <!-- by default is false but is set to true by `serverTest` profile to avoid running tests
+               for modules on which `server` module depends on, when running `mvn -Pserver test` -->
+          <skip>${skipRunTests}</skip>
         </configuration>
       </plugin>
       <plugin>
@@ -192,6 +195,9 @@
     <maven.compiler.source>20</maven.compiler.source>
     <maven.compiler.target>20</maven.compiler.target>
 
+    <!-- see surefire plugin configuration for explanation -->
+    <skipRunTests>false</skipRunTests>
+
     <versions.jdk>21</versions.jdk>
     <versions.annotations>24.0.1</versions.annotations>
     <versions.log4j>2.20.0</versions.log4j>
@@ -253,4 +259,16 @@
     <module>app</module>
     <module>benchmarks</module>
   </modules>
+
+  <profiles>
+    <profile>
+      <id>server</id>
+      <properties>
+        <skipRunTests>true</skipRunTests>
+      </properties>
+      <modules>
+        <module>server</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>
