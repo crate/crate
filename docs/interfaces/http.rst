@@ -409,7 +409,10 @@ To get more insight into what exactly went wrong an additional ``error_trace``
     support for CrateDB. Client libraries shouldn't make use of this option and
     not include the stack trace.
 
-Currently the defined error codes are:
+.. _http-error-codes:
+
+Error codes
+-----------
 
 ====== =====================================================================
 Code   Error

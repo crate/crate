@@ -52,6 +52,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.CrateException;
 import io.crate.execution.MultiPhaseExecutor;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
@@ -555,6 +556,11 @@ public class LogicalPlanner {
         } catch (ConversionException e) {
             throw e;
         } catch (Exception e) {
+            if (e instanceof CrateException) {
+                // Don't hide errors like MissingShardOperationsException, UnavailableShardsException
+                throw e;
+            }
+
             // This should really only happen if there are planner bugs,
             // so the additional costs of creating a more informative exception shouldn't matter.
             PrintContext printContext = new PrintContext(plannerContext.planStats());
@@ -564,7 +570,7 @@ public class LogicalPlanner {
                     Locale.ENGLISH,
                     "Couldn't create execution plan from logical plan because of: %s:%n%s",
                     e.getMessage(),
-                    printContext.toString()
+                    printContext
                 ),
                 e
             );
