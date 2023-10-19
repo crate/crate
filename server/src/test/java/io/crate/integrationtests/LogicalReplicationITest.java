@@ -255,6 +255,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                                                      " CONNECTION '" + publisherConnectionUrl() + "' publication unknown_pub"))
             .isExactlyInstanceOf(PublicationUnknownException.class)
             .hasMessageContaining("Publication 'unknown_pub' unknown");
+
+        var response = executeOnSubscriber("SELECT * FROM pg_subscription");
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -299,6 +302,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             RelationAlreadyExists.class,
             () -> createSubscription("sub1", "pub1")
         );
+        var response = executeOnSubscriber("SELECT * FROM pg_subscription");
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
