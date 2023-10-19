@@ -110,37 +110,39 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
             .whenComplete(
                 (response, err) -> {
                     if (err == null) {
-                        if (response.unknownPublications().isEmpty() == false) {
-                            listener.onFailure(new PublicationUnknownException(response.unknownPublications().get(0)));
-                        }
-
-                        // Published tables can have metadata or documents which subscriber with a lower version might not process.
-                        // We check published tables version and not publisher cluster's MinNodeVersion.
-                        // Publisher cluster can have a higher version but contain old tables, restored from a snapshot,
-                        // in this case subscription works fine.
-                        for (RelationMetadata relationMetadata: response.relationsInPublications().values()) {
-                            if (relationMetadata.template() != null) {
-                                checkVersionCompatibility(
-                                    relationMetadata.name().fqn(),
-                                    state.nodes().getMinNodeVersion(),
-                                    relationMetadata.template().settings(),
-                                    listener
-                                );
+                        try {
+                            if (response.unknownPublications().isEmpty() == false) {
+                                throw new PublicationUnknownException(response.unknownPublications().get(0));
                             }
-                            if (!relationMetadata.indices().isEmpty()) {
-                                // All indices belong to the same table and has same metadata.
-                                IndexMetadata indexMetadata = relationMetadata.indices().get(0);
-                                checkVersionCompatibility(
-                                    relationMetadata.name().fqn(),
-                                    state.nodes().getMinNodeVersion(),
-                                    indexMetadata.getSettings(),
-                                    listener
-                                );
-                            }
-                        }
 
-                        logicalReplicationService.verifyTablesDoNotExist(request.name(), response, listener);
-                        submitClusterStateTask(request, response, listener);
+                            // Published tables can have metadata or documents which subscriber with a lower version might not process.
+                            // We check published tables version and not publisher cluster's MinNodeVersion.
+                            // Publisher cluster can have a higher version but contain old tables, restored from a snapshot,
+                            // in this case subscription works fine.
+                            for (RelationMetadata relationMetadata : response.relationsInPublications().values()) {
+                                if (relationMetadata.template() != null) {
+                                    checkVersionCompatibility(
+                                        relationMetadata.name().fqn(),
+                                        state.nodes().getMinNodeVersion(),
+                                        relationMetadata.template().settings()
+                                    );
+                                }
+                                if (!relationMetadata.indices().isEmpty()) {
+                                    // All indices belong to the same table and has same metadata.
+                                    IndexMetadata indexMetadata = relationMetadata.indices().get(0);
+                                    checkVersionCompatibility(
+                                        relationMetadata.name().fqn(),
+                                        state.nodes().getMinNodeVersion(),
+                                        indexMetadata.getSettings()
+                                    );
+                                }
+                            }
+
+                            logicalReplicationService.verifyTablesDoNotExist(request.name(), response);
+                            submitClusterStateTask(request, response, listener);
+                        } catch (Exception e) {
+                            listener.onFailure(e);
+                        }
                     } else {
                         listener.onFailure(Exceptions.toException(err));
                     }
@@ -148,21 +150,18 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
             );
     }
 
-    private static void checkVersionCompatibility(String tableFqn,
-                                                  Version subscriberMinNodeVersion,
-                                                  Settings settings,
-                                                  ActionListener<AcknowledgedResponse> listener) {
+    private static void checkVersionCompatibility(String tableFqn, Version subscriberMinNodeVersion, Settings settings) {
         Version publishedTableVersion = settings.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, null);
         assert publishedTableVersion != null : "All published tables must have version created setting";
         if (subscriberMinNodeVersion.beforeMajorMinor(publishedTableVersion)) {
-            listener.onFailure(new IllegalStateException(String.format(
+            throw new IllegalStateException(String.format(
                 Locale.ENGLISH,
                 "One of the published tables has version higher than subscriber's minimal node version." +
                 " Table=%s, Table-Version=%s, Local-Minimal-Version: %s",
                 tableFqn,
                 publishedTableVersion,
                 subscriberMinNodeVersion
-            )));
+            ));
         }
     }
 
