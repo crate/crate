@@ -30,8 +30,8 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -142,9 +142,9 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                 }
             )
             .whenComplete(
-                (ignore, err) -> {
+                (acknowledgedResponse, err) -> {
                     if (err == null) {
-                        listener.onResponse(new AcknowledgedResponse(true));
+                        listener.onResponse(acknowledgedResponse);
                     } else {
                         listener.onFailure(Exceptions.toException(err));
                     }
@@ -167,59 +167,53 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
         }
     }
 
-    private CompletableFuture<Void> submitClusterStateTask(CreateSubscriptionRequest request,
-                                                           PublicationsStateAction.Response publicationsStateResponse) {
-        var future = new CompletableFuture<Void>();
-        clusterService.submitStateUpdateTask(
-            source,
-            new ClusterStateUpdateTask() {
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+    private CompletableFuture<AcknowledgedResponse> submitClusterStateTask(CreateSubscriptionRequest request,
+                                                                           PublicationsStateAction.Response publicationsStateResponse) {
 
-                    var oldMetadata = (SubscriptionsMetadata) mdBuilder.getCustom(SubscriptionsMetadata.TYPE);
-                    if (oldMetadata != null && oldMetadata.subscription().containsKey(request.name())) {
-                        throw new SubscriptionAlreadyExistsException(request.name());
-                    }
+        AckedClusterStateUpdateTask<AcknowledgedResponse> task = new AckedClusterStateUpdateTask<>(request) {
+            @Override
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                Metadata currentMetadata = currentState.metadata();
+                Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
 
-                    HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
-                    for (var relation : publicationsStateResponse.tables()) {
-                        relations.put(
-                            relation,
-                            new Subscription.RelationState(Subscription.State.INITIALIZING, null)
-                        );
-                    }
+                var oldMetadata = (SubscriptionsMetadata) mdBuilder.getCustom(SubscriptionsMetadata.TYPE);
+                if (oldMetadata != null && oldMetadata.subscription().containsKey(request.name())) {
+                    throw new SubscriptionAlreadyExistsException(request.name());
+                }
 
-                    Subscription subscription = new Subscription(
-                        request.owner(),
-                        request.connectionInfo(),
-                        request.publications(),
-                        request.settings(),
-                        relations
+                HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+                for (var relation : publicationsStateResponse.tables()) {
+                    relations.put(
+                        relation,
+                        new Subscription.RelationState(Subscription.State.INITIALIZING, null)
                     );
-
-
-                    var newMetadata = SubscriptionsMetadata.newInstance(oldMetadata);
-                    newMetadata.subscription().put(request.name(), subscription);
-                    assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
-                    mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
-
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 }
 
-                @Override
-                public void onFailure(String source, Exception e) {
-                    future.completeExceptionally(e);
-                }
+                Subscription subscription = new Subscription(
+                    request.owner(),
+                    request.connectionInfo(),
+                    request.publications(),
+                    request.settings(),
+                    relations
+                );
 
-                @Override
-                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    future.complete(null);
-                }
+
+                var newMetadata = SubscriptionsMetadata.newInstance(oldMetadata);
+                newMetadata.subscription().put(request.name(), subscription);
+                assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
+                mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
+
+                return ClusterState.builder(currentState).metadata(mdBuilder).build();
             }
-        );
-        return future;
+
+            @Override
+            protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                return new AcknowledgedResponse(acknowledged);
+            }
+        };
+
+        clusterService.submitStateUpdateTask(source, task);
+        return task.completionFuture();
     }
 
     @Override
