@@ -23,19 +23,28 @@ package io.crate.replication.logical.action;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
@@ -46,14 +55,14 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 
-public class TransportCreateSubscriptionActionTest extends CrateDummyClusterServiceUnitTest {
+public class TransportCreateSubscriptionActionTest {
 
     private final LogicalReplicationService logicalReplicationService = mock(LogicalReplicationService.class);
     private final UserLookup userLookup = mock(UserLookup.class);
+    private final ClusterService clusterService = mock(ClusterService.class);
     private TransportCreateSubscriptionAction transportCreateSubscriptionAction;
 
 
@@ -83,11 +92,27 @@ public class TransportCreateSubscriptionActionTest extends CrateDummyClusterServ
             mock(TransportService.class),
             clusterService,
             logicalReplicationService,
-            THREAD_POOL,
+            mock(ThreadPool.class),
             userLookup
         );
 
         when(userLookup.findUser(anyString())).thenReturn(User.CRATE_USER);
+
+        final DiscoveryNode dataNode = new DiscoveryNode(
+            "node",
+            buildNewFakeTransportAddress(),
+            Map.of(),
+            Set.of(),
+            Version.CURRENT
+        );
+        ClusterState clusterState = ClusterState
+            .builder(ClusterName.DEFAULT)
+            .nodes(DiscoveryNodes.builder().add(dataNode).localNodeId(dataNode.getId()))
+            .build();
+        when(clusterService.state()).thenReturn(clusterState);
+
+        doAnswer(invocation -> responseFuture.complete(new AcknowledgedResponse(true)))
+            .when(clusterService).submitStateUpdateTask(anyString(), any());
 
         RelationName relationName = RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME);
         RelationMetadata relationMetadata = new RelationMetadata(
