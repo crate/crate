@@ -392,7 +392,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             );
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-        execute("copy t from ? return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("copy t from ?", new Object[]{Paths.get(file.toURI()).toUri().toString()});
 
         lines = List.of(
             """
@@ -404,7 +404,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         );
         file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-        execute("copy t from ? return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("copy t from ?", new Object[]{Paths.get(file.toURI()).toUri().toString()});
         execute("refresh table t");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t' order by ordinal_position");
