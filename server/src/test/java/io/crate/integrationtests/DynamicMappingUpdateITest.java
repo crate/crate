@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.TestingHelpers.printedTable;
 
 import java.io.File;
 import java.io.IOException;
@@ -230,12 +229,10 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             .isEmpty();
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't' order by ordinal_position limit 3");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            """
-            a| 1
-            b| 2
-            b['x']| 3
-            """);
+        assertThat(response).hasRows(
+            "a| 1",
+            "b| 2",
+            "b['x']| 3");
 
         Map<String, Object> mapping = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, getIndexMapping("t"), false);
         Set<Long> oids = new HashSet<>();
@@ -264,18 +261,16 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("update t set o = {q={r={s=1}}}");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            """
-            id| 1
-            name| 2
-            o| 3
-            o['a']| 4
-            o['a']['b']| 5
-            o['b']| 6
-            o['q']| 7
-            o['q']['r']| 8
-            o['q']['r']['s']| 9
-            """);
+        assertThat(response).hasRows(
+            "id| 1",
+            "name| 2",
+            "o| 3",
+            "o['a']| 4",
+            "o['a']['b']| 5",
+            "o['b']| 6",
+            "o['q']| 7",
+            "o['q']['r']| 8",
+            "o['q']['r']['s']| 9");
     }
 
     @Test
@@ -296,18 +291,16 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("alter table t add column o['q']['r']['s'] int");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            """
-            id| 1
-            name| 2
-            o| 3
-            o['a']| 4
-            o['a']['b']| 5
-            o['b']| 6
-            o['q']| 7
-            o['q']['r']| 8
-            o['q']['r']['s']| 9
-            """);
+        assertThat(response).hasRows(
+            "id| 1",
+            "name| 2",
+            "o| 3",
+            "o['a']| 4",
+            "o['a']['b']| 5",
+            "o['b']| 6",
+            "o['q']| 7",
+            "o['q']['r']| 8",
+            "o['q']['r']['s']| 9");
     }
 
     @Test
@@ -408,21 +401,19 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t' order by ordinal_position");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            """
-            tb| 1
-            p| 2
-            tb['t1']| 3
-            tb['t1']['t3']| 4
-            tb['t1']['t3']['t4']| 5
-            tb['t1']['t3']['t4']['t5']| 6
-            tb['t1']['t6']| 7
-            tb['t2']| 8
-            o| 9
-            o['a']| 10
-            o['a']['b']| 11
-            o['b']| 12
-            """);
+        assertThat(response).hasRows(
+            "tb| 1",
+            "p| 2",
+            "tb['t1']| 3",
+            "tb['t1']['t3']| 4",
+            "tb['t1']['t3']['t4']| 5",
+            "tb['t1']['t3']['t4']['t5']| 6",
+            "tb['t1']['t6']| 7",
+            "tb['t2']| 8",
+            "o| 9",
+            "o['a']| 10",
+            "o['a']['b']| 11",
+            "o['b']| 12");
     }
 
     private static void collectOID(@Nullable Map<String, Map<String, Object>> propertiesMap, Set<Long> oids) {
