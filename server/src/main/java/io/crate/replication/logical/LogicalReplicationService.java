@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.elasticsearch.action.ActionListener;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
@@ -249,7 +250,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     }
 
     public void verifyTablesDoNotExist(String subscriptionName,
-                                       PublicationsStateAction.Response stateResponse) {
+                                       PublicationsStateAction.Response stateResponse,
+                                       ActionListener<AcknowledgedResponse> listener) {
         var metadata = clusterService.state().metadata();
         Consumer<RelationName> onExists = (relation) -> {
             var message = String.format(
@@ -258,7 +260,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                 subscriptionName,
                 relation
             );
-            throw new RelationAlreadyExists(relation, message);
+            listener.onFailure(new RelationAlreadyExists(relation, message));
         };
         for (var index : stateResponse.concreteIndices()) {
             if (metadata.hasIndex(index)) {

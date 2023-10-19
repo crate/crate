@@ -111,7 +111,7 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                 (response, err) -> {
                     if (err == null) {
                         if (response.unknownPublications().isEmpty() == false) {
-                            throw new PublicationUnknownException(response.unknownPublications().get(0));
+                            listener.onFailure(new PublicationUnknownException(response.unknownPublications().get(0)));
                         }
 
                         // Published tables can have metadata or documents which subscriber with a lower version might not process.
@@ -123,7 +123,8 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                                 checkVersionCompatibility(
                                     relationMetadata.name().fqn(),
                                     state.nodes().getMinNodeVersion(),
-                                    relationMetadata.template().settings()
+                                    relationMetadata.template().settings(),
+                                    listener
                                 );
                             }
                             if (!relationMetadata.indices().isEmpty()) {
@@ -132,12 +133,13 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                                 checkVersionCompatibility(
                                     relationMetadata.name().fqn(),
                                     state.nodes().getMinNodeVersion(),
-                                    indexMetadata.getSettings()
+                                    indexMetadata.getSettings(),
+                                    listener
                                 );
                             }
                         }
 
-                        logicalReplicationService.verifyTablesDoNotExist(request.name(), response);
+                        logicalReplicationService.verifyTablesDoNotExist(request.name(), response, listener);
                         submitClusterStateTask(request, response, listener);
                     } else {
                         listener.onFailure(Exceptions.toException(err));
@@ -146,18 +148,21 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
             );
     }
 
-    private static void checkVersionCompatibility(String tableFqn, Version subscriberMinNodeVersion, Settings settings) {
+    private static void checkVersionCompatibility(String tableFqn,
+                                                  Version subscriberMinNodeVersion,
+                                                  Settings settings,
+                                                  ActionListener<AcknowledgedResponse> listener) {
         Version publishedTableVersion = settings.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, null);
         assert publishedTableVersion != null : "All published tables must have version created setting";
         if (subscriberMinNodeVersion.beforeMajorMinor(publishedTableVersion)) {
-            throw new IllegalStateException(String.format(
+            listener.onFailure(new IllegalStateException(String.format(
                 Locale.ENGLISH,
                 "One of the published tables has version higher than subscriber's minimal node version." +
                 " Table=%s, Table-Version=%s, Local-Minimal-Version: %s",
                 tableFqn,
                 publishedTableVersion,
                 subscriberMinNodeVersion
-            ));
+            )));
         }
     }
 
