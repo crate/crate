@@ -25,7 +25,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -184,6 +183,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Cannot cast object element `created` with value `true` to type `timestamp with time zone`");
+
+        waitNoPendingTasksOnAll();
     }
 
     @Test
@@ -307,7 +308,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
                     });
         refresh();
 
-        waitForMappingUpdateOnAll("t1", "new_col");
+        // Need to go through all new leafs as waiting on top-level can be resolved if at least one of the root->child is succeeded.
+        waitForMappingUpdateOnAll("t1", "new_col.a_date", "new_col.an_int", "new_col.a_long", "new_col.a_boolean");
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>) response.rows()[0][1];
@@ -347,6 +349,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Cannot add column `another_new_col` to strict object `strict_field`");
+
+        waitNoPendingTasksOnAll();
     }
 
     @Test
@@ -482,11 +486,12 @@ public class SQLTypeMappingTest extends IntegTestCase {
 
     // https://github.com/crate/crate/issues/13990
     @Test
-    public void test_dynamic_null_array_get_by_pk() {
+    public void test_dynamic_null_array_get_by_pk() throws Exception {
         execute("create table t (a int primary key, o object(dynamic))");
         execute("insert into t (a, o) values (1, {x={y=[]}})");
         execute("insert into t (a, o) values (2, {x={y={}}})");
         execute("refresh table t");
+        waitForMappingUpdateOnAll("t", "o.x.y");
         execute("select * from t where a = 1");
         assertThat(response).hasRows("1| {x={y=NULL}}");
         execute("select * from t where a = 2");
