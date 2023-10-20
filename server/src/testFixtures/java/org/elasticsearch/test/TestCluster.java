@@ -2373,6 +2373,11 @@ public final class TestCluster implements Closeable {
     private void assertRequestsFinished() {
         assert Thread.holdsLock(this);
         for (NodeAndClient nodeAndClient : nodes.values()) {
+            DiscoveryNode discoveryNode = getInstanceFromNode(ClusterService.class, nodeAndClient.node()).localNode();
+            TasksService tasksService = getInstanceFromNode(TasksService.class, nodeAndClient.node());
+            String pendingTasks = tasksService.getJobIdsByParticipatingNodes(discoveryNode.getId())
+                .map(uuid -> tasksService.getTask(uuid).toString())
+                .collect(Collectors.joining(",", "[", "]"));
             CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
                 .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
             try {
@@ -2381,9 +2386,10 @@ public final class TestCluster implements Closeable {
                     // ensure that our size accounting on transport level is reset properly
                     long bytesUsed = inFlightRequestsBreaker.getUsed();
                     assertThat(bytesUsed)
-                        .as("All incoming requests on node [" + nodeAndClient.name + "] should have finished")
+                        .as("All incoming requests on node [" + nodeAndClient.name + "] should have finished. " +
+                            "Expected 0 but got " + bytesUsed + "; pending tasks [" + pendingTasks + "]")
                         .isEqualTo(0L);
-                });
+                }, 1, TimeUnit.MINUTES);
             } catch (Exception e) {
                 logger.error("Could not assert finished requests within timeout", e);
                 fail("Could not assert finished requests within timeout on node [" + nodeAndClient.name + "]");
