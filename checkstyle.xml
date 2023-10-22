@@ -56,9 +56,6 @@
         <property name="eachLine" value="true"/>
     </module>
 
-    <module name="SuppressionFilter">
-        <property name="file" value="checkstyle-suppressions.xml" default="checkstyle-suppressions.xml"/>
-    </module>
     <module name="SuppressWarningsFilter"/>
 
     <module name="TreeWalker">
