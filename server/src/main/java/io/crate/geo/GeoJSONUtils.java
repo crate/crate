@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -146,24 +147,30 @@ public class GeoJSONUtils {
         return shape2Map(wkt2Shape(wkt));
     }
 
+    public static Shape map2Shape(Map<String, Object> geoJSONMap) {
+        return geoJSONString2ShapeBuilder(geoJSONMap).buildS4J();
+    }
+
+    public static Object map2LuceneShape(Map<String, Object> geoJSONMap) {
+        return geoJSONString2ShapeBuilder(geoJSONMap).buildLucene();
+    }
+
     /*
      * TODO: avoid parsing to XContent and back to shape
      */
-    public static Shape map2Shape(Map<String, Object> geoJSONMap) {
+    private static ShapeBuilder geoJSONString2ShapeBuilder(Map<String, Object> geoJSONMap) {
+        String geoJSON;
         try {
-            return geoJSONString2Shape(Strings.toString(JsonXContent.builder().map(geoJSONMap)));
+            geoJSON = Strings.toString(JsonXContent.builder().map(geoJSONMap));;
         } catch (Throwable e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert Map \"%s\" to shape", geoJSONMap), e);
         }
-    }
-
-    private static Shape geoJSONString2Shape(String geoJSON) {
         try {
             XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, geoJSON);
             parser.nextToken();
-            return ShapeParser.parse(parser).buildS4J();
+            return ShapeParser.parse(parser);
         } catch (Throwable t) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert GeoJSON \"%s\" to shape", geoJSON), t);

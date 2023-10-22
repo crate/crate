@@ -182,6 +182,11 @@ spatial relation we want to match. Available ``match_types`` are:
        WHERE match(t1.shape, 'POINT(1.1 2.2)')
           OR match(t2.shape, 'POINT(3.3 4.4)')``
 
+.. CAUTION::
+
+    The ``within`` match type does not support ``LineString`` and ``MultiLineString``
+    geo shapes provided as ``query_term`` for columns indexed using ``bkdtree``.
+
 Having a table ``countries`` with a ``GEO_SHAPE`` column ``geo``, indexed using
 ``geohash``, you can query that column using the ``MATCH`` predicate with
 different match types as described above::

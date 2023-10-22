@@ -24,6 +24,8 @@ package io.crate.lucene;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.apache.lucene.document.ShapeField;
+import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
 import org.junit.Test;
@@ -31,9 +33,17 @@ import org.junit.Test;
 public class WithinQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
-    public void testGeoShapeMatchWithin() throws Exception {
+    public void test_prefix_tree_backed_geo_shape_match_within() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within");
         assertThat(query).isExactlyInstanceOf(WithinPrefixTreeQuery.class);
+    }
+
+    @Test
+    public void test_bkd_tree_backed_geo_shape_match_within() {
+        Query query = convert("match(bkd_shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within");
+        assertThat(query).isExactlyInstanceOf(ConstantScoreQuery.class);
+        Query bkdQuery = ((ConstantScoreQuery) query).getQuery();
+        assertThat(bkdQuery).extracting("queryRelation").isEqualTo(ShapeField.QueryRelation.WITHIN);
     }
 
     @Test

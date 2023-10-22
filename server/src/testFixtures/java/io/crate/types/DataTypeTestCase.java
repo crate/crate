@@ -21,18 +21,17 @@
 
 package io.crate.types;
 
+import static io.crate.execution.dml.IndexerTest.getIndexer;
+import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -41,11 +40,8 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -53,7 +49,7 @@ import org.elasticsearch.index.mapper.SourceToParse;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.execution.dml.ValueIndexer;
+import io.crate.execution.dml.Indexer;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -97,47 +93,21 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             T value = dataGenerator.get();
 
             MapperService mapperService = indexEnv.mapperService();
-            ValueIndexer<? super T> valueIndexer = storageSupport.valueIndexer(
-                table.ident(),
-                reference,
-                mapperService::getLuceneFieldType,
-                table::getReference
-            );
 
+            Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), mapperService::getLuceneFieldType, "x");
+            ParsedDocument doc = indexer.index(item(value));
             IndexWriter writer = indexEnv.writer();
-            try (XContentBuilder xContentBuilder = XContentFactory.json(new BytesStreamOutput())) {
-                List<IndexableField> fields = new ArrayList<>();
-                xContentBuilder.startObject();
-                valueIndexer.indexValue(
-                    value,
-                    reference.storageIdent(),
-                    xContentBuilder,
-                    fields::add,
-                    Map.of(),
-                    Map.of()
-                );
-                xContentBuilder.endObject();
-                writer.addDocument(fields);
-                writer.commit();
+            writer.addDocument(doc.doc().getFields());
+            writer.commit();
 
-                // going through the document mapper must create the same fields
-                String id = "1";
-                ParsedDocument parsedDocument = mapperService.documentMapper().parse(new SourceToParse(
-                    table.ident().indexNameOrAlias(),
-                    id,
-                    BytesReference.bytes(xContentBuilder),
-                    XContentType.JSON
-                ));
-                IndexableField[] fieldsFromMapper = parsedDocument.doc().getFields(reference.storageIdent());
-                assertThat(fieldsFromMapper).hasSize(fields.size());
-                for (int i = 0; i < fields.size(); i++) {
-                    var field1 = fields.get(i);
-                    var field2 = fieldsFromMapper[i];
-                    assertThat(field1.binaryValue()).isEqualTo(field2.binaryValue());
-                    assertThat(field1.stringValue()).isEqualTo(field2.stringValue());
-                    assertThat(field1.numericValue()).isEqualTo(field2.numericValue());
-                }
-            }
+            // going through the document mapper must create the same fields
+            ParsedDocument parsedDocument = mapperService.documentMapper().parse(new SourceToParse(
+                table.ident().indexNameOrAlias(),
+                doc.id(),
+                doc.source(),
+                XContentType.JSON
+            ));
+            assertThat(parsedDocument).hasSameFieldsWithNameAs(doc, reference.storageIdent());
 
             LuceneReferenceResolver luceneReferenceResolver = indexEnv.luceneReferenceResolver();
             LuceneCollectorExpression<?> docValueImpl = luceneReferenceResolver.getImplementation(reference);

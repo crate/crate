@@ -19,18 +19,16 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -49,7 +47,10 @@ import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.shape.Shape;
+
+import io.crate.geo.LatLonShapeUtils;
 
 /**
  * FieldMapper for indexing {@link org.locationtech.spatial4j.shape.Shape}s.
@@ -85,6 +86,8 @@ public class GeoShapeFieldMapper extends FieldMapper {
         public static final String TREE = "tree";
         public static final String TREE_GEOHASH = "geohash";
         public static final String TREE_QUADTREE = "quadtree";
+        public static final String TREE_LEGACY_QUADTREE = "legacyquadtree";
+        public static final String TREE_BKD = "bkdtree";
         public static final String TREE_LEVELS = "tree_levels";
         public static final String TREE_PRESISION = "precision";
         public static final String DISTANCE_ERROR_PCT = "distance_error_pct";
@@ -328,27 +331,36 @@ public class GeoShapeFieldMapper extends FieldMapper {
     @SuppressWarnings("rawtypes")
     public void parse(ParseContext context) throws IOException {
         try {
-            Shape shape;
             ShapeBuilder shapeBuilder = ShapeParser.parse(context.parser(), this);
             if (shapeBuilder == null) {
                 return;
             }
-            shape = shapeBuilder.buildS4J();
-            indexShape(context, shape);
+            indexShape(context, shapeBuilder);
         } catch (Exception e) {
             throw new MapperParsingException("failed to parse field [{}] of type [{}]", e, fieldType().name(),
                     fieldType().typeName());
         }
     }
 
-    private void indexShape(ParseContext context, Shape shape) {
+    private void indexShape(ParseContext context, ShapeBuilder shapeBuilder) {
         Document doc = context.doc();
-        Field[] indexableFields = fieldType().defaultStrategy().createIndexableFields(shape);
-        for (var field : indexableFields) {
-            doc.add(field);
-        }
         Consumer<IndexableField> addField = doc::add;
+        createIndexableFields(shapeBuilder, addField);
         createFieldNamesField(context, addField);
+    }
+
+    private void createIndexableFields(ShapeBuilder shapeBuilder, Consumer<IndexableField> addField) {
+        GeoShapeFieldType geoShapeFieldType = fieldType();
+        if (Names.TREE_BKD.equals(geoShapeFieldType.tree())) {
+            Object shape = shapeBuilder.buildLucene();
+            LatLonShapeUtils.createIndexableFields(name(), shape, addField);
+        } else {
+            Shape shape = shapeBuilder.buildS4J();
+            Field[] indexableFields = geoShapeFieldType.defaultStrategy().createIndexableFields(shape);
+            for (var field : indexableFields) {
+                addField.accept(field);
+            }
+        }
     }
 
     @Override

@@ -21,6 +21,8 @@ package org.elasticsearch.common.geo;
 
 import java.util.Locale;
 
+import org.apache.lucene.document.ShapeField;
+
 /**
  * Enum representing the relationship between a Query / Filter Shape and indexed Shapes
  * that will be used to determine if a Document should be matched or not
@@ -46,6 +48,16 @@ public enum ShapeRelation {
             }
         }
         return null;
+    }
+
+    /** Maps ShapeRelation to Lucene's LatLonShapeRelation */
+    public ShapeField.QueryRelation getLuceneRelation() {
+        return switch (this) {
+            case INTERSECTS -> ShapeField.QueryRelation.INTERSECTS;
+            case DISJOINT -> ShapeField.QueryRelation.DISJOINT;
+            case WITHIN -> ShapeField.QueryRelation.WITHIN;
+            case CONTAINS -> ShapeField.QueryRelation.CONTAINS;
+        };
     }
 
     public String getRelationName() {
