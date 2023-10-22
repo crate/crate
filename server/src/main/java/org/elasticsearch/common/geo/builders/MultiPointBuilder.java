@@ -66,12 +66,11 @@ public class MultiPointBuilder extends ShapeBuilder<XShapeCollection<Point>, Mul
     }
 
     @Override
-    public double[][] buildLucene() {
-        double[][] points = new double[coordinates.size()][];
-        Coordinate coord;
+    public org.apache.lucene.geo.Point[] buildLucene() {
+        org.apache.lucene.geo.Point[] points = new org.apache.lucene.geo.Point[coordinates.size()];
         for (int i = 0; i < coordinates.size(); ++i) {
-            coord = coordinates.get(i);
-            points[i] = new double[] {coord.x, coord.y};
+            Coordinate coord = coordinates.get(i);
+            points[i] = new org.apache.lucene.geo.Point(coord.y, coord.x);
         }
         return points;
     }

@@ -22,22 +22,16 @@
 package io.crate.metadata;
 
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
+import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_GEOHASH;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongSupplier;
 
-import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
-import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
-import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
-import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
-import org.elasticsearch.common.geo.GeoUtils;
-import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.unit.DistanceUnit;
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
@@ -47,8 +41,6 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
 public class GeoReference extends SimpleReference {
-
-    private static final String DEFAULT_TREE = "geohash";
 
     private final String geoTree;
 
@@ -86,7 +78,12 @@ public class GeoReference extends SimpleReference {
             isDropped,
             defaultExpression
         );
-        this.geoTree = Objects.requireNonNullElse(geoTree, DEFAULT_TREE);
+        this.geoTree = Objects.requireNonNullElse(geoTree, TREE_GEOHASH);
+        if (TREE_BKD.equals(this.geoTree) && (precision != null || treeLevels != null || distanceErrorPct != null)) {
+            throw new IllegalArgumentException(
+                "The parameters precision, tree_levels, and distance_error_pct are not applicable to BKD tree indexes."
+            );
+        }
         this.precision = precision;
         this.treeLevels = treeLevels;
         this.distanceErrorPct = distanceErrorPct;
@@ -214,42 +211,5 @@ public class GeoReference extends SimpleReference {
             mapping.put("distance_error_pct", distanceErrorPct.floatValue());
         }
         return mapping;
-    }
-
-    int levels(double precisionInMeters, int defaultLevels, boolean geoHash) {
-        int treeLevels = this.treeLevels == null ? 0 : this.treeLevels;
-        if (treeLevels > 0 || precisionInMeters >= 0) {
-            int levels = geoHash
-                ? GeoUtils.geoHashLevelsForPrecision(precisionInMeters)
-                : GeoUtils.quadTreeLevelsForPrecision(precisionInMeters);
-            return Math.max(treeLevels, precisionInMeters >= 0 ? levels : 0);
-        }
-        return defaultLevels;
-    }
-
-    public SpatialPrefixTree prefixTree() {
-        double precisionInMeters = precision == null ? -1 : DistanceUnit.parse(
-            precision,
-            DistanceUnit.DEFAULT,
-            DistanceUnit.METERS
-        );
-        return switch (geoTree) {
-            case "geohash" -> new GeohashPrefixTree(
-                ShapeBuilder.SPATIAL_CONTEXT,
-                levels(precisionInMeters, GeoShapeFieldMapper.Defaults.GEOHASH_LEVELS, true)
-            );
-
-            case "legacyquadtree" -> new QuadPrefixTree(
-                ShapeBuilder.SPATIAL_CONTEXT,
-                levels(precisionInMeters, GeoShapeFieldMapper.Defaults.QUADTREE_LEVELS, false)
-            );
-
-            case "quadtree" -> new PackedQuadPrefixTree(
-                ShapeBuilder.SPATIAL_CONTEXT,
-                levels(precisionInMeters, GeoShapeFieldMapper.Defaults.QUADTREE_LEVELS, false)
-            );
-
-            default -> throw new IllegalArgumentException("Unknown prefix tree type: " + geoTree);
-        };
     }
 }

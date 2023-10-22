@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -73,8 +72,8 @@ public class PointBuilder extends ShapeBuilder<Point, PointBuilder> {
     }
 
     @Override
-    public GeoPoint buildLucene() {
-        return new GeoPoint(coordinates.get(0).y, coordinates.get(0).x);
+    public org.apache.lucene.geo.Point buildLucene() {
+        return new org.apache.lucene.geo.Point(coordinates.get(0).y, coordinates.get(0).x);
     }
 
     @Override

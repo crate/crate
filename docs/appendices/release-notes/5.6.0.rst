@@ -75,7 +75,7 @@ SQL Standard and PostgreSQL Compatibility
 Data Types
 ----------
 
-None
+- Introduced the BKD-tree-based indexing strategy for :ref:`geo_shape <data-types-geo-shape>`.
 
 Scalar and Aggregation Functions
 --------------------------------

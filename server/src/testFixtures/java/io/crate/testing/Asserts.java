@@ -30,6 +30,7 @@ import org.assertj.core.api.Condition;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.mapper.ParsedDocument;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -104,6 +105,10 @@ public class Asserts extends Assertions {
 
     public static JoinPairAssert assertThat(JoinPair actual) {
         return new JoinPairAssert(actual);
+    }
+
+    public static ParsedDocumentAssert assertThat(ParsedDocument actual) {
+        return new ParsedDocumentAssert(actual);
     }
 
     // generic helper methods

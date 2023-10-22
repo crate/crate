@@ -21,6 +21,9 @@
 
 package io.crate.expression.predicate;
 
+import static io.crate.geo.LatLonShapeUtils.newLatLonShapeQuery;
+import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -201,16 +204,34 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
 
     @SuppressWarnings("unchecked")
     private Query geoMatch(LuceneQueryBuilder.Context context, List<Symbol> arguments, Object queryTerm) {
-
         Map<String, Object> fields = (Map<String, Object>) ((Literal<?>) arguments.get(0)).value();
         String fieldName = fields.keySet().iterator().next();
         MappedFieldType fieldType = context.queryShardContext().getMapperService().fieldType(fieldName);
         GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
-        String matchType = (String) ((Input<?>) arguments.get(2)).value();
-        Shape shape = GeoJSONUtils.map2Shape((Map<String, Object>) queryTerm);
 
+        String matchType = (String) ((Input<?>) arguments.get(2)).value();
         ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
         assert relation != null : "invalid matchType: " + matchType;
+
+        Map<String, Object> geoJSONMap = (Map<String, Object>) queryTerm;
+        String tree = geoShapeFieldType.tree();
+
+        if (TREE_BKD.equals(tree)) {
+            return bkdTreeQuery(fieldName, relation, geoJSONMap);
+        }
+        return prefixTreeQuery(fieldName, geoShapeFieldType, relation, geoJSONMap);
+    }
+
+    private static Query bkdTreeQuery(String fieldName, ShapeRelation relation, Map<String, Object> geoJSONMap) {
+        Object shape = GeoJSONUtils.map2LuceneShape(geoJSONMap);
+        return new ConstantScoreQuery(newLatLonShapeQuery(fieldName, relation.getLuceneRelation(), shape));
+    }
+
+    private static Query prefixTreeQuery(String fieldName,
+                                         GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType,
+                                         ShapeRelation relation,
+                                         Map<String, Object> geoJSONMap) {
+        Shape shape = GeoJSONUtils.map2Shape(geoJSONMap);
 
         PrefixTreeStrategy prefixTreeStrategy = geoShapeFieldType.defaultStrategy();
         if (relation == ShapeRelation.DISJOINT) {
@@ -234,7 +255,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         return prefixTreeStrategy.makeQuery(spatialArgs);
     }
 
-    private SpatialArgs getArgs(Shape shape, ShapeRelation relation) {
+    private static SpatialArgs getArgs(Shape shape, ShapeRelation relation) {
         switch (relation) {
             case INTERSECTS:
                 return new SpatialArgs(SpatialOperation.Intersects, shape);
@@ -247,7 +268,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         }
     }
 
-    private AssertionError invalidMatchType(String matchType) {
+    private static AssertionError invalidMatchType(String matchType) {
         throw new AssertionError(String.format(Locale.ENGLISH,
             "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
     }

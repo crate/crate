@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.document.ShapeField;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -314,13 +315,21 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
      */
 
     @Test
-    public void testGeoShapeMatchWithDefaultMatchType() throws Exception {
+    public void test_prefix_tree_backed_geo_shape_match_with_default_match_type() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
         assertThat(query).isExactlyInstanceOf(IntersectsPrefixTreeQuery.class);
     }
 
     @Test
-    public void testGeoShapeMatchDisJoint() throws Exception {
+    public void test_bkd_tree_backed_geo_shape_match_with_default_match_type() {
+        Query query = convert("match(bkd_shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
+        assertThat(query).isExactlyInstanceOf(ConstantScoreQuery.class);
+        Query bkdQuery = ((ConstantScoreQuery) query).getQuery();
+        assertThat(bkdQuery).extracting("queryRelation").isEqualTo(ShapeField.QueryRelation.INTERSECTS);
+    }
+
+    @Test
+    public void test_prefix_tree_backed_geo_shape_match_disjoint() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using disjoint");
         assertThat(query).isExactlyInstanceOf(ConstantScoreQuery.class);
         Query booleanQuery = ((ConstantScoreQuery) query).getQuery();
@@ -331,6 +340,14 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         assertThat(existsClause.getQuery()).isExactlyInstanceOf(TermRangeQuery.class);
         assertThat(intersectsClause.getQuery()).isExactlyInstanceOf(IntersectsPrefixTreeQuery.class);
+    }
+
+    @Test
+    public void test_bkd_tree_backed_geo_shape_match_disjoint() {
+        Query query = convert("match(bkd_shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using disjoint");
+        assertThat(query).isExactlyInstanceOf(ConstantScoreQuery.class);
+        Query bkdQuery = ((ConstantScoreQuery) query).getQuery();
+        assertThat(bkdQuery).extracting("queryRelation").isEqualTo(ShapeField.QueryRelation.DISJOINT);
     }
 
     @Test
