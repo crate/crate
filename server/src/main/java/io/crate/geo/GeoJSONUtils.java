@@ -163,7 +163,7 @@ public class GeoJSONUtils {
             XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, geoJSON);
             parser.nextToken();
-            return ShapeParser.parse(parser).build();
+            return ShapeParser.parse(parser).buildS4J();
         } catch (Throwable t) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert GeoJSON \"%s\" to shape", geoJSON), t);

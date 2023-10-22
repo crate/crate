@@ -135,7 +135,37 @@ public class GeoUtils {
      * @return The normalized longitude.
      */
     public static double normalizeLon(double lon) {
-        return centeredModulus(lon, 360);
+        if (lon > 180d || lon <= -180d) {
+            lon = centeredModulus(lon, 360);
+        }
+        // avoid -0.0
+        return lon + 0d;
+    }
+
+    /**
+     * Normalize latitude to lie within the -90 to 90 (both inclusive) range.
+     * <p>
+     * Note: You should not normalize longitude and latitude separately,
+     * because when normalizing latitude it may be necessary to
+     * add a shift of 180&deg; in the longitude.
+     * For this purpose, you should call the
+     * {@link #normalizePoint(GeoPoint)} function.
+     *
+     * @param lat Latitude to normalize
+     * @return The normalized latitude.
+     * @see #normalizePoint(GeoPoint)
+     */
+    public static double normalizeLat(double lat) {
+        if (lat > 90d || lat < -90d) {
+            lat = centeredModulus(lat, 360);
+            if (lat < -90) {
+                lat = -180 - lat;
+            } else if (lat > 90) {
+                lat = 180 - lat;
+            }
+        }
+        // avoid -0.0
+        return lat + 0d;
     }
 
     /**

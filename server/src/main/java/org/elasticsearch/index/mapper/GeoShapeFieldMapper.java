@@ -333,7 +333,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
             if (shapeBuilder == null) {
                 return;
             }
-            shape = shapeBuilder.build();
+            shape = shapeBuilder.buildS4J();
             indexShape(context, shape);
         } catch (Exception e) {
             throw new MapperParsingException("failed to parse field [{}] of type [{}]", e, fieldType().name(),
