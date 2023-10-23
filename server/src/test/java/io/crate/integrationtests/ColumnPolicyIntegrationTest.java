@@ -27,7 +27,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -141,7 +140,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into dynamic_table (id, name, boo) values (2, 'Trillian', true)");
         execute("refresh table dynamic_table");
 
-        waitForMappingUpdateOnAll("dynamic_table", "boo");
         execute("select * from dynamic_table order by id");
         assertThat(response).hasColumns("id", "name", "boo");
         assertThat(response).hasRows(
@@ -158,7 +156,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into dynamic_table (new, meta) values(['a', 'b', 'c'], 'hello')");
         execute("insert into dynamic_table (new) values(['d', 'e', 'f'])");
-        waitForMappingUpdateOnAll("dynamic_table", "new", "meta");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(getByPath(sourceMap, "properties.new.type")).isEqualTo("array");
         assertThat(getByPath(sourceMap, "properties.new.inner.type")).isEqualTo("keyword");
@@ -172,7 +169,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into dynamic_table (person) values " +
                 "({name='Ford', addresses=[{city='West Country', country='GB'}]})");
         refresh();
-        waitForMappingUpdateOnAll("dynamic_table", "person.name");
 
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(getByPath(sourceMap, "properties.person.properties.addresses.type")).isEqualTo("array");
@@ -200,7 +196,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table dynamic_table");
         execute("insert into dynamic_table (new) values({nest={}, new={}})");
 
-        waitForMappingUpdateOnAll("dynamic_table", "new");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(getByPath(sourceMap, "properties.new.properties.a.type")).isEqualTo("array");
         assertThat(getByPath(sourceMap, "properties.new.properties.a.inner.type")).isEqualTo("keyword");
@@ -220,7 +215,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into c.dynamic_table (meta) values({meta={a=['a','b']}})");
         execute("refresh table c.dynamic_table");
         execute("insert into c.dynamic_table (meta) values({meta={a=['c','d']}})");
-        waitForMappingUpdateOnAll(new RelationName("c", "dynamic_table"), "meta.meta.a");
         Map<String, Object> sourceMap = getSourceMap("c", "dynamic_table");
         assertThat(getByPath(sourceMap, "properties.meta.properties.meta.properties.a.type")).isEqualTo("array");
         assertThat(getByPath(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")).isEqualTo("keyword");
@@ -236,7 +230,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into dynamic_table (my_object) values ({a=['a','b']}),({b=['a']})");
         execute("refresh table dynamic_table");
 
-        waitForMappingUpdateOnAll("dynamic_table", "my_object.a", "my_object.b");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(getByPath(sourceMap, "properties.my_object.properties.a.type")).isEqualTo("array");
         assertThat(getByPath(sourceMap, "properties.my_object.properties.a.inner.type")).isEqualTo("keyword");
@@ -290,7 +283,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("update dynamic_table set name='Trillian', boo=true where name='Ford'");
         execute("refresh table dynamic_table");
 
-        waitForMappingUpdateOnAll("dynamic_table", "boo");
         execute("select * from dynamic_table");
         assertThat(response)
             .hasColumns("id", "name", "boo")
@@ -315,7 +307,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into dynamic_table (id, score, good) values (2, -0.01, false)");
         execute("refresh table dynamic_table");
 
-        waitForMappingUpdateOnAll("dynamic_table", "good");
         execute("select * from dynamic_table order by id");
         assertThat(response).hasColumns("id", "score", "good");
         assertThat(response).hasRows(
@@ -342,7 +333,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("update dynamic_table set name='Trillian', good=true where score > 0.0");
         execute("refresh table dynamic_table");
 
-        waitForMappingUpdateOnAll("dynamic_table", "name");
         execute("select * from dynamic_table");
         assertThat(response)
             .hasColumns("id", "score", "name", "good")
@@ -459,7 +449,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("refresh table numbers");
 
-        waitForMappingUpdateOnAll("numbers", "perfect");
         execute("select * from numbers order by num");
         assertThat(response).hasColumns("num", "odd", "prime", "perfect");
         assertThat(response).hasRows(
@@ -470,7 +459,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
         assertThat(response).hasRowCount(1);
 
-        waitForMappingUpdateOnAll("numbers", "changed");
     }
 
     @Test

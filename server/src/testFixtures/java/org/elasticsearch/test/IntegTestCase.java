@@ -1915,20 +1915,6 @@ public abstract class IntegTestCase extends ESTestCase {
         return Strings.toString(builder);
     }
 
-    public void waitForMappingUpdateOnAll(final RelationName relationName, final String... fieldNames) throws Exception {
-        assertBusy(() -> {
-            Iterable<Schemas> referenceInfosIterable = cluster().getInstances(Schemas.class);
-            for (Schemas schemas : referenceInfosIterable) {
-                TableInfo tableInfo = schemas.getTableInfo(relationName);
-                assertThat(tableInfo).isNotNull();
-                for (String fieldName : fieldNames) {
-                    ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
-                    assertThat(tableInfo.getReference(columnIdent)).isNotNull();
-                }
-            }
-        }, 20L, TimeUnit.SECONDS);
-    }
-
     public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType<?>> argTypes) throws Exception {
         SearchPath searchPath = SearchPath.pathWithPGCatalogAndDoc();
         assertBusy(() -> {
@@ -1965,10 +1951,6 @@ public abstract class IntegTestCase extends ESTestCase {
 
             }
         }, 20L, TimeUnit.SECONDS);
-    }
-
-    public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(new RelationName(sqlExecutor.getCurrentSchema(), tableOrPartition), fieldNames);
     }
 
     /**

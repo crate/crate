@@ -914,7 +914,6 @@ public class InformationSchemaTest extends IntegTestCase {
                 "last_name", "Adams")});
         execute("refresh table t4");
 
-        waitForMappingUpdateOnAll("t4", "stuff.first_name", "stuff.middle_name", "stuff.last_name");
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertThat(response.rowCount()).isEqualTo(5);
     }
@@ -1155,7 +1154,6 @@ public class InformationSchemaTest extends IntegTestCase {
         };
         execute(stmtInsert, argsInsert);
         assertThat(response.rowCount()).isEqualTo(1L);
-        waitForMappingUpdateOnAll("data_points", "data.somestringroute");
         refresh();
 
         String stmtIsColumns = "select table_name, column_name, data_type " +

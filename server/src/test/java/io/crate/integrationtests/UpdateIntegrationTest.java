@@ -274,7 +274,6 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         refresh();
 
-        waitForMappingUpdateOnAll("test", "coolness.x");
         execute("select coolness['x'], coolness['y'] from test");
         assertThat(response).hasRowCount(1);
         assertThat(response.rows()[0][0]).isEqualTo("3");
@@ -516,7 +515,6 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         refresh();
 
-        waitForMappingUpdateOnAll("test", "coolness.x");
         execute("select coolness['y'], coolness['x'] from test");
         assertThat(response).hasRowCount(1);
         assertThat(response.rows()[0][0]).isEqualTo(new_map);

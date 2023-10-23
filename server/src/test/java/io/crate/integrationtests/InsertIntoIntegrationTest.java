@@ -1365,7 +1365,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into dyn_ts (id, ts) values (0, '2015-01-01')");
         refresh();
-        waitForMappingUpdateOnAll("dyn_ts", "ts");
         execute("insert into dyn_ts (id, ts) values (1, '2015-02-01')");
         // string is not converted to timestamp
         execute("select data_type from information_schema.columns where table_name='dyn_ts' and column_name='ts'");

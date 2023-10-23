@@ -1139,7 +1139,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             });
         ensureYellow();
         refresh();
-        waitForMappingUpdateOnAll("quotes", "author.surname");
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
         assertEquals(6L, response.rowCount());
@@ -1888,7 +1887,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("refresh table event");
-        waitForMappingUpdateOnAll("event", "data.sessionid");
         execute("select data['sessionid'] from event group by data['sessionid'] " +
                 "order by format('%s', data['sessionid'])");
         assertThat(response.rows().length, Is.is(2));
@@ -1909,7 +1907,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("insert into event (day, data) values ('2015-02-08', {sessionid = 'ciao'})");
         execute("refresh table event");
-        waitForMappingUpdateOnAll("event", "data.sessionid");
         execute("select data['sessionid'] from event where " +
                 "format('%s', data['sessionid']) = 'ciao' order by data['sessionid']");
         assertThat(response.rows().length, Is.is(1));
@@ -1930,7 +1927,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, data, number) values ('2015-01-01', {sessionid = 'hello'}, 42)");
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
         execute("refresh table event");
-        waitForMappingUpdateOnAll("event", "data.sessionid");
         execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls first");
         assertThat(printedTable(response.rows()), is(
             "NULL\n" +
@@ -1971,7 +1967,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
         execute("insert into event (day, number) values ('2015-03-08', 84)");
         execute("refresh table event");
-        waitForMappingUpdateOnAll("event", "data.sessionid");
 
         execute("select data " +
                 "from event " +
@@ -2005,7 +2000,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, sessionid) values ('2015-01-01', 'hello')");
         execute("refresh table event");
 
-        waitForMappingUpdateOnAll("event", "sessionid");
         execute("select sessionid from event group by sessionid order by sessionid");
         assertThat(response.rows().length, Is.is(2));
         assertThat((String) response.rows()[0][0], Is.is("hello"));
