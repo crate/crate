@@ -101,6 +101,8 @@ SQL Standard and PostgreSQL Compatibility
 
 - Added support for :ref:`INTERVAL <type-interval>` multiplication by integers.
 
+- Added an empty ``pg_catalog.pg_event_trigger`` table.
+
 Data Types
 ----------
 

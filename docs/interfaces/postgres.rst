@@ -182,6 +182,7 @@ following tables:
  - `pg_tablespace`_
  - `pg_type`_
  - `pg_views`_
+ - `pg_event_trigger`_
 
 
 .. _postgres-pg_type:
@@ -534,6 +535,7 @@ CrateDB and we love to hear feedback.
 .. _pg_views: https://www.postgresql.org/docs/14/view-pg-views.html
 .. _pg_shdescription: https://www.postgresql.org/docs/14/catalog-pg-shdescription.html
 .. _pg_stats: https://www.postgresql.org/docs/14/view-pg-stats.html
+.. _pg_event_trigger: https://www.postgresql.org/docs/current/catalog-pg-event-trigger.html
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc
 .. _pgsql_pg_attrdef: https://www.postgresql.org/docs/14/static/catalog-pg-attrdef.html
 .. _pgsql_pg_attribute: https://www.postgresql.org/docs/14/static/catalog-pg-attribute.html

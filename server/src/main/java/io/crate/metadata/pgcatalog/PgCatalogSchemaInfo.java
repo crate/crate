@@ -25,12 +25,11 @@ package io.crate.metadata.pgcatalog;
 import java.util.Collections;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -83,7 +82,8 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
             Map.entry(PgSubscriptionRelTable.IDENT.name(), PgSubscriptionRelTable.create()),
             Map.entry(PgTablesTable.IDENT.name(), PgTablesTable.create()),
             Map.entry(PgViewsTable.IDENT.name(), PgViewsTable.create()),
-            Map.entry(PgCursors.IDENT.name(), PgCursors.create())
+            Map.entry(PgCursors.IDENT.name(), PgCursors.create()),
+            Map.entry(PgEventTrigger.NAME.name(), PgEventTrigger.create())
         );
     }
 
