@@ -144,11 +144,11 @@ public class JoinPlanBuilder {
             );
             joinNames.add(nextRel.relationName());
         }
+        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
         if (!queryParts.isEmpty()) {
             joinPlan = Filter.create(joinPlan, AndOperator.join(queryParts.values()));
             queryParts.clear();
         }
-        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
         joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromJoin.correlatedSubQueries()));
         joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromWhereClause.correlatedSubQueries()));
         assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
