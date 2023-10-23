@@ -82,7 +82,6 @@ public class ObjectColumnTest extends IntegTestCase {
                 authorMap
             });
         refresh();
-        waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select title, author, author['dead'] from ot order by title");
         assertThat(response.rowCount()).isEqualTo(2);
         assertThat(response.rows()[0][0]).isEqualTo("Life, the Universe and Everything");
@@ -163,7 +162,6 @@ public class ObjectColumnTest extends IntegTestCase {
         execute("update ot set author['job']='Writer' " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         refresh();
-        waitForMappingUpdateOnAll("ot", "author.job");
         execute("select author, author['job'] from ot " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         assertThat(response.rowCount()).isEqualTo(1);
@@ -221,7 +219,6 @@ public class ObjectColumnTest extends IntegTestCase {
                 authorMap
             });
         refresh();
-        waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select author from ot where author['dead']=true");
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(authorMap);
@@ -276,7 +273,6 @@ public class ObjectColumnTest extends IntegTestCase {
             }
         );
         refresh();
-        waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select title, author['dead'] from ot order by author['dead'] desc");
         assertThat(response.rowCount()).isEqualTo(3);
         assertThat(response.rows()[0][0]).isEqualTo("The Hitchhiker's Guide to the Galaxy");
@@ -296,7 +292,6 @@ public class ObjectColumnTest extends IntegTestCase {
                 "('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         execute("refresh table test");
 
-        waitForMappingUpdateOnAll("test", "person.name");
         execute("select message, person['name'], person['addresses']['city'] from test " +
                 "where person['name'] = 'Youri'");
 

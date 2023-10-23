@@ -25,7 +25,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -281,7 +280,6 @@ public class SQLTypeMappingTest extends IntegTestCase {
     public void testInsertObjectIntoString() throws Exception {
         execute("create table t1 (o object)");
         execute("insert into t1 values ({a='abc'})");
-        waitForMappingUpdateOnAll("t1", "o.a");
 
         Asserts.assertSQLError(() -> execute("insert into t1 values ({a=['123', '456']})"))
             .hasPGError(INTERNAL_ERROR)
@@ -307,7 +305,6 @@ public class SQLTypeMappingTest extends IntegTestCase {
                     });
         refresh();
 
-        waitForMappingUpdateOnAll("t1", "new_col");
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>) response.rows()[0][1];
