@@ -46,6 +46,21 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that led to ``Couldn't create execution plan from logical plan
+  ..`` errors when trying to use a correlated join in the ``WHERE`` clause of a
+  query with a join. For example::
+
+    SELECT
+        n.nspname AS schema,
+        t.typname AS typename,
+        t.oid::int4 AS typeid
+    FROM
+        pg_type t
+        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+    WHERE
+        EXISTS (
+            SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem);
+
 - Fixed an issue that prevented namespaces from showing up in
   ``pg_catalog.pg_namespace`` if a user had privileges on a table within a
   schema, but no privileges on the schema itself.

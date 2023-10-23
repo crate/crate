@@ -429,4 +429,23 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             assertThat(result.getInt(1)).isEqualTo(1);
         }
     }
+
+    @Test
+    public void test_correlated_subquery_together_with_join() throws Exception {
+        // https://github.com/crate/crate/issues/14671
+        execute(
+            """
+            SELECT
+                n.nspname AS schema,
+                t.typname AS typename,
+                t.oid::int4 AS typeid
+            FROM
+                pg_type t
+                LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+            WHERE
+                EXISTS (
+                    SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem);
+            """);
+        assertThat(response).hasRowCount(24L);
+    }
 }
