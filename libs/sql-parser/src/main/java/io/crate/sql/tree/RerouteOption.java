@@ -21,5 +21,5 @@
 
 package io.crate.sql.tree;
 
-public abstract class RerouteOption<T> extends Node {
+public abstract class RerouteOption extends Node {
 }

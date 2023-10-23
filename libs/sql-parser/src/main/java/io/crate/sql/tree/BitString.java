@@ -47,9 +47,8 @@ public class BitString extends Literal implements Comparable<BitString> {
             boolean value = switch (c) {
                 case '0' -> false;
                 case '1' -> true;
-                default -> {
-                    throw new IllegalArgumentException("Bit string must only contain `0` or `1` values. Encountered: " + c);
-                }
+                default -> throw new IllegalArgumentException(
+                    "Bit string must only contain `0` or `1` values. Encountered: " + c);
             };
             bitSet.set(i, value);
         }

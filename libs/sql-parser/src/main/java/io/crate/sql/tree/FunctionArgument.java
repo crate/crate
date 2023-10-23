@@ -28,9 +28,9 @@ public class FunctionArgument extends Node {
 
     @Nullable
     private final String name;
-    private final ColumnType type;
+    private final ColumnType<?> type;
 
-    public FunctionArgument(@Nullable String name, ColumnType type) {
+    public FunctionArgument(@Nullable String name, ColumnType<?> type) {
         this.name = name;
         this.type = type;
     }
@@ -40,7 +40,7 @@ public class FunctionArgument extends Node {
         return name;
     }
 
-    public ColumnType type() {
+    public ColumnType<?> type() {
         return type;
     }
 

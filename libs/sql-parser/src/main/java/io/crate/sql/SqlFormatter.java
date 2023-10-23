@@ -163,7 +163,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitSwapTable(SwapTable swapTable, Integer indent) {
+        public Void visitSwapTable(SwapTable<?> swapTable, Integer indent) {
             append(indent, "ALTER CLUSTER SWAP TABLE ");
             append(indent, swapTable.source().toString());
             append(indent, " TO ");
@@ -181,6 +181,7 @@ public final class SqlFormatter {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> decommissionNode,
                                                       Integer indent) {
@@ -190,6 +191,7 @@ public final class SqlFormatter {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitCopyFrom(CopyFrom<?> node, Integer indent) {
             var copyFrom = (CopyFrom<Expression>) node;
@@ -220,7 +222,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitRefreshStatement(RefreshStatement node, Integer indent) {
+        public Void visitRefreshStatement(RefreshStatement<?> node, Integer indent) {
             append(indent, "REFRESH TABLE ");
             appendFlatNodeList(node.tables(), indent);
             return null;
@@ -365,6 +367,7 @@ public final class SqlFormatter {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitAssignment(Assignment<?> node, Integer indent) {
             var assignment = (Assignment<Expression>) node;
@@ -580,7 +583,7 @@ public final class SqlFormatter {
             builder.append(formatQualifiedName(node.getName()));
             if (!node.partitionProperties().isEmpty()) {
                 builder.append(" PARTITION (");
-                for (Assignment assignment : node.partitionProperties()) {
+                for (var assignment : node.partitionProperties()) {
                     builder.append(assignment.columnName().toString());
                     builder.append("=");
                     builder.append(assignment.expression().toString());
@@ -590,6 +593,7 @@ public final class SqlFormatter {
             return null;
         }
 
+        @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public Void visitCreateTable(CreateTable node, Integer indent) {
             builder.append("CREATE TABLE ");
@@ -620,7 +624,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitCreateFunction(CreateFunction node, Integer indent) {
+        public Void visitCreateFunction(CreateFunction<?> node, Integer indent) {
             builder.append("CREATE");
             if (node.replace()) {
                 builder.append(" OR REPLACE");
@@ -639,7 +643,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitCreateUser(CreateUser node, Integer indent) {
+        public Void visitCreateUser(CreateUser<?> node, Integer indent) {
             builder.append("CREATE USER ").append(quoteIdentifierIfNeeded(node.name()));
             if (!node.properties().isEmpty()) {
                 builder.append("\n");
@@ -690,7 +694,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitClusteredBy(ClusteredBy node, Integer indent) {
+        public Void visitClusteredBy(ClusteredBy<?> node, Integer indent) {
             append(indent, "CLUSTERED");
             if (node.column().isPresent()) {
                 builder.append(String.format(Locale.ENGLISH, " BY (%s)", node.column().get().toString()));
@@ -702,11 +706,12 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitGenericProperties(GenericProperties node, Integer indent) {
-            int count = 0, max = node.properties().size();
+        public Void visitGenericProperties(GenericProperties<?> node, Integer indent) {
+            int count = 0;
+            int max = node.properties().size();
             if (max > 0) {
                 builder.append("WITH (\n");
-                @SuppressWarnings("unchecked")
+                @SuppressWarnings({"unchecked", "rawtypes"})
                 TreeMap<String, Expression> sortedMap = new TreeMap(node.properties());
                 for (Map.Entry<String, Expression> propertyEntry : sortedMap.entrySet()) {
                     builder.append(indentString(indent + 1));
@@ -748,12 +753,13 @@ public final class SqlFormatter {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitColumnDefinition(ColumnDefinition<?> node, Integer indent) {
             ColumnDefinition<Expression> columnDefinition = (ColumnDefinition<Expression>) node;
             builder.append(quoteIdentifierIfNeeded(columnDefinition.ident()))
                 .append(" ");
-            ColumnType type = columnDefinition.type();
+            ColumnType<?> type = columnDefinition.type();
             if (type != null) {
                 type.accept(this, indent);
             }
@@ -767,7 +773,7 @@ public final class SqlFormatter {
             }
 
             if (!columnDefinition.constraints().isEmpty()) {
-                for (ColumnConstraint constraint : columnDefinition.constraints()) {
+                for (ColumnConstraint<?> constraint : columnDefinition.constraints()) {
                     builder.append(" ");
                     constraint.accept(this, indent);
                 }
@@ -776,7 +782,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitColumnType(ColumnType node, Integer indent) {
+        public Void visitColumnType(ColumnType<?> node, Integer indent) {
             builder.append(node.name().toUpperCase(Locale.ENGLISH));
             if (node.parametrized()) {
                 builder
@@ -791,23 +797,22 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
-            ObjectColumnType<Expression> objectColumnType = node;
+        public Void visitObjectColumnType(ObjectColumnType<?> node, Integer indent) {
             builder.append("OBJECT");
-            if (objectColumnType.columnPolicy().isPresent()) {
+            if (node.columnPolicy().isPresent()) {
                 builder.append('(');
-                builder.append(objectColumnType.columnPolicy().get().name());
+                builder.append(node.columnPolicy().get().name());
                 builder.append(')');
             }
-            if (!objectColumnType.nestedColumns().isEmpty()) {
+            if (!node.nestedColumns().isEmpty()) {
                 builder.append(" AS ");
-                appendNestedNodeList(objectColumnType.nestedColumns(), indent);
+                appendNestedNodeList(node.nestedColumns(), indent);
             }
             return null;
         }
 
         @Override
-        public Void visitCollectionColumnType(CollectionColumnType node, Integer indent) {
+        public Void visitCollectionColumnType(CollectionColumnType<?> node, Integer indent) {
             builder.append(node.name().toUpperCase(Locale.ENGLISH))
                 .append("(");
             node.innerType().accept(this, indent);
@@ -816,7 +821,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitIndexColumnConstraint(IndexColumnConstraint node, Integer indent) {
+        public Void visitIndexColumnConstraint(IndexColumnConstraint<?> node, Integer indent) {
             builder.append("INDEX ");
             if (node.equals(IndexColumnConstraint.off())) {
                 builder.append(node.indexMethod().toUpperCase(Locale.ENGLISH));
@@ -832,7 +837,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitColumnStorageDefinition(ColumnStorageDefinition node, Integer indent) {
+        public Void visitColumnStorageDefinition(ColumnStorageDefinition<?> node, Integer indent) {
             builder.append("STORAGE ");
             if (!node.properties().isEmpty()) {
                 node.properties().accept(this, indent);
@@ -841,17 +846,18 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint node, Integer indent) {
+        public Void visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint<?> node, Integer indent) {
             builder.append("PRIMARY KEY");
             return null;
         }
 
         @Override
-        public Void visitNotNullColumnConstraint(NotNullColumnConstraint node, Integer indent) {
+        public Void visitNotNullColumnConstraint(NotNullColumnConstraint<?> node, Integer indent) {
             builder.append("NOT NULL");
             return null;
         }
 
+        @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, Integer indent) {
             builder.append("PRIMARY KEY ");
@@ -878,6 +884,7 @@ public final class SqlFormatter {
             return null;
         }
 
+        @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public Void visitIndexDefinition(IndexDefinition node, Integer indent) {
             builder.append("INDEX ")
@@ -893,6 +900,7 @@ public final class SqlFormatter {
             return null;
         }
 
+        @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public Void visitPartitionedBy(PartitionedBy node, Integer indent) {
             append(indent, "PARTITIONED BY ");
@@ -928,15 +936,13 @@ public final class SqlFormatter {
 
             node.getRight().accept(this, indent);
 
-            if (criteria instanceof JoinUsing) {
-                JoinUsing using = (JoinUsing) criteria;
+            if (criteria instanceof JoinUsing joinUsing) {
                 builder.append(" USING (")
-                    .append(String.join(", ", using.getColumns()))
+                    .append(String.join(", ", joinUsing.getColumns()))
                     .append(")");
-            } else if (criteria instanceof JoinOn) {
-                JoinOn on = (JoinOn) criteria;
+            } else if (criteria instanceof JoinOn joinOn) {
                 builder.append(" ON (")
-                    .append(formatStandaloneExpression(on.getExpression(), parameters))
+                    .append(formatStandaloneExpression(joinOn.getExpression(), parameters))
                     .append(")");
             } else if (node.getType() != JoinType.CROSS && !(criteria instanceof NaturalJoin)) {
                 throw new UnsupportedOperationException("unknown join criteria: " + criteria);
@@ -981,8 +987,9 @@ public final class SqlFormatter {
                 .append(formatQualifiedName(node.name()));
             if (!node.tables().isEmpty()) {
                 builder.append(" TABLE ");
-                int count = 0, max = node.tables().size();
-                for (Table table : node.tables()) {
+                int count = 0;
+                int max = node.tables().size();
+                for (Table<?> table : node.tables()) {
                     table.accept(this, indent);
                     if (++count < max) builder.append(",");
                 }
@@ -1102,6 +1109,7 @@ public final class SqlFormatter {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitCreateSubscription(CreateSubscription<?> createSubscription,
                                             Integer context) {
@@ -1344,7 +1352,7 @@ public final class SqlFormatter {
             }
 
             if (!node.clazz().equals("CLUSTER")) {
-                builder.append(" ON " + node.clazz() + " ");
+                builder.append(" ON ").append(node.clazz()).append(" ");
                 appendTableOrSchemaNames(node.privilegeIdents());
             }
 
@@ -1369,7 +1377,8 @@ public final class SqlFormatter {
         }
 
         private void appendFlatNodeList(List<? extends Node> nodes, Integer indent) {
-            int count = 0, max = nodes.size();
+            int count = 0;
+            int max = nodes.size();
             builder.append("(");
             for (Node node : nodes) {
                 node.accept(this, indent);
@@ -1379,7 +1388,8 @@ public final class SqlFormatter {
         }
 
         private void appendNestedNodeList(List<? extends Node> nodes, Integer indent) {
-            int count = 0, max = nodes.size();
+            int count = 0;
+            int max = nodes.size();
             builder.append("(\n");
             for (Node node : nodes) {
                 builder.append(indentString(indent + 1));
@@ -1396,6 +1406,14 @@ public final class SqlFormatter {
 
         private static String indentString(int indent) {
             return String.join("", Collections.nCopies(indent, INDENT));
+        }
+
+        private static void appendAliasColumns(StringBuilder builder, List<String> columns) {
+            if (!columns.isEmpty()) {
+                builder.append(" (")
+                    .append(String.join(", ", columns))
+                    .append(')');
+            }
         }
     }
 
@@ -1424,13 +1442,5 @@ public final class SqlFormatter {
                 break;
         }
         return sb.toString();
-    }
-
-    private static void appendAliasColumns(StringBuilder builder, List<String> columns) {
-        if (!columns.isEmpty()) {
-            builder.append(" (")
-                .append(String.join(", ", columns))
-                .append(')');
-        }
     }
 }

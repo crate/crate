@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Optional;
 
-public final class CreateTable<T> extends Statement {
+public final class CreateTable<T extends Node> extends Statement {
 
     private final Table<T> name;
     private final List<TableElement<T>> tableElements;
