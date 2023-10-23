@@ -99,7 +99,7 @@ public class Identifiers {
      *   2) the remaining chars are lower cases, digits, or '_'.
      */
     private static boolean quotesNotRequired(String identifier) {
-        assert identifier != null && identifier.length() > 0 : "null or empty idents should not be possible";
+        assert identifier != null && !identifier.isEmpty() : "null or empty idents should not be possible";
 
         char c = identifier.charAt(0);
         if (c != '_' && !isLowerCase(c)) {

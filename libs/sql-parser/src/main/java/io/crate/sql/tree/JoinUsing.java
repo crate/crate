@@ -24,7 +24,6 @@ package io.crate.sql.tree;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class JoinUsing extends JoinCriteria {
 
@@ -44,7 +43,7 @@ public class JoinUsing extends JoinCriteria {
                 ComparisonExpression.Type.EQUAL,
                 new QualifiedNameReference(extendQualifiedName(left, col)),
                 new QualifiedNameReference((extendQualifiedName(right, col)))))
-            .collect(Collectors.toList());
+            .toList();
         if (1 == comp.size()) {
             return comp.get(0);
         }

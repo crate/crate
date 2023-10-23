@@ -54,7 +54,7 @@ public final class PartitionedBy<T> extends Node {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        PartitionedBy that = (PartitionedBy) o;
+        PartitionedBy<?> that = (PartitionedBy<?>) o;
 
         return Objects.equals(columns, that.columns);
     }

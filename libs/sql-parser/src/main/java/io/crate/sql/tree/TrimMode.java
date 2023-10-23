@@ -22,20 +22,20 @@
 package io.crate.sql.tree;
 
 
-import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 public enum TrimMode {
     LEADING {
         @Override
-        public int getTrimmedLength(String target, HashSet<Character> charsToTrim) {
+        public int getTrimmedLength(String target, Set<Character> charsToTrim) {
             return target.length();
         }
     },
 
     TRAILING {
         @Override
-        public int getStartIdx(String target, HashSet<Character> charsToTrim) {
+        public int getStartIdx(String target, Set<Character> charsToTrim) {
             return 0;
         }
     },
@@ -49,7 +49,7 @@ public enum TrimMode {
         return name();
     }
 
-    public int getStartIdx(String target, HashSet<Character> charsToTrim) {
+    public int getStartIdx(String target, Set<Character> charsToTrim) {
         int start = 0;
         int end = target.length();
         while (start < end && charsToTrim.contains(target.charAt(start))) {
@@ -58,7 +58,7 @@ public enum TrimMode {
         return start;
     }
 
-    public int getTrimmedLength(String target, HashSet<Character> charsToTrim) {
+    public int getTrimmedLength(String target, Set<Character> charsToTrim) {
         int end = target.length();
         while (0 < end && charsToTrim.contains(target.charAt(end - 1))) {
             end--;
