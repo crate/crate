@@ -90,6 +90,7 @@ number of replicas.
     | pg_catalog         | pg_database             | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_description          | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_enum                 | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_event_trigger        | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_index                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_indexes              | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_locks                | BASE TABLE |             NULL | NULL               |
@@ -128,7 +129,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 61 rows in set (... sec)
+    SELECT 62 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
