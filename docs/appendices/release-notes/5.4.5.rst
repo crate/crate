@@ -81,6 +81,15 @@ Fixes
   errors or even updating wrong sub-columns when using a sub-column expression
   in the ``ON CONFLICT`` clause.
 
+- Fixed an issue that caused ``UNION`` to return wrong results or throw
+  ``SQLParseException`` when the output columns had identical names which were
+  from tables that were aliased. e.g.::
+
+    SELECT * FROM (SELECT t1.a, t2.a FROM t AS t1, t AS t2) t3 UNION SELECT 1, 1;
+
+  where ``t1.a`` and ``t2.a`` are from aliased tables that also have identical
+  names, ``a``.
+
 - Fixed a regression, introduced in :ref:`version_4.2.0` which caused wrong
   :ref:`HTTP error code <http-error-codes>` to be returned, when some internal
   issue occurred during the creation of execution plan for a query, e.g.: shards
