@@ -206,9 +206,27 @@ public class Union implements LogicalPlan {
         IntArrayList outputIndicesToKeep = new IntArrayList();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, outputs, s -> {
-                int idx = outputs.indexOf(s);
-                assert idx >= 0 : "outputs must contain symbol " + s + " if intersection called consumer";
-                outputIndicesToKeep.add(idx);
+                // Union can contain identically looking ScopedSymbols due to aliased relations. E.g.:
+                //
+                // SELECT * FROM
+                //  (SELECT
+                //      t1.a,
+                //      t2.a
+                //   FROM t AS t1,
+                //        t AS t2
+                //   ) t3
+                // UNION
+                // SELECT 1, 1;
+                //
+                // Has [a, a] as outputs where the two `a` are not the same
+                //
+                // To account for that, we keep all indices that match:
+                for (int i = 0; i < outputs.size(); i++) {
+                    Symbol output = outputs.get(i);
+                    if (output.equals(s) && !outputIndicesToKeep.contains(i)) {
+                        outputIndicesToKeep.add(i);
+                    }
+                }
             });
         }
         ArrayList<Symbol> toKeepFromLhs = new ArrayList<>();

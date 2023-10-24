@@ -39,6 +39,7 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.Union;
 import io.crate.statistics.Stats;
@@ -242,4 +243,27 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         union = (Union) plan.sources().get(0);
         assertThat(e.getStats(union).numDocs()).isEqualTo(-1L);
     }
+
+    // tracks bugs: https://github.com/crate/crate/issues/14807, https://github.com/crate/crate/issues/14805
+    @Test
+    public void test_pruneOutputsExcept_can_handle_duplicates() {
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT * FROM (SELECT x.id, y.id FROM users AS x, users AS y) z UNION SELECT 1, 1;");
+
+        assertThat(plan).isEqualTo(
+            """
+                GroupHashAggregate[id, id]
+                  └ Union[id, id]
+                    ├ Rename[id, id] AS z
+                    │  └ NestedLoopJoin[CROSS]
+                    │    ├ Rename[id] AS x
+                    │    │  └ Collect[doc.users | [id] | true]
+                    │    └ Rename[id] AS y
+                    │      └ Collect[doc.users | [id] | true]
+                    └ Eval[1, 1]
+                      └ TableFunction[empty_row | [] | true]
+                """
+        );
+    }
+
 }
