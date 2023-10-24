@@ -1210,6 +1210,31 @@ public class PostgresITest extends IntegTestCase {
         }
     }
 
+    @Test
+    public void test_fetch_with_intermediate_prepared_statement() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            try (var statement = conn.createStatement()) {
+                statement.execute("create table tbl as select * from generate_series(1, 100, 1) g(a)");
+                statement.execute("refresh table tbl");
+            }
+            Statement statement = conn.createStatement();
+            statement.setFetchSize(0);
+            statement.setMaxRows(20);
+            boolean hasResultSet = statement.execute("select * from tbl");
+            assertThat(hasResultSet).isTrue();
+            ResultSet resultSet = statement.getResultSet();
+            resultSet.next();
+            try (var pStatement = conn.prepareStatement("SELECT current_schema(), session_user")) {
+                try (ResultSet rs = pStatement.executeQuery()) {
+                    if (rs.next()) {
+                        rs.getString(1);
+                        rs.getString(2);
+                    }
+                }
+            }
+        }
+    }
+
     private long getNumQueriesFromJobsLogs() {
         long result = 0;
         Iterable<JobsLogs> jobLogs = cluster().getInstances(JobsLogs.class);

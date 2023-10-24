@@ -46,6 +46,10 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that led to ``Received resultset tuples, but no field structure
+  for them`` errors in clients using the PostgreSQL wire protocol, if a query
+  was triggered after another query was suspended and left unconsumed.
+
 - Fixed an issue that led to ``Couldn't create execution plan from logical plan
   ..`` errors when trying to use a correlated join in the ``WHERE`` clause of a
   query with a join. For example::
