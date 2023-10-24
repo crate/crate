@@ -21,17 +21,24 @@
 
 package io.crate.analyze;
 
+import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_QUADTREE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import org.assertj.core.api.Assertions;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeoReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitTest {
 
@@ -527,4 +534,30 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
             Matchers.containsString("\"g\" GEO_SHAPE GENERATED ALWAYS AS _cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape')")
         );
     }
+
+    @Test
+    public void test_geo_shape_array_index_definition_is_preserved_in_cluster_state() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (geo_arr array(geo_shape) INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("t");
+        CreateTable<?> node = MetadataToASTNodeResolver.resolveCreateTable(table);
+        assertThat(
+            SqlFormatter.formatSql(node),
+            Matchers.containsString("""
+                "geo_arr" ARRAY(GEO_SHAPE) INDEX USING QUADTREE WITH (
+                      distance_error_pct = 0.25,
+                      precision = '1m'
+                   )
+                """)
+        );
+        Reference reference = table.getReference(new ColumnIdent("geo_arr"));
+        Assertions.assertThat(reference.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
+        GeoReference geoRef = (GeoReference) reference;
+        Assertions.assertThat(geoRef.geoTree()).isEqualTo(TREE_QUADTREE);
+        Assertions.assertThat(geoRef.precision()).isEqualTo("1m");
+        Assertions.assertThat(geoRef.distanceErrorPct()).isEqualTo(0.25);
+
+    }
+
 }
