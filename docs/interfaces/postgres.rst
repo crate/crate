@@ -162,8 +162,10 @@ following tables:
  - `pg_constraint <pgsql_pg_constraint_>`__
  - `pg_cursors <pgsql_pg_cursors_>`__
  - `pg_database <pgsql_pg_database_>`__
+ - `pg_depend`_
  - `pg_description`_
  - `pg_enum`_
+ - `pg_event_trigger`_
  - `pg_index <pgsql_pg_index_>`__
  - `pg_indexes <pgsql_pg_indexes_>`__
  - `pg_locks <pgsql_pg_locks_>`__
@@ -182,7 +184,6 @@ following tables:
  - `pg_tablespace`_
  - `pg_type`_
  - `pg_views`_
- - `pg_event_trigger`_
 
 
 .. _postgres-pg_type:
@@ -536,6 +537,7 @@ CrateDB and we love to hear feedback.
 .. _pg_shdescription: https://www.postgresql.org/docs/14/catalog-pg-shdescription.html
 .. _pg_stats: https://www.postgresql.org/docs/14/view-pg-stats.html
 .. _pg_event_trigger: https://www.postgresql.org/docs/current/catalog-pg-event-trigger.html
+.. _pg_depend: https://www.postgresql.org/docs/current/catalog-pg-depend.html
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc
 .. _pgsql_pg_attrdef: https://www.postgresql.org/docs/14/static/catalog-pg-attrdef.html
 .. _pgsql_pg_attribute: https://www.postgresql.org/docs/14/static/catalog-pg-attribute.html
