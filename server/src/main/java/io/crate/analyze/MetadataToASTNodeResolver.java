@@ -163,7 +163,7 @@ public class MetadataToASTNodeResolver {
                         ));
                     }
                     constraints.add(new IndexColumnConstraint<>("fulltext", properties));
-                } else if (ref.valueType().equals(DataTypes.GEO_SHAPE)) {
+                } else if (ArrayType.unnest(ref.valueType()).equals(DataTypes.GEO_SHAPE)) {
                     GeoReference geoReference;
                     if (ref instanceof GeneratedReference genRef) {
                         geoReference = (GeoReference) genRef.reference();
