@@ -198,7 +198,7 @@
     <!-- see surefire plugin configuration for explanation -->
     <skipRunTests>false</skipRunTests>
 
-    <versions.jdk>21</versions.jdk>
+    <versions.jdk>21.0.1</versions.jdk>
     <versions.annotations>24.0.1</versions.annotations>
     <versions.log4j>2.20.0</versions.log4j>
     <versions.assertj>3.23.1</versions.assertj>
