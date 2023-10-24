@@ -23,9 +23,6 @@ package io.crate.sql.tree;
 
 public class BeginStatement extends Statement {
 
-    public BeginStatement() {
-    }
-
     @Override
     public int hashCode() {
         return 0;

@@ -30,10 +30,10 @@ public class DeallocateStatement extends Statement {
     private final Expression preparedStmt;
 
     public DeallocateStatement() {
-        preparedStmt = null;
+        this(null);
     }
 
-    public DeallocateStatement(Expression preparedStmt) {
+    public DeallocateStatement(@Nullable Expression preparedStmt) {
         this.preparedStmt = preparedStmt;
     }
 

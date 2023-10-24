@@ -23,10 +23,6 @@ package io.crate.sql.tree;
 
 public class TryCast extends AbstractCast {
 
-    public TryCast(Expression expression, ColumnType<?> type) {
-        super(expression, type);
-    }
-
     public TryCast(Expression expression, ColumnType<?> type, boolean isIntegerOnly) {
         super(expression, type, isIntegerOnly);
     }

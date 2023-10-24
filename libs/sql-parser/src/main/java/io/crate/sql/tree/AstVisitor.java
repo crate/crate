@@ -288,7 +288,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitCreateTableAs(CreateTableAs node, C context) {
+    public R visitCreateTableAs(CreateTableAs<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -324,7 +324,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitTableElement(TableElement node, C context) {
+    public R visitTableElement(TableElement<?> node, C context) {
         return visitNode(node, context);
     }
 
@@ -468,7 +468,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitPartitionedBy(PartitionedBy node, C context) {
+    public R visitPartitionedBy(PartitionedBy<?> node, C context) {
         return visitNode(node, context);
     }
 
