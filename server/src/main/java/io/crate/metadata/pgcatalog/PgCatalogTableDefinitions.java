@@ -236,6 +236,11 @@ public final class PgCatalogTableDefinitions {
             PgEventTrigger.create().expressions(),
             false
         ));
+        tableDefinitions.put(PgDepend.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgDepend.create().expressions(),
+            false
+        ));
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {

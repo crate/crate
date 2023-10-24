@@ -64,7 +64,7 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- Added an empty ``pg_catalog.pg_depend`` table.
 
 Data Types
 ----------

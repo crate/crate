@@ -510,6 +510,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
             "pg_constraint",
             "pg_cursors",
             "pg_database",
+            "pg_depend",
             "pg_description",
             "pg_enum",
             "pg_event_trigger",
@@ -641,7 +642,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {
             execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession);
-            assertThat(response).hasRowCount(528L);
+            assertThat(response).hasRowCount(535L);
 
             //create a table with an attribute that a new user is not privileged to access
             executeAsSuperuser("create table test_schema.my_table (my_col int)");
