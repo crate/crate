@@ -432,7 +432,7 @@ public class AnalyzedTableElements<T> {
 
         Reference ref;
         boolean isNullable = !columnDefinition.hasNotNullConstraint();
-        if (bound && type.id() == GeoShapeType.ID) {
+        if (bound && ArrayType.unnest(type).id() == GeoShapeType.ID) {
             Map<String, Object> geoMap = new HashMap<>();
             if (columnDefinition.geoProperties() != null) {
                 GeoSettingsApplier.applySettings(geoMap, columnDefinition.geoProperties(), columnDefinition.geoTree());
