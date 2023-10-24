@@ -155,7 +155,7 @@ public class FulltextIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_can_add_geo_shape_array_column() throws Exception {
+    public void test_can_add_text_array_column() throws Exception {
         execute("create table t(id int)");
         execute("alter table t add column keywords ARRAY(STRING) INDEX USING FULLTEXT");
         execute("insert into t(id, keywords) VALUES (1, ['foo bar'])");
