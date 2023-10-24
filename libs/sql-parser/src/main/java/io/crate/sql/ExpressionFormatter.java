@@ -574,7 +574,7 @@ public final class ExpressionFormatter {
             builder.append(")");
             if (node.matchType() != null) {
                 builder.append(" USING ").append(node.matchType()).append(" ");
-                if (node.properties().properties().size() > 0) {
+                if (node.properties().properties().isEmpty() == false) {
                     builder.append(node.properties().accept(this, parameters));
                 }
             }

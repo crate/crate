@@ -68,10 +68,10 @@ public class CheckColumnConstraint<T> extends ColumnConstraint<T> {
         if (this == o) {
             return true;
         }
-        if (null == o || false == o instanceof CheckColumnConstraint) {
+        if (o instanceof CheckColumnConstraint == false) {
             return false;
         }
-        CheckColumnConstraint that = (CheckColumnConstraint) o;
+        CheckColumnConstraint<?> that = (CheckColumnConstraint<?>) o;
         return Objects.equals(expression, that.expression) &&
                Objects.equals(columnName, that.columnName) &&
                Objects.equals(name, that.name);

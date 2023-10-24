@@ -25,7 +25,7 @@ import java.util.List;
 
 public final class Values extends QueryBody {
 
-    private List<ValuesList> rows;
+    private final List<ValuesList> rows;
 
     public Values(List<ValuesList> rows) {
         this.rows = rows;

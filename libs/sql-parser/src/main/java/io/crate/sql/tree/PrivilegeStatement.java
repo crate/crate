@@ -33,7 +33,7 @@ public abstract class PrivilegeStatement extends Statement {
     private final String clazz;
     protected final boolean all;
 
-    public PrivilegeStatement(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
+    protected PrivilegeStatement(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
         this.userNames = userNames;
         privilegeTypes = Collections.emptyList();
         all = true;
@@ -41,7 +41,7 @@ public abstract class PrivilegeStatement extends Statement {
         this.tableOrSchemaNames = tableOrSchemaNames;
     }
 
-    public PrivilegeStatement(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
+    protected PrivilegeStatement(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
         this.userNames = userNames;
         this.privilegeTypes = privilegeTypes;
         this.all = false;

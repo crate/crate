@@ -25,14 +25,14 @@ import java.util.EnumSet;
 
 import static java.util.Objects.requireNonNull;
 
-public class SqlParserOptions {
+class SqlParserOptions {
     private final EnumSet<IdentifierSymbol> allowedIdentifierSymbols = EnumSet.noneOf(IdentifierSymbol.class);
 
-    public EnumSet<IdentifierSymbol> getAllowedIdentifierSymbols() {
+    EnumSet<IdentifierSymbol> getAllowedIdentifierSymbols() {
         return EnumSet.copyOf(allowedIdentifierSymbols);
     }
 
-    public SqlParserOptions allowIdentifierSymbol(IdentifierSymbol... identifierSymbols) {
+    SqlParserOptions allowIdentifierSymbol(IdentifierSymbol... identifierSymbols) {
         for (IdentifierSymbol identifierSymbol : identifierSymbols) {
             allowedIdentifierSymbols.add(requireNonNull(identifierSymbol, "identifierSymbol is null"));
         }
