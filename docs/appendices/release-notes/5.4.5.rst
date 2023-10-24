@@ -81,3 +81,8 @@ Fixes
   :ref:`HTTP error code <http-error-codes>` to be returned, when some internal
   issue occurred during the creation of execution plan for a query, e.g.: shards
   of a table involved in the query become unavailable.
+
+- Fixed an issue that caused the properties of a ``INDEX using`` clause within
+  a type definition for ``ARRAY(GEO_SHAPE)`` in a ``CREATE TABLE`` statement to
+  be ignored.
+
