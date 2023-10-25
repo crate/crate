@@ -883,11 +883,9 @@ Disk-based shard allocation
 
   .. NOTE::
 
-      Read-only blocks are not automatically removed from the indices if the
-      disk space is freed and the threshold is undershot. To remove the block,
-      execute ``ALTER TABLE ... SET ("blocks.read_only_allow_delete" = FALSE)``
-      for affected tables (see
-      :ref:`sql-create-table-blocks-read-only-allow-delete`).
+      :ref:`sql-create-table-blocks-read-only-allow-delete` setting is
+      automatically reset to ``FALSE`` for the tables if the disk space is
+      freed and the threshold is undershot.
 
 ``cluster.routing.allocation.disk.watermark`` settings may be defined as
 percentages or bytes values. However, it is not possible to mix the value

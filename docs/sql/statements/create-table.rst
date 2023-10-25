@@ -526,19 +526,30 @@ Allows to have a read only table that additionally can be deleted.
 
 :value:
   Table is read only and can be deleted if value set to ``true``. Allows writes
-  and table settings changes if set to ``false``.
+  and table settings changes if set to ``false``. This flag should not be set
+  manually as it's used, in an automated way, by the mechanism that protects
+  CrateDB nodes from running out of available disk space.
 
   When a disk on a node exceeds the
   ``cluster.routing.allocation.disk.watermark.flood_stage`` threshold, this
   block is applied (set to ``true``) to all tables on that affected node. Once
-  you've freed disk space again and the threshold is undershot, you need to set
-  the ``blocks.read_only_allow_delete`` table setting to ``false``.
+  you've freed disk space again and the threshold is undershot, the setting is
+  automatically reset to ``false`` for the affected tables.
 
 .. SEEALSO::
 
     :ref:`Cluster-wide settings: Disk-based shard allocation
     <conf-routing-allocation-disk>`
 
+.. NOTE::
+
+    During maintenance operations, you might want to temporarily disable reads,
+    writes or table settings changes. To achieve this, please use the
+    corresponding settings :ref:`sql-create-table-blocks-read`,
+    :ref:`sql-create-table-blocks-write`,
+    :ref:`sql-create-table-blocks-metadata`, or
+    :ref:`sql-create-table-blocks-read-only`, which must be manually reset after
+    the maintenance operation has been completed.
 
 .. _sql-create-table-blocks-read:
 
