@@ -63,7 +63,7 @@ pipeline {
           }
         }
         stage('itest') {
-          agent { label 'medium' }
+          agent { label 'medium && x64' }
           steps {
             sh 'git clean -xdff'
             checkout scm
@@ -72,7 +72,7 @@ pipeline {
           }
         }
         stage('blackbox tests') {
-          agent { label 'medium' }
+          agent { label 'medium && x64' }
           steps {
             sh 'git clean -xdff'
             checkout scm
