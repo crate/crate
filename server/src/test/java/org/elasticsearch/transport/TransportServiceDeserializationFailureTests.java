@@ -19,6 +19,12 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
+import static org.junit.Assert.fail;
+
+import java.util.List;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterName;
@@ -29,12 +35,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.MockTransport;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.junit.Assert.fail;
 
 public class TransportServiceDeserializationFailureTests extends ESTestCase {
 

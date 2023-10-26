@@ -22,9 +22,7 @@
 package io.crate.integrationtests.disruption.routing;
 
 
-
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
