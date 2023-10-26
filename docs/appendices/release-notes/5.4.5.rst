@@ -1,16 +1,10 @@
 .. _version_5.4.5:
 
-==========================
-Version 5.4.5 - Unreleased
-==========================
+=============
+Version 5.4.5
+=============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.4.5 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2023-10-26.
 
 .. NOTE::
 
@@ -18,7 +12,7 @@ Version 5.4.5 - Unreleased
     before you upgrade to 5.4.5.
 
     We recommend that you upgrade to the latest 5.3 release before moving to
-    5.4.4.
+    5.4.5.
 
     A rolling upgrade from 5.3.x to 5.4.5 is supported.
     Before upgrading, you should `back up your data`_.
