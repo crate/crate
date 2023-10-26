@@ -21,6 +21,8 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.testing.Asserts.assertThat;
+
 import java.util.Map;
 import java.util.function.Function;
 
@@ -42,8 +44,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
-
-import static io.crate.testing.Asserts.assertThat;
 
 public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest {
 

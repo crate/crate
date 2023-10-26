@@ -19,6 +19,11 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.EOFException;
+import java.io.IOException;
+
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressorFactory;
@@ -27,11 +32,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
-
-import java.io.EOFException;
-import java.io.IOException;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class CompressibleBytesOutputStreamTests extends ESTestCase {
 

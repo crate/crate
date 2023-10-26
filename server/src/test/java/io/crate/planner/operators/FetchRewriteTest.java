@@ -29,7 +29,6 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
