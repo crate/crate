@@ -139,7 +139,7 @@ public class S3FileOutput implements FileOutput {
                     var response = client.uploadPart(
                         uploadPartRequest,
                         RequestBody.fromInputStream(inputStream, uploadPartRequest.contentLength()));
-                    return CompletedPart.builder().partNumber(partNumber).eTag(response.eTag()).build();
+                    return CompletedPart.builder().partNumber(currentPart).eTag(response.eTag()).build();
                 }, executor));
                 currentPartBytes = 0;
             }
@@ -169,6 +169,7 @@ public class S3FileOutput implements FileOutput {
                 CompleteMultipartUploadRequest.builder()
                     .bucket(bucketName)
                     .key(key)
+                    .uploadId(multipartUpload.uploadId())
                     .multipartUpload(CompletedMultipartUpload.builder().parts(completedParts).build())
                     .build());
             super.close();

@@ -61,13 +61,12 @@ public class S3ClientHelper {
                     AnonymousCredentialsProvider.create() :
                     StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
             .crossRegionAccessEnabled(true)
+            .region(Region.AWS_GLOBAL)
             .httpClientBuilder(CLIENT_BUILDER)
             .overrideConfiguration(CLIENT_OVERRIDE_CONFIG)
             .forcePathStyle(true);
         if (endPoint != null) { // TODO: why protocolSetting takes effect only if endPoint != null?
             s3ClientBuilder.endpointOverride(URI.create(protocolSetting + "://" + endPoint));
-        } else {
-            s3ClientBuilder.region(Region.AWS_GLOBAL);
         }
         return s3ClientBuilder.build();
     }
