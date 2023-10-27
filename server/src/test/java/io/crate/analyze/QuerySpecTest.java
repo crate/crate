@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,6 +60,6 @@ public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
             "offset 1");             // 8
         final AtomicInteger numSymbols = new AtomicInteger(0);
         relation.visitSymbols(s -> numSymbols.incrementAndGet());
-        assertThat(numSymbols.get(), is(8));
+        assertThat(numSymbols.get()).isEqualTo(8);
     }
 }

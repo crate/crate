@@ -21,8 +21,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.function.Supplier;
 
@@ -50,7 +49,7 @@ public class BitStringTypeTest extends ESTestCase {
         var out = new BytesStreamOutput();
         type.writeValueTo(out, value);
         StreamInput in = out.bytes().streamInput();
-        assertThat(type.readValueFrom(in), is(value));
+        assertThat(type.readValueFrom(in)).isEqualTo(value);
     }
 
     @Test
@@ -65,13 +64,13 @@ public class BitStringTypeTest extends ESTestCase {
     public void test_explicit_cast_can_trim_bitstring() throws Exception {
         BitStringType type = new BitStringType(3);
         BitString result = type.explicitCast(BitString.ofRawBits("1111"), SESSION_SETTINGS);
-        assertThat(result, is(BitString.ofRawBits("111")));
+        assertThat(result).isEqualTo(BitString.ofRawBits("111"));
     }
 
     @Test
     public void test_explicit_cast_can_extend_bitstring() throws Exception {
         BitStringType type = new BitStringType(4);
         BitString result = type.explicitCast(BitString.ofRawBits("111"), SESSION_SETTINGS);
-        assertThat(result, is(BitString.ofRawBits("1110")));
+        assertThat(result).isEqualTo(BitString.ofRawBits("1110"));
     }
 }

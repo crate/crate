@@ -21,9 +21,9 @@
 
 package io.crate.types;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.types.DataTypes.REGPROC;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Set;
@@ -41,44 +41,39 @@ public class RegprocTypeTest extends ESTestCase {
     @Test
     public void test_implicit_cast_regproc_to_integer() {
         Regproc proc = Regproc.of("func");
-        assertThat(
-            DataTypes.INTEGER.implicitCast(proc),
-            is(OidHash.functionOid(proc.asDummySignature())));
+        assertThat(DataTypes.INTEGER.implicitCast(proc)).isEqualTo(
+            OidHash.functionOid(proc.asDummySignature()));
     }
 
     @Test
     public void test_implicit_cast_integer_to_regproc() {
-        assertThat(REGPROC.implicitCast(1), is(Regproc.of(1, "1")));
+        assertThat(REGPROC.implicitCast(1)).isEqualTo(Regproc.of(1, "1"));
     }
 
     @Test
     public void test_implicit_cast_text_to_regproc() {
-        assertThat(
-            REGPROC.implicitCast("func"),
-            is(Regproc.of("func")));
+        assertThat(REGPROC.implicitCast("func")).isEqualTo(Regproc.of("func"));
     }
 
     @Test
     public void test_implicit_cast_regproc_to_not_allowed_type_throws_class_cast_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast '1.1' to regproc");
-        REGPROC.implicitCast(1.1);
+        assertThatThrownBy(() -> REGPROC.implicitCast(1.1))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast '1.1' to regproc");
     }
 
     @Test
     public void test_convertible_only_to_text_and_integer_types() {
-        assertThat(
-            DataTypes.ALLOWED_CONVERSIONS.get(RegprocType.ID),
-            is(Set.of(StringType.ID, IntegerType.ID, CharacterType.ID))
-        );
+        assertThat(DataTypes.ALLOWED_CONVERSIONS.get(RegprocType.ID)).isEqualTo(
+            Set.of(StringType.ID, IntegerType.ID, CharacterType.ID));
     }
 
     @Test
     public void test_insert_for_values_throws_not_supported_exception() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(
-            REGPROC.getName() + " cannot be used in insert statements");
-        REGPROC.valueForInsert(Regproc.of("func"));
+        assertThatThrownBy(() -> REGPROC.valueForInsert(Regproc.of("func")))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage(REGPROC.getName() + " cannot be used in insert statements.");
+
     }
 
     @Test
@@ -93,7 +88,7 @@ public class RegprocTypeTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         Regproc actual = REGPROC.readValueFrom(in);
 
-        assertThat(expected, is(actual));
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -102,7 +97,7 @@ public class RegprocTypeTest extends ESTestCase {
         DataTypes.toStream(REGPROC, out);
 
         var in = out.bytes().streamInput();
-        assertThat(DataTypes.fromStream(in), is(REGPROC));
+        assertThat(DataTypes.fromStream(in)).isEqualTo(REGPROC);
     }
 
     @Test

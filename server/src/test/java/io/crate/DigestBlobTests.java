@@ -21,9 +21,7 @@
 
 package io.crate;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -56,7 +54,7 @@ public class DigestBlobTests extends ESTestCase {
         BlobContainer container = new BlobContainer(tmpFolder.newFolder().toPath());
         File filePath = new File(container.getTmpDirectory().toFile(), String.format(Locale.ENGLISH, "%s.%s", digest, transferId.toString()));
         if (filePath.exists()) {
-            assertThat(filePath.delete(), is(true));
+            assertThat(filePath.delete()).isTrue();
         }
 
         DigestBlob digestBlob = DigestBlob.resumeTransfer(
@@ -77,8 +75,8 @@ public class DigestBlobTests extends ESTestCase {
         // check if tmp file's content is correct
         byte[] buffer = new byte[15];
         try (FileInputStream stream = new FileInputStream(digestBlob.file())) {
-            assertThat(stream.read(buffer, 0, 15), is(15));
-            assertThat(new BytesArray(buffer).utf8ToString().trim(), is("ABCDEFGHIJKLMNO"));
+            assertThat(stream.read(buffer, 0, 15)).isEqualTo(15);
+            assertThat(new BytesArray(buffer).utf8ToString().trim()).isEqualTo("ABCDEFGHIJKLMNO");
         }
 
         File file = digestBlob.commit();
@@ -86,14 +84,14 @@ public class DigestBlobTests extends ESTestCase {
         buffer = new byte[15];
 
         try (FileInputStream stream = new FileInputStream(file)) {
-            assertThat(stream.read(buffer, 0, 15), is(15));
-            assertThat(new BytesArray(buffer).utf8ToString().trim(), is("ABCDEFGHIJKLMNO"));
+            assertThat(stream.read(buffer, 0, 15)).isEqualTo(15);
+            assertThat(new BytesArray(buffer).utf8ToString().trim()).isEqualTo("ABCDEFGHIJKLMNO");
         }
 
         // assert file created
-        assertTrue(file.exists());
+        assertThat(file.exists()).isTrue();
         // just in case any references to file left
-        assertTrue(file.delete());
+        assertThat(file.delete()).isTrue();
     }
 
     @Test
@@ -115,8 +113,8 @@ public class DigestBlobTests extends ESTestCase {
         // check if tmp file's content is correct
         byte[] buffer = new byte[15];
         try (FileInputStream stream = new FileInputStream(digestBlob.file())) {
-            assertThat(stream.read(buffer, 0, 15), is(15));
-            assertThat(new BytesArray(buffer).utf8ToString().trim(), is("ABCDEFGHIJKLMNO"));
+            assertThat(stream.read(buffer, 0, 15)).isEqualTo(15);
+            assertThat(new BytesArray(buffer).utf8ToString().trim()).isEqualTo("ABCDEFGHIJKLMNO");
         }
 
         File file = digestBlob.commit();
@@ -124,13 +122,13 @@ public class DigestBlobTests extends ESTestCase {
         // check if final file's content is correct
         buffer = new byte[15];
         try (FileInputStream stream = new FileInputStream(file)) {
-            assertThat(stream.read(buffer, 0, 15), is(15));
-            assertThat(new BytesArray(buffer).utf8ToString().trim(), is("ABCDEFGHIJKLMNO"));
+            assertThat(stream.read(buffer, 0, 15)).isEqualTo(15);
+            assertThat(new BytesArray(buffer).utf8ToString().trim()).isEqualTo("ABCDEFGHIJKLMNO");
         }
 
         // assert file created
-        assertThat(file.exists(), is(true));
+        assertThat(file.exists()).isTrue();
         // just in case any references to file left
-        assertThat(file.delete(), is(true));
+        assertThat(file.delete()).isTrue();
     }
 }

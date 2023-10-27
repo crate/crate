@@ -21,8 +21,7 @@
 
 package io.crate.user;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
@@ -49,7 +48,7 @@ public class PrivilegesRequestTest extends ESTestCase {
 
         PrivilegesRequest r2 = new PrivilegesRequest(out.bytes().streamInput());
 
-        assertThat(r2.userNames(), is(users));
-        assertThat(r2.privileges(), is(privileges));
+        assertThat(r2.userNames()).isEqualTo(users);
+        assertThat(r2.privileges()).isEqualTo(privileges);
     }
 }

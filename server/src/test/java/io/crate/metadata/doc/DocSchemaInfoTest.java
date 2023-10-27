@@ -23,9 +23,8 @@ package io.crate.metadata.doc;
 
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static io.crate.metadata.doc.DocSchemaInfo.getTablesAffectedByPublicationsChange;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +37,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.hamcrest.Matchers;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
@@ -131,7 +129,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
         udfService.updateImplementations("my_schema", metadata.functionsMetadata().stream());
 
-        assertThat(nodeCtx.functions().get("my_schema", "valid", List.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
+        assertThat(nodeCtx.functions().get("my_schema", "valid", List.of(), pathWithPGCatalogAndDoc())).isNotNull();
 
         expectedException.expectMessage("Unknown function: my_schema.invalid()");
         nodeCtx.functions().get("my_schema", "invalid", List.of(), pathWithPGCatalogAndDoc());
@@ -150,7 +148,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var state = docTablesByName("t1", "t2", "t3", "t4");
         var publishNewTables = publicationsMetadata("pub1", false, List.of("t1", "t2"));
 
-        assertThat(getTablesAffectedByPublicationsChange(null, publishNewTables, state), containsInAnyOrder("t1", "t2"));
+        assertThat(getTablesAffectedByPublicationsChange(null, publishNewTables, state))
+            .containsExactlyInAnyOrder("t1", "t2");
     }
 
     @Test
@@ -158,7 +157,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var state = docTablesByName("t1", "t2", "t3", "t4");
         var publishAllTables = publicationsMetadata("pub1", true, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(null, publishAllTables, state), containsInAnyOrder("t1", "t2", "t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(null, publishAllTables, state))
+            .containsExactlyInAnyOrder("t1", "t2", "t3", "t4");
     }
 
     @Test
@@ -167,7 +167,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", true, List.of());
         var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2", "t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t1", "t2", "t3", "t4");
     }
 
     @Test
@@ -177,13 +178,15 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2", "t3", "t4"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t3", "t4");
 
         // publish t3, t4 drop t2
         prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t3", "t4"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t2", "t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t2", "t3", "t4");
     }
 
     @Test
@@ -193,7 +196,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", true, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t3", "t4");
     }
 
     @Test
@@ -202,7 +206,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t1", "t2");
     }
 
     @Test
@@ -211,7 +216,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t1", "t2");
     }
 
     @Test
@@ -220,8 +226,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder());
-        assertThat(getTablesAffectedByPublicationsChange(null, null, state), containsInAnyOrder());
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state)).isEmpty();
+        assertThat(getTablesAffectedByPublicationsChange(null, null, state)).isEmpty();
     }
 
     private PublicationsMetadata publicationsMetadata(String name, boolean allTables, List<String> tables) {

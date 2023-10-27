@@ -21,13 +21,7 @@
 
 package io.crate.user.metadata;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -110,7 +104,7 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         UsersPrivilegesMetadata usersPrivilegesMetadata2 = new UsersPrivilegesMetadata(in);
-        assertEquals(usersPrivilegesMetadata, usersPrivilegesMetadata2);
+        assertThat(usersPrivilegesMetadata2).isEqualTo(usersPrivilegesMetadata);
     }
 
     @Test
@@ -130,16 +124,16 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
         );
         parser.nextToken(); // start object
         UsersPrivilegesMetadata usersPrivilegesMetadata2 = UsersPrivilegesMetadata.fromXContent(parser);
-        assertEquals(usersPrivilegesMetadata, usersPrivilegesMetadata2);
+        assertThat(usersPrivilegesMetadata2).isEqualTo(usersPrivilegesMetadata);
 
         // a metadata custom must consume its surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
+        assertThat(parser.nextToken()).isNull();
     }
 
     @Test
     public void testApplyPrivilegesSameExists() throws Exception {
         long rowCount = usersPrivilegesMetadata.applyPrivileges(USERNAMES, new HashSet<>(PRIVILEGES));
-        assertThat(rowCount, is(0L));
+        assertThat(rowCount).isEqualTo(0L);
     }
 
     @Test
@@ -148,8 +142,8 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
             Collections.singletonList(USER_WITHOUT_PRIVILEGES),
             Collections.singletonList(REVOKE_DML)
         );
-        assertThat(rowCount, is(0L));
-        assertThat(usersPrivilegesMetadata.getUserPrivileges(USER_WITHOUT_PRIVILEGES), empty());
+        assertThat(rowCount).isEqualTo(0L);
+        assertThat(usersPrivilegesMetadata.getUserPrivileges(USER_WITHOUT_PRIVILEGES)).isEmpty();
     }
 
     @Test
@@ -159,8 +153,8 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
             Collections.singletonList(REVOKE_DML)
         );
 
-        assertThat(rowCount, is(1L));
-        assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur"), contains(GRANT_DQL));
+        assertThat(rowCount).isEqualTo(1L);
+        assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur")).containsExactly(GRANT_DQL);
     }
 
 
@@ -171,8 +165,8 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
             Collections.singletonList(new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "hoschi"))
         );
 
-        assertThat(rowCount, is(1L));
-        assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur"), contains(GRANT_DQL));
+        assertThat(rowCount).isEqualTo(1L);
+        assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur")).containsExactly(GRANT_DQL);
     }
 
     @Test
@@ -181,7 +175,7 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
             USERNAMES,
             Collections.singletonList(DENY_DQL)
         );
-        assertThat(rowCount, is(2L));
+        assertThat(rowCount).isEqualTo(2L);
     }
 
     @Test
@@ -190,8 +184,8 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
             Collections.singletonList(USER_WITHOUT_PRIVILEGES),
             Collections.singletonList(DENY_DQL)
         );
-        assertThat(rowCount, is(1L));
-        assertThat(usersPrivilegesMetadata.getUserPrivileges(USER_WITHOUT_PRIVILEGES), contains(DENY_DQL));
+        assertThat(rowCount).isEqualTo(1L);
+        assertThat(usersPrivilegesMetadata.getUserPrivileges(USER_WITHOUT_PRIVILEGES)).containsExactly(DENY_DQL);
     }
 
     @Test
@@ -200,8 +194,8 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
             Collections.singletonList(USER_WITH_DENIED_DQL),
             Collections.singletonList(REVOKE_DQL)
         );
-        assertThat(rowCount, is(1L));
-        assertThat(usersPrivilegesMetadata.getUserPrivileges(USER_WITH_DENIED_DQL), empty());
+        assertThat(rowCount).isEqualTo(1L);
+        assertThat(usersPrivilegesMetadata.getUserPrivileges(USER_WITH_DENIED_DQL)).isEmpty();
     }
 
     @Test
@@ -210,8 +204,8 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
             Collections.singletonList(USER_WITH_DENIED_DQL),
             new HashSet<>(Collections.singletonList(DENY_DQL))
         );
-        assertThat(rowCount, is(0L));
-        assertThat(usersPrivilegesMetadata.getUserPrivileges(USER_WITH_DENIED_DQL), contains(DENY_DQL));
+        assertThat(rowCount).isEqualTo(0L);
+        assertThat(usersPrivilegesMetadata.getUserPrivileges(USER_WITH_DENIED_DQL)).containsExactly(DENY_DQL);
     }
 
     @Test
@@ -219,52 +213,52 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
         UsersPrivilegesMetadata usersMetadata = UsersPrivilegesMetadata.maybeCopyAndReplaceTableIdents(
             usersPrivilegesMetadata, GRANT_TABLE_DQL.ident().ident(), "testSchema.testing");
 
-        assertThat(usersMetadata, notNullValue());
+        assertThat(usersMetadata).isNotNull();
 
         Set<Privilege> updatedPrivileges = usersMetadata.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
         Optional<Privilege> targetPrivilege = updatedPrivileges.stream()
             .filter(p -> p.ident().ident().equals("testSchema.testing"))
             .findAny();
-        assertThat(targetPrivilege.isPresent(), is(true));
+        assertThat(targetPrivilege.isPresent()).isTrue();
 
         Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
             .filter(p -> p.ident().ident().equals("testSchema.test"))
             .findAny();
-        assertThat(sourcePrivilege.isPresent(), is(false));
+        assertThat(sourcePrivilege.isPresent()).isFalse();
 
         // unrelated table privileges must be still available
         Optional<Privilege> otherTablePrivilege = updatedPrivileges.stream()
             .filter(p -> p.ident().ident().equals("testSchema.test2"))
             .findAny();
-        assertThat(otherTablePrivilege.isPresent(), is(true));
+        assertThat(otherTablePrivilege.isPresent()).isTrue();
 
         Optional<Privilege> schemaPrivilege = updatedPrivileges.stream()
             .filter(p -> p.ident().clazz().equals(Privilege.Clazz.SCHEMA))
             .findAny();
-        assertThat(schemaPrivilege.isPresent() && schemaPrivilege.get().equals(GRANT_SCHEMA_DML), is(true));
+        assertThat(schemaPrivilege.isPresent() && schemaPrivilege.get().equals(GRANT_SCHEMA_DML)).isTrue();
     }
 
     @Test
     public void testDropTablePrivileges() {
         long affectedPrivileges = usersPrivilegesMetadata.dropTableOrViewPrivileges(GRANT_TABLE_DQL.ident().ident());
-        assertThat(affectedPrivileges, is(1L));
+        assertThat(affectedPrivileges).isEqualTo(1L);
 
         Set<Privilege> updatedPrivileges = usersPrivilegesMetadata.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
         Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
             .filter(p -> p.ident().ident().equals("testSchema.test"))
             .findAny();
-        assertThat(sourcePrivilege.isPresent(), is(false));
+        assertThat(sourcePrivilege.isPresent()).isFalse();
     }
 
     @Test
     public void testDropViewPrivileges() {
         long affectedPrivileges = usersPrivilegesMetadata.dropTableOrViewPrivileges(GRANT_VIEW_DQL.ident().ident());
-        assertThat(affectedPrivileges, is(1L));
+        assertThat(affectedPrivileges).isEqualTo(1L);
 
         Set<Privilege> updatedPrivileges = usersPrivilegesMetadata.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
         Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
             .filter(p -> p.ident().ident().equals("testSchema.view1"))
             .findAny();
-        assertThat(sourcePrivilege.isPresent(), is(false));
+        assertThat(sourcePrivilege.isPresent()).isFalse();
     }
 }

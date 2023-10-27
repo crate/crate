@@ -21,10 +21,7 @@
 
 package io.crate.user.metadata;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 
@@ -71,10 +68,11 @@ public class CustomMetadataTest {
         Metadata restoredMetadata = Metadata.FORMAT.fromXContent(parser);
         boolean isEqual = Metadata.isGlobalStateEquals(restoredMetadata, metadata);
         if (!isEqual) {
-            assertEquals("meta-data must be equal", xContent, xContentFromMetadata(restoredMetadata));
+            assertThat(xContentFromMetadata(restoredMetadata))
+                .as("meta-data must be equal")
+                .isEqualTo(xContent);
         }
-        assertTrue(isEqual);
-        assertThat(parser.currentToken(), is(XContentParser.Token.END_OBJECT));
+        assertThat(parser.currentToken()).isEqualTo(XContentParser.Token.END_OBJECT);
     }
 
     private String xContentFromMetadata(Metadata metadata) throws IOException {

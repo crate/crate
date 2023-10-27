@@ -21,15 +21,14 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
@@ -53,7 +52,7 @@ public class IdTest extends ESTestCase {
         String id1 = generateId(_ID_LIST, EMPTY_PK_VALUES, _ID);
         String id2 = generateId(_ID_LIST, EMPTY_PK_VALUES, _ID);
 
-        assertThat(id1, Matchers.not(Matchers.equalTo(id2)));
+        assertThat(id2).isNotEqualTo(id1);
     }
 
     @Test
@@ -62,20 +61,19 @@ public class IdTest extends ESTestCase {
         String id1 = generateId(_ID_LIST, EMPTY_PK_VALUES, ci("foo"));
         String id2 = generateId(_ID_LIST, EMPTY_PK_VALUES, ci("foo"));
 
-        assertThat(id1, Matchers.not(Matchers.equalTo(id2)));
+        assertThat(id2).isNotEqualTo(id1);
     }
 
     @Test
     public void testSinglePrimaryKey() throws Exception {
         String id = generateId(List.of(ci("id")), List.of("1"), ci("id"));
-
-        assertThat(id, is("1"));
+        assertThat(id).isEqualTo("1");
     }
 
     @Test
     public void testSinglePrimaryKeyWithoutValue() throws Exception {
-        expectedException.expect(NoSuchElementException.class);
-        generateId(List.of(ci("id")), Collections.emptyList(), ci("id"));
+        assertThatThrownBy(() -> generateId(List.of(ci("id")), Collections.emptyList(), ci("id")))
+            .isExactlyInstanceOf(NoSuchElementException.class);
     }
 
     @Test
@@ -84,7 +82,7 @@ public class IdTest extends ESTestCase {
             List.of(ci("id"), ci("name")),
             List.of("1", "foo"), null);
 
-        assertThat(id, is("AgExA2Zvbw=="));
+        assertThat(id).isEqualTo("AgExA2Zvbw==");
     }
 
     @Test
@@ -94,13 +92,13 @@ public class IdTest extends ESTestCase {
             List.of("1", "foo"),
             ci("name")
         );
-        assertThat(id, is("AgNmb28BMQ=="));
+        assertThat(id).isEqualTo("AgNmb28BMQ==");
     }
 
     @Test
     public void testNull() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("A primary key value must not be NULL");
-        generateId(List.of(ci("id")), Collections.singletonList(null), ci("id"));
+        assertThatThrownBy(() -> generateId(List.of(ci("id")), Collections.singletonList(null), ci("id")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("A primary key value must not be NULL");
     }
 }

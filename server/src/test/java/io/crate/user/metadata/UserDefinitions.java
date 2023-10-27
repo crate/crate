@@ -21,7 +21,7 @@
 
 package io.crate.user.metadata;
 
-import static org.junit.Assert.assertNotNull;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.security.GeneralSecurityException;
 import java.util.Collections;
@@ -49,7 +49,7 @@ public final class UserDefinitions {
         } catch (GeneralSecurityException e) {
             // do nothing;
         }
-        assertNotNull(hash);
+        assertThat(hash).isNotNull();
         return hash;
     }
 }

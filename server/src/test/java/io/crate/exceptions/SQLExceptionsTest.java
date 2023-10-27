@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.concurrent.ExecutionException;
 
@@ -36,7 +34,7 @@ public class SQLExceptionsTest {
         String msg = "cannot cast";
         Throwable t = new ExecutionException(new ClassCastException(msg));
         Throwable unwrapped = SQLExceptions.unwrap(t);
-        assertThat(unwrapped, instanceOf(ClassCastException.class));
-        assertThat(unwrapped.getMessage(), is(msg));
+        assertThat(unwrapped).isExactlyInstanceOf(ClassCastException.class);
+        assertThat(unwrapped.getMessage()).isEqualTo(msg);
     }
 }

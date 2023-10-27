@@ -21,12 +21,8 @@
 
 package io.crate.user;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -44,8 +40,7 @@ public class TransportUserActionTest extends ESTestCase {
         Metadata.Builder mdBuilder = new Metadata.Builder();
         TransportCreateUserAction.putUser(mdBuilder, "root", null);
         UsersMetadata metadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        assertThat(metadata.userNames().size(), is(1));
-        assertThat(metadata.userNames().get(0), is("root"));
+        assertThat(metadata.userNames()).containsExactly("root");
     }
 
     @Test
@@ -53,14 +48,14 @@ public class TransportUserActionTest extends ESTestCase {
         Metadata.Builder mdBuilder = new Metadata.Builder();
         TransportCreateUserAction.putUser(mdBuilder, "root", null);
         UsersPrivilegesMetadata metadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        assertThat(metadata.getUserPrivileges("root"), is(Collections.emptySet()));
+        assertThat(metadata.getUserPrivileges("root")).isEmpty();
     }
 
     @Test
     public void testCreateUserAlreadyExists() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY));
-        assertThat(TransportCreateUserAction.putUser(mdBuilder, "Arthur", null), is(true));
+        assertThat(TransportCreateUserAction.putUser(mdBuilder, "Arthur", null)).isTrue();
     }
 
     @Test
@@ -69,12 +64,12 @@ public class TransportUserActionTest extends ESTestCase {
             .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY));
         TransportCreateUserAction.putUser(mdBuilder, "Trillian", null);
         UsersMetadata newMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        assertThat(newMetadata.userNames(), containsInAnyOrder("Trillian", "Arthur"));
+        assertThat(newMetadata.userNames()).containsExactlyInAnyOrder("Trillian", "Arthur");
     }
 
     @Test
     public void testDropUserNoUsersAtAll() throws Exception {
-        assertThat(TransportDropUserAction.dropUser(Metadata.builder(), null, "root"), is(false));
+        assertThat(TransportDropUserAction.dropUser(Metadata.builder(), null, "root")).isFalse();
     }
 
     @Test
@@ -84,7 +79,7 @@ public class TransportUserActionTest extends ESTestCase {
                 new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY),
                 "trillian"
         );
-        assertThat(res, is(false));
+        assertThat(res).isFalse();
     }
 
     @Test
@@ -92,8 +87,8 @@ public class TransportUserActionTest extends ESTestCase {
         UsersMetadata oldMetadata = new UsersMetadata(UserDefinitions.DUMMY_USERS);
         Metadata.Builder mdBuilder = Metadata.builder();
         boolean res = TransportDropUserAction.dropUser(mdBuilder, oldMetadata, "Arthur");
-        assertThat(users(mdBuilder), contains("Ford"));
-        assertThat(res, is(true));
+        assertThat(users(mdBuilder)).containsExactly("Ford");
+        assertThat(res).isTrue();
     }
 
     private static List<String> users(Metadata.Builder mdBuilder) {
