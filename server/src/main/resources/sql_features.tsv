@@ -154,7 +154,7 @@ F031	Basic schema manipulation	13	DROP TABLE statement: RESTRICT clause	NO
 F031	Basic schema manipulation	16	DROP VIEW statement: RESTRICT clause	NO		
 F031	Basic schema manipulation	19	REVOKE statement: RESTRICT clause	NO		
 F032	CASCADE drop behavior			NO		
-F033	ALTER TABLE statement: DROP COLUMN clause			NO		
+F033	ALTER TABLE statement: DROP COLUMN clause			YES		
 F034	Extended REVOKE statement			YES		
 F034	Extended REVOKE statement	1	REVOKE statement performed by other than the owner of a schema object	YES		
 F034	Extended REVOKE statement	2	REVOKE statement: GRANT OPTION FOR clause	NO		
