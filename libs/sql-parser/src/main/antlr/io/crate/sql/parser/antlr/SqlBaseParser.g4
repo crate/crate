@@ -479,6 +479,10 @@ qname
     : ident (DOT ident)*
     ;
 
+spaceSeparatedIdents
+    : ident ( ident)*
+    ;
+
 idents
     : ident (COMMA ident)*
     ;
@@ -590,6 +594,7 @@ createStmt
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
+    | CREATE ROLE name=ident (WITH? options=spaceSeparatedIdents)?                   #createRole
     ;
 
 
@@ -944,6 +949,7 @@ nonReserved
     | RETRY
     | RETURN
     | RETURNING
+    | ROLE
     | ROW
     | ROWS
     | SCHEMA

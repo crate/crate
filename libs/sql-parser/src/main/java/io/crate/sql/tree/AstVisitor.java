@@ -600,6 +600,10 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
+    public R visitCreateRole(CreateRole<?> node, C context) {
+        return visitStatement(node, context);
+    }
+
     public R visitCreateView(CreateView createView, C context) {
         return visitStatement(createView, context);
     }
