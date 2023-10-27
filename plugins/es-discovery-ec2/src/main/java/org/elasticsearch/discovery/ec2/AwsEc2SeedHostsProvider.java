@@ -19,25 +19,12 @@
 
 package org.elasticsearch.discovery.ec2;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.Filter;
-import com.amazonaws.services.ec2.model.GroupIdentifier;
-import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.Reservation;
-import com.amazonaws.services.ec2.model.Tag;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.logging.log4j.util.Supplier;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.SingleObjectCache;
-import org.elasticsearch.discovery.SeedHostsProvider;
-import org.elasticsearch.transport.TransportService;
+import static java.util.Collections.disjoint;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PRIVATE_DNS;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PRIVATE_IP;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PUBLIC_DNS;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PUBLIC_IP;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.TAG_PREFIX;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -45,12 +32,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.disjoint;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PRIVATE_DNS;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PRIVATE_IP;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PUBLIC_DNS;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PUBLIC_IP;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.TAG_PREFIX;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.logging.log4j.util.Supplier;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.SingleObjectCache;
+import org.elasticsearch.discovery.SeedHostsProvider;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.common.unit.TimeValue;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
+import software.amazon.awssdk.services.ec2.model.Filter;
+import software.amazon.awssdk.services.ec2.model.GroupIdentifier;
+import software.amazon.awssdk.services.ec2.model.Instance;
+import software.amazon.awssdk.services.ec2.model.Reservation;
+import software.amazon.awssdk.services.ec2.model.Tag;
 
 class AwsEc2SeedHostsProvider implements SeedHostsProvider {
 
@@ -103,7 +103,7 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
 
         final List<TransportAddress> dynamicHosts = new ArrayList<>();
 
-        final DescribeInstancesResult descInstances;
+        final DescribeInstancesResponse descInstances;
         try (AmazonEc2Reference clientReference = awsEc2Service.client()) {
             // Query EC2 API based on AZ, instance state, and tag.
 
@@ -111,29 +111,29 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
             // 1. differences in VPCs require different parameters during query (ID vs Name)
             // 2. We want to use two different strategies: (all security groups vs. any security groups)
             descInstances = clientReference.client().describeInstances(buildDescribeInstancesRequest());
-        } catch (final AmazonClientException e) {
+        } catch (final SdkException e) {
             LOGGER.info("Exception while retrieving instance list from AWS API: {}", e.getMessage());
             LOGGER.debug("Full exception:", e);
             return dynamicHosts;
         }
 
         LOGGER.trace("finding seed nodes...");
-        for (final Reservation reservation : descInstances.getReservations()) {
-            for (final Instance instance : reservation.getInstances()) {
+        for (final Reservation reservation : descInstances.reservations()) {
+            for (final Instance instance : reservation.instances()) {
                 // lets see if we can filter based on groups
                 if (!groups.isEmpty()) {
-                    final List<GroupIdentifier> instanceSecurityGroups = instance.getSecurityGroups();
+                    final List<GroupIdentifier> instanceSecurityGroups = instance.securityGroups();
                     final List<String> securityGroupNames = new ArrayList<>(instanceSecurityGroups.size());
                     final List<String> securityGroupIds = new ArrayList<>(instanceSecurityGroups.size());
                     for (final GroupIdentifier sg : instanceSecurityGroups) {
-                        securityGroupNames.add(sg.getGroupName());
-                        securityGroupIds.add(sg.getGroupId());
+                        securityGroupNames.add(sg.groupName());
+                        securityGroupIds.add(sg.groupId());
                     }
                     if (bindAnyGroup) {
                         // We check if we can find at least one group name or one group id in groups.
                         if (disjoint(securityGroupNames, groups)
                             && disjoint(securityGroupIds, groups)) {
-                            LOGGER.trace("filtering out instance {} based on groups {}, not part of {}", instance.getInstanceId(),
+                            LOGGER.trace("filtering out instance {} based on groups {}, not part of {}", instance.instanceId(),
                                          instanceSecurityGroups, groups);
                             // continue to the next instance
                             continue;
@@ -142,7 +142,7 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
                         // We need tp match all group names or group ids, otherwise we ignore this instance
                         if (!(securityGroupNames.containsAll(groups) || securityGroupIds.containsAll(groups))) {
                             LOGGER.trace("filtering out instance {} based on groups {}, does not include all of {}",
-                                         instance.getInstanceId(), instanceSecurityGroups, groups);
+                                         instance.instanceId(), instanceSecurityGroups, groups);
                             // continue to the next instance
                             continue;
                         }
@@ -151,21 +151,21 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
 
                 String address = null;
                 if (hostType.equals(PRIVATE_DNS)) {
-                    address = instance.getPrivateDnsName();
+                    address = instance.privateDnsName();
                 } else if (hostType.equals(PRIVATE_IP)) {
-                    address = instance.getPrivateIpAddress();
+                    address = instance.privateIpAddress();
                 } else if (hostType.equals(PUBLIC_DNS)) {
-                    address = instance.getPublicDnsName();
+                    address = instance.publicDnsName();
                 } else if (hostType.equals(PUBLIC_IP)) {
-                    address = instance.getPublicIpAddress();
+                    address = instance.publicIpAddress();
                 } else if (hostType.startsWith(TAG_PREFIX)) {
                     // Reading the node host from its metadata
                     final String tagName = hostType.substring(TAG_PREFIX.length());
                     LOGGER.debug("reading hostname from [{}] instance tag", tagName);
-                    final List<Tag> tags = instance.getTags();
+                    final List<Tag> tags = instance.tags();
                     for (final Tag tag : tags) {
-                        if (tag.getKey().equals(tagName)) {
-                            address = tag.getValue();
+                        if (tag.key().equals(tagName)) {
+                            address = tag.value();
                             LOGGER.debug("using [{}] as the instance address", address);
                         }
                     }
@@ -176,16 +176,16 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
                     try {
                         final TransportAddress[] addresses = transportService.addressesFromString(address);
                         for (int i = 0; i < addresses.length; i++) {
-                            LOGGER.trace("adding {}, address {}, transport_address {}", instance.getInstanceId(), address, addresses[i]);
+                            LOGGER.trace("adding {}, address {}, transport_address {}", instance.instanceId(), address, addresses[i]);
                             dynamicHosts.add(addresses[i]);
                         }
                     } catch (final Exception e) {
                         final String finalAddress = address;
                         LOGGER.warn(
-                            (Supplier<?>) () -> new ParameterizedMessage("failed to add {}, address {}", instance.getInstanceId(), finalAddress), e);
+                            (Supplier<?>) () -> new ParameterizedMessage("failed to add {}, address {}", instance.instanceId(), finalAddress), e);
                     }
                 } else {
-                    LOGGER.trace("not adding {}, address is null, host_type {}", instance.getInstanceId(), hostType);
+                    LOGGER.trace("not adding {}, address is null, host_type {}", instance.instanceId(), hostType);
                 }
             }
         }
@@ -196,26 +196,20 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
     }
 
     private DescribeInstancesRequest buildDescribeInstancesRequest() {
-        final DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest()
-            .withFilters(
-                new Filter("instance-state-name").withValues("running", "pending")
-            );
+        List<Filter> filters = new ArrayList<>();
+        filters.add(Filter.builder().name("instance-state-name").values("running", "pending").build());
 
         for (final Map.Entry<String, List<String>> tagFilter : tags.entrySet()) {
             // for a given tag key, OR relationship for multiple different values
-            describeInstancesRequest.withFilters(
-                new Filter("tag:" + tagFilter.getKey()).withValues(tagFilter.getValue())
-            );
+            filters.add(Filter.builder().name("tag:" + tagFilter.getKey()).values(tagFilter.getValue()).build());
         }
 
         if (!availabilityZones.isEmpty()) {
             // OR relationship amongst multiple values of the availability-zone filter
-            describeInstancesRequest.withFilters(
-                new Filter("availability-zone").withValues(availabilityZones)
-            );
+            filters.add(Filter.builder().name("availability-zone").values(availabilityZones).build());
         }
 
-        return describeInstancesRequest;
+        return DescribeInstancesRequest.builder().filters(filters).build();
     }
 
     private final class TransportAddressesCache extends SingleObjectCache<List<TransportAddress>> {

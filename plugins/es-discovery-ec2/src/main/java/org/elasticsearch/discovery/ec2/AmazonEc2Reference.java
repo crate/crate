@@ -19,20 +19,20 @@
 
 package org.elasticsearch.discovery.ec2;
 
-import com.amazonaws.services.ec2.AmazonEC2;
-
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
 
+import software.amazon.awssdk.services.ec2.Ec2Client;
+
 /**
- * Handles the shutdown of the wrapped {@link AmazonEC2} using reference
+ * Handles the shutdown of the wrapped {@link Ec2Client} using reference
  * counting.
  */
 public class AmazonEc2Reference extends AbstractRefCounted implements Releasable {
 
-    private final AmazonEC2 client;
+    private final Ec2Client client;
 
-    AmazonEc2Reference(AmazonEC2 client) {
+    AmazonEc2Reference(Ec2Client client) {
         super("AWS_EC2_CLIENT");
         this.client = client;
     }
@@ -49,13 +49,13 @@ public class AmazonEc2Reference extends AbstractRefCounted implements Releasable
      * Returns the underlying `AmazonEC2` client. All method calls are permitted BUT
      * NOT shutdown. Shutdown is called when reference count reaches 0.
      */
-    public AmazonEC2 client() {
+    public Ec2Client client() {
         return client;
     }
 
     @Override
     protected void closeInternal() {
-        client.shutdown();
+        client.close();
     }
 
 }
