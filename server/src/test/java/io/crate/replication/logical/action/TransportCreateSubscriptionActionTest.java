@@ -71,11 +71,10 @@ public class TransportCreateSubscriptionActionTest {
         FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> responseFuture = FutureActionListener.newInstance();
         subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 10000);
 
-        assertThatThrownBy(
-            () -> responseFuture.get()
-        )
-        .hasMessageContaining("One of the published tables has version higher than subscriber's minimal node version." +
-            " Table=doc.t1, Table-Version=5.6.0, Local-Minimal-Version: 5.5.0");
+        var tableVersion = Version.fromId(Version.CURRENT.internalId + 10000);
+        assertThatThrownBy(responseFuture::get)
+            .hasMessageContaining("One of the published tables has version higher than subscriber's minimal node version." +
+                " Table=doc.t1, Table-Version=" + tableVersion + ", Local-Minimal-Version: " + Version.CURRENT);
     }
 
     @Test
