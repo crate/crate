@@ -20,6 +20,14 @@ Versions
 5.x
 ---
 
+5.6.x
+.....
+
+.. toctree::
+    :maxdepth: 1
+
+    5.6.0
+
 5.5.x
 .....
 
