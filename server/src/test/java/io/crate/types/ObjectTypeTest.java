@@ -21,10 +21,8 @@
 
 package io.crate.types;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -35,7 +33,6 @@ import java.util.Objects;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
@@ -52,7 +49,7 @@ public class ObjectTypeTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ObjectType otherType = new ObjectType(in);
 
-        assertThat(otherType.innerTypes().size(), is(0));
+        assertThat(otherType.innerTypes()).isEmpty();
     }
 
     @Test
@@ -64,7 +61,7 @@ public class ObjectTypeTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ObjectType otherType = new ObjectType(in);
 
-        assertThat(otherType.innerTypes(), is(type.innerTypes()));
+        assertThat(otherType.innerTypes()).isEqualTo(type.innerTypes());
     }
 
     @Test
@@ -81,7 +78,7 @@ public class ObjectTypeTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ObjectType otherType = new ObjectType(in);
 
-        assertThat(otherType.innerTypes(), is(type.innerTypes()));
+        assertThat(otherType.innerTypes()).isEqualTo(type.innerTypes());
     }
 
     @Test
@@ -95,8 +92,7 @@ public class ObjectTypeTest extends ESTestCase {
         ObjectType otherType = DataTypes.UNTYPED_OBJECT;
 
         Object v = otherType.readValueFrom(in);
-
-        assertThat(v, nullValue());
+        assertThat(v).isNull();
     }
 
     @Test
@@ -116,10 +112,10 @@ public class ObjectTypeTest extends ESTestCase {
         ObjectType otherType = new ObjectType(in);
 
         Object v = otherType.readValueFrom(in);
-
-        assertThat(v, nullValue());
+        assertThat(v).isNull();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testStreamingOfValueWithInnerTypes() throws IOException {
         ObjectType type = ObjectType.builder()
@@ -141,8 +137,8 @@ public class ObjectTypeTest extends ESTestCase {
 
         Map<String, Object> v = otherType.readValueFrom(in);
 
-        assertThat(v.get("s"), is(map.get("s")));
-        assertThat((List<Map>) v.get("obj_array"), Matchers.contains((Map.of("i", 0))));
+        assertThat(v.get("s")).isEqualTo(map.get("s"));
+        assertThat((List<Map<?, ?>>) v.get("obj_array")).containsExactly(Map.of("i", 0));
     }
 
     @Test
@@ -165,8 +161,8 @@ public class ObjectTypeTest extends ESTestCase {
 
         Map<String, Object> v = otherType.readValueFrom(in);
 
-        assertThat(v.get("s"), is(map.get("s")));
-        assertThat(Objects.deepEquals(v.get("obj_array"), innerArray), is(true));
+        assertThat(v.get("s")).isEqualTo(map.get("s"));
+        assertThat(Objects.deepEquals(v.get("obj_array"), innerArray)).isTrue();
     }
 
     @Test
@@ -178,7 +174,7 @@ public class ObjectTypeTest extends ESTestCase {
                 .build())
             .build();
 
-        assertThat(type.resolveInnerType(List.of("s", "inner", "i")), is(DataTypes.INTEGER));
+        assertThat(type.resolveInnerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.INTEGER);
     }
 
     @Test
@@ -186,7 +182,7 @@ public class ObjectTypeTest extends ESTestCase {
         var objectType = ObjectType.builder()
             .setInnerType("inner field", DataTypes.STRING)
             .build();
-        assertThat(objectType.getTypeSignature().createType(), is(objectType));
+        assertThat(objectType.getTypeSignature().createType()).isEqualTo(objectType);
     }
 
     @Test

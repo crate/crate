@@ -21,9 +21,7 @@
 
 package io.crate.user.metadata;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -46,15 +44,15 @@ public class SecureHashTest extends ESTestCase {
     public void testSamePasswordsGenerateDifferentHash() throws Exception {
         SecureHash hash1 = SecureHash.of(PASSWORD);
         SecureHash hash2 = SecureHash.of(PASSWORD);
-        assertNotEquals(hash1, hash2);
+        assertThat(hash2).isNotEqualTo(hash1);
     }
 
     @Test
     public void testVerifyHash() throws Exception {
         SecureHash hash = SecureHash.of(PASSWORD);
 
-        assertTrue(hash.verifyHash(PASSWORD));
-        assertFalse(hash.verifyHash(INVALID_PASSWORD));
+        assertThat(hash.verifyHash(PASSWORD)).isTrue();
+        assertThat(hash.verifyHash(INVALID_PASSWORD)).isFalse();
     }
 
     @Test
@@ -62,6 +60,6 @@ public class SecureHashTest extends ESTestCase {
         SecureString pw = new SecureString("πä😉ـص".toCharArray());
         SecureHash hash = SecureHash.of(pw);
 
-        assertTrue(hash.verifyHash(pw));
+        assertThat(hash.verifyHash(pw)).isTrue();
     }
 }

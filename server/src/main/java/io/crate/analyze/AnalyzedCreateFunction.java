@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.types.DataType;
-
 import java.util.List;
 import java.util.function.Consumer;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.DataType;
 
 public class AnalyzedCreateFunction implements DDLStatement {
 
@@ -33,7 +33,7 @@ public class AnalyzedCreateFunction implements DDLStatement {
     private final String schema;
     private final boolean replace;
     private final List<FunctionArgumentDefinition> arguments;
-    private final DataType returnType;
+    private final DataType<?> returnType;
     private final Symbol language;
     private final Symbol definition;
 
@@ -41,7 +41,7 @@ public class AnalyzedCreateFunction implements DDLStatement {
                            String name,
                            boolean replace,
                            List<FunctionArgumentDefinition> arguments,
-                           DataType returnType,
+                           DataType<?> returnType,
                            Symbol language,
                            Symbol definition) {
         this.name = name;
@@ -76,7 +76,7 @@ public class AnalyzedCreateFunction implements DDLStatement {
         return replace;
     }
 
-    public DataType returnType() {
+    public DataType<?> returnType() {
         return returnType;
     }
 

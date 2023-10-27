@@ -21,8 +21,7 @@
 
 package io.crate.blob;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.UUID;
 
@@ -47,7 +46,7 @@ public class DeleteBlobRequestTest extends ESTestCase {
 
         DeleteBlobRequest fromStream = new DeleteBlobRequest(out.bytes().streamInput());
 
-        assertThat(fromStream.index(), is("foo"));
-        assertThat(fromStream.id(), is(Hex.encodeHexString(digest)));
+        assertThat(fromStream.index()).isEqualTo("foo");
+        assertThat(fromStream.id()).isEqualTo(Hex.encodeHexString(digest));
     }
 }

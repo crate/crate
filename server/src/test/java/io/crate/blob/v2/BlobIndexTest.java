@@ -21,14 +21,13 @@
 
 package io.crate.blob.v2;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class BlobIndexTest {
@@ -38,6 +37,6 @@ public class BlobIndexTest {
         Path root = Paths.get("/");
         Logger logger = LogManager.getLogger(BlobIndexTest.class);
 
-        assertThat(BlobIndex.retrieveBlobRootDir(root, "dummy", logger), Matchers.nullValue());
+        assertThat(BlobIndex.retrieveBlobRootDir(root, "dummy", logger)).isNull();
     }
 }

@@ -21,11 +21,7 @@
 
 package io.crate.exceptions;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,9 +38,7 @@ public class MultiExceptionTest extends ESTestCase {
                 new Exception("first one"),
                 new Exception("second one"))
         );
-        assertThat(
-            multiException.getMessage(),
-            is("first one\nsecond one"));
+        assertThat(multiException.getMessage()).isEqualTo("first one\nsecond one");
     }
 
     @Test
@@ -54,8 +48,8 @@ public class MultiExceptionTest extends ESTestCase {
             exceptions.add(new Exception("exc"));
         }
         MultiException multiException = new MultiException(exceptions);
-        assertThat(multiException.getMessage().length(), is(10038));
-        assertThat(multiException.getMessage(), containsString("too much output. output truncated."));
+        assertThat(multiException.getMessage().length()).isEqualTo(10038);
+        assertThat(multiException.getMessage()).contains("too much output. output truncated.");
     }
 
     @Test
@@ -64,6 +58,6 @@ public class MultiExceptionTest extends ESTestCase {
         Exception e2 = new Exception("exception 3");
 
         MultiException multiException = MultiException.of(e1, e2);
-        multiException.getExceptions().forEach(ex -> assertThat(ex, not(instanceOf(MultiException.class))));
+        multiException.getExceptions().forEach(ex -> assertThat(ex).isNotInstanceOf(MultiException.class));
     }
 }

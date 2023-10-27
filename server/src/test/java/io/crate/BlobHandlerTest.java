@@ -21,8 +21,8 @@
 
 package io.crate;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
@@ -50,10 +50,10 @@ public class BlobHandlerTest extends ESTestCase {
     @Test
     public void testBlobHandlerRegex() throws Exception {
         for (String validUrl : validUrls) {
-            assertThat(validUrl, HttpBlobHandler.BLOBS_PATTERN.matcher(validUrl).matches(), is(true));
+            assertThat(HttpBlobHandler.BLOBS_PATTERN.matcher(validUrl).matches()).isTrue();
         }
         for (String invalidUrl : invalidUrls) {
-            assertThat(invalidUrl, HttpBlobHandler.BLOBS_PATTERN.matcher(invalidUrl).matches(), is(false));
+            assertThat(HttpBlobHandler.BLOBS_PATTERN.matcher(invalidUrl).matches()).isFalse();
         }
     }
 }
