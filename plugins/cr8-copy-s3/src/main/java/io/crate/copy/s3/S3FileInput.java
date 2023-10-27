@@ -21,20 +21,6 @@
 
 package io.crate.copy.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.copy.s3.common.S3ClientHelper;
-import io.crate.copy.s3.common.S3URI;
-import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.Globs;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -44,11 +30,28 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.copy.s3.common.S3ClientHelper;
+import io.crate.copy.s3.common.S3URI;
+import io.crate.execution.engine.collect.files.FileInput;
+import io.crate.execution.engine.collect.files.Globs;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
+
 public class S3FileInput implements FileInput {
 
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((s3://)[^\\*]*/)[^\\*]*\\*.*");
 
-    private AmazonS3 client; // to prevent early GC during getObjectContent() in getStream()
+    private S3Client client; // to prevent early GC during getObjectContent() in getStream()
     private static final Logger LOGGER = LogManager.getLogger(S3FileInput.class);
 
     private final S3ClientHelper clientBuilder;
@@ -62,7 +65,7 @@ public class S3FileInput implements FileInput {
     @Nullable
     private final String protocolSetting;
 
-    public S3FileInput(URI uri, String protocol) {
+    public S3FileInput(URI uri, @Nullable String protocol) {
         this.clientBuilder = new S3ClientHelper();
         this.normalizedS3URI = S3URI.toS3URI(uri);
         this.preGlobUri = toPreGlobUri(this.normalizedS3URI);
@@ -71,7 +74,7 @@ public class S3FileInput implements FileInput {
     }
 
     @VisibleForTesting
-    S3FileInput(S3ClientHelper clientBuilder, URI uri, String protocol) {
+    S3FileInput(S3ClientHelper clientBuilder, URI uri, @Nullable String protocol) {
         this.clientBuilder = clientBuilder;
         this.normalizedS3URI = S3URI.toS3URI(uri);
         this.preGlobUri = toPreGlobUri(this.normalizedS3URI);
@@ -98,22 +101,21 @@ public class S3FileInput implements FileInput {
             client = clientBuilder.client(preGlobUri, protocolSetting);
         }
         List<URI> uris = new ArrayList<>();
-        ObjectListing list = client.listObjects(preGlobUri.bucket(), preGlobUri.key());
-        addKeyUris(uris, list);
-        while (list.isTruncated()) {
-            list = client.listNextBatchOfObjects(list);
-            addKeyUris(uris, list);
+        ListObjectsV2Iterable pages = client.listObjectsV2Paginator(
+            ListObjectsV2Request.builder().bucket(preGlobUri.bucket()).prefix(preGlobUri.key()).build());
+        for (var page : pages) {
+            addKeyUris(uris, page.contents());
         }
         return uris;
     }
 
-    private void addKeyUris(List<URI> uris, ObjectListing list) {
+    private void addKeyUris(List<URI> uris, Iterable<S3Object> list) {
         assert preGlobUri != null;
-        List<S3ObjectSummary> summaries = list.getObjectSummaries();
-        for (S3ObjectSummary summary : summaries) {
-            String key = summary.getKey();
+        for (S3Object s3Object : list) {
+            String key = s3Object.key();
             if (!key.endsWith("/")) {
-                S3URI keyUri = preGlobUri.replacePath(summary.getBucketName(), key);
+                // TODO: may need to rework on this to fit to V2 sdk
+                S3URI keyUri = preGlobUri.replacePath(preGlobUri.bucket(), key);
                 if (uriPredicate.test(keyUri)) {
                     uris.add(keyUri.uri());
                     if (LOGGER.isDebugEnabled()) {
@@ -130,11 +132,11 @@ public class S3FileInput implements FileInput {
         if (client == null) {
             client = clientBuilder.client(s3URI, protocolSetting);
         }
-        S3Object object = client.getObject(s3URI.bucket(), s3URI.key());
-        if (object != null) {
-            return object.getObjectContent();
+        try {
+            return client.getObject(GetObjectRequest.builder().bucket(s3URI.bucket()).key(s3URI.key()).build());
+        } catch (SdkException e) {
+            throw new IOException("Failed to load S3 URI: " + uri.toString());
         }
-        throw new IOException("Failed to load S3 URI: " + uri.toString());
     }
 
     @Override

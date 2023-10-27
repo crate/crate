@@ -21,23 +21,6 @@
 
 package io.crate.copy.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
-
-import io.crate.copy.s3.common.S3ClientHelper;
-import io.crate.copy.s3.common.S3URI;
-import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.engine.export.FileOutput;
-
-import org.jetbrains.annotations.Nullable;
-import io.crate.common.annotations.NotThreadSafe;
-import io.crate.common.concurrent.CompletableFutures;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,13 +33,31 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
 
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.annotations.NotThreadSafe;
+import io.crate.common.concurrent.CompletableFutures;
+import io.crate.copy.s3.common.S3ClientHelper;
+import io.crate.copy.s3.common.S3URI;
+import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.export.FileOutput;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartResponse;
+
 @NotThreadSafe
 public class S3FileOutput implements FileOutput {
 
     @Nullable
     private final String protocolSetting;
 
-    public S3FileOutput(String protocol) {
+    public S3FileOutput(@Nullable String protocol) {
         protocolSetting = protocol;
     }
 
@@ -74,12 +75,12 @@ public class S3FileOutput implements FileOutput {
 
         private static final int PART_SIZE = 5 * 1024 * 1024;
 
-        private final AmazonS3 client;
-        private final InitiateMultipartUploadResult multipartUpload;
+        private final S3Client client;
+        private final CreateMultipartUploadResponse multipartUpload;
         private final Executor executor;
         private final String bucketName;
         private final String key;
-        private final List<CompletableFuture<PartETag>> pendingUploads = new ArrayList<>();
+        private final List<CompletableFuture<CompletedPart>> pendingUploads = new ArrayList<>();
 
         private ByteArrayOutputStream outputStream;
         long currentPartBytes = 0;
@@ -94,7 +95,8 @@ public class S3FileOutput implements FileOutput {
             key = s3URI.key();
             outputStream = new ByteArrayOutputStream();
             client = s3ClientHelper.client(s3URI, protocolSetting);
-            multipartUpload = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName, key));
+            multipartUpload = client.createMultipartUpload(
+                CreateMultipartUploadRequest.builder().bucket(bucketName).key(key).build());
         }
 
         @Override
@@ -128,14 +130,16 @@ public class S3FileOutput implements FileOutput {
                 outputStream = new ByteArrayOutputStream();
                 partNumber++;
                 pendingUploads.add(CompletableFutures.supplyAsync(() -> {
-                    UploadPartRequest uploadPartRequest = new UploadPartRequest()
-                        .withBucketName(bucketName)
-                        .withKey(key)
-                        .withPartNumber(currentPart)
-                        .withPartSize(currentPartSize)
-                        .withUploadId(multipartUpload.getUploadId())
-                        .withInputStream(inputStream);
-                    return client.uploadPart(uploadPartRequest).getPartETag();
+                    UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .partNumber(currentPart)
+                        .contentLength(currentPartSize)
+                        .uploadId(multipartUpload.uploadId()).build();
+                    var response = client.uploadPart(
+                        uploadPartRequest,
+                        RequestBody.fromInputStream(inputStream, uploadPartRequest.contentLength()));
+                    return CompletedPart.builder().partNumber(partNumber).eTag(response.eTag()).build();
                 }, executor));
                 currentPartBytes = 0;
             }
@@ -143,29 +147,30 @@ public class S3FileOutput implements FileOutput {
 
         @Override
         public void close() throws IOException {
-            UploadPartRequest uploadPartRequest = new UploadPartRequest()
-                .withBucketName(bucketName)
-                .withKey(key)
-                .withPartNumber(partNumber)
-                .withPartSize(outputStream.size())
-                .withUploadId(multipartUpload.getUploadId())
-                .withInputStream(new ByteArrayInputStream(outputStream.toByteArray()));
-            UploadPartResult uploadPartResult = client.uploadPart(uploadPartRequest);
+            UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .partNumber(partNumber)
+                .contentLength((long) outputStream.size())
+                .uploadId(multipartUpload.uploadId()).build();
+            final ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+            UploadPartResponse uploadPartResult = client.uploadPart(
+                uploadPartRequest,
+                RequestBody.fromInputStream(inputStream, uploadPartRequest.contentLength()));
 
-            List<PartETag> partETags;
+            List<CompletedPart> completedParts;
             try {
-                partETags = CompletableFutures.allAsList(pendingUploads).get();
+                completedParts = CompletableFutures.allAsList(pendingUploads).get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new IOException(e);
             }
-            partETags.add(uploadPartResult.getPartETag());
+            completedParts.add(CompletedPart.builder().partNumber(partNumber).eTag(uploadPartResult.eTag()).build());
             client.completeMultipartUpload(
-                new CompleteMultipartUploadRequest(
-                    bucketName,
-                    key,
-                    multipartUpload.getUploadId(),
-                    partETags)
-            );
+                CompleteMultipartUploadRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .multipartUpload(CompletedMultipartUpload.builder().parts(completedParts).build())
+                    .build());
             super.close();
         }
     }

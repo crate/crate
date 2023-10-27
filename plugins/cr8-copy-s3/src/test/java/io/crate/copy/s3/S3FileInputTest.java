@@ -40,6 +40,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import io.crate.copy.s3.common.S3ClientHelper;
 import io.crate.copy.s3.common.S3URI;
+import software.amazon.awssdk.services.s3.S3Client;
 
 
 public class S3FileInputTest extends ESTestCase {
@@ -63,7 +64,8 @@ public class S3FileInputTest extends ESTestCase {
         s3FileInput = new S3FileInput(CLIENT_BUILDER, globbedUri, PROTOCOL);
 
         when(S_3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(OBJECT_LISTING);
-        when(CLIENT_BUILDER.client(preGlobUri, PROTOCOL)).thenReturn(S_3);
+        // TODO
+        when(CLIENT_BUILDER.client(preGlobUri, PROTOCOL)).thenReturn(mock(S3Client.class));
     }
 
     @Test

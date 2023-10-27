@@ -21,72 +21,72 @@
 
 package io.crate.copy.s3.common;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.retry.PredefinedRetryPolicies;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import io.crate.common.annotations.VisibleForTesting;
-
-import org.jetbrains.annotations.Nullable;
-import io.crate.common.annotations.NotThreadSafe;
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.annotations.NotThreadSafe;
+import io.crate.common.annotations.VisibleForTesting;
+import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.retry.RetryMode;
+import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+
 @NotThreadSafe
 public class S3ClientHelper {
+    private static final String DEFAULT_PROTOCOL = "https";
 
-    private static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
+    private static final ApacheHttpClient.Builder CLIENT_BUILDER = ApacheHttpClient.builder().tcpKeepAlive(true);
+    private static final ClientOverrideConfiguration CLIENT_OVERRIDE_CONFIG =
+        ClientOverrideConfiguration.builder().retryPolicy(RetryPolicy.builder(RetryMode.LEGACY).numRetries(5).build()).build();
 
-    private static final ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(DEFAULT_PROTOCOL);
-
-    static {
-        CLIENT_CONFIGURATION.setRetryPolicy(PredefinedRetryPolicies.getDefaultRetryPolicyWithCustomMaxRetries(5));
-        CLIENT_CONFIGURATION.setUseTcpKeepAlive(true);
-    }
-
-    private final Map<Record, AmazonS3> clientMap = new HashMap<>(1);
+    private final Map<Record, S3Client> clientMap = new HashMap<>(1);
 
     @VisibleForTesting
-    protected AmazonS3 initClient(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
+    protected S3Client initClient(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
                                   String protocolSetting) throws IOException {
         assert protocolSetting != null : "protocol setting should not be null";
-        AmazonS3ClientBuilder amazonS3ClientBuilder = AmazonS3ClientBuilder
-            .standard()
-            .withCredentials(new AWSStaticCredentialsProvider(
-                (accessKey == null || secretKey == null) ? new AnonymousAWSCredentials() : new BasicAWSCredentials(accessKey, secretKey)))
-            .withForceGlobalBucketAccessEnabled(true)
-            .withClientConfiguration(CLIENT_CONFIGURATION) // does not override protocolSetting passed to EndpointConfiguration
-            .withPathStyleAccessEnabled(true);
-        if (endPoint != null) {
-            amazonS3ClientBuilder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(protocolSetting + "://" + endPoint, null));
+        S3ClientBuilder s3ClientBuilder = S3Client.builder()
+            .credentialsProvider(
+                (accessKey == null || secretKey == null) ?
+                    AnonymousCredentialsProvider.create() :
+                    StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+            .crossRegionAccessEnabled(true)
+            .httpClientBuilder(CLIENT_BUILDER)
+            .overrideConfiguration(CLIENT_OVERRIDE_CONFIG)
+            .forcePathStyle(true);
+        if (endPoint != null) { // TODO: why protocolSetting takes effect only if endPoint != null?
+            s3ClientBuilder.endpointOverride(URI.create(protocolSetting + "://" + endPoint));
         } else {
-            amazonS3ClientBuilder.withRegion(Regions.DEFAULT_REGION);
+            s3ClientBuilder.region(Region.AWS_GLOBAL);
         }
-        return amazonS3ClientBuilder.build();
+        return s3ClientBuilder.build();
     }
 
-    public AmazonS3 client(S3URI uri) throws IOException {
-        return client(uri, DEFAULT_PROTOCOL.toString());
+    public S3Client client(S3URI uri) throws IOException {
+        return client(uri, DEFAULT_PROTOCOL);
     }
 
-    public AmazonS3 client(S3URI uri, String protocolSetting) throws IOException {
+    public S3Client client(S3URI uri, String protocolSetting) throws IOException {
         if (protocolSetting == null) {
-            protocolSetting = DEFAULT_PROTOCOL.toString();
+            protocolSetting = DEFAULT_PROTOCOL;
         }
         return client(uri.accessKey(), uri.secretKey(), uri.endpoint(), protocolSetting);
     }
 
-    private AmazonS3 client(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
+    private S3Client client(@Nullable String accessKey, @Nullable String secretKey, @Nullable String endPoint,
                             String protocolSetting) throws IOException {
         ClientKey clientKey = new ClientKey(accessKey, secretKey, endPoint, protocolSetting);
-        AmazonS3 client = clientMap.get(clientKey);
+        S3Client client = clientMap.get(clientKey);
         if (client == null) {
             client = initClient(accessKey, secretKey, endPoint, protocolSetting);
             clientMap.put(clientKey, client);

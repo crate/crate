@@ -56,6 +56,7 @@ import io.crate.copy.s3.common.S3ClientHelper;
 import io.crate.data.BatchIterator;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
+import software.amazon.awssdk.services.s3.S3Client;
 
 public class S3FileReadingCollectorTest extends ESTestCase {
     private static ThreadPool THREAD_POOL;
@@ -112,7 +113,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                 S3FileInputFactory.NAME,
                 (uri, withClauseOptions) -> new S3FileInput(new S3ClientHelper() {
                     @Override
-                    protected AmazonS3 initClient(String accessKey, String secretKey, String endpoint, String protocol) {
+                    protected S3Client initClient(String accessKey, String secretKey, String endpoint, String protocol) {
                         AmazonS3 client = mock(AmazonS3Client.class);
                         ObjectListing objectListing = mock(ObjectListing.class);
                         S3ObjectSummary summary = mock(S3ObjectSummary.class);
@@ -124,7 +125,8 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                         when(s3Object.getObjectContent()).thenReturn(inputStream);
                         when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
                         when(objectListing.isTruncated()).thenReturn(false);
-                        return client;
+                        // TODO
+                        return mock(S3Client.class);
                     }
                 }, uri, "https")),
             false,
