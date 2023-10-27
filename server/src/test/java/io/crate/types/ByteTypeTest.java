@@ -21,8 +21,8 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -34,56 +34,56 @@ public class ByteTypeTest extends ESTestCase {
 
     @Test
     public void test_cast_text_to_byte() {
-        assertThat(ByteType.INSTANCE.implicitCast("123"), is((byte) 123));
+        assertThat(ByteType.INSTANCE.implicitCast("123")).isEqualTo((byte) 123);
     }
 
     @Test
     public void test_cast_long_to_byte() {
-        assertThat(ByteType.INSTANCE.implicitCast(123L), is((byte) 123));
+        assertThat(ByteType.INSTANCE.implicitCast(123L)).isEqualTo((byte) 123);
     }
 
     @Test
     public void test_cast_numeric_to_byte() {
-        assertThat(ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is((byte) 123));
+        assertThat(ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(123))).isEqualTo((byte) 123);
     }
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(ByteType.INSTANCE.sanitizeValue(1f), is((byte) 1));
+        assertThat(ByteType.INSTANCE.sanitizeValue(1f)).isEqualTo((byte) 1);
     }
 
     @Test
     public void test_cast_boolean_to_byte_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast 'true' to byte");
-        ByteType.INSTANCE.implicitCast(true);
+        assertThatThrownBy(() -> ByteType.INSTANCE.implicitCast(true))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast 'true' to byte");
     }
 
     @Test
     public void test_cast_object_to_byte_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast '{}' to byte");
-        ByteType.INSTANCE.implicitCast(Map.of());
+        assertThatThrownBy(() -> ByteType.INSTANCE.implicitCast(Map.of()))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast '{}' to byte");
     }
 
     @Test
     public void test_cast_integer_to_byte_out_of_negative_range_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("byte value out of range: -129");
-        ByteType.INSTANCE.implicitCast(-129);
+        assertThatThrownBy(() -> ByteType.INSTANCE.implicitCast(-129))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("byte value out of range: -129");
     }
 
     @Test
     public void test_cast_integer_to_byte_out_of_positive_range_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("byte value out of range: 129");
-        ByteType.INSTANCE.implicitCast(129);
+        assertThatThrownBy(() -> ByteType.INSTANCE.implicitCast(129))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("byte value out of range: 129");
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_byte_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("byte value out of range: 129");
-        ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(129));
+        assertThatThrownBy(() -> ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(129)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("byte value out of range: 129");
     }
 }

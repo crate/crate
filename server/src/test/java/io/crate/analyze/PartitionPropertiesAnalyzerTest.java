@@ -21,12 +21,11 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
@@ -54,8 +53,8 @@ public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUni
             clusterService);
 
         PartitionName partitionName = getPartitionName(tableInfo);
-        assertThat(partitionName.values(), Matchers.contains("foo"));
-        assertThat(partitionName.asIndexName(), is(".partitioned.users.0426crrf"));
+        assertThat(partitionName.values()).containsExactly("foo");
+        assertThat(partitionName.asIndexName()).isEqualTo(".partitioned.users.0426crrf");
     }
 
     @Test
@@ -65,8 +64,8 @@ public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUni
             "create table doc.users (name text primary key)",
             clusterService);
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("table 'doc.users' is not partitioned");
-        getPartitionName(tableInfo);
+        assertThatThrownBy(() -> getPartitionName(tableInfo))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("table 'doc.users' is not partitioned");
     }
 }

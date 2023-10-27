@@ -21,8 +21,8 @@
 
 package io.crate.blob;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -40,6 +40,6 @@ public class DeleteBlobResponseTest extends ESTestCase {
 
         DeleteBlobResponse fromStream = new DeleteBlobResponse(out.bytes().streamInput());
 
-        assertThat(fromStream.deleted, is(true));
+        assertThat(fromStream.deleted).isTrue();
     }
 }

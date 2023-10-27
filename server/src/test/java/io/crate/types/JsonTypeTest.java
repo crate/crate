@@ -22,8 +22,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Map;
 
@@ -31,11 +30,11 @@ import org.junit.jupiter.api.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 
-public class JsonTypeTest {
+class JsonTypeTest {
 
     @Test
-    public void test_can_cast_object_to_json_string() throws Exception {
+    void test_can_cast_object_to_json_string() throws Exception {
         String result = JsonType.INSTANCE.explicitCast(Map.of("x", 200), CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
-        assertThat(result, is("{\"x\":200}"));
+        assertThat(result).isEqualTo("{\"x\":200}");
     }
 }

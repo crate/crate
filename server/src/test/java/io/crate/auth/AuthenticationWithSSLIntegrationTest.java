@@ -22,9 +22,8 @@
 package io.crate.auth;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -123,7 +122,7 @@ public class AuthenticationWithSSLIntegrationTest extends IntegTestCase {
             }
             fail("User was able to use SSL although HBA config had requireSSL=never set.");
         } catch (PSQLException e) {
-            assertThat(e.getMessage(), containsString("FATAL: No valid auth.host_based entry found"));
+            assertThat(e.getMessage()).contains("FATAL: No valid auth.host_based entry found");
         }
 
         properties.setProperty("user", "requiredssluser");

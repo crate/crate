@@ -22,11 +22,7 @@
 
 package io.crate.user.metadata;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,7 +48,7 @@ public class PrivilegesMetadataUpgraderTest extends ESTestCase {
         customMap.put(UsersMetadata.TYPE, new UsersMetadata(Map.of()));
         Map<String, Metadata.Custom> oldCustomMap = new HashMap<>(customMap);
         Map<String, Metadata.Custom> newCustomMap = UPGRADER.apply(Settings.EMPTY, customMap);
-        assertThat(newCustomMap, is(oldCustomMap));
+        assertThat(newCustomMap).isEqualTo(oldCustomMap);
     }
 
     @Test
@@ -62,14 +58,14 @@ public class PrivilegesMetadataUpgraderTest extends ESTestCase {
         Map<String, Metadata.Custom> oldCustomMap = new HashMap<>(customMap);
 
         Map<String, Metadata.Custom> newCustomMap = UPGRADER.apply(Settings.EMPTY, customMap);
-        assertThat(newCustomMap, not(is(oldCustomMap)));
+        assertThat(newCustomMap).isNotEqualTo(oldCustomMap);
 
         UsersPrivilegesMetadata privilegesMetadata = (UsersPrivilegesMetadata) newCustomMap.get(UsersPrivilegesMetadata.TYPE);
-        assertThat(privilegesMetadata, notNullValue());
+        assertThat(privilegesMetadata).isNotNull();
         Set<Privilege> userPrivileges = privilegesMetadata.getUserPrivileges("Arthur");
-        assertThat(userPrivileges, notNullValue());
+        assertThat(userPrivileges).isNotNull();
         Set<Privilege.Type> privilegeTypes = userPrivileges.stream().map(p -> p.ident().type()).collect(Collectors.toSet());
-        assertThat(privilegeTypes, containsInAnyOrder(Privilege.Type.values()));
+        assertThat(privilegeTypes).containsExactlyInAnyOrder(Privilege.Type.values());
     }
 
     @Test
@@ -84,7 +80,7 @@ public class PrivilegesMetadataUpgraderTest extends ESTestCase {
         Map<String, Metadata.Custom> oldCustomMap = new HashMap<>(customMap);
 
         Map<String, Metadata.Custom> newCustomMap = UPGRADER.apply(Settings.EMPTY, customMap);
-        assertThat(newCustomMap, is(oldCustomMap));
+        assertThat(newCustomMap).isEqualTo(oldCustomMap);
     }
 
     @Test
@@ -98,6 +94,6 @@ public class PrivilegesMetadataUpgraderTest extends ESTestCase {
         Map<String, Metadata.Custom> oldCustomMap = new HashMap<>(customMap);
 
         Map<String, Metadata.Custom> newCustomMap = UPGRADER.apply(Settings.EMPTY, customMap);
-        assertThat(newCustomMap, is(oldCustomMap));
+        assertThat(newCustomMap).isEqualTo(oldCustomMap);
     }
 }
