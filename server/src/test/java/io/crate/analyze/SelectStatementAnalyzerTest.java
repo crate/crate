@@ -160,7 +160,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testSimpleSelect() throws Exception {
         var executor = SQLExecutor.builder(clusterService).build();
         QueriedSelectRelation relation = executor.analyze("select load['5'] from sys.nodes limit 2");
-        assertThat(relation.limit()).isEqualTo(Literal.of(2L));
+        assertThat(relation.limit()).isLiteral(2L);
 
         assertThat(relation.groupBy()).isEmpty();
         assertThat(relation.outputs()).hasSize(1);
@@ -336,11 +336,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testLimitSupportInAnalyzer() throws Exception {
         var executor = SQLExecutor.builder(clusterService).build();
         QueriedSelectRelation relation = executor.analyze("select * from sys.nodes limit 10");
-        assertThat(relation.limit()).isEqualTo(Literal.of(10L));
+        assertThat(relation.limit()).isLiteral(10L);
         relation = executor.analyze("select * from sys.nodes fetch first 10 rows only");
-        assertThat(relation.limit()).isEqualTo(Literal.of(10L));
+        assertThat(relation.limit()).isLiteral(10L);
         relation = executor.analyze("select * from sys.nodes fetch first '20'::long rows only");
-        assertThat(relation.limit()).isEqualTo(Literal.of(20L));
+        assertThat(relation.limit()).isLiteral(20L);
         relation = executor.analyze("select * from sys.nodes limit CAST(? AS int)");
         assertThat(relation.limit()).isExactlyInstanceOf(ParameterSymbol.class);
         assertThat(relation.limit()).hasDataType(DataTypes.LONG);
@@ -349,33 +349,33 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         relation = executor.analyze("select * from sys.nodes limit all offset 3");
         assertThat(relation.limit()).isNull();
-        assertThat(relation.offset()).isEqualTo(Literal.of(3L));
+        assertThat(relation.offset()).isLiteral(3L);
 
         relation = executor.analyze("select * from sys.nodes limit all offset 0");
         assertThat(relation.limit()).isNull();
-        assertThat(relation.offset()).isEqualTo(Literal.of(0L));
+        assertThat(relation.offset()).isLiteral(0L);
 
         relation = executor.analyze("select * from sys.nodes limit null offset 3");
         assertThat(relation.limit()).isLiteral(null);
-        assertThat(relation.offset()).isEqualTo(Literal.of(3L));
+        assertThat(relation.offset()).isLiteral(3L);
         relation = executor.analyze("select * from sys.nodes fetch next null row only offset 3");
         assertThat(relation.limit()).isLiteral(null);
-        assertThat(relation.offset()).isEqualTo(Literal.of(3L));
+        assertThat(relation.offset()).isLiteral(3L);
     }
 
     @Test
     public void testOffsetSupportInAnalyzer() throws Exception {
         var executor = SQLExecutor.builder(clusterService).build();
         QueriedSelectRelation relation = executor.analyze("select * from sys.nodes limit 1 offset 3");
-        assertThat(relation.offset()).isEqualTo(Literal.of(3L));
+        assertThat(relation.offset()).isLiteral(3L);
         relation = executor.analyze("select * from sys.nodes limit 1 offset 3 row");
-        assertThat(relation.offset()).isEqualTo(Literal.of(3L));
+        assertThat(relation.offset()).isLiteral(3L);
         relation = executor.analyze("select * from sys.nodes limit 1 offset 3 rows");
-        assertThat(relation.offset()).isEqualTo(Literal.of(3L));
+        assertThat(relation.offset()).isLiteral(3L);
         relation = executor.analyze("select * from sys.nodes limit 1 offset null");
         assertThat(relation.offset()).isLiteral(null);
         relation = executor.analyze("select * from sys.nodes offset '20'::long rows");
-        assertThat(relation.offset()).isEqualTo(Literal.of(20L));
+        assertThat(relation.offset()).isLiteral(20L);
         relation = executor.analyze("select * from sys.nodes offset CAST(? AS int)");
         assertThat(relation.offset()).isExactlyInstanceOf(ParameterSymbol.class);
         assertThat(relation.offset()).hasDataType(DataTypes.LONG);
@@ -1202,15 +1202,15 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         AnalyzedRelation relation = executor.analyze("select - - - 10");
         List<Symbol> outputs = relation.outputs();
-        assertThat(outputs.get(0)).isEqualTo(Literal.of(-10));
+        assertThat(outputs.get(0)).isLiteral(-10);
 
         relation = executor.analyze("select - + - 10");
         outputs = relation.outputs();
-        assertThat(outputs.get(0)).isEqualTo(Literal.of(10));
+        assertThat(outputs.get(0)).isLiteral(10);
 
         relation = executor.analyze("select - (- 10 - + 10) * - (+ 10 + - 10)");
         outputs = relation.outputs();
-        assertThat(outputs.get(0)).isEqualTo(Literal.of(0));
+        assertThat(outputs.get(0)).isLiteral(0);
     }
 
     @Test

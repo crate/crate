@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -33,7 +33,7 @@ public class NumberOfReplicasTest extends ESTestCase {
     @Test
     public void testFromEmptySettings() throws Exception {
         String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.EMPTY);
-        assertThat(numberOfResplicas, is("1"));
+        assertThat(numberOfResplicas).isEqualTo("1");
     }
 
     @Test
@@ -41,7 +41,7 @@ public class NumberOfReplicasTest extends ESTestCase {
         String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
             .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 4)
             .build());
-        assertThat(numberOfResplicas, is("4"));
+        assertThat(numberOfResplicas).isEqualTo("4");
     }
 
     @Test
@@ -50,16 +50,17 @@ public class NumberOfReplicasTest extends ESTestCase {
             .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "0-all")
             .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
             .build());
-        assertThat(numberOfResplicas, is("0-all"));
+        assertThat(numberOfResplicas).isEqualTo("0-all");
     }
 
     @Test
     public void testInvalidAutoExpandSettings() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The \"number_of_replicas\" range \"abc\" isn't valid");
-        NumberOfReplicas.fromSettings(Settings.builder()
-            .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "abc")
-            .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
-            .build());
+        assertThatThrownBy(() ->
+            NumberOfReplicas.fromSettings(Settings.builder()
+                .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "abc")
+                .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The \"number_of_replicas\" range \"abc\" isn't valid");
     }
 }

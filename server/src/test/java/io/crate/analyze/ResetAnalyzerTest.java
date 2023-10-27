@@ -21,17 +21,12 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
-import java.util.Set;
-
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -47,15 +42,15 @@ public class ResetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testReset() throws Exception {
         AnalyzedResetStatement analysis = executor.analyze("RESET GLOBAL stats.enabled");
-        assertThat(analysis.settingsToRemove(), contains(Literal.of("stats.enabled")));
+        assertThat(analysis.settingsToRemove()).containsExactly(Literal.of("stats.enabled"));
 
         analysis = executor.analyze("RESET GLOBAL stats");
-        assertThat(analysis.settingsToRemove(), contains(Literal.of("stats")));
+        assertThat(analysis.settingsToRemove()).containsExactly(Literal.of("stats"));
     }
 
     @Test
     public void testResetLoggingSetting() {
         AnalyzedResetStatement analysis = executor.analyze("RESET GLOBAL \"logger.action\"");
-        assertThat(analysis.settingsToRemove(), Matchers.<Set<Symbol>>is(Set.of(Literal.of("logger.action"))));
+        assertThat(analysis.settingsToRemove()).containsExactly(Literal.of("logger.action"));
     }
 }

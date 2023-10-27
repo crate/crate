@@ -21,7 +21,7 @@
 
 package io.crate.blob.v2;
 
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,7 +39,6 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,6 +73,6 @@ public class BlobIndicesServiceTest extends ESTestCase {
         when(indexShard.shardId()).thenReturn(new ShardId(index, 0));
         blobIndicesService.afterIndexShardCreated(indexShard);
 
-        assertThat(blobIndicesService.indices.keySet(), Matchers.empty());
+        assertThat(blobIndicesService.indices).isEmpty();
     }
 }

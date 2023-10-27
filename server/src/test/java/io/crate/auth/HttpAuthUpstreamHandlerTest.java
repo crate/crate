@@ -22,10 +22,7 @@
 package io.crate.auth;
 
 import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,12 +62,12 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         .build();
 
     // UserLookup always returns null, so there are no users (even no default crate superuser)
-    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, () -> List.of(), SystemDefaultDnsResolver.INSTANCE);
+    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, List::of, SystemDefaultDnsResolver.INSTANCE);
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
-        assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
-        assertThat(resp.content().toString(StandardCharsets.UTF_8), is(expectedBody));
-        assertThat(resp.headers().get(HttpHeaderNames.WWW_AUTHENTICATE), is(WWW_AUTHENTICATE_REALM_MESSAGE));
+        assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
+        assertThat(resp.content().toString(StandardCharsets.UTF_8)).isEqualTo(expectedBody);
+        assertThat(resp.headers().get(HttpHeaderNames.WWW_AUTHENTICATE)).isEqualTo(WWW_AUTHENTICATE_REALM_MESSAGE);
     }
 
     @BeforeClass
@@ -89,8 +86,8 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         ch.releaseInbound();
 
         HttpResponse resp = ch.readOutbound();
-        assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
-        assertThat(ch.isOpen(), is(false));
+        assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
+        assertThat(ch.isOpen()).isFalse();
     }
 
     @Test
@@ -100,7 +97,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
-        assertThat(resp.content(), is(Unpooled.EMPTY_BUFFER));
+        assertThat(resp.content()).isEqualTo(Unpooled.EMPTY_BUFFER);
     }
 
     @Test
@@ -110,7 +107,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
-        assertThat(resp.content().toString(StandardCharsets.UTF_8), is("not allowed\n"));
+        assertThat(resp.content().toString(StandardCharsets.UTF_8)).isEqualTo("not allowed\n");
     }
 
     @Test
@@ -120,7 +117,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
-        assertThat(resp.content().toString(StandardCharsets.UTF_8), is("not allowed\n"));
+        assertThat(resp.content().toString(StandardCharsets.UTF_8)).isEqualTo("not allowed\n");
     }
 
     @Test
@@ -132,7 +129,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         ch.writeInbound(request);
         ch.releaseInbound();
 
-        assertThat(handler.authorized(), is(true));
+        assertThat(handler.authorized()).isTrue();
     }
 
     @Test
@@ -146,7 +143,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
         ch.writeInbound(request);
         ch.releaseInbound();
-        assertFalse(handler.authorized());
+        assertThat(handler.authorized()).isFalse();
 
         assertUnauthorized(
             ch.readOutbound(),
@@ -163,7 +160,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         ch.writeInbound(request);
         ch.releaseInbound();
 
-        assertFalse(handler.authorized());
+        assertThat(handler.authorized()).isFalse();
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"crate\"\n");
     }
 
@@ -176,7 +173,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY).v1();
 
-        assertThat(userName, is("localhost"));
+        assertThat(userName).isEqualTo("localhost");
     }
 
     @Test
@@ -192,12 +189,12 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         ch.writeInbound(request);
         ch.releaseInbound();
 
-        assertTrue(handler.authorized());
+        assertThat(handler.authorized()).isTrue();
     }
 
     @Test
     public void testUnauthorizedUserWithDisabledHBA() throws Exception {
-        Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of());
+        Authentication authServiceNoHBA = new AlwaysOKAuthentication(List::of);
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
@@ -207,7 +204,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         ch.writeInbound(request);
         ch.releaseInbound();
 
-        assertFalse(handler.authorized());
+        assertThat(handler.authorized()).isFalse();
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"Aladdin\"\n");
     }
 }

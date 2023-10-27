@@ -21,10 +21,7 @@
 
 package io.crate.user.metadata;
 
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -52,7 +49,7 @@ public class UsersMetadataTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         UsersMetadata users2 = new UsersMetadata(in);
-        assertEquals(users, users2);
+        assertThat(users2).isEqualTo(users);
     }
 
     @Test
@@ -72,10 +69,10 @@ public class UsersMetadataTest extends ESTestCase {
             Strings.toString(builder));
         parser.nextToken(); // start object
         UsersMetadata users2 = UsersMetadata.fromXContent(parser);
-        assertEquals(users, users2);
+        assertThat(users2).isEqualTo(users);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
+        assertThat(parser.nextToken()).isNull();
     }
 
     @Test
@@ -101,10 +98,10 @@ public class UsersMetadataTest extends ESTestCase {
             Strings.toString(builder));
         parser.nextToken(); // start object
         UsersMetadata users = UsersMetadata.fromXContent(parser);
-        assertEquals(users, new UsersMetadata(expectedUsers));
+        assertThat(new UsersMetadata(expectedUsers)).isEqualTo(users);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
+        assertThat(parser.nextToken()).isNull();
     }
 
     @Test
@@ -124,10 +121,10 @@ public class UsersMetadataTest extends ESTestCase {
             Strings.toString(builder));
         parser.nextToken(); // start object
         UsersMetadata users2 = UsersMetadata.fromXContent(parser);
-        assertEquals(users, users2);
+        assertThat(users2).isEqualTo(users);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
+        assertThat(parser.nextToken()).isNull();
     }
 
     @Test
@@ -139,6 +136,6 @@ public class UsersMetadataTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         UsersMetadata readUserMeta = new UsersMetadata(in);
 
-        assertThat(writeUserMeta.users(), is(readUserMeta.users()));
+        assertThat(readUserMeta.users()).isEqualTo(writeUserMeta.users());
     }
 }
