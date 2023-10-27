@@ -21,11 +21,13 @@ package org.elasticsearch.discovery.ec2;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.util.LazyInitializable;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
@@ -35,8 +37,9 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.core.retry.RetryMode;
 import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.core.retry.backoff.BackoffStrategy;
+import software.amazon.awssdk.core.retry.conditions.RetryCondition;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -67,12 +70,23 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
         // but can force objects from every response to the old generation.
         // clientConfiguration.setResponseMetadataCacheSize(0);
 
+        ClientOverrideConfiguration.Builder overrideConfig = ClientOverrideConfiguration.builder();
+        BackoffStrategy backoffStrategy = (retryPolicyContext) -> {
+            // with 10 retries the max delay time is 320s/320000ms (10 * 2^5 * 1 * 1000)
+            LOGGER.warn("EC2 API request failed, retry again. Reason was:", retryPolicyContext.exception());
+            final Random rand = Randomness.get();
+            return Duration.ofMillis((long)(1000L * (10d * Math.pow(2, retryPolicyContext.retriesAttempted()) / 2.0d) * (1.0d + rand.nextDouble())));
+        };
+        overrideConfig.retryPolicy(
+            RetryPolicy.builder()
+                .backoffStrategy(backoffStrategy)
+                .retryCondition(RetryCondition.none())
+                .numRetries(10)
+                .build());
+
         ApacheHttpClient.Builder httpClientBuilder = ApacheHttpClient.builder()
             .socketTimeout(Duration.ofMillis(clientSettings.readTimeoutMillis))
             .proxyConfiguration(proxyConfig.build());
-
-        ClientOverrideConfiguration.Builder overrideConfig = ClientOverrideConfiguration.builder();
-        overrideConfig.retryPolicy(RetryPolicy.builder(RetryMode.STANDARD).build());
 
         var clientBuilder = Ec2Client.builder()
             .credentialsProvider(buildCredentials(clientSettings))
