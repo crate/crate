@@ -57,6 +57,7 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
+import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
@@ -650,6 +651,17 @@ public final class SqlFormatter {
                 builder.append("\n");
                 node.properties().accept(this, indent);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateRole(CreateRole<?> node, Integer indent) {
+            builder.append("CREATE ROLE ").append(quoteIdentifierIfNeeded(node.name())).append(" ");
+            builder.append(
+                node.options().stream()
+                    .map(Formatter::quoteIdentifierIfNeeded)
+                    .collect(Collectors.joining(" "))
+            );
             return null;
         }
 

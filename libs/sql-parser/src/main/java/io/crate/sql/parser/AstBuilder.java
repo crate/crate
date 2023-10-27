@@ -110,6 +110,7 @@ import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
+import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
@@ -563,6 +564,18 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new DropUser(
             getIdentText(context.name),
             context.EXISTS() != null
+        );
+    }
+
+    @Override
+    public Node visitCreateRole(SqlBaseParser.CreateRoleContext ctx) {
+        List<String> options = new ArrayList<>();
+        if (ctx.spaceSeparatedIdents() != null) {
+            options = identsToStrings(ctx.spaceSeparatedIdents().ident());
+        }
+        return new CreateRole<>(
+            getIdentText(ctx.name),
+            options
         );
     }
 

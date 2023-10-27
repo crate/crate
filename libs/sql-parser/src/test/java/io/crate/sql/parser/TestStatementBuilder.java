@@ -49,6 +49,7 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
+import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
@@ -1990,6 +1991,18 @@ public class TestStatementBuilder {
             .hasMessage("line 1:30: mismatched input 'add' expecting 'DROP'");
     }
 
+    @Test
+    public void test_create_role_statement() {
+        // No option
+        printStatement("create role admin");
+        // Single option
+        printStatement("create role admin with inherit");
+        printStatement("create role admin inherit");
+        printStatement("create role admin InheRit");
+
+        printStatement("create role admin inherit login");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -2006,6 +2019,7 @@ public class TestStatementBuilder {
             statement instanceof GCDanglingArtifacts ||
             statement instanceof CreateFunction ||
             statement instanceof CreateUser ||
+            statement instanceof CreateRole ||
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||
             statement instanceof RevokePrivilege ||
