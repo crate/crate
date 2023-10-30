@@ -25,6 +25,7 @@ import static io.crate.metadata.Reference.buildTree;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -314,5 +315,25 @@ public final class MappingUtil {
                 generatedColumns.put(genRef.column().fqn(), genRef.formattedGeneratedExpression());
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static boolean removeConstraints(Map<String, Object> currentSource, Collection<String> constraintNames) {
+        if (constraintNames.isEmpty()) {
+            return false;
+        }
+        Map<String, Object> meta = (Map<String, Object>) currentSource.get("_meta");
+        if (meta == null) {
+            return false;
+        }
+        Map<String, String> checkConstraints = (Map<String, String>) meta.get("check_constraints");
+        if (checkConstraints == null) {
+            return false;
+        }
+        boolean removed = false;
+        for (String constraintName : constraintNames) {
+            removed |= checkConstraints.remove(constraintName) != null;
+        }
+        return removed;
     }
 }
