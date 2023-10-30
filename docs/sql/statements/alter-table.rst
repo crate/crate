@@ -198,6 +198,8 @@ It's possible to drop multiple columns at once.
     - used in an :ref:`named index<named-index-column>`
     - is referenced in a
       :ref:`generated column <ddl-generated-columns-expressions>`
+    - is referenced in a
+      :ref:`table level constraint with other columns <check_constraint_multiple_cols>`
 
 .. NOTE::
 

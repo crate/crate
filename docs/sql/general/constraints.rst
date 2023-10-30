@@ -107,6 +107,8 @@ Or without name::
     ... );
     CREATE OK, 1 row affected  (... sec)
 
+.. _check_constraint_multiple_cols:
+
 You can reference multiple columns using table constraints::
 
     cr> CREATE TABLE metrics5 (
