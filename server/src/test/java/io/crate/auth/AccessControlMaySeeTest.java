@@ -21,9 +21,6 @@
 
 package io.crate.auth;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
@@ -32,7 +29,6 @@ import java.util.Set;
 
 import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -68,22 +64,18 @@ public class AccessControlMaySeeTest extends ESTestCase {
         accessControl = new AccessControlImpl(() -> List.of(user), new CoordinatorSessionSettings(user));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedAnyForCluster() {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(Privilege.Clazz.CLUSTER, null, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).satisfiesExactly(
+            s -> assertThat(s).containsExactly(Privilege.Clazz.CLUSTER, null, user.name()));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedAnyForSchema(String ident) {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(Privilege.Clazz.SCHEMA, ident, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).satisfiesExactly(
+            s -> assertThat(s).containsExactly(Privilege.Clazz.SCHEMA, ident, user.name()));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedAnyForTable(String ident) {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(Privilege.Clazz.TABLE, ident, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).contains(List.of(Privilege.Clazz.TABLE, ident, user.name()));
     }
 
     @Test

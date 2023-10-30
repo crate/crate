@@ -21,16 +21,12 @@
 
 package io.crate.udc.ping;
 
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,7 +67,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetHardwareAddressMacAddrNull() throws Exception {
         PingTask pingTask = createPingTask();
-        assertThat(pingTask.getHardwareAddress(), Matchers.nullValue());
+        assertThat(pingTask.getHardwareAddress()).isNull();
     }
 
     @Test
@@ -81,33 +77,29 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
         PingTask task = createPingTask("http://localhost:18080/");
         task.run();
-        assertThat(testServer.responses.size(), is(1));
+        assertThat(testServer.responses).hasSize(1);
         task.run();
-        assertThat(testServer.responses.size(), is(2));
+        assertThat(testServer.responses).hasSize(2);
         for (int i = 0; i < testServer.responses.size(); i++) {
             String json = testServer.responses.get(i);
             Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json);
 
-            assertThat(map, hasKey("kernel"));
-            assertThat(map.get("kernel"), is(notNullValue()));
-            assertThat(map, hasKey("cluster_id"));
-            assertThat(map.get("cluster_id"), is(notNullValue()));
-            assertThat(map, hasKey("master"));
-            assertThat(map.get("master"), is(notNullValue()));
-            assertThat(map, hasKey("ping_count"));
-            assertThat(map.get("ping_count"), is(notNullValue()));
+            assertThat(map).containsKeys("kernel", "cluster_id", "master", "ping_count");
+            assertThat(map.get("kernel")).isNotNull();
+            assertThat(map.get("cluster_id")).isNotNull();
+            assertThat(map.get("master")).isNotNull();
+            assertThat(map.get("ping_count")).isNotNull();
             Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.implicitCast(map.get("ping_count"));
 
-            assertThat(pingCountMap.get("success"), is(i));
-            assertThat(pingCountMap.get("failure"), is(0));
+            assertThat(pingCountMap.get("success")).isEqualTo(i);
+            assertThat(pingCountMap.get("failure")).isEqualTo(0);
             if (task.getHardwareAddress() != null) {
-                assertThat(map, hasKey("hardware_address"));
-                assertThat(map.get("hardware_address"), is(notNullValue()));
+                assertThat(map).containsKeys("hardware_address");
+                assertThat(map.get("hardware_address")).isNotNull();
             }
-            assertThat(map, hasKey("crate_version"));
-            assertThat(map.get("crate_version"), is(notNullValue()));
-            assertThat(map, hasKey("java_version"));
-            assertThat(map.get("java_version"), is(notNullValue()));
+            assertThat(map).containsKeys("crate_version", "java_version");
+            assertThat(map.get("crate_version")).isNotNull();
+            assertThat(map.get("java_version")).isNotNull();
         }
     }
 
@@ -117,35 +109,31 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         testServer.run();
         PingTask task = createPingTask("http://localhost:18081/");
         task.run();
-        assertThat(testServer.responses.size(), is(1));
+        assertThat(testServer.responses).hasSize(1);
         task.run();
-        assertThat(testServer.responses.size(), is(2));
+        assertThat(testServer.responses).hasSize(2);
 
         for (int i = 0; i < testServer.responses.size(); i++) {
             String json = testServer.responses.get(i);
             Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json);
 
-            assertThat(map, hasKey("kernel"));
-            assertThat(map.get("kernel"), is(notNullValue()));
-            assertThat(map, hasKey("cluster_id"));
-            assertThat(map.get("cluster_id"), is(notNullValue()));
-            assertThat(map, hasKey("master"));
-            assertThat(map.get("master"), is(notNullValue()));
-            assertThat(map, hasKey("ping_count"));
-            assertThat(map.get("ping_count"), is(notNullValue()));
+            assertThat(map).containsKeys("kernel", "cluster_id", "master", "ping_count");
+            assertThat(map.get("kernel")).isNotNull();
+            assertThat(map.get("cluster_id")).isNotNull();
+            assertThat(map.get("master")).isNotNull();
+            assertThat(map.get("ping_count")).isNotNull();
             Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.implicitCast(map.get("ping_count"));
 
-            assertThat(pingCountMap.get("success"), is(0));
-            assertThat(pingCountMap.get("failure"), is(i));
+            assertThat(pingCountMap.get("success")).isEqualTo(0);
+            assertThat(pingCountMap.get("failure")).isEqualTo(i);
 
             if (task.getHardwareAddress() != null) {
-                assertThat(map, hasKey("hardware_address"));
-                assertThat(map.get("hardware_address"), is(notNullValue()));
+                assertThat(map).containsKeys("hardware_address");
+                assertThat(map.get("hardware_address")).isNotNull();
             }
-            assertThat(map, hasKey("crate_version"));
-            assertThat(map.get("crate_version"), is(notNullValue()));
-            assertThat(map, hasKey("java_version"));
-            assertThat(map.get("java_version"), is(notNullValue()));
+            assertThat(map).containsKeys("crate_version", "java_version");
+            assertThat(map.get("crate_version")).isNotNull();
+            assertThat(map.get("java_version")).isNotNull();
         }
     }
 }

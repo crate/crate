@@ -19,16 +19,17 @@
 
 package org.elasticsearch.common.compress;
 
-import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.test.ESTestCase;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Random;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.test.ESTestCase;
+
+import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
 
 public class DeflateCompressedXContentTests extends ESTestCase {

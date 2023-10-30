@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.IOException;
 
 import org.assertj.core.api.Assertions;
@@ -29,8 +31,6 @@ import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

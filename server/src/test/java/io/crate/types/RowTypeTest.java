@@ -21,16 +21,12 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.data.RowN;
@@ -47,7 +43,7 @@ public class RowTypeTest extends ESTestCase {
         var in = out.bytes().streamInput();
         var streamedRowType = new RowType(in);
 
-        assertThat(streamedRowType, Matchers.is(rowType));
+        assertThat(streamedRowType).isEqualTo(rowType);
     }
 
     @Test
@@ -61,7 +57,7 @@ public class RowTypeTest extends ESTestCase {
         var in = out.bytes().streamInput();
         var streamedRow = rowType.streamer().readValueFrom(in);
 
-        assertThat(streamedRow, Matchers.is(row));
+        assertThat(streamedRow).isEqualTo(row);
     }
 
     @Test
@@ -72,7 +68,7 @@ public class RowTypeTest extends ESTestCase {
 
         var actual = expected.getTypeSignature().createType();
 
-        assertThat(actual, instanceOf(RowType.class));
-        assertThat(actual.getTypeParameters(), is(equalTo(expected.getTypeParameters())));
+        assertThat(actual).isExactlyInstanceOf(RowType.class);
+        assertThat(actual.getTypeParameters()).isEqualTo(expected.getTypeParameters());
     }
 }

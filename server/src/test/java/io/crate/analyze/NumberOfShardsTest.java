@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -73,27 +73,27 @@ public class NumberOfShardsTest extends ESTestCase {
 
     @Test
     public void testDefaultNumberOfShards() {
-        assertThat(numberOfShards.defaultNumberOfShards(), is(6));
+        assertThat(numberOfShards.defaultNumberOfShards()).isEqualTo(6);
     }
 
     @Test
     public void testDefaultNumberOfShardsLessThanMinimumShardsNumber() {
         when(discoveryNodes.getDataNodes()).thenReturn(createDataNodes(1));
         numberOfShards = new NumberOfShards(clusterService);
-        assertThat(numberOfShards.defaultNumberOfShards(), is(4));
+        assertThat(numberOfShards.defaultNumberOfShards()).isEqualTo(4);
     }
 
     @Test
     public void testGetNumberOfShards() {
         ClusteredBy<Object> clusteredBy = new ClusteredBy<>(Optional.of(QNAME_REF), Optional.of(7L));
-        assertThat(numberOfShards.fromClusteredByClause(clusteredBy), is(7));
+        assertThat(numberOfShards.fromClusteredByClause(clusteredBy)).isEqualTo(7);
     }
 
     @Test
     public void testGetNumberOfShardsLessThanOne() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("num_shards in CLUSTERED clause must be greater than 0");
-        numberOfShards.fromClusteredByClause(new ClusteredBy<>(Optional.of(QNAME_REF), Optional.of(0L)));
+        assertThatThrownBy(
+            () -> numberOfShards.fromClusteredByClause(new ClusteredBy<>(Optional.of(QNAME_REF), Optional.of(0L))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("num_shards in CLUSTERED clause must be greater than 0");
     }
-
 }

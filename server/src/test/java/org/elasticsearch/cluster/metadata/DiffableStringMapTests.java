@@ -19,15 +19,15 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.elasticsearch.cluster.Diff;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.test.ESTestCase;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.crate.testing.Asserts.assertThat;
+import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.test.ESTestCase;
 
 public class DiffableStringMapTests extends ESTestCase {
 

@@ -22,7 +22,6 @@
 package io.crate.expression.symbol.format;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;

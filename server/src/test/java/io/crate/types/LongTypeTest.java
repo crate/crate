@@ -21,8 +21,8 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -34,93 +34,90 @@ public class LongTypeTest extends ESTestCase {
 
     @Test
     public void test_cast_text_to_bigint() {
-        assertThat(LongType.INSTANCE.implicitCast("12839"), is(12839L));
-        assertThat(LongType.INSTANCE.implicitCast("-12839"), is(-12839L));
-        assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MAX_VALUE)), is(Long.MAX_VALUE));
-        assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MIN_VALUE)), is(Long.MIN_VALUE));
-        assertThat(LongType.INSTANCE.implicitCast("+2147483647111"), is(2147483647111L));
+        assertThat(LongType.INSTANCE.implicitCast("12839")).isEqualTo(12839L);
+        assertThat(LongType.INSTANCE.implicitCast("-12839")).isEqualTo(-12839L);
+        assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MAX_VALUE))).isEqualTo(Long.MAX_VALUE);
+        assertThat(LongType.INSTANCE.implicitCast(Long.toString(Long.MIN_VALUE))).isEqualTo(Long.MIN_VALUE);
+        assertThat(LongType.INSTANCE.implicitCast("+2147483647111")).isEqualTo(2147483647111L);
     }
 
     @Test
     public void test_cast_numeric_to_long() {
-        assertThat(LongType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is(123L));
+        assertThat(LongType.INSTANCE.implicitCast(BigDecimal.valueOf(123))).isEqualTo(123L);
     }
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(LongType.INSTANCE.sanitizeValue(1f), is(1L));
+        assertThat(LongType.INSTANCE.sanitizeValue(1f)).isEqualTo(1L);
     }
 
     @Test
     public void test_cast_text_with_only_letters_to_bigint_throws_exception() {
-        expectedException.expect(NumberFormatException.class);
-        LongType.INSTANCE.implicitCast("hello");
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast("hello"))
+            .isExactlyInstanceOf(NumberFormatException.class);
     }
 
     @Test
     public void testConversionWithNonAsciiCharacter() {
-        expectedException.expect(NumberFormatException.class);
-        expectedException.expectMessage("\u03C0"); // "π" GREEK SMALL LETTER PI
-        LongType.INSTANCE.implicitCast("\u03C0");
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast("\u03C0"))
+            .isExactlyInstanceOf(NumberFormatException.class)
+            .hasMessage("For input string: \"\u03C0\""); // "π" GREEK SMALL LETTER PI
     }
 
     @Test
     public void testInvalidFirstChar() {
-        expectedException.expect(NumberFormatException.class);
-        LongType.INSTANCE.implicitCast(" 1");
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast(" 1"))
+            .isExactlyInstanceOf(NumberFormatException.class);
     }
 
     @Test
     public void testOnlyMinusSign() {
-        expectedException.expect(NumberFormatException.class);
-        LongType.INSTANCE.implicitCast("-");
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast("-"))
+            .isExactlyInstanceOf(NumberFormatException.class);
     }
 
     @Test
     public void testOnlyPlusSign() {
-        expectedException.expect(NumberFormatException.class);
-        LongType.INSTANCE.implicitCast("+");
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast("+"))
+            .isExactlyInstanceOf(NumberFormatException.class);
     }
 
     @Test
     public void testNumberThatIsGreaterThanMaxValue() {
-        expectedException.expect(NumberFormatException.class);
-        LongType.INSTANCE.implicitCast(Long.MAX_VALUE + "111");
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast(Long.MAX_VALUE + "111"))
+            .isExactlyInstanceOf(NumberFormatException.class);
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_integer_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("bigint value out of range: 9223372036854775817");
-        LongType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN));
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("bigint value out of range: 9223372036854775817");
     }
 
     @Test
     public void test_cast_object_to_bigint_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast '{}' to bigint");
-        LongType.INSTANCE.implicitCast(Map.of());
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast(Map.of()))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast '{}' to bigint");
     }
 
     @Test
     public void test_cast_boolean_to_bigint_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast 'true' to bigint");
-        LongType.INSTANCE.implicitCast(true);
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast(true))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast 'true' to bigint");
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_bigint_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("bigint value out of range: 9223372036854775808");
-        LongType.INSTANCE.implicitCast(new BigDecimal("9223372036854775808"));
+        assertThatThrownBy(() -> LongType.INSTANCE.implicitCast(new BigDecimal("9223372036854775808")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("bigint value out of range: 9223372036854775808");
     }
 
     @Test
     public void test_cast_numeric_with_fraction_to_long_looses_fraction() {
-        assertThat(
-            LongType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12)),
-            is(12L)
-        );
+        assertThat(LongType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12))).isEqualTo(12L);
     }
 }

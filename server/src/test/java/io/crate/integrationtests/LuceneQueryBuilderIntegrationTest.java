@@ -26,7 +26,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;

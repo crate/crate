@@ -21,16 +21,13 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.metadata.PartitionName;
-import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -40,7 +37,11 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
 import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.PartitionName;
+import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
 public class TransportCreatePartitionsActionTest extends IntegTestCase {

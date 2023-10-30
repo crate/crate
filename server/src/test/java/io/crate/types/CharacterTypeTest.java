@@ -21,8 +21,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -36,24 +35,24 @@ public class CharacterTypeTest extends ESTestCase {
 
     @Test
     public void test_value_for_insert_adds_blank_padding() {
-        assertThat(CharacterType.of(5).valueForInsert("a"), is("a    "));
+        assertThat(CharacterType.of(5).valueForInsert("a")).isEqualTo("a    ");
     }
 
     @Test
     public void test_implicit_cast_adds_blank_padding() {
-        assertThat(CharacterType.of(5).implicitCast("a"), is("a    "));
+        assertThat(CharacterType.of(5).implicitCast("a")).isEqualTo("a    ");
     }
 
     @Test
     public void test_default_length() {
-        assertThat(CharacterType.INSTANCE.lengthLimit(), is(1));
+        assertThat(CharacterType.INSTANCE.lengthLimit()).isEqualTo(1);
     }
 
     @Test
     public void test_explicit_cast_truncates_overflow_chars() {
-        assertThat(CharacterType.of(1).explicitCast("foo", SESSION_SETTINGS), is("f"));
-        assertThat(CharacterType.of(1).explicitCast(true, SESSION_SETTINGS), is("t"));
-        assertThat(CharacterType.of(1).explicitCast(12, SESSION_SETTINGS), is("1"));
-        assertThat(CharacterType.of(1).explicitCast(-12, SESSION_SETTINGS), is("-"));
+        assertThat(CharacterType.of(1).explicitCast("foo", SESSION_SETTINGS)).isEqualTo("f");
+        assertThat(CharacterType.of(1).explicitCast(true, SESSION_SETTINGS)).isEqualTo("t");
+        assertThat(CharacterType.of(1).explicitCast(12, SESSION_SETTINGS)).isEqualTo("1");
+        assertThat(CharacterType.of(1).explicitCast(-12, SESSION_SETTINGS)).isEqualTo("-");
     }
 }

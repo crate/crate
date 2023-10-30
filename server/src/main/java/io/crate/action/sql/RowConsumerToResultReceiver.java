@@ -125,7 +125,9 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         if (activeIt != null) {
             activeIt.close();
             completionFuture.complete(null);
-            resultReceiver.allFinished();
+            // resultReceiver is left untouched:
+            // - A previous .batchCompleted() call already flushed out pending messages
+            // - Calling failure/allFinished would lead to extra messages, including  sentCommandComplete, to the client, which can lead to issues on the client.
         }
     }
 

@@ -21,10 +21,7 @@
 
 package io.crate.breaker;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Locale;
 
@@ -42,15 +39,16 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testQueryCircuitBreakerRegistration() throws Exception {
-        CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
+        try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             Settings.EMPTY,
             clusterService.getClusterSettings()
-        );
+        )) {
 
-        CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
-        assertThat(breaker, notNullValue());
-        assertThat(breaker, instanceOf(CircuitBreaker.class));
-        assertThat(breaker.getName(), is(HierarchyCircuitBreakerService.QUERY));
+            CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+            assertThat(breaker).isNotNull();
+            assertThat(breaker).isInstanceOf(CircuitBreaker.class);
+            assertThat(breaker.getName()).isEqualTo(HierarchyCircuitBreakerService.QUERY);
+        }
     }
 
     @Test
@@ -58,21 +56,22 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
         Settings settings = Settings.builder()
             .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
             .build();
-        HierarchyCircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
+        try (HierarchyCircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             settings,
             clusterService.getClusterSettings()
-        );
+        )) {
 
-        CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
-        assertThat(breaker.getLimit(), is(10_485_760L));
+            CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+            assertThat(breaker.getLimit()).isEqualTo(10_485_760L);
 
-        Settings newSettings = Settings.builder()
-            .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
-            .build();
-        clusterService.getClusterSettings().applySettings(newSettings);
+            Settings newSettings = Settings.builder()
+                .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
+                .build();
+            clusterService.getClusterSettings().applySettings(newSettings);
 
-        breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
-        assertThat(breaker.getLimit(), is(104_857_600L));
+            breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+            assertThat(breaker.getLimit()).isEqualTo(104_857_600L);
+        }
     }
 
     @Test
@@ -81,41 +80,44 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
             .put(HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
             .put(HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
             .build();
-        CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
-            settings,
-            clusterService.getClusterSettings()
-        );
-        CircuitBreaker breaker;
+        try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
+                settings,
+                clusterService.getClusterSettings()
+        )) {
+            CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
+            assertThat(breaker.getLimit()).isEqualTo(10_485_760L);
 
-        breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
-        assertThat(breaker.getLimit(), is(10_485_760L));
-        breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.OPERATIONS_LOG);
-        assertThat(breaker.getLimit(), is(10_485_760L));
+            breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.OPERATIONS_LOG);
+            assertThat(breaker.getLimit()).isEqualTo(10_485_760L);
 
-        Settings newSettings = Settings.builder()
-            .put(HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
-            .put(HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
-            .build();
-        clusterService.getClusterSettings().applySettings(newSettings);
+            Settings newSettings = Settings.builder()
+                .put(HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
+                .put(HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
+                .build();
 
-        breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
-        assertThat(breaker.getLimit(), is(104_857_600L));
-        breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.OPERATIONS_LOG);
-        assertThat(breaker.getLimit(), is(104_857_600L));
+            clusterService.getClusterSettings().applySettings(newSettings);
+
+            breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
+            assertThat(breaker.getLimit()).isEqualTo(104_857_600L);
+
+            breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.OPERATIONS_LOG);
+            assertThat(breaker.getLimit()).isEqualTo(104_857_600L);
+        }
     }
 
     @Test
     public void testBreakingExceptionMessage() throws Exception {
         String message = HierarchyCircuitBreakerService.breakingExceptionMessage("dummy", 1234);
-        assertThat(message, is(String.format(Locale.ENGLISH, HierarchyCircuitBreakerService.BREAKING_EXCEPTION_MESSAGE, "dummy", 1234, new ByteSizeValue(1234))));
+        assertThat(message).isEqualTo(String.format(Locale.ENGLISH, HierarchyCircuitBreakerService.BREAKING_EXCEPTION_MESSAGE, "dummy", 1234, new ByteSizeValue(1234)));
     }
 
     @Test
     public void testStats() throws Exception {
-        CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, clusterService.getClusterSettings());
-
-        CircuitBreakerStats queryBreakerStats = breakerService.stats(HierarchyCircuitBreakerService.QUERY);
-        assertThat(queryBreakerStats.getUsed(), is(0L));
+        try(CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
+            Settings.EMPTY, clusterService.getClusterSettings()
+        )) {
+            CircuitBreakerStats queryBreakerStats = breakerService.stats(HierarchyCircuitBreakerService.QUERY);
+            assertThat(queryBreakerStats.getUsed()).isEqualTo(0L);
+        }
     }
 }

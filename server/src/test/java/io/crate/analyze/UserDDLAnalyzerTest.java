@@ -21,13 +21,12 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -44,53 +43,52 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCreateUserSimple() {
         AnalyzedCreateUser analysis = e.analyze("CREATE USER ROOT");
-        assertThat(analysis.userName(), is("root"));
+        assertThat(analysis.userName()).isEqualTo("root");
         analysis = e.analyze("CREATE USER \"ROOT\"");
-        assertThat(analysis.userName(), is("ROOT"));
+        assertThat(analysis.userName()).isEqualTo("ROOT");
     }
 
     @Test
     public void testDropUserSimple() {
         AnalyzedDropUser analysis = e.analyze("DROP USER ROOT");
-        assertThat(analysis.userName(), is("root"));
+        assertThat(analysis.userName()).isEqualTo("root");
         analysis = e.analyze("DROP USER \"ROOT\"");
-        assertThat(analysis.userName(), is("ROOT"));
+        assertThat(analysis.userName()).isEqualTo("ROOT");
     }
 
     @Test
     public void testDropUserIfExists() {
         AnalyzedDropUser analysis = e.analyze("DROP USER IF EXISTS ROOT");
-        assertThat(analysis.userName(), is("root"));
-        assertThat(analysis.ifExists(), is(true));
+        assertThat(analysis.userName()).isEqualTo("root");
+        assertThat(analysis.ifExists()).isEqualTo(true);
     }
 
     @Test
     public void testCreateUserWithPassword() throws Exception {
         AnalyzedCreateUser analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = 'ROOT')");
-        assertThat(analysis.userName(), is("root"));
-        assertThat(analysis.properties().get("password"), is(Literal.of("ROOT")));
+        assertThat(analysis.userName()).isEqualTo("root");
+        assertThat(analysis.properties().get("password")).isLiteral("ROOT");
     }
 
     @Test
     public void testCreateUserWithPasswordIsStringLiteral() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(
-            "Columns cannot be used in this context. " +
-            "Maybe you wanted to use a string literal which requires single quotes: 'no_string'");
-        e.analyze("CREATE USER ROO WITH (PASSWORD = NO_STRING)");
+        assertThatThrownBy(() -> e.analyze("CREATE USER ROO WITH (PASSWORD = NO_STRING)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Columns cannot be used in this context. " +
+                        "Maybe you wanted to use a string literal which requires single quotes: 'no_string'");
     }
 
     @Test
     public void testAlterUserWithPassword() throws Exception {
         AnalyzedAlterUser analysis = e.analyze("ALTER USER ROOT SET (PASSWORD = 'ROOT')");
-        assertThat(analysis.userName(), is("root"));
-        assertThat(analysis.properties().get("password"), is(Literal.of("ROOT")));
+        assertThat(analysis.userName()).isEqualTo("root");
+        assertThat(analysis.properties().get("password")).isLiteral("ROOT");
     }
 
     @Test
     public void testAlterUserResetPassword() throws Exception {
         AnalyzedAlterUser analysis = e.analyze("ALTER USER ROOT SET (PASSWORD = NULL)");
-        assertThat(analysis.userName(), is("root"));
-        assertThat(analysis.properties().get("password"), is(Literal.of(DataTypes.UNDEFINED, null)));
+        assertThat(analysis.userName()).isEqualTo("root");
+        assertThat(analysis.properties().get("password")).isLiteral(null, DataTypes.UNDEFINED);
     }
 }

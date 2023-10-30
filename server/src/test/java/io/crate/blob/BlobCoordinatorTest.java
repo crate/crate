@@ -21,8 +21,7 @@
 
 package io.crate.blob;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -54,7 +53,7 @@ public class BlobCoordinatorTest extends ESTestCase {
 
             futures.forEach(future -> semaphoresForSameDigest.add(future.join()));
 
-            assertThat(semaphoresForSameDigest.size(), is(1));
+            assertThat(semaphoresForSameDigest).hasSize(1);
         } finally {
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.SECONDS);

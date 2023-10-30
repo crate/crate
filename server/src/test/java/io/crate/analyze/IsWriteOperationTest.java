@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,20 +42,15 @@ public class IsWriteOperationTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private void assertWriteOperation(String stmt) {
-        assertThat(
-            "Must be a write operation: " + stmt,
-            e.analyze(stmt).isWriteOperation(),
-            is(true)
-        );
+        assertThat(e.analyze(stmt).isWriteOperation())
+            .as("Must be a write operation: " + stmt)
+            .isTrue();
     }
 
-
     private void assertNoWriteOperation(String stmt) {
-        assertThat(
-            "Must not be a write operation: " + stmt,
-            e.analyze(stmt).isWriteOperation(),
-            is(false)
-        );
+        assertThat(e.analyze(stmt).isWriteOperation())
+            .as("Must not be a write operation: " + stmt)
+            .isFalse();
     }
 
     @Test

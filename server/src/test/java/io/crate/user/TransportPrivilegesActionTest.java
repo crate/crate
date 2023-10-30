@@ -21,10 +21,7 @@
 
 package io.crate.user;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -69,14 +66,14 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         // then
         UsersPrivilegesMetadata newPrivilegesMetadata =
             (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        assertNotSame(newPrivilegesMetadata, initialPrivilegesMetadata);
+        assertThat(newPrivilegesMetadata).isNotSameAs(initialPrivilegesMetadata);
     }
 
     @Test
     public void testValidateUserNamesEmptyUsers() throws Exception {
         List<String> userNames = List.of("ford", "arthur");
         List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(Metadata.EMPTY_METADATA, userNames);
-        assertThat(unknownUserNames, is(userNames));
+        assertThat(unknownUserNames).isEqualTo(userNames);
     }
 
     @Test
@@ -86,7 +83,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
             .build();
         List<String> userNames = List.of("Ford", "Arthur");
         List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, userNames);
-        assertThat(unknownUserNames, contains("Ford"));
+        assertThat(unknownUserNames).containsExactly("Ford");
     }
 
     @Test
@@ -95,7 +92,6 @@ public class TransportPrivilegesActionTest extends ESTestCase {
             .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.DUMMY_USERS))
             .build();
         List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, List.of("Ford", "Arthur"));
-        assertThat(unknownUserNames.size(), is(0));
+        assertThat(unknownUserNames).isEmpty();
     }
-
 }

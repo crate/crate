@@ -21,9 +21,8 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -39,17 +38,16 @@ public class DropViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         AnalyzedDropView dropView = e.analyze("drop view if exists v1, v2, x.v3");
 
-        assertThat(dropView.ifExists(), is(true));
-        assertThat(dropView.views(), is(empty()));
+        assertThat(dropView.ifExists()).isTrue();
+        assertThat(dropView.views()).isEmpty();
     }
 
     @Test
     public void testDropViewRaisesRelationsUnkownForMissingView() {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
 
-        expectedException.expect(RelationsUnknown.class);
-        expectedException.expectMessage("Relations not found: doc.v1, doc.v2");
-
-        e.analyze("drop view v1, v2");
+        assertThatThrownBy(() -> e.analyze("drop view v1, v2"))
+            .isExactlyInstanceOf(RelationsUnknown.class)
+            .hasMessage("Relations not found: doc.v1, doc.v2");
     }
 }

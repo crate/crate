@@ -24,7 +24,6 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
