@@ -118,6 +118,7 @@ import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
+import io.crate.sql.tree.JoinType;
 import io.crate.types.DataTypes;
 
 /**
@@ -325,9 +326,13 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitJoinRelation(JoinRelation join, List<Symbol> context) {
+            var joinType = switch(join.joinType()) {
+                case IMPLICIT -> JoinType.CROSS;
+                default -> join.joinType();
+            };
             var left = join.left().accept(this, context);
             var right = join.right().accept(this, context);
-            return new JoinPlan(left, right, join.joinType(), join.joinCondition());
+            return new JoinPlan(left, right, joinType, join.joinCondition());
         }
 
         @Override

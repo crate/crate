@@ -394,12 +394,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         AnalyzedRelation analyzedRelation = null;
         if (!analyzedRelations.isEmpty()) {
-            // Convert implicit joins to cross-joins
             Iterator<AnalyzedRelation> iterator = analyzedRelations.iterator();
             AnalyzedRelation relation = iterator.next();
 
             while (iterator.hasNext()) {
-                relation = new JoinRelation(relation, iterator.next(), JoinType.CROSS, null);
+                relation = new JoinRelation(relation, iterator.next(), JoinType.IMPLICIT, null);
             }
             analyzedRelation = relation;
         }

@@ -26,6 +26,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.HashSet;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.metadata.NodeContext;
@@ -67,7 +68,7 @@ public class MoveFilterIntoCrossJoin implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         var join = captures.get(joinCapture);
         var query = filter.query();
         var queryParts = QuerySplitter.split(query);
