@@ -25,10 +25,12 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.expression.operator.AndOperator;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -42,18 +44,17 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 
-public class MoveFilterIntoCrossJoin implements Rule<Filter> {
+public class MoveFilterIntoJoin implements Rule<Filter> {
 
     private final Capture<JoinPlan> joinCapture;
     private final Pattern<Filter> pattern;
 
-    public MoveFilterIntoCrossJoin() {
+    public MoveFilterIntoJoin() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(),
                 typeOf(JoinPlan.class)
                     .capturedAs(joinCapture)
-                    .with(join -> join.joinType() == JoinType.CROSS)
             );
     }
 
@@ -77,7 +78,11 @@ public class MoveFilterIntoCrossJoin implements Rule<Filter> {
             relationNames.addAll(relationName);
         }
         if (new HashSet<>(join.getRelationNames()).containsAll(relationNames)) {
-            return new JoinPlan(join.lhs(), join.rhs(), JoinType.INNER, query);
+            if (join.joinType() == JoinType.CROSS) {
+                return new JoinPlan(join.lhs(), join.rhs(), JoinType.INNER, query);
+            } else {
+                return new JoinPlan(join.lhs(), join.rhs(), join.joinType(), AndOperator.join(List.of(join.joinCondition(), query)));
+            }
         }
         return null;
     }

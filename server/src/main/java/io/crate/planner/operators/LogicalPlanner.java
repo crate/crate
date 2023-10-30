@@ -101,7 +101,7 @@ import io.crate.planner.optimizer.rule.MoveFilterBeneathProjectSet;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathRename;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathUnion;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathWindowAgg;
-import io.crate.planner.optimizer.rule.MoveFilterIntoCrossJoin;
+import io.crate.planner.optimizer.rule.MoveFilterIntoJoin;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathEval;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathEval;
@@ -119,7 +119,6 @@ import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.sql.tree.JoinType;
-import io.crate.sql.tree.Relation;
 import io.crate.types.DataTypes;
 
 /**
@@ -163,7 +162,7 @@ public class LogicalPlanner {
         new MoveConstantJoinConditionsBeneathNestedLoop(),
         new EliminateCrossJoin(),
         new RewriteNestedLoopJoinToHashJoin(),
-        new MoveFilterIntoCrossJoin()
+        new MoveFilterIntoJoin()
     );
 
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
@@ -352,18 +351,14 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitDocTableRelation(DocTableRelation relation, List<Symbol> outputs) {
-            var outputsForRelation = new ArrayList<Symbol>();
-            for (Symbol output : outputs) {
-                if (relation.outputs().contains(output)) {
-                    outputsForRelation.add(output);
-                }
-            }
-            return new Collect(relation, outputsForRelation, WhereClause.MATCH_ALL);
+            var filteredOutputs = filterOutputs(relation, outputs);
+            return new Collect(relation, filteredOutputs, WhereClause.MATCH_ALL);
         }
 
         @Override
         public LogicalPlan visitTableRelation(TableRelation relation, List<Symbol> outputs) {
-            return new Collect(relation, outputs, WhereClause.MATCH_ALL);
+            var filteredOutputs = filterOutputs(relation, outputs);
+            return new Collect(relation, filteredOutputs, WhereClause.MATCH_ALL);
         }
 
         @Override
@@ -372,7 +367,7 @@ public class LogicalPlanner {
             if (child instanceof AbstractTableRelation<?>) {
                 List<Symbol> mappedOutputs = Lists.map(outputs, FieldReplacer.bind(relation::resolveField));
                 var source = child.accept(this, mappedOutputs);
-                return new Rename(outputs, relation.relationName(), relation, source);
+                return new Rename(mappedOutputs, relation.relationName(), relation, source);
             } else {
                 // Can't do outputs propagation because field reverse resolving could be ambiguous
                 //  `SELECT * FROM (select * from t as t1, t as t2)` -> x can refer to t1.x or t2.x
@@ -402,17 +397,21 @@ public class LogicalPlanner {
             );
         }
 
-        List<Symbol> getAllOutputs(QueriedSelectRelation relation) {
-            SplitPoints splitPoints = SplitPointsBuilder.create(relation);
-            var toCollect = new LinkedHashSet<Symbol>(splitPoints.toCollect().size());
-            Consumer<Reference> addRefIfMatch = ref -> {
-                    toCollect.add(ref);
+        private List<Symbol> filterOutputs(AnalyzedRelation relation, List<Symbol> outputs) {
+            var outputsForRelation = new ArrayList<Symbol>();
+            for (Symbol output : outputs) {
+                if (relation.outputs().contains(output)) {
+                    outputsForRelation.add(output);
+                }
+            }
+            return outputsForRelation;
+        }
 
-            };
-            Consumer<ScopedSymbol> addFieldIfMatch = field -> {
-                    toCollect.add(field);
-            };
-            for (Symbol symbol : splitPoints.toCollect()) {
+        private List<Symbol> extractOutputs(QueriedSelectRelation relation, List<Symbol> outputs) {
+            var toCollect = new LinkedHashSet<Symbol>();
+            Consumer<Reference> addRefIfMatch = toCollect::add;
+            Consumer<ScopedSymbol> addFieldIfMatch = toCollect::add;
+            for (Symbol symbol : outputs) {
                 RefVisitor.visitRefs(symbol, addRefIfMatch);
                 FieldsVisitor.visitFields(symbol, addFieldIfMatch);
             }
@@ -432,7 +431,7 @@ public class LogicalPlanner {
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
-            var allOutputs = getAllOutputs(relation);
+            var allOutputs = extractOutputs(relation, splitPoints.toCollect());
             LogicalPlan source = relation.from().get(0).accept(this, allOutputs);
             source = Filter.create(source, relation.where());
             Symbol having = relation.having();
