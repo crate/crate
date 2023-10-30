@@ -119,6 +119,7 @@ import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.sql.tree.JoinType;
+import io.crate.sql.tree.Relation;
 import io.crate.types.DataTypes;
 
 /**
@@ -330,6 +331,7 @@ public class LogicalPlanner {
                 case IMPLICIT -> JoinType.CROSS;
                 default -> join.joinType();
             };
+
             var left = join.left().accept(this, context);
             var right = join.right().accept(this, context);
             return new JoinPlan(left, right, joinType, join.joinCondition());
@@ -400,52 +402,39 @@ public class LogicalPlanner {
             );
         }
 
+        List<Symbol> getAllOutputs(QueriedSelectRelation relation) {
+            SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+            var toCollect = new LinkedHashSet<Symbol>(splitPoints.toCollect().size());
+            Consumer<Reference> addRefIfMatch = ref -> {
+                    toCollect.add(ref);
+
+            };
+            Consumer<ScopedSymbol> addFieldIfMatch = field -> {
+                    toCollect.add(field);
+            };
+            for (Symbol symbol : splitPoints.toCollect()) {
+                RefVisitor.visitRefs(symbol, addRefIfMatch);
+                FieldsVisitor.visitFields(symbol, addFieldIfMatch);
+            }
+            FieldsVisitor.visitFields(relation.where(), addFieldIfMatch);
+            RefVisitor.visitRefs(relation.where(), addRefIfMatch);
+            for (var joinPair : relation.joinPairs()) {
+                var condition = joinPair.condition();
+                if (condition != null) {
+                    FieldsVisitor.visitFields(condition, addFieldIfMatch);
+                    RefVisitor.visitRefs(condition, addRefIfMatch);
+                }
+            }
+            return List.copyOf(toCollect);
+        }
+
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
-            LogicalPlan source = JoinPlanBuilder.buildJoinTree(
-                relation.from(),
-                relation.where(),
-                relation.joinPairs(),
-                subQueries,
-                rel -> {
-                    if (relation.from().size() == 1) {
-                        return rel.accept(this, splitPoints.toCollect());
-                    } else {
-                        // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
-                        // We could get rid of `SplitPoints` and the logic here if we
-                        // a) introduce a column pruning
-                        // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
-
-                        var toCollect = new LinkedHashSet<Symbol>(splitPoints.toCollect().size());
-                        Consumer<Reference> addRefIfMatch = ref -> {
-                            if (ref.ident().tableIdent().equals(rel.relationName())) {
-                                toCollect.add(ref);
-                            }
-                        };
-                        Consumer<ScopedSymbol> addFieldIfMatch = field -> {
-                            if (field.relation().equals(rel.relationName())) {
-                                toCollect.add(field);
-                            }
-                        };
-                        for (Symbol symbol : splitPoints.toCollect()) {
-                            RefVisitor.visitRefs(symbol, addRefIfMatch);
-                            FieldsVisitor.visitFields(symbol, addFieldIfMatch);
-                        }
-                        FieldsVisitor.visitFields(relation.where(), addFieldIfMatch);
-                        RefVisitor.visitRefs(relation.where(), addRefIfMatch);
-                        for (var joinPair : relation.joinPairs()) {
-                            var condition = joinPair.condition();
-                            if (condition != null) {
-                                FieldsVisitor.visitFields(condition, addFieldIfMatch);
-                                RefVisitor.visitRefs(condition, addRefIfMatch);
-                            }
-                        }
-                        return rel.accept(this, List.copyOf(toCollect));
-                    }
-                }
-            );
+            var allOutputs = getAllOutputs(relation);
+            LogicalPlan source = relation.from().get(0).accept(this, allOutputs);
+            source = Filter.create(source, relation.where());
             Symbol having = relation.having();
             if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
