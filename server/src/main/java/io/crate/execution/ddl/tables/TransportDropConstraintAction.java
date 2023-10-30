@@ -51,7 +51,9 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.List;
 
+import static io.crate.execution.ddl.tables.MappingUtil.removeConstraints;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
 
 @Singleton
@@ -129,7 +131,7 @@ public class TransportDropConstraintAction extends AbstractDDLTransportAction<Dr
 
             Map<String, Object> currentSource = indexMetadata.mapping().sourceAsMap();
 
-            updated |= constraintRemoved(currentSource, request.constraintName());
+            updated |= removeConstraints(currentSource, List.of(request.constraintName()));
 
             MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
 
@@ -143,20 +145,8 @@ public class TransportDropConstraintAction extends AbstractDDLTransportAction<Dr
         return updated;
     }
 
-    private static boolean constraintRemoved(Map<String, Object> currentSource, String constraintName) {
-        Map<String, Object> meta = (Map<String, Object>) currentSource.get("_meta");
-        if (meta != null) {
-            Map<String, String> checkConstraints = (Map<String, String>) meta.get("check_constraints");
-            if (checkConstraints != null) {
-                return checkConstraints.remove(constraintName) != null;
-            }
-        }
-        return false;
-    }
-
     @Override
     public ClusterBlockException checkBlock(DropConstraintRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
-
 }
