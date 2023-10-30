@@ -99,6 +99,7 @@ import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
+import io.crate.Constants;
 import io.crate.action.sql.Cursors;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
@@ -486,7 +487,8 @@ public class SQLExecutor {
                     this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
             Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
 
-            XContentBuilder mappingBuilder = JsonXContent.builder().map(mapping);
+            XContentBuilder mappingBuilder =
+                JsonXContent.builder().map(Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping));
             AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
             IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
                 .patterns(singletonList(boundCreateTable.templatePrefix()))

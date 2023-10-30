@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import static io.crate.execution.ddl.tables.MappingUtil.removeConstraints;
 import static io.crate.execution.ddl.tables.MappingUtil.toProperties;
 import static io.crate.metadata.Reference.buildTree;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
@@ -28,8 +29,11 @@ import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIn
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -49,6 +53,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -69,7 +74,6 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public ClusterState execute(ClusterState currentState, DropColumnRequest request) throws Exception {
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
@@ -96,13 +100,35 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
                 }
             }
         }
+        // Add relevant constraints to be removed
+        Set<String> constraintsToRemove = new HashSet<>();
+        for (var constraint : currentTable.checkConstraints()) {
+            Set<ColumnIdent> columnsInConstraint = new HashSet<>();
+            RefVisitor.visitRefs(constraint.expression(), r -> columnsInConstraint.add(r.column()));
+
+            if (columnsInConstraint.stream().allMatch(
+                columnInConstraint -> {
+                    for (var refToDrop : refsToDrop) {
+                        if (columnInConstraint.equals(refToDrop.column()) || columnInConstraint.isChildOf(refToDrop.column())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })) {
+                constraintsToRemove.add(constraint.name());
+            }
+        }
+
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(references);
         Map<String, Map<String, Object>> properties = toProperties(AllocPosition.forTable(currentTable), tree);
-        Map<String, Object> mapping = Map.of(
-            "_meta", Map.of(),
-            "properties", properties
-        );
-        Map<String, Object> mappingToRemove = Map.of("properties", MappingUtil.toNamesOnlyProperties(tree));
+        Map<String, String> constraintsToRemoveAsMap = constraintsToRemove
+            .stream().collect(Collectors.toMap(c -> c, c -> ""));
+        Map<String, Object> mapping =
+            Map.of("_meta", Map.of("check_constraints", constraintsToRemoveAsMap),
+                "properties", properties);
+        Map<String, Object> mappingToRemove =
+            Map.of("_meta", Map.of("check_constraints", constraintsToRemoveAsMap),
+                "properties", MappingUtil.toNamesOnlyProperties(tree));
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
@@ -124,7 +150,8 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
             metadataBuilder,
             request.relationName().indexNameOrAlias(),
             properties,
-            mappingToRemove
+            mappingToRemove,
+            constraintsToRemove
         );
         // ensure the table can still be parsed into a DocTableInfo to avoid breaking the table.
         docTableInfoFactory.create(request.relationName(), currentState);
@@ -157,13 +184,16 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
                                        Metadata.Builder metadataBuilder,
                                        String indexName,
                                        Map<String, Map<String, Object>> propertiesMap,
-                                       Map<String, Object> mappingToRemove) throws IOException {
+                                       Map<String, Object> mappingToRemove,
+                                       Set<String> constraintsToRemove) throws IOException {
         Index[] concreteIndices = resolveIndices(currentState, indexName);
 
         for (Index index : concreteIndices) {
             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
+            removeConstraints(indexMapping, constraintsToRemove);
+
             mergeDeltaIntoExistingMapping(indexMapping, propertiesMap);
             indexMapping = DDLClusterStateHelpers.removeFromMapping(indexMapping, mappingToRemove);
 
