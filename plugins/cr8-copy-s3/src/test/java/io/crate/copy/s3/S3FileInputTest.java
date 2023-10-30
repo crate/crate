@@ -26,7 +26,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,24 +33,21 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-
 import io.crate.copy.s3.common.S3ClientHelper;
 import io.crate.copy.s3.common.S3URI;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 
 
 public class S3FileInputTest extends ESTestCase {
 
     private static S3FileInput s3FileInput;
-    private static List<S3ObjectSummary> listObjectSummaries;
-
-    private static final ObjectListing OBJECT_LISTING = mock(ObjectListing.class);
+    private static final ListObjectsV2Iterable OBJECT_LISTING = mock(ListObjectsV2Iterable.class);
     private static final S3ClientHelper CLIENT_BUILDER = mock(S3ClientHelper.class);
-    private static final AmazonS3 S_3 = mock(AmazonS3.class);
-
+    private static final S3Client S_3 = mock(S3Client.class);
     private static final String BUCKET_NAME = "fakeBucket";
     private static final String PREFIX = "prefix/";
     private static final String PROTOCOL = "http";
@@ -63,20 +59,14 @@ public class S3FileInputTest extends ESTestCase {
         S3URI preGlobUri = S3URI.toS3URI((new URI("s3://fakeBucket/prefix/")));
         s3FileInput = new S3FileInput(CLIENT_BUILDER, globbedUri, PROTOCOL);
 
-        when(S_3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(OBJECT_LISTING);
-        // TODO
-        when(CLIENT_BUILDER.client(preGlobUri, PROTOCOL)).thenReturn(mock(S3Client.class));
+        when(S_3.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(BUCKET_NAME).prefix(PREFIX).build()))
+            .thenReturn(OBJECT_LISTING);
+        when(CLIENT_BUILDER.client(preGlobUri, PROTOCOL)).thenReturn(S_3);
     }
 
     @Test
     public void testListListUrlsWhenEmptyKeysIsListed() throws Exception {
-        S3ObjectSummary path = new S3ObjectSummary();
-        path.setBucketName(BUCKET_NAME);
-        path.setKey("prefix/");
-        listObjectSummaries = objectSummaries();
-        listObjectSummaries.add(path);
-
-        when(OBJECT_LISTING.getObjectSummaries()).thenReturn(listObjectSummaries);
+        when(OBJECT_LISTING.iterator()).thenReturn(getS3Objects().iterator());
 
         List<URI> uris = s3FileInput.expandUri();
         assertThat(uris).hasSize(2);
@@ -86,7 +76,7 @@ public class S3FileInputTest extends ESTestCase {
 
     @Test
     public void testListListUrlsWithCorrectKeys() throws Exception {
-        when(OBJECT_LISTING.getObjectSummaries()).thenReturn(objectSummaries());
+        when(OBJECT_LISTING.iterator()).thenReturn(getS3Objects().iterator());
 
         List<URI> uris = s3FileInput.expandUri();
         assertThat(uris).hasSize(2);
@@ -94,18 +84,11 @@ public class S3FileInputTest extends ESTestCase {
         assertThat(uris.get(1)).hasToString("s3:///fakeBucket/prefix/test2.json.gz");
     }
 
-    private List<S3ObjectSummary> objectSummaries() {
-        listObjectSummaries = new LinkedList<>();
-
-        S3ObjectSummary firstObj = new S3ObjectSummary();
-        S3ObjectSummary secondObj = new S3ObjectSummary();
-        firstObj.setBucketName(BUCKET_NAME);
-        secondObj.setBucketName(BUCKET_NAME);
-        firstObj.setKey("prefix/test1.json.gz");
-        secondObj.setKey("prefix/test2.json.gz");
-        listObjectSummaries.add(firstObj);
-        listObjectSummaries.add(secondObj);
-        return listObjectSummaries;
+    private List<ListObjectsV2Response> getS3Objects() {
+        return List.of(
+            ListObjectsV2Response.builder().contents(S3Object.builder().key("prefix/test1.json.gz").build()).build(),
+            ListObjectsV2Response.builder().contents(S3Object.builder().key("prefix/test2.json.gz").build()).build()
+        );
     }
 
     @Test

@@ -40,6 +40,7 @@ import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.utils.SdkAutoCloseable;
 
 @NotThreadSafe
 public class S3ClientHelper {
@@ -65,7 +66,7 @@ public class S3ClientHelper {
             .httpClientBuilder(CLIENT_BUILDER)
             .overrideConfiguration(CLIENT_OVERRIDE_CONFIG)
             .forcePathStyle(true);
-        if (endPoint != null) { // TODO: why protocolSetting takes effect only if endPoint != null?
+        if (endPoint != null) {
             s3ClientBuilder.endpointOverride(URI.create(protocolSetting + "://" + endPoint));
         }
         return s3ClientBuilder.build();
@@ -91,6 +92,11 @@ public class S3ClientHelper {
             clientMap.put(clientKey, client);
         }
         return client;
+    }
+
+    @VisibleForTesting
+    void close() {
+        clientMap.values().forEach(SdkAutoCloseable::close);
     }
 
     private static record ClientKey(String accessKey, String secretKey, String endpoint, String protocol) {

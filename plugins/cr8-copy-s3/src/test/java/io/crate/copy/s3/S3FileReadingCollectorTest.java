@@ -23,13 +23,12 @@ package io.crate.copy.s3;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -45,18 +44,18 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-
 import io.crate.copy.s3.common.S3ClientHelper;
 import io.crate.data.BatchIterator;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 
 public class S3FileReadingCollectorTest extends ESTestCase {
     private static ThreadPool THREAD_POOL;
@@ -76,7 +75,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
     public void testCollectFromS3Uri() throws Throwable {
         // this test just verifies the s3 schema detection and bucketName / prefix extraction from the uri.
         // real s3 interaction is mocked completely.
-        S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
+        InputStream inputStream = mock(InputStream.class);
         when(inputStream.read(any(byte[].class), Mockito.anyInt(), Mockito.anyInt())).thenReturn(-1);
 
         FileReadingIterator it = createBatchIterator(inputStream, "s3://fakebucket/foo");
@@ -85,7 +84,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
 
     @Test
     public void testCollectWithOneSocketTimeout() throws Throwable {
-        S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
+        InputStream inputStream = mock(InputStream.class);
 
         when(inputStream.read(any(byte[].class), Mockito.anyInt(), Mockito.anyInt()))
             .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line: foo
@@ -104,7 +103,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
     }
 
 
-    private FileReadingIterator createBatchIterator(S3ObjectInputStream inputStream, String ... fileUris) {
+    private FileReadingIterator createBatchIterator(InputStream inputStream, String ... fileUris) {
         String compression = null;
         return new FileReadingIterator(
             Arrays.asList(fileUris),
@@ -114,19 +113,16 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                 (uri, withClauseOptions) -> new S3FileInput(new S3ClientHelper() {
                     @Override
                     protected S3Client initClient(String accessKey, String secretKey, String endpoint, String protocol) {
-                        AmazonS3 client = mock(AmazonS3Client.class);
-                        ObjectListing objectListing = mock(ObjectListing.class);
-                        S3ObjectSummary summary = mock(S3ObjectSummary.class);
-                        S3Object s3Object = mock(S3Object.class);
-                        when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
-                        when(objectListing.getObjectSummaries()).thenReturn(Collections.singletonList(summary));
-                        when(summary.getKey()).thenReturn("foo");
-                        when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
-                        when(s3Object.getObjectContent()).thenReturn(inputStream);
-                        when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
-                        when(objectListing.isTruncated()).thenReturn(false);
-                        // TODO
-                        return mock(S3Client.class);
+                        S3Client client = mock(S3Client.class);
+                        var objectListing = mock(ListObjectsV2Iterable.class);
+                        var s3Objects = List.of(
+                            ListObjectsV2Response.builder().contents(S3Object.builder().key("foo").build()).build());
+
+                        when(client.listObjectsV2Paginator(any(ListObjectsV2Request.class))).thenReturn(objectListing);
+                        when(objectListing.iterator()).thenReturn(s3Objects.iterator());
+                        when(client.getObject(GetObjectRequest.builder().bucket("fakebucket").key("foo").build()))
+                            .thenReturn(new ResponseInputStream<>(GetObjectResponse.builder().build(), inputStream));
+                        return client;
                     }
                 }, uri, "https")),
             false,

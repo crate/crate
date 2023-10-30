@@ -30,16 +30,13 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import com.amazonaws.http.IdleConnectionReaper;
-
-
 public class S3ClientHelperTest extends ESTestCase {
 
     private final S3ClientHelper s3ClientHelper = new S3ClientHelper();
 
     @After
     public void cleanUpS3() {
-        IdleConnectionReaper.shutdown();
+        s3ClientHelper.close();
     }
 
     @Test
