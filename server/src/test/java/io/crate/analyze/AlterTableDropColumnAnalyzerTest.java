@@ -82,6 +82,40 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
+    public void test_drop_column_with_constraint() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE t(a int, b int CHECK (abs(b) + (b / 2) > 2))")
+            .build();
+
+        AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
+        assertThat(d.columns()).satisfiesExactly(
+            dc -> assertThat(dc.ref()).isReference().hasName("b"));
+    }
+
+    @Test
+    public void test_drop_column_with_table_level_constraint_referencing_only_this_column() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE t(a int, b int, CONSTRAINT my_check CHECK (abs(b) + (b / 2) > 2))")
+            .build();
+
+        AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
+        assertThat(d.columns()).satisfiesExactly(
+            dc -> assertThat(dc.ref()).isReference().hasName("b"));
+    }
+
+    @Test
+    public void test_drop_column_with_table_level_constraint_on_multiple_subcols() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE t (o object AS (oo object AS(ooa int, oob int)), " +
+                      "CHECK (o['oo']['ooa'] + o['oo']['oob'] > 0))")
+            .build();
+
+        AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN o['oo']");
+        assertThat(d.columns()).satisfiesExactly(
+            dc -> assertThat(dc.ref()).isReference().hasName("o['oo']"));
+    }
+
+    @Test
     public void test_drop_named_index_column_is_not_supported() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t (a text, INDEX ft USING fulltext(a))")
@@ -107,6 +141,29 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
                 .hasTableIdent(d.table().ident())
                 .hasType(DataTypes.INTEGER)
         );
+    }
+
+    @Test
+    public void test_drop_parent_column_with_constraint_including_non_children() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (a int, o object AS (oa int, oo object AS(ooa int, oob long)), " +
+                      "CONSTRAINT my_check CHECK (o['oo']['oob'] + o['oa'] > 0))")
+            .addTable("create table t2 (a int, o object AS (oa int, oo object AS(ooa int, oob long)), " +
+                      "CONSTRAINT my_check CHECK (o['oo']['oob'] + a > 0))")
+            .addTable("create table t3 (a int, o object AS (" +
+                      "oa int, oo object AS(ooa int, oob long), obj object AS (obja int, objb long)), " +
+                      "CONSTRAINT my_check CHECK (o['oo']['oob'] + o['obj']['objb'] > 0))")
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP COLUMN o['oo']"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Dropping column: o['oo'] which is used in CHECK CONSTRAINT: my_check is not allowed");
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP COLUMN o['oo']"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Dropping column: o['oo'] which is used in CHECK CONSTRAINT: my_check is not allowed");
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t3 DROP COLUMN o['oo']"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Dropping column: o['oo'] which is used in CHECK CONSTRAINT: my_check is not allowed");
     }
 
     @Test
@@ -279,6 +336,23 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: b which is part of INDEX: ft is not allowed");
+    }
+
+    @Test
+    public void test_drop_column_used_in_table_level_check_constraint() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE t1(a int, b int, CONSTRAINT my_check CHECK (abs(b) + (a / 2) > 2))")
+            .addTable("CREATE TABLE t2(a int, o object AS(oo object AS(ooa int, oob int)), " +
+                      "CONSTRAINT my_check CHECK (abs(o['oo']['oob']) + (a / 2) > 2))")
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP b"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Dropping column: b which is used in CHECK CONSTRAINT: my_check is not allowed");
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP o['oo']['oob']"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Dropping column: o['oo']['oob'] which is used in CHECK CONSTRAINT: my_check is not allowed");
     }
 
     @Test
