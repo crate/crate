@@ -396,8 +396,14 @@ public class LogicalPlanner {
         private List<Symbol> filterOutputs(AnalyzedRelation relation, List<Symbol> outputs) {
             var outputsForRelation = new ArrayList<Symbol>();
             for (Symbol output : outputs) {
-                if (relation.outputs().contains(output)) {
-                    outputsForRelation.add(output);
+                if (output instanceof Reference r) {
+                    if (r.ident().tableIdent().equals(relation.relationName())) {
+                        outputsForRelation.add(output);
+                    }
+                } else {
+                    if (relation.outputs().contains(output)) {
+                        outputsForRelation.add(output);
+                    }
                 }
             }
             return outputsForRelation;
