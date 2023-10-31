@@ -31,6 +31,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -47,8 +48,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -111,7 +110,9 @@ import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
@@ -386,6 +387,40 @@ public class IndicesService extends AbstractLifecycleComponent
             if (success == false) {
                 indexService.close("plugins_failed", true);
             }
+        }
+    }
+
+    public <T, E extends Exception> T withTempIndexService(final IndexMetadata indexMetadata,
+                                                           CheckedFunction<IndexService, T, E> indexServiceConsumer) throws IOException, E {
+        final Index index = indexMetadata.getIndex();
+        if (hasIndex(index)) {
+            throw new ResourceAlreadyExistsException(index);
+        }
+        List<IndexEventListener> finalListeners = Collections.singletonList(
+            // double check that shard is not created.
+            new IndexEventListener() {
+                @Override
+                public void beforeIndexShardCreated(ShardId shardId, Settings indexSettings) {
+                    assert false : "temp index should not trigger shard creation";
+                    throw new ElasticsearchException("temp index should not trigger shard creation [{}]", index);
+                }
+
+                @Override
+                public void onStoreCreated(ShardId shardId) {
+                    assert false : "temp index should not trigger store creation";
+                    throw new ElasticsearchException("temp index should not trigger store creation [{}]", index);
+                }
+            }
+        );
+        final IndexService indexService =
+            createIndexService(
+                IndexCreationContext.CREATE_INDEX,
+                indexMetadata,
+                indicesQueryCache,
+                finalListeners,
+                indexingMemoryController);
+        try (Closeable dummy = () -> indexService.close("temp", false)) {
+            return indexServiceConsumer.apply(indexService);
         }
     }
 
