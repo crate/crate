@@ -43,12 +43,13 @@ public class JoinPlan extends AbstractJoinPlan {
 
     private final boolean isFiltered;
     private final boolean rewriteFilterOnOuterJoinToInnerJoinDone;
+    private final boolean constandJoinConditionsExtracted;
 
     public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition) {
-        this(lhs, rhs, joinType, joinCondition, false, false);
+        this(lhs, rhs, joinType, joinCondition, false, false, false);
     }
 
     public JoinPlan(LogicalPlan lhs,
@@ -56,10 +57,12 @@ public class JoinPlan extends AbstractJoinPlan {
                     JoinType joinType,
                     @Nullable Symbol joinCondition,
                     boolean isFiltered,
-                    boolean rewriteFilterOnOuterJoinToInnerJoinDone) {
+                    boolean rewriteFilterOnOuterJoinToInnerJoinDone,
+                    boolean constandJoinConditionsExtracted) {
         super(lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
+        this.constandJoinConditionsExtracted = constandJoinConditionsExtracted;
     }
 
     public boolean isFiltered() {
@@ -68,6 +71,10 @@ public class JoinPlan extends AbstractJoinPlan {
 
     public boolean isRewriteFilterOnOuterJoinToInnerJoinDone() {
         return rewriteFilterOnOuterJoinToInnerJoinDone;
+    }
+
+    public boolean isConstandJoinConditionsExtracted() {
+        return constandJoinConditionsExtracted;
     }
 
     @Override
@@ -113,7 +120,8 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            constandJoinConditionsExtracted
         );
     }
 
@@ -140,7 +148,8 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            constandJoinConditionsExtracted
         );
     }
 }

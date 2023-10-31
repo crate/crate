@@ -248,8 +248,9 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
             newJoinIsInnerJoin ? JoinType.INNER : join.joinType(),
             join.joinCondition(),
             join.isFiltered(),
-            true
-        );
+            true,
+            join.isConstandJoinConditionsExtracted()
+            );
         assert newJoin.outputs().equals(join.outputs()) : "Outputs after rewrite must be the same as before";
         return splitQueries.isEmpty() ? newJoin : new Filter(newJoin, AndOperator.join(splitQueries.values()));
     }

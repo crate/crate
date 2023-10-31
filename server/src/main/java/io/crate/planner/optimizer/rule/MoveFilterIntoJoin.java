@@ -23,14 +23,18 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.rule.ExtractConstantJoinCondition.numberOfRelationsUsed;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -72,18 +76,36 @@ public class MoveFilterIntoJoin implements Rule<Filter> {
                              UnaryOperator<LogicalPlan> resolvePlan) {
         var join = captures.get(joinCapture);
         var query = filter.query();
-        var queryParts = QuerySplitter.split(query);
-        var relationNames = new HashSet<RelationName>();
-        for (var relationName : queryParts.keySet()) {
-            relationNames.addAll(relationName);
-        }
-        if (new HashSet<>(join.getRelationNames()).containsAll(relationNames)) {
-            if (join.joinType() == JoinType.CROSS) {
-                return new JoinPlan(join.lhs(), join.rhs(), JoinType.INNER, query);
+        var allConditions = QuerySplitter.split(query);
+        var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
+        var nonConstantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
+        for (var condition : allConditions.entrySet()) {
+            if (numberOfRelationsUsed(condition.getValue()) <= 1) {
+                constantConditions.put(condition.getKey(), condition.getValue());
             } else {
-                return new JoinPlan(join.lhs(), join.rhs(), join.joinType(), AndOperator.join(List.of(join.joinCondition(), query)));
+                nonConstantConditions.put(condition.getKey(), condition.getValue());
             }
         }
-        return null;
+        if (nonConstantConditions.isEmpty()) {
+            return null;
+        }
+        var result = new ArrayList<Symbol>();
+        for (var entries : nonConstantConditions.entrySet()) {
+            if (new HashSet<>(join.getRelationNames()).containsAll(entries.getKey())) {
+                result.add(entries.getValue());
+            }
+        }
+        if (result.isEmpty()) {
+            return null;
+        } else {
+            JoinPlan newJoin = null;
+            if (join.joinType() == JoinType.CROSS) {
+                newJoin = new JoinPlan(join.lhs(), join.rhs(), JoinType.INNER, AndOperator.join(result));
+            } else {
+                result.add(join.joinCondition());
+                newJoin = new JoinPlan(join.lhs(), join.rhs(), join.joinType(), AndOperator.join(result));
+            }
+            return Filter.create(newJoin, AndOperator.join(constantConditions.values()));
+        }
     }
 }

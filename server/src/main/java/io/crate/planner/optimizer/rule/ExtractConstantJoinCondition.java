@@ -22,7 +22,6 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,22 +35,21 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.RelationNameCollector;
+import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
-public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<JoinPlan> {
+public class ExtractConstantJoinCondition implements Rule<JoinPlan> {
 
     private final Pattern<JoinPlan> pattern;
 
-    public MoveConstantJoinConditionsBeneathNestedLoop() {
+    public ExtractConstantJoinCondition() {
         this.pattern = typeOf(JoinPlan.class)
-            .with(nl -> nl.joinType() == JoinType.INNER &&
-                        nl.joinCondition() != null);
+            .with(j -> j.joinCondition() != null && j.isConstandJoinConditionsExtracted() == false);
     }
 
     @Override
@@ -79,25 +77,30 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<JoinPla
         }
         if (constantConditions.isEmpty() || nonConstantConditions.isEmpty()) {
             // Nothing to optimize, just mark nestedLoopJoin to skip the rule the next time
-            return null;
-        } else {
-            // Push constant join condition down to source
-            var lhs = resolvePlan.apply(nl.lhs());
-            var rhs = resolvePlan.apply(nl.rhs());
-            var queryForLhs = constantConditions.remove(new HashSet<>(lhs.getRelationNames()));
-            var queryForRhs = constantConditions.remove(new HashSet<>(rhs.getRelationNames()));
-            var newLhs = getNewSource(queryForLhs, lhs);
-            var newRhs = getNewSource(queryForRhs, rhs);
             return new JoinPlan(
-                newLhs,
-                newRhs,
+                nl.lhs(),
+                nl.rhs(),
                 nl.joinType(),
-                AndOperator.join(nonConstantConditions)
+                nl.joinCondition(),
+                nl.isFiltered(),
+                nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                true
             );
+        } else {
+            return Filter.create(
+                new JoinPlan(
+                    nl.lhs(),
+                    nl.rhs(),
+                    nl.joinType(),
+                    AndOperator.join(nonConstantConditions),
+                    nl.isFiltered(),
+                    nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                    true
+                ), AndOperator.join(constantConditions.values()));
         }
     }
 
-    private static int numberOfRelationsUsed(Symbol joinCondition) {
+    static int numberOfRelationsUsed(Symbol joinCondition) {
         return RelationNameCollector.collect(joinCondition).size();
     }
 }

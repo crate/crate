@@ -39,7 +39,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.costs.PlanStats;
@@ -78,7 +77,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
         NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, false, false, false);
-        var rule = new MoveConstantJoinConditionsBeneathNestedLoop();
+        var rule = new ExtractConstantJoinCondition();
         Match<JoinPlan> match = rule.pattern().accept(nl, Captures.empty());
 
         assertThat(match.isPresent(), Matchers.is(true));
