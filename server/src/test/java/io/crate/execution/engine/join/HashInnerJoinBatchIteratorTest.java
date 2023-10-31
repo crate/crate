@@ -136,7 +136,7 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            () -> 5
+            ignored -> 5
         );
         var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -152,7 +152,7 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashWithCollisions(),
             getHashWithCollisions(),
-            () -> 5
+            ignored -> 5
         );
         var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -168,7 +168,7 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            () -> 1
+            ignored -> 1
         );
         var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -184,7 +184,7 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            () -> 3
+            ignored -> 3
         );
         var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);

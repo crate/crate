@@ -953,8 +953,8 @@ public class JobSetup {
                 context.transactionContext,
                 inputFactory,
                 breaker(),
-                phase.estimatedRowSizeForLeft(),
-                phase.numberOfRowsForLeft());
+                phase.estimatedRowSizeForLeft()
+            );
             DistResultRXTask left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
                 context,

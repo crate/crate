@@ -55,8 +55,10 @@ public class RowCellsAccountingWithEstimators implements RowAccounting<Object[]>
      * This should only be used if the values are stored/buffered in another in-memory data structure.
      */
     @Override
-    public void accountForAndMaybeBreak(Object[] rowCells) {
-        ramAccounting.addBytes(accountRowBytes(rowCells));
+    public long accountForAndMaybeBreak(Object[] rowCells) {
+        long rowBytes = accountRowBytes(rowCells);
+        ramAccounting.addBytes(rowBytes);
+        return rowBytes;
     }
 
     public long accountRowBytes(Object[] rowCells) {

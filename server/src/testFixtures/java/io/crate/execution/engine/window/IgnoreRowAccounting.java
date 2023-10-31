@@ -27,7 +27,8 @@ import io.crate.data.breaker.RowAccounting;
 public class IgnoreRowAccounting implements RowAccounting<Row> {
 
     @Override
-    public void accountForAndMaybeBreak(Row row) {
+    public long accountForAndMaybeBreak(Row row) {
+        return 42;
     }
 
     @Override

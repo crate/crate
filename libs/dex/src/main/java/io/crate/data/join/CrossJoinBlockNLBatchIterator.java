@@ -22,13 +22,13 @@
 package io.crate.data.join;
 
 
+import java.util.ArrayList;
+import java.util.function.LongToIntFunction;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.breaker.RowAccounting;
-
-import java.util.ArrayList;
-import java.util.function.IntSupplier;
 
 /**
  * This BatchIterator is used for both CrossJoins and InnerJoins as for the InnerJoins
@@ -50,11 +50,12 @@ import java.util.function.IntSupplier;
  */
 public class CrossJoinBlockNLBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
-    private final IntSupplier blockSizeCalculator;
+    private final LongToIntFunction blockSizeCalculator;
     private final ArrayList<Object[]> blockBuffer;
     private final UnsafeArrayRow rowWrapper;
     private final RowAccounting<Object[]> rowAccounting;
 
+    private long totalBufferedRowSize = 0;
     private int blockBufferMaxSize;
     private int bufferPos;
     private boolean rightInitialized;
@@ -62,7 +63,7 @@ public class CrossJoinBlockNLBatchIterator extends JoinBatchIterator<Row, Row, R
     public CrossJoinBlockNLBatchIterator(BatchIterator<Row> left,
                                          BatchIterator<Row> right,
                                          ElementCombiner<Row, Row, Row> combiner,
-                                         IntSupplier blockSizeCalculator,
+                                         LongToIntFunction blockSizeCalculator,
                                          RowAccounting<Object[]> rowAccounting) {
         super(left, right, combiner);
         this.blockSizeCalculator = blockSizeCalculator;
@@ -74,9 +75,10 @@ public class CrossJoinBlockNLBatchIterator extends JoinBatchIterator<Row, Row, R
 
     private void resizeBlockBuffer() {
         rowAccounting.release();
-        blockBufferMaxSize = blockSizeCalculator.getAsInt();
+        int avgRowSize = blockBuffer.isEmpty() ? -1 : (int) totalBufferedRowSize / blockBuffer.size();
+        totalBufferedRowSize = 0;
+        blockBufferMaxSize = blockSizeCalculator.applyAsInt(avgRowSize);
         blockBuffer.clear();
-        blockBuffer.ensureCapacity(blockBufferMaxSize);
         bufferPos = -1;
     }
 
@@ -107,7 +109,7 @@ public class CrossJoinBlockNLBatchIterator extends JoinBatchIterator<Row, Row, R
                 while (blockBuffer.size() < blockBufferMaxSize) {
                     if (left.moveNext()) {
                         Object[] row = left.currentElement().materialize();
-                        rowAccounting.accountForAndMaybeBreak(row);
+                        totalBufferedRowSize += rowAccounting.accountForAndMaybeBreak(row);
                         blockBuffer.add(row);
                     } else {
                         if (left.allLoaded()) {

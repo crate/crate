@@ -26,7 +26,8 @@ import io.crate.data.breaker.RowAccounting;
 public class IgnoreRowCellsAccounting implements RowAccounting<Object[]> {
 
     @Override
-    public void accountForAndMaybeBreak(Object[] cells) {
+    public long accountForAndMaybeBreak(Object[] cells) {
+        return 42;
     }
 
     @Override
