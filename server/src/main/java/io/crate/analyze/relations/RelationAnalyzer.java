@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -91,7 +90,6 @@ import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
-import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.Node;
@@ -392,18 +390,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
         }
 
-        AnalyzedRelation analyzedRelation = null;
-        if (!analyzedRelations.isEmpty()) {
-            Iterator<AnalyzedRelation> iterator = analyzedRelations.iterator();
-            AnalyzedRelation relation = iterator.next();
-
-            while (iterator.hasNext()) {
-                relation = new JoinRelation(relation, iterator.next(), JoinType.IMPLICIT, null);
-            }
-            analyzedRelation = relation;
-        }
-
-
         RelationAnalysisContext context = statementContext.currentRelationContext();
         CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
@@ -446,7 +432,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         QueriedSelectRelation relation = new QueriedSelectRelation(
             isDistinct,
-            List.of(analyzedRelation),
+            analyzedRelations,
             context.joinPairs(),
             selectAnalysis.outputSymbols(),
             where,

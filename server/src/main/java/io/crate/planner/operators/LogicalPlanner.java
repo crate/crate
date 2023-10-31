@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -326,7 +327,7 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitJoinRelation(JoinRelation join, List<Symbol> context) {
-            var joinType = switch(join.joinType()) {
+            var joinType = switch (join.joinType()) {
                 case IMPLICIT -> JoinType.CROSS;
                 default -> join.joinType();
             };
@@ -428,16 +429,30 @@ public class LogicalPlanner {
         }
 
         @Override
-        public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
-            SplitPoints splitPoints = SplitPointsBuilder.create(relation);
-            SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
-            var allOutputs = extractOutputs(relation, splitPoints.toCollect());
-            LogicalPlan source = relation.from().get(0).accept(this, allOutputs);
-            source = Filter.create(source, relation.where());
-            Symbol having = relation.having();
+        public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation querySelectRelation, List<Symbol> outputs) {
+            SplitPoints splitPoints = SplitPointsBuilder.create(querySelectRelation);
+            var allOutputs = extractOutputs(querySelectRelation, splitPoints.toCollect());
+            // create implicit join
+            AnalyzedRelation topRelation = null;
+            if (querySelectRelation.from().size() == 1) {
+                topRelation = querySelectRelation.from().get(0);
+            } else {
+                Iterator<AnalyzedRelation> iterator = querySelectRelation.from().iterator();
+                var relation = iterator.next();
+
+                while (iterator.hasNext()) {
+                    relation = new JoinRelation(relation, iterator.next(), JoinType.IMPLICIT, null);
+                }
+                topRelation = relation;
+            }
+
+            LogicalPlan source = topRelation.accept(this, allOutputs);
+            source = Filter.create(source, querySelectRelation.where());
+            Symbol having = querySelectRelation.having();
             if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
             }
+            SubQueries subQueries = subqueryPlanner.planSubQueries(querySelectRelation);
             return MultiPhase.createIfNeeded(
                 subQueries.uncorrelated(),
                 Eval.create(
@@ -452,7 +467,7 @@ public class LogicalPlanner {
                                                     source,
                                                     splitPoints.tableFunctionsBelowGroupBy()
                                                 ),
-                                                relation.groupBy(),
+                                                querySelectRelation.groupBy(),
                                                 splitPoints.aggregates(),
                                                 planStats
                                             ),
@@ -462,13 +477,13 @@ public class LogicalPlanner {
                                     ),
                                     splitPoints.tableFunctions()
                                 ),
-                                relation.isDistinct(),
-                                relation.outputs()
+                                querySelectRelation.isDistinct(),
+                                querySelectRelation.outputs()
                             ),
-                            relation.orderBy()
+                            querySelectRelation.orderBy()
                         ),
-                        relation.limit(),
-                        relation.offset()
+                        querySelectRelation.limit(),
+                        querySelectRelation.offset()
                     ),
                     outputs
                 )
