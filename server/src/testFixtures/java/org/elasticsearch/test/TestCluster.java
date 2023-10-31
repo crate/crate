@@ -526,11 +526,11 @@ public final class TestCluster implements Closeable {
             try {
                 assertBusy(() -> {
                     CircuitBreaker crateQueryBreaker = breakerService.getBreaker("query");
-//                    if (crateQueryBreaker != null) {
-//                        assertThat(crateQueryBreaker.getUsed())
-//                            .as("Query breaker not reset to 0 on node: " + name)
-//                            .isEqualTo(0L);
-//                    }
+                    if (crateQueryBreaker != null) {
+                        assertThat(crateQueryBreaker.getUsed())
+                            .as("Query breaker not reset to 0 on node: " + name)
+                            .isEqualTo(0L);
+                    }
                 });
             } catch (Exception e) {
                 throw new AssertionError("Exception during check for query breaker reset to 0", e);
