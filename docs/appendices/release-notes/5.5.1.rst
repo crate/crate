@@ -49,4 +49,13 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Return meaningful error when trying to drop a column which itself or its
+  sub-columns participates in a
+  :ref:`table level constraint with other columns <check_constraint_multiple_cols>`.
+  For example, we  cannot drop column ``col_to_drop`` from the following
+  tables::
+
+    CREATE TABLE t1 (i int, col_to_drop int,
+                     CHECK (col_to_drop + i > 0))
+    CREATE TABLE t2 (i int, col_to_drop object AS (subcol_a int),
+                     CHECK (col_to_drop['subcol_a'] + i > 0))
