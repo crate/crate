@@ -848,6 +848,7 @@ public final class SqlFormatter {
 
         @Override
         public Void visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint<?> node, Integer indent) {
+            visitConstraintName(node.constraintName());
             builder.append("PRIMARY KEY");
             return null;
         }
@@ -868,16 +869,21 @@ public final class SqlFormatter {
         @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, Integer indent) {
+            visitConstraintName(node.constraintName());
             builder.append("PRIMARY KEY ");
             appendFlatNodeList(node.columns(), indent);
             return null;
         }
 
-        private void visitCheckConstraint(@Nullable String uniqueName, String expressionStr) {
-            if (uniqueName != null) {
-                builder.append("CONSTRAINT ").append(uniqueName).append(" ");
-            }
+        private void visitCheckConstraint(@Nullable String constraintName, String expressionStr) {
+            visitConstraintName(constraintName);
             builder.append("CHECK(").append(expressionStr).append(")");
+        }
+
+        private void visitConstraintName(@Nullable String constraintName) {
+            if (constraintName != null) {
+                builder.append("CONSTRAINT ").append(constraintName).append(" ");
+            }
         }
 
         @Override

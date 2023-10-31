@@ -1380,4 +1380,15 @@ public class InformationSchemaTest extends IntegTestCase {
         );
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("o| 2\n");
     }
+
+    @Test
+    public void test_primary_key_constraint_names_are_visible() {
+        execute("create table t (a int constraint c_1 primary key, b int constraint c_1 primary key)");
+        execute("""
+            select distinct constraint_name
+            from information_schema.table_constraints
+            where table_name = 't' and constraint_type = 'PRIMARY KEY'
+            """);
+        assertThat(response).hasRows("c_1");
+    }
 }

@@ -25,16 +25,25 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class PrimaryKeyConstraint<T> extends TableElement<T> {
+import org.jetbrains.annotations.Nullable;
 
+public class PrimaryKeyConstraint<T> extends TableElement<T> {
+    @Nullable
+    private final String constraintName;
     private final List<T> columns;
 
-    public PrimaryKeyConstraint(List<T> columns) {
+    public PrimaryKeyConstraint(@Nullable String constraintName, List<T> columns) {
+        this.constraintName = constraintName;
         this.columns = columns;
     }
 
     public List<T> columns() {
         return columns;
+    }
+
+    @Nullable
+    public String constraintName() {
+        return constraintName;
     }
 
     @Override
@@ -46,12 +55,13 @@ public class PrimaryKeyConstraint<T> extends TableElement<T> {
             return false;
         }
         PrimaryKeyConstraint<?> that = (PrimaryKeyConstraint<?>) o;
-        return Objects.equals(columns, that.columns);
+        return Objects.equals(columns, that.columns) &&
+            Objects.equals(constraintName, that.constraintName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(columns);
+        return Objects.hash(constraintName, columns);
     }
 
     @Override

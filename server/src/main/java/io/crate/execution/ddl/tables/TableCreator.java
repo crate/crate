@@ -93,6 +93,7 @@ public class TableCreator {
         if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {
             createTableRequest = new CreateTableRequest(
                 relationName,
+                createTable.pkConstraintName(),
                 new ArrayList<>(references.values()),
                 pKeysIndices,
                 createTable.getCheckConstraints(),
@@ -105,6 +106,7 @@ public class TableCreator {
             // TODO: Remove BWC branch in 5.5.
             var mapping = createMapping(
                 MappingUtil.AllocPosition.forNewTable(),
+                null,
                 new ArrayList<>(references.values()),
                 pKeysIndices,
                 createTable.getCheckConstraints(),

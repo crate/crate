@@ -391,6 +391,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             Map.of(),
             Map.of(),
             Map.of(),
+            null,
             List.of(),
             List.of(),
             null,

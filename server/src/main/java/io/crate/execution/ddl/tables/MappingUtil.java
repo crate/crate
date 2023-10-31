@@ -92,6 +92,7 @@ public final class MappingUtil {
      *
      */
     public static Map<String, Object> createMapping(AllocPosition allocPosition,
+                                                    @Nullable String pkConstraintName,
                                                     List<Reference> columns,
                                                     IntArrayList pKeyIndices,
                                                     Map<String, String> checkConstraints,
@@ -105,6 +106,9 @@ public final class MappingUtil {
 
         Map<String, Object> mapping = new HashMap<>();
         Map<String, Object> meta = new HashMap<>();
+        if (pkConstraintName != null) {
+            meta.put("pk_constraint_name", pkConstraintName);
+        }
         mergeConstraints(meta, columns, pKeyIndices, checkConstraints);
         if (routingColumn != null) {
             meta.put("routing", routingColumn);

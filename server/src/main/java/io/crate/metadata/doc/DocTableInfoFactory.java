@@ -116,6 +116,7 @@ public class DocTableInfoFactory {
             docIndexMetadata.indices(),
             docIndexMetadata.references(),
             docIndexMetadata.analyzers(),
+            docIndexMetadata.pkConstraintName(),
             docIndexMetadata.primaryKey(),
             docIndexMetadata.checkConstraints(),
             docIndexMetadata.routingCol(),

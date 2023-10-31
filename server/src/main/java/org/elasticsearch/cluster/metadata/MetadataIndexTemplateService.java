@@ -247,6 +247,7 @@ public class MetadataIndexTemplateService {
                 );
                 var mapping = MappingUtil.createMapping(
                     MappingUtil.AllocPosition.forNewTable(),
+                    createTableRequest.pkConstraintName(),
                     references,
                     createTableRequest.pKeyIndices(),
                     createTableRequest.checkConstraints(),
