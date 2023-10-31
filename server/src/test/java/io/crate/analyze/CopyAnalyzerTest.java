@@ -25,6 +25,8 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -111,8 +113,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyFromPartitionedTablePARTITIONKeywordTooManyArgs() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        analyze("COPY parted PARTITION (a=1, b=2, c=3) FROM '/some/distant/file.ext'");
+        assertThatThrownBy(() -> analyze("COPY parted PARTITION (a=1, b=2, c=3) FROM '/some/distant/file.ext'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -126,16 +128,17 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyFromNonExistingTable() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        analyze("COPY unknown FROM '/some/distant/file.ext'");
+        assertThatThrownBy(() -> analyze("COPY unknown FROM '/some/distant/file.ext'"))
+            .isExactlyInstanceOf(RelationUnknown.class);
     }
 
     @Test
     public void testCopyFromSystemTable() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow INSERT " +
-                                        "operations, as it is read-only.");
-        analyze("COPY sys.shards FROM '/nope/nope/still.nope'");
+        assertThatThrownBy(() -> analyze("COPY sys.shards FROM '/nope/nope/still.nope'"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"sys.shards\" doesn't support or allow INSERT " +
+                "operations, as it is read-only.");
     }
 
     @Test
@@ -149,8 +152,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyFromUnknownSchema() throws Exception {
-        expectedException.expect(SchemaUnknownException.class);
-        analyze("COPY suess.shards FROM '/nope/nope/still.nope'");
+        assertThatThrownBy(() -> analyze("COPY suess.shards FROM '/nope/nope/still.nope'"))
+            .isExactlyInstanceOf(SchemaUnknownException.class);
     }
 
     @Test
@@ -206,9 +209,9 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToFile() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Using COPY TO without specifying a DIRECTORY is not supported");
-        analyze("COPY users TO '/blah.txt'");
+        assertThatThrownBy(() -> analyze("COPY users TO '/blah.txt'"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Using COPY TO without specifying a DIRECTORY is not supported");
     }
 
     @Test
@@ -221,10 +224,11 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopySysTableTo() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow COPY TO " +
-                                        "operations, as it is read-only.");
-        analyze("COPY sys.nodes TO DIRECTORY '/foo'");
+        assertThatThrownBy(() -> analyze("COPY sys.nodes TO DIRECTORY '/foo'"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"sys.nodes\" doesn't support or allow COPY TO " +
+                "operations, as it is read-only.");
     }
 
     @Test
@@ -274,9 +278,9 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToDirectoryWithNotExistingPartitionClause() throws Exception {
-        expectedException.expect(PartitionUnknownException.class);
-        expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
-        analyze("COPY parted PARTITION (date=0) TO DIRECTORY '/tmp/'");
+        assertThatThrownBy(() -> analyze("COPY parted PARTITION (date=0) TO DIRECTORY '/tmp/'"))
+            .isExactlyInstanceOf(PartitionUnknownException.class)
+            .hasMessage("No partition for table 'doc.parted' with ident '04130' exists");
     }
 
     @Test
@@ -308,9 +312,9 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToWithNotExistingPartitionClause() throws Exception {
-        expectedException.expect(PartitionUnknownException.class);
-        expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
-        analyze("COPY parted PARTITION (date=0) TO DIRECTORY '/tmp/blah'");
+        assertThatThrownBy(() -> analyze("COPY parted PARTITION (date=0) TO DIRECTORY '/tmp/blah'"))
+            .isExactlyInstanceOf(PartitionUnknownException.class)
+            .hasMessage("No partition for table 'doc.parted' with ident '04130' exists");
     }
 
     @Test
@@ -326,18 +330,18 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToFileWithUnsupportedOutputFormatParam() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Output format not supported without specifying columns.");
-        analyze("COPY users TO DIRECTORY '/blah' WITH (format='json_array')");
+        assertThatThrownBy(() -> analyze("COPY users TO DIRECTORY '/blah' WITH (format='json_array')"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Output format not supported without specifying columns.");
     }
 
     @Test
     public void testCopyFromWithReferenceAssignedToProperty() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(
-            "Columns cannot be used in this context." +
-            " Maybe you wanted to use a string literal which requires single quotes: 'gzip'");
-        analyze("COPY users FROM '/blah.txt' with (compression = gzip)");
+        assertThatThrownBy(() -> analyze("COPY users FROM '/blah.txt' with (compression = gzip)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage(
+                "Columns cannot be used in this context." +
+                " Maybe you wanted to use a string literal which requires single quotes: 'gzip'");
     }
 
     @Test
@@ -350,32 +354,34 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyFromInvalidTypedExpression() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("fileUri must be of type STRING or STRING ARRAY. Got integer_array");
         Object[] files = $(1, 2, 3);
-        analyze("COPY users FROM ?", new Object[]{files});
+        assertThatThrownBy(() -> analyze("COPY users FROM ?", new Object[]{files}))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("fileUri must be of type STRING or STRING ARRAY. Got integer_array");
     }
 
     @Test
     public void testStringAsNodeFiltersArgument() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid parameter passed to node_filters. " +
-                                        "Expected an object with name or id keys and string values. Got 'invalid'");
-        analyze("COPY users FROM '/' WITH (node_filters='invalid')");
+        assertThatThrownBy(() -> analyze("COPY users FROM '/' WITH (node_filters='invalid')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "Invalid parameter passed to node_filters. " +
+                "Expected an object with name or id keys and string values. Got 'invalid'"
+            );
     }
 
     @Test
     public void testObjectWithWrongKeyAsNodeFiltersArgument() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid node_filters arguments: [dummy]");
-        analyze("COPY users FROM '/' WITH (node_filters={dummy='invalid'})");
+        assertThatThrownBy(() -> analyze("COPY users FROM '/' WITH (node_filters={dummy='invalid'})"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid node_filters arguments: [dummy]");
     }
 
     @Test
     public void testObjectWithInvalidValueTypeAsNodeFiltersArgument() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("node_filters argument 'name' must be a String, not 20 (Integer)");
-        analyze("COPY users FROM '/' WITH (node_filters={name=20})");
+        assertThatThrownBy(() -> analyze("COPY users FROM '/' WITH (node_filters={name=20})"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("node_filters argument 'name' must be a String, not 20 (Integer)");
     }
 
     @Test
