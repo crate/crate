@@ -216,7 +216,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(notNullColumns).hasSize(1);
         assertThat(notNullColumns.get(0)).isEqualTo("name");
     }
-    
+
     @Test
     public void testSimpleCreateTableWithNullConstraint() {
         assertThatThrownBy(() -> analyze("create table foo (id integer primary key null)"))
@@ -1803,5 +1803,32 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(() -> analyze("create table tbl (xs array(float_vector))"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Arrays of float_vector are not supported");
+    }
+
+    @Test
+    public void test_named_primary_key_constraints() {
+        BoundCreateTable createTable = analyze("create table tbl (a int constraint c_1 check (a > 10) constraint c_2 primary key constraint c_3 check (a < 20))");
+        assertThat(createTable.pkConstraintName()).isEqualTo("c_2");
+
+        analyze("create table tbl (a int constraint c_1 check (a > 10) constraint c_3 check (a < 20), constraint c_2 primary key (a))");
+        assertThat(createTable.pkConstraintName()).isEqualTo("c_2");
+    }
+
+    @Test
+    public void test_cannot_define_more_than_one_name_for_primary_key_constraint() {
+        assertThatThrownBy(() -> analyze("create table tbl (a int constraint c_1 primary key, b int constraint c_2 primary key)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("More than one name for PRIMARY KEY constraint provided: c_1,c_2");
+
+        assertThatThrownBy(() -> analyze("create table tbl (a int primary key, b int constraint c_2 primary key)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("More than one name for PRIMARY KEY constraint provided: null,c_2");
+    }
+
+    @Test
+    public void test_empty_string_cannot_be_name_for_primary_key_constraints() {
+        assertThatThrownBy(() -> analyze("create table tbl (a int constraint \"\" primary key)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The name of primary key constraint must not be empty, please either use a name or remove the CONSTRAINT keyword");
     }
 }

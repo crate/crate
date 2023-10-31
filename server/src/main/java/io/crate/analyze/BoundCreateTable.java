@@ -40,6 +40,8 @@ import io.crate.types.DataTypes;
 
 public record BoundCreateTable(
         RelationName tableName,
+        @Nullable
+        String pkConstraintName,
         boolean ifNotExists,
         /**
          * In order of definition

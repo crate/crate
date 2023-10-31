@@ -124,6 +124,8 @@ public class DocIndexMetadata {
     private List<Reference> partitionedByColumns;
     private List<GeneratedReference> generatedColumnReferences;
     private Map<ColumnIdent, Reference> references;
+    @Nullable
+    private String pkConstraintName;
     private List<ColumnIdent> primaryKey;
     private List<CheckConstraint<Symbol>> checkConstraints;
     private Collection<ColumnIdent> notNullColumns;
@@ -586,6 +588,12 @@ public class DocIndexMetadata {
         return indicesBuilder.computeIfAbsent(ident, k -> new IndexReference.Builder(refIdent(ident)));
     }
 
+    @Nullable
+    private String getPkConstraintName() {
+        Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
+        return (metaMap != null) ? (String) metaMap.get("pk_constraint_name") : null;
+    }
+
     private List<ColumnIdent> getPrimaryKey() {
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
         if (metaMap != null) {
@@ -687,6 +695,7 @@ public class DocIndexMetadata {
 
     public DocIndexMetadata build() {
         notNullColumns = getNotNullColumns();
+        pkConstraintName = getPkConstraintName();
         primaryKey = getPrimaryKey();
         columnPolicy = getColumnPolicy();
         // notNullColumns and primaryKey must be resolved before creating column definitions.
@@ -779,6 +788,11 @@ public class DocIndexMetadata {
 
     List<CheckConstraint<Symbol>> checkConstraints() {
         return checkConstraints;
+    }
+
+    @Nullable
+    public String pkConstraintName() {
+        return pkConstraintName;
     }
 
     public List<ColumnIdent> primaryKey() {

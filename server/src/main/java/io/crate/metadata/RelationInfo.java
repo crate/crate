@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
@@ -63,6 +64,11 @@ public interface RelationInfo extends Iterable<Reference> {
     RowGranularity rowGranularity();
 
     RelationName ident();
+
+    @Nullable
+    default String pkConstraintName() {
+        return null;
+    }
 
     List<ColumnIdent> primaryKey();
 

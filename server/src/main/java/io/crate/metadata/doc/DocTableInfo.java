@@ -131,6 +131,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Map<String, String> leafNamesByOid;
     private final Map<ColumnIdent, String> analyzers;
     private final RelationName ident;
+    @Nullable
+    private final String pkConstraintName;
     private final List<ColumnIdent> primaryKeys;
     private final List<CheckConstraint<Symbol>> checkConstraints;
     private final ColumnIdent clusteredBy;
@@ -163,6 +165,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         Map<ColumnIdent, IndexReference> indexColumns,
                         Map<ColumnIdent, Reference> references,
                         Map<ColumnIdent, String> analyzers,
+                        @Nullable String pkConstraintName,
                         List<ColumnIdent> primaryKeys,
                         List<CheckConstraint<Symbol>> checkConstraints,
                         ColumnIdent clusteredBy,
@@ -194,6 +197,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
         this.analyzers = analyzers;
         this.ident = ident;
+        this.pkConstraintName = pkConstraintName;
         this.primaryKeys = primaryKeys;
         this.checkConstraints = checkConstraints;
         this.clusteredBy = clusteredBy;
@@ -298,6 +302,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             routingMap = Collections.emptyMap();
         }
         return routingProvider.forIndices(state, indices, routingMap, isPartitioned, shardSelection);
+    }
+
+    @Override
+    @Nullable
+    public String pkConstraintName() {
+        return pkConstraintName;
     }
 
     public List<ColumnIdent> primaryKey() {

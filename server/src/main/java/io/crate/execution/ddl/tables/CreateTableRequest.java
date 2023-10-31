@@ -57,6 +57,8 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     // Fields required to add column(s), aligned with AddColumnRequest
     private final RelationName relationName;
     private final List<Reference> colsToAdd;
+    @Nullable
+    private final String pkConstraintName;
     private final IntArrayList pKeyIndices;
     private final Map<String, String> checkConstraints;
 
@@ -73,6 +75,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     private PutIndexTemplateRequest putIndexTemplateRequest;
 
     public CreateTableRequest(RelationName relationName,
+                              @Nullable String pkConstraintName,
                               List<Reference> colsToAdd,
                               IntArrayList pKeyIndices,
                               Map<String, String> checkConstraints,
@@ -81,6 +84,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
                               ColumnPolicy tableColumnPolicy,
                               List<List<String>> partitionedBy) {
         this.relationName = relationName;
+        this.pkConstraintName = pkConstraintName;
         this.colsToAdd = colsToAdd;
         this.pKeyIndices = pKeyIndices;
         this.checkConstraints = checkConstraints;
@@ -96,6 +100,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     @Deprecated
     public CreateTableRequest(CreateIndexRequest createIndexRequest) {
         this(RelationName.fromIndexName(createIndexRequest.index()),
+            null,
             List.of(),
             new IntArrayList(),
             Map.of(),
@@ -111,6 +116,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     @Deprecated
     public CreateTableRequest(PutIndexTemplateRequest putIndexTemplateRequest) {
         this(RelationName.fromIndexName(putIndexTemplateRequest.aliases().iterator().next().name()),
+            null,
             List.of(),
             new IntArrayList(),
             Map.of(),
@@ -138,6 +144,11 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         return relationName;
     }
 
+    @Nullable
+    public String pkConstraintName() {
+        return pkConstraintName;
+    }
+
     @Override
     public TimeValue ackTimeout() {
         return DEFAULT_ACK_TIMEOUT;
@@ -145,6 +156,11 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
 
     public CreateTableRequest(StreamInput in) throws IOException {
         super(in);
+        if (in.getVersion().onOrAfter(Version.V_5_6_0)) {
+            this.pkConstraintName = in.readOptionalString();
+        } else {
+            this.pkConstraintName = null;
+        }
         if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
             this.relationName = new RelationName(in);
             this.checkConstraints = in.readMap(
@@ -185,6 +201,9 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_5_6_0)) {
+            out.writeOptionalString(pkConstraintName);
+        }
         if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
             relationName.writeTo(out);
             out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);

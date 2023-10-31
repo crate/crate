@@ -441,6 +441,7 @@ public class TestingHelpers {
 
         return createMapping(
             MappingUtil.AllocPosition.forNewTable(),
+            boundCreateTable.pkConstraintName(),
             references,
             pKeysIndices,
             boundCreateTable.getCheckConstraints(),

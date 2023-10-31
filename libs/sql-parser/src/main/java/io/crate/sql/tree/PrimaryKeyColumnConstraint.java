@@ -21,24 +21,37 @@
 
 package io.crate.sql.tree;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
+import org.jetbrains.annotations.Nullable;
 
+public class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
     private static final String NAME = "PRIMARY_KEY";
+    @Nullable
+    private final String constraintName;
+
+    public PrimaryKeyColumnConstraint(@Nullable String constraintName) {
+        this.constraintName = constraintName;
+    }
+
+    @Nullable
+    public String constraintName() {
+        return constraintName;
+    }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        //noinspection RedundantIfStatement
         if (o == null || getClass() != o.getClass()) return false;
-        return true;
+        PrimaryKeyColumnConstraint<?> that = (PrimaryKeyColumnConstraint<?>) o;
+        return Objects.equals(constraintName, that.constraintName);
     }
 
     @Override
     public int hashCode() {
-        return NAME.hashCode();
+        return Objects.hash(constraintName, NAME);
     }
 
     @Override
@@ -53,7 +66,7 @@ public class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
 
     @Override
     public <U> ColumnConstraint<U> map(Function<? super T, ? extends U> mapper) {
-        return new PrimaryKeyColumnConstraint<>();
+        return new PrimaryKeyColumnConstraint<>(constraintName);
     }
 
     @Override
