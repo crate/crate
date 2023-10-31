@@ -327,14 +327,9 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitJoinRelation(JoinRelation join, List<Symbol> context) {
-            var joinType = switch (join.joinType()) {
-                case IMPLICIT -> JoinType.CROSS;
-                default -> join.joinType();
-            };
-
             var left = join.left().accept(this, context);
             var right = join.right().accept(this, context);
-            return new JoinPlan(left, right, joinType, join.joinCondition());
+            return new JoinPlan(left, right, join.joinType(), join.joinCondition());
         }
 
         @Override
@@ -441,7 +436,7 @@ public class LogicalPlanner {
                 var relation = iterator.next();
 
                 while (iterator.hasNext()) {
-                    relation = new JoinRelation(relation, iterator.next(), JoinType.IMPLICIT, null);
+                    relation = new JoinRelation(relation, iterator.next(), JoinType.CROSS, null);
                 }
                 topRelation = relation;
             }

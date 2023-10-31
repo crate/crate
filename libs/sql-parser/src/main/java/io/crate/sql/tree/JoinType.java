@@ -22,7 +22,6 @@
 package io.crate.sql.tree;
 
 public enum JoinType {
-    IMPLICIT,
     CROSS,
     INNER,
     LEFT,
@@ -33,7 +32,6 @@ public enum JoinType {
 
     public JoinType invert() {
         return switch (this) {
-            case IMPLICIT -> IMPLICIT;
             case CROSS -> CROSS;
             case INNER -> INNER;
             case LEFT -> RIGHT;
