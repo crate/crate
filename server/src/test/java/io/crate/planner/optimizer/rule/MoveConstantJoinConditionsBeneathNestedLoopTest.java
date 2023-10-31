@@ -76,24 +76,22 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
         var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
-        NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, false, false, false);
-        var rule = new ExtractConstantJoinCondition();
-        Match<JoinPlan> match = rule.pattern().accept(nl, Captures.empty());
+        JoinPlan join = new JoinPlan(c1, c2, JoinType.INNER, joinCondition, false, false, false);
+        var rule = new ExtractConstantJoinConditionsIntoFilter();
+        Match<JoinPlan> match = rule.pattern().accept(join, Captures.empty());
 
         assertThat(match.isPresent(), Matchers.is(true));
-        assertThat(match.value(), Matchers.is(nl));
+        assertThat(match.value(), Matchers.is(join));
 
-        JoinPlan result = (JoinPlan) rule.apply(match.value(),
+        Filter filter = (Filter) rule.apply(match.value(),
                                                 match.captures(),
                                                 planStats,
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
                                                 UnaryOperator.identity());
 
-        assertThat(result.joinCondition(), is(nonConstantPart));
-        assertThat(result.lhs(), is(c1));
-        Filter filter = (Filter) result.rhs();
-        assertThat(filter.source(), is(c2));
         assertThat(filter.query(), is(constantPart));
-    }
+        JoinPlan joinPlan = (JoinPlan) filter.source();
+        assertThat(joinPlan.joinCondition(), is(nonConstantPart));
+   }
 }

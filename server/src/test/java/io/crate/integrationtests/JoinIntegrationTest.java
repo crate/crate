@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -48,7 +47,6 @@ import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
-import io.crate.testing.SQLExecutor;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -1553,7 +1551,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(execute("explain " + stmt)).hasLines(
                 "Eval[e] (rows=0)",
                 "  └ Eval[b, a, e, f, c, d] (rows=0)",
-                "    └ HashJoin[((a = c) AND (d = e))] (rows=0)",
+                "    └ HashJoin[((d = e) AND (a = c))] (rows=0)",
                 "      ├ Collect[doc.t2 | [c, d] | true] (rows=2)",
                 "      └ HashJoin[(b = f)] (rows=1)",
                 "        ├ Collect[doc.t1 | [b, a] | true] (rows=1)",
