@@ -400,10 +400,12 @@ public class LogicalPlanner {
                     if (r.ident().tableIdent().equals(relation.relationName())) {
                         outputsForRelation.add(output);
                     }
-                } else {
-                    if (relation.outputs().contains(output)) {
+                } else if (output instanceof ScopedSymbol s) {
+                    if (s.relation().equals(relation.relationName())) {
                         outputsForRelation.add(output);
                     }
+                } else if (relation.outputs().contains(output)) {
+                    outputsForRelation.add(output);
                 }
             }
             return outputsForRelation;
@@ -447,13 +449,14 @@ public class LogicalPlanner {
                 topRelation = relation;
             }
 
-            LogicalPlan source = topRelation.accept(this, allOutputs);
+            SubQueries subQueries = subqueryPlanner.planSubQueries(querySelectRelation);
+            LogicalPlan source = subQueries.applyCorrelatedJoin(topRelation.accept(this, allOutputs));
+
             source = Filter.create(source, querySelectRelation.where());
             Symbol having = querySelectRelation.having();
             if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
             }
-            SubQueries subQueries = subqueryPlanner.planSubQueries(querySelectRelation);
             return MultiPhase.createIfNeeded(
                 subQueries.uncorrelated(),
                 Eval.create(
