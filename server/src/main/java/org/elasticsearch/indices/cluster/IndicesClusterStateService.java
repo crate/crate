@@ -97,6 +97,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.replication.logical.ShardReplicationService;
@@ -629,7 +630,10 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                 failedShardHandler,
                 this::updateGlobalCheckpointForShard,
                 retentionLeaseSyncer
-            );
+            ).exceptionally(err -> {
+                failAndRemoveShard(shardRouting, true, "failed to create shard", Exceptions.toException(err), state);
+                return null;
+            });
         } catch (Exception e) {
             failAndRemoveShard(shardRouting, true, "failed to create shard", e, state);
         }

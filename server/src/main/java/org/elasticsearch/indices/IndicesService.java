@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,6 +67,7 @@ import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -160,6 +162,8 @@ public class IndicesService extends AbstractLifecycleComponent
     private final EsThreadPoolExecutor danglingIndicesThreadPoolExecutor;
     private final Set<Index> danglingIndicesToWrite = Sets.newConcurrentHashSet();
     private final boolean nodeWriteDanglingIndicesInfo;
+
+    private final Map<ShardId, CompletableFuture<IndexShard>> pendingShardCreations = new ConcurrentHashMap<>();
 
 
     @Override
@@ -473,17 +477,23 @@ public class IndicesService extends AbstractLifecycleComponent
     }
 
 
-    private CompletableFuture<IndexShard> createShard(ClusterState originalState,
-                                                      IndexService indexService,
-                                                      ShardRouting shardRouting,
-                                                      Consumer<ShardId> globalCheckpointSyncer,
-                                                      RetentionLeaseSyncer retentionLeaseSyncer,
-                                                      @Nullable Iterator<TimeValue> backoff) {
+    private void createShard(CompletableFuture<IndexShard> result,
+                             ClusterState originalState,
+                             IndexService indexService,
+                             ShardRouting shardRouting,
+                             Consumer<ShardId> globalCheckpointSyncer,
+                             RetentionLeaseSyncer retentionLeaseSyncer,
+                             @Nullable Iterator<TimeValue> backoff) {
+        ShardId shardId = shardRouting.shardId();
         try {
             IndexShard indexShard = indexService.createShard(shardRouting, globalCheckpointSyncer, retentionLeaseSyncer);
-            return CompletableFuture.completedFuture(indexShard);
+            result.complete(indexShard);
         } catch (ShardLockObtainFailedException e) {
-            CompletableFuture<IndexShard> result = new CompletableFuture<>();
+            if (e.getCause() instanceof InterruptedException || Thread.currentThread().isInterrupted()) {
+                result.completeExceptionally(e);
+                return;
+            }
+
             // ~1.1hours in total; Retries take never more than 5000ms
             int firstDelayInMS = 50;
             int maxRetries = 1000;
@@ -493,11 +503,11 @@ public class IndicesService extends AbstractLifecycleComponent
                 : backoff;
             TimeValue delay = backoffIt.next();
             if (LOGGER.isWarnEnabled() && delay.millis() == maxDelayInMS) {
-                LOGGER.warn("Repeated attempts to acquire shardLock for {}. Retrying again in {}", shardRouting.shardId(), delay);
+                LOGGER.warn("Repeated attempts to acquire shardLock for {}. Retrying again in {}", shardId, delay);
             } else if (LOGGER.isDebugEnabled() && delay.millis() > 150) {
-                LOGGER.debug("Repeated attempts to acquire shardLock for {}. Retrying again in {}", shardRouting.shardId(), delay);
+                LOGGER.debug("Repeated attempts to acquire shardLock for {}. Retrying again in {}", shardId, delay);
             }
-            threadPool.scheduleUnlessShuttingDown(delay, ThreadPool.Names.SAME, () -> {
+            Runnable retry = () -> {
                 clusterService.getClusterApplierService().runOnApplierThread(
                     "create-shard",
                     (ClusterState state) -> {
@@ -510,7 +520,8 @@ public class IndicesService extends AbstractLifecycleComponent
                             result.completeExceptionally(new IllegalStateException("Cluster state changed during shard creation"));
                             return;
                         }
-                        CompletableFuture<IndexShard> createShard = createShard(
+                        createShard(
+                            result,
                             originalState,
                             indexService,
                             shardRouting,
@@ -518,13 +529,6 @@ public class IndicesService extends AbstractLifecycleComponent
                             retentionLeaseSyncer,
                             backoffIt
                         );
-                        createShard.whenComplete((indexShard, err) -> {
-                            if (err == null) {
-                                result.complete(indexShard);
-                            } else {
-                                result.completeExceptionally(err);
-                            }
-                        });
                     },
                     new ClusterApplyListener() {
 
@@ -532,12 +536,13 @@ public class IndicesService extends AbstractLifecycleComponent
                         public void onFailure(String source, Exception e) {
                             result.completeExceptionally(e);
                         }
-                    }
+                    },
+                    Priority.NORMAL
                 );
-            });
-            return result;
+            };
+            threadPool.schedule(retry, delay, ThreadPool.Names.SAME);
         } catch (IOException e) {
-            return CompletableFuture.failedFuture(e);
+            result.completeExceptionally(e);
         }
     }
 
@@ -554,7 +559,20 @@ public class IndicesService extends AbstractLifecycleComponent
         Objects.requireNonNull(retentionLeaseSyncer);
         ensureChangesAllowed();
         IndexService indexService = indexService(shardRouting.index());
-        CompletableFuture<IndexShard> future = createShard(state, indexService, shardRouting, globalCheckpointSyncer, retentionLeaseSyncer, null);
+        ShardId shardId = shardRouting.shardId();
+        CompletableFuture<IndexShard> future = new CompletableFuture<>();
+        CompletableFuture<IndexShard> pending = pendingShardCreations.putIfAbsent(shardId, future);
+        if (pending == null) {
+            try {
+                createShard(future, state, indexService, shardRouting, globalCheckpointSyncer, retentionLeaseSyncer, null);
+            } catch (Throwable t) {
+                pendingShardCreations.remove(shardId);
+                throw t;
+            }
+            future.whenComplete((ignored, err) -> pendingShardCreations.remove(shardId));
+        } else {
+            future = pending;
+        }
         return future.thenCompose(indexShard -> {
             indexShard.addShardFailureCallback(onShardFailure);
             CompletableFuture<IndexShard> mappingDone = new CompletableFuture<>();
@@ -571,6 +589,11 @@ public class IndicesService extends AbstractLifecycleComponent
                         if (err == null) {
                             mappingDone.complete(indexShard);
                         } else {
+                            try {
+                                indexShard.close("Failure during startRecovery mapping update", false);
+                            } catch (IOException e) {
+                                err.addSuppressed(e);
+                            }
                             mappingDone.completeExceptionally(err);
                         }
                     });
