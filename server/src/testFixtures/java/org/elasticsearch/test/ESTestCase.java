@@ -706,7 +706,9 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
                 codeBlock.run();
                 return;
             } catch (AssertionError e) {
-                failures.add(e);
+                if (!failures.contains(e)) {
+                    failures.add(e);
+                }
             }
             sum += timeInMillis;
             Thread.sleep(timeInMillis);
