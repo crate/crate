@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,6 +47,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -64,8 +65,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -79,6 +78,7 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
@@ -111,9 +111,7 @@ import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.LimitedExponentialBackoff;
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
@@ -132,7 +130,6 @@ public class IndicesService extends AbstractLifecycleComponent
         Setting.Property.NodeScope
     );
 
-    private final ClusterService clusterService;
     private final PluginsService pluginsService;
     private final NodeEnvironment nodeEnv;
     private final NamedXContentRegistry xContentRegistry;
@@ -161,7 +158,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final Set<Index> danglingIndicesToWrite = Sets.newConcurrentHashSet();
     private final boolean nodeWriteDanglingIndicesInfo;
 
-
     @Override
     protected void doStart() {
 
@@ -169,7 +165,6 @@ public class IndicesService extends AbstractLifecycleComponent
     }
 
     public IndicesService(Settings settings,
-                          ClusterService clusterService,
                           PluginsService pluginsService,
                           NodeEnvironment nodeEnv,
                           NamedXContentRegistry xContentRegistry,
@@ -185,7 +180,6 @@ public class IndicesService extends AbstractLifecycleComponent
                           Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
                           Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories) {
         this.settings = settings;
-        this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.pluginsService = pluginsService;
         this.nodeEnv = nodeEnv;
@@ -472,111 +466,32 @@ public class IndicesService extends AbstractLifecycleComponent
         }
     }
 
-
-    private CompletableFuture<IndexShard> createShard(ClusterState originalState,
-                                                      IndexService indexService,
-                                                      ShardRouting shardRouting,
-                                                      Consumer<ShardId> globalCheckpointSyncer,
-                                                      RetentionLeaseSyncer retentionLeaseSyncer,
-                                                      @Nullable Iterator<TimeValue> backoff) {
-        try {
-            IndexShard indexShard = indexService.createShard(shardRouting, globalCheckpointSyncer, retentionLeaseSyncer);
-            return CompletableFuture.completedFuture(indexShard);
-        } catch (ShardLockObtainFailedException e) {
-            CompletableFuture<IndexShard> result = new CompletableFuture<>();
-            // ~1.1hours in total; Retries take never more than 5000ms
-            int firstDelayInMS = 50;
-            int maxRetries = 1000;
-            int maxDelayInMS = 5000;
-            Iterator<TimeValue> backoffIt = backoff == null
-                ? new LimitedExponentialBackoff(firstDelayInMS, maxRetries, maxDelayInMS).iterator()
-                : backoff;
-            TimeValue delay = backoffIt.next();
-            if (LOGGER.isWarnEnabled() && delay.millis() == maxDelayInMS) {
-                LOGGER.warn("Repeated attempts to acquire shardLock for {}. Retrying again in {}", shardRouting.shardId(), delay);
-            } else if (LOGGER.isDebugEnabled() && delay.millis() > 150) {
-                LOGGER.debug("Repeated attempts to acquire shardLock for {}. Retrying again in {}", shardRouting.shardId(), delay);
-            }
-            threadPool.scheduleUnlessShuttingDown(delay, ThreadPool.Names.SAME, () -> {
-                clusterService.getClusterApplierService().runOnApplierThread(
-                    "create-shard",
-                    (ClusterState state) -> {
-                        if (!state.stateUUID().equals(originalState.stateUUID())) {
-                            LOGGER.debug(
-                                "Cluster state changed from {} to {} before shard creation finished",
-                                originalState.stateUUID(),
-                                state.stateUUID()
-                            );
-                            result.completeExceptionally(new IllegalStateException("Cluster state changed during shard creation"));
-                            return;
-                        }
-                        CompletableFuture<IndexShard> createShard = createShard(
-                            originalState,
-                            indexService,
-                            shardRouting,
-                            globalCheckpointSyncer,
-                            retentionLeaseSyncer,
-                            backoffIt
-                        );
-                        createShard.whenComplete((indexShard, err) -> {
-                            if (err == null) {
-                                result.complete(indexShard);
-                            } else {
-                                result.completeExceptionally(err);
-                            }
-                        });
-                    },
-                    new ClusterApplyListener() {
-
-                        @Override
-                        public void onFailure(String source, Exception e) {
-                            result.completeExceptionally(e);
-                        }
-                    }
-                );
-            });
-            return result;
-        } catch (IOException e) {
-            return CompletableFuture.failedFuture(e);
-        }
-    }
-
     @Override
-    public CompletableFuture<IndexShard> createShard(ClusterState state,
-                                                     ShardRouting shardRouting,
-                                                     RecoveryState recoveryState,
-                                                     PeerRecoveryTargetService recoveryTargetService,
-                                                     PeerRecoveryTargetService.RecoveryListener recoveryListener,
-                                                     RepositoriesService repositoriesService,
-                                                     Consumer<IndexShard.ShardFailure> onShardFailure,
-                                                     Consumer<ShardId> globalCheckpointSyncer,
-                                                     RetentionLeaseSyncer retentionLeaseSyncer) throws IOException {
+    public IndexShard createShard(ShardRouting shardRouting,
+                                  RecoveryState recoveryState,
+                                  PeerRecoveryTargetService recoveryTargetService,
+                                  PeerRecoveryTargetService.RecoveryListener recoveryListener,
+                                  RepositoriesService repositoriesService,
+                                  Consumer<IndexShard.ShardFailure> onShardFailure,
+                                  Consumer<ShardId> globalCheckpointSyncer,
+                                  RetentionLeaseSyncer retentionLeaseSyncer) throws IOException {
         Objects.requireNonNull(retentionLeaseSyncer);
         ensureChangesAllowed();
         IndexService indexService = indexService(shardRouting.index());
-        CompletableFuture<IndexShard> future = createShard(state, indexService, shardRouting, globalCheckpointSyncer, retentionLeaseSyncer, null);
-        return future.thenCompose(indexShard -> {
-            indexShard.addShardFailureCallback(onShardFailure);
-            CompletableFuture<IndexShard> mappingDone = new CompletableFuture<>();
-            indexShard.startRecovery(recoveryState, recoveryTargetService, recoveryListener, repositoriesService,
-                mapping -> {
-                    assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS :
-                        "mapping update consumer only required by local shards recovery";
+        IndexShard indexShard = indexService.createShard(shardRouting, globalCheckpointSyncer, retentionLeaseSyncer);
+        indexShard.addShardFailureCallback(onShardFailure);
+        indexShard.startRecovery(recoveryState, recoveryTargetService, recoveryListener, repositoriesService,
+            mapping -> {
+                assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS :
+                    "mapping update consumer only required by local shards recovery";
 
-                    var request = new PutMappingRequest()
-                        .indices(new String[0])
-                        .setConcreteIndex(shardRouting.index()) // concrete index - no name clash, it uses uuid
-                        .source(mapping.source().string());
-                    client.admin().indices().putMapping(request).whenComplete((ignored, err) -> {
-                        if (err == null) {
-                            mappingDone.complete(indexShard);
-                        } else {
-                            mappingDone.completeExceptionally(err);
-                        }
-                    });
-                }, this);
-            return mappingDone;
-        });
+                var request = new PutMappingRequest()
+                    .indices(new String[0])
+                    .setConcreteIndex(shardRouting.index()) // concrete index - no name clash, it uses uuid
+                    .source(mapping.source().string());
+                FutureUtils.get(client.admin().indices().putMapping(request));
+            }, this);
+        return indexShard;
     }
 
     @Override

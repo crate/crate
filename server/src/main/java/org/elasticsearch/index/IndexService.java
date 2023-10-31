@@ -41,6 +41,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.jetbrains.annotations.Nullable;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -57,6 +59,7 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
+import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
@@ -78,7 +81,6 @@ import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -298,7 +300,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         IndexShard indexShard = null;
         ShardLock lock = null;
         try {
-            lock = nodeEnv.shardLock(shardId, "starting shard");
+            lock = nodeEnv.shardLock(shardId, "starting shard", TimeUnit.SECONDS.toMillis(5));
             eventListener.beforeIndexShardCreated(shardId, indexSettings);
             ShardPath path;
             try {
@@ -371,6 +373,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             shards = newMapBuilder(shards).put(shardId.id(), indexShard).immutableMap();
             success = true;
             return indexShard;
+        } catch (ShardLockObtainFailedException e) {
+            throw new IOException("failed to obtain in-memory shard lock", e);
         } finally {
             if (success == false) {
                 if (lock != null) {
