@@ -253,10 +253,10 @@ public class SQLExecutor {
         private User user = User.CRATE_USER;
         private UserManager userManager = new StubUserManager();
 
-        private TableStats tableStats = new TableStats();
+        private final TableStats tableStats = new TableStats();
         private Schemas schemas;
-        private LoadedRules loadedRules = new LoadedRules();
-        private SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
+        private final LoadedRules loadedRules = new LoadedRules();
+        private final SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
         private Planner planner;
 
         @Nullable
@@ -456,6 +456,7 @@ public class SQLExecutor {
             return addPartitionedTable(createTableStmt, Settings.EMPTY, partitions);
         }
 
+        @SuppressWarnings("unchecked")
         public Builder addPartitionedTable(String createTableStmt, Settings customSettings, String... partitions) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
@@ -523,6 +524,7 @@ public class SQLExecutor {
         /**
          * Add a table to the clusterState
          */
+        @SuppressWarnings("unchecked")
         public Builder addTable(String createTableStmt, Settings settings) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
@@ -885,6 +887,7 @@ public class SQLExecutor {
         return planInternal(analyzedStatement, jobId, fetchSize, params);
     }
 
+    @SuppressWarnings("unchecked")
     private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int fetchSize, Row params) {
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
         PlannerContext plannerContext = new PlannerContext(
@@ -922,6 +925,7 @@ public class SQLExecutor {
         return (T) plan;
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends LogicalPlan> T logicalPlan(String statement) {
         AnalyzedStatement stmt = analyze(statement, ParamTypeHints.EMPTY);
         return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
@@ -951,6 +955,7 @@ public class SQLExecutor {
         return sessionSettings;
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends TableInfo> T resolveTableInfo(String tableName) {
         IndexParts indexParts = new IndexParts(tableName);
         QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
