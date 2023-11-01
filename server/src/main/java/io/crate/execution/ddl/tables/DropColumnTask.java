@@ -231,4 +231,7 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
             }
         );
     }
+
+
+
 }
