@@ -72,6 +72,7 @@ import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
+import io.crate.sql.tree.AlterTableRenameColumn;
 import io.crate.sql.tree.AlterTableRenameTable;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AnalyzeStatement;
@@ -1371,6 +1372,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             context.BLOB() != null,
             getQualifiedName(context.qname())
         );
+    }
+
+    @Override
+    public Node visitAlterTableRenameColumn(SqlBaseParser.AlterTableRenameColumnContext ctx) {
+        return new AlterTableRenameColumn<>(
+            (Table<?>) visit(ctx.alterTableDefinition()),
+            (Expression) visit(ctx.source),
+            (Expression) visit(ctx.target));
+
     }
 
     @Override

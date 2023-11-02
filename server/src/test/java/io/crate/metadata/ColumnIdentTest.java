@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -157,5 +158,36 @@ public class ColumnIdentTest {
         }
 
         assertTrue(expecedExceptionIsThrown);
+    }
+
+    @Test
+    public void test_replace_paths() {
+        var a = new ColumnIdent("a");
+        var b = new ColumnIdent("b");
+        var aa = new ColumnIdent("a", List.of("a"));
+        var ba = new ColumnIdent("b", List.of("a"));
+        var ab = new ColumnIdent("a", List.of("b"));
+        var bb = new ColumnIdent("b", List.of("b"));
+        var aaa = new ColumnIdent("a", List.of("a", "a"));
+        var baa = new ColumnIdent("b", List.of("a", "a"));
+        var aba = new ColumnIdent("a", List.of("b", "a"));
+        var aab = new ColumnIdent("a", List.of("a", "b"));
+
+        assertThat(a.replacePrefix(a)).isEqualTo(a);
+        assertThat(a.replacePrefix(b)).isEqualTo(b);
+        assertThatThrownBy(() -> a.replacePrefix(ab)).isExactlyInstanceOf(AssertionError.class);
+
+        assertThat(aa.replacePrefix(a)).isEqualTo(aa);
+        assertThat(aa.replacePrefix(b)).isEqualTo(ba);
+        assertThat(aa.replacePrefix(ab)).isEqualTo(ab);
+        assertThatThrownBy(() -> aa.replacePrefix(ba)).isExactlyInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> aa.replacePrefix(bb)).isExactlyInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> aa.replacePrefix(aaa)).isExactlyInstanceOf(AssertionError.class);
+
+        assertThat(aaa.replacePrefix(a)).isEqualTo(aaa);
+        assertThat(aaa.replacePrefix(b)).isEqualTo(baa);
+        assertThat(aaa.replacePrefix(aa)).isEqualTo(aaa);
+        assertThat(aaa.replacePrefix(ab)).isEqualTo(aba);
+        assertThat(aaa.replacePrefix(aab)).isEqualTo(aab);
     }
 }

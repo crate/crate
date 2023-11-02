@@ -664,6 +664,10 @@ public class TestStatementBuilder {
         printStatement("alter table t drop column foo['x']");
         printStatement("alter table t drop if exists foo['x']['y']");
 
+        printStatement("alter table t rename foo to bar");
+        printStatement("alter table t rename foo['x'] to foo['y']");
+        printStatement("alter table t rename column foo to bar");
+
         printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
         printStatement("alter table only t set (number_of_replicas=4)");
     }

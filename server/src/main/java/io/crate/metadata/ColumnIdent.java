@@ -36,6 +36,7 @@ import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.StringUtils;
@@ -194,6 +195,21 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Replaces the parent name of this column specified by the 'newName' e.g.::
+     *   'a.b.c'.replacePrefix('a.x') -> 'a.x.c' : parent 'a.b' renamed to 'a.x' such that its child 'a.b.c' is renamed to 'a.x.c'
+     *   'a.b.c'.replacePrefix('x') -> 'x.b.c' : parent 'a' renamed to 'x' such that its child 'a.b.c' is renamed to 'x.b.c'
+     * This method also renames self e.g.::
+     *   'a'.replacePrefix('b') -> 'b'
+     */
+    @NotNull
+    public ColumnIdent replacePrefix(@NotNull ColumnIdent newName) {
+        assert newName.path.isEmpty() || this.isChildOf(newName.getParent());
+        List<String> replaced = new ArrayList<>(newName.path);
+        replaced.addAll(this.path.subList(newName.path.size(), this.path.size()));
+        return new ColumnIdent(newName.name, replaced);
     }
 
     /**

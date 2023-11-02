@@ -108,6 +108,8 @@ import io.crate.blob.TransportPutChunkAction;
 import io.crate.blob.TransportStartBlobAction;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
+import io.crate.execution.ddl.tables.RenameColumnAction;
+import io.crate.execution.ddl.tables.TransportRenameColumnAction;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
@@ -209,6 +211,7 @@ public class ActionModule extends AbstractModule {
         actions.register(DistributedResultAction.INSTANCE, TransportDistributedResultAction.class);
         actions.register(JobAction.INSTANCE, TransportJobAction.class);
         actions.register(FetchNodeAction.INSTANCE, TransportFetchNodeAction.class);
+        actions.register(RenameColumnAction.INSTANCE, TransportRenameColumnAction.class);
 
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 

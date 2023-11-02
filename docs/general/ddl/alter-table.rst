@@ -164,6 +164,40 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     +--------------------+-----------+
     SELECT 3 rows in set (... sec)
 
+.. _alter-table-rename-column:
+
+Renaming columns
+================
+
+To rename a column of an existing table, use ``ALTER TABLE`` with the
+``RENAME COLUMN`` clause::
+
+    cr> alter table my_table rename new_column_name to renamed_column;
+    ALTER OK, -1 rows affected (... sec)
+
+This also works on object columns::
+
+    cr> alter table my_table rename column obj_column to renamed_obj_column;
+    ALTER OK, -1 rows affected (... sec)
+
+To rename a sub-column of an object column, you can use subscript expressions::
+
+    cr> alter table my_table rename column renamed_obj_column['age'] to
+    ...  renamed_obj_column['renamed_age'];
+    ALTER OK, -1 rows affected (... sec)
+
+
+    cr> select column_name, data_type from information_schema.columns
+    ... where table_name = 'my_table' and column_name like 'renamed_obj_%';
+    +-----------------------------------+-----------+
+    | column_name                       | data_type |
+    +-----------------------------------+-----------+
+    | renamed_obj_column                | object    |
+    | renamed_obj_column['renamed_age'] | integer   |
+    | renamed_obj_column['name']        | text      |
+    +-----------------------------------+-----------+
+    SELECT 3 rows in set (... sec)
+    
 Closing and opening tables
 ==========================
 

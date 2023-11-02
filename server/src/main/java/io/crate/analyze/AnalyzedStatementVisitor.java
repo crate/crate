@@ -99,6 +99,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
+    public R visitAnalyzedAlterTableRenameColumn(AnalyzedAlterTableRenameColumn analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
     public R visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
@@ -238,6 +242,10 @@ public class AnalyzedStatementVisitor<C, R> {
 
     public R visitAlterTableDropColumn(AnalyzedAlterTableDropColumn alterTableDropColumn, C context) {
         return visitDDLStatement(alterTableDropColumn, context);
+    }
+
+    public R visitAlterTableRenameColumn(AnalyzedAlterTableRenameColumn alterTableRenameColumn, C context) {
+        return visitDDLStatement(alterTableRenameColumn, context);
     }
 
     public R visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint, C context) {

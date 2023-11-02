@@ -296,5 +296,48 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         );
     }
 
+    @Test
+    public void test_rename_columns() {
+        execute("""
+            create table doc.t (
+                a int primary key,
+                o object as (a int primary key, b int),
+                c int generated always as (abs(a + o['a'])),
+                constraint c_1 check (o['a'] < a + c)
+            ) partitioned by (a, o['a'])
+            """);
+        execute("insert into doc.t(a, o) values (1, {a=2})");
+        execute("insert into doc.t(a, o) values (4, {a=5})");
+        refresh();
 
+        execute("alter table doc.t rename column a to a2");
+        execute("alter table doc.t rename column o to o2");
+        execute("alter table doc.t rename column o2['a'] to o2['a22']");
+
+        execute("show create table doc.t");
+        assertThat((String) response.rows()[0][0]).contains(
+                """
+                    CREATE TABLE IF NOT EXISTS "doc"."t" (
+                       "a2" INTEGER NOT NULL,
+                       "o2" OBJECT(DYNAMIC) AS (
+                          "a22" INTEGER NOT NULL,
+                          "b" INTEGER
+                       ),
+                       "c" INTEGER GENERATED ALWAYS AS abs(("a2" + "o2"['a22'])),
+                       PRIMARY KEY ("a2", "o2"['a22']),
+                       CONSTRAINT c_1 CHECK("o2"['a22'] < ("a2" + "c"))
+                    )
+                    """.stripIndent())
+            .contains("PARTITIONED BY (\"a2\", \"o2\"['a22'])");
+
+        execute("select * from doc.t order by a2");
+        assertThat(response.cols()).isEqualTo(new String[]{"a2", "o2", "c"});
+        assertThat(response).hasRows("1| {a22=2}| 3", "4| {a22=5}| 9");
+
+        execute("select attname from pg_attribute where attrelid = 'doc.t'::regclass");
+        assertThat(response).hasRows("a2", "o2", "o2['a22']", "o2['b']", "c");
+
+        execute("select column_name from information_schema.columns where table_name = 't'");
+        assertThat(response).hasRows("a2", "o2", "o2['a22']", "o2['b']", "c");
+    }
 }
