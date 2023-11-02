@@ -68,12 +68,12 @@ public class JoinRelation implements AnalyzedRelation {
         ArrayList<ScopedSymbol> outputs = new ArrayList<>();
         for (int i = 0; i < left.outputs().size(); i++) {
             var l = left.outputs().get(i);
-            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(l), merge(l.valueType(), l.valueType())));
+            outputs.add(new ScopedSymbol(left.relationName(), Symbols.pathFromSymbol(l), merge(l.valueType(), l.valueType())));
 
         }
         for (int i = 0; i < right.outputs().size(); i++) {
             var r = right.outputs().get(i);
-            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(r), merge(r.valueType(), r.valueType())));
+            outputs.add(new ScopedSymbol(right.relationName(), Symbols.pathFromSymbol(r), merge(r.valueType(), r.valueType())));
         }
         this.outputs = List.copyOf(outputs);
     }

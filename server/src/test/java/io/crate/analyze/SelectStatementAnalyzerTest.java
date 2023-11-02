@@ -893,9 +893,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "select * from users join users_multi_pk on users.id = users_multi_pk.id " +
             "where users.name = 'Arthur'");
 
-//        assertThat(relation.joinPairs().get(0).condition())
-//            .isSQL("(doc.users.id = doc.users_multi_pk.id)");
-
         assertThat(relation.where()).isSQL("(doc.users.name = 'Arthur')");
         AnalyzedRelation users = relation.from().get(0);
         assertThat(users.relationName().fqn()).isEqualTo("doc.users");
