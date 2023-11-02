@@ -60,7 +60,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
 
         // This should use the correlated-join execution path;
         // If we later optimize this query, ensure there is a test for CorrelatedJoin execution
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[1, (SELECT mountain FROM (empty_row))]\n" +
             "  └ CorrelatedJoin[1, mountain, (SELECT mountain FROM (empty_row))]\n" +
             "    └ Rename[1, mountain] AS t\n" +

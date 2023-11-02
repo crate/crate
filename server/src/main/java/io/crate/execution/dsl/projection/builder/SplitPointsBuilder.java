@@ -116,12 +116,6 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         if (having != null) {
             having.accept(INSTANCE, context);
         }
-//        for (var joinPair : relation.joinPairs()) {
-//            Symbol condition = joinPair.condition();
-//            if (condition != null) {
-//                INSTANCE.process(condition, context);
-//            }
-//        }
         Symbol where = relation.where();
         where.accept(INSTANCE, context);
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();

@@ -26,19 +26,14 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.ExtractConstantJoinConditionsIntoFilter.numberOfRelationsUsed;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
