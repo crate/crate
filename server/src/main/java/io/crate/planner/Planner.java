@@ -41,6 +41,7 @@ import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterRole;
+import io.crate.analyze.AnalyzedAlterTableRenameColumn;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
@@ -106,6 +107,7 @@ import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.planner.node.ddl.AlterTableDropColumnPlan;
 import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
+import io.crate.planner.node.ddl.AlterTableRenameColumnPlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
 import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
@@ -368,6 +370,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
+    public Plan visitAnalyzedAlterTableRenameColumn(AnalyzedAlterTableRenameColumn analysis, PlannerContext context) {
+        return new AlterTableRenameColumnPlan(analysis);
+    }
+
+    @Override
     public Plan visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis,
                                                  PlannerContext context) {
         return new AlterTableOpenClosePlan(analysis);
@@ -403,6 +410,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitAlterTableDropColumn(AnalyzedAlterTableDropColumn alterTableDropColumn,
                                           PlannerContext context) {
         return new AlterTableDropColumnPlan(alterTableDropColumn);
+    }
+
+    @Override
+    public Plan visitAlterTableRenameColumn(AnalyzedAlterTableRenameColumn alterTableRenameColumn,
+                                            PlannerContext context) {
+        return new AlterTableRenameColumnPlan(alterTableRenameColumn);
     }
 
     @Override

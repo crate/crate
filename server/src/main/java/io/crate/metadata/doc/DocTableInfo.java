@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -78,6 +79,7 @@ import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
@@ -96,6 +98,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
+import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -736,6 +739,110 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             concreteOpenIndices,
             tableParameters,
             partitionedBy,
+            partitions,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations
+        );
+    }
+
+    private void validateRenameColumn(Reference refToRename, ColumnIdent newName) {
+        var oldName = refToRename.column();
+        var reference = getReference(oldName);
+        if (reference == null) {
+            reference = indexColumn(oldName);
+        }
+        if (!refToRename.equals(reference)) {
+            throw new ColumnUnknownException(oldName, ident);
+        }
+        if (getReference(newName) != null || indexColumn(newName) != null) {
+            throw new IllegalArgumentException("Cannot rename column to a name that is in use");
+        }
+    }
+
+    public DocTableInfo renameColumn(Reference refToRename, ColumnIdent newName) {
+        validateRenameColumn(refToRename, newName);
+        final ColumnIdent oldName = refToRename.column();
+
+        Predicate<ColumnIdent> toBeRenamed = c -> c.equals(oldName) || c.isChildOf(oldName);
+
+        // Renaming columns are done in 2 steps:
+        //      1) rename SimpleReferences' own ColumnIdents
+        //      2) rename dependencies such as GeneratedReferences, IndexReferences, Check Constraints, etc.
+        // where 1) is used to perform 2).
+
+        Map<ColumnIdent, Reference> oldNameToRenamedRefs = new HashMap<>();
+        for (var ref : references.values()) {
+            ColumnIdent column = ref.column();
+            if (toBeRenamed.test(column)) {
+                var renamedRef = ref.withReferenceIdent(
+                    new ReferenceIdent(ident, ref.column().replacePrefix(newName)));
+                oldNameToRenamedRefs.put(column, renamedRef);
+            } else {
+                oldNameToRenamedRefs.put(column, ref);
+            }
+        }
+
+        Function<Reference, Reference> renameGeneratedRefs = ref -> {
+            if (ref instanceof GeneratedReference genRef) {
+                return new GeneratedReference(
+                    genRef.reference(), // already renamed in step 1)
+                    RefReplacer.replaceRefs(genRef.generatedExpression(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r))
+                );
+            }
+            return ref;
+        };
+
+        Function<IndexReference, IndexReference> renameIndexRefs = idxRef -> {
+            var updatedRef = idxRef.updateColumns(
+                Lists2.map(idxRef.columns(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r)));
+            if (toBeRenamed.test(idxRef.column())) {
+                return (IndexReference) updatedRef.withReferenceIdent(
+                    new ReferenceIdent(idxRef.ident().tableIdent(), idxRef.column().replacePrefix(newName)));
+            }
+            return updatedRef;
+        };
+
+        Function<CheckConstraint<Symbol>, CheckConstraint<Symbol>> renameCheckConstraints = check -> {
+            var renamed = RefReplacer.replaceRefs(check.expression(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r));
+            return new CheckConstraint<>(
+                check.name(),
+                renamed,
+                ExpressionFormatter.formatStandaloneExpression(
+                    SqlParser.createExpression(renamed.toString(Style.UNQUALIFIED))));
+        };
+
+        var renamedReferences = oldNameToRenamedRefs.values().stream()
+            .map(renameGeneratedRefs)
+            .collect(Collectors.toMap(Reference::column, ref -> ref));
+        var renamedIndexColumns = indexColumns.values().stream()
+            .map(renameIndexRefs)
+            .collect(Collectors.toMap(Reference::column, ref -> ref));
+
+        Function<ColumnIdent, ColumnIdent> renameColumnIfMatch = column -> toBeRenamed.test(column) ? column.replacePrefix(newName) : column;
+
+        var renamedClusteredBy = renameColumnIfMatch.apply(clusteredBy);
+        var renamedPrimaryKeys = Lists2.map(primaryKeys, renameColumnIfMatch);
+        var renamedPartitionedBy = Lists2.map(partitionedBy, renameColumnIfMatch);
+        var renamedCheckConstraints = Lists2.map(checkConstraints, renameCheckConstraints);
+        var renamedAnalyzers = analyzers.entrySet().stream()
+            .collect(Collectors.toMap(e -> renameColumnIfMatch.apply(e.getKey()), Entry::getValue));
+
+        return new DocTableInfo(
+            ident,
+            renamedReferences,
+            renamedIndexColumns,
+            renamedAnalyzers,
+            pkConstraintName,
+            renamedPrimaryKeys,
+            renamedCheckConstraints,
+            renamedClusteredBy,
+            concreteIndices,
+            concreteOpenIndices,
+            tableParameters,
+            renamedPartitionedBy,
             partitions,
             columnPolicy,
             versionCreated,

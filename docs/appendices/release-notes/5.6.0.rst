@@ -75,6 +75,9 @@ SQL Statements
 - Extended the :ref:`EXPLAIN <ref-explain>` statement to support the ``VERBOSE``
   option.
 
+- Added support for
+  :ref:`ALTER TABLE RENAME COLUMN <sql-alter-table-rename-column>` statement.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 

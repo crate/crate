@@ -27,6 +27,7 @@ Synopsis
         | RESET ( parameter [ , ... ] )
         | { ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ] } [, ... ]
         | { DROP [ COLUMN ] [ IF EXISTS ] column_name } [, ... ]
+        | { RENAME [ COLUMN ] column_name TO new_name } [, ... ]
         | OPEN
         | CLOSE
         | RENAME TO table_ident
@@ -182,7 +183,7 @@ It's possible to add multiple columns at once.
 
 Can be used to drop a column from a table.
 
-:``column_name``:
+:column_name:
   Name of the column which should be dropped.
   This can be a sub-column of an `OBJECT`.
 
@@ -210,6 +211,24 @@ It's possible to drop multiple columns at once.
 .. NOTE::
 
    Dropping columns of a table created before version 5.5 is not supported.
+
+.. _sql-alter-table-rename-column:
+
+``RENAME COLUMN``
+-----------------
+
+Renames a column of a table
+
+:column_name:
+  Name of the column to rename.
+  Supports subscript expressions to rename sub-columns of ``OBJECT`` columns.
+
+:new_name:
+  The new name of the column.
+
+.. NOTE::
+
+   Renaming columns of a table created before version 5.5 is not supported.
 
 .. _sql-alter-table-open-close:
 

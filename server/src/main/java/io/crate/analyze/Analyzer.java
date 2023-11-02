@@ -47,6 +47,7 @@ import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
+import io.crate.sql.tree.AlterTableRenameColumn;
 import io.crate.sql.tree.AlterTableRenameTable;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AnalyzeStatement;
@@ -132,6 +133,7 @@ public class Analyzer {
     private final AlterTableAnalyzer alterTableAnalyzer;
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
     private final AlterTableDropColumnAnalyzer alterTableDropColumnAnalyzer;
+    private final AlterTableRenameColumnAnalyzer alterTableRenameColumnAnalyzer;
     private final InsertAnalyzer insertAnalyzer;
     private final CopyAnalyzer copyAnalyzer;
     private final UpdateAnalyzer updateAnalyzer;
@@ -178,6 +180,7 @@ public class Analyzer {
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, nodeCtx);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, nodeCtx);
         this.alterTableDropColumnAnalyzer = new AlterTableDropColumnAnalyzer(schemas, nodeCtx);
+        this.alterTableRenameColumnAnalyzer = new AlterTableRenameColumnAnalyzer(schemas, nodeCtx);
         this.swapTableAnalyzer = new SwapTableAnalyzer(nodeCtx, schemas);
         this.viewAnalyzer = new ViewAnalyzer(relationAnalyzer, schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
@@ -290,6 +293,14 @@ public class Analyzer {
         public AnalyzedStatement visitAlterTableDropColumnStatement(AlterTableDropColumn<?> node, Analysis context) {
             return alterTableDropColumnAnalyzer.analyze(
                 (AlterTableDropColumn<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableRenameColumnStatement(AlterTableRenameColumn<?> node, Analysis context) {
+            return alterTableRenameColumnAnalyzer.analyze(
+                (AlterTableRenameColumn<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }

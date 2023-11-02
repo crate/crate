@@ -127,6 +127,8 @@ alterStmt
         | RESET (OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET)?)      #alterBlobTableProperties
     | ALTER (BLOB)? TABLE alterTableDefinition (OPEN | CLOSE)                        #alterTableOpenClose
     | ALTER (BLOB)? TABLE alterTableDefinition RENAME TO qname                       #alterTableRenameTable
+    | ALTER (BLOB)? TABLE alterTableDefinition
+        RENAME COLUMN? source=subscriptSafe TO target=subscriptSafe                  #alterTableRenameColumn
     | ALTER (BLOB)? TABLE alterTableDefinition REROUTE rerouteOption                 #alterTableReroute
     | ALTER CLUSTER REROUTE RETRY FAILED                                             #alterClusterRerouteRetryFailed
     | ALTER CLUSTER SWAP TABLE source=qname TO target=qname withProperties?          #alterClusterSwapTable

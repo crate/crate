@@ -479,6 +479,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_rename_column() {
+        analyze("alter table users rename column floats to flts");
+        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+    }
+
+    @Test
     public void testOpenCloseTable() throws Exception {
         analyze("alter table users close");
         assertAskedForTable(Privilege.Type.DDL, "doc.users");
