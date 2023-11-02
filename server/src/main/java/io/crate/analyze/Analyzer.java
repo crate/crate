@@ -47,7 +47,7 @@ import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
-import io.crate.sql.tree.AlterTableRename;
+import io.crate.sql.tree.AlterTableRenameTable;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AstVisitor;
@@ -303,9 +303,9 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableRename(AlterTableRename<?> node, Analysis context) {
+        public AnalyzedStatement visitAlterTableRenameTable(AlterTableRenameTable<?> node, Analysis context) {
             return alterTableAnalyzer.analyze(
-                (AlterTableRename<Expression>) node,
+                (AlterTableRenameTable<Expression>) node,
                 context.sessionSettings());
         }
 

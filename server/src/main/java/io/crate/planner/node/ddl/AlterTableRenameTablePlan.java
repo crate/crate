@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.analyze.AnalyzedAlterTableRename;
+import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -33,10 +33,10 @@ import io.crate.planner.operators.SubQueryResults;
 
 public class AlterTableRenameTablePlan implements Plan {
 
-    private final AnalyzedAlterTableRename analyzedAlterTableRename;
+    private final AnalyzedAlterTableRenameTable analyzedAlterTableRenameTable;
 
-    public AlterTableRenameTablePlan(AnalyzedAlterTableRename analyzedAlterTableRename) {
-        this.analyzedAlterTableRename = analyzedAlterTableRename;
+    public AlterTableRenameTablePlan(AnalyzedAlterTableRenameTable analyzedAlterTableRenameTable) {
+        this.analyzedAlterTableRenameTable = analyzedAlterTableRenameTable;
     }
 
     @Override
@@ -49,7 +49,7 @@ public class AlterTableRenameTablePlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        dependencies.alterTableOperation().executeAlterTableRenameTable(analyzedAlterTableRename)
+        dependencies.alterTableOperation().executeAlterTableRenameTable(analyzedAlterTableRenameTable)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

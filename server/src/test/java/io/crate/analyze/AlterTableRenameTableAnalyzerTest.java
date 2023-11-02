@@ -40,7 +40,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 
-public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTest {
+public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRenamePartitionThrowsException() throws Exception {

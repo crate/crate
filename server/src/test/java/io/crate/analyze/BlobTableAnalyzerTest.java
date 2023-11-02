@@ -265,14 +265,14 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testAlterBlobTableRename() {
+    public void testAlterBlobTableRenameTable() {
         assertThatThrownBy(() -> e.analyze("alter blob table blobs rename to blobbier"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations.");
     }
 
     @Test
-    public void testAlterBlobTableRenameWithExplicitSchema() {
+    public void testAlterBlobTableRenameTableWithExplicitSchema() {
         assertThatThrownBy(() -> e.analyze("alter blob table schema.blobs rename to blobbier"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
