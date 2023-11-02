@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -259,12 +260,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             try {
                 RelationAnalysisContext relationContext = statementContext.currentRelationContext();
                 final CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
+
+                Map<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>(relationContext.sources());
+                sources.put(leftRel.relationName(), leftRel);
+                sources.put(rightRel.relationName(), rightRel);
+
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     coordinatorTxnCtx,
                     nodeCtx,
                     statementContext.paramTyeHints(),
                     new FullQualifiedNameFieldProvider(
-                        relationContext.sources(),
+                        sources,
                         relationContext.parentSources(),
                         coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
                     new SubqueryAnalyzer(this, statementContext));

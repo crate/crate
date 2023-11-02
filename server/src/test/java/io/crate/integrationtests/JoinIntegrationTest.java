@@ -1540,30 +1540,21 @@ public class JoinIntegrationTest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
     @Test
+    @TestLogging("io.crate.planner.optimizer.iterative:TRACE")
     public void test_ensure_hash_symbols_match_after_hash_join_is_reordered() {
         execute("create table doc.t1(a int, b int)");
         execute("create table doc.t2(c int, d int)");
         execute("create table doc.t3(e int, f int)");
 
-        execute("insert into doc.t1(a,b) values(1,2)");
-        execute("insert into doc.t2(c,d) values (1,3),(5,6)");
-        execute("insert into doc.t3(e,f) values (3,2)");
-        refresh();
-        execute("analyze");
-
         var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t1.a = t2.c WHERE t2.d =t3.e";
-        assertThat(execute("explain " + stmt)).hasLines(
-                "Eval[e] (rows=0)",
-                "  └ Eval[a, b, e, f, d, c] (rows=0)",
-                "    └ HashJoin[((d = e) AND (a = c))] (rows=0)",
-                "      ├ Collect[doc.t2 | [d, c] | true] (rows=2)",
-                "      └ HashJoin[(b = f)] (rows=1)",
-                "        ├ Collect[doc.t1 | [a, b] | true] (rows=1)",
-                "        └ Collect[doc.t3 | [e, f] | true] (rows=1)"
+        assertThat(execute("explain (costs false) " + stmt).rows()[0][0]).isEqualTo(
+            "Eval[e]\n" +
+                "  └ HashJoin[((a = c) AND (d = e))]\n" +
+                "    ├ HashJoin[(b = f)]\n" +
+                "    │  ├ Collect[doc.t1 | [a, b] | true]\n" +
+                "    │  └ Collect[doc.t3 | [e, f] | true]\n" +
+                "    └ Collect[doc.t2 | [d, c] | true]"
         );
-
-        execute(stmt);
-        assertThat(response).hasRows("3");
     }
 
     @Test

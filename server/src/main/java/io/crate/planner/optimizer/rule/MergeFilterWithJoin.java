@@ -34,6 +34,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -76,9 +77,6 @@ public class MergeFilterWithJoin implements Rule<Filter> {
                              NodeContext nodeCtx,
                              UnaryOperator<LogicalPlan> resolvePlan) {
         var join = captures.get(joinCapture);
-        if (join.joinType() != JoinType.CROSS) {
-            return null;
-        }
         var allConditions = QuerySplitter.split(filter.query());
         if (allConditions.size() == 1) {
             var relationNames = new HashSet<>(join.getRelationNames());
@@ -91,7 +89,14 @@ public class MergeFilterWithJoin implements Rule<Filter> {
             if (conditions.isEmpty()) {
                 return null;
             }
-            return new JoinPlan(join.lhs(), join.rhs(), JoinType.INNER, AndOperator.join(conditions));
+            if (join.joinType() == JoinType.CROSS) {
+                return new JoinPlan(join.lhs(), join.rhs(), JoinType.INNER, AndOperator.join(conditions));
+            } else {
+                var newConditions = new ArrayList<Symbol>();
+                newConditions.add(join.joinCondition());
+                newConditions.addAll(conditions);
+                return new JoinPlan(join.lhs(), join.rhs(), join.joinType(), AndOperator.join(newConditions));
+            }
         }
         return null;
     }
