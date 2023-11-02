@@ -70,8 +70,8 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
     public void test3TableLeftOuterJoin() {
         execute(
             "select professions.name, employees.name, offices.name from" +
-            " professions left join employees on profession_id = professions.id" +
-            " left join offices on office_id = offices.id" +
+            " professions left join employees on employees.profession_id = professions.id" +
+            " left join offices on employees.office_id = offices.id" +
             " order by professions.id");
         assertThat(printedTable(response.rows()), is("Writer| Douglas Adams| Chief Office\n" +
                                                      "Traveler| Ford Perfect| NULL\n" +
@@ -84,7 +84,7 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
         execute(
             "select professions.name, employees.name, offices.name from" +
             " professions left join employees on profession_id = professions.id" +
-            " left join offices on office_id = offices.id" +
+            " left join offices on employees.office_id = offices.id" +
             " order by offices.name nulls first, professions.id nulls first");
         assertThat(printedTable(response.rows()), is("Traveler| Ford Perfect| NULL\n" +
                                                      "Janitor| NULL| NULL\n" +
@@ -106,8 +106,8 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
     public void test3TableLeftAndRightOuterJoin() {
         execute(
             "select professions.name, employees.name, offices.name from" +
-            " offices left join employees on office_id = offices.id" +
-            " right join professions on profession_id = professions.id" +
+            " offices left join employees on employees.office_id = offices.id" +
+            " right join professions on employees.profession_id = professions.id" +
             " order by professions.id");
         assertThat(printedTable(response.rows()), is("Writer| Douglas Adams| Chief Office\n" +
                                                      "Traveler| NULL| NULL\n" +
