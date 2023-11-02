@@ -32,7 +32,7 @@ import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
-import io.crate.analyze.AnalyzedAlterTableRename;
+import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -510,7 +510,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis, Role user) {
+        public Void visitAnalyzedAlterTableRenameTable(AnalyzedAlterTableRenameTable analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,

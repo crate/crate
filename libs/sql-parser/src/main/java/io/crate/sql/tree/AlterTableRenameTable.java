@@ -23,13 +23,13 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class AlterTableRename<T> extends Statement {
+public class AlterTableRenameTable<T> extends Statement {
 
     private final Table<T> table;
     private final boolean blob;
     private final QualifiedName newName;
 
-    public AlterTableRename(Table<T> table, boolean blob, QualifiedName newName) {
+    public AlterTableRenameTable(Table<T> table, boolean blob, QualifiedName newName) {
         this.table = table;
         this.blob = blob;
         this.newName = newName;
@@ -37,7 +37,7 @@ public class AlterTableRename<T> extends Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitAlterTableRename(this, context);
+        return visitor.visitAlterTableRenameTable(this, context);
     }
 
     public Table<T> table() {
@@ -60,7 +60,7 @@ public class AlterTableRename<T> extends Statement {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        AlterTableRename<?> that = (AlterTableRename<?>) o;
+        AlterTableRenameTable<?> that = (AlterTableRenameTable<?>) o;
         return blob == that.blob &&
                Objects.equals(table, that.table) &&
                Objects.equals(newName, that.newName);

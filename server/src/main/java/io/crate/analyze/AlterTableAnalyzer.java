@@ -40,7 +40,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableOpenClose;
-import io.crate.sql.tree.AlterTableRename;
+import io.crate.sql.tree.AlterTableRenameTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Table;
 
@@ -90,7 +90,7 @@ class AlterTableAnalyzer {
     }
 
 
-    AnalyzedAlterTableRename analyze(AlterTableRename<Expression> node, SessionSettings sessionSettings) {
+    AnalyzedAlterTableRenameTable analyze(AlterTableRenameTable<Expression> node, SessionSettings sessionSettings) {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }
@@ -118,7 +118,7 @@ class AlterTableAnalyzer {
         } catch (RelationUnknown e) {
             schemas.resolveView(node.table().getName(), sessionSettings.searchPath());
         }
-        return new AnalyzedAlterTableRename(sourceName, targetName, isPartitioned);
+        return new AnalyzedAlterTableRenameTable(sourceName, targetName, isPartitioned);
     }
 
     public AnalyzedAlterTableOpenClose analyze(AlterTableOpenClose<Expression> node,

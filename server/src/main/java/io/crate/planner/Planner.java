@@ -40,8 +40,8 @@ import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
-import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterRole;
+import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -362,8 +362,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis,
-                                              PlannerContext context) {
+    public Plan visitAnalyzedAlterTableRenameTable(AnalyzedAlterTableRenameTable analysis,
+                                                   PlannerContext context) {
         return new AlterTableRenameTablePlan(analysis);
     }
 

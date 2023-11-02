@@ -54,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
 import io.crate.action.sql.Sessions;
-import io.crate.analyze.AnalyzedAlterTableRename;
+import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
@@ -383,7 +383,7 @@ public class AlterTableOperation {
         });
     }
 
-    public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRename renameTable) {
+    public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRenameTable renameTable) {
         var request = new RenameTableRequest(renameTable.sourceName(), renameTable.targetName(), renameTable.isPartitioned());
         return transportRenameTableAction.execute(request, r -> -1L);
     }

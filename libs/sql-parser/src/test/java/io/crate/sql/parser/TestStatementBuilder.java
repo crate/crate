@@ -1806,7 +1806,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterTableRename() {
+    public void testAlterTableRenameTable() {
         printStatement("alter table t rename to t2");
     }
 

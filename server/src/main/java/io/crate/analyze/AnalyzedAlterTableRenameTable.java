@@ -26,13 +26,13 @@ import java.util.function.Consumer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 
-public class AnalyzedAlterTableRename implements DDLStatement {
+public class AnalyzedAlterTableRenameTable implements DDLStatement {
 
     private final RelationName sourceName;
     private final RelationName targetName;
     private final boolean isPartitioned;
 
-    AnalyzedAlterTableRename(RelationName sourceName, RelationName targetName, boolean isPartitioned) {
+    AnalyzedAlterTableRenameTable(RelationName sourceName, RelationName targetName, boolean isPartitioned) {
         this.sourceName = sourceName;
         this.targetName = targetName;
         this.isPartitioned = isPartitioned;
@@ -52,7 +52,7 @@ public class AnalyzedAlterTableRename implements DDLStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAnalyzedAlterTableRename(this, context);
+        return analyzedStatementVisitor.visitAnalyzedAlterTableRenameTable(this, context);
     }
 
     @Override

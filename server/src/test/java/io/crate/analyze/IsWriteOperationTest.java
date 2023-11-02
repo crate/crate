@@ -134,7 +134,7 @@ public class IsWriteOperationTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testAlterTableRenameIsAWriteOperation() {
+    public void testAlterTableRenameTableIsAWriteOperation() {
         assertWriteOperation("alter table t1 rename to t2");
     }
 
