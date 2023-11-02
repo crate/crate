@@ -42,9 +42,6 @@ public class RelationAnalysisContext {
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
     private final Map<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
 
-    @Nullable
-    private List<JoinPair> joinPairs;
-
     RelationAnalysisContext(boolean aliasedRelation,
                             ParentRelations parents,
                             CoordinatorSessionSettings sessionSettings) {
@@ -64,20 +61,6 @@ public class RelationAnalysisContext {
     public List<RelationName> sourceNames() {
         // sources is backed up by a LinkedHashMap and thus keeps insertion order.
         return new ArrayList<>(sources().keySet());
-    }
-
-    void addJoinPair(JoinPair joinType) {
-        if (joinPairs == null) {
-            joinPairs = new ArrayList<>();
-        }
-        joinPairs.add(joinType);
-    }
-
-    List<JoinPair> joinPairs() {
-        if (joinPairs == null) {
-            return List.of();
-        }
-        return joinPairs;
     }
 
     void addSourceRelation(AnalyzedRelation relation) {

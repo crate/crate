@@ -47,6 +47,7 @@ import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -1086,6 +1087,9 @@ public class JoinIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseHashJoins(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
     public void test_many_table_join_with_filter_pushdown() throws Exception {
         // regression this; optimization rule resulted in a endless loop
         String stmt = """
@@ -1346,7 +1350,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                     ├ HashJoin[(cluster_id = id)]
                     │  ├ HashJoin[(subscription_id = id)]
                     │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]
-                    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]
+                    │  │  └ Collect[doc.t1 | [id, subscription_id] | true]
                     │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]
                     └ Rename[cluster_id] AS temp
                       └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]"""
@@ -1482,15 +1486,15 @@ public class JoinIntegrationTest extends IntegTestCase {
                 ORDER BY doc.j1.x
             """;
 
-//        execute("explain (costs false)" + stmt);
-//        assertThat(response.rows()[0][0]).isEqualTo(
-//            """
-//                OrderBy[x ASC]
-//                  └ HashJoin[(x = x)]
-//                    ├ HashJoin[(x = z)]
-//                    │  ├ Collect[doc.j2 | [x] | true]
-//                    │  └ Collect[doc.j3 | [z] | true]
-//                    └ Collect[doc.j1 | [x] | true]""");
+        execute("explain (costs false)" + stmt);
+        assertThat(response.rows()[0][0]).isEqualTo(
+            """
+                OrderBy[x ASC]
+                  └ HashJoin[(x = x)]
+                    ├ HashJoin[(x = z)]
+                    │  ├ Collect[doc.j2 | [x] | true]
+                    │  └ Collect[doc.j3 | [z] | true]
+                    └ Collect[doc.j1 | [x] | true]""");
 
         execute(stmt);
         assertThat(response).hasRows(
@@ -1550,11 +1554,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t1.a = t2.c WHERE t2.d =t3.e";
         assertThat(execute("explain " + stmt)).hasLines(
                 "Eval[e] (rows=0)",
-                "  └ Eval[b, a, e, f, c, d] (rows=0)",
+                "  └ Eval[a, b, e, f, d, c] (rows=0)",
                 "    └ HashJoin[((d = e) AND (a = c))] (rows=0)",
-                "      ├ Collect[doc.t2 | [c, d] | true] (rows=2)",
+                "      ├ Collect[doc.t2 | [d, c] | true] (rows=2)",
                 "      └ HashJoin[(b = f)] (rows=1)",
-                "        ├ Collect[doc.t1 | [b, a] | true] (rows=1)",
+                "        ├ Collect[doc.t1 | [a, b] | true] (rows=1)",
                 "        └ Collect[doc.t3 | [e, f] | true] (rows=1)"
         );
 
@@ -1660,19 +1664,22 @@ public class JoinIntegrationTest extends IntegTestCase {
     @UseRandomizedOptimizerRules(0)
     @UseHashJoins(1)
     public void test_multiple_implicit_join() throws Exception {
-        execute("create table t1 (x int)");
-        execute("create table t2 (y int)");
-        execute("create table t3 (z int)");
+        execute("create table t1 (a int)");
+        execute("create table t2 (b int)");
+        execute("create table t3 (c int)");
+        execute("create table t4 (d int)");
 
-        String stmt = "explain (costs false) SELECT * FROM t1, t2, t3 WHERE t1.x = t2.y AND t2.y = t3.z";
+        String stmt = "explain (costs false) SELECT * FROM t1, t2, t3, t4 WHERE t1.a = t2.b AND t2.b = t3.c AND t3.c = t4.d";
         execute(stmt);
 
         assertThat(response.rows()[0][0]).isEqualTo(
-            "HashJoin[(y = z)]\n" +
-                "  ├ HashJoin[(x = y)]\n" +
-                "  │  ├ Collect[doc.t1 | [x] | true]\n" +
-                "  │  └ Collect[doc.t2 | [y] | true]\n" +
-                "  └ Collect[doc.t3 | [z] | true]"
+            "HashJoin[(c = d)]\n" +
+                "  ├ HashJoin[(b = c)]\n" +
+                "  │  ├ HashJoin[(a = b)]\n" +
+                "  │  │  ├ Collect[doc.t1 | [a] | true]\n" +
+                "  │  │  └ Collect[doc.t2 | [b] | true]\n" +
+                "  │  └ Collect[doc.t3 | [c] | true]\n" +
+                "  └ Collect[doc.t4 | [d] | true]"
         );
     }
 }

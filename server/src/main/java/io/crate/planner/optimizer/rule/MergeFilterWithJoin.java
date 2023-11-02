@@ -28,6 +28,7 @@ import static io.crate.planner.optimizer.rule.ExtractConstantJoinConditionsIntoF
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -75,38 +76,23 @@ public class MergeFilterWithJoin implements Rule<Filter> {
                              NodeContext nodeCtx,
                              UnaryOperator<LogicalPlan> resolvePlan) {
         var join = captures.get(joinCapture);
-        var query = filter.query();
-        var allConditions = QuerySplitter.split(query);
-        var constantConditions = new HashSet<Symbol>(allConditions.size());
-        var relationNames = new HashSet<>(join.getRelationNames());
-        var nonConstantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
-        for (var condition : allConditions.entrySet()) {
-            if (numberOfRelationsUsed(condition.getValue()) <= 1) {
-                constantConditions.add(condition.getValue());
-            } else {
-                nonConstantConditions.put(condition.getKey(), condition.getValue());
-            }
-        }
-        if (nonConstantConditions.isEmpty()) {
+        if (join.joinType() != JoinType.CROSS) {
             return null;
         }
-        var result = new ArrayList<Symbol>();
-        for (var entries : nonConstantConditions.entrySet()) {
-            if (new HashSet<>(join.getRelationNames()).containsAll(entries.getKey())) {
-                result.add(entries.getValue());
+        var allConditions = QuerySplitter.split(filter.query());
+        if (allConditions.size() == 1) {
+            var relationNames = new HashSet<>(join.getRelationNames());
+            var conditions = new HashSet<Symbol>(allConditions.size());
+            for (var entry : allConditions.entrySet()) {
+                if (numberOfRelationsUsed(entry.getValue()) == 2 && relationNames.containsAll(entry.getKey())) {
+                    conditions.add(entry.getValue());
+                }
             }
-        }
-        if (result.isEmpty()) {
-            return null;
-        } else {
-            JoinPlan newJoin;
-            if (join.joinType() == JoinType.CROSS) {
-                newJoin = new JoinPlan(join.lhs(), join.rhs(), JoinType.INNER, AndOperator.join(result));
-            } else {
-                result.add(join.joinCondition());
-                newJoin = new JoinPlan(join.lhs(), join.rhs(), join.joinType(), AndOperator.join(result));
+            if (conditions.isEmpty()) {
+                return null;
             }
-            return Filter.create(newJoin, AndOperator.join(constantConditions));
+            return new JoinPlan(join.lhs(), join.rhs(), JoinType.INNER, AndOperator.join(conditions));
         }
+        return null;
     }
 }

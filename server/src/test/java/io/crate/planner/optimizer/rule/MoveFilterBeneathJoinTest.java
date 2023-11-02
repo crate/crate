@@ -53,6 +53,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
     private LogicalPlan t1;
     private LogicalPlan t2;
     private LogicalPlan t3;
+    private LogicalPlan t4;
 
     @Before
     public void prepare() throws Exception {
@@ -66,11 +67,13 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             .addTable("create table t1 (a int)")
             .addTable("create table t2 (b int)")
             .addTable("create table t3 (c int)")
+            .addTable("create table t4 (id int)")
             .build();
 
         t1 = e.logicalPlan("SELECT a FROM t1");
         t2 = e.logicalPlan("SELECT b FROM t2");
         t3 = e.logicalPlan("SELECT c FROM t3");
+        t4 = e.logicalPlan("SELECT id FROM t4");
     }
 
     @Test
@@ -295,7 +298,21 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             "    ├ Join[INNER | (a = b)]",
             "    │  ├ Collect[doc.t1 | [a] | true]",
             "    │  └ Collect[doc.t2 | [b] | true]",
-            "    └ Collect[doc.t3 | [c] | true]"
+            "    └ Collect[doc.t3 | [c] | true]");
+    }
+
+    public void test_push_equi_joins_1() {
+        var join1 = new JoinPlan(t1, t2, JoinType.CROSS, null);
+        var join2 = new JoinPlan(join1, t3, JoinType.CROSS, null);
+        var filter = new Filter(join2, sqlExpressions.asSymbol("doc.t1.a = doc.t2.b AND doc.t2.b = doc.t3.c"));
+
+        assertThat(filter).isEqualTo(
+            "Filter[((a = b) AND (b = c))]\n" +
+                "  └ Join[CROSS]\n" +
+                "    ├ Join[CROSS]\n" +
+                "    │  ├ Collect[doc.t1 | [a] | true]\n" +
+                "    │  └ Collect[doc.t2 | [b] | true]\n" +
+                "    └ Collect[doc.t3 | [c] | true]"
         );
 
         var rule = new MoveFilterBeneathJoin();
@@ -313,12 +330,47 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
 
         assertThat(result).hasOperators(
             "Join[INNER | (a = c)]",
-            "  ├ Filter[((a > 1) AND (b < 2))]",
-            "  │  └ Join[INNER | (a = b)]",
-            "  │    ├ Collect[doc.t1 | [a] | true]",
-            "  │    └ Collect[doc.t2 | [b] | true]",
-            "  └ Collect[doc.t3 | [c] | true]"
+            "  ├ Filter[(b < 2)]",
+            "  │  └ Filter[(a > 1)]",
+            "  │    └ Join[INNER | (a = b)]",
+            "  │      ├ Collect[doc.t1 | [a] | true]",
+            "  │      └ Collect[doc.t2 | [b] | true]",
+            "  └ Collect[doc.t3 | [c] | true]");
+
+        assertThat(result).isEqualTo(
+            "Filter[(b = c)]\n" +
+                "  └ Join[CROSS]\n" +
+                "    ├ Filter[(a = b)]\n" +
+                "    │  └ Join[CROSS]\n" +
+                "    │    ├ Collect[doc.t1 | [a] | true]\n" +
+                "    │    └ Collect[doc.t2 | [b] | true]\n" +
+                "    └ Collect[doc.t3 | [c] | true]"
         );
+    }
+
+    public void test_push_equi_joins_2() {
+        var join1 = new JoinPlan(t1, t2, JoinType.CROSS, null);
+        var join2 = new JoinPlan(join1, t3, JoinType.CROSS, null);
+        var join3 = new JoinPlan(join2, t4, JoinType.CROSS, null);
+        var filter = new Filter(join3, sqlExpressions.asSymbol("doc.t1.a = doc.t2.b AND doc.t2.b = doc.t3.c AND doc.t3.c = doc.t4.id"));
+
+        assertThat(filter).isEqualTo(
+        "  Filter[(((a = b) AND (b = c)) AND (c = id))]\n" +
+            "  └ Join[CROSS]\n" +
+            "    ├ Join[CROSS]\n" +
+            "    │  ├ Join[CROSS]\n" +
+            "    │  │  ├ Collect[doc.t1 | [a] | true]\n" +
+            "    │  │  └ Collect[doc.t2 | [b] | true]\n" +
+            "    │  └ Collect[doc.t3 | [c] | true]\n" +
+            "    └ Collect[doc.t4 | [id] | true]"
+        );
+
+        var rule = new MoveFilterBeneathJoin();
+        var match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(filter);
+
     }
 
     @Test
