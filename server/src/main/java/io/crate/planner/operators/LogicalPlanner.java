@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -413,19 +412,18 @@ public class LogicalPlanner {
 
         private List<Symbol> extractOutputs(QueriedSelectRelation relation, List<Symbol> outputs) {
             var toCollect = new LinkedHashSet<Symbol>();
-            Consumer<Reference> addRefIfMatch = toCollect::add;
-            Consumer<ScopedSymbol> addFieldIfMatch = toCollect::add;
             for (Symbol symbol : outputs) {
-                RefVisitor.visitRefs(symbol, addRefIfMatch);
-                FieldsVisitor.visitFields(symbol, addFieldIfMatch);
+                RefVisitor.visitRefs(symbol, toCollect::add);
+                FieldsVisitor.visitFields(symbol, toCollect::add);
             }
-            FieldsVisitor.visitFields(relation.where(), addFieldIfMatch);
-            RefVisitor.visitRefs(relation.where(), addRefIfMatch);
+            FieldsVisitor.visitFields(relation.where(), toCollect::add);
+            RefVisitor.visitRefs(relation.where(), toCollect::add);
+            // remove this and handle this over the context
             for (var joinPair : relation.joinPairs()) {
                 var condition = joinPair.condition();
                 if (condition != null) {
-                    FieldsVisitor.visitFields(condition, addFieldIfMatch);
-                    RefVisitor.visitRefs(condition, addRefIfMatch);
+                    FieldsVisitor.visitFields(condition, toCollect::add);
+                    RefVisitor.visitRefs(condition, toCollect::add);
                 }
             }
             return List.copyOf(toCollect);
