@@ -326,6 +326,15 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitJoinRelation(JoinRelation join, List<Symbol> context) {
+            if (join.joinCondition() != null) {
+                var condition = join.joinCondition();
+                if (condition != null) {
+                    var result = new LinkedHashSet<>(context);
+                    FieldsVisitor.visitFields(condition, result::add);
+                    RefVisitor.visitRefs(condition, result::add);
+                    context = List.copyOf(result);
+                }
+            }
             var left = join.left().accept(this, context);
             var right = join.right().accept(this, context);
             return new JoinPlan(left, right, join.joinType(), join.joinCondition());
@@ -418,14 +427,6 @@ public class LogicalPlanner {
             }
             FieldsVisitor.visitFields(relation.where(), toCollect::add);
             RefVisitor.visitRefs(relation.where(), toCollect::add);
-            // remove this and handle this over the context
-            for (var joinPair : relation.joinPairs()) {
-                var condition = joinPair.condition();
-                if (condition != null) {
-                    FieldsVisitor.visitFields(condition, toCollect::add);
-                    RefVisitor.visitRefs(condition, toCollect::add);
-                }
-            }
             return List.copyOf(toCollect);
         }
 
