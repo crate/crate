@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -247,7 +248,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         // Keep the same order and avoid introducing an Eval
         ArrayList<Symbol> toKeep = new ArrayList<>();
         // We cannot prune groupKeys, even if they are not used in the outputs, because it would change the result semantically

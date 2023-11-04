@@ -21,10 +21,10 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import io.crate.analyze.OrderBy;
@@ -154,7 +154,7 @@ public class CorrelatedJoin implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         var toCollect = new LinkedHashSet<>(outputsToKeep);
         var collectOuterColumns = new DefaultTraversalSymbolVisitor<Void, Void>() {
             public Void visitOuterColumn(OuterColumn outerColumn, Void ignored) {
