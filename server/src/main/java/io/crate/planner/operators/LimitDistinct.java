@@ -23,10 +23,9 @@ package io.crate.planner.operators;
 
 import static io.crate.analyze.SymbolEvaluator.evaluate;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -157,8 +156,8 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        HashSet<Symbol> toKeep = new LinkedHashSet<>();
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         Consumer<Symbol> keep = toKeep::add;
         // Pruning unused outputs would change semantics. Need to keep all in any case
         for (var output : outputs) {

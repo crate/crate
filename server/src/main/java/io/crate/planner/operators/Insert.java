@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -135,7 +136,7 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LogicalPlan newSource = source.pruneOutputsExcept(source.outputs());
         if (newSource == source) {
             return this;

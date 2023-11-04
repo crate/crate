@@ -21,10 +21,10 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -151,7 +151,7 @@ public class Count implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         return this;
     }
 

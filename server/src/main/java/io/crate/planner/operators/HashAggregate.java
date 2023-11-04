@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -183,7 +184,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         ArrayList<Function> newAggregates = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, aggregates, newAggregates::add);
