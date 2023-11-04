@@ -21,9 +21,9 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -94,7 +94,7 @@ public final class Filter extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>(outputsToKeep);
         SymbolVisitors.intersection(query, source.outputs(), toKeep::add);
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);

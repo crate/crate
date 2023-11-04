@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.iterative;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -76,7 +77,7 @@ public class GroupReference implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 

@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -153,7 +154,7 @@ public interface LogicalPlan extends Plan {
      *                      regarding {@link Union} (which requires the order to be kept), or introduction of
      *                      unnecessary {@link Eval} operators.
      */
-    LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep);
+    LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep);
 
     /**
      * Rewrite an operator and its children to utilize a "query-then-fetch" approach.

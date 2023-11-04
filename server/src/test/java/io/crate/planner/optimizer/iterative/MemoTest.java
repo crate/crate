@@ -26,14 +26,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.IntSupplier;
 
 import org.jetbrains.annotations.Nullable;
-
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
@@ -327,7 +326,7 @@ public class MemoTest {
         }
 
         @Override
-        public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
             return null;
         }
 

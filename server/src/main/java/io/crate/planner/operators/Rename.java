@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -96,7 +97,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         /* In `SELECT * FROM (SELECT t1.*, t2.* FROM tbl AS t1, tbl AS t2) AS tjoin`
          * The `ScopedSymbol`s are ambiguous; To map them correctly this uses a IdentityHashMap
          */

@@ -24,18 +24,16 @@ package io.crate.planner.operators;
 import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.UUIDs;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
@@ -114,8 +112,8 @@ public class WindowAgg extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        HashSet<Symbol> toKeep = new LinkedHashSet<>();
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         ArrayList<WindowFunction> newWindowFunctions = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
