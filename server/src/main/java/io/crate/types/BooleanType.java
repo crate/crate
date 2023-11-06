@@ -22,13 +22,16 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
@@ -47,7 +50,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();
 
-    private static EqQuery<Boolean> EQ_QUERY = new EqQuery<>() {
+    private static final EqQuery<Boolean> EQ_QUERY = new EqQuery<>() {
 
         private static BytesRef indexedValue(Boolean value) {
             if (value == null) {
@@ -57,8 +60,15 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         }
 
         @Override
-        public Query termQuery(String field, Boolean value) {
-            return new TermQuery(new Term(field, indexedValue(value)));
+        public Query termQuery(String field, Boolean value, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                return new TermQuery(new Term(field, indexedValue(value)));
+            } else {
+                assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+                return SortedNumericDocValuesField.newSlowExactQuery(
+                    field,
+                    value ? 1 : 0);
+            }
         }
 
         @Override
@@ -67,9 +77,32 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                 Boolean upperTerm,
                                 boolean includeLower,
                                 boolean includeUpper,
-                                boolean hasDocValues) {
-            return new TermRangeQuery(
-                field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            upperTerm = upperTerm == null || upperTerm;
+            lowerTerm = lowerTerm != null && lowerTerm;
+            if (isIndexed) {
+                return new TermRangeQuery(
+                    field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
+            } else {
+                assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+                return SortedNumericDocValuesField.newSlowRangeQuery(
+                    field,
+                    lowerTerm ? 1 : 0,
+                    upperTerm ? 1 : 0);
+            }
+        }
+
+        @Override
+        public Query termsQuery(String field, List<Boolean> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                return new TermInSetQuery(field, nonNullValues.stream().map(v -> indexedValue(v)).toArray(BytesRef[]::new));
+            } else {
+                assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+                return SortedNumericDocValuesField.newSlowSetQuery(
+                    field,
+                    nonNullValues.stream().mapToLong(v -> v ? 1 : 0).toArray());
+            }
         }
     };
 

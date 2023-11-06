@@ -49,33 +49,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             THREAD_POOL,
             clusterService,
             indexVersion(),
-            "create table users (" +
-            " name string," +
-            " tags string index using fulltext not null," +
-            " content string index using fulltext," +
-            " text_no_index text index off storage with (columnstore = false)," +
-            " x integer not null," +
-            " x_no_docvalues int storage with (columnstore = false)," +
-            " f float," +
-            " d double," +
-            " obj object as (" +
-            "     x integer," +
-            "     y integer" +
-            " )," +
-            " obj_ignored object (ignored), " +
-            " d_array array(double)," +
-            " y_array array(long)," +
-            " x_array_no_docvalues array(int) storage with (columnstore = false)," +
-            " o_array array(object as (xs array(integer)))," +
-            " ts_array array(timestamp with time zone)," +
-            " shape geo_shape," +
-            " point geo_point," +
-            " ts timestamp with time zone," +
-            " addr ip," +
-            " vchar_name varchar(40)," +
-            " byte_col byte, " +
-            " bool_col boolean " +
-            ")"
+            createStmt()
         );
         queryTester = builder.build();
     }
@@ -95,6 +69,37 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
 
     protected Query convert(Symbol expression) {
         return queryTester.toQuery(expression);
+    }
+
+    protected String createStmt() {
+        return "create table users (" +
+               " name string," +
+               " tags string index using fulltext not null," +
+               " content string index using fulltext," +
+               " text_no_index text index off storage with (columnstore = false)," +
+               " x integer not null," +
+               " x_no_docvalues int storage with (columnstore = false)," +
+               " f float," +
+               " d double," +
+               " obj object as (" +
+               "     x integer," +
+               "     y integer" +
+               " )," +
+               " obj_ignored object (ignored), " +
+               " d_array array(double)," +
+               " y_array array(long)," +
+               " x_array_no_docvalues array(int) storage with (columnstore = false)," +
+               " o_array array(object as (xs array(integer)))," +
+               " ts_array array(timestamp with time zone)," +
+               " shape geo_shape," +
+               " point geo_point," +
+               " ts timestamp with time zone," +
+               " addr ip," +
+               " vchar_name varchar(40)," +
+               " byte_col byte, " +
+               " bool_col boolean, " +
+               " d_array_index_off_no_docvalues array(double) index off storage with (columnstore = false) " +
+               ")";
     }
 
     private Version indexVersion() {

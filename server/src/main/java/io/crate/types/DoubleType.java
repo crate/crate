@@ -24,12 +24,12 @@ package io.crate.types;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.function.Function;
 
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -54,8 +54,14 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         new EqQuery<Double>() {
 
             @Override
-            public Query termQuery(String field, Double value) {
-                return DoublePoint.newExactQuery(field, value);
+            public Query termQuery(String field, Double value, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return DoublePoint.newExactQuery(field, value);
+                }
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowExactQuery(field, NumericUtils.doubleToSortableLong(value));
+                }
+                return null;
             }
 
             @Override
@@ -64,7 +70,8 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                                     Double upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
                 double lower;
                 if (lowerTerm == null) {
                     lower = Double.NEGATIVE_INFINITY;
@@ -78,16 +85,27 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                 } else {
                     upper = includeUpper ? upperTerm : DoublePoint.nextDown(upperTerm);
                 }
-                Query indexQuery = DoublePoint.newRangeQuery(field, lower, upper);
-                if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(
-                            field,
-                            NumericUtils.doubleToSortableLong(lower),
-                            NumericUtils.doubleToSortableLong(upper)
-                    );
-                    return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                if (isIndexed) {
+                    return DoublePoint.newRangeQuery(field, lower, upper);
                 }
-                return indexQuery;
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowRangeQuery(
+                        field,
+                        NumericUtils.doubleToSortableLong(lower),
+                        NumericUtils.doubleToSortableLong(upper));
+                }
+                return null;
+            }
+
+            @Override
+            public Query termsQuery(String field, List<Double> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return DoublePoint.newSetQuery(field, nonNullValues);
+                }
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowSetQuery(field, nonNullValues.stream().mapToLong(NumericUtils::doubleToSortableLong).toArray());
+                }
+                return null;
             }
         }
     ) {

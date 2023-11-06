@@ -29,6 +29,9 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.search.TermInSetQuery;
+import org.jetbrains.annotations.Nullable;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -36,7 +39,6 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.core.Base64Variants;
 
@@ -67,8 +69,13 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         new EqQuery<BitString>() {
 
             @Override
-            public Query termQuery(String field, BitString value) {
-                return new TermQuery(new Term(field, new BytesRef(value.bitSet().toByteArray())));
+            public Query termQuery(String field, BitString value, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return new TermQuery(new Term(field, new BytesRef(value.bitSet().toByteArray())));
+                } else {
+                    assert hasDocValues == true : "hasDocValues must be true for BitString types since 'columnstore=false' is not supported.";
+                    return SortedSetDocValuesField.newSlowExactQuery(field, new BytesRef(value.bitSet().toByteArray()));
+                }
             }
 
             @Override
@@ -77,8 +84,19 @@ public final class BitStringType extends DataType<BitString> implements Streamer
                                     BitString upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
                 return null;
+            }
+
+            @Override
+            public Query termsQuery(String field, List<BitString> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return new TermInSetQuery(field, nonNullValues.stream().map(v -> new BytesRef(v.bitSet().toByteArray())).toList());
+                } else {
+                    assert hasDocValues == true : "hasDocValues must be true for BitString types since 'columnstore=false' is not supported.";
+                    return SortedSetDocValuesField.newSlowSetQuery(field, nonNullValues.stream().map(v -> new BytesRef(v.bitSet().toByteArray())).toArray(BytesRef[]::new));
+                }
             }
         }
     ) {

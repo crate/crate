@@ -24,12 +24,12 @@ package io.crate.types;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -54,8 +54,14 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         new EqQuery<Float>() {
 
             @Override
-            public Query termQuery(String field, Float value) {
-                return FloatPoint.newExactQuery(field, value);
+            public Query termQuery(String field, Float value, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return FloatPoint.newExactQuery(field, value);
+                }
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowExactQuery(field, NumericUtils.floatToSortableInt(value));
+                }
+                return null;
             }
 
             @Override
@@ -64,7 +70,8 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                                     Float upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
                 float lower;
                 if (lowerTerm == null) {
                     lower = Float.NEGATIVE_INFINITY;
@@ -78,16 +85,27 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                 } else {
                     upper = includeUpper ? upperTerm : FloatPoint.nextDown(upperTerm);
                 }
-
-                Query indexQuery = FloatPoint.newRangeQuery(field, lower, upper);
-                if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField
-                            .newSlowRangeQuery(field,
-                                               NumericUtils.floatToSortableInt(lower),
-                                               NumericUtils.floatToSortableInt(upper));
-                    return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                if (isIndexed) {
+                    return FloatPoint.newRangeQuery(field, lower, upper);
                 }
-                return indexQuery;
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowRangeQuery(
+                        field,
+                        NumericUtils.floatToSortableInt(lower),
+                        NumericUtils.floatToSortableInt(upper));
+                }
+                return null;
+            }
+
+            @Override
+            public Query termsQuery(String field, List<Float> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return FloatPoint.newSetQuery(field, nonNullValues);
+                }
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowSetQuery(field, nonNullValues.stream().mapToLong(NumericUtils::floatToSortableInt).toArray());
+                }
+                return null;
             }
         }
     ) {

@@ -33,6 +33,9 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.search.TermInSetQuery;
+import org.jetbrains.annotations.Nullable;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -76,8 +79,14 @@ public class StringType extends DataType<String> implements Streamer<String> {
         new EqQuery<Object>() {
 
             @Override
-            public Query termQuery(String field, Object value) {
-                return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
+            public Query termQuery(String field, Object value, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
+                }
+                if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowExactQuery(field, BytesRefs.toBytesRef(value));
+                }
+                return null;
             }
 
             @Override
@@ -86,14 +95,38 @@ public class StringType extends DataType<String> implements Streamer<String> {
                                     Object upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
-                return new TermRangeQuery(
-                    field,
-                    BytesRefs.toBytesRef(lowerTerm),
-                    BytesRefs.toBytesRef(upperTerm),
-                    includeLower,
-                    includeUpper
-                );
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
+                if (isIndexed) {
+                    return new TermRangeQuery(
+                        field,
+                        BytesRefs.toBytesRef(lowerTerm),
+                        BytesRefs.toBytesRef(upperTerm),
+                        includeLower,
+                        includeUpper
+                    );
+                }
+                if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowRangeQuery(
+                        field,
+                        BytesRefs.toBytesRef(lowerTerm),
+                        BytesRefs.toBytesRef(upperTerm),
+                        includeLower,
+                        includeUpper
+                    );
+                }
+                return null;
+            }
+
+            @Override
+            public Query termsQuery(String field, List<Object> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return new TermInSetQuery(field, nonNullValues.stream().map(BytesRefs::toBytesRef).toList());
+                }
+                if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowSetQuery(field, nonNullValues.stream().map(BytesRefs::toBytesRef).toArray(BytesRef[]::new));
+                }
+                return null;
             }
         }
     ) {

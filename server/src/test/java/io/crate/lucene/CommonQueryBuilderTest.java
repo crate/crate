@@ -33,7 +33,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.FieldExistsQuery;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
@@ -632,18 +631,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_comparison_with_and_without_docvalues() {
-        Query query = convert("x > 10");
-        assertThat(query)
-                .hasToString("x:[11 TO 2147483647]")
-                .isExactlyInstanceOf(IndexOrDocValuesQuery.class);
-        query = convert("x_no_docvalues > 10");
-        assertThat(query)
-                .hasToString("x_no_docvalues:[11 TO 2147483647]")
-                .isNotInstanceOf(IndexOrDocValuesQuery.class);
-    }
-
-    @Test
     public void test_array_not_any_with_and_without_docvalues() {
         Query query = convert("10 != ANY(y_array)");
         assertThat(query)
@@ -651,8 +638,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 .isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses()).satisfiesExactly(
-                x -> assertThat(x.getQuery()).isExactlyInstanceOf(IndexOrDocValuesQuery.class),
-                x -> assertThat(x.getQuery()).isExactlyInstanceOf(IndexOrDocValuesQuery.class)
+            // the query class is anonymous
+            x -> assertThat(x.getQuery().getClass().getName()).endsWith("LongPoint$1"),
+            x -> assertThat(x.getQuery().getClass().getName()).endsWith("LongPoint$1")
         );
 
         query = convert("10 != ANY(x_array_no_docvalues)");
@@ -661,8 +649,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 .isExactlyInstanceOf(BooleanQuery.class);
         booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses()).satisfiesExactly(
-                x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class),
-                x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class)
+            // the query class is anonymous
+            x -> assertThat(x.getQuery().getClass().getName()).doesNotEndWith("LongPoint$1"),
+            x -> assertThat(x.getQuery().getClass().getName()).doesNotEndWith("LongPoint$1")
         );
     }
 
@@ -705,5 +694,19 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(query).hasToString(String.format("+(+*:* -(+%s:s +%s:t)) #FieldExistsQuery [field=%s]", oid, oid, oid));
             assertThat(tester.runQuery("a", "a != any(['s'])")).containsExactly("t");
         }
+    }
+    @Test
+    public void test_eq_object_with_undefined_key() {
+        Query query = convert("obj = {x=1, y=2, z=3}"); // z undefined
+        assertThat(query).hasToString("+obj.x:[1 TO 1] +obj.y:[2 TO 2] #(obj = {\"x\"=1, \"y\"=2, \"z\"=3})");
+    }
+
+    @Test
+    public void test_equality_query_on_double_array_with_index_off_and_no_docvalues_falls_back_to_generic_query() {
+        Query query = convert("d_array_index_off_no_docvalues[1] = 12.34");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+
+        query = convert("12.34 != any(d_array_index_off_no_docvalues)");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 }

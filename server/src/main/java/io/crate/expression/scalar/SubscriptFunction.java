@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -211,19 +212,20 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     private interface PreFilterQueryBuilder {
-        Query buildQuery(String field, EqQuery<Object> eqQuery, Object value, boolean hasDocValues);
+        Query buildQuery(String field, EqQuery<Object> eqQuery, Object value, boolean hasDocValues, boolean isIndexed);
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
-        EqOperator.NAME, (field, eqQuery, value, haDocValues) -> eqQuery.termQuery(field, value),
-        GteOperator.NAME, (field, eqQuery, value, hasDocValues) ->
-                eqQuery.rangeQuery(field, value, null, true, false, hasDocValues),
-        GtOperator.NAME, (field, eqQuery, value, hasDocValues) ->
-                eqQuery.rangeQuery(field, value, null, false, false, hasDocValues),
-        LteOperator.NAME, (field, eqQuery, value, hasDocValues) ->
-                eqQuery.rangeQuery(field, null, value, false, true, hasDocValues),
-        LtOperator.NAME, (field, eqQuery, value, hasDocValues) ->
-                eqQuery.rangeQuery(field, null, value, false, false, hasDocValues)
+        EqOperator.NAME, (field, eqQuery, value, haDocValues, isIndexed) ->
+            eqQuery.termQuery(field, value, haDocValues, isIndexed),
+        GteOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
+                eqQuery.rangeQuery(field, value, null, true, false, hasDocValues, isIndexed),
+        GtOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
+                eqQuery.rangeQuery(field, value, null, false, false, hasDocValues, isIndexed),
+        LteOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
+                eqQuery.rangeQuery(field, null, value, false, true, hasDocValues, isIndexed),
+        LtOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
+                eqQuery.rangeQuery(field, null, value, false, false, hasDocValues, isIndexed)
     );
 
     @Override
@@ -257,9 +259,12 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 return null;
             }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
-            builder.add(
-                preFilterQueryBuilder.buildQuery(ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues()),
-                BooleanClause.Occur.MUST);
+            var preFilterQuery = preFilterQueryBuilder.buildQuery(
+                ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues(), ref.indexType() != IndexType.NONE);
+            if (preFilterQuery == null) {
+                return null;
+            }
+            builder.add(preFilterQuery, BooleanClause.Occur.MUST);
             builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
             return builder.build();
         }
