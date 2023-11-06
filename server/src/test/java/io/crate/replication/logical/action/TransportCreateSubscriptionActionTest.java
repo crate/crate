@@ -68,7 +68,7 @@ public class TransportCreateSubscriptionActionTest {
 
     @Test
     public void test_subscribing_to_tables_with_higher_version_raises_error() throws Exception {
-        FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> responseFuture = FutureActionListener.newInstance();
+        FutureActionListener<AcknowledgedResponse> responseFuture = new FutureActionListener<>();
         subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 10000);
 
         var tableVersion = Version.fromId(Version.CURRENT.internalId + 10000);
@@ -79,13 +79,13 @@ public class TransportCreateSubscriptionActionTest {
 
     @Test
     public void test_subscribing_to_tables_with_higher_hotfix_works() throws Exception {
-        FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> responseFuture = FutureActionListener.newInstance();
+        FutureActionListener<AcknowledgedResponse> responseFuture = new FutureActionListener<>();
         subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 100);
 
         assertThat(responseFuture.get().isAcknowledged()).isTrue();
     }
 
-    private void subscribeToTablesWithVersion(FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> responseFuture,
+    private void subscribeToTablesWithVersion(FutureActionListener<AcknowledgedResponse> responseFuture,
                                               int internalVersionId) throws Exception {
         transportCreateSubscriptionAction = new TransportCreateSubscriptionAction(
             mock(TransportService.class),

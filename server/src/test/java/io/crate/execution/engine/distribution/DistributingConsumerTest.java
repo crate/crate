@@ -48,7 +48,6 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 
 import io.crate.Streamer;
-import io.crate.action.FutureActionListener;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
@@ -175,9 +174,7 @@ public class DistributingConsumerTest extends ESTestCase {
             0,
             Collections.singletonList("n1"),
             req -> {
-                FutureActionListener listener = FutureActionListener.newInstance();
-                distributedResultAction.doExecute(req, listener);
-                return listener;
+                return distributedResultAction.execute(req);
             },
             2 // pageSize
         );

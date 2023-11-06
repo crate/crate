@@ -45,7 +45,6 @@ import org.mockito.MockitoAnnotations;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.WhereClause;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
@@ -116,14 +115,10 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             "localNode",
             "remoteNode",
             req -> {
-                FutureActionListener listener = FutureActionListener.newInstance();
-                transportJobAction.doExecute(req, listener);
-                return listener;
+                return transportJobAction.execute(req);
             },
             req -> {
-                FutureActionListener listener = FutureActionListener.newInstance();
-                transportKillJobsNodeAction.doExecute(req, listener);
-                return listener;
+                return transportKillJobsNodeAction.execute(req);
             },
             Runnable::run,
             tasksService,

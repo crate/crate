@@ -480,7 +480,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 null)
         );
 
-        FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
+        FutureActionListener<Boolean> future = new FutureActionListener<>();
         shard.recoverFromStore(future);
         future.get(5, TimeUnit.SECONDS);
 

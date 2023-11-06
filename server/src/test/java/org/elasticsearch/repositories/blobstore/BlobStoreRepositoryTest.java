@@ -97,7 +97,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     @Test
     public void testListChildren() throws Exception {
         final BlobStoreRepository repo = getRepository();
-        final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
+        final FutureActionListener<Void> future = new FutureActionListener<>();
         final Executor genericExec = repo.threadPool().generic();
         final int testBlobLen = randomIntBetween(1, 100);
         genericExec.execute(new ActionRunnable<>(future) {
@@ -123,7 +123,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     void assertBlobsByPrefix(BlobPath path, String prefix, Map<String, BlobMetadata> blobs) throws Exception {
-        final FutureActionListener<Map<String, BlobMetadata>, Map<String, BlobMetadata>> future = FutureActionListener.newInstance();
+        final FutureActionListener<Map<String, BlobMetadata>> future = new FutureActionListener<>();
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override
@@ -144,7 +144,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     void assertChildren(BlobPath path, Collection<String> children) throws Exception {
-        final FutureActionListener<Set<String>, Set<String>> future = FutureActionListener.newInstance();
+        final FutureActionListener<Set<String>> future = new FutureActionListener<>();
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override

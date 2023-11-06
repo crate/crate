@@ -63,9 +63,9 @@ public class MockPgClient extends PgClient {
         if (openConnectionBehavior == null) {
             return super.ensureConnected().thenApply(WrappedConnection::new);
         }
-        var connectionListener = new FutureActionListener<Connection, Connection>(WrappedConnection::new);
+        var connectionListener = new FutureActionListener<Connection>();
         openConnectionBehavior.openConnection(transport, host, profile, connectionListener);
-        return connectionListener;
+        return connectionListener.thenApply(WrappedConnection::new);
     }
 
     class WrappedConnection implements Connection {

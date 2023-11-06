@@ -32,7 +32,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
@@ -70,9 +69,7 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
             "dummy-user",
             mock(ActionExecutor.class),
             req -> {
-                FutureActionListener listener = FutureActionListener.newInstance();
-                killAllNodeAction.doExecute(req, listener);
-                return listener;
+                return killAllNodeAction.execute(req);
             },
             new TestingRowConsumer());
         assertThat(broadcastCalls.get(), is(1));

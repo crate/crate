@@ -21,9 +21,17 @@
 
 package io.crate.execution.engine.fetch;
 
+import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
+
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.common.annotations.VisibleForTesting;
@@ -31,13 +39,6 @@ import io.crate.data.Bucket;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.support.ActionExecutor;
-
-import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 
 public class TransportFetchOperation implements FetchOperation {
@@ -65,8 +66,8 @@ public class TransportFetchOperation implements FetchOperation {
     public CompletableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
                                                                    IntObjectMap<IntArrayList> toFetch,
                                                                    boolean closeContext) {
-        FutureActionListener<NodeFetchResponse, IntObjectMap<? extends Bucket>> listener = new FutureActionListener<>(GET_FETCHED);
-        fetchNodeAction
+        FutureActionListener<NodeFetchResponse> listener = new FutureActionListener<>();
+        return fetchNodeAction
             .execute(
                 new NodeFetchRequest(nodeId,
                                      jobId,
@@ -75,8 +76,8 @@ public class TransportFetchOperation implements FetchOperation {
                                      toFetch,
                                      nodeIdToReaderIdToStreamers.get(nodeId),
                                      ramAccountingForIncomingResponse(ramAccounting, toFetch, closeContext)))
-            .whenComplete(listener);
-        return listener;
+            .whenComplete(listener)
+            .thenApply(GET_FETCHED);
     }
 
     @VisibleForTesting

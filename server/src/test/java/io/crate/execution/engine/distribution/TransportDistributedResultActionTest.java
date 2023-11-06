@@ -38,7 +38,6 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.TaskMissing;
@@ -73,9 +72,7 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             mock(TransportService.class),
             clusterService,
             req -> {
-                FutureActionListener listener = FutureActionListener.newInstance();
-                killJobsAction.doExecute(req, listener);
-                return listener;
+                return killJobsAction.execute(req);
             },
             BackoffPolicy.exponentialBackoff(TimeValue.ZERO, 0)
         );

@@ -181,7 +181,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                 ));
 
             // We try to write another snap- blob for "foo" in the next generation. It fails because the content differs.
-            FutureActionListener<RepositoryData, RepositoryData> fut = FutureActionListener.newInstance();
+            FutureActionListener<RepositoryData> fut = new FutureActionListener<>();
             repository.finalizeSnapshot(
                 ShardGenerations.EMPTY,
                 0L,

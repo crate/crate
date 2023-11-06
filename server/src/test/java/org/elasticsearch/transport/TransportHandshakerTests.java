@@ -74,7 +74,7 @@ public class TransportHandshakerTests extends ESTestCase {
 
     @Test
     public void testHandshakeRequestAndResponse() throws Exception {
-        FutureActionListener<Version, Version> versionFuture = FutureActionListener.newInstance();
+        FutureActionListener<Version> versionFuture = new FutureActionListener<>();
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
@@ -86,7 +86,7 @@ public class TransportHandshakerTests extends ESTestCase {
         BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
         handshakeRequest.writeTo(bytesStreamOutput);
         StreamInput input = bytesStreamOutput.bytes().streamInput();
-        final FutureActionListener<TransportResponse, TransportResponse> responseFuture = FutureActionListener.newInstance();
+        final FutureActionListener<TransportResponse> responseFuture = new FutureActionListener<>();
         final TestTransportChannel channel = new TestTransportChannel(responseFuture);
         handshaker.handleHandshake(channel, reqId, input);
 
@@ -100,7 +100,7 @@ public class TransportHandshakerTests extends ESTestCase {
     @Test
     public void testHandshakeRequestFutureVersionsCompatibility() throws Exception {
         long reqId = randomLongBetween(1, 10);
-        handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), FutureActionListener.newInstance());
+        handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), new FutureActionListener<>());
 
         verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT.minimumCompatibilityVersion());
 
@@ -123,7 +123,7 @@ public class TransportHandshakerTests extends ESTestCase {
         // Otherwise, we need to update the test.
         assertEquals(currentHandshakeBytes.bytes().length(), lengthCheckingHandshake.bytes().length());
         assertEquals(1031, futureHandshakeStream.available());
-        final FutureActionListener<TransportResponse, TransportResponse> responseFuture = FutureActionListener.newInstance();
+        final FutureActionListener<TransportResponse> responseFuture = new FutureActionListener<>();
         final TestTransportChannel channel = new TestTransportChannel(responseFuture);
         handshaker.handleHandshake(channel, reqId, futureHandshakeStream);
         assertEquals(0, futureHandshakeStream.available());
@@ -135,7 +135,7 @@ public class TransportHandshakerTests extends ESTestCase {
 
     @Test
     public void testHandshakeError() throws IOException {
-        FutureActionListener<Version, Version> versionFuture = FutureActionListener.newInstance();
+        FutureActionListener<Version> versionFuture = new FutureActionListener<>();
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
@@ -155,7 +155,7 @@ public class TransportHandshakerTests extends ESTestCase {
 
     @Test
     public void testSendRequestThrowsException() throws IOException {
-        FutureActionListener<Version, Version> versionFuture = FutureActionListener.newInstance();
+        FutureActionListener<Version> versionFuture = new FutureActionListener<>();
         long reqId = randomLongBetween(1, 10);
         Version compatibilityVersion = Version.CURRENT.minimumCompatibilityVersion();
         doThrow(new IOException("boom")).when(requestSender).sendRequest(node, channel, reqId, compatibilityVersion);
@@ -172,7 +172,7 @@ public class TransportHandshakerTests extends ESTestCase {
 
     @Test
     public void testHandshakeTimeout() throws IOException {
-        FutureActionListener<Version, Version> versionFuture = FutureActionListener.newInstance();
+        FutureActionListener<Version> versionFuture = new FutureActionListener<>();
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(100, TimeUnit.MILLISECONDS), versionFuture);
 

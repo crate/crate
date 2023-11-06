@@ -30,8 +30,8 @@ public final class TestFutureUtils {
     private TestFutureUtils() {
     }
 
-    public static <T, E extends Exception> T get(CheckedConsumer<FutureActionListener<T, T>, E> e) throws E {
-        FutureActionListener<T, T> fut = FutureActionListener.newInstance();
+    public static <T, E extends Exception> T get(CheckedConsumer<FutureActionListener<T>, E> e) throws E {
+        FutureActionListener<T> fut = new FutureActionListener<>();
         e.accept(fut);
         return FutureUtils.get(fut);
     }

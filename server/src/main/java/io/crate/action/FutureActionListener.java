@@ -21,30 +21,18 @@
 
 package io.crate.action;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionListener;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+public class FutureActionListener<Response> extends CompletableFuture<Response> implements ActionListener<Response> {
 
-public class FutureActionListener<Response, Result> extends CompletableFuture<Result> implements ActionListener<Response> {
-
-    private final Function<? super Response, ? extends Result> transformFunction;
-
-    public static <T> FutureActionListener<T, T> newInstance() {
-        return new FutureActionListener<>(Function.identity());
-    }
-
-    public FutureActionListener(Function<? super Response, ? extends Result> transformFunction) {
-        this.transformFunction = transformFunction;
+    public FutureActionListener() {
     }
 
     @Override
     public void onResponse(Response response) {
-        try {
-            complete(transformFunction.apply(response));
-        } catch (Throwable t) {
-            completeExceptionally(t);
-        }
+        complete(response);
     }
 
     @Override

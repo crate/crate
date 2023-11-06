@@ -34,7 +34,6 @@ import java.util.function.Function;
 
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -42,7 +41,6 @@ import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
 
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.BoundRestoreSnapshot;
 import io.crate.analyze.SnapshotSettings;
@@ -239,16 +237,11 @@ public class RestoreSnapshotPlan implements Plan {
         if (toResolveFromSnapshot.isEmpty()) {
             return CompletableFuture.completedFuture(context);
         } else {
-            FutureActionListener<GetSnapshotsResponse, ResolveIndicesAndTemplatesContext> listener =
-                new FutureActionListener<>(
-                    response -> {
-                        resolveTablesFromSnapshots(toResolveFromSnapshot, response.getSnapshots(), context);
-                        return context;
-                    }
-                );
-            elasticsearchClient.execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repositoryName))
-                .whenComplete(listener);
-            return listener;
+            return elasticsearchClient.execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repositoryName))
+                .thenApply(response -> {
+                    resolveTablesFromSnapshots(toResolveFromSnapshot, response.getSnapshots(), context);
+                    return context;
+                });
         }
     }
 

@@ -387,7 +387,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 // make sure the store is not released until we are done.
                 var fileMetadata = new ArrayList<>(metadataSnapshot.asMap().values());
 
-                FutureActionListener<Void, Void> chunkTransferCompleted = FutureActionListener.newInstance();
+                FutureActionListener<Void> chunkTransferCompleted = new FutureActionListener<>();
                 chunkTransferCompleted.whenComplete((result, throwable) -> {
                     if (throwable == null) {
                         LOGGER.info("Restore successful for {}", store.shardId());
