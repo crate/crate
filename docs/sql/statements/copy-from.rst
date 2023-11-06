@@ -413,7 +413,7 @@ Defaults to ``true``.
 ``shared``
 ''''''''''
 
-This option should be set to true if the URI's location is accessible by more
+This option should be set to true if the URIs location is accessible by more
 than one CrateDB node to prevent them from importing the same file.
 
 The default value depends on the scheme of each URI.
