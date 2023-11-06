@@ -157,6 +157,8 @@
 
             <!-- To support -XX:StartFlightRecording=[...] -->
             <addModule>jdk.jfr</addModule>
+
+            <addModule>jdk.jcmd</addModule>
           </addModules>
         </configuration>
       </plugin>
