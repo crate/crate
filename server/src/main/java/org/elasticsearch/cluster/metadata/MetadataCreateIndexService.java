@@ -325,12 +325,18 @@ public class MetadataCreateIndexService {
             assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
 
             Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+            final Index recoverFromIndex = request.recoverFrom();
             Map<String, Object> mapping;
             String mappingStr = request.mapping();
             if (mappingStr == null) {
                 // Can be null on resize.
                 if (createTableRequest == null) {
-                    mapping = new HashMap<>(); // resize doesn't change mapping, will be merged below as is.
+                    if (recoverFromIndex == null) {
+                        mapping = new HashMap<>();
+                    } else {
+                        IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
+                        mapping = sourceMetadata.mapping().sourceAsMap();
+                    }
                 } else {
                     List<Reference> references = DocReferences.applyOid(
                             createTableRequest.references(),
@@ -376,8 +382,6 @@ public class MetadataCreateIndexService {
             final IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(request.index());
 
             final int routingNumShards;
-
-            final Index recoverFromIndex = request.recoverFrom();
             if (recoverFromIndex == null) {
                 Settings idxSettings = indexSettingsBuilder.build();
                 routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(idxSettings);

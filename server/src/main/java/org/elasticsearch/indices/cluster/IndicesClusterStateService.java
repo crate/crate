@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -96,6 +97,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.replication.logical.ShardReplicationService;
@@ -619,6 +621,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             LOGGER.debug("{} creating shard with primary term [{}]", shardRouting.shardId(), primaryTerm);
             RecoveryState recoveryState = new RecoveryState(shardRouting, nodes.getLocalNode(), sourceNode);
             indicesService.createShard(
+                state,
                 shardRouting,
                 recoveryState,
                 recoveryTargetService,
@@ -627,7 +630,10 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                 failedShardHandler,
                 this::updateGlobalCheckpointForShard,
                 retentionLeaseSyncer
-            );
+            ).exceptionally(err -> {
+                failAndRemoveShard(shardRouting, true, "failed to create shard", Exceptions.toException(err), state);
+                return null;
+            });
         } catch (Exception e) {
             failAndRemoveShard(shardRouting, true, "failed to create shard", e, state);
         }
@@ -911,14 +917,15 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         /**
          * Creates shard for the specified shard routing and starts recovery,
          */
-        T createShard(ShardRouting shardRouting,
-                      RecoveryState recoveryState,
-                      PeerRecoveryTargetService recoveryTargetService,
-                      PeerRecoveryTargetService.RecoveryListener recoveryListener,
-                      RepositoriesService repositoriesService,
-                      Consumer<IndexShard.ShardFailure> onShardFailure,
-                      Consumer<ShardId> globalCheckpointSyncer,
-                      RetentionLeaseSyncer retentionLeaseSyncer) throws IOException;
+        CompletableFuture<T> createShard(ClusterState state,
+                                         ShardRouting shardRouting,
+                                         RecoveryState recoveryState,
+                                         PeerRecoveryTargetService recoveryTargetService,
+                                         PeerRecoveryTargetService.RecoveryListener recoveryListener,
+                                         RepositoriesService repositoriesService,
+                                         Consumer<IndexShard.ShardFailure> onShardFailure,
+                                         Consumer<ShardId> globalCheckpointSyncer,
+                                         RetentionLeaseSyncer retentionLeaseSyncer) throws IOException;
 
         /**
          * Returns shard for the specified id if it exists otherwise returns <code>null</code>.
