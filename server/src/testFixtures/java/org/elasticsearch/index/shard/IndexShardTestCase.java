@@ -283,7 +283,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
     }
 
     public static boolean recoverFromStore(IndexShard newShard) throws IOException {
-        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
+        final FutureActionListener<Boolean> future = new FutureActionListener<>();
         newShard.recoverFromStore(future);
         return FutureUtils.get(future);
     }
@@ -920,7 +920,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             new RecoverySource.SnapshotRecoverySource(UUIDs.randomBase64UUID(), snapshot, version, indexId);
         final ShardRouting shardRouting = newShardRouting(shardId, node.getId(), true, ShardRoutingState.INITIALIZING, recoverySource);
         shard.markAsRecovering("from snapshot", new RecoveryState(shardRouting, node, null));
-        final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
+        final FutureActionListener<Void> future = new FutureActionListener<>();
         repository.restoreShard(shard.store(),
                                 snapshot.getSnapshotId(),
                                 indexId,
@@ -943,7 +943,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final IndexShardSnapshotStatus snapshotStatus = IndexShardSnapshotStatus.newInitializing(
             ESBlobStoreTestCase.getRepositoryData(repository).shardGenerations().getShardGen(
                 indexId, shard.shardId().id()));
-        final FutureActionListener<String, String> future = FutureActionListener.newInstance();
+        final FutureActionListener<String> future = new FutureActionListener<>();
         final String shardGen;
         try (Engine.IndexCommitRef indexCommitRef = shard.acquireLastIndexCommit(true)) {
             repository.snapshotShard(shard.store(), shard.mapperService(), snapshot.getSnapshotId(), indexId,

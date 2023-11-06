@@ -170,7 +170,7 @@ public final class TransportAnalyzeAction {
 
     private CompletableFuture<AcknowledgedResponse> publishTableStats(Map<RelationName, Stats> newTableStats) {
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
-        var listener = new FutureActionListener<AcknowledgedResponse, AcknowledgedResponse>(x -> x);
+        var listener = new FutureActionListener<AcknowledgedResponse>();
         var multiListener = new MultiActionListener<>(
             discoveryNodes.getSize(),
             Collectors.reducing(
@@ -224,7 +224,7 @@ public final class TransportAnalyzeAction {
 
     @SuppressWarnings("rawtypes")
     private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
-        FutureActionListener<FetchSampleResponse, Samples> listener = new FutureActionListener<>(FetchSampleResponse::samples);
+        FutureActionListener<FetchSampleResponse> listener = new FutureActionListener<>();
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
         MultiActionListener<FetchSampleResponse, ?, FetchSampleResponse> multiListener = new MultiActionListener<>(
             discoveryNodes.getSize(),
@@ -247,6 +247,6 @@ public final class TransportAnalyzeAction {
                 responseHandler
             );
         }
-        return listener;
+        return listener.thenApply(FetchSampleResponse::samples);
     }
 }

@@ -1192,7 +1192,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         if (latestKnownRepoGen.get() == RepositoryData.CORRUPTED_REPO_GEN) {
             return CompletableFuture.failedFuture(corruptedStateException(null));
         }
-        FutureActionListener<RepositoryData, RepositoryData> listener = FutureActionListener.newInstance();
+        FutureActionListener<RepositoryData> listener = new FutureActionListener<>();
         threadPool.generic().execute(ActionRunnable.run(listener, () -> doGetRepositoryData(listener)));
         return listener;
     }

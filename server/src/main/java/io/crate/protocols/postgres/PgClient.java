@@ -618,7 +618,7 @@ public class PgClient extends AbstractClient {
 
     public <Request extends TransportRequest, Response extends TransportResponse> CompletableFuture<Response> execute(ActionType<Response> action, Request request) {
         return ensureConnected().thenCompose(connection -> {
-            FutureActionListener<Response, Response> future = FutureActionListener.newInstance();
+            FutureActionListener<Response> future = new FutureActionListener<>();
             if (request instanceof RemoteClusterAwareRequest remoteClusterAware) {
                 DiscoveryNode targetNode = remoteClusterAware.getPreferredTargetNode();
                 transportService.sendRequest(

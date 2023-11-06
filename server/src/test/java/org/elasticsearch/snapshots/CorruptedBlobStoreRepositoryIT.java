@@ -142,8 +142,6 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         execute("insert into doc.test1 values(1),(2)");
         execute("insert into doc.test2 values(1),(2)");
 
-        final String snapshot = "snapshot1";
-
         logger.info("--> creating snapshot");
         execute("create snapshot test.snapshot1 table doc.test1, doc.test2 with (wait_for_completion = true)");
 
@@ -155,7 +153,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         Files.move(repo.resolve("index-" + beforeMoveGen), repo.resolve("index-" + (beforeMoveGen + 1)));
 
         logger.info("--> set next generation as pending in the cluster state");
-        final FutureActionListener<Void, Void> csUpdateFuture = FutureActionListener.newInstance();
+        final FutureActionListener<Void> csUpdateFuture = new FutureActionListener<>();
         cluster().getCurrentMasterNodeInstance(ClusterService.class).submitStateUpdateTask("set pending generation",
             new ClusterStateUpdateTask() {
                 @Override

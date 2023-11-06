@@ -31,8 +31,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -48,6 +46,7 @@ import org.elasticsearch.index.translog.Translog.Operation;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
@@ -203,16 +202,7 @@ public class ShardReplicationChangesTracker implements Closeable {
             translogOps,
             response.maxSeqNoOfUpdatesOrDeletes()
         );
-        FutureActionListener<ReplicationResponse, ReplicationResponse> listener = new FutureActionListener<>(resp -> {
-            ShardInfo shardInfo = resp.getShardInfo();
-            if (shardInfo.getFailed() > 0) {
-                for (ReplicationResponse.ShardInfo.Failure failure : shardInfo.getFailures()) {
-                    LOGGER.error("[{}] Failed replaying changes. Failure: {}", shardId, failure);
-                }
-                throw new RuntimeException("Some changes failed while replaying");
-            }
-            return resp;
-        });
+        FutureActionListener<ReplicationResponse> listener = new FutureActionListener<>();
         var retryListener = new ReplayChangesRetryListener<>(
             threadPool.scheduler(),
             l -> localClient.execute(ReplayChangesAction.INSTANCE, replayRequest)
@@ -222,7 +212,16 @@ public class ShardReplicationChangesTracker implements Closeable {
         );
         localClient.execute(ReplayChangesAction.INSTANCE, replayRequest)
             .whenComplete(retryListener);
-        return listener;
+        return listener.thenApply(resp -> {
+            ShardInfo shardInfo = resp.getShardInfo();
+            if (shardInfo.getFailed() > 0) {
+                for (ReplicationResponse.ShardInfo.Failure failure : shardInfo.getFailures()) {
+                    LOGGER.error("[{}] Failed replaying changes. Failure: {}", shardId, failure);
+                }
+                throw new RuntimeException("Some changes failed while replaying");
+            }
+            return resp;
+        });
     }
 
     /**
