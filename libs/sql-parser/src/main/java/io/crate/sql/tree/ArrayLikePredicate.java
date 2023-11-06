@@ -51,7 +51,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
                               Expression escape,
                               boolean inverse,
                               boolean ignoreCase) {
-        super(pattern, arrayExpression, escape, false); // TODO
+        super(pattern, arrayExpression, escape, false);
         this.quantifier = quantifier;
         this.inverse = inverse;
         this.ignoreCase = ignoreCase;
@@ -65,6 +65,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
         return inverse;
     }
 
+    @Override
     public boolean ignoreCase() {
         return ignoreCase;
     }
