@@ -49,6 +49,8 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Re-added ``jcmd`` to the bundled JDK distribution.
+
 - Return meaningful error when trying to drop a column which itself or its
   sub-columns participates in a
   :ref:`table level constraint with other columns <check_constraint_multiple_cols>`.
