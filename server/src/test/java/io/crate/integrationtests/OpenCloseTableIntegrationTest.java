@@ -280,11 +280,11 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectPartitionedTableWhilePartitionIsClosed() throws Exception {
+    public void test_select_partitioned_table_containing_closed_partition() throws Exception {
         execute("create table partitioned_table (i int) partitioned by (i)");
-        ensureYellow();
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
         refresh();
+        ensureGreen(); // index must be active to be included in close
         execute("alter table partitioned_table partition (i=1) close");
         execute("select i from partitioned_table");
         assertEquals(4, response.rowCount());
@@ -295,9 +295,9 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     @Test
     public void testSelectClosedPartitionTable() throws Exception {
         execute("create table partitioned_table (i int) partitioned by (i)");
-        ensureYellow();
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
         refresh();
+        ensureGreen(); // index must be active to be included in close
         execute("alter table partitioned_table close");
         Asserts.assertSQLError(() -> execute("select i from partitioned_table"))
             .hasPGError(INTERNAL_ERROR)
