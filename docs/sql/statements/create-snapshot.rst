@@ -62,8 +62,8 @@ also possible to include only single partitions given the values of the
 partition columns.
 
 If ``ALL`` is used, every table in the cluster (except system tables, blob
-tables and information_schema tables) as well as all persistent settings and
-the full cluster metadata is included in the snapshot.
+tables and tables in the ``information_schema`` schema) as well as all
+persistent settings and the full cluster metadata is included in the snapshot.
 
 
 .. _sql-create-snapshot-parameters:

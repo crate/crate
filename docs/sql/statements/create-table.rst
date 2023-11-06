@@ -80,7 +80,7 @@ If the ``table_ident`` does not contain a schema, the table is created in the
 implicitly created, if it didn't exist yet.
 
 A table consists of one or more *base columns* and any number of *generated
-columns* and/or *table_constraints*.
+columns* and/or *table constraints*.
 
 The optional constraint clauses specify constraints (tests) that new or updated
 rows must satisfy for an ``INSERT``, ``UPDATE`` or ``COPY FROM`` operation to
