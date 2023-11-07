@@ -224,7 +224,7 @@ public class MetadataToASTNodeResolver {
                 if (tableInfo.primaryKey().size() == 1 && tableInfo.primaryKey().get(0).isSystemColumn()) {
                     return null;
                 }
-                return new PrimaryKeyConstraint<>(expressionsFromColumns(tableInfo.primaryKey()));
+                return new PrimaryKeyConstraint<>(tableInfo.pkConstraintName(), expressionsFromColumns(tableInfo.primaryKey()));
             }
             return null;
         }

@@ -75,6 +75,9 @@ public record AnalyzedAlterTableAddColumn(
             Reference reference = refBuilder.build(columns, table.ident(), bindParameter, toValue);
             if (refBuilder.isPrimaryKey()) {
                 primaryKeys.add(reference);
+                if (refBuilder.pkConstraintName() != null) {
+                    throw new IllegalArgumentException("Cannot alter the name of PRIMARY KEY constraint");
+                }
             }
             newColumns.add(reference);
         }

@@ -85,6 +85,7 @@ public class CreateTableRequestTest {
 
         CreateTableRequest request = new CreateTableRequest(
             rel,
+            null,
             refs,
             IntArrayList.from(3),
             Map.of("check1", "just_col > 0"),
@@ -109,4 +110,31 @@ public class CreateTableRequestTest {
         assertThat(fromStream.partitionedBy()).containsExactlyElementsOf(request.partitionedBy());
     }
 
+    @Test
+    public void test_streaming_pk_constraint_name() throws Exception {
+        CreateTableRequest request = new CreateTableRequest(
+            new RelationName(null, "dummy"),
+            "constraint_1",
+            List.of(),
+            new IntArrayList(),
+            Map.of(),
+            Settings.EMPTY,
+            null,
+            ColumnPolicy.DYNAMIC,
+            List.of()
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+        CreateTableRequest actual = new CreateTableRequest(out.bytes().streamInput());
+        assertThat(actual.pkConstraintName()).isEqualTo("constraint_1");
+
+        out = new BytesStreamOutput();
+        out.setVersion(Version.V_5_5_0);
+        request.writeTo(out);
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_5_5_0);
+        actual = new CreateTableRequest(in);
+        assertThat(actual.pkConstraintName()).isNull();
+    }
 }

@@ -701,6 +701,8 @@ public class TestStatementBuilder {
         printStatement("create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards with (number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=-4)");
+        printStatement("create table t (id integer constraint my_constraint_1 check (id > 0) constraint my_constraint_2 primary key not null)");
+        printStatement("create table t (id integer, constraint my_constraint_1 primary key (id))");
         printStatement("create table t (o object(dynamic) as (i integer, d double))");
         printStatement("create table t (id integer, name string, primary key (id))");
         printStatement("create table t (id integer, name string null, primary key (id))");
@@ -746,6 +748,18 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 int, col2 timestamp without time zone not null)");
 
         printStatement("create table test (col1 string storage with (columnstore = false))");
+    }
+
+    @Test
+    public void test_named_primary_key_constraint_without_name_is_not_allowed() {
+        assertThatThrownBy(
+            () -> printStatement("create table t (a int CONSTRAINT primary key)"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:34: no viable alternative at input 'CONSTRAINT primary key'");
+        assertThatThrownBy(
+            () -> printStatement("create table t (a int, CONSTRAINT primary key (a))"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:35: no viable alternative at input 'CONSTRAINT primary key'");
     }
 
     @Test

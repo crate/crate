@@ -255,6 +255,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
             Map.of(),
             Map.of(),
             Map.of(),
+            null,
             List.of(),
             List.of(),
             null,

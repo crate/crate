@@ -191,6 +191,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         private boolean nullable = true;
         private GenericProperties<Symbol> indexProperties = GenericProperties.empty();
         private boolean primaryKey;
+        @Nullable
+        private String pkConstraintName;
         private boolean explicitNullable;
         private Symbol generated;
         private Symbol defaultExpression;
@@ -208,6 +210,11 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             this.type = type;
         }
 
+        @Nullable
+        public String pkConstraintName() {
+            return pkConstraintName;
+        }
+
         public boolean isPrimaryKey() {
             return primaryKey;
         }
@@ -215,7 +222,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         public boolean isExplicitlyNull() {
             return explicitNullable;
         }
-        
+
         public Reference build(Map<ColumnIdent, RefBuilder> columns,
                                RelationName tableName,
                                Function<Symbol, Symbol> bindParameter,
@@ -626,19 +633,19 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             } else if (constraint instanceof NotNullColumnConstraint<Expression>) {
                 builder.nullable = false;
                 if (builder.explicitNullable) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, 
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Column \"%s\" is declared NULL, therefore, cannot be declared NOT NULL", columnName));
                 }
-            } else if (constraint instanceof PrimaryKeyColumnConstraint<Expression>) {
-                markAsPrimaryKey(builder);
+            } else if (constraint instanceof PrimaryKeyColumnConstraint<Expression> primaryKeyColumnConstraint) {
+                markAsPrimaryKey(builder, primaryKeyColumnConstraint.constraintName());
             } else if (constraint instanceof NullColumnConstraint<Expression>) {
                 builder.explicitNullable = true;
                 if (builder.primaryKey) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, 
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Column \"%s\" is declared as PRIMARY KEY, therefore, cannot be declared NULL", columnName));
                 }
                 if (!builder.nullable) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, 
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Column \"%s\" is declared as NOT NULL, therefore, cannot be declared NULL", columnName));
                 }
             }
@@ -684,7 +691,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 if (column == null) {
                     throw new ColumnUnknownException(columnIdent, tableName);
                 }
-                markAsPrimaryKey(column);
+                markAsPrimaryKey(column, pkConstraint.constraintName());
             }
 
             return null;
@@ -749,11 +756,12 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         return sb.toString();
     }
 
-    private void markAsPrimaryKey(RefBuilder column) {
+    private void markAsPrimaryKey(RefBuilder column, @Nullable String pkConstraintName) {
         if (column.explicitNullable) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Column \"%s\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY", column.name));
         }
+        column.pkConstraintName = pkConstraintName;
         column.primaryKey = true;
         ColumnIdent columnName = column.name;
         DataType<?> type = column.type;
