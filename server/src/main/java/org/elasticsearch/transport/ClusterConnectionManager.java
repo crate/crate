@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,7 +36,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.RunOnce;
 
@@ -50,8 +50,8 @@ public class ClusterConnectionManager implements ConnectionManager {
 
     private static final Logger LOGGER = LogManager.getLogger(ClusterConnectionManager.class);
 
-    private final ConcurrentMap<DiscoveryNode, Transport.Connection> connectedNodes = ConcurrentCollections.newConcurrentMap();
-    private final ConcurrentMap<DiscoveryNode, CompletableFuture<Void>> pendingConnections = ConcurrentCollections.newConcurrentMap();
+    private final ConcurrentMap<DiscoveryNode, Transport.Connection> connectedNodes = new ConcurrentHashMap<>();
+    private final ConcurrentMap<DiscoveryNode, CompletableFuture<Void>> pendingConnections = new ConcurrentHashMap<>();
     private final AbstractRefCounted connectingRefCounter = new AbstractRefCounted("connection manager") {
         @Override
         protected void closeInternal() {

@@ -22,6 +22,7 @@ package org.elasticsearch.transport;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -54,7 +55,7 @@ final class TransportKeepAlive implements Closeable {
     private final Logger logger = LogManager.getLogger(TransportKeepAlive.class);
     private final CounterMetric successfulPings = new CounterMetric();
     private final CounterMetric failedPings = new CounterMetric();
-    private final ConcurrentMap<TimeValue, ScheduledPing> pingIntervals = ConcurrentCollections.newConcurrentMap();
+    private final ConcurrentMap<TimeValue, ScheduledPing> pingIntervals = new ConcurrentHashMap<>();
     private final Lifecycle lifecycle = new Lifecycle();
     private final ThreadPool threadPool;
     private final BiFunction<CloseableChannel, byte[], ChannelFuture> pingSender;

@@ -19,7 +19,6 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 import java.io.IOException;
@@ -27,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -92,7 +92,7 @@ public class FollowersChecker {
     private final Consumer<FollowerCheckRequest> handleRequestAndUpdateState;
 
     private final Object mutex = new Object(); // protects writes to this state; read access does not need sync
-    private final Map<DiscoveryNode, FollowerChecker> followerCheckers = newConcurrentMap();
+    private final Map<DiscoveryNode, FollowerChecker> followerCheckers = new ConcurrentHashMap<>();
     private final Set<DiscoveryNode> faultyNodes = new HashSet<>();
 
     private final TransportService transportService;

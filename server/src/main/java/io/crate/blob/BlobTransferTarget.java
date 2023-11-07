@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -40,7 +41,6 @@ import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequestOptions;
@@ -61,7 +61,7 @@ public class BlobTransferTarget {
 
     private static final Logger LOGGER = LogManager.getLogger(BlobTransferTarget.class);
 
-    private final ConcurrentMap<UUID, BlobTransferStatus> activeTransfers = ConcurrentCollections.newConcurrentMap();
+    private final ConcurrentMap<UUID, BlobTransferStatus> activeTransfers = new ConcurrentHashMap<>();
 
     private final BlobIndicesService blobIndicesService;
     private final ThreadPool threadPool;

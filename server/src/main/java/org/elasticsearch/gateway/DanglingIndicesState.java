@@ -19,7 +19,19 @@
 
 package org.elasticsearch.gateway;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import static java.util.Collections.emptyMap;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -31,21 +43,10 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.emptyMap;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 /**
  * The dangling indices state is responsible for finding new dangling indices (indices that have
@@ -68,7 +69,7 @@ public class DanglingIndicesState implements ClusterStateListener {
     private final LocalAllocateDangledIndices allocateDangledIndices;
     private final boolean isAutoImportDanglingIndicesEnabled;
 
-    private final Map<Index, IndexMetadata> danglingIndices = ConcurrentCollections.newConcurrentMap();
+    private final Map<Index, IndexMetadata> danglingIndices = new ConcurrentHashMap<>();
 
     @Inject
     public DanglingIndicesState(NodeEnvironment nodeEnv, MetaStateService metaStateService,

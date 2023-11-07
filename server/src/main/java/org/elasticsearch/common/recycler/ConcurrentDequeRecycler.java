@@ -19,9 +19,8 @@
 
 package org.elasticsearch.common.recycler;
 
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-
 import java.util.Deque;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -33,7 +32,7 @@ public class ConcurrentDequeRecycler<T> extends DequeRecycler<T> {
     final AtomicInteger size;
 
     public ConcurrentDequeRecycler(C<T> c, int maxSize) {
-        super(c, ConcurrentCollections.newDeque(), maxSize);
+        super(c, new ConcurrentLinkedDeque<>(), maxSize);
         this.size = new AtomicInteger();
     }
 

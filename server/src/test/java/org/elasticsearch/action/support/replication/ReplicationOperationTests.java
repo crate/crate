@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -732,9 +733,9 @@ public class ReplicationOperationTests extends ESTestCase {
 
         final Set<ShardRouting> failedReplicas = ConcurrentCollections.newConcurrentSet();
 
-        final Map<String, Long> generatedLocalCheckpoints = ConcurrentCollections.newConcurrentMap();
+        final Map<String, Long> generatedLocalCheckpoints = new ConcurrentHashMap<>();
 
-        final Map<String, Long> generatedGlobalCheckpoints = ConcurrentCollections.newConcurrentMap();
+        final Map<String, Long> generatedGlobalCheckpoints = new ConcurrentHashMap<>();
 
         final Set<String> markedAsStaleCopies = ConcurrentCollections.newConcurrentSet();
 

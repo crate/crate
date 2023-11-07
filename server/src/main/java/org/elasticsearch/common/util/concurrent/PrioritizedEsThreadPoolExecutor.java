@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -45,7 +46,7 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
 
     private static final TimeValue NO_WAIT_TIME_VALUE = TimeValue.timeValueMillis(0);
     private final AtomicLong insertionOrder = new AtomicLong();
-    private final Queue<Runnable> current = ConcurrentCollections.newQueue();
+    private final Queue<Runnable> current = new ConcurrentLinkedQueue<>();
     private final ScheduledExecutorService timer;
 
     public PrioritizedEsThreadPoolExecutor(String name,

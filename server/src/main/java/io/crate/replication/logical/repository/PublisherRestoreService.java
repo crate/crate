@@ -27,6 +27,7 @@ import java.io.UncheckedIOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.apache.lucene.store.IOContext;
@@ -58,7 +59,7 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
 
     private final IndicesService indicesService;
     private final NodeClient nodeClient;
-    private final Map<String, RestoreContext> onGoingRestores = ConcurrentCollections.newConcurrentMap();
+    private final Map<String, RestoreContext> onGoingRestores = new ConcurrentHashMap<>();
     private final Set<Closeable> closableResources = ConcurrentCollections.newConcurrentSet();
 
     @Inject

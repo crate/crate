@@ -19,17 +19,17 @@
 
 package org.elasticsearch.test.transport;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.TransportRequest;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.transport.Transport;
+import org.elasticsearch.transport.TransportRequest;
 
 /**
  * A transport class that doesn't send anything but rather captures all requests for inspection from tests
@@ -50,7 +50,7 @@ public class CapturingTransport extends MockTransport implements Transport {
         }
     }
 
-    private BlockingQueue<CapturedRequest> capturedRequests = ConcurrentCollections.newBlockingQueue();
+    private BlockingQueue<CapturedRequest> capturedRequests = new LinkedTransferQueue<>();
 
     /**
      * returns all requests captured so far. Doesn't clear the captured request list. See {@link #clear()}

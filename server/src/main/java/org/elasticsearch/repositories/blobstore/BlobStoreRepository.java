@@ -101,7 +101,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -959,8 +958,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             final Map<IndexId, String> indexMetas;
             final Map<String, String> indexMetaIdentifiers;
             if (writeIndexGens) {
-                indexMetaIdentifiers = ConcurrentCollections.newConcurrentMap();
-                indexMetas = ConcurrentCollections.newConcurrentMap();
+                indexMetaIdentifiers = new ConcurrentHashMap<>();
+                indexMetas = new ConcurrentHashMap<>();
             } else {
                 indexMetas = null;
                 indexMetaIdentifiers = null;

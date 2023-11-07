@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -68,7 +69,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -528,7 +528,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         protected void doRun() throws Exception {
-            final Map<Index, AcknowledgedResponse> results = ConcurrentCollections.newConcurrentMap();
+            final Map<Index, AcknowledgedResponse> results = new ConcurrentHashMap<>();
             final CountDown countDown = new CountDown(blockedIndices.size());
             final ClusterState state = clusterService.state();
             blockedIndices.forEach((index, block) -> {
