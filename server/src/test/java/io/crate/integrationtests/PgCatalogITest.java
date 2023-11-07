@@ -450,4 +450,11 @@ public class PgCatalogITest extends IntegTestCase {
             """;
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(pgAttributeRows);
     }
+
+    @Test
+    public void test_named_primary_key_constraint_names_are_visible() {
+        execute("create table t (aa int constraint c_aa primary key)");
+        execute("select conname from pg_catalog.pg_constraint where conname = 'c_aa'");
+        assertThat(response).hasRows("c_aa");
+    }
 }
