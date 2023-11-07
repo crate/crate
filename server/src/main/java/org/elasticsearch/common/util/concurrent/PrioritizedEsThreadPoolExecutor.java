@@ -153,15 +153,6 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
         }
     }
 
-    @Override
-    protected Runnable unwrap(Runnable runnable) {
-        if (runnable instanceof WrappedRunnable wrapped) {
-            return super.unwrap(wrapped.unwrap());
-        } else {
-            return super.unwrap(runnable);
-        }
-    }
-
     public static class Pending {
         public final Object task;
         public final Priority priority;
