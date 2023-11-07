@@ -70,7 +70,8 @@ value for the remainder of your terminal session.
 
 Filter tests::
 
-    $ ./mvnw '-Dtest=PlannerTest#testSet*' test -pl server
+    $ ./mvnw test -pl server -Dtest=PlannerTest -Dtests.method=testSetTimeZone
+    $ ./mvnw test -pl server -Dtest=PlannerTest '-Dtests.method=testSetTime*'
 
 Extra options::
 
