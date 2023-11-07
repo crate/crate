@@ -29,8 +29,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -51,7 +49,6 @@ import org.elasticsearch.cluster.metadata.ProcessClusterEventTimeoutException;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
@@ -65,6 +62,7 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
@@ -139,31 +137,15 @@ public class MasterService extends AbstractLifecycleComponent {
         protected void onTimeout(List<? extends BatchedTask> tasks, TimeValue timeout) {
             threadPool.generic().execute(
                 () -> tasks.forEach(
-                    task -> ((UpdateTask) task).listener.onFailure(task.source,
+                    task -> task.listener.onFailure(task.source,
                         new ProcessClusterEventTimeoutException(timeout, task.source))));
         }
 
         @Override
         protected void run(Object batchingKey, List<? extends BatchedTask> tasks, String tasksSummary) {
             ClusterStateTaskExecutor<Object> taskExecutor = (ClusterStateTaskExecutor<Object>) batchingKey;
-            List<UpdateTask> updateTasks = (List<UpdateTask>) tasks;
+            List<BatchedTask> updateTasks = (List<BatchedTask>) tasks;
             runTasks(new TaskInputs(taskExecutor, updateTasks, tasksSummary));
-        }
-
-        class UpdateTask extends BatchedTask {
-            final ClusterStateTaskListener listener;
-
-            UpdateTask(Priority priority, String source, Object task, ClusterStateTaskListener listener,
-                       ClusterStateTaskExecutor<?> executor) {
-                super(priority, source, executor, task);
-                this.listener = listener;
-            }
-
-            @Override
-            public String describeTasks(List<? extends BatchedTask> tasks) {
-                return ((ClusterStateTaskExecutor<Object>) batchingKey).describeTasks(
-                    tasks.stream().map(BatchedTask::getTask).collect(Collectors.toList()));
-            }
         }
     }
 
@@ -393,12 +375,12 @@ public class MasterService extends AbstractLifecycleComponent {
         final TaskInputs taskInputs;
         final ClusterState previousClusterState;
         final ClusterState newClusterState;
-        final List<Batcher.UpdateTask> nonFailedTasks;
+        final List<Batcher.BatchedTask> nonFailedTasks;
         final Map<Object, ClusterStateTaskExecutor.TaskResult> executionResults;
 
         TaskOutputs(TaskInputs taskInputs, ClusterState previousClusterState,
                            ClusterState newClusterState,
-                           List<Batcher.UpdateTask> nonFailedTasks,
+                           List<Batcher.BatchedTask> nonFailedTasks,
                            Map<Object, ClusterStateTaskExecutor.TaskResult> executionResults) {
             this.taskInputs = taskInputs;
             this.previousClusterState = previousClusterState;
@@ -433,7 +415,7 @@ public class MasterService extends AbstractLifecycleComponent {
 
         void notifyFailedTasks() {
             // fail all tasks that have failed
-            for (Batcher.UpdateTask updateTask : taskInputs.updateTasks) {
+            for (Batcher.BatchedTask updateTask : taskInputs.updateTasks) {
                 assert executionResults.containsKey(updateTask.task) : "missing " + updateTask;
                 final ClusterStateTaskExecutor.TaskResult taskResult = executionResults.get(updateTask.task);
                 if (taskResult.isSuccess() == false) {
@@ -697,7 +679,7 @@ public class MasterService extends AbstractLifecycleComponent {
     private ClusterTasksResult<Object> executeTasks(TaskInputs taskInputs, ClusterState previousClusterState) {
         ClusterTasksResult<Object> clusterTasksResult;
         try {
-            List<Object> inputs = taskInputs.updateTasks.stream().map(tUpdateTask -> tUpdateTask.task).collect(Collectors.toList());
+            List<Object> inputs = taskInputs.updateTasks.stream().map(tBatchedTask -> tBatchedTask.task).collect(Collectors.toList());
             clusterTasksResult = taskInputs.executor.execute(previousClusterState, inputs);
             if (previousClusterState != clusterTasksResult.resultingState &&
                 previousClusterState.nodes().isLocalNodeElectedMaster() &&
@@ -734,7 +716,7 @@ public class MasterService extends AbstractLifecycleComponent {
         return clusterTasksResult;
     }
 
-    private List<Batcher.UpdateTask> getNonFailedTasks(TaskInputs taskInputs,
+    private List<Batcher.BatchedTask> getNonFailedTasks(TaskInputs taskInputs,
                                                       ClusterTasksResult<Object> clusterTasksResult) {
         return taskInputs.updateTasks.stream().filter(updateTask -> {
             assert clusterTasksResult.executionResults.containsKey(updateTask.task) : "missing " + updateTask;
@@ -749,10 +731,10 @@ public class MasterService extends AbstractLifecycleComponent {
      */
     private class TaskInputs {
         final String summary;
-        final List<Batcher.UpdateTask> updateTasks;
+        final List<Batcher.BatchedTask> updateTasks;
         final ClusterStateTaskExecutor<Object> executor;
 
-        TaskInputs(ClusterStateTaskExecutor<Object> executor, List<Batcher.UpdateTask> updateTasks, String summary) {
+        TaskInputs(ClusterStateTaskExecutor<Object> executor, List<Batcher.BatchedTask> updateTasks, String summary) {
             this.summary = summary;
             this.executor = executor;
             this.updateTasks = updateTasks;
@@ -781,15 +763,16 @@ public class MasterService extends AbstractLifecycleComponent {
      *
      */
     public <T> void submitStateUpdateTasks(final String source,
-                                           final Map<T, ClusterStateTaskListener> tasks, final ClusterStateTaskConfig config,
+                                           final Map<T, ClusterStateTaskListener> tasks,
+                                           final ClusterStateTaskConfig config,
                                            final ClusterStateTaskExecutor<T> executor) {
         if (!lifecycle.started()) {
             return;
         }
         try {
-            List<Batcher.UpdateTask> safeTasks = tasks.entrySet().stream()
-                .map(e -> taskBatcher.new UpdateTask(config.priority(), source, e.getKey(), safe(e.getValue()), executor))
-                .collect(Collectors.toList());
+            List<Batcher.BatchedTask> safeTasks = tasks.entrySet().stream()
+                .map(e -> taskBatcher.new BatchedTask(config.priority(), source, e.getKey(), safe(e.getValue()), executor))
+                .toList();
             taskBatcher.submitTasks(safeTasks, config.timeout());
         } catch (EsRejectedExecutionException e) {
             // ignore cases where we are shutting down..., there is really nothing interesting
