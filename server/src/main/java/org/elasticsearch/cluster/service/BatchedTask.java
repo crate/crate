@@ -27,15 +27,14 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.ClusterStateTaskListener;
 import org.elasticsearch.common.Priority;
 
+import io.crate.common.collections.Lists2;
+
 /**
  * Represents a runnable task that supports batching.
- * Implementors of TaskBatcher can subclass this to add a payload to the task.
  */
-public final class BatchedTask extends SourcePrioritizedRunnable {
-    /**
-     *
-     */
-    private final TaskBatcher taskBatcher;
+public final class BatchedTask<T> extends SourcePrioritizedRunnable {
+
+    private final TaskBatcher<T> taskBatcher;
 
     /**
      * whether the task has been processed already
@@ -45,20 +44,20 @@ public final class BatchedTask extends SourcePrioritizedRunnable {
     /**
      * the object that is used as batching key
      */
-    protected final ClusterStateTaskExecutor<?> batchingKey;
+    protected final ClusterStateTaskExecutor<T> batchingKey;
     /**
      * the task object that is wrapped
      */
-    protected final Object task;
+    protected final T task;
 
     protected final ClusterStateTaskListener listener;
 
-    public BatchedTask(TaskBatcher taskBatcher,
+    public BatchedTask(TaskBatcher<T> taskBatcher,
                        Priority priority,
                        String source,
-                       Object task,
+                       T task,
                        ClusterStateTaskListener listener,
-                       ClusterStateTaskExecutor<?> batchingKey) {
+                       ClusterStateTaskExecutor<T> batchingKey) {
         super(priority, source);
         this.taskBatcher = taskBatcher;
         this.batchingKey = batchingKey;
@@ -81,14 +80,11 @@ public final class BatchedTask extends SourcePrioritizedRunnable {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public String describeTasks(List<? extends BatchedTask> tasks) {
-        return ((ClusterStateTaskExecutor<Object>) batchingKey).describeTasks(
-            tasks.stream().map(BatchedTask::getTask).toList()
-        );
+    public String describeTasks(List<? extends BatchedTask<T>> tasks) {
+        return batchingKey.describeTasks(Lists2.mapLazy(tasks, BatchedTask::getTask));
     }
 
-    public Object getTask() {
+    public T getTask() {
         return task;
     }
 }

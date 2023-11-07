@@ -45,34 +45,34 @@ import io.crate.common.unit.TimeValue;
  * Batching support for {@link PrioritizedEsThreadPoolExecutor}
  * Tasks that share the same batching key are batched (see {@link BatchedTask#batchingKey})
  */
-public final class TaskBatcher {
+public final class TaskBatcher<T> {
 
     private final Logger logger;
     private final PrioritizedEsThreadPoolExecutor threadExecutor;
     // package visible for tests
-    final Map<Object, LinkedHashSet<BatchedTask>> tasksPerBatchingKey = new HashMap<>();
-    private final Consumer<TaskInputs> runTasks;
+    final Map<ClusterStateTaskExecutor<T>, LinkedHashSet<BatchedTask<T>>> tasksPerBatchingKey = new HashMap<>();
+    private final Consumer<TaskInputs<T>> runTasks;
     private final Executor genericExecutor;
 
     public TaskBatcher(Logger logger,
                        Executor genericExecutor,
                        PrioritizedEsThreadPoolExecutor threadExecutor,
-                       Consumer<TaskInputs> runTasks) {
+                       Consumer<TaskInputs<T>> runTasks) {
         this.logger = logger;
         this.genericExecutor = genericExecutor;
         this.threadExecutor = threadExecutor;
         this.runTasks = runTasks;
     }
 
-    public void submitTasks(List<? extends BatchedTask> tasks, @Nullable TimeValue timeout) throws EsRejectedExecutionException {
+    public void submitTasks(List<BatchedTask<T>> tasks, @Nullable TimeValue timeout) throws EsRejectedExecutionException {
         if (tasks.isEmpty()) {
             return;
         }
-        final BatchedTask firstTask = tasks.get(0);
+        final BatchedTask<T> firstTask = tasks.get(0);
         assert tasks.stream().allMatch(t -> t.batchingKey == firstTask.batchingKey) :
             "tasks submitted in a batch should share the same batching key: " + tasks;
         // convert to an identity map to check for dups based on task identity
-        final Map<Object, BatchedTask> tasksIdentity = tasks.stream().collect(Collectors.toMap(
+        final Map<T, BatchedTask<T>> tasksIdentity = tasks.stream().collect(Collectors.toMap(
             BatchedTask::getTask,
             Function.identity(),
             (a, b) -> {
@@ -82,11 +82,11 @@ public final class TaskBatcher {
         );
 
         synchronized (tasksPerBatchingKey) {
-            LinkedHashSet<BatchedTask> existingTasks = tasksPerBatchingKey.computeIfAbsent(firstTask.batchingKey,
+            LinkedHashSet<BatchedTask<T>> existingTasks = tasksPerBatchingKey.computeIfAbsent(firstTask.batchingKey,
                 k -> new LinkedHashSet<>(tasks.size()));
-            for (BatchedTask existing : existingTasks) {
+            for (BatchedTask<T> existing : existingTasks) {
                 // check that there won't be two tasks with the same identity for the same batching key
-                BatchedTask duplicateTask = tasksIdentity.get(existing.getTask());
+                BatchedTask<T> duplicateTask = tasksIdentity.get(existing.getTask());
                 if (duplicateTask != null) {
                     throw new IllegalStateException("task [" + duplicateTask.describeTasks(
                         Collections.singletonList(existing)) + "] with source [" + duplicateTask.source + "] is already queued");
@@ -102,21 +102,21 @@ public final class TaskBatcher {
         }
     }
 
-    private void onTimeoutInternal(List<? extends BatchedTask> tasks, TimeValue timeout) {
-        final ArrayList<BatchedTask> toRemove = new ArrayList<>();
-        for (BatchedTask task : tasks) {
+    private void onTimeoutInternal(List<BatchedTask<T>> tasks, TimeValue timeout) {
+        final ArrayList<BatchedTask<T>> toRemove = new ArrayList<>();
+        for (BatchedTask<T> task : tasks) {
             if (task.processed.getAndSet(true) == false) {
                 logger.debug("task [{}] timed out after [{}]", task.source, timeout);
                 toRemove.add(task);
             }
         }
         if (toRemove.isEmpty() == false) {
-            BatchedTask firstTask = toRemove.get(0);
+            BatchedTask<T> firstTask = toRemove.get(0);
             Object batchingKey = firstTask.batchingKey;
             assert tasks.stream().allMatch(t -> t.batchingKey == batchingKey) :
                 "tasks submitted in a batch should share the same batching key: " + tasks;
             synchronized (tasksPerBatchingKey) {
-                LinkedHashSet<BatchedTask> existingTasks = tasksPerBatchingKey.get(batchingKey);
+                LinkedHashSet<BatchedTask<T>> existingTasks = tasksPerBatchingKey.get(batchingKey);
                 if (existingTasks != null) {
                     existingTasks.removeAll(toRemove);
                     if (existingTasks.isEmpty()) {
@@ -132,23 +132,23 @@ public final class TaskBatcher {
      * Action to be implemented by the specific batching implementation.
      * All tasks have the same batching key.
      */
-    protected void onTimeout(List<? extends BatchedTask> tasks, TimeValue timeout) {
+    protected void onTimeout(List<BatchedTask<T>> tasks, TimeValue timeout) {
         genericExecutor.execute(() ->
             tasks.forEach(task -> task.listener.onFailure(
                 task.source,
                 new ProcessClusterEventTimeoutException(timeout, task.source))));
     }
 
-    void runIfNotProcessed(BatchedTask updateTask) {
+    void runIfNotProcessed(BatchedTask<T> updateTask) {
         // if this task is already processed, it shouldn't execute other tasks with same batching key that arrived later,
         // to give other tasks with different batching key a chance to execute.
         if (updateTask.processed.get() == false) {
-            final List<BatchedTask> toExecute = new ArrayList<>();
-            final Map<String, List<BatchedTask>> processTasksBySource = new HashMap<>();
+            final List<BatchedTask<T>> toExecute = new ArrayList<>();
+            final Map<String, List<BatchedTask<T>>> processTasksBySource = new HashMap<>();
             synchronized (tasksPerBatchingKey) {
-                LinkedHashSet<BatchedTask> pending = tasksPerBatchingKey.remove(updateTask.batchingKey);
+                LinkedHashSet<BatchedTask<T>> pending = tasksPerBatchingKey.remove(updateTask.batchingKey);
                 if (pending != null) {
-                    for (BatchedTask task : pending) {
+                    for (BatchedTask<T> task : pending) {
                         if (task.processed.getAndSet(true) == false) {
                             logger.trace("will process {}", task);
                             toExecute.add(task);
@@ -167,14 +167,8 @@ public final class TaskBatcher {
                 }).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
 
-                run(updateTask, toExecute, tasksSummary);
+                runTasks.accept(new TaskInputs<>(tasksSummary, toExecute, updateTask.batchingKey));
             }
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void run(BatchedTask updateTask, final List<BatchedTask> toExecute, final String tasksSummary) {
-        ClusterStateTaskExecutor<Object> executor = (ClusterStateTaskExecutor<Object>) updateTask.batchingKey;
-        runTasks.accept(new TaskInputs(tasksSummary, toExecute, executor));
     }
 }
