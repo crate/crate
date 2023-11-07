@@ -45,7 +45,6 @@ import org.elasticsearch.cluster.ClusterStateTaskListener;
 import org.elasticsearch.cluster.coordination.ClusterStatePublisher;
 import org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.ProcessClusterEventTimeoutException;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -88,7 +87,7 @@ public class MasterService extends AbstractLifecycleComponent {
     protected final ThreadPool threadPool;
 
     private volatile PrioritizedEsThreadPoolExecutor threadPoolExecutor;
-    private volatile Batcher taskBatcher;
+    private volatile TaskBatcher taskBatcher;
 
     public MasterService(Settings settings, ClusterSettings clusterSettings, ThreadPool threadPool) {
         this.nodeName = Objects.requireNonNull(Node.NODE_NAME_SETTING.get(settings));
@@ -116,7 +115,12 @@ public class MasterService extends AbstractLifecycleComponent {
         Objects.requireNonNull(clusterStatePublisher, "please set a cluster state publisher before starting");
         Objects.requireNonNull(clusterStateSupplier, "please set a cluster state supplier before starting");
         threadPoolExecutor = createThreadPoolExecutor();
-        taskBatcher = new Batcher(LOGGER, threadPoolExecutor);
+        taskBatcher = new TaskBatcher(
+            LOGGER,
+            threadPool.generic(),
+            threadPoolExecutor,
+            taskInputs -> runTasks(taskInputs)
+        );
     }
 
     protected PrioritizedEsThreadPoolExecutor createThreadPoolExecutor() {
@@ -124,29 +128,6 @@ public class MasterService extends AbstractLifecycleComponent {
                 nodeName + "/" + MASTER_UPDATE_THREAD_NAME,
                 daemonThreadFactory(nodeName, MASTER_UPDATE_THREAD_NAME),
                 threadPool.scheduler());
-    }
-
-    @SuppressWarnings("unchecked")
-    class Batcher extends TaskBatcher {
-
-        Batcher(Logger logger, PrioritizedEsThreadPoolExecutor threadExecutor) {
-            super(logger, threadExecutor);
-        }
-
-        @Override
-        protected void onTimeout(List<? extends BatchedTask> tasks, TimeValue timeout) {
-            threadPool.generic().execute(
-                () -> tasks.forEach(
-                    task -> task.listener.onFailure(task.source,
-                        new ProcessClusterEventTimeoutException(timeout, task.source))));
-        }
-
-        @Override
-        protected void run(Object batchingKey, List<? extends BatchedTask> tasks, String tasksSummary) {
-            ClusterStateTaskExecutor<Object> taskExecutor = (ClusterStateTaskExecutor<Object>) batchingKey;
-            List<BatchedTask> updateTasks = (List<BatchedTask>) tasks;
-            runTasks(new TaskInputs(taskExecutor, updateTasks, tasksSummary));
-        }
     }
 
     @Override
@@ -729,16 +710,9 @@ public class MasterService extends AbstractLifecycleComponent {
     /**
      * Represents a set of tasks to be processed together with their executor
      */
-    private class TaskInputs {
-        final String summary;
-        final List<BatchedTask> updateTasks;
-        final ClusterStateTaskExecutor<Object> executor;
-
-        TaskInputs(ClusterStateTaskExecutor<Object> executor, List<BatchedTask> updateTasks, String summary) {
-            this.summary = summary;
-            this.executor = executor;
-            this.updateTasks = updateTasks;
-        }
+    public record TaskInputs(String summary,
+                             List<BatchedTask> updateTasks,
+                             ClusterStateTaskExecutor<Object> executor) {
 
         boolean runOnlyWhenMaster() {
             return executor.runOnlyOnMaster();
