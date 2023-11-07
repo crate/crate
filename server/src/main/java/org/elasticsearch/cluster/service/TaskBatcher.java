@@ -26,14 +26,10 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.ClusterStateTaskExecutor;
-import org.elasticsearch.cluster.ClusterStateTaskListener;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
@@ -163,63 +159,4 @@ public abstract class TaskBatcher {
      * All tasks have the given batching key.
      */
     protected abstract void run(Object batchingKey, List<? extends BatchedTask> tasks, String tasksSummary);
-
-    /**
-     * Represents a runnable task that supports batching.
-     * Implementors of TaskBatcher can subclass this to add a payload to the task.
-     */
-    public final class BatchedTask extends SourcePrioritizedRunnable {
-        /**
-         * whether the task has been processed already
-         */
-        protected final AtomicBoolean processed = new AtomicBoolean();
-
-        /**
-         * the object that is used as batching key
-         */
-        protected final ClusterStateTaskExecutor<?> batchingKey;
-        /**
-         * the task object that is wrapped
-         */
-        protected final Object task;
-
-        protected final ClusterStateTaskListener listener;
-
-        public BatchedTask(Priority priority,
-                           String source,
-                           Object task,
-                           ClusterStateTaskListener listener,
-                           ClusterStateTaskExecutor<?> batchingKey) {
-            super(priority, source);
-            this.batchingKey = batchingKey;
-            this.task = task;
-            this.listener = listener;
-        }
-
-        @Override
-        public void run() {
-            runIfNotProcessed(this);
-        }
-
-        @Override
-        public String toString() {
-            String taskDescription = describeTasks(Collections.singletonList(this));
-            if (taskDescription.isEmpty()) {
-                return "[" + source + "]";
-            } else {
-                return "[" + source + "[" + taskDescription + "]]";
-            }
-        }
-
-        @SuppressWarnings("unchecked")
-        public String describeTasks(List<? extends BatchedTask> tasks) {
-            return ((ClusterStateTaskExecutor<Object>) batchingKey).describeTasks(
-                tasks.stream().map(BatchedTask::getTask).toList()
-            );
-        }
-
-        public Object getTask() {
-            return task;
-        }
-    }
 }
