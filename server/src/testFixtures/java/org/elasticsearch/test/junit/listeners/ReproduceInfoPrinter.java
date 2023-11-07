@@ -76,14 +76,13 @@ public class ReproduceInfoPrinter extends RunListener {
         final String mvnw = Constants.WINDOWS ? "mvnw" : "./mvnw";
         final StringBuilder b = new StringBuilder("REPRODUCE WITH: " + mvnw);
         b.append(" -pl server test");
-        b.append(" \"-Dtest=");
+        b.append(" -Dtest=");
         b.append(failure.getDescription().getClassName());
         String methodName = failure.getDescription().getMethodName();
         if (methodName != null) {
-            b.append("#");
+            b.append(" -Dtests.method=");
             b.append(methodName);
         }
-        b.append("\"");
         MessageBuilder messageBuilder = new MessageBuilder(b);
         messageBuilder.appendAllOpts(failure.getDescription());
 
