@@ -882,13 +882,13 @@ public class IndexShardTests extends IndexShardTestCase {
         final IndexShard differentIndex = newShard(new ShardId("index_2", "index_2", 0), true);
         recoverShardFromStore(differentIndex);
         assertThatThrownBy(() -> {
-            final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
+            final FutureActionListener<Boolean> future = new FutureActionListener<>();
             targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard, differentIndex), future);
             future.get();
         }).isExactlyInstanceOf(IllegalArgumentException.class);
         closeShards(differentIndex);
 
-        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
+        final FutureActionListener<Boolean> future = new FutureActionListener<>();
         targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard), future);
         assertThat(future.get()).isTrue();
         RecoveryState recoveryState = targetShard.recoveryState();
@@ -3439,7 +3439,7 @@ public class IndexShardTests extends IndexShardTestCase {
             Set.of(),
             Version.CURRENT);
         target.markAsRecovering("store", new RecoveryState(routing, localNode, null));
-        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
+        final FutureActionListener<Boolean> future = new FutureActionListener<>();
         target.restoreFromRepository(new RestoreOnlyRepository("test") {
 
                 @Override

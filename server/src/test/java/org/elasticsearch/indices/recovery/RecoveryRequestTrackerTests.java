@@ -57,7 +57,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
     @Test
     public void testIdempotencyIsEnforced() throws Exception {
         Set<Long> seqNosReturned = ConcurrentCollections.newConcurrentSet();
-        ConcurrentMap<Long, Set<FutureActionListener<Void, Void>>> seqToResult = ConcurrentCollections.newConcurrentMap();
+        ConcurrentMap<Long, Set<FutureActionListener<Void>>> seqToResult = ConcurrentCollections.newConcurrentMap();
 
         RecoveryRequestTracker requestTracker = new RecoveryRequestTracker();
 
@@ -66,8 +66,8 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
             final long seqNo = j;
             int iterations = randomIntBetween(2, 5);
             for (int i = 0; i < iterations; ++i) {
-                FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
-                Set<FutureActionListener<Void, Void>> set = seqToResult.computeIfAbsent(seqNo, (k) -> ConcurrentCollections.newConcurrentSet());
+                FutureActionListener<Void> future = new FutureActionListener<>();
+                Set<FutureActionListener<Void>> set = seqToResult.computeIfAbsent(seqNo, (k) -> ConcurrentCollections.newConcurrentSet());
                 set.add(future);
                 threadPool.generic().execute(() -> {
                     ActionListener<Void> listener = requestTracker.markReceivedAndCreateListener(seqNo, future);
@@ -94,7 +94,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
         });
 
         for (var value : seqToResult.values()) {
-            Optional<FutureActionListener<Void, Void>> first = value.stream().findFirst();
+            Optional<FutureActionListener<Void>> first = value.stream().findFirst();
             assertTrue(first.isPresent());
             Exception expectedException = null;
             try {

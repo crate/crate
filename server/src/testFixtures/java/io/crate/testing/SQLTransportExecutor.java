@@ -287,7 +287,7 @@ public class SQLTransportExecutor {
     public static CompletableFuture<SQLResponse> execute(String stmt,
                                                          @Nullable Object[] args,
                                                          Session session) {
-        FutureActionListener<SQLResponse, SQLResponse> future = FutureActionListener.newInstance();
+        FutureActionListener<SQLResponse> future = new FutureActionListener<>();
         execute(stmt, args, future, session);
         return future.exceptionally(err -> {
             Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));
@@ -582,7 +582,7 @@ public class SQLTransportExecutor {
      */
     private long[] executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
-            FutureActionListener<long[], long[]> listener = FutureActionListener.newInstance();
+            FutureActionListener<long[]> listener = new FutureActionListener<>();
             execute(stmt, bulkArgs, listener);
             var future = listener.exceptionally(err -> {
                 Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));

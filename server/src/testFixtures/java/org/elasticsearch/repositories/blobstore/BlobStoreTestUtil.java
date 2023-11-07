@@ -106,7 +106,7 @@ public final class BlobStoreTestUtil {
      *                 of this assertion must pass an executor on those when using such an implementation.
      */
     public static void assertConsistency(BlobStoreRepository repository, Executor executor) {
-        final FutureActionListener<AssertionError, AssertionError> listener = FutureActionListener.newInstance();
+        final FutureActionListener<AssertionError> listener = new FutureActionListener<>();
         executor.execute(ActionRunnable.supply(listener, () -> {
             try {
                 final BlobContainer blobContainer = repository.blobContainer();

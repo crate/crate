@@ -391,6 +391,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             Map.of(),
             Map.of(),
             Map.of(),
+            null,
             List.of(),
             List.of(),
             null,
@@ -479,7 +480,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 null)
         );
 
-        FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
+        FutureActionListener<Boolean> future = new FutureActionListener<>();
         shard.recoverFromStore(future);
         future.get(5, TimeUnit.SECONDS);
 

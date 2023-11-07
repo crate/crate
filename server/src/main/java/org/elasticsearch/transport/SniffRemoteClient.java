@@ -267,11 +267,11 @@ public final class SniffRemoteClient extends AbstractClient {
     }
 
     private CompletableFuture<Connection> connectWithHandshake(DiscoveryNode node) {
-        FutureActionListener<Connection, Connection> openedConnection = FutureActionListener.newInstance();
+        FutureActionListener<Connection> openedConnection = new FutureActionListener<>();
         transportService.openConnection(node, profile, openedConnection);
 
         CompletableFuture<HandshakeResponse> receivedHandshakeResponse = openedConnection.thenCompose(connection -> {
-            FutureActionListener<HandshakeResponse, HandshakeResponse> handshakeResponse = FutureActionListener.newInstance();
+            FutureActionListener<HandshakeResponse> handshakeResponse = new FutureActionListener<>();
             transportService.handshake(
                 connection,
                 profile.getHandshakeTimeout().millis(),
@@ -289,9 +289,9 @@ public final class SniffRemoteClient extends AbstractClient {
                     + "The publisher node must have a compatible version and needs to be a data node");
             }
             remoteClusterName.trySet(handshakeResponse.getClusterName());
-            FutureActionListener<Void, Connection> connectedListener = new FutureActionListener<>(ignored -> openedConnection.join());
+            FutureActionListener<Void> connectedListener = new FutureActionListener<>();
             transportService.connectToNode(handshakeNode, connectedListener);
-            return connectedListener;
+            return connectedListener.thenApply(ignored -> openedConnection.join());
         });
     }
 
@@ -306,7 +306,7 @@ public final class SniffRemoteClient extends AbstractClient {
             ? remoteClusterAware.getPreferredTargetNode()
             : null;
         return ensureConnected(targetNode).thenCompose(conn -> {
-            FutureActionListener<Resp, Resp> future = FutureActionListener.newInstance();
+            FutureActionListener<Resp> future = new FutureActionListener<>();
             var connection = targetNode == null ? conn : new ProxyConnection(conn, targetNode);
             transportService.sendRequest(
                 connection,

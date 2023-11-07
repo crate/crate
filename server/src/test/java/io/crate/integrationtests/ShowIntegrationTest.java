@@ -204,8 +204,8 @@ public class ShowIntegrationTest extends IntegTestCase {
 
         execute("create table test_pk_multi (" +
                 " id integer," +
-                " col_z string primary key," +
-                " col_a string primary key" +
+                " col_z string constraint c_1 primary key," +
+                " col_a string constraint c_1 primary key" +
                 ") clustered into 8 shards");
         execute("show create table test_pk_multi");
         assertFirstRow().startsWith(
@@ -213,7 +213,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "   \"id\" INTEGER,\n" +
             "   \"col_z\" TEXT NOT NULL,\n" +
             "   \"col_a\" TEXT NOT NULL,\n" +
-            "   PRIMARY KEY (\"col_z\", \"col_a\")\n" +
+            "   CONSTRAINT c_1 PRIMARY KEY (\"col_z\", \"col_a\")\n" +
             ")\n" +
             "CLUSTERED INTO 8 SHARDS\n" +
             "WITH (\n");

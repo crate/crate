@@ -47,7 +47,7 @@ where ``generated_column_definition`` is::
 
 where ``column_constraint`` is::
 
-    { PRIMARY KEY |
+    { [ CONSTRAINT constraint_name ] PRIMARY KEY |
       NULL |
       NOT NULL |
       INDEX { OFF | USING { PLAIN |
@@ -61,7 +61,7 @@ where ``storage_options`` is::
 
 and ``table_constraint`` is::
 
-    { PRIMARY KEY ( column_name [, ... ] ) |
+    { [ CONSTRAINT constraint_name ] PRIMARY KEY ( column_name [, ... ] ) |
       INDEX index_name USING FULLTEXT ( column_name [, ... ] )
            [ WITH ( analyzer = analyzer_name ) ]
       [ CONSTRAINT constraint_name ] CHECK (boolean_expression)

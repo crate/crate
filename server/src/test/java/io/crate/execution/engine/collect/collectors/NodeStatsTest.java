@@ -47,7 +47,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.OrderBy;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.testing.BatchIteratorTester;
@@ -86,9 +85,7 @@ public class NodeStatsTest extends ESTestCase {
     public void prepare() {
         nodeStatsAction = mock(TransportNodeStatsAction.class);
         nodeStatesExecutor = req -> {
-            FutureActionListener listener = FutureActionListener.newInstance();
-            nodeStatsAction.doExecute(req, listener);
-            return listener;
+            return nodeStatsAction.execute(req);
         };
 
         idRef = new SimpleReference(

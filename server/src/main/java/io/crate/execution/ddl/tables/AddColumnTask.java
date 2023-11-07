@@ -92,6 +92,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
         }
         Map<String, Object> mapping = createMapping(
             AllocPosition.forTable(currentTable),
+            null,
             normalizedColumns,
             request.pKeyIndices(),
             request.checkConstraints(),

@@ -21,11 +21,13 @@
 
 package io.crate.analyze;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -108,6 +110,7 @@ public record AnalyzedCreateTable(
 
         Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
         LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
+        Set<String> pkConstraintNames = new HashSet<>();
         for (var entry : columns.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
             RefBuilder column = entry.getValue();
@@ -115,6 +118,7 @@ public record AnalyzedCreateTable(
             references.put(columnIdent, reference);
             if (column.isPrimaryKey()) {
                 primaryKeys.add(reference);
+                pkConstraintNames.add(column.pkConstraintName());
             }
             if (reference instanceof IndexReference indexRef) {
                 String analyzer = indexRef.analyzer();
@@ -122,6 +126,20 @@ public record AnalyzedCreateTable(
                     Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzer);
                     tableParameter.settingsBuilder().put(settings);
                 }
+            }
+        }
+        String pkConstraintName = null;
+        if (!pkConstraintNames.isEmpty()) {
+            // CrateDB allows 'create table t (a int constraint c1 primary key, b int constraint c2 primary key);',
+            // making sure that c1 == c2.
+            if (pkConstraintNames.size() > 1) {
+                throw new IllegalArgumentException(
+                    "More than one name for PRIMARY KEY constraint provided: " + String.join(",", pkConstraintNames));
+            }
+            pkConstraintName = pkConstraintNames.iterator().next();
+            if ("".equals(pkConstraintName)) {
+                throw new IllegalArgumentException(
+                    "The name of primary key constraint must not be empty, please either use a name or remove the CONSTRAINT keyword");
             }
         }
 
@@ -145,6 +163,7 @@ public record AnalyzedCreateTable(
 
         return new BoundCreateTable(
             relationName,
+            pkConstraintName,
             ifNotExists,
             references,
             tableParameter,

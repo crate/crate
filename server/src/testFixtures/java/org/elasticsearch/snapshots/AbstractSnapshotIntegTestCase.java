@@ -238,7 +238,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         ClusterService clusterService = cluster().getInstance(ClusterService.class, viaNode);
         ClusterStateObserver observer = new ClusterStateObserver(clusterService, logger);
         if (statePredicate.test(observer.setAndGetObservedState()) == false) {
-            final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
+            final FutureActionListener<Void> future = new FutureActionListener<>();
             observer.waitForNextChange(new ClusterStateObserver.Listener() {
                 @Override
                 public void onNewClusterState(ClusterState state) {

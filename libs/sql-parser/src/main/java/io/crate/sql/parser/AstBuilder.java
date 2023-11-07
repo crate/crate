@@ -1135,7 +1135,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitColumnConstraintPrimaryKey(SqlBaseParser.ColumnConstraintPrimaryKeyContext context) {
-        return new PrimaryKeyColumnConstraint<>();
+        return new PrimaryKeyColumnConstraint<>(getIdentText(context.primaryKeyContraint().name));
     }
 
     @Override
@@ -1143,15 +1143,16 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new NotNullColumnConstraint<>();
     }
 
-    
     @Override
     public Node visitColumnConstraintNull(ColumnConstraintNullContext ctx) {
         return new NullColumnConstraint<>();
     }
 
     @Override
-    public Node visitPrimaryKeyConstraint(SqlBaseParser.PrimaryKeyConstraintContext context) {
-        return new PrimaryKeyConstraint<>(visitCollection(context.columns().primaryExpression(), Expression.class));
+    public Node visitPrimaryKeyConstraintTableLevel(SqlBaseParser.PrimaryKeyConstraintTableLevelContext ctx) {
+        return new PrimaryKeyConstraint<>(
+            getIdentText(ctx.primaryKeyContraint().name),
+            visitCollection(ctx.columns().primaryExpression(), Expression.class));
     }
 
     @Override

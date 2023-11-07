@@ -186,7 +186,7 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
             .addTable("create table myschema.test (" +
                       " col_a string," +
                       " col_b string not null index using fulltext," +
-                      " primary key (col_a)" +
+                      " constraint c_1 primary key (col_a)" +
                       ") " +
                       "clustered into 5 shards " +
                       "with (" +
@@ -203,7 +203,7 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"col_b\" TEXT NOT NULL INDEX USING FULLTEXT WITH (\n" +
                      "      analyzer = 'standard'\n" +
                      "   ),\n" +
-                     "   PRIMARY KEY (\"col_a\")\n" +
+                     "   CONSTRAINT c_1 PRIMARY KEY (\"col_a\")\n" +
                      ")\n" +
                      "CLUSTERED BY (\"col_a\") INTO 5 SHARDS\n" +
                      "WITH (\n" +

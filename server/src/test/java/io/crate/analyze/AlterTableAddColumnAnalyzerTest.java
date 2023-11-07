@@ -136,6 +136,17 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
     @Test
+    public void test_cannot_add_named_primary_key_constraint_to_existing_table() throws IOException {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (a int primary key)")
+            .build();
+
+        assertThatThrownBy(() -> analyze("alter table t add column b int constraint c_1 primary key"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot alter the name of PRIMARY KEY constraint");
+    }
+
+    @Test
     public void testAddColumnWithCheckConstraintFailsBecauseItRefersToAnotherColumn() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table users (id bigint primary key, name text)")

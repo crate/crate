@@ -632,7 +632,7 @@ blobClusteredInto
 
 tableElement
     : columnDefinition                                                               #columnDefinitionDefault
-    | PRIMARY_KEY columns                                                            #primaryKeyConstraint
+    | primaryKeyContraint columns                                                    #primaryKeyConstraintTableLevel
     | INDEX name=ident USING method=ident columns withProperties?                    #indexDefinition
     | checkConstraint                                                                #tableCheckConstraint
     ;
@@ -684,13 +684,17 @@ objectTypeDefinition
     ;
 
 columnConstraint
-    : PRIMARY_KEY                                                                    #columnConstraintPrimaryKey
+    : primaryKeyContraint                                                            #columnConstraintPrimaryKey
     | NOT NULL                                                                       #columnConstraintNotNull
     | NULL																			 #columnConstraintNull
     | INDEX USING method=ident withProperties?                                       #columnIndexConstraint
     | INDEX OFF                                                                      #columnIndexOff
     | STORAGE withProperties                                                         #columnStorageDefinition
     | checkConstraint                                                                #columnCheckConstraint
+    ;
+
+primaryKeyContraint
+    : (CONSTRAINT name=ident)? PRIMARY_KEY
     ;
 
 checkConstraint

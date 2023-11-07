@@ -34,7 +34,7 @@ public class ActionListenerTest {
 
     @Test
     public void test_delegate_failure_consumer_exception_triggers_listener() throws Exception {
-        FutureActionListener<Integer, Integer> listener = FutureActionListener.newInstance();
+        FutureActionListener<Integer> listener = new FutureActionListener<>();
         var listener2 = ActionListener.delegateFailure(listener, (delegateListener, result) -> {
             throw new IllegalStateException("dummy");
         });

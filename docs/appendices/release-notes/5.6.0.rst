@@ -62,6 +62,8 @@ SQL Statements
 - Added support for explicit :ref:`NULL <null_constraint>` column constraint
   definitions in ``CREATE TABLE`` statements.
 
+- Added support for named ``PRIMARY KEY`` constraints.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 

@@ -34,7 +34,7 @@ import io.crate.action.FutureActionListener;
 
 public class RecoveryRequestTracker {
 
-    private final Map<Long, FutureActionListener<Void, Void>> ongoingRequests = Collections.synchronizedMap(new HashMap<>());
+    private final Map<Long, FutureActionListener<Void>> ongoingRequests = Collections.synchronizedMap(new HashMap<>());
     private final LocalCheckpointTracker checkpointTracker = new LocalCheckpointTracker(NO_OPS_PERFORMED, NO_OPS_PERFORMED);
 
     /**
@@ -51,7 +51,7 @@ public class RecoveryRequestTracker {
     @Nullable
     public synchronized ActionListener<Void> markReceivedAndCreateListener(long requestSeqNo, ActionListener<Void> listener) {
         if (checkpointTracker.hasProcessed(requestSeqNo)) {
-            final FutureActionListener<Void, Void> existingFuture = ongoingRequests.get(requestSeqNo);
+            final FutureActionListener<Void> existingFuture = ongoingRequests.get(requestSeqNo);
             if (existingFuture != null) {
                 existingFuture.whenCompleteAsync(listener, EsExecutors.directExecutor());
             } else {
@@ -60,7 +60,7 @@ public class RecoveryRequestTracker {
             return null;
         } else {
             checkpointTracker.markSeqNoAsProcessed(requestSeqNo);
-            final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
+            final FutureActionListener<Void> future = new FutureActionListener<>();
             ongoingRequests.put(requestSeqNo, future);
             future.whenCompleteAsync(new ActionListener<Void>() {
                 @Override

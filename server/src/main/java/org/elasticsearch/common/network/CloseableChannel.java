@@ -142,7 +142,7 @@ public class CloseableChannel implements Closeable {
         if (blocking) {
             ArrayList<CompletableFuture<Void>> futures = new ArrayList<>(channels.size());
             for (var channel : channels) {
-                FutureActionListener<Void, Void> closeFuture = FutureActionListener.newInstance();
+                FutureActionListener<Void> closeFuture = new FutureActionListener<>();
                 channel.addCloseListener(closeFuture);
                 futures.add(closeFuture);
             }

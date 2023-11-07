@@ -131,7 +131,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         Iterable<ConstraintInfo> primaryKeyConstraints = () -> sequentialStream(primaryKeys)
             .map(t -> new ConstraintInfo(
                 t,
-                t.ident().name() + PK_SUFFIX,
+                t.pkConstraintName() == null ? t.ident().name() + PK_SUFFIX : t.pkConstraintName(),
                 ConstraintInfo.Type.PRIMARY_KEY))
             .iterator();
 
