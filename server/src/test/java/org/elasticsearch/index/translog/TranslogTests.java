@@ -76,6 +76,7 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
@@ -864,7 +865,7 @@ public class TranslogTests extends ESTestCase {
         final CyclicBarrier barrier = new CyclicBarrier(writers.length + readers.length + 1);
 
         // a map of all written ops and their returned location.
-        final Map<Translog.Operation, Translog.Location> writtenOps = ConcurrentCollections.newConcurrentMap();
+        final Map<Translog.Operation, Translog.Location> writtenOps = new ConcurrentHashMap<>();
 
         // a signal for all threads to stop
         final AtomicBoolean run = new AtomicBoolean(true);

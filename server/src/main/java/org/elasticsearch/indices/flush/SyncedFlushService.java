@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.logging.log4j.LogManager;
@@ -51,7 +52,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -166,7 +166,7 @@ public class SyncedFlushService implements IndexEventListener {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog("synced_flush", SYNCED_FLUSH_DEPRECATION_MESSAGE);
         }
         final Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(state.metadata(), indicesOptions, aliasesOrIndices);
-        final Map<String, List<ShardsSyncedFlushResult>> results = ConcurrentCollections.newConcurrentMap();
+        final Map<String, List<ShardsSyncedFlushResult>> results = new ConcurrentHashMap<>();
         int numberOfShards = 0;
         for (Index index : concreteIndices) {
             final IndexMetadata indexMetadata = state.metadata().getIndexSafe(index);
@@ -400,7 +400,7 @@ public class SyncedFlushService implements IndexEventListener {
     void sendSyncRequests(final String syncId, final List<ShardRouting> shards, ClusterState state, Map<String, PreSyncedFlushResponse> preSyncResponses,
                           final ShardId shardId, final int totalShards, final ActionListener<ShardsSyncedFlushResult> listener) {
         final CountDown countDown = new CountDown(shards.size());
-        final Map<ShardRouting, ShardSyncedFlushResponse> results = ConcurrentCollections.newConcurrentMap();
+        final Map<ShardRouting, ShardSyncedFlushResponse> results = new ConcurrentHashMap<>();
         final int numDocsOnPrimary = numDocsOnPrimary(shards, preSyncResponses);
         for (final ShardRouting shard : shards) {
             final DiscoveryNode node = state.nodes().get(shard.currentNodeId());
@@ -472,7 +472,7 @@ public class SyncedFlushService implements IndexEventListener {
      */
     void sendPreSyncRequests(final List<ShardRouting> shards, final ClusterState state, final ShardId shardId, final ActionListener<Map<String, PreSyncedFlushResponse>> listener) {
         final CountDown countDown = new CountDown(shards.size());
-        final ConcurrentMap<String, PreSyncedFlushResponse> presyncResponses = ConcurrentCollections.newConcurrentMap();
+        final ConcurrentMap<String, PreSyncedFlushResponse> presyncResponses = new ConcurrentHashMap<>();
         for (final ShardRouting shard : shards) {
             LOGGER.trace("{} sending pre-synced flush request to {}", shardId, shard);
             final DiscoveryNode node = state.nodes().get(shard.currentNodeId());

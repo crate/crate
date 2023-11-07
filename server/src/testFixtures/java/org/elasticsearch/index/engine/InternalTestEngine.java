@@ -19,19 +19,19 @@
 
 package org.elasticsearch.index.engine;
 
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.index.seqno.LocalCheckpointTracker;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
+
+import org.elasticsearch.index.seqno.LocalCheckpointTracker;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 
 /**
  * An alternative of {@link InternalEngine} that allows tweaking internals to reduce noise in engine tests.
  */
 class InternalTestEngine extends InternalEngine {
-    private final Map<String, Long> idToMaxSeqNo = ConcurrentCollections.newConcurrentMap();
+    private final Map<String, Long> idToMaxSeqNo = new ConcurrentHashMap<>();
 
     InternalTestEngine(EngineConfig engineConfig) {
         super(engineConfig);

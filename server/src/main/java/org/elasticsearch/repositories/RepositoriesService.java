@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,7 +54,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -76,7 +76,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
 
     private final VerifyNodeRepositoryAction verifyAction;
 
-    private final Map<String, Repository> internalRepositories = ConcurrentCollections.newConcurrentMap();
+    private final Map<String, Repository> internalRepositories = new ConcurrentHashMap<>();
     private volatile Map<String, Repository> repositories = Collections.emptyMap();
 
     public RepositoriesService(Settings settings, ClusterService clusterService, TransportService transportService,

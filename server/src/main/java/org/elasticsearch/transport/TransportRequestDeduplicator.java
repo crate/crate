@@ -19,13 +19,13 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
+
+import org.elasticsearch.action.ActionListener;
 
 /**
  * Deduplicator for {@link TransportRequest}s that keeps track of {@link TransportRequest}s that should
@@ -34,7 +34,7 @@ import java.util.function.BiConsumer;
  */
 public final class TransportRequestDeduplicator<T extends TransportRequest> {
 
-    private final ConcurrentMap<T, CompositeListener> requests = ConcurrentCollections.newConcurrentMap();
+    private final ConcurrentMap<T, CompositeListener> requests = new ConcurrentHashMap<>();
 
     /**
      * Ensures a given request not executed multiple times when another equal request is already in-flight.

@@ -22,6 +22,7 @@ package org.elasticsearch.indices.recovery;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -38,7 +39,6 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.CancellableThreads;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLeases;
@@ -69,7 +69,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     private final ShardId shardId;
     private final DiscoveryNode targetNode;
     private final RecoverySettings recoverySettings;
-    private final Map<Object, RetryableAction<?>> onGoingRetryableActions = ConcurrentCollections.newConcurrentMap();
+    private final Map<Object, RetryableAction<?>> onGoingRetryableActions = new ConcurrentHashMap<>();
 
     private final TransportRequestOptions translogOpsRequestOptions;
     private final TransportRequestOptions fileChunkRequestOptions;

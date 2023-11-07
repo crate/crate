@@ -19,6 +19,17 @@
 
 package org.elasticsearch.indices.recovery;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.IOContext;
@@ -29,20 +40,9 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.transport.Transports;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MultiFileWriter extends AbstractRefCounted implements Releasable {
 
@@ -62,11 +62,11 @@ public class MultiFileWriter extends AbstractRefCounted implements Releasable {
     private final RecoveryState.Index indexState;
     private final String tempFilePrefix;
 
-    private final ConcurrentMap<String, IndexOutput> openIndexOutputs = ConcurrentCollections.newConcurrentMap();
-    private final ConcurrentMap<String, FileChunkWriter> fileChunkWriters = ConcurrentCollections.newConcurrentMap();
+    private final ConcurrentMap<String, IndexOutput> openIndexOutputs = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, FileChunkWriter> fileChunkWriters = new ConcurrentHashMap<>();
 
 
-    final Map<String, String> tempFileNames = ConcurrentCollections.newConcurrentMap();
+    final Map<String, String> tempFileNames = new ConcurrentHashMap<>();
 
     public void writeFileChunk(StoreFileMetadata fileMetadata, long position, BytesReference content, boolean lastChunk)
         throws IOException {

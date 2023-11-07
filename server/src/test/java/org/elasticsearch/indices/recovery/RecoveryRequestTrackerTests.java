@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.elasticsearch.ElasticsearchException;
@@ -57,7 +58,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
     @Test
     public void testIdempotencyIsEnforced() throws Exception {
         Set<Long> seqNosReturned = ConcurrentCollections.newConcurrentSet();
-        ConcurrentMap<Long, Set<FutureActionListener<Void>>> seqToResult = ConcurrentCollections.newConcurrentMap();
+        ConcurrentMap<Long, Set<FutureActionListener<Void>>> seqToResult = new ConcurrentHashMap<>();
 
         RecoveryRequestTracker requestTracker = new RecoveryRequestTracker();
 

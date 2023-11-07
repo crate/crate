@@ -91,9 +91,9 @@ public class EsExecutors {
     public static EsThreadPoolExecutor newFixed(String name, int size, int queueCapacity, ThreadFactory threadFactory) {
         BlockingQueue<Runnable> queue;
         if (queueCapacity < 0) {
-            queue = ConcurrentCollections.newBlockingQueue();
+            queue = new LinkedTransferQueue<>();
         } else {
-            queue = new SizeBlockingQueue<>(ConcurrentCollections.<Runnable>newBlockingQueue(), queueCapacity);
+            queue = new SizeBlockingQueue<>(new LinkedTransferQueue<>(), queueCapacity);
         }
         return new EsThreadPoolExecutor(
             name,

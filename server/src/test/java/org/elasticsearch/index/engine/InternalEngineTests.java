@@ -82,6 +82,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Phaser;
@@ -176,7 +177,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
@@ -2315,7 +2315,7 @@ public class InternalEngineTests extends EngineTestCase {
             }
         }
         final AtomicInteger idGenerator = new AtomicInteger();
-        final Queue<OpAndVersion> history = ConcurrentCollections.newQueue();
+        final Queue<OpAndVersion> history = new ConcurrentLinkedQueue<>();
         ParsedDocument doc = testParsedDocument("1", testDocument(), bytesArray(""), null);
         final Term uidTerm = newUid(doc);
         engine.index(indexForDoc(doc));
