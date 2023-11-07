@@ -20,12 +20,12 @@
 package org.elasticsearch.common.util.concurrent;
 
 
-import io.crate.common.SuppressForbidden;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import io.crate.common.SuppressForbidden;
 
 /**
  * An extension to thread pool executor, allowing (in the future) to add specific additional stats to it.
@@ -115,8 +115,8 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     protected Runnable unwrap(Runnable runnable) {
-        if (runnable instanceof WrappedRunnable) {
-            return ((WrappedRunnable) runnable).unwrap();
+        while (runnable instanceof WrappedRunnable wrapped) {
+            runnable = wrapped.unwrap();
         }
         return runnable;
     }

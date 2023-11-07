@@ -459,8 +459,8 @@ public class MasterService extends AbstractLifecycleComponent {
     }
 
     private SafeClusterStateTaskListener safe(ClusterStateTaskListener listener) {
-        if (listener instanceof AckedClusterStateTaskListener) {
-            return new SafeAckedClusterStateTaskListener((AckedClusterStateTaskListener) listener, LOGGER);
+        if (listener instanceof AckedClusterStateTaskListener ackedListener) {
+            return new SafeAckedClusterStateTaskListener(ackedListener, LOGGER);
         } else {
             return new SafeClusterStateTaskListener(listener, LOGGER);
         }
