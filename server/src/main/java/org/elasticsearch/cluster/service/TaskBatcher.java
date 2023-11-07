@@ -26,10 +26,15 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.ClusterStateTaskExecutor;
+import org.elasticsearch.cluster.metadata.ProcessClusterEventTimeoutException;
+import org.elasticsearch.cluster.service.MasterService.TaskInputs;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 import org.jetbrains.annotations.Nullable;
@@ -40,16 +45,23 @@ import io.crate.common.unit.TimeValue;
  * Batching support for {@link PrioritizedEsThreadPoolExecutor}
  * Tasks that share the same batching key are batched (see {@link BatchedTask#batchingKey})
  */
-public abstract class TaskBatcher {
+public final class TaskBatcher {
 
     private final Logger logger;
     private final PrioritizedEsThreadPoolExecutor threadExecutor;
     // package visible for tests
     final Map<Object, LinkedHashSet<BatchedTask>> tasksPerBatchingKey = new HashMap<>();
+    private final Consumer<TaskInputs> runTasks;
+    private final Executor genericExecutor;
 
-    public TaskBatcher(Logger logger, PrioritizedEsThreadPoolExecutor threadExecutor) {
+    public TaskBatcher(Logger logger,
+                       Executor genericExecutor,
+                       PrioritizedEsThreadPoolExecutor threadExecutor,
+                       Consumer<TaskInputs> runTasks) {
         this.logger = logger;
+        this.genericExecutor = genericExecutor;
         this.threadExecutor = threadExecutor;
+        this.runTasks = runTasks;
     }
 
     public void submitTasks(List<? extends BatchedTask> tasks, @Nullable TimeValue timeout) throws EsRejectedExecutionException {
@@ -120,7 +132,12 @@ public abstract class TaskBatcher {
      * Action to be implemented by the specific batching implementation.
      * All tasks have the same batching key.
      */
-    protected abstract void onTimeout(List<? extends BatchedTask> tasks, TimeValue timeout);
+    protected void onTimeout(List<? extends BatchedTask> tasks, TimeValue timeout) {
+        genericExecutor.execute(() ->
+            tasks.forEach(task -> task.listener.onFailure(
+                task.source,
+                new ProcessClusterEventTimeoutException(timeout, task.source))));
+    }
 
     void runIfNotProcessed(BatchedTask updateTask) {
         // if this task is already processed, it shouldn't execute other tasks with same batching key that arrived later,
@@ -149,14 +166,15 @@ public abstract class TaskBatcher {
                     return tasks.isEmpty() ? entry.getKey() : entry.getKey() + "[" + tasks + "]";
                 }).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
-                run(updateTask.batchingKey, toExecute, tasksSummary);
+
+                run(updateTask, toExecute, tasksSummary);
             }
         }
     }
 
-    /**
-     * Action to be implemented by the specific batching implementation
-     * All tasks have the given batching key.
-     */
-    protected abstract void run(Object batchingKey, List<? extends BatchedTask> tasks, String tasksSummary);
+    @SuppressWarnings("unchecked")
+    private void run(BatchedTask updateTask, final List<BatchedTask> toExecute, final String tasksSummary) {
+        ClusterStateTaskExecutor<Object> executor = (ClusterStateTaskExecutor<Object>) updateTask.batchingKey;
+        runTasks.accept(new TaskInputs(tasksSummary, toExecute, executor));
+    }
 }
