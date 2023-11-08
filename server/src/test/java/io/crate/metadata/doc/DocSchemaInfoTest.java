@@ -23,13 +23,12 @@ package io.crate.metadata.doc;
 
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static io.crate.metadata.doc.DocSchemaInfo.getTablesAffectedByPublicationsChange;
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.script.ScriptException;
 
@@ -247,12 +246,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     private DocTableInfo docTableInfo(String name) {
         return new DocTableInfo(
             new RelationName(Schemas.DOC_SCHEMA_NAME, name),
-            List.of(),
-            Set.of(),
-            List.of(),
-            List.of(),
-            List.of(),
             Map.of(),
+            List.of(),
             Map.of(),
             Map.of(),
             null,

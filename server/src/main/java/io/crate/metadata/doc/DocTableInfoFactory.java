@@ -108,13 +108,9 @@ public class DocTableInfoFactory {
         );
         return new DocTableInfo(
             relation,
-            docIndexMetadata.columns(),
-            docIndexMetadata.droppedColumns(),
-            docIndexMetadata.partitionedByColumns(),
-            docIndexMetadata.generatedColumnReferences(),
+            docIndexMetadata.references(),
             docIndexMetadata.notNullColumns(),
             docIndexMetadata.indices(),
-            docIndexMetadata.references(),
             docIndexMetadata.analyzers(),
             docIndexMetadata.pkConstraintName(),
             docIndexMetadata.primaryKey(),

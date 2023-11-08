@@ -30,13 +30,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -54,7 +52,6 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.Booleans;
-import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Symbol;
@@ -93,24 +90,6 @@ public class DocIndexMetadata {
     private final Map<String, Object> mappingMap;
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
-    @SuppressWarnings("unchecked")
-    private static final Comparator<Map.Entry<String, Object>> SORT_BY_POSITION_THEN_NAME = Comparator
-        .comparing((Map.Entry<String, Object> e) -> {
-            Map<String, Object> columnProperties = furtherColumnProperties((Map<String, Object>) e.getValue());
-            return Objects.requireNonNullElse((Integer) columnProperties.get("position"), 0);
-        })
-        .thenComparing(Map.Entry::getKey);
-
-    private static final Comparator<Reference> SORT_REFS_BY_POSTITON_THEN_NAME = Comparator
-        .comparing(Reference::position)
-        .thenComparing(o -> o.column().fqn());
-
-    private final List<Reference> columns = new ArrayList<>();
-    private final List<Reference> nestedColumns = new ArrayList<>();
-    private final ArrayList<GeneratedReference> generatedColumnReferencesBuilder = new ArrayList<>();
-
-    private final Set<Reference> droppedColumns = new HashSet<>();
-
     private final NodeContext nodeCtx;
     private final RelationName ident;
     private final int numberOfShards;
@@ -120,9 +99,7 @@ public class DocIndexMetadata {
     private final List<ColumnIdent> partitionedBy;
     private final Set<Operation> supportedOperations;
     private Map<ColumnIdent, IndexReference> indices;
-    private List<Reference> partitionedByColumns;
-    private List<GeneratedReference> generatedColumnReferences;
-    private Map<ColumnIdent, Reference> references;
+    private Map<ColumnIdent, Reference> references = new HashMap<>();
     @Nullable
     private String pkConstraintName;
     private List<ColumnIdent> primaryKey;
@@ -243,18 +220,7 @@ public class DocIndexMetadata {
         } else {
             ref = new GeneratedReference(simpleRef, generatedExpression, null);
         }
-        if (isDropped) {
-            droppedColumns.add(ref);
-            return;
-        }
-        if (column.isRoot()) {
-            columns.add(ref);
-        } else {
-            nestedColumns.add(ref);
-        }
-        if (ref instanceof GeneratedReference genRef) {
-            generatedColumnReferencesBuilder.add(genRef);
-        }
+        references.put(column, ref);
     }
 
     private void addGeoReference(Integer position,
@@ -283,23 +249,11 @@ public class DocIndexMetadata {
             treeLevels,
             distanceErrorPct
         );
-        if (isDropped) {
-            droppedColumns.add(info);
-            return;
-        }
-
-
         String generatedExpression = generatedColumns.get(column.fqn());
         if (generatedExpression != null) {
             info = new GeneratedReference(info, generatedExpression, null);
-            generatedColumnReferencesBuilder.add((GeneratedReference) info);
         }
-
-        if (column.isRoot()) {
-            columns.add(info);
-        } else {
-            nestedColumns.add(info);
-        }
+        references.put(column, info);
     }
 
     private ReferenceIdent refIdent(ColumnIdent column) {
@@ -456,11 +410,7 @@ public class DocIndexMetadata {
             return;
         }
 
-        var cols = propertiesMap.entrySet().stream().sorted(SORT_BY_POSITION_THEN_NAME)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                                      (e1, e2) -> e1, LinkedHashMap::new));
-
-        for (Map.Entry<String, Object> columnEntry : cols.entrySet()) {
+        for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
             final DataType<?> columnDataType = getColumnDataType(columnProperties);
             String columnName = columnEntry.getKey();
@@ -471,13 +421,13 @@ public class DocIndexMetadata {
             assert columnProperties.containsKey("position") && columnProperties.get("position") != null : "Column position is missing: " + newIdent.fqn();
             // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
             int position = (int) columnProperties.getOrDefault("position", 0);
-            assert !takenPositions.containsKey(position) : "Duplicate column position assigned to " + newIdent.fqn() + " and " + takenPositions.get(position);
             boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
             if (!isDropped) {
                 // Columns, added later can get positions of the dropped columns.
                 // Absolute values of the positions is not important
                 // and relative positions still meet the requirement that new columns have higher positions.
-                takenPositions.put(position, newIdent.fqn());
+                String prevColumn = takenPositions.put(position, newIdent.fqn());
+                assert prevColumn == null : "Duplicate column position assigned to " + newIdent.fqn() + " and " + prevColumn;
             }
             String formattedDefaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
             Symbol defaultExpression = null;
@@ -699,25 +649,10 @@ public class DocIndexMetadata {
         columnPolicy = getColumnPolicy();
         // notNullColumns and primaryKey must be resolved before creating column definitions.
         createColumnDefinitions();
-        references = new LinkedHashMap<>();
         DocSysColumns.forTable(ident, references::put);
-        columns.sort(SORT_REFS_BY_POSTITON_THEN_NAME);
-        nestedColumns.sort(SORT_REFS_BY_POSTITON_THEN_NAME);
-        for (Reference ref : columns) {
-            references.put(ref.column(), ref);
-            for (Reference nestedColumn : nestedColumns) {
-                if (nestedColumn.column().getRoot().equals(ref.column())) {
-                    references.put(nestedColumn.column(), nestedColumn);
-                }
-            }
-        }
         // createIndexDefinitions() resolves sources by FQN using references.
         // Index definition can include sub-columns, so we need to create index definitions after adding nested columns into references ^
         indices = createIndexDefinitions();
-        // Order of the partitionedByColumns is important; Must be the same order as `partitionedBy` is in.
-        partitionedByColumns = Lists2.map(partitionedBy, references::get);
-        generatedColumnReferences = List.copyOf(generatedColumnReferencesBuilder);
-
         routingCol = getRoutingCol();
 
         Collection<Reference> refs = this.references.values();
@@ -744,13 +679,15 @@ public class DocIndexMetadata {
         }
         checkConstraints = checkConstraintsBuilder != null ? List.copyOf(checkConstraintsBuilder) : List.of();
 
-        for (var generatedReference : generatedColumnReferences) {
-            Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
-            tableReferenceResolver.references().clear();
-            Symbol generatedExpression = exprAnalyzer.convert(expression, analysisCtx)
-                .cast(generatedReference.valueType());
-            generatedReference.generatedExpression(generatedExpression);
-            generatedReference.referencedReferences(List.copyOf(tableReferenceResolver.references()));
+        for (var ref : references.values()) {
+            if (ref instanceof GeneratedReference genRef) {
+                Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
+                tableReferenceResolver.references().clear();
+                Symbol generatedExpression = exprAnalyzer.convert(expression, analysisCtx)
+                    .cast(genRef.valueType());
+                genRef.generatedExpression(generatedExpression);
+                genRef.referencedReferences(List.copyOf(tableReferenceResolver.references()));
+            }
         }
         return this;
     }
@@ -759,24 +696,8 @@ public class DocIndexMetadata {
         return references;
     }
 
-    public Collection<Reference> columns() {
-        return columns;
-    }
-
-    public Set<Reference> droppedColumns() {
-        return droppedColumns;
-    }
-
     public Map<ColumnIdent, IndexReference> indices() {
         return indices;
-    }
-
-    public List<Reference> partitionedByColumns() {
-        return partitionedByColumns;
-    }
-
-    List<GeneratedReference> generatedColumnReferences() {
-        return generatedColumnReferences;
     }
 
     Collection<ColumnIdent> notNullColumns() {

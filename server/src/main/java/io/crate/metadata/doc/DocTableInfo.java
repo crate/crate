@@ -30,8 +30,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
@@ -42,6 +44,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
@@ -120,6 +123,7 @@ import io.crate.sql.tree.ColumnPolicy;
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
+
     private final Collection<Reference> columns;
     private final Set<Reference> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
@@ -157,13 +161,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final ColumnPolicy columnPolicy;
 
     public DocTableInfo(RelationName ident,
-                        Collection<Reference> columns,
-                        Set<Reference> droppedColumns,
-                        List<Reference> partitionedByColumns,
-                        List<GeneratedReference> generatedColumns,
+                        Map<ColumnIdent, Reference> references,
                         Collection<ColumnIdent> notNullColumns,
                         Map<ColumnIdent, IndexReference> indexColumns,
-                        Map<ColumnIdent, Reference> references,
                         Map<ColumnIdent, String> analyzers,
                         @Nullable String pkConstraintName,
                         List<ColumnIdent> primaryKeys,
@@ -182,17 +182,26 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         @Nullable Version versionUpgraded,
                         boolean closed,
                         Set<Operation> supportedOperations) {
-        assert (partitionedBy.size() ==
-                partitionedByColumns.size()) : "partitionedBy and partitionedByColumns must have same amount of items in list";
-        this.columns = columns;
-        this.droppedColumns = droppedColumns;
-        this.partitionedByColumns = partitionedByColumns;
-        this.generatedColumns = generatedColumns;
+        this.droppedColumns = references.values().stream()
+            .filter(Reference::isDropped)
+            .collect(Collectors.toSet());
+        this.references = references.entrySet().stream()
+            .filter(entry -> !entry.getValue().isDropped())
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+        this.columns = this.references.values().stream()
+            .filter(r -> !r.column().isSystemColumn())
+            .filter(r -> r.column().isRoot())
+            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .toList();
+        this.partitionedByColumns = Lists2.map(partitionedBy, this.references::get);
+        this.generatedColumns = this.references.values().stream()
+            .filter(r -> r instanceof GeneratedReference)
+            .map(r -> (GeneratedReference) r)
+            .toList();
         this.notNullColumns = notNullColumns;
         this.indexColumns = indexColumns;
-        this.references = references;
         leafNamesByOid = new HashMap<>();
-        Stream.concat(Stream.concat(references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
+        Stream.concat(Stream.concat(this.references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
             .filter(r -> r.oid() != COLUMN_OID_UNASSIGNED)
             .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
         this.analyzers = analyzers;
@@ -215,8 +224,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
         this.supportedOperations = supportedOperations;
-        this.docColumn = new TableColumn(DocSysColumns.DOC, references);
-        this.defaultExpressionColumns = references.values()
+        this.docColumn = new TableColumn(DocSysColumns.DOC, this.references);
+        this.defaultExpressionColumns = this.references.values()
             .stream()
             .filter(r -> r.defaultExpression() != null)
             .toList();
@@ -393,7 +402,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Override
     public Iterator<Reference> iterator() {
-        return references.values().iterator();
+        return references.values().stream()
+            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .iterator();
     }
 
     /**
