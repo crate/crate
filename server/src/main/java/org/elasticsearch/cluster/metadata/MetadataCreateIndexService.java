@@ -507,7 +507,7 @@ public class MetadataCreateIndexService {
                 return;
             }
             var relationName = RelationName.fromIndexName(request.index());
-            new DocTableInfoFactory(nodeContext).create(relationName, updatedState);
+            new DocTableInfoFactory(nodeContext).create(relationName, updatedState.metadata());
         }
 
         @Override

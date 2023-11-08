@@ -84,6 +84,6 @@ public class DocTableInfoFactoryTest extends ESTestCase {
 
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
-        docTableInfoFactory.create(new RelationName(schemaName, "test"), state);
+        docTableInfoFactory.create(new RelationName(schemaName, "test"), state.metadata());
     }
 }

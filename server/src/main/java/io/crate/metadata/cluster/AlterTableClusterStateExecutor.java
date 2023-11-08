@@ -133,7 +133,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
 
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState);
+        new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState.metadata());
 
         return currentState;
     }

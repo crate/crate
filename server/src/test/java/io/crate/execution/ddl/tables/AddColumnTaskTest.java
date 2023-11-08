@@ -90,7 +90,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 new IntArrayList()
             );
             ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             Reference addedColumn = newTable.getReference(newColumn.column());
             // Need to create a clone of request column to imitate the expected OID.
@@ -167,7 +167,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 new IntArrayList()
             );
             ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             Reference addedShapesColumn = newTable.getReference(shapesIdent.columnIdent());
             assertThat(addedShapesColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
@@ -363,7 +363,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 new IntArrayList()
             );
             ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             Reference addedColumn = newTable.getReference(colToAdd.column());
             assertThat(addedColumn).isReference().hasOid(COLUMN_OID_UNASSIGNED);

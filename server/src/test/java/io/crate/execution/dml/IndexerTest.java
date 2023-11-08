@@ -129,7 +129,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                     new IntArrayList(0)
             );
             ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-            return new DocTableInfoFactory(e.nodeCtx).create(table.ident(), newState);
+            return new DocTableInfoFactory(e.nodeCtx).create(table.ident(), newState.metadata());
         }
     }
 
