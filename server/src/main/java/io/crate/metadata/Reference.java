@@ -25,6 +25,7 @@ import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +42,10 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
 
 public interface Reference extends Symbol {
+
+    public static final Comparator<Reference> CMP_BY_POSITION_THEN_NAME = Comparator
+        .comparing(Reference::position)
+        .thenComparing(r -> r.column().fqn());
 
     static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
         int i = 0;

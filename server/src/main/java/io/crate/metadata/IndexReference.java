@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -110,7 +109,14 @@ public class IndexReference extends SimpleReference {
                 // This code handles outdated shards case.
                 return new IndexReference(position, oid, isDropped, ident, indexType, columns, analyzer);
             }
-            List<Reference> sources = references.values().stream().filter(ref -> sourceNames.contains(ref.storageIdent())).collect(Collectors.toList());
+            List<Reference> sources = new ArrayList<>(sourceNames.size());
+            for (String sourceName : sourceNames) {
+                Reference ref = references.values().stream()
+                    .filter(r -> r.storageIdent().equals(sourceName))
+                    .findAny()
+                    .orElseThrow();
+                sources.add(ref);
+            }
             return new IndexReference(position, oid, isDropped, ident, indexType, sources, analyzer);
         }
     }

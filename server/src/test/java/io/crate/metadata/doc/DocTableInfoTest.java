@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
@@ -60,22 +59,20 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void testGetColumnInfo() throws Exception {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
+        ColumnIdent columnIdent = new ColumnIdent("o", List.of());
         DocTableInfo info = new DocTableInfo(
             relationName,
-            List.of(
+            Map.of(
+                columnIdent,
                 new SimpleReference(
-                    new ReferenceIdent(relationName, new ColumnIdent("o", List.of())),
+                    new ReferenceIdent(relationName, columnIdent),
                     RowGranularity.DOC,
                     DataTypes.UNTYPED_OBJECT,
                     1,
                     null
                 )
             ),
-            Set.of(),
             List.of(),
-            List.of(),
-            List.of(),
-            Map.of(),
             Map.of(),
             Map.of(),
             null,
@@ -124,7 +121,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetColumnInfoStrictParent() throws Exception {
         RelationName dummy = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
-        ReferenceIdent foobarIdent = new ReferenceIdent(dummy, new ColumnIdent("foobar"));
+        ColumnIdent column = new ColumnIdent("foobar");
+        ReferenceIdent foobarIdent = new ReferenceIdent(dummy, column);
         SimpleReference strictParent = new SimpleReference(
             foobarIdent,
             RowGranularity.DOC,
@@ -139,17 +137,13 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             null
         );
 
-        Map<ColumnIdent, Reference> references = Map.of(new ColumnIdent("foobar"), strictParent);
+        Map<ColumnIdent, Reference> references = Map.of(column, strictParent);
 
         DocTableInfo info = new DocTableInfo(
             dummy,
-            List.of(strictParent),
-            Set.of(),
-            List.of(),
-            List.of(),
+            references,
             List.of(),
             Map.of(),
-            references,
             Map.of(),
             null,
             List.of(),
@@ -208,7 +202,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("Column foobar['foo'] unknown");
 
-        Reference colInfo = info.getReference(new ColumnIdent("foobar"));
+        Reference colInfo = info.getReference(column);
         assertThat(colInfo).isNotNull();
     }
 
@@ -255,42 +249,41 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void test_dropped_columns_are_included_in_oid_to_column_map() throws Exception {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
+        ColumnIdent a = new ColumnIdent("a", List.of());
+        ColumnIdent b = new ColumnIdent("b", List.of());
         DocTableInfo info = new DocTableInfo(
                 relationName,
-                List.of(
-                        new SimpleReference(
-                                new ReferenceIdent(relationName, new ColumnIdent("a", List.of())),
-                                RowGranularity.DOC,
-                                DataTypes.INTEGER,
-                                ColumnPolicy.DYNAMIC,
-                                IndexType.PLAIN,
-                                true,
-                                false,
-                                1,
-                                1,
-                                false,
-                                null
-                        )
+                Map.of(
+                    a,
+                    new SimpleReference(
+                            new ReferenceIdent(relationName, a),
+                            RowGranularity.DOC,
+                            DataTypes.INTEGER,
+                            ColumnPolicy.DYNAMIC,
+                            IndexType.PLAIN,
+                            true,
+                            false,
+                            1,
+                            1,
+                            false,
+                            null
+                    ),
+                    b,
+                    new SimpleReference(
+                            new ReferenceIdent(relationName, b),
+                            RowGranularity.DOC,
+                            DataTypes.INTEGER,
+                            ColumnPolicy.DYNAMIC,
+                            IndexType.PLAIN,
+                            true,
+                            false,
+                            2,
+                            2,
+                            true,
+                            null
+                    )
                 ),
-                Set.of(
-                        new SimpleReference(
-                                new ReferenceIdent(relationName, new ColumnIdent("b", List.of())),
-                                RowGranularity.DOC,
-                                DataTypes.INTEGER,
-                                ColumnPolicy.DYNAMIC,
-                                IndexType.PLAIN,
-                                true,
-                                false,
-                                2,
-                                2,
-                                true,
-                                null
-                        )
-                ),
                 List.of(),
-                List.of(),
-                List.of(),
-                Map.of(),
                 Map.of(),
                 Map.of(),
                 null,
