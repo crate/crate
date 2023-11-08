@@ -21,7 +21,13 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -30,14 +36,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+
+import io.crate.metadata.RelationName;
 
 public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -202,5 +203,14 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
     @Override
     public String toString() {
         return "PublicationsMetadata{" + publicationByName + "}";
+    }
+
+    public boolean isPublished(RelationName relation) {
+        for (Publication publication : publications().values()) {
+            if (publication.isForAllTables() || publication.tables().contains(relation)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

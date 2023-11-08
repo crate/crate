@@ -112,7 +112,7 @@ public class TransportDropConstraintAction extends AbstractDDLTransportAction<Dr
                 updated |= updateMapping(currentState, metadataBuilder, request);
                 if (updated) {
                     // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-                    new DocTableInfoFactory(nodeContext).create(request.relationName(), currentState);
+                    new DocTableInfoFactory(nodeContext).create(request.relationName(), currentState.metadata());
                     return ClusterState.builder(currentState).metadata(metadataBuilder).build();
                 }
                 return currentState;

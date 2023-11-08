@@ -76,7 +76,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
     @SuppressWarnings("unchecked")
     public ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
-        DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
+        DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState.metadata());
 
         List<Reference> normalizedColumns = normalizeColumns(request, currentTable);
         if (normalizedColumns == null) {
@@ -125,7 +125,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             (Map<String, Map<String, Object>>) mapping.get("properties")
         );
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        docTableInfoFactory.create(request.relationName(), currentState);
+        docTableInfoFactory.create(request.relationName(), currentState.metadata());
         return currentState;
     }
 

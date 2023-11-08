@@ -305,7 +305,7 @@ public class UserDefinedFunctionService {
         }
 
         for (var indexParts : indices) {
-            var tableInfo = docTableFactory.create(indexParts.toRelationName(), currentState);
+            var tableInfo = docTableFactory.create(indexParts.toRelationName(), currentState.metadata());
             var functionParameters = getReferencedRefs(tableInfo.generatedColumns());
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(
                 functionParameters,

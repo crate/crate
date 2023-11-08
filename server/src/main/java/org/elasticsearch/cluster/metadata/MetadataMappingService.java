@@ -19,7 +19,6 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
 
 import java.util.ArrayList;
@@ -27,8 +26,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +49,7 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MapperService.MergeReason;
 import org.elasticsearch.indices.IndicesService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
@@ -413,8 +411,8 @@ public class MetadataMappingService {
             if (templateColumnProperties == null) {
                 templateColumnProperties = Map.of();
             }
-            templateColumnProperties = furtherColumnProperties(templateColumnProperties);
-            indexColumnProperties = furtherColumnProperties(indexColumnProperties);
+            templateColumnProperties = Maps.getOrDefault(templateColumnProperties, "inner", templateColumnProperties);
+            indexColumnProperties = Maps.getOrDefault(indexColumnProperties, "inner", indexColumnProperties);
 
             Integer templateChildPosition = (Integer) templateColumnProperties.get("position");
             assert templateColumnProperties.containsKey("position") && templateChildPosition != null : "the template mapping is missing column positions";

@@ -73,7 +73,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             );
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             assertThat(newTable.getReference(colToDrop.column())).isNull();
         }
@@ -103,7 +103,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             );
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             assertThat(newTable.getReference(colToDrop.column())).isNull();
         }
@@ -163,7 +163,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             );
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             assertThat(newTable.getReference(colToDrop.column())).isNull();
             assertThat(newTable.checkConstraints()).hasSize(1);
@@ -196,7 +196,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             );
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             assertThat(newTable.getReference(colToDrop.column())).isNull();
             assertThat(newTable.checkConstraints()).isEmpty();
@@ -228,7 +228,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             );
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             assertThat(newTable.getReference(colToDrop.column())).isNull();
             assertThat(newTable.checkConstraints()).hasSize(1);
@@ -261,7 +261,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         );
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
-        DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+        DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         assertThat(newTable.getReference(colToDrop.column())).isNull();
         assertThat(newTable.checkConstraints()).hasSize(1);
@@ -293,7 +293,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             );
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             assertThat(newTable.getReference(colToDrop.column())).isNull();
             assertThat(newTable.checkConstraints()).isEmpty();

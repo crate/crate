@@ -303,8 +303,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
     }
 
     @Nullable
-    public IndexMetadata index(String index) {
-        return indices.get(index);
+    public IndexMetadata index(String indexName) {
+        return indices.get(indexName);
     }
 
     @Nullable

@@ -193,7 +193,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .filter(r -> r.column().isRoot())
             .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
             .toList();
-        this.partitionedByColumns = Lists2.map(partitionedBy, this.references::get);
+        this.partitionedByColumns = Lists2.map(partitionedBy, x -> {
+            Reference ref = this.references.get(x);
+            assert ref != null : "Column in `partitionedBy` must be present in `references`";
+            return ref;
+        });
         this.generatedColumns = this.references.values().stream()
             .filter(r -> r instanceof GeneratedReference)
             .map(r -> (GeneratedReference) r)
