@@ -57,7 +57,6 @@ import io.crate.common.Booleans;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Maps;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -739,9 +738,7 @@ public class DocIndexMetadata {
                     String expressionStr = entry.getValue();
                     Expression expr = SqlParser.createExpression(expressionStr);
                     Symbol analyzedExpr = exprAnalyzer.convert(expr, analysisCtx);
-                    ArrayList<Short> positions = new ArrayList<>();
-                    analyzedExpr.accept(RefCollector.REF_COLLECTOR_INSTANCE, positions);
-                    checkConstraintsBuilder.add(new CheckConstraint<>(name, null, analyzedExpr, expressionStr, positions));
+                    checkConstraintsBuilder.add(new CheckConstraint<>(name, null, analyzedExpr, expressionStr));
                 }
             }
         }
@@ -825,17 +822,6 @@ public class DocIndexMetadata {
 
     public Settings tableParameters() {
         return tableParameters;
-    }
-
-    private static class RefCollector extends DefaultTraversalSymbolVisitor<List<Short>, Void> {
-
-        private static final RefCollector REF_COLLECTOR_INSTANCE = new RefCollector();
-
-        @Override
-        public Void visitReference(Reference reference, List<Short> context) {
-            context.add(Short.valueOf((short) reference.position()));
-            return null;
-        }
     }
 
     @SuppressWarnings("unchecked")
