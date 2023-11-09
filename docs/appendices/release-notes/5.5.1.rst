@@ -68,3 +68,20 @@ Fixes
 - Fixed an issue that caused a ``ColumnUnknownException`` to be thrown when
   attempting to drop a column with a :ref:`check_constraint`. All relevant
   constraints are dropped together with the column.
+
+- Fixed an issue that caused the hash-join operator generate invalid hashes which
+  lead to a broken join operation when there were more than two relations
+  involved e.g.:::
+
+    SELECT * FROM t1, t2, t3 WHERE t3.c = t1.a AND t3.c = t2.b AND t1.a = t2.b;
+
+  would generate the logical plan:::
+
+    HashJoin[(t3.c = t2.b AND t1.a = t2.b)]
+      ├ HashJoin[(t3.c = t1.a)]
+      │  ├ Collect[doc.t3 | [c] | true]
+      │  └ Collect[doc.t1 | [a] | true]
+      └ Collect[doc.t2 | [b] | true]
+
+  The hash-symbol generation for the join `t3.c = t2.b AND t1.a = t2.b` was
+  broken and would not join the data.
