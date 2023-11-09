@@ -1605,4 +1605,38 @@ public class JoinIntegrationTest extends IntegTestCase {
             "    └ Collect[doc.t2 | [y] | true]"
         );
     }
+
+    /**
+     * https://github.com/crate/crate/issues/14961
+     */
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_number_of_hash_symbol_match_lhs_rhs_with_nested_joins_with_three_tuples() throws Exception {
+        execute("create table t1 (a int, x int)");
+        execute("create table t2 (b int, y int)");
+        execute("create table t3 (c int)");
+
+        execute("insert into t1 values (1,2)");
+        execute("insert into t2 values (1,2)");
+        execute("insert into t3 values (1)");
+        execute("refresh table t1, t2, t3");
+
+        var stmt = "SELECT * FROM t1,t2, t3 WHERE t3.c = t1.a AND t3.c = t2.b AND t1.a = t2.b and t1.x = t2.y";
+        execute("explain (costs false) " + stmt);
+
+        assertThat(response).hasLines(
+            "Eval[a, x, b, y, c]",
+                "  └ HashJoin[((c = b) AND ((a = b) AND (x = y)))]",
+                "    ├ HashJoin[(c = a)]",
+                "    │  ├ Collect[doc.t3 | [c] | true]",
+                "    │  └ Collect[doc.t1 | [a, x] | true]",
+                "    └ Collect[doc.t2 | [b, y] | true]"
+        );
+
+        execute(stmt);
+        assertThat(response).hasRows("1| 2| 1| 2| 1");
+    }
+
 }
