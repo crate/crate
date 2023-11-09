@@ -186,6 +186,10 @@ public class Asserts extends Assertions {
         return s -> assertThat(s).isScopedSymbol(expectedName);
     }
 
+    public static Consumer<Symbol> isSQL(String expectedName) {
+        return s -> assertThat(s).isSQL(expectedName);
+    }
+
     public static Consumer<Symbol> isFetchStub(String expectedName) {
         return s -> assertThat(s).isFetchStub(expectedName);
     }
