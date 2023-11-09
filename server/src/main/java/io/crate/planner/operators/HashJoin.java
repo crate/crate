@@ -35,9 +35,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Sets;
 import io.crate.data.Row;
@@ -98,40 +100,10 @@ public class HashJoin extends JoinPlan {
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
-        var hashSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        /* It is important here to process the hashSymbols in order as there values are used for building the
-         *  hash codes. For example:
-         *
-         *      join-condition:     t1.a = t2.c AND t1.b = t2.d
-         *      left hashSymbols:   [t1.a, t1.b]
-         *      right hashSymbols:  [t2.c, t2.d]
-         *
-         *      with rows:          left ->     [1, 3]
-         *                          right ->    [1, 3]
-         *
-         * if the order is not guaranteed, one side may use [3, 1] for hash code generation which yields different results
-         *
-         */
-        var rhsHashSymbols = new ArrayList<Symbol>();
-        var lhsHashSymbols = new ArrayList<Symbol>();
-        var rightRelationNames = rhs.getRelationNames();
-        var leftRelationNames = lhs.getRelationNames();
-        for (var entry : hashSymbols.entrySet()) {
-            var relationName = entry.getKey();
-            var symbols = entry.getValue();
-            if (symbols == null) {
-                continue;
-            }
-            if (rightRelationNames.contains(relationName)) {
-                for (Symbol symbol : symbols) {
-                    rhsHashSymbols.add(paramBinder.apply(symbol));
-                }
-            } else if (leftRelationNames.contains(relationName)) {
-                for (Symbol symbol : symbols) {
-                    lhsHashSymbols.add(paramBinder.apply(symbol));
-                }
-            }
-        }
+        var hashSymbols = createHashSymbols(lhs.getRelationNames(), rhs.getRelationNames(), joinCondition);
+
+        var lhsHashSymbols = hashSymbols.lhsHashSymbols();
+        var rhsHashSymbols = hashSymbols.rhsHashSymbols();
 
         ResultDescription leftResultDesc = leftExecutionPlan.resultDescription();
         ResultDescription rightResultDesc = rightExecutionPlan.resultDescription();
@@ -331,4 +303,43 @@ public class HashJoin extends JoinPlan {
         executionPlan.addProjection(evalProjection);
         return projectionOutputs;
     }
+
+    @VisibleForTesting
+    static HashSymbols createHashSymbols(Set<RelationName> lhsRelationNames,
+                                         Set<RelationName> rhsRelationNames,
+                                         Symbol symbol) {
+        /* It is important here to process the hashSymbols in order as there values are used for building the
+         *  hash codes. For example:
+         *
+         *      join-condition:     t1.a = t2.c AND t1.b = t2.d
+         *      left hashSymbols:   [t1.a, t1.b]
+         *      right hashSymbols:  [t2.c, t2.d]
+         *
+         *      with rows:          left ->     [1, 3]
+         *                          right ->    [1, 3]
+         *
+         * if the order is not guaranteed, one side may use [3, 1] for hash code generation which yields different results
+         *
+         */
+        var lhsHashSymbols = new ArrayList<Symbol>();
+        var rhsHashSymbols = new ArrayList<Symbol>();
+        for (var condition : QuerySplitter.split(symbol).entrySet()) {
+            for (var entry : HashJoinConditionSymbolsExtractor.extract(condition.getValue()).entrySet()) {
+                var relationName = entry.getKey();
+                var symbols = entry.getValue();
+                if (symbols != null) {
+                    if (rhsRelationNames.contains(relationName)) {
+                        rhsHashSymbols.addAll(symbols);
+                    } else if (lhsRelationNames.contains(relationName)) {
+                        lhsHashSymbols.addAll(symbols);
+                    }
+                }
+            }
+        }
+        assert rhsHashSymbols.size() == lhsHashSymbols.size() : "Number of hash values for left and right hand side of a hash-join must be equal";
+        return new HashSymbols(lhsHashSymbols, rhsHashSymbols);
+    }
+
+    record HashSymbols(List<Symbol> lhsHashSymbols, List<Symbol> rhsHashSymbols) { }
+
 }
