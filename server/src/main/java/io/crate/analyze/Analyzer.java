@@ -48,7 +48,7 @@ import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
-import io.crate.sql.tree.AlterUser;
+import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
@@ -82,7 +82,7 @@ import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
@@ -318,9 +318,9 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
+        public AnalyzedStatement visitAlterRole(AlterRole<?> node, Analysis context) {
             return userAnalyzer.analyze(
-                (AlterUser<Expression>) node,
+                (AlterRole<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }
@@ -484,7 +484,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
+        public AnalyzedStatement visitDropRole(DropRole node, Analysis context) {
             return new AnalyzedDropUser(node.name(), node.ifExists());
         }
 

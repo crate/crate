@@ -22,28 +22,23 @@
 package io.crate.sql.tree;
 
 import java.util.Objects;
-import java.util.function.Function;
 
-public class AlterUser<T> extends Statement {
+public class DropRole extends Statement {
 
-    private final GenericProperties<T> properties;
     private final String name;
+    private final boolean ifExists;
 
-    public AlterUser(String name, GenericProperties<T> properties) {
-        this.properties = properties;
+    public DropRole(String name, boolean ifExists) {
         this.name = name;
-    }
-
-    public GenericProperties<T> properties() {
-        return properties;
+        this.ifExists = ifExists;
     }
 
     public String name() {
         return name;
     }
 
-    public <U> AlterUser<U> map(Function<? super T, ? extends U> mapper) {
-        return new AlterUser<>(name, properties.map(mapper));
+    public boolean ifExists() {
+        return ifExists;
     }
 
     @Override
@@ -54,26 +49,26 @@ public class AlterUser<T> extends Statement {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        AlterUser<?> alterUser = (AlterUser<?>) o;
-        return Objects.equals(properties, alterUser.properties) &&
-               Objects.equals(name, alterUser.name);
+        DropRole dropRole = (DropRole) o;
+        return ifExists == dropRole.ifExists &&
+               Objects.equals(name, dropRole.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(properties, name);
+        return Objects.hash(name, ifExists);
     }
 
     @Override
     public String toString() {
-        return "AlterUser{" +
-               "properties=" + properties +
-               ", name='" + name + '\'' +
+        return "DropRole{" +
+               "name='" + name + '\'' +
+               ", ifExists=" + ifExists +
                '}';
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitAlterUser(this, context);
+        return visitor.visitDropRole(this, context);
     }
 }

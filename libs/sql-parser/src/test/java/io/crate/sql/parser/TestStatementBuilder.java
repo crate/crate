@@ -37,6 +37,7 @@ import org.junit.Test;
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
@@ -62,10 +63,10 @@ import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
@@ -855,6 +856,13 @@ public class TestStatementBuilder {
         printStatement("drop user \"Günter\"");
         printStatement("drop user root");
         printStatement("drop user if exists root");
+    }
+
+    @Test
+    public void testDropRoleStmtBuilder() {
+        printStatement("drop role \"Günter\"");
+        printStatement("drop role root");
+        printStatement("drop role if exists root");
     }
 
     @Test
@@ -1804,7 +1812,13 @@ public class TestStatementBuilder {
     @Test
     public void testAlterUser() {
         printStatement("alter user crate set (password = 'password')");
-        printStatement("alter user crate set (password = null)");
+        printStatement("alter user crate set (password = null, session_setting='foo')");
+    }
+
+    @Test
+    public void testAlterRole() {
+        printStatement("alter role r1 set (password = 'password')");
+        printStatement("alter role r1 set (password = null, session_setting='foo')");
     }
 
     @Test
@@ -1813,6 +1827,14 @@ public class TestStatementBuilder {
             () -> printStatement("alter user crate"))
             .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:17: mismatched input '<EOF>' expecting 'SET'");
+    }
+
+    @Test
+    public void testAlterRoleWithMissingProperties() {
+        assertThatThrownBy(
+            () -> printStatement("alter role r1"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:14: mismatched input '<EOF>' expecting 'SET'");
     }
 
     @Test
@@ -2037,7 +2059,8 @@ public class TestStatementBuilder {
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||
             statement instanceof RevokePrivilege ||
-            statement instanceof DropUser ||
+            statement instanceof AlterRole ||
+            statement instanceof DropRole ||
             statement instanceof DropAnalyzer ||
             statement instanceof DropFunction ||
             statement instanceof DropTable ||

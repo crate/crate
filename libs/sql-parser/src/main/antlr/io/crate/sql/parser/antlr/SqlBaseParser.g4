@@ -106,7 +106,7 @@ dropStmt
     | DROP FUNCTION (IF EXISTS)? name=qname
         OPEN_ROUND_BRACKET (functionArgument (COMMA functionArgument)*)?
         CLOSE_ROUND_BRACKET                                                          #dropFunction
-    | DROP USER (IF EXISTS)? name=ident                                              #dropUser
+    | DROP (USER | ROLE) (IF EXISTS)? name=ident                                     #dropRole
     | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
     | DROP ANALYZER name=ident                                                       #dropAnalyzer
     | DROP PUBLICATION (IF EXISTS)? name=ident                                       #dropPublication
@@ -132,8 +132,8 @@ alterStmt
     | ALTER CLUSTER SWAP TABLE source=qname TO target=qname withProperties?          #alterClusterSwapTable
     | ALTER CLUSTER DECOMMISSION node=expr                                           #alterClusterDecommissionNode
     | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
-    | ALTER USER name=ident
-        SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterUser
+    | ALTER (USER | ROLE) name=ident
+        SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterRole
     | ALTER PUBLICATION name=ident
         ((ADD | SET | DROP) TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)        #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
