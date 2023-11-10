@@ -49,8 +49,7 @@ SQL Statements and Compatibility
 - Implemented cancelling requests section of PostgreSQL wire protocol.
 
 - Added a ``WITH`` clause parameter, ``validation`` to ``COPY FROM`` which
-  can enable or disable the newly added type validation feature. Please see
-  :ref:`validation <sql-copy-from-validation>` for more details.
+  can enable or disable the newly added type validation feature.
 
 - Added type validation logic to ``COPY FROM``. Now raw data will be parsed and
   validated against the target table schema and casted if possible utilizing
