@@ -27,6 +27,8 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.sql.tree.JoinType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -43,7 +45,6 @@ public class HashJoinPhase extends JoinPhase {
 
     private final List<DataType<?>> leftOutputTypes;
     private final long estimatedRowSizeForLeft;
-    private final long numberOfRowsForLeft;
 
     public HashJoinPhase(UUID jobId,
                          int executionNodeId,
@@ -58,8 +59,7 @@ public class HashJoinPhase extends JoinPhase {
                          List<Symbol> leftJoinConditionInputs,
                          List<Symbol> rightJoinConditionInputs,
                          List<DataType<?>> leftOutputTypes,
-                         long estimatedRowSizeForLeft,
-                         long numberOfRowsForLeft) {
+                         long estimatedRowSizeForLeft) {
         super(
             jobId,
             executionNodeId,
@@ -77,7 +77,6 @@ public class HashJoinPhase extends JoinPhase {
         this.rightJoinConditionInputs = rightJoinConditionInputs;
         this.leftOutputTypes = leftOutputTypes;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
-        this.numberOfRowsForLeft = numberOfRowsForLeft;
     }
 
     public HashJoinPhase(StreamInput in) throws IOException {
@@ -88,7 +87,10 @@ public class HashJoinPhase extends JoinPhase {
         leftOutputTypes = DataTypes.listFromStream(in);
 
         estimatedRowSizeForLeft = in.readZLong();
-        numberOfRowsForLeft = in.readZLong();
+        if (in.getVersion().before(Version.V_5_6_0)) {
+            // Version before 5.6.0 used to send numberOfRowsForLeft
+            in.readZLong();
+        }
     }
 
     @Override
@@ -100,7 +102,11 @@ public class HashJoinPhase extends JoinPhase {
         DataTypes.toStream(leftOutputTypes, out);
 
         out.writeZLong(estimatedRowSizeForLeft);
-        out.writeZLong(numberOfRowsForLeft);
+        if (out.getVersion().before(Version.V_5_6_0)) {
+            // Version before 5.6.0 used to send numberOfRowsForLeft,
+            // sending neutral value, indicating that this stat is unavailable.
+            out.writeZLong(-1);
+        }
     }
 
     @Override
@@ -127,9 +133,5 @@ public class HashJoinPhase extends JoinPhase {
 
     public long estimatedRowSizeForLeft() {
         return estimatedRowSizeForLeft;
-    }
-
-    public long numberOfRowsForLeft() {
-        return numberOfRowsForLeft;
     }
 }
