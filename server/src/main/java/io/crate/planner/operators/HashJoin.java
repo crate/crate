@@ -177,8 +177,8 @@ public class HashJoin extends AbstractJoinPlan {
             InputColumns.create(lhsHashSymbols, new InputColumns.SourceSymbols(leftOutputs)),
             InputColumns.create(rhsHashSymbols, new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
-            lhStats.estimateSizeForColumns(leftOutputs),
-            lhStats.numDocs());
+            lhStats.estimateSizeForColumns(leftOutputs)
+        );
         return new Join(
             joinPhase,
             leftExecutionPlan,
