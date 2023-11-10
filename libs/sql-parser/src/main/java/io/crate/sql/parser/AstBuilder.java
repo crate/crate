@@ -73,7 +73,7 @@ import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
-import io.crate.sql.tree.AlterUser;
+import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AnalyzerElement;
 import io.crate.sql.tree.ArithmeticExpression;
@@ -136,7 +136,7 @@ import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Except;
@@ -560,8 +560,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitDropUser(SqlBaseParser.DropUserContext context) {
-        return new DropUser(
+    public Node visitDropRole(SqlBaseParser.DropRoleContext context) {
+        return new DropRole(
             getIdentText(context.name),
             context.EXISTS() != null
         );
@@ -1359,7 +1359,6 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         );
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitAlterTableReroute(SqlBaseParser.AlterTableRerouteContext context) {
         return new AlterTableReroute<>(
@@ -1374,8 +1373,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitAlterUser(SqlBaseParser.AlterUserContext context) {
-        return new AlterUser<>(
+    public Node visitAlterRole(SqlBaseParser.AlterRoleContext context) {
+        return new AlterRole<>(
             getIdentText(context.name),
             extractGenericProperties(context.genericProperties())
         );

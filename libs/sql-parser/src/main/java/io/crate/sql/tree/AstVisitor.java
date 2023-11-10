@@ -304,7 +304,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitDropUser(DropUser node, C context) {
+    public R visitDropRole(DropRole node, C context) {
         return visitStatement(node, context);
     }
 
@@ -355,11 +355,11 @@ public abstract class AstVisitor<R, C> {
     public R visitNotNullColumnConstraint(NotNullColumnConstraint<?> node, C context) {
         return visitNode(node, context);
     }
-    
+
     public R visitNullColumnConstraint(NullColumnConstraint<?> node, C context) {
         return visitNode(node, context);
     }
-    
+
     public R visitIndexColumnConstraint(IndexColumnConstraint<?> node, C context) {
         return visitNode(node, context);
     }
@@ -464,7 +464,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAlterUser(AlterUser<?> node, C context) {
+    public R visitAlterRole(AlterRole<?> node, C context) {
         return visitStatement(node, context);
     }
 

@@ -22,23 +22,28 @@
 package io.crate.sql.tree;
 
 import java.util.Objects;
+import java.util.function.Function;
 
-public class DropUser extends Statement {
+public class AlterRole<T> extends Statement {
 
+    private final GenericProperties<T> properties;
     private final String name;
-    private final boolean ifExists;
 
-    public DropUser(String name, boolean ifExists) {
+    public AlterRole(String name, GenericProperties<T> properties) {
+        this.properties = properties;
         this.name = name;
-        this.ifExists = ifExists;
+    }
+
+    public GenericProperties<T> properties() {
+        return properties;
     }
 
     public String name() {
         return name;
     }
 
-    public boolean ifExists() {
-        return ifExists;
+    public <U> AlterRole<U> map(Function<? super T, ? extends U> mapper) {
+        return new AlterRole<>(name, properties.map(mapper));
     }
 
     @Override
@@ -49,26 +54,26 @@ public class DropUser extends Statement {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        DropUser dropUser = (DropUser) o;
-        return ifExists == dropUser.ifExists &&
-               Objects.equals(name, dropUser.name);
+        AlterRole<?> alterRole = (AlterRole<?>) o;
+        return Objects.equals(properties, alterRole.properties) &&
+               Objects.equals(name, alterRole.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, ifExists);
+        return Objects.hash(properties, name);
     }
 
     @Override
     public String toString() {
-        return "DropUser{" +
-               "name='" + name + '\'' +
-               ", ifExists=" + ifExists +
+        return "AlterRole{" +
+               "properties=" + properties +
+               ", name='" + name + '\'' +
                '}';
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDropUser(this, context);
+        return visitor.visitAlterRole(this, context);
     }
 }

@@ -42,6 +42,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
@@ -73,7 +74,7 @@ import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
@@ -687,8 +688,20 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitDropUser(DropUser node, Integer indent) {
-            builder.append("DROP USER ");
+        public Void visitAlterRole(AlterRole<?> node, Integer indent) {
+            builder.append("ALTER ROLE ");
+            builder.append(quoteIdentifierIfNeeded(node.name()));
+            if (node.properties().properties().isEmpty() == false) {
+                builder.append("SET (");
+                appendProperties(node.properties().properties(), 0);
+                builder.append(")");
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDropRole(DropRole node, Integer indent) {
+            builder.append("DROP ROLE ");
             if (node.ifExists()) {
                 builder.append("IF EXISTS ");
             }
@@ -720,23 +733,9 @@ public final class SqlFormatter {
 
         @Override
         public Void visitGenericProperties(GenericProperties<?> node, Integer indent) {
-            int count = 0;
-            int max = node.properties().size();
-            if (max > 0) {
+            if (node.properties().isEmpty() == false) {
                 builder.append("WITH (\n");
-                @SuppressWarnings({"unchecked", "rawtypes"})
-                TreeMap<String, Expression> sortedMap = new TreeMap(node.properties());
-                for (Map.Entry<String, Expression> propertyEntry : sortedMap.entrySet()) {
-                    builder.append(indentString(indent + 1));
-                    String key = propertyEntry.getKey();
-                    if (propertyEntry.getKey().contains(".")) {
-                        key = String.format(Locale.ENGLISH, "\"%s\"", key);
-                    }
-                    builder.append(key).append(" = ");
-                    propertyEntry.getValue().accept(this, indent);
-                    if (++count < max) builder.append(",");
-                    builder.append("\n");
-                }
+                appendProperties(node.properties(), indent);
                 append(indent, ")");
             }
             return null;
@@ -1339,6 +1338,23 @@ public final class SqlFormatter {
             String cursorName = close.cursorName();
             builder.append(cursorName == null ? "ALL" : cursorName);
             return null;
+        }
+
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        private void appendProperties(Map<String, ?> properties, Integer indent) {
+            int count = 0;
+            TreeMap<String, Expression> sortedMap = new TreeMap(properties);
+            for (Map.Entry<String, Expression> propertyEntry : sortedMap.entrySet()) {
+                builder.append(indentString(indent + 1));
+                String key = propertyEntry.getKey();
+                if (propertyEntry.getKey().contains(".")) {
+                    key = String.format(Locale.ENGLISH, "\"%s\"", key);
+                }
+                builder.append(key).append(" = ");
+                propertyEntry.getValue().accept(this, indent);
+                if (++count < properties.size()) builder.append(",");
+                builder.append("\n");
+            }
         }
 
         private void appendPrivilegesList(List<String> privilegeTypes) {
