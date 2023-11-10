@@ -226,7 +226,7 @@ releases.
 
 .. vale on
 
-.... _experimental-warning:
+.. _experimental-warning:
 
 .. WARNING::
 
