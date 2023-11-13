@@ -46,4 +46,6 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that caused queries with a ``NOT`` or ``!=`` on a ``CASE``
+  expression containing a nullable column to exclude ``NULL`` entries.
+
