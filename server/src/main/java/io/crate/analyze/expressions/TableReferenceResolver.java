@@ -21,9 +21,8 @@
 
 package io.crate.analyze.expressions;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -37,12 +36,11 @@ import io.crate.sql.tree.QualifiedName;
 
 public class TableReferenceResolver implements FieldProvider<Reference> {
 
-    private final Collection<Reference> tableReferences;
+    private final Map<ColumnIdent, Reference> references;
     private final RelationName relationName;
-    private final List<Reference> references = new ArrayList<>();
 
-    public TableReferenceResolver(Collection<Reference> tableReferences, RelationName relationName) {
-        this.tableReferences = tableReferences;
+    public TableReferenceResolver(Map<ColumnIdent, Reference> references, RelationName relationName) {
+        this.references = references;
         this.relationName = relationName;
     }
 
@@ -52,17 +50,10 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
                                   Operation operation,
                                   boolean errorOnUnknownObjectKey) {
         ColumnIdent columnIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
-        for (var reference : tableReferences) {
-            if (reference.column().equals(columnIdent)) {
-                references.add(reference);
-                return reference;
-            }
+        Reference reference = references.get(columnIdent);
+        if (reference == null) {
+            throw new ColumnUnknownException(columnIdent, relationName);
         }
-
-        throw new ColumnUnknownException(columnIdent, relationName);
-    }
-
-    public List<Reference> references() {
-        return references;
+        return reference;
     }
 }

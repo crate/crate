@@ -54,6 +54,7 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.Booleans;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Maps;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -655,8 +656,7 @@ public class DocIndexMetadata {
         indices = createIndexDefinitions();
         routingCol = getRoutingCol();
 
-        Collection<Reference> refs = this.references.values();
-        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(refs, ident);
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(this.references, ident);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
             txnCtx, nodeCtx, ParamTypeHints.EMPTY, tableReferenceResolver, null);
@@ -682,11 +682,12 @@ public class DocIndexMetadata {
         for (var ref : references.values()) {
             if (ref instanceof GeneratedReference genRef) {
                 Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
-                tableReferenceResolver.references().clear();
                 Symbol generatedExpression = exprAnalyzer.convert(expression, analysisCtx)
                     .cast(genRef.valueType());
                 genRef.generatedExpression(generatedExpression);
-                genRef.referencedReferences(List.copyOf(tableReferenceResolver.references()));
+                List<Reference> references = new ArrayList<>();
+                RefVisitor.visitRefs(generatedExpression, r -> references.add(r));
+                genRef.referencedReferences(references);
             }
         }
         return this;
