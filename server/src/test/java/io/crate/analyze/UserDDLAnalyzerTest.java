@@ -24,6 +24,8 @@ package io.crate.analyze;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,14 +62,28 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropUserIfExists() {
         AnalyzedDropUser analysis = e.analyze("DROP USER IF EXISTS ROOT");
         assertThat(analysis.userName()).isEqualTo("root");
-        assertThat(analysis.ifExists()).isEqualTo(true);
+        assertThat(analysis.ifExists()).isTrue();
     }
 
     @Test
     public void testCreateUserWithPassword() throws Exception {
+        // CrateDB syntax
         AnalyzedCreateUser analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = 'ROOT')");
         assertThat(analysis.userName()).isEqualTo("root");
         assertThat(analysis.properties().get("password")).isLiteral("ROOT");
+
+        analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = ?)", new ParamTypeHints(List.of(DataTypes.STRING)));
+        assertThat(analysis.userName()).isEqualTo("root");
+        assertThat(analysis.properties().get("password")).isSQL("$1");
+
+        // PostgreSQL syntax
+        analysis = e.analyze("CREATE USER ROOT WITH PASSWORD 'ROOT'");
+        assertThat(analysis.userName()).isEqualTo("root");
+        assertThat(analysis.properties().get("password")).isLiteral("ROOT");
+
+        analysis = e.analyze("CREATE USER ROOT WITH PASSWORD ?", new ParamTypeHints(List.of(DataTypes.STRING)));
+        assertThat(analysis.userName()).isEqualTo("root");
+        assertThat(analysis.properties().get("password")).isSQL("$1");
     }
 
     @Test
