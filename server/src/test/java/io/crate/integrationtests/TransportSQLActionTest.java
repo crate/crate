@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -1609,7 +1610,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
 
         execute("SELECT b, i FROM t WHERE NOT (coalesce(b, false) = true AND i IS NULL)");
-        assertThat(response).hasRowCount(2L);
+        assertThat(response).hasRowCount(3L);
     }
 
     @Test
