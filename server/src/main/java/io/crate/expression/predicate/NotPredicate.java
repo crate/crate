@@ -37,6 +37,7 @@ import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.operator.any.AnyNeqOperator;
 import io.crate.expression.operator.any.AnyRangeOperator;
 import io.crate.expression.scalar.Ignore3vlFunction;
+import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -132,7 +133,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 AnyRangeOperator.Comparison.LTE.opName(),
                 LikeOperators.ANY_LIKE,
                 LikeOperators.ANY_NOT_LIKE,
-                CoalesceFunction.NAME
+                CoalesceFunction.NAME,
+                CaseFunction.NAME
             );
 
         @Override
