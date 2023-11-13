@@ -23,11 +23,16 @@ package io.crate.expression.predicate;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
+import io.crate.testing.QueryTester;
 import io.crate.types.DataTypes;
 
 public class NotPredicateTest extends ScalarTestCase {
@@ -50,5 +55,26 @@ public class NotPredicateTest extends ScalarTestCase {
     @Test
     public void testEvaluate() throws Exception {
         assertEvaluate("not name = 'foo'", false, Literal.of("foo"));
+    }
+
+    @Test
+    public void test_not_on_case_uses_strict_3vl() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (x int)"
+        );
+        builder.indexValue("x", null);
+        builder.indexValue("x", 2);
+
+        try (var tester = builder.build()) {
+            List<Object> result = tester.runQuery("x", "(case when true then 2 else x end) != 1");
+            assertThat(result).containsExactly(null, 2);
+
+            result = tester.runQuery("x", "(case when true then 2 else x end) != 2");
+            assertThat(result).isEmpty();
+        }
     }
 }
