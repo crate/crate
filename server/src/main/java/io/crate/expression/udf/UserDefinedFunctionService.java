@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
 import javax.script.ScriptException;
 
 import org.apache.logging.log4j.LogManager;
@@ -45,6 +44,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -56,6 +56,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
@@ -305,8 +306,11 @@ public class UserDefinedFunctionService {
 
         for (var indexParts : indices) {
             var tableInfo = docTableFactory.create(indexParts.toRelationName(), currentState);
-            var functionParameters = getAllReferencedColumnsOfGeneratedColumns(tableInfo.generatedColumns());
-            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(functionParameters, tableInfo.ident());
+            var functionParameters = getReferencedRefs(tableInfo.generatedColumns());
+            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(
+                functionParameters,
+                tableInfo.ident()
+            );
             CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
             ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
                 coordinatorTxnCtx, nodeCtxWithRemovedFunction, ParamTypeHints.EMPTY, tableReferenceResolver, null);
@@ -326,10 +330,12 @@ public class UserDefinedFunctionService {
         }
     }
 
-    private List<Reference> getAllReferencedColumnsOfGeneratedColumns(List<GeneratedReference> generatedReferences) {
-        List<Reference> referencedReferences = new ArrayList<>();
+    private static Map<ColumnIdent, Reference> getReferencedRefs(List<GeneratedReference> generatedReferences) {
+        Map<ColumnIdent, Reference> referencedReferences = new HashMap<>();
         for (var generatedRef : generatedReferences) {
-            referencedReferences.addAll(generatedRef.referencedReferences());
+            for (var referencedRef : generatedRef.referencedReferences()) {
+                referencedReferences.put(referencedRef.column(), referencedRef);
+            }
         }
         return referencedReferences;
     }
