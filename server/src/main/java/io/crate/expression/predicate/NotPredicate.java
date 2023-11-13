@@ -21,12 +21,11 @@
 
 package io.crate.expression.predicate;
 
-import static io.crate.expression.predicate.IsNullPredicate.isNullFuncToQuery;
-
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -188,25 +187,26 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         Query innerQuery = arg.accept(context.visitor(), context);
         Query notX = Queries.not(innerQuery);
 
+        SymbolToNotNullContext ctx = new SymbolToNotNullContext();
+        arg.accept(INNER_VISITOR, ctx);
+
+        if (ctx.hasStrictThreeValuedLogicFunction) {
+            return new BooleanQuery.Builder()
+                .add(notX, Occur.MUST)
+                .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
+                .build();
+        }
+
         // not x =  not x & x is not null
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         builder.add(notX, BooleanClause.Occur.MUST);
-        SymbolToNotNullContext ctx = new SymbolToNotNullContext();
-        arg.accept(INNER_VISITOR, ctx);
         for (Reference reference : ctx.references()) {
             if (reference.isNullable()) {
                 var refExistsQuery = IsNullPredicate.refExistsQuery(reference, context, false);
                 if (refExistsQuery != null) {
-                    // we don't count empty arrays here as we count them below explicitly if 3Vl logic is needed.
                     builder.add(refExistsQuery, BooleanClause.Occur.MUST);
                 }
             }
-        }
-        if (ctx.hasStrictThreeValuedLogicFunction) {
-            builder.add(
-                Queries.not(isNullFuncToQuery(arg, context)),
-                BooleanClause.Occur.MUST
-            );
         }
         return builder.build();
     }
