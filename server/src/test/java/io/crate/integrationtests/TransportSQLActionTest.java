@@ -1609,7 +1609,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
 
         execute("SELECT b, i FROM t WHERE NOT (coalesce(b, false) = true AND i IS NULL)");
-        assertThat(response).hasRowCount(2L);
+        assertThat(response).hasRowCount(3L);
     }
 
     @Test
