@@ -49,6 +49,9 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused queries with a ``NOT`` or ``!=`` on a ``CASE``
+  expression containing a nullable column to exclude ``NULL`` entries.
+
 - Re-added ``jcmd`` to the bundled JDK distribution.
 
 - Return meaningful error when trying to drop a column which itself or its
