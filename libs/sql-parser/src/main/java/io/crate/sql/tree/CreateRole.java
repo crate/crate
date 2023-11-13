@@ -21,25 +21,33 @@
 
 package io.crate.sql.tree;
 
-import java.util.List;
 import java.util.Objects;
 
-public class CreateRole<T> extends Statement {
+public class CreateRole extends Statement {
     private final String name;
-    private final List<String> options;
+    private final boolean isUser;
+
+    private final GenericProperties<Expression> properties;
 
 
-    public CreateRole(String name, List<String> options) {
+    public CreateRole(String name,
+                      boolean isUser,
+                      GenericProperties<Expression> properties) {
         this.name = name;
-        this.options = options;
+        this.isUser = isUser;
+        this.properties = properties;
     }
 
     public String name() {
         return name;
     }
 
-    public List<String> options() {
-        return options;
+    public boolean isUser() {
+        return isUser;
+    }
+
+    public GenericProperties<Expression> properties() {
+        return properties;
     }
 
     @Override
@@ -50,21 +58,23 @@ public class CreateRole<T> extends Statement {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        CreateRole<?> that = (CreateRole<?>) o;
+        CreateRole that = (CreateRole) o;
         return Objects.equals(name, that.name) &&
-            Objects.equals(options, that.options);
+            isUser == that.isUser &&
+            Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, options);
+        return Objects.hash(name, isUser, properties);
     }
 
     @Override
     public String toString() {
         return "CreateRole{" +
             "name='" + name + '\'' +
-            ", options=" + options +
+            ", isUser=" + isUser +
+            ", properties=" + properties +
             '}';
     }
 

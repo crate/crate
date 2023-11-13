@@ -61,11 +61,11 @@ import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
+import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
-import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
@@ -415,9 +415,9 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateUser(CreateUser<?> node, Analysis context) {
+        public AnalyzedStatement visitCreateRole(CreateRole node, Analysis context) {
             return userAnalyzer.analyze(
-                (CreateUser<Expression>) node,
+                node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }

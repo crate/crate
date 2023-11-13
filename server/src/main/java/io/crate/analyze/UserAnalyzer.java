@@ -28,7 +28,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.sql.tree.AlterRole;
-import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 
@@ -40,7 +40,7 @@ public class UserAnalyzer {
         this.nodeCtx = nodeCtx;
     }
 
-    public AnalyzedCreateUser analyze(CreateUser<Expression> node,
+    public AnalyzedCreateUser analyze(CreateRole node,
                                       ParamTypeHints paramTypeHints,
                                       CoordinatorTxnCtx txnContext) {
         return new AnalyzedCreateUser(
