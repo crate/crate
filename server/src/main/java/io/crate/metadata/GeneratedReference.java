@@ -34,7 +34,6 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.RefVisitor;
@@ -53,26 +52,35 @@ public class GeneratedReference implements Reference {
 
     private final Reference ref;
     private final String formattedGeneratedExpression;
-    @Nullable
-    private Symbol generatedExpression;
-    private List<Reference> referencedReferences = List.of();
+    private final Symbol generatedExpression;
+    private final List<Reference> referencedReferences;
 
     public GeneratedReference(Reference ref,
                               String formattedGeneratedExpression,
-                              @Nullable Symbol generatedExpression) {
+                              Symbol generatedExpression) {
+        assert generatedExpression != null : "GeneratedExpression is required";
+        assert generatedExpression.valueType().equals(ref.valueType())
+            : "The type of the generated expression must match the valueType of the `GeneratedReference`";
         this.ref = ref;
+        this.generatedExpression = generatedExpression;
         this.formattedGeneratedExpression = formattedGeneratedExpression;
-        generatedExpression(generatedExpression);
+        if (SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
+            throw new UnsupportedOperationException(
+                "Aggregation functions are not allowed in generated columns: " + generatedExpression);
+        }
+        this.referencedReferences = new ArrayList<>();
+        RefVisitor.visitRefs(generatedExpression, referencedReferences::add);
     }
 
     public GeneratedReference(StreamInput in) throws IOException {
-        if (in.getVersion().onOrAfter(Version.V_5_0_0)) {
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_5_0_0)) {
             ref = Reference.fromStream(in);
         } else {
             ref = new SimpleReference(in);
         }
         formattedGeneratedExpression = in.readString();
-        if (in.getVersion().onOrAfter(Version.V_5_1_0)) {
+        if (version.onOrAfter(Version.V_5_1_0) && version.onOrBefore(Version.V_5_6_0)) {
             generatedExpression = Symbols.nullableFromStream(in);
         } else {
             generatedExpression = Symbols.fromStream(in);
@@ -86,7 +94,8 @@ public class GeneratedReference implements Reference {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_5_0_0)) {
             Reference.toStream(out, ref);
         } else {
             if (ref instanceof SimpleReference simpleRef) {
@@ -109,7 +118,7 @@ public class GeneratedReference implements Reference {
             }
         }
         out.writeString(formattedGeneratedExpression);
-        if (out.getVersion().onOrAfter(Version.V_5_1_0)) {
+        if (version.onOrAfter(Version.V_5_1_0) && version.onOrBefore(Version.V_5_6_0)) {
             Symbols.nullableToStream(generatedExpression, out);
         } else {
             Symbols.toStream(generatedExpression, out);
@@ -129,22 +138,7 @@ public class GeneratedReference implements Reference {
         return formattedGeneratedExpression;
     }
 
-    public void generatedExpression(Symbol generatedExpression) {
-        assert generatedExpression == null || generatedExpression.valueType().equals(valueType())
-            : "The type of the generated expression must match the valueType of the `GeneratedReference`";
-        this.generatedExpression = generatedExpression;
-        if (generatedExpression != null) {
-            if (SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
-                throw new UnsupportedOperationException(
-                    "Aggregation functions are not allowed in generated columns: " + generatedExpression);
-            }
-            this.referencedReferences = new ArrayList<>();
-            RefVisitor.visitRefs(generatedExpression, referencedReferences::add);
-        }
-    }
-
     public Symbol generatedExpression() {
-        assert generatedExpression != null : "Generated expression symbol must not be NULL, initialize first";
         return generatedExpression;
     }
 
