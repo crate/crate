@@ -62,7 +62,6 @@ import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DenyPrivilege;
@@ -646,23 +645,13 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitCreateUser(CreateUser<?> node, Integer indent) {
-            builder.append("CREATE USER ").append(quoteIdentifierIfNeeded(node.name()));
-            if (!node.properties().isEmpty()) {
+        public Void visitCreateRole(CreateRole node, Integer indent) {
+            builder.append("CREATE ").append(node.isUser() ? "USER " : "ROLE ");
+            builder.append(quoteIdentifierIfNeeded(node.name())).append(" ");
+            if (node.properties() != null && node.properties().isEmpty() == false) {
                 builder.append("\n");
                 node.properties().accept(this, indent);
             }
-            return null;
-        }
-
-        @Override
-        public Void visitCreateRole(CreateRole<?> node, Integer indent) {
-            builder.append("CREATE ROLE ").append(quoteIdentifierIfNeeded(node.name())).append(" ");
-            builder.append(
-                node.options().stream()
-                    .map(Formatter::quoteIdentifierIfNeeded)
-                    .collect(Collectors.joining(" "))
-            );
             return null;
         }
 

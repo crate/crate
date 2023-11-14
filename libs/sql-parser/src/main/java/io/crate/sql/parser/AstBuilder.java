@@ -66,6 +66,7 @@ import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
@@ -73,7 +74,6 @@ import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
-import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AnalyzerElement;
 import io.crate.sql.tree.ArithmeticExpression;
@@ -115,7 +115,6 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
-import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DeallocateStatement;
@@ -133,10 +132,10 @@ import io.crate.sql.tree.DropColumnDefinition;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Except;
@@ -553,10 +552,29 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitCreateUser(SqlBaseParser.CreateUserContext context) {
-        return new CreateUser<>(
-            getIdentText(context.name),
-            extractGenericProperties(context.withProperties()));
+    public Node visitCreateRole(SqlBaseParser.CreateRoleContext ctx) {
+        GenericProperties<Expression> properties = GenericProperties.empty();
+
+        // PostgreSQL syntax, space separated options with or without a value
+        if (ctx.spaceSeparatedIdents() != null) {
+            Map<String, Expression> options = new HashMap<>();
+            for (var identCtx : ctx.spaceSeparatedIdents().identWithOrWithoutValue()) {
+                var value = visitIfPresent(identCtx.parameterOrSimpleLiteral(), Expression.class);
+                if (value.isEmpty()) {
+                    options.put(getIdentText(identCtx.ident()), NullLiteral.INSTANCE);
+                } else {
+                    options.put(getIdentText(identCtx.ident()), value.get());
+                }
+            }
+            properties = new GenericProperties<>(options);
+        } else if (ctx.withProperties() != null) { // CrateDB syntax: WITH (<prop>=<value>, ...)
+            properties = extractGenericProperties(ctx.withProperties());
+        }
+        return new CreateRole(
+            getIdentText(ctx.name),
+            ctx.USER() != null,
+            properties
+        );
     }
 
     @Override
@@ -564,18 +582,6 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new DropRole(
             getIdentText(context.name),
             context.EXISTS() != null
-        );
-    }
-
-    @Override
-    public Node visitCreateRole(SqlBaseParser.CreateRoleContext ctx) {
-        List<String> options = new ArrayList<>();
-        if (ctx.spaceSeparatedIdents() != null) {
-            options = identsToStrings(ctx.spaceSeparatedIdents().ident());
-        }
-        return new CreateRole<>(
-            getIdentText(ctx.name),
-            options
         );
     }
 
