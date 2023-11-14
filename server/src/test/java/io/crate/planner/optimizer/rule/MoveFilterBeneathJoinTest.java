@@ -278,4 +278,47 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             "        └ Collect[doc.t3 | [c] | true]"
         );
     }
+
+    @Test
+    public void test_push_multiple_filters_to_the_same_side() {
+        var joinCondition1 = sqlExpressions.asSymbol("doc.t1.a = doc.t2.b");
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
+
+        var joinCondition2 = sqlExpressions.asSymbol("doc.t1.a = doc.t3.c");
+        var join2 = new JoinPlan(join1, t3, JoinType.INNER, joinCondition2);
+
+        var filter = new Filter(join2, sqlExpressions.asSymbol("doc.t1.a > 1 AND doc.t2.b < 2"));
+
+        assertThat(filter).hasOperators(
+            "Filter[((a > 1) AND (b < 2))]",
+            "  └ Join[INNER | (a = c)]",
+            "    ├ Join[INNER | (a = b)]",
+            "    │  ├ Collect[doc.t1 | [a] | true]",
+            "    │  └ Collect[doc.t2 | [b] | true]",
+            "    └ Collect[doc.t3 | [c] | true]"
+        );
+
+        var rule = new MoveFilterBeneathJoin();
+        var match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(filter);
+
+        var result = rule.apply(match.value(),
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            Function.identity());
+
+        assertThat(result).hasOperators(
+            "Join[INNER | (a = c)]",
+            "  ├ Filter[(b < 2)]",
+            "  │  └ Filter[(a > 1)]",
+            "  │    └ Join[INNER | (a = b)]",
+            "  │      ├ Collect[doc.t1 | [a] | true]",
+            "  │      └ Collect[doc.t2 | [b] | true]",
+            "  └ Collect[doc.t3 | [c] | true]"
+        );
+    }
 }
