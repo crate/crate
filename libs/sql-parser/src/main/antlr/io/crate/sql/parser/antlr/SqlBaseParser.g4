@@ -480,7 +480,11 @@ qname
     ;
 
 spaceSeparatedIdents
-    : ident ( ident)*
+    : identWithOrWithoutValue (identWithOrWithoutValue)*
+    ;
+
+identWithOrWithoutValue
+    : ident (parameterOrSimpleLiteral)?
     ;
 
 idents
@@ -587,14 +591,14 @@ createStmt
         RETURNS returnType=dataType
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
-    | CREATE USER name=ident withProperties?                                         #createUser
+    | CREATE (USER | ROLE) name=ident ((withProperties | WITH?
+        OPEN_ROUND_BRACKET? options=spaceSeparatedIdents CLOSE_ROUND_BRACKET?))?     #createRole
     | CREATE ( OR REPLACE )? VIEW name=qname AS queryOptParens                       #createView
     | CREATE PUBLICATION name=ident
         (FOR ALL TABLES | FOR TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)?     #createPublication
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
-    | CREATE ROLE name=ident (WITH? options=spaceSeparatedIdents)?                   #createRole
     ;
 
 

@@ -53,7 +53,6 @@ import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -849,6 +848,21 @@ public class TestStatementBuilder {
         printStatement("create user \"Günter\"");
         printStatement("create user root");
         printStatement("create user foo with (password = 'foo')");
+        printStatement("create user foo with password 'foo'");
+        printStatement("create user foo with password ?");
+    }
+
+    @Test
+    public void test_create_role_statement() {
+        // No option
+        printStatement("create role admin");
+        // Single option
+        printStatement("create role admin with inherit password 'foo'");
+        printStatement("create role admin inherit");
+        printStatement("create role admin InheRit");
+
+        printStatement("create role admin inherit password 'foo' login");
+        printStatement("create role admin inherit password ? login");
     }
 
     @Test
@@ -2027,18 +2041,6 @@ public class TestStatementBuilder {
             .hasMessage("line 1:30: mismatched input 'add' expecting 'DROP'");
     }
 
-    @Test
-    public void test_create_role_statement() {
-        // No option
-        printStatement("create role admin");
-        // Single option
-        printStatement("create role admin with inherit");
-        printStatement("create role admin inherit");
-        printStatement("create role admin InheRit");
-
-        printStatement("create role admin inherit login");
-    }
-
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -2054,7 +2056,6 @@ public class TestStatementBuilder {
             statement instanceof SwapTable ||
             statement instanceof GCDanglingArtifacts ||
             statement instanceof CreateFunction ||
-            statement instanceof CreateUser ||
             statement instanceof CreateRole ||
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||
