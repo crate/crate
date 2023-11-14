@@ -21,6 +21,8 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static java.util.Objects.requireNonNullElse;
+
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Sets;
@@ -85,11 +87,11 @@ final class FilterOnJoinsUtil {
 
                 if (matchesRhs.isEmpty() == false && matchesLhs.isEmpty()) {
                     // push filter to rhs
-                    newRhs = getNewSource(symbol, rhs);
+                    newRhs = getNewSource(symbol, requireNonNullElse(newRhs, rhs));
                     it.remove();
                 } else if (matchesRhs.isEmpty() && matchesLhs.isEmpty() == false) {
                     // push filter to lhs
-                    newLhs = getNewSource(symbol, lhs);
+                    newLhs = getNewSource(symbol, requireNonNullElse(newLhs, lhs));
                     it.remove();
                 }
             }

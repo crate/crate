@@ -85,3 +85,7 @@ Fixes
 
   The hash-symbol generation for the join `t3.c = t2.b AND t1.a = t2.b` was
   broken and would not join the data.
+
+- Fixed a regression introduced in 5.5.0 that caused the loss of filter
+  conditions in nested-joins when the query was optimized by the rule
+  ``optimizer_move_filter_beneath_join``.
