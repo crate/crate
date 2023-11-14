@@ -78,37 +78,21 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_streaming_generated_reference_with_null_expression_symbol() throws Exception {
-        ReferenceIdent referenceIdent = new ReferenceIdent(t1Info.ident(), "generated_column");
-        String formattedGeneratedExpression = "concat(a, 'bar')";
-        SimpleReference simpleRef = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
-        GeneratedReference generatedReference = new GeneratedReference(simpleRef, formattedGeneratedExpression, null);
-
-        BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(out, generatedReference);
-
-        StreamInput in = out.bytes().streamInput();
-        GeneratedReference generatedReference2 = Reference.fromStream(in);
-
-        assertThat(generatedReference2).isEqualTo(generatedReference);
-
-    }
-
-    @Test
     public void test_generated_reference_cast_keeps_generated_reference() throws Exception {
         var relationName = new RelationName("doc", "tbl");
         var referenceIdent = new ReferenceIdent(relationName, "year");
         var simpleRef = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            DataTypes.LONG,
+            DataTypes.TIMESTAMPZ,
             1,
             null
         );
+        Symbol dateTrunc = executor.asSymbol("date_trunc('year', a::timestamp)");
         var generatedReference = new GeneratedReference(
             simpleRef,
-            "date_trunc('year', ts)",
-            null
+            "date_trunc('year', a::timestamp)",
+            dateTrunc
         );
         Symbol cast = generatedReference.cast(DataTypes.STRING, CastMode.EXPLICIT);
         assertThat(cast).isFunction(
