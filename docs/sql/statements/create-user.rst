@@ -17,7 +17,8 @@ Synopsis
 .. code-block:: psql
 
   CREATE USER username
-  [ WITH ( user_parameter = value [, ...]) ]
+  [ WITH ( user_parameter = value [, ...]) ] |
+  [ [ WITH ] user_parameter [value] [ ... ] ]
 
 Description
 ===========
@@ -51,4 +52,18 @@ Clauses
 The following ``user_parameter`` are supported to define a new user account:
 
 :password:
-  The password as cleartext entered as string literal.
+  The password as cleartext entered as string literal. e.g.::
+
+     CREATE USER john WITH (password='foo')
+
+  ::
+
+     CREATE USER john WITH password='foo'
+
+  ::
+
+     CREATE USER john WITH password 'foo'
+
+  ::
+
+     CREATE USER john password 'foo'
