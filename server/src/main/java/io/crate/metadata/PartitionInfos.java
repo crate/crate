@@ -28,18 +28,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
 import io.crate.analyze.NumberOfReplicas;
-import io.crate.metadata.doc.DocIndexMetadata;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class PartitionInfos implements Iterable<PartitionInfo> {
 
@@ -80,7 +81,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                     numberOfReplicas,
                     IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),
                     settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
-                    DocIndexMetadata.isClosed(indexMetadata, mappingMap, false),
+                    indexMetadata.getState() == State.CLOSE,
                     valuesMap,
                     settings);
         } catch (Exception e) {
@@ -110,7 +111,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
             String dottedColumnName = columnAndType.get(0);
             String sqlFqn = ColumnIdent.fromPath(dottedColumnName).sqlFqn();
             String typeName = columnAndType.get(1);
-            DataType<?> type = DocIndexMetadata.getColumnDataType(Map.of("type", typeName));
+            DataType<?> type = DataTypes.ofMappingName(typeName);
             Object value = type.implicitCast(partitionName.values().get(i));
             valuesByColumn.put(sqlFqn, value);
         }
