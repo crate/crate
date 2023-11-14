@@ -37,6 +37,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.scalar.cast.CastMode;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -132,18 +133,19 @@ public class GeneratedReference implements Reference {
         assert generatedExpression == null || generatedExpression.valueType().equals(valueType())
             : "The type of the generated expression must match the valueType of the `GeneratedReference`";
         this.generatedExpression = generatedExpression;
-        if (generatedExpression != null && SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
-            throw new UnsupportedOperationException("Aggregation functions are not allowed in generated columns: " + generatedExpression);
+        if (generatedExpression != null) {
+            if (SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
+                throw new UnsupportedOperationException(
+                    "Aggregation functions are not allowed in generated columns: " + generatedExpression);
+            }
+            this.referencedReferences = new ArrayList<>();
+            RefVisitor.visitRefs(generatedExpression, referencedReferences::add);
         }
     }
 
     public Symbol generatedExpression() {
         assert generatedExpression != null : "Generated expression symbol must not be NULL, initialize first";
         return generatedExpression;
-    }
-
-    public void referencedReferences(List<Reference> references) {
-        this.referencedReferences = references;
     }
 
     public List<Reference> referencedReferences() {

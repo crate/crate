@@ -26,7 +26,6 @@ import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
 
 import java.util.Collections;
-import java.util.List;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -68,7 +67,6 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference simpleRef = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
         Symbol generatedExpression = expressions.normalize(executor.asSymbol(formattedGeneratedExpression));
         GeneratedReference generatedReferenceInfo = new GeneratedReference(simpleRef, formattedGeneratedExpression, generatedExpression);
-        generatedReferenceInfo.referencedReferences(List.of(t1Info.getReference(new ColumnIdent("a"))));
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(out, generatedReferenceInfo);

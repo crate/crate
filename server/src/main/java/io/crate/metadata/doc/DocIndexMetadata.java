@@ -54,7 +54,6 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.Booleans;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Maps;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -685,9 +684,6 @@ public class DocIndexMetadata {
                 Symbol generatedExpression = exprAnalyzer.convert(expression, analysisCtx)
                     .cast(genRef.valueType());
                 genRef.generatedExpression(generatedExpression);
-                List<Reference> references = new ArrayList<>();
-                RefVisitor.visitRefs(generatedExpression, r -> references.add(r));
-                genRef.referencedReferences(references);
             }
         }
         return this;
