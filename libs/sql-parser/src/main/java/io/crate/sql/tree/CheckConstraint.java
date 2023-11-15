@@ -30,14 +30,11 @@ public class CheckConstraint<T> extends TableElement<T> {
 
     @Nullable
     private final String name;
-    @Nullable
-    private final String columnName;
     private final T expression;
     private final String expressionStr;
 
-    public CheckConstraint(@Nullable String name, @Nullable String columnName, T expression, String expressionStr) {
+    public CheckConstraint(@Nullable String name, T expression, String expressionStr) {
         this.name = name;
-        this.columnName = columnName;
         this.expression = expression;
         this.expressionStr = expressionStr;
     }
@@ -47,10 +44,6 @@ public class CheckConstraint<T> extends TableElement<T> {
         return name;
     }
 
-    @Nullable
-    public String columnName() {
-        return columnName;
-    }
 
     public T expression() {
         return expression;
@@ -62,7 +55,7 @@ public class CheckConstraint<T> extends TableElement<T> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, columnName, expression);
+        return Objects.hash(name, expression);
     }
 
     @Override
@@ -75,8 +68,7 @@ public class CheckConstraint<T> extends TableElement<T> {
         }
         CheckConstraint<?> that = (CheckConstraint<?>) o;
         return Objects.equals(expression, that.expression) &&
-               Objects.equals(name, that.name) &&
-               Objects.equals(columnName, that.columnName);
+               Objects.equals(name, that.name);
     }
 
     @Override
@@ -93,7 +85,6 @@ public class CheckConstraint<T> extends TableElement<T> {
     public String toString() {
         return "CheckConstraint{" +
                "name='" + name + '\'' +
-               ", columnName='" + columnName + '\'' +
                ", expression=" + expression +
                '}';
     }

@@ -1167,7 +1167,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         String name = ctx.CONSTRAINT() != null ? getIdentText(ctx.name) : null;
         Expression expression = (Expression) visit(ctx.expression);
         String expressionStr = ExpressionFormatter.formatStandaloneExpression(expression);
-        return new CheckConstraint<>(name, null, expression, expressionStr);
+        return new CheckConstraint<>(name, expression, expressionStr);
     }
 
     @Override

@@ -168,28 +168,26 @@ public class AlterTableDropColumnAnalyzer {
             }
 
             for (var checkConstraint : tableInfo.checkConstraints()) {
-                if (checkConstraint.columnName() == null) { // table level constraint
-                    Set<ColumnIdent> columnsInConstraint = new HashSet<>();
-                    RefVisitor.visitRefs(checkConstraint.expression(), r -> columnsInConstraint.add(r.column()));
-                    if (columnsInConstraint.size() > 1 && columnsInConstraint.contains(colToDrop)) {
-                        throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
-                            "is used in CHECK CONSTRAINT: " + checkConstraint.name() + " is not allowed");
+                Set<ColumnIdent> columnsInConstraint = new HashSet<>();
+                RefVisitor.visitRefs(checkConstraint.expression(), r -> columnsInConstraint.add(r.column()));
+                if (columnsInConstraint.size() > 1 && columnsInConstraint.contains(colToDrop)) {
+                    throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
+                        "is used in CHECK CONSTRAINT: " + checkConstraint.name() + " is not allowed");
+                }
+                boolean constraintColIsSubColOfColToDrop = false;
+                for (var columnInConstraint : columnsInConstraint) {
+                    if (columnInConstraint.isChildOf(colToDrop)) {
+                        constraintColIsSubColOfColToDrop = true; // subcol of the dropped col referred in constraint
                     }
-                    boolean constraintColIsSubColOfColToDrop = false;
+                }
+                if (constraintColIsSubColOfColToDrop) {
                     for (var columnInConstraint : columnsInConstraint) {
-                        if (columnInConstraint.isChildOf(colToDrop)) {
-                            constraintColIsSubColOfColToDrop = true; // subcol of the dropped col referred in constraint
-                        }
-                    }
-                    if (constraintColIsSubColOfColToDrop) {
-                        for (var columnInConstraint : columnsInConstraint) {
-                            // Check if sibling, parent, or cols of another object are contained in the same constraint
-                            if (columnInConstraint.isChildOf(colToDrop) == false
-                                && columnInConstraint.path().equals(colToDrop.path()) == false) {
-                                throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() +
-                                    " which is used in CHECK CONSTRAINT: " + checkConstraint.name() +
-                                    " is not allowed");
-                            }
+                        // Check if sibling, parent, or cols of another object are contained in the same constraint
+                        if (columnInConstraint.isChildOf(colToDrop) == false
+                            && columnInConstraint.path().equals(colToDrop.path()) == false) {
+                            throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() +
+                                " which is used in CHECK CONSTRAINT: " + checkConstraint.name() +
+                                " is not allowed");
                         }
                     }
                 }
