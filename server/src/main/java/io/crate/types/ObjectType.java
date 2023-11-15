@@ -276,6 +276,12 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return mergedObjectBuilder.build();
     }
 
+    public ObjectType withoutChild(String childColumn) {
+        LinkedHashMap<String, DataType<?>> newInnerTypes = new LinkedHashMap<>(innerTypes);
+        newInnerTypes.remove(childColumn);
+        return new ObjectType(Collections.unmodifiableMap(newInnerTypes));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!super.equals(o)) {

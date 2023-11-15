@@ -207,6 +207,23 @@ public class SimpleReference implements Reference {
     }
 
     @Override
+    public Reference withValueType(DataType<?> newType) {
+        return new SimpleReference(
+            ident,
+            granularity,
+            newType,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            isDropped,
+            defaultExpression
+        );
+    }
+
+    @Override
     public SymbolType symbolType() {
         return SymbolType.REFERENCE;
     }
