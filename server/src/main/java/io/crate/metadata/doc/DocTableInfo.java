@@ -22,13 +22,16 @@
 package io.crate.metadata.doc;
 
 import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -40,16 +43,33 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.mapper.DocumentMapper;
+import org.elasticsearch.index.mapper.MapperService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.analyze.BoundCreateTable;
+import io.crate.analyze.DropColumn;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.WhereClause;
+import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.execution.ddl.tables.MappingUtil;
+import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -69,6 +89,9 @@ import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 
 /**
@@ -211,7 +234,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.indexColumns = indexColumns;
         leafNamesByOid = new HashMap<>();
         Stream.concat(Stream.concat(this.references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
-            .filter(r -> r.oid() != COLUMN_OID_UNASSIGNED)
+            .filter(r -> r.oid() != Metadata.COLUMN_OID_UNASSIGNED)
             .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
         this.analyzers = analyzers;
         this.ident = ident;
@@ -580,5 +603,158 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         } else {
             return Function.identity();
         }
+    }
+
+
+    public DocTableInfo dropColumns(Collection<DropColumn> columns) {
+        for (var column : columns) {
+            ColumnIdent colToDrop = column.ref().column();
+            for (var generatedColumn : generatedColumns) {
+                if (Symbols.containsColumn(generatedColumn.generatedExpression(), colToDrop)) {
+                    throw new UnsupportedOperationException(String.format(
+                        Locale.ENGLISH,
+                        "Cannot drop column `%s`. It's used in generated column `%s`: %s",
+                        colToDrop,
+                        generatedColumn.ident().columnIdent().fqn(),
+                        generatedColumn.formattedGeneratedExpression()
+                    ));
+                }
+            }
+        }
+        HashSet<Reference> toDrop = HashSet.newHashSet(columns.size());
+        HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
+        droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
+        HashMap<Reference, Reference> changedReferences = new HashMap<>();
+        for (var column : columns) {
+            ColumnIdent columnIdent = column.ref().column();
+            Reference reference = references.get(columnIdent);
+            if (reference == null || reference.isDropped()) {
+                if (!column.ifExists()) {
+                    throw new ColumnUnknownException(columnIdent, ident);
+                }
+                continue;
+            }
+            ColumnIdent parent = columnIdent.getParent();
+            if (parent != null) {
+                Reference parentRef = references.get(parent);
+                DataType<?> parentType = parentRef.valueType();
+                int dimensions = ArrayType.dimensions(parentType);
+                DataType<?> parentTypeElement = ArrayType.unnest(parentType);
+                ObjectType newObjectType = ((ObjectType) parentTypeElement)
+                    .withoutChild(columnIdent.leafName());
+                DataType<?> newParentType = ArrayType.makeArray(newObjectType, dimensions);
+                Reference updatedParent = parentRef.withValueType(newParentType);
+                newReferences.replace(parent, updatedParent);
+                changedReferences.put(parentRef, updatedParent);
+            }
+            toDrop.add(reference.withDropped(true));
+            newReferences.replace(columnIdent, reference.withDropped(true));
+            for (var ref : references.values()) {
+                if (ref.column().isChildOf(columnIdent)) {
+                    toDrop.add(ref);
+                    newReferences.remove(ref.column());
+                }
+            }
+        }
+        if (toDrop.isEmpty()) {
+            return this;
+        }
+        Function<Symbol, Symbol> updateRef = symbol -> RefReplacer.replaceRefs(symbol, ref -> changedReferences.getOrDefault(ref, ref));
+        ArrayList<CheckConstraint<Symbol>> newCheckConstraints = new ArrayList<>(checkConstraints.size());
+        for (var constraint : checkConstraints) {
+            boolean drop = false;
+            for (var ref : toDrop) {
+                drop = Symbols.containsColumn(constraint.expression(), ref.column());
+                if (drop) {
+                    break;
+                }
+            }
+            if (!drop) {
+                newCheckConstraints.add(constraint.map(updateRef));
+            }
+        }
+        return new DocTableInfo(
+            ident,
+            newReferences,
+            indexColumns,
+            analyzers,
+            pkConstraintName,
+            primaryKeys,
+            newCheckConstraints,
+            clusteredBy,
+            concreteIndices,
+            concreteOpenIndices,
+            tableParameters,
+            partitionedBy,
+            partitions,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations
+        );
+    }
+
+    public Metadata.Builder writeTo(CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService,
+                                    Metadata metadata,
+                                    Metadata.Builder metadataBuilder) throws IOException {
+        List<Reference> allColumns = Stream.concat(references.values().stream(), droppedColumns.stream())
+            .filter(ref -> !ref.column().isSystemColumn())
+            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .toList();
+        IntArrayList pKeyIndices = new IntArrayList(primaryKeys.size());
+        for (ColumnIdent pk : primaryKeys) {
+            int idx = Reference.indexOf(allColumns, pk);
+            if (idx >= 0) {
+                pKeyIndices.add(idx);
+            }
+        }
+        Map<String, String> checkConstraintMap = HashMap.newHashMap(checkConstraints.size());
+        for (var check : checkConstraints) {
+            checkConstraintMap.put(check.name(), check.expressionStr());
+        }
+        AllocPosition allocPosition = AllocPosition.forTable(this);
+        Map<String, Object> mapping = Map.of("default", MappingUtil.createMapping(
+            allocPosition,
+            pkConstraintName,
+            allColumns,
+            pKeyIndices,
+            checkConstraintMap,
+            Lists2.map(partitionedByColumns, BoundCreateTable::toPartitionMapping),
+            columnPolicy,
+            clusteredBy == DocSysColumns.ID ? null : clusteredBy.fqn()
+        ));
+        for (String indexName : concreteIndices) {
+            IndexMetadata indexMetadata = metadata.index(indexName);
+            if (indexMetadata == null) {
+                throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
+            }
+            MapperService mapperService = createMapperService.apply(indexMetadata);
+            DocumentMapper mapper = mapperService.merge(mapping, MapperService.MergeReason.MAPPING_UPDATE);
+            metadataBuilder.put(
+                IndexMetadata.builder(indexMetadata)
+                    .putMapping(new MappingMetadata(mapper.mappingSource()))
+                    .numberOfShards(numberOfShards)
+                    .mappingVersion(indexMetadata.getMappingVersion() + 1)
+            );
+        }
+        if (isPartitioned) {
+            String templateName = PartitionName.templateName(ident.schema(), ident.name());
+            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
+            if (indexTemplateMetadata == null) {
+                throw new UnsupportedOperationException("Cannot create template via DocTableInfo.writeTo");
+            }
+            Integer version = indexTemplateMetadata.getVersion();
+            var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
+                .settings(
+                    indexTemplateMetadata.getSettings()
+                        .filter(k -> !IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.isPrivateSetting(k))
+                )
+                .putMapping(Strings.toString(JsonXContent.builder().map(mapping)))
+                .version(version == null ? 1 : version + 1)
+                .build();
+            metadataBuilder.put(template);
+        }
+        return metadataBuilder;
     }
 }

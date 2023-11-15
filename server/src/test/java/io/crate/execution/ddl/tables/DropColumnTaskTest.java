@@ -86,7 +86,6 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 .isGreaterThan(initialState.metadata().index(indexName).getVersion());
 
             DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
-
             assertThat(newTable.getReference(colToDrop.column())).isNull();
             assertThat(newTable.columns()).hasSize(2);
             assertThat(newTable.droppedColumns()).satisfiesExactly(

@@ -302,6 +302,15 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
+    public Reference withValueType(DataType<?> type) {
+        return new GeneratedReference(
+            ref.withValueType(type),
+            formattedGeneratedExpression,
+            generatedExpression
+        );
+    }
+
+    @Override
     public long ramBytesUsed() {
         return SHALLOW_SIZE
             + ref.ramBytesUsed()
@@ -314,4 +323,5 @@ public class GeneratedReference implements Reference {
     public Map<String, Object> toMapping(int position) {
         return ref.toMapping(position);
     }
+
 }
