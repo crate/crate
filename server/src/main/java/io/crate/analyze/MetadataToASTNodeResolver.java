@@ -110,7 +110,6 @@ public class MetadataToASTNodeResolver {
                 .stream()
                 .map(chk -> new CheckConstraint<>(
                     chk.name(),
-                    chk.columnName(),
                     SqlParser.createExpression(chk.expressionStr()),
                     chk.expressionStr()))
                 .forEach(elements::add);

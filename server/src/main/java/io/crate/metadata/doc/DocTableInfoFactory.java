@@ -316,7 +316,7 @@ public class DocTableInfoFactory {
                 SqlParser.createExpression(expressionStr),
                 expressionAnalysisContext
             );
-            var checkConstraint = new CheckConstraint<>(name, null, expression, expressionStr);
+            var checkConstraint = new CheckConstraint<>(name, expression, expressionStr);
             result.add(checkConstraint);
         }
         return result;
