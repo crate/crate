@@ -61,6 +61,8 @@ Here's an example:
    Currently only user tables can be exported. System tables like ``sys.nodes``
    and blob tables don't work with the ``COPY TO`` statement.
 
+   The ``COPY`` statements use :ref:`Overload Protection <overload_protection>` to ensure other
+   queries can still perform. Please change these settings during large inserts if needed.
 
 .. _sql-copy-to-params:
 

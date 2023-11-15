@@ -93,6 +93,10 @@ will attempt automatic :ref:`type conversion <data-types-casting>`.
     the number of rows for which the ``INSERT`` succeeded.
     Please refer to :ref:`dml` for more details.
 
+    Inserting data from a query uses :ref:`Overload Protection <overload_protection>` 
+    to ensure other queries can still perform. Please change these settings during 
+    large inserts if needed.
+
 The optional ``RETURNING`` clause causes the ``INSERT`` statement to compute
 and return values from each row inserted (or updated, in the case of ``ON
 CONFLICT DO UPDATE``). You can take advantage of this behavior to obtain values
