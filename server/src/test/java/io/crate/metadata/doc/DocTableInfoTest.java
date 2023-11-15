@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -35,6 +36,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import io.crate.analyze.DropColumn;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
@@ -52,6 +54,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
@@ -300,5 +303,41 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
 
         assertThat(info.lookupNameBySourceKey().apply("2")).isEqualTo("b");
+    }
+
+    @Test
+    public void test_drop_column_updates_type_of_parent_ref() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o1 object as (o2 object as (x int)))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        ColumnIdent o1o2 = new ColumnIdent("o1", "o2");
+        Reference o1o2Ref = table.getReference(o1o2);
+        DropColumn dropColumn = new DropColumn(o1o2Ref, true);
+        DocTableInfo updatedTable = table.dropColumns(List.of(dropColumn));
+
+        Reference o1Ref = updatedTable.getReference(new ColumnIdent("o1"));
+        assertThat(o1Ref.valueType()).isExactlyInstanceOf(ObjectType.class);
+        ObjectType objectType = ((ObjectType) o1Ref.valueType());
+        assertThat(objectType.innerTypes()).isEmpty();
+    }
+
+    @Test
+    public void test_drop_column_after_drop_column_preserves_previous_dropped_columns() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int, z int)")
+            .build();
+        DocTableInfo table1 = e.resolveTableInfo("tbl");
+        Reference xref = table1.getReference(new ColumnIdent("x"));
+        Reference yref = table1.getReference(new ColumnIdent("y"));
+        DocTableInfo table2 = table1.dropColumns(List.of(new DropColumn(xref, true)));
+        assertThat(table2.droppedColumns()).satisfiesExactlyInAnyOrder(
+            x -> assertThat(x).isReference().hasName("x")
+        );
+        DocTableInfo table3 = table2.dropColumns(List.of(new DropColumn(yref, true)));
+        assertThat(table3.droppedColumns()).satisfiesExactlyInAnyOrder(
+            x -> assertThat(x).isReference().hasName("x"),
+            x -> assertThat(x).isReference().hasName("y")
+        );
     }
 }

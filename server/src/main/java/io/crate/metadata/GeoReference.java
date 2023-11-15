@@ -202,6 +202,25 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
+    public GeoReference withValueType(DataType<?> newType) {
+        return new GeoReference(
+            ident,
+            newType,
+            columnPolicy,
+            indexType,
+            nullable,
+            position,
+            oid,
+            isDropped,
+            defaultExpression,
+            geoTree,
+            precision,
+            treeLevels,
+            distanceErrorPct
+        );
+    }
+
+    @Override
     public Map<String, Object> toMapping(int position) {
         Map<String, Object> mapping = super.toMapping(position);
         Maps.putNonNull(mapping, "tree", geoTree);

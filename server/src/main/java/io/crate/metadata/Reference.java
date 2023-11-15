@@ -40,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataType;
 
 public interface Reference extends Symbol {
 
@@ -91,6 +92,8 @@ public interface Reference extends Symbol {
     Reference withColumnOid(LongSupplier oidSupplier);
 
     Reference withDropped(boolean dropped);
+
+    Reference withValueType(DataType<?> type);
 
     /**
      * Return the identifier of this column used inside the storage engine

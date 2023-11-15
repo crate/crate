@@ -284,6 +284,25 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
+    public IndexReference withValueType(DataType<?> newType) {
+        return new IndexReference(
+            ident,
+            granularity,
+            newType,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            isDropped,
+            defaultExpression,
+            columns,
+            analyzer
+        );
+    }
+
+    @Override
     public Map<String, Object> toMapping(int position) {
         Map<String, Object> mapping = super.toMapping(position);
         if (analyzer != null) {

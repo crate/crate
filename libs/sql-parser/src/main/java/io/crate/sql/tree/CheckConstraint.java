@@ -23,6 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -47,6 +48,10 @@ public class CheckConstraint<T> extends TableElement<T> {
 
     public T expression() {
         return expression;
+    }
+
+    public <U> CheckConstraint<U> map(Function<? super T, ? extends U> mapper) {
+        return new CheckConstraint<U>(name, mapper.apply(expression), expressionStr);
     }
 
     public String expressionStr() {

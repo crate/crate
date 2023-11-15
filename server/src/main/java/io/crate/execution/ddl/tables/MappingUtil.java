@@ -63,7 +63,15 @@ public final class MappingUtil {
         public static AllocPosition forTable(DocTableInfo table) {
             return new AllocPosition(table.maxPosition(), column -> {
                 var reference = table.getReference(column);
-                return reference == null ? -1 : reference.position();
+                if (reference == null) {
+                    for (Reference droppedColumn : table.droppedColumns()) {
+                        if (droppedColumn.column().equals(column)) {
+                            return droppedColumn.position();
+                        }
+                    }
+                    return -1;
+                }
+                return reference.position();
             });
         }
 
@@ -137,44 +145,6 @@ public final class MappingUtil {
         return mapping;
     }
 
-    /**
-     * Similar to {@link #toProperties(AllocPosition, HashMap)} but instead of adding the full schema for a column, this only adds the names.
-     *
-     * Example output:
-     * {
-     *     col1: {
-     *        * optional, only for nested objects *
-     *        properties: {
-     *            nested_col1: {...},
-     *            nested_col2: {...},
-     *        }
-     *     },
-     *     col2: {...}
-     * }
-     */
-    public static Map<String, Object> toNamesOnlyProperties(HashMap<ColumnIdent, List<Reference>> tree) {
-        return toNamesOnlyProperties(tree, null);
-    }
-
-    @Nullable
-    private static Map<String, Object> toNamesOnlyProperties(HashMap<ColumnIdent, List<Reference>> tree, @Nullable ColumnIdent node) {
-        List<Reference> children = tree.get(node);
-        if (children == null) {
-            assert node != null : "Root must have children";
-            return null;
-        }
-        Map<String, Object> columns = HashMap.newHashMap(children.size());
-        for (Reference child : children) {
-            ColumnIdent column = child.column();
-            columns.put(column.leafName(), toNamesOnlyProperties(tree, column));
-        }
-        if (node == null) {
-            return columns;
-        }
-        HashMap<String, Object> mapping = HashMap.newHashMap(1);
-        mapping.put("properties", columns);
-        return mapping;
-    }
 
     /**
      * Creates the "properties" part of a mapping.

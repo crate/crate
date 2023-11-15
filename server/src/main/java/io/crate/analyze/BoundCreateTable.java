@@ -73,7 +73,7 @@ public record BoundCreateTable(
         return Lists2.map(partitionedByColumns, BoundCreateTable::toPartitionMapping);
     }
 
-    private static List<String> toPartitionMapping(Symbol symbol) {
+    public static List<String> toPartitionMapping(Symbol symbol) {
         String fqn = Symbols.pathFromSymbol(symbol).fqn();
         String typeMappingName = DataTypes.esMappingNameFrom(symbol.valueType().id());
         return List.of(fqn, typeMappingName);
