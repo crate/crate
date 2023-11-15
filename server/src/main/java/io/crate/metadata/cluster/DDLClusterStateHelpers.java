@@ -21,19 +21,14 @@
 
 package io.crate.metadata.cluster;
 
-import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
-import org.elasticsearch.index.mapper.ContentPath;
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -44,6 +39,8 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.mapper.ContentPath;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
@@ -177,7 +174,7 @@ public class DDLClusterStateHelpers {
             String name = e.getKey();
             contentPath.add(name);
             Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
-            columnProperties = furtherColumnProperties(columnProperties);
+            columnProperties = Maps.getOrDefault(columnProperties, "inner", columnProperties);
             assert columnProperties.containsKey("inner") || (columnProperties.containsKey("position") && columnProperties.get("position") != null)
                 : "Column position is missing: " + name;
             // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes

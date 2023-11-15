@@ -153,7 +153,7 @@ public class DocSchemaInfo implements SchemaInfo {
     @Override
     public TableInfo getTableInfo(String name) {
         try {
-            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(new RelationName(schemaName, n), clusterService.state()));
+            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(new RelationName(schemaName, n), clusterService.state().metadata()));
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {
                 return null;

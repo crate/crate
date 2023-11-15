@@ -76,7 +76,7 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
     @Override
     public ClusterState execute(ClusterState currentState, DropColumnRequest request) throws Exception {
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
-        DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
+        DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState.metadata());
 
         List<DropColumn> normalizedColumns = AlterTableDropColumnAnalyzer.validateDynamic(
             currentTable, normalizeColumns(request, currentTable));
@@ -154,7 +154,7 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
             constraintsToRemove
         );
         // ensure the table can still be parsed into a DocTableInfo to avoid breaking the table.
-        docTableInfoFactory.create(request.relationName(), currentState);
+        docTableInfoFactory.create(request.relationName(), currentState.metadata());
         return currentState;
     }
 

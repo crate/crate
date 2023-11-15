@@ -21,7 +21,6 @@
 
 package io.crate.metadata.upgrade;
 
-import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
@@ -145,7 +144,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
         for (var e : properties.entrySet()) {
             String name = parentName + e.getKey();
             Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
-            columnProperties = furtherColumnProperties(columnProperties);
+            columnProperties = Maps.getOrDefault(columnProperties, "inner", columnProperties);
             Integer position = (Integer) columnProperties.get("position");
             if (position == null || takenPositions.contains(position)) {
                 columnPositionResolver.addColumnToReposition(name,
