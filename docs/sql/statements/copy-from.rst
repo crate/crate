@@ -51,6 +51,10 @@ Here's an example:
     cr> COPY quotes FROM 'file:///tmp/import_data/quotes.json';
     COPY OK, 3 rows affected (... sec)
 
+.. NOTE::
+
+    The ``COPY`` statements use :ref:`Overload Protection <overload_protection>` to ensure other
+    queries can still perform. Please change these settings during large inserts if needed.
 
 .. _sql-copy-from-formats:
 
