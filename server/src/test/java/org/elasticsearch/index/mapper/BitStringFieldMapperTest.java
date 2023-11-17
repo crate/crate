@@ -22,6 +22,7 @@
 package org.elasticsearch.index.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -58,5 +59,14 @@ public class BitStringFieldMapperTest {
         var context = new Mapper.BuilderContext(Settings.EMPTY, contentPath);
         BitStringFieldMapper mapper = builder.build(context);
         assertThat(mapper.mappedFieldType.hasDocValues()).isFalse();
+    }
+
+    @Test
+    public void test_field_mapper_cannot_have_empty_name() {
+        ContentPath contentPath = new ContentPath();
+        var context = new Mapper.BuilderContext(Settings.EMPTY, contentPath);
+        assertThatThrownBy(() -> new BitStringFieldMapper.Builder("").build(context))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("name cannot be empty string");
     }
 }

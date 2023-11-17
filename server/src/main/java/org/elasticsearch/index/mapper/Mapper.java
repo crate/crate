@@ -144,6 +144,9 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
     protected Mapper(String simpleName, long columnOID) {
         Objects.requireNonNull(simpleName);
+        if (simpleName.isEmpty()) {
+            throw new IllegalArgumentException("name cannot be empty string");
+        }
         this.simpleName = simpleName;
         this.columnOID = columnOID;
     }
