@@ -117,9 +117,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         this.position = position;
         this.isDropped = isDropped;
         this.defaultExpression = defaultExpression;
-        if (mappedFieldType.name().isEmpty()) {
-            throw new IllegalArgumentException("name cannot be empty string");
-        }
         fieldType.freeze();
         this.fieldType = fieldType;
         this.mappedFieldType = mappedFieldType;

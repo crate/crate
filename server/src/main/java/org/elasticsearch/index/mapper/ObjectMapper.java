@@ -260,9 +260,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
                  Settings settings) {
         super(name, columnOID);
         assert settings != null;
-        if (name.isEmpty()) {
-            throw new IllegalArgumentException("name cannot be empty string");
-        }
         this.fullPath = fullPath;
         this.position = position;
         this.isDropped = isDropped;
