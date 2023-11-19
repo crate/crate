@@ -25,7 +25,6 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -44,13 +43,13 @@ public class SnapshotUtils {
      * @param indicesOptions    ignore indices flag
      * @return filtered out indices
      */
-    public static List<String> filterIndices(List<String> availableIndices, String[] selectedIndices, IndicesOptions indicesOptions) {
-        if (IndexNameExpressionResolver.isAllIndices(Arrays.asList(selectedIndices))) {
+    public static List<String> filterIndices(List<String> availableIndices, List<String> selectedIndices, IndicesOptions indicesOptions) {
+        if (IndexNameExpressionResolver.isAllIndices(selectedIndices)) {
             return availableIndices;
         }
         Set<String> result = null;
-        for (int i = 0; i < selectedIndices.length; i++) {
-            String indexOrPattern = selectedIndices[i];
+        for (int i = 0; i < selectedIndices.size(); i++) {
+            String indexOrPattern = selectedIndices.get(i);
             boolean add = true;
             if (!indexOrPattern.isEmpty()) {
                 if (availableIndices.contains(indexOrPattern)) {
@@ -117,7 +116,7 @@ public class SnapshotUtils {
             }
         }
         if (result == null) {
-            return Collections.unmodifiableList(new ArrayList<>(Arrays.asList(selectedIndices)));
+            return Collections.unmodifiableList(new ArrayList<>(selectedIndices));
         }
         return Collections.unmodifiableList(new ArrayList<>(result));
     }

@@ -50,6 +50,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -95,6 +96,7 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
@@ -105,13 +107,14 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 /**
  * Service responsible for restoring snapshots
  * <p>
  * Restore operation is performed in several stages.
  * <p>
- * First {@link #restoreSnapshot(RestoreRequest, org.elasticsearch.action.ActionListener)}
+ * First {@link #restoreSnapshot(RestoreRequest, List, org.elasticsearch.action.ActionListener)}
  * method reads information about snapshot and metadata from repository. In update cluster state task it checks restore
  * preconditions, restores global state if needed, creates {@link RestoreInProgress} record with list of shards that needs
  * to be restored and adds this shard to the routing table using {@link RoutingTable.Builder#addAsRestore(IndexMetadata, SnapshotRecoverySource)}
@@ -190,9 +193,13 @@ public class RestoreService implements ClusterStateApplier {
      * Restores snapshot specified in the restore request.
      *
      * @param request  restore request
+     * @param tablesToRestore contains tables to restore when used in CREATE SNAPSHOT
+     *                        and NULL when used in logical replication.
      * @param listener restore listener
      */
-    public void restoreSnapshot(final RestoreRequest request, final ActionListener<RestoreCompletionResponse> listener) {
+    public void restoreSnapshot(final RestoreRequest request,
+                                @Nullable final List<TableOrPartition> tablesToRestore,
+                                final ActionListener<RestoreCompletionResponse> listener) {
         final String repositoryName = request.repositoryName;
         Repository repository;
         try {
@@ -219,15 +226,42 @@ public class RestoreService implements ClusterStateApplier {
                 validateSnapshotRestorable(repositoryName, snapshotInfo);
 
                 // Resolve the indices from the snapshot that need to be restored
-                final List<String> indicesInSnapshot = request.includeIndices()
-                    ? filterIndices(snapshotInfo.indices(), request.indices(), request.indicesOptions())
+
+                List<String> resolvedIndices = new ArrayList<>();
+                List<String> resolvedTemplates = new ArrayList<>();
+
+                resolveIndices(
+                    request,
+                    tablesToRestore,
+                    snapshotInfo.indices(),
+                    clusterService.state().nodes().getMinNodeVersion(),
+                    resolvedIndices,
+                    resolvedTemplates
+                );
+
+                boolean includeIndices = request.includeIndices();
+                if (includeIndices) {
+                    // Empty list is resolved to "all indices" and we don't want break this behavior since RestoreService is used
+                    // in other components (index recovery, logical replication).
+                    // However, when restoring an empty partitioned table, there are no resolved indices
+                    // but this should not be treated as "select all".
+                    // In this case we force ignoring indices.
+                    // See https://github.com/crate/crate/issues/14144
+                    if (resolvedIndices.isEmpty() && tablesToRestore != null && tablesToRestore.size() > 0) {
+                        includeIndices = false;
+                    }
+                }
+
+                final List<String> indicesInSnapshot = includeIndices
+                    ? filterIndices(snapshotInfo.indices(), resolvedIndices, request.indicesOptions())
                     : List.of();
+
 
                 CompletableFuture<Metadata> futureGlobalMetadata;
                 if (request.includeCustomMetadata()
                     || request.includeGlobalSettings()
-                    || request.allTemplates()
-                    || (request.templates() != null && request.templates().length > 0)) {
+                    || allTemplates(resolvedTemplates)
+                    || (resolvedTemplates.isEmpty() == false)) {
                     futureGlobalMetadata = repository.getSnapshotGlobalMetadata(snapshotId);
                 } else {
                     futureGlobalMetadata = CompletableFuture.completedFuture(Metadata.EMPTY_METADATA);
@@ -255,6 +289,7 @@ public class RestoreService implements ClusterStateApplier {
                             listener,
                             request,
                             indices,
+                            resolvedTemplates,
                             metadata
                         );
                         clusterService.submitStateUpdateTask("restore_snapshot[" + snapshotName + ']', updateTask);
@@ -265,6 +300,82 @@ public class RestoreService implements ClusterStateApplier {
             listener.onFailure(Exceptions.toException(t));
             return null;
         });
+    }
+
+    private boolean allTemplates(List<String> resolvedTemplates) {
+        return resolvedTemplates.size() == 1 && resolvedTemplates.get(0).equals("_all");
+    }
+
+    /**
+     * Resolves indices and templates from the request.
+     * @param resolvedIndices is used to accumulate all resolved indices (or empty list to indicate all indices).
+     * @param resolvedTemplates is used to accumulate all resolved templates (or "_all" to indicate all templates).
+     */
+    private static void resolveIndices(RestoreRequest request,
+                                       @Nullable List<TableOrPartition> tablesToRestore,
+                                       List<String> availableIndices,
+                                       Version minNodeVersion,
+                                       List<String> resolvedIndices,
+                                       List<String> resolvedTemplates) {
+        if (minNodeVersion.onOrAfter(Version.V_5_6_0) && tablesToRestore != null) {
+            for (TableOrPartition tableOrPartition : tablesToRestore) {
+                String partitionTemplate = PartitionName.templateName(
+                    tableOrPartition.table().schema(),
+                    tableOrPartition.table().name()
+                );
+
+                if (tableOrPartition.partitionIdent() != null) {
+                    resolvedIndices.add(
+                        IndexParts.toIndexName(
+                            tableOrPartition.table().schema(),
+                            tableOrPartition.table().name(),
+                            tableOrPartition.partitionIdent()
+                        )
+                    );
+                    resolvedTemplates.add(partitionTemplate);
+                } else if (request.indicesOptions().ignoreUnavailable()) {
+                    // If ignoreUnavailable is true, it's cheaper to simply
+                    // return indexName and the partitioned wildcard instead
+                    // checking if it's a partitioned table or not
+                    resolvedIndices.add(tableOrPartition.table().indexNameOrAlias());
+                    // For the case its a partitioned table we restore all partitions and the templates
+                    resolvedIndices.add(partitionTemplate + "*");
+                    resolvedTemplates.add(partitionTemplate);
+                } else {
+                    String name = tableOrPartition.table().indexNameOrAlias();
+                    for (String index : availableIndices) {
+                        if (name.equals(index)) {
+                            resolvedIndices.add(index);
+                            return;
+                        } else if (isIndexPartitionOfTable(index, tableOrPartition.table())) {
+                            // add a partitions wildcard
+                            // to match all partitions if a partitioned table was meant
+                            resolvedIndices.add(partitionTemplate + "*");
+                            resolvedTemplates.add(partitionTemplate);
+                            return;
+                        }
+                    }
+                    resolvedTemplates.add(partitionTemplate);
+                }
+            }
+        } else {
+            // Use request values, for BWC and for restore from logical replication.
+            for (String index: request.indices()) {
+                resolvedIndices.add(index);
+            }
+            for (String template: request.templates()) {
+                resolvedTemplates.add(template);
+            }
+        }
+
+        if (request.includeIndices() && resolvedTemplates.isEmpty()) {
+            resolvedTemplates.add("_all");
+        }
+    }
+
+    public static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
+        return IndexParts.isPartitioned(index) &&
+            PartitionName.fromIndexOrTemplate(index).relationName().equals(relationName);
     }
 
     public static RestoreInProgress updateRestoreStateWithDeletedIndices(RestoreInProgress oldRestore, Set<Index> deletedIndices) {
@@ -305,6 +416,9 @@ public class RestoreService implements ClusterStateApplier {
         private final ActionListener<RestoreCompletionResponse> listener;
         private final RestoreRequest request;
         private final Map<String, String> indices;
+
+        private final List<String> resolvedTemplates;
+
         private final Metadata metadata;
         final String restoreUUID = UUIDs.randomBase64UUID();
         RestoreInfo restoreInfo = null;
@@ -316,6 +430,7 @@ public class RestoreService implements ClusterStateApplier {
                                                 ActionListener<RestoreCompletionResponse> listener,
                                                 RestoreRequest request,
                                                 Map<String, String> indices,
+                                                List<String> resolvedTemplates,
                                                 Metadata metadata) {
             this.snapshotInfo = snapshotInfo;
             this.snapshotId = snapshotId;
@@ -324,6 +439,7 @@ public class RestoreService implements ClusterStateApplier {
             this.listener = listener;
             this.request = request;
             this.indices = indices;
+            this.resolvedTemplates = resolvedTemplates;
             this.metadata = metadata;
         }
 
@@ -475,10 +591,10 @@ public class RestoreService implements ClusterStateApplier {
                 shards = ImmutableOpenMap.of();
             }
 
-            validateExistingTemplates();
+            validateExistingTemplates(resolvedTemplates);
             checkAliasNameConflicts(indices, aliases);
             // Restore templates (but do NOT overwrite existing templates)
-            restoreTemplates(mdBuilder, currentState);
+            restoreTemplates(resolvedTemplates, mdBuilder, currentState);
 
             // Restore global state if needed
             if (request.includeGlobalSettings() && metadata.persistentSettings() != null) {
@@ -634,23 +750,24 @@ public class RestoreService implements ClusterStateApplier {
             return builder.settings(settingsBuilder).build();
         }
 
-        private void restoreTemplates(Metadata.Builder mdBuilder, ClusterState currentState) {
-            List<String> toRestore = Arrays.asList(request.templates());
+        private void restoreTemplates(List<String> resolvedTemplates,
+                                      Metadata.Builder mdBuilder,
+                                      ClusterState currentState) {
             if (metadata.templates() != null) {
                 for (ObjectCursor<IndexTemplateMetadata> cursor : metadata.templates().values()) {
                     if (currentState.metadata().templates().get(cursor.value.name()) == null
-                        && (request.allTemplates() || toRestore.contains(cursor.value.name()))) {
+                        && (allTemplates(resolvedTemplates) || resolvedTemplates.contains(cursor.value.name()))) {
                         mdBuilder.put(cursor.value);
                     }
                 }
             }
         }
 
-        private void validateExistingTemplates() {
-            if (request.indicesOptions().ignoreUnavailable() || request.allTemplates()) {
+        private void validateExistingTemplates(List<String> resolvedTemplates) {
+            if (request.indicesOptions().ignoreUnavailable() || allTemplates(resolvedTemplates)) {
                 return;
             }
-            for (String template : request.templates()) {
+            for (String template : resolvedTemplates) {
                 if (!metadata.templates().containsKey(template)) {
                     throw new ResourceNotFoundException("[{}] template not found", template);
                 }
@@ -1115,10 +1232,6 @@ public class RestoreService implements ClusterStateApplier {
 
         public String[] templates() {
             return templates;
-        }
-
-        public boolean allTemplates() {
-            return templates.length == 1 && templates[0].equals("_all");
         }
 
         /**
