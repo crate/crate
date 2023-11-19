@@ -320,7 +320,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
                 () -> {
                     try {
-                        restoreService.restoreSnapshot(restoreRequest, restoreFuture);
+                        restoreService.restoreSnapshot(restoreRequest, null, restoreFuture);
                     } catch (Exception e) {
                         restoreFuture.onFailure(e);
                     }

@@ -24,6 +24,7 @@ package io.crate.planner.node.ddl;
 import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
+import static org.elasticsearch.snapshots.RestoreService.isIndexPartitionOfTable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,7 +32,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
@@ -57,9 +60,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -103,45 +104,79 @@ public class RestoreSnapshotPlan implements Plan {
         var settings = stmt.settings();
         boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
 
-        resolveIndexNames(restoreSnapshot.repository(),
-                          stmt.restoreTables(),
-                          ignoreUnavailable,
-                          dependencies.client())
-            .whenComplete((ResolveIndicesAndTemplatesContext ctx, Throwable t) -> {
-                if (t == null) {
-                    String[] indexNames = ctx.resolvedIndices().toArray(new String[0]);
-                    String[] templateNames = stmt.includeTables() && ctx.resolvedTemplates().isEmpty()
-                        ? new String[]{ALL_TEMPLATES}
-                        : ctx.resolvedTemplates().toArray(new String[0]);
-                    boolean includeTables = stmt.includeTables() &&
-                                            (indexNames.length > 0 || ctx.resolvedTemplates().isEmpty());
+        // ignore_unavailable as set by statement
+        IndicesOptions indicesOptions = IndicesOptions.fromOptions(
+            ignoreUnavailable,
+            true,
+            true,
+            false,
+            IndicesOptions.lenientExpandOpen()
+        );
 
-                    // ignore_unavailable as set by statement
-                    IndicesOptions indicesOptions = IndicesOptions.fromOptions(
-                        ignoreUnavailable,
-                        true,
-                        true,
-                        false,
-                        IndicesOptions.lenientExpandOpen());
+        if (plannerContext.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0)) {
+            boolean includeTables = stmt.includeTables();
 
-                    RestoreSnapshotRequest request = new RestoreSnapshotRequest(
-                        restoreSnapshot.repository(),
-                        restoreSnapshot.snapshot())
-                        .indices(indexNames)
-                        .templates(templateNames)
-                        .indicesOptions(indicesOptions)
-                        .settings(settings)
-                        .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
-                        .includeIndices(includeTables)
-                        .includeAliases(includeTables)
-                        .includeCustomMetadata(stmt.includeCustomMetadata())
-                        .customMetadataTypes(stmt.customMetadataTypes())
-                        .includeGlobalSettings(stmt.includeGlobalSettings())
-                        .globalSettings(stmt.globalSettings());
-                    dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
-                        .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
-                }
-            });
+            List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = stmt.restoreTables().stream()
+                .map(restoreTableInfo -> {
+                    String partitionIdent = null;
+                    if (restoreTableInfo.partitionName() != null) {
+                        partitionIdent = restoreTableInfo.partitionName().ident();
+                    }
+                    return new RestoreSnapshotRequest.TableOrPartition(restoreTableInfo.tableIdent(), partitionIdent);
+                })
+                .collect(Collectors.toList());
+
+            RestoreSnapshotRequest request = new RestoreSnapshotRequest(
+                restoreSnapshot.repository(),
+                restoreSnapshot.snapshot())
+                .tablesToRestore(tablesToRestore)
+                .indicesOptions(indicesOptions)
+                .settings(settings)
+                .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
+                .includeIndices(includeTables)
+                .includeAliases(includeTables)
+                .includeCustomMetadata(stmt.includeCustomMetadata())
+                .customMetadataTypes(stmt.customMetadataTypes())
+                .includeGlobalSettings(stmt.includeGlobalSettings())
+                .globalSettings(stmt.globalSettings());
+            dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
+                .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
+        } else {
+            // TODO: Remove BWC code.
+            resolveIndexNames(restoreSnapshot.repository(),
+                stmt.restoreTables(),
+                ignoreUnavailable,
+                dependencies.client())
+                .whenComplete((ResolveIndicesAndTemplatesContext ctx, Throwable t) -> {
+                    if (t == null) {
+                        String[] indexNames = ctx.resolvedIndices().toArray(new String[0]);
+                        String[] templateNames = stmt.includeTables() && ctx.resolvedTemplates().isEmpty()
+                            ? new String[]{ALL_TEMPLATES}
+                            : ctx.resolvedTemplates().toArray(new String[0]);
+                        boolean includeTables = stmt.includeTables() &&
+                            (indexNames.length > 0 || ctx.resolvedTemplates().isEmpty());
+
+
+
+                        RestoreSnapshotRequest request = new RestoreSnapshotRequest(
+                            restoreSnapshot.repository(),
+                            restoreSnapshot.snapshot())
+                            .indices(indexNames)
+                            .templates(templateNames)
+                            .indicesOptions(indicesOptions)
+                            .settings(settings)
+                            .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
+                            .includeIndices(includeTables)
+                            .includeAliases(includeTables)
+                            .includeCustomMetadata(stmt.includeCustomMetadata())
+                            .customMetadataTypes(stmt.customMetadataTypes())
+                            .includeGlobalSettings(stmt.includeGlobalSettings())
+                            .globalSettings(stmt.globalSettings());
+                        dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
+                            .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
+                    }
+                });
+        }
     }
 
     @VisibleForTesting
@@ -209,6 +244,7 @@ public class RestoreSnapshotPlan implements Plan {
     }
 
     @VisibleForTesting
+    @Deprecated
     static CompletableFuture<ResolveIndicesAndTemplatesContext> resolveIndexNames(String repositoryName,
                                                                                   Set<BoundRestoreSnapshot.RestoreTableInfo> restoreTables,
                                                                                   boolean ignoreUnavailable,
@@ -277,10 +313,7 @@ public class RestoreSnapshotPlan implements Plan {
         context.addTemplate(table.partitionTemplate());
     }
 
-    private static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
-        return IndexParts.isPartitioned(index) &&
-               PartitionName.fromIndexOrTemplate(index).relationName().equals(relationName);
-    }
+
 
     @VisibleForTesting
     static class ResolveIndicesAndTemplatesContext {

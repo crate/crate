@@ -23,6 +23,8 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
+import io.crate.metadata.RelationName;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -37,10 +39,12 @@ import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Restore snapshot request
@@ -49,7 +53,11 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
 
     private String snapshot;
     private String repository;
+
+    @Deprecated
     private String[] indices = Strings.EMPTY_ARRAY;
+
+    @Deprecated
     private String[] templates = Strings.EMPTY_ARRAY;
     private IndicesOptions indicesOptions = IndicesOptions.strictExpandOpen();
     private String renamePattern;
@@ -67,6 +75,21 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     private String[] customMetadataTypes = Strings.EMPTY_ARRAY;
     private boolean includeGlobalSettings = false;
     private String[] globalSettings = Strings.EMPTY_ARRAY;
+
+    private List<TableOrPartition> tablesToRestore = List.of();
+
+    public record TableOrPartition(RelationName table, @Nullable String partitionIdent) implements Writeable {
+
+        public TableOrPartition(StreamInput in) throws IOException {
+            this(new RelationName(in), in.readOptionalString());
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            table.writeTo(out);
+            out.writeOptionalString(partitionIdent);
+        }
+    }
 
     public RestoreSnapshotRequest() {
     }
@@ -169,6 +192,19 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
      */
     public String[] templates() {
         return templates;
+    }
+
+    /**
+     * Sets the list of tables that should be restored from snapshot
+     * An empty list will restore all open indices in the snapshot.
+     */
+    public RestoreSnapshotRequest tablesToRestore(List<TableOrPartition> tablesToRestore) {
+        this.tablesToRestore = tablesToRestore;
+        return this;
+    }
+
+    public List<TableOrPartition> tablesToRestore() {
+        return tablesToRestore;
     }
 
     /**
@@ -505,6 +541,9 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             includeGlobalSettings = in.readBoolean();
             globalSettings = in.readStringArray();
         }
+        if (in.getVersion().onOrAfter(Version.V_5_6_0)) {
+            tablesToRestore = in.readList(TableOrPartition::new);
+        }
     }
 
     @Override
@@ -533,6 +572,9 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             out.writeStringArray(customMetadataTypes);
             out.writeBoolean(includeGlobalSettings);
             out.writeStringArray(globalSettings);
+        }
+        if (out.getVersion().onOrAfter(Version.V_5_6_0)) {
+            out.writeCollection(tablesToRestore);
         }
     }
 
