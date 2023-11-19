@@ -19,34 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.planner.node.management;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import io.crate.planner.optimizer.Rule;
 
-import org.junit.Test;
+public record OptimizerStep(@Nullable Rule<?> rule, String planAsString) {
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
+    static OptimizerStep initial(String planAsString) {
+        return new OptimizerStep(null, planAsString);
+    }
 
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+    static OptimizerStep ruleApplied(@NotNull Rule<?> rule, String planAsString) {
+        return new OptimizerStep(rule, planAsString);
+    }
 
-    @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows).hasSize(270);
-        Row row = rows.get(0);
-
-        assertThat(row.get(0)).isEqualTo("absolute");
-        assertThat(row.get(1)).isEqualTo("U");
-        assertThat(row.get(2)).isEqualTo("unreserved");
+    boolean isInitial() {
+        return rule == null;
     }
 }

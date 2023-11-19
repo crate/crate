@@ -38,6 +38,7 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.optimizer.tracer.OptimizerProgressTracker;
 import io.crate.types.DataTypes;
 
 
@@ -52,7 +53,8 @@ public final class InsertFromSubQueryPlanner {
     public static LogicalPlan plan(AnalyzedInsertStatement statement,
                                    PlannerContext plannerContext,
                                    LogicalPlanner logicalPlanner,
-                                   SubqueryPlanner subqueryPlanner) {
+                                   SubqueryPlanner subqueryPlanner,
+                                   OptimizerProgressTracker tracer) {
 
         if (statement.outputs() != null &&
             !plannerContext.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
@@ -84,7 +86,8 @@ public final class InsertFromSubQueryPlanner {
             statement.subQueryRelation(),
             plannerContext,
             subqueryPlanner,
-            true
+            true,
+            tracer
         );
         EvalProjection castOutputs = EvalProjection.castValues(
             Symbols.typeView(statement.columns()), plannedSubQuery.outputs());

@@ -60,6 +60,12 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_analyze_and_verbose_raises_errors() {
+        assertThatThrownBy(() -> e.analyze("explain (analyze, verbose) select id from sys.cluster"))
+            .hasMessage("The ANALYZE and VERBOSE options are not allowed together");
+    }
+
+    @Test
     public void testAnalyzePropertyIsSetOnExplainAnalyze() {
         ExplainAnalyzedStatement stmt = e.analyze("explain analyze select id from sys.cluster");
         assertThat(stmt.context()).isNotNull();
@@ -99,5 +105,19 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("explain optimize table parted"))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessageStartingWith("EXPLAIN is not supported for OptimizeStatement");
+    }
+
+    @Test
+    public void test_explain_verbose() {
+        ExplainAnalyzedStatement stmt = e.analyze("explain verbose select id from sys.cluster");
+        assertThat(stmt.statement()).isExactlyInstanceOf(QueriedSelectRelation.class);
+        assertThat(stmt.outputs()).satisfiesExactly(isField("STEP"), isField("QUERY PLAN"));
+    }
+
+    @Test
+    public void test_explain_verbose_copy_from_unsupported() {
+        assertThatThrownBy(() -> e.analyze("explain verbose copy users from '/tmp/*' WITH (shared=True)"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessageStartingWith("EXPLAIN VERBOSE is not supported for CopyFrom");
     }
 }

@@ -963,9 +963,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitExplain(SqlBaseParser.ExplainContext context) {
         if (context.ANALYZE() != null) {
-            return new Explain((Statement) visit(context.statement()), true, Map.of(Explain.Option.ANALYZE, true));
+            return new Explain((Statement) visit(context.statement()), true, Map.of(Explain.Option.ANALYZE, true), false);
+        } else if (context.VERBOSE() != null) {
+            var options = Map.of(
+                Explain.Option.COSTS, true,
+                Explain.Option.VERBOSE, true
+            );
+            return new Explain((Statement) visit(context.statement()), false, options, true);
         } else if (context.explainOptions() == null) {
-            return new Explain((Statement) visit(context.statement()), false, Map.of(Explain.Option.COSTS, true));
+            return new Explain((Statement) visit(context.statement()), false, Map.of(Explain.Option.COSTS, true), false);
         } else {
             var options = new LinkedHashMap<Explain.Option, Boolean>();
             for (SqlBaseParser.ExplainOptionsContext explainOptions : context.explainOptions()) {
@@ -974,10 +980,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                         options.put(Explain.Option.COSTS, getBooleanOrNull(explainOptionContext));
                     } else if (explainOptionContext.ANALYZE() != null) {
                         options.put(Explain.Option.ANALYZE, getBooleanOrNull(explainOptionContext));
+                    } else if (explainOptionContext.VERBOSE() != null) {
+                        options.put(Explain.Option.VERBOSE, getBooleanOrNull(explainOptionContext));
                     }
                 }
             }
-            return new Explain((Statement) visit(context.statement()), false, options);
+            return new Explain((Statement) visit(context.statement()), false, options, false);
         }
     }
 

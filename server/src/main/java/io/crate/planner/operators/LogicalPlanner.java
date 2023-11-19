@@ -113,6 +113,7 @@ import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
+import io.crate.planner.optimizer.tracer.OptimizerProgressTracker;
 import io.crate.types.DataTypes;
 
 /**
@@ -123,7 +124,6 @@ public class LogicalPlanner {
     // Join ordering optimization rules have their own optimizer, because these rules have
     // little interaction with the other rules and we want to avoid unnecessary pattern matches on them.
     private final IterativeOptimizer joinOrderOptimizer;
-    private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
 
@@ -198,11 +198,12 @@ public class LogicalPlanner {
         );
     }
 
-    public LogicalPlan plan(AnalyzedStatement statement, PlannerContext plannerContext) {
+    public LogicalPlan plan(AnalyzedStatement statement, PlannerContext plannerContext, OptimizerProgressTracker tracer) {
+        var statementVisitor = new Visitor(tracer);
         return statement.accept(statementVisitor, plannerContext);
     }
 
-    public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
+    public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext, OptimizerProgressTracker tracer) {
         CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = selectSymbol.relation();
 
@@ -230,13 +231,13 @@ public class LogicalPlanner {
                 break;
         }
         PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, fetchSize);
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext, tracer));
         var planBuilder = new PlanBuilder(subqueryPlanner, plannerContext.planStats());
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx);
+        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx, tracer);
+        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         return new RootRelationBoundary(prunedPlan);
@@ -270,20 +271,22 @@ public class LogicalPlanner {
     public LogicalPlan plan(AnalyzedRelation relation,
                             PlannerContext plannerContext,
                             SubqueryPlanner subqueryPlanner,
-                            boolean avoidTopLevelFetch) {
+                            boolean avoidTopLevelFetch,
+                            OptimizerProgressTracker tracer) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         PlanStats planStats = plannerContext.planStats();
         var planBuilder = new PlanBuilder(subqueryPlanner, planStats);
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
-        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx);
+        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx, tracer);
+        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx, tracer);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
             prunedPlan,
             planStats,
-            coordinatorTxnCtx
+            coordinatorTxnCtx,
+            tracer
         );
         if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
             return fetchOptimized;
@@ -592,6 +595,12 @@ public class LogicalPlanner {
 
     private class Visitor extends AnalyzedStatementVisitor<PlannerContext, LogicalPlan> {
 
+        private final OptimizerProgressTracker tracer;
+
+        private Visitor(OptimizerProgressTracker tracer) {
+            this.tracer = tracer;
+        }
+
         @Override
         protected LogicalPlan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, PlannerContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
@@ -600,22 +609,24 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
-            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, context));
-            LogicalPlan logicalPlan = plan(relation, context, subqueryPlanner, false);
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, context, tracer));
+            LogicalPlan logicalPlan = plan(relation, context, subqueryPlanner, false, tracer);
             return new RootRelationBoundary(logicalPlan);
         }
 
         @Override
         protected LogicalPlan visitAnalyzedInsertStatement(AnalyzedInsertStatement statement, PlannerContext context) {
-            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, context));
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, context, tracer));
             return writeOptimizer.optimize(
                 InsertFromSubQueryPlanner.plan(
                     statement,
                     context,
                     LogicalPlanner.this,
-                    subqueryPlanner),
+                    subqueryPlanner,
+                    tracer),
                 context.planStats(),
-                context.transactionContext()
+                context.transactionContext(),
+                tracer
             );
         }
     }

@@ -18,13 +18,14 @@ Synopsis
 
 ::
 
-    EXPLAIN [ ANALYZE ] statement
+    EXPLAIN [ ANALYZE | VERBOSE ] statement
     EXPLAIN [ ( option [, ...] ) ] statement
 
     where option is:
 
         ANALYZE [ boolean ]
         COSTS [ boolean ]
+        VERBOSE [ boolean ]
 
 Description
 ===========
@@ -32,6 +33,40 @@ Description
 The ``EXPLAIN`` command displays the execution plan that the planner generates
 for the supplied statement. The plan is returned as a nested object containing
 the plan tree.
+
+The ``VERBOSE`` option, available through ``EXPLAIN VERBOSE`` or
+``EXPLAIN (VERBOSE TRUE)``, provides a breakdown of the steps performed by the
+optimizer. An example output looks like this::
+
+    cr> EXPLAIN VERBOSE SELECT * FROM t1, t2 WHERE t1.id = t2.id AND t1.id > 2;
+    +------------------------------------+-----------------------------------------------------------------+
+    | STEP                               | QUERY PLAN                                                      |
+    +------------------------------------+-----------------------------------------------------------------+
+    | Initial logical plan               | Filter[(id > 2::bigint)] (rows=0)                               |
+    |                                    |   └ Join[INNER | (id = id)] (rows=1)                            |
+    |                                    |     ├ Collect[doc.t1 | [id, name] | true] (rows=74)             |
+    |                                    |     └ Collect[doc.t2 | [id] | true] (rows=48)                   |
+    | optimizer_move_filter_beneath_join | Join[INNER | (id = id)] (rows=1)                                |
+    |                                    |   ├ Filter[(id > 2::bigint)] (rows=24)                          |
+    |                                    |   │  └ Collect[doc.t1 | [id, name] | true] (rows=74)            |
+    |                                    |   └ Collect[doc.t2 | [id] | true] (rows=48)                     |
+    | optimizer_rewrite_join_plan        | HashJoin[(id = id)] (rows=1)                                    |
+    |                                    |   ├ Filter[(id > 2::bigint)] (rows=24)                          |
+    |                                    |   │  └ Collect[doc.t1 | [id, name] | true] (rows=74)            |
+    |                                    |   └ Collect[doc.t2 | [id] | true] (rows=48)                     |
+    | optimizer_merge_filter_and_collect | HashJoin[(id = id)] (rows=1)                                    |
+    |                                    |   ├ Collect[doc.t1 | [id, name] | (id > 2::bigint)] (rows=24)   |
+    |                                    |   └ Collect[doc.t2 | [id] | true] (rows=48)                     |
+    | optimizer_reorder_hash_join        | Eval[id, name, id] (rows=0)                                     |
+    |                                    |   └ HashJoin[(id = id)] (rows=0)                                |
+    |                                    |     ├ Collect[doc.t2 | [id] | true] (rows=48)                   |
+    |                                    |     └ Collect[doc.t1 | [id, name] | (id > 2::bigint)] (rows=24) |
+    | Final logical plan                 | Eval[id, name, id] (rows=0)                                     |
+    |                                    |   └ HashJoin[(id = id)] (rows=0)                                |
+    |                                    |     ├ Collect[doc.t2 | [id] | true] (rows=48)                   |
+    |                                    |     └ Collect[doc.t1 | [id, name] | (id > 2::bigint)] (rows=24) |
+    +------------------------------------+-----------------------------------------------------------------+
+    EXPLAIN 6 rows in set (0.009 sec)
 
 When issuing ``EXPLAIN ANALYZE`` or ``EXPLAIN (ANALYZE TRUE)`` the plan of the
 statement is executed and timings of the different phases of the plan are returned.

@@ -448,6 +448,10 @@ public class TestStatementBuilder {
         printStatement("explain (costs, analyze) select * from foo");
         printStatement("explain (costs true, analyze true) select * from foo");
         printStatement("explain (costs false, analyze false) select * from foo");
+        printStatement("explain verbose select * from foo");
+        printStatement("explain (costs, verbose) select * from foo");
+        printStatement("explain (verbose) select * from foo");
+        printStatement("explain (costs false, verbose true) select * from foo");
     }
 
     @Test

@@ -27,25 +27,21 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.PrintContext;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.tracer.OptimizerProgressTracker;
 
 /**
  * The optimizer takes an operator tree of logical plans and creates an optimized plan.
  * The optimization loop applies rules recursively until a fixpoint is reached.
  */
 public class IterativeOptimizer {
-
-    private static final Logger LOGGER = LogManager.getLogger(IterativeOptimizer.class);
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
@@ -57,7 +53,7 @@ public class IterativeOptimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx) {
+    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, OptimizerProgressTracker tracer) {
         var memo = new Memo(plan);
         var planStatsWithMemo = planStats.withMemo(memo);
 
@@ -72,14 +68,10 @@ public class IterativeOptimizer {
             return node;
         };
 
-        if (LOGGER.isTraceEnabled()) {
-            PrintContext printContext = new PrintContext(planStatsWithMemo);
-            plan.print(printContext);
-            LOGGER.trace("Optimize plan: \n " + printContext);
-        }
+        tracer.optimizationStarted(plan, planStatsWithMemo);
 
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo));
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo), tracer);
         return memo.extract();
     }
 
@@ -93,17 +85,17 @@ public class IterativeOptimizer {
      * @param context the context of the optimizer
      * @return true if there were any changes of plans on the node or it's children or false if not
      */
-    private boolean exploreGroup(int group, Context context) {
+    private boolean exploreGroup(int group, Context context, OptimizerProgressTracker tracer) {
         // tracks whether this group or any children groups change as
         // this method executes
-        var progress = exploreNode(group, context);
+        var progress = exploreNode(group, context, tracer);
 
-        while (exploreChildren(group, context)) {
+        while (exploreChildren(group, context, tracer)) {
             progress = true;
             // This is an important part! We keep track
             // if the children changed and try again the
             // current group in case we can match additional rules
-            if (!exploreNode(group, context)) {
+            if (!exploreNode(group, context, tracer)) {
                 // no additional matches, so bail out
                 break;
             }
@@ -111,8 +103,7 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private boolean exploreNode(int group, Context context) {
-        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
+    private boolean exploreNode(int group, Context context, OptimizerProgressTracker tracer) {
         var rules = context.rules;
         var resolvePlan = context.groupReferenceResolver;
         var node = context.memo.resolve(group);
@@ -136,7 +127,7 @@ public class IterativeOptimizer {
                     nodeCtx,
                     context.txnCtx,
                     resolvePlan,
-                    isTraceEnabled
+                    tracer
                 );
                 if (transformed != null) {
                     // the plan changed, update memo to reference to the new plan
@@ -144,11 +135,7 @@ public class IterativeOptimizer {
                     node = transformed;
                     done = false;
                     progress = true;
-                    if (isTraceEnabled) {
-                        var printContext = new PrintContext(context.planStats);
-                        context.memo.extract().print(printContext);
-                        LOGGER.trace("Rule " + rule.sessionSettingName() + " transformed the logical plan: \n" + printContext);
-                    }
+                    tracer.ruleApplied(rule, context.memo.extract(), context.planStats);
                 }
             }
         }
@@ -158,13 +145,13 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private boolean exploreChildren(int group, Context context) {
+    private boolean exploreChildren(int group, Context context, OptimizerProgressTracker tracer) {
         boolean progress = false;
 
         var expression = context.memo.resolve(group);
         for (var child : expression.sources()) {
             if (child instanceof GroupReference g) {
-                if (exploreGroup(g.groupId(), context)) {
+                if (exploreGroup(g.groupId(), context, tracer)) {
                     progress = true;
                 }
             } else {

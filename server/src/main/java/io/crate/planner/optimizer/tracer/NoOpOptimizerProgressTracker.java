@@ -19,34 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.planner.optimizer.tracer;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+public class NoOpOptimizerProgressTracker implements OptimizerProgressTracker {
 
-import org.junit.Test;
+    public static final NoOpOptimizerProgressTracker INSTANCE = new NoOpOptimizerProgressTracker();
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
+    private NoOpOptimizerProgressTracker() {
+    }
 
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+    @Override
+    public void optimizationStarted(LogicalPlan initialPlan, PlanStats planStats) {
 
-    @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows).hasSize(270);
-        Row row = rows.get(0);
+    }
 
-        assertThat(row.get(0)).isEqualTo("absolute");
-        assertThat(row.get(1)).isEqualTo("U");
-        assertThat(row.get(2)).isEqualTo("unreserved");
+    @Override
+    public void ruleMatched(Rule<?> rule) {
+
+    }
+
+    @Override
+    public void ruleApplied(Rule<?> rule, LogicalPlan plan, PlanStats planStats) {
+
     }
 }

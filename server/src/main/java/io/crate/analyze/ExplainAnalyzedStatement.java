@@ -35,6 +35,8 @@ import io.crate.types.DataTypes;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
@@ -44,23 +46,42 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final List<Symbol> outputs;
     private final RelationName relationName;
     private final boolean showCosts;
-    private static final String COLUMN_NAME = "QUERY PLAN";
+    private final boolean verbose;
+    private static final String PLAN_COLUMN_NAME = "QUERY PLAN";
+    private static final String STEP_COLUMN_NAME = "STEP";
 
-    ExplainAnalyzedStatement(AnalyzedStatement statement, @Nullable ProfilingContext context, boolean showCosts) {
+    ExplainAnalyzedStatement(AnalyzedStatement statement,
+                             @Nullable ProfilingContext context,
+                             boolean showCosts,
+                             boolean verbose) {
         relationName = new RelationName(null, "explain");
-        ScopedSymbol field = new ScopedSymbol(
-            relationName,
-            new ColumnIdent(COLUMN_NAME),
-            context == null ? DataTypes.STRING : DataTypes.UNTYPED_OBJECT
-        );
         this.statement = statement;
         this.context = context;
-        this.outputs = List.of(field);
+        this.outputs = new ArrayList<>();
+        if (verbose) {
+            ScopedSymbol stepField = new ScopedSymbol(
+                relationName,
+                new ColumnIdent(STEP_COLUMN_NAME),
+                DataTypes.STRING
+            );
+            outputs.add(stepField);
+        }
+        ScopedSymbol queryPlanField = new ScopedSymbol(
+            relationName,
+            new ColumnIdent(PLAN_COLUMN_NAME),
+            context == null ? DataTypes.STRING : DataTypes.UNTYPED_OBJECT
+        );
+        outputs.add(queryPlanField);
         this.showCosts = showCosts;
+        this.verbose = verbose;
     }
 
     public boolean showCosts() {
         return showCosts;
+    }
+
+    public boolean verbose() {
+        return verbose;
     }
 
     @Override

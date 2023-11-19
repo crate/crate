@@ -27,11 +27,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -41,10 +38,9 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
+import io.crate.planner.optimizer.tracer.OptimizerProgressTracker;
 
 public class Optimizer {
-
-    private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
@@ -58,15 +54,19 @@ public class Optimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx) {
+    public LogicalPlan optimize(LogicalPlan plan,
+                                PlanStats planStats,
+                                CoordinatorTxnCtx txnCtx,
+                                OptimizerProgressTracker tracer) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx);
-        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx));
+        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx, tracer);
+        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, tracer));
         return tryApplyRules(
             applicableRules,
             optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
             planStats,
-            txnCtx
+            txnCtx,
+            tracer
         );
     }
 
@@ -85,8 +85,11 @@ public class Optimizer {
         return result;
     }
 
-    private LogicalPlan tryApplyRules(List<Rule<?>> rules, LogicalPlan plan, PlanStats planStats, TransactionContext txnCtx) {
-        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
+    private LogicalPlan tryApplyRules(List<Rule<?>> rules,
+                                      LogicalPlan plan,
+                                      PlanStats planStats,
+                                      TransactionContext txnCtx,
+                                      OptimizerProgressTracker tracer) {
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
         // trying to re-apply the rules as long as at least one plan was transformed.
@@ -100,11 +103,9 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
+                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, resolvePlan, tracer);
                 if (transformedPlan != null) {
-                    if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
-                    }
+                    tracer.ruleApplied(rule, transformedPlan, planStats);
                     node = transformedPlan;
                     done = false;
                 }
@@ -123,12 +124,10 @@ public class Optimizer {
                                                    NodeContext nodeCtx,
                                                    TransactionContext txnCtx,
                                                    Function<LogicalPlan, LogicalPlan> resolvePlan,
-                                                   boolean traceEnabled) {
+                                                   OptimizerProgressTracker tracer) {
         Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
         if (match.isPresent()) {
-            if (traceEnabled) {
-                LOGGER.trace("Rule " + rule.sessionSettingName() + " matched");
-            }
+            tracer.ruleMatched(rule);
             return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
         }
         return null;

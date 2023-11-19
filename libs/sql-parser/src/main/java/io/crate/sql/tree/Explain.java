@@ -30,18 +30,22 @@ public class Explain extends Statement {
 
     public enum Option {
         ANALYZE,
-        COSTS
+        COSTS,
+        VERBOSE
     }
 
     private final Statement statement;
     // Possible values for options is `true`, `false`, `null`
     private final Map<Option, Boolean> options;
+    // The below flags exist only for SqlFormatter
     private final boolean analyze;
+    private final boolean verbose;
 
-    public Explain(Statement statement, boolean analyze, Map<Option, Boolean> options) {
+    public Explain(Statement statement, boolean analyze, Map<Option, Boolean> options, boolean verbose) {
         this.statement = requireNonNull(statement, "statement is null");
         this.analyze = analyze;
         this.options = options;
+        this.verbose = verbose;
     }
 
     public Statement getStatement() {
@@ -52,6 +56,10 @@ public class Explain extends Statement {
         return analyze;
     }
 
+    public boolean isVerbose() {
+        return verbose;
+    }
+
     public Map<Option, Boolean> options() {
         return options;
     }
@@ -60,6 +68,10 @@ public class Explain extends Statement {
         // Option is activated if key is present and value true or null
         // e.g. explain (analyze true) or explain (analyze)
         return options.containsKey(option) && (options.get(option) == null || options.get(option) == true);
+    }
+
+    public boolean isOptionExplicitlyDeactivated(Explain.Option option) {
+        return options.containsKey(option) && options.get(option) == false;
     }
 
     @Override
@@ -76,13 +88,15 @@ public class Explain extends Statement {
             return false;
         }
         Explain explain = (Explain) o;
-        return analyze == explain.analyze && Objects.equals(statement, explain.statement) &&
-               Objects.equals(options, explain.options);
+        return analyze == explain.analyze &&
+            verbose == explain.verbose &&
+            Objects.equals(statement, explain.statement) &&
+            Objects.equals(options, explain.options);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(statement, options, analyze);
+        return Objects.hash(statement, options, analyze, verbose);
     }
 
     public String toString() {
@@ -90,6 +104,7 @@ public class Explain extends Statement {
                "statement=" + statement +
                ", options=" + options +
                ", analyze=" + analyze +
+               ", verbose=" + verbose +
                '}';
     }
 }

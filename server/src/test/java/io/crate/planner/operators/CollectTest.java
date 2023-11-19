@@ -35,6 +35,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.optimizer.tracer.NoOpOptimizerProgressTracker;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -52,7 +53,7 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
-        LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);
+        LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx, NoOpOptimizerProgressTracker.INSTANCE);
         ExecutionPlan build = operator.build(
             mock(DependencyCarrier.class),
             plannerCtx,
