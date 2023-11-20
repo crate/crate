@@ -55,7 +55,6 @@ import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.TypeParsers;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -154,10 +153,9 @@ public class DocTableInfoFactory {
                     throw new RelationUnknown(relation);
                 }
             }
-            Settings indexSettings = index.getSettings();
-            tableParameters = indexSettings;
-            versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(indexSettings);
-            versionUpgraded = indexSettings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
+            tableParameters = index.getSettings();
+            versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
+            versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
             state = index.getState();
             MappingMetadata mapping = index.mapping();
             mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
@@ -173,14 +171,13 @@ public class DocTableInfoFactory {
                 XContentType.JSON
             );
             mappingSource = Maps.getOrDefault(mappingSource, "default", mappingSource);
-            Settings indexSettings = indexTemplateMetadata.settings();
-            tableParameters = indexSettings;
-            versionCreated = indexSettings.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
+            tableParameters = indexTemplateMetadata.settings();
+            versionCreated = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
             versionUpgraded = null;
             boolean isClosed = Maps.getOrDefault(
                 Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
             state = isClosed ? State.CLOSE : State.OPEN;
-            numberOfShards = indexSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5);
+            numberOfShards = tableParameters.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5);
             // We need all concrete open indices, as closed indices must not appear in the routing.
             concreteOpenIndices = IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
@@ -193,7 +190,6 @@ public class DocTableInfoFactory {
             }
 
         }
-        final String numberOfReplicas = NumberOfReplicas.fromSettings(tableParameters);
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
             Maps.getOrDefault(metaMap, "partitioned_by", List.of())
@@ -266,7 +262,6 @@ public class DocTableInfoFactory {
             concreteIndices,
             concreteOpenIndices,
             numberOfShards,
-            numberOfReplicas,
             tableParameters,
             partitionedBy,
             partitions,

@@ -43,6 +43,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
@@ -171,12 +172,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         String[] concreteIndices,
                         String[] concreteOpenIndices,
                         int numberOfShards,
-                        String numberOfReplicas,
                         Settings tableParameters,
                         List<ColumnIdent> partitionedBy,
                         List<PartitionName> partitions,
                         ColumnPolicy columnPolicy,
-                        @Nullable Version versionCreated,
+                        Version versionCreated,
                         @Nullable Version versionUpgraded,
                         boolean closed,
                         Set<Operation> supportedOperations) {
@@ -234,12 +234,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.concreteIndices = concreteIndices;
         this.concreteOpenIndices = concreteOpenIndices;
         this.numberOfShards = numberOfShards;
-        this.numberOfReplicas = numberOfReplicas;
+        this.numberOfReplicas = NumberOfReplicas.fromSettings(tableParameters);
         this.tableParameters = tableParameters;
         isPartitioned = !partitionedByColumns.isEmpty();
         this.partitionedBy = partitionedBy;
         this.partitions = partitions;
         this.columnPolicy = columnPolicy;
+        assert versionCreated.after(Version.V_EMPTY) : "Table must have a versionCreated";
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
