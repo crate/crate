@@ -30,12 +30,14 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
@@ -1056,6 +1058,8 @@ public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_add_column_not_null_constraint_added_to_a_nested_column() {
+        Map<String, Object> ab = Map.of("a", Map.of("b", "dummy"));
+
         // non-existing object
         execute("create table t (o object)");
         execute("alter table t add column o2['a']['b'] text not null");
@@ -1066,7 +1070,7 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         // existing object
         execute("alter table t add column o['a']['b'] text not null");
-        Asserts.assertSQLError(() -> execute("insert into t (o) values ({\"a\" = {\"b\" = null}})"))
+        Asserts.assertSQLError(() -> execute("insert into t (o2, o) values (?, {\"a\" = {\"b\" = null}})", new Object[] { ab }))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("\"o['a']['b']\" must not be null");

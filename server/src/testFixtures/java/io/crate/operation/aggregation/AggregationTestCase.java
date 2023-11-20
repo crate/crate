@@ -384,7 +384,6 @@ public abstract class AggregationTestCase extends ESTestCase {
         DocTableInfo table = new DocTableInfo(
             new RelationName("doc", shard.shardId().getIndexName()),
             targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
-            List.of(),
             Map.of(),
             Map.of(),
             null,
