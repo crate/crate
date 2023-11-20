@@ -215,8 +215,6 @@ public class DocTableInfoFactory {
             analyzers,
             references
         );
-        DocSysColumns.forTable(relation, references::put);
-
         var refExpressionAnalyzer = new ExpressionAnalyzer(
             systemTransactionContext,
             nodeCtx,
