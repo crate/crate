@@ -31,6 +31,7 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
 import io.crate.data.Input;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.operator.any.AnyNeqOperator;
@@ -126,6 +127,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             Set.of(
                 AnyEqOperator.NAME,
                 AnyNeqOperator.NAME,
+                AndOperator.NAME,
                 AnyRangeOperator.Comparison.GT.opName(),
                 AnyRangeOperator.Comparison.GTE.opName(),
                 AnyRangeOperator.Comparison.LT.opName(),
