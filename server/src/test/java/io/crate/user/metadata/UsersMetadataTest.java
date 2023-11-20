@@ -24,7 +24,6 @@ package io.crate.user.metadata;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -36,8 +35,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import io.crate.user.SecureHash;
 
 public class UsersMetadataTest extends ESTestCase {
 
@@ -70,35 +67,6 @@ public class UsersMetadataTest extends ESTestCase {
         parser.nextToken(); // start object
         UsersMetadata users2 = UsersMetadata.fromXContent(parser);
         assertThat(users2).isEqualTo(users);
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
-    }
-
-    @Test
-    public void testUsersMetadataFromLegacyXContent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // Generate legacy (v1) XContent of UsersMetadata
-        // { "users": [ "Ford", "Arthur" ] }
-        builder.startObject();
-        builder.startArray("users");
-        builder.value("Ford");
-        builder.value("Arthur");
-        builder.endArray();
-        builder.endObject();
-
-        HashMap<String, SecureHash> expectedUsers = new HashMap<>();
-        expectedUsers.put("Ford", null);
-        expectedUsers.put("Arthur", null);
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            Strings.toString(builder));
-        parser.nextToken(); // start object
-        UsersMetadata users = UsersMetadata.fromXContent(parser);
-        assertThat(new UsersMetadata(expectedUsers)).isEqualTo(users);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken()).isNull();
