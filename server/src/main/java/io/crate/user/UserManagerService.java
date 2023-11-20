@@ -45,7 +45,7 @@ import io.crate.user.metadata.SysUsersTableInfo;
 @Singleton
 public class UserManagerService implements UserManager {
 
-    private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
+    private static final Consumer<User> ENSURE_DROP_ROLE_NOT_SUPERUSER = user -> {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot drop a superuser '%s'", user.name()));
@@ -61,25 +61,25 @@ public class UserManagerService implements UserManager {
 
     private static final UserManagerDDLModifier DDL_MODIFIER = new UserManagerDDLModifier();
 
-    private final TransportCreateUserAction transportCreateUserAction;
-    private final TransportDropUserAction transportDropUserAction;
-    private final TransportAlterUserAction transportAlterUserAction;
+    private final TransportCreateRoleAction transportCreateRoleAction;
+    private final TransportDropRoleAction transportDropRoleAction;
+    private final TransportAlterRoleAction transportAlterRoleAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
 
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
     @Inject
-    public UserManagerService(TransportCreateUserAction transportCreateUserAction,
-                              TransportDropUserAction transportDropUserAction,
-                              TransportAlterUserAction transportAlterUserAction,
+    public UserManagerService(TransportCreateRoleAction transportCreateRoleAction,
+                              TransportDropRoleAction transportDropRoleAction,
+                              TransportAlterRoleAction transportAlterRoleAction,
                               TransportPrivilegesAction transportPrivilegesAction,
                               SysTableRegistry sysTableRegistry,
                               ClusterService clusterService,
-                              UserLookup userLookup,
+                              RoleLookup userLookup,
                               DDLClusterStateService ddlClusterStateService) {
-        this.transportCreateUserAction = transportCreateUserAction;
-        this.transportDropUserAction = transportDropUserAction;
-        this.transportAlterUserAction = transportAlterUserAction;
+        this.transportCreateRoleAction = transportCreateRoleAction;
+        this.transportDropRoleAction = transportDropRoleAction;
+        this.transportAlterRoleAction = transportAlterRoleAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         this.userLookup = userLookup;
         var userTable = SysUsersTableInfo.create();
@@ -103,34 +103,34 @@ public class UserManagerService implements UserManager {
 
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
-        return transportCreateUserAction.execute(new CreateUserRequest(userName, hashedPw), r -> {
+    public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
+        return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw), r -> {
             if (r.doesUserExist()) {
-                throw new UserAlreadyExistsException(userName);
+                throw new UserAlreadyExistsException(roleName);
             }
             return 1L;
         });
     }
 
     @Override
-    public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
-        ENSURE_DROP_USER_NOT_SUPERUSER.accept(userLookup.findUser(userName));
-        return transportDropUserAction.execute(new DropUserRequest(userName, suppressNotFoundError), r -> {
+    public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
+        ENSURE_DROP_ROLE_NOT_SUPERUSER.accept(userLookup.findUser(roleName));
+        return transportDropRoleAction.execute(new DropRoleRequest(roleName, suppressNotFoundError), r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
                     return 0L;
                 }
-                throw new UserUnknownException(userName);
+                throw new UserUnknownException(roleName);
             }
             return 1L;
         });
     }
 
     @Override
-    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
-        return transportAlterUserAction.execute(new AlterUserRequest(userName, newHashedPw), r -> {
+    public CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw) {
+        return transportAlterRoleAction.execute(new AlterRoleRequest(roleName, newHashedPw), r -> {
             if (r.doesUserExist() == false) {
-                throw new UserUnknownException(userName);
+                throw new UserUnknownException(roleName);
             }
             return 1L;
         });

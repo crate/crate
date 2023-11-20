@@ -55,14 +55,14 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.user.Privilege;
 import io.crate.user.Privilege.State;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
         Functions functions = new Functions(Map.of());
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         DependencyCarrier dependencies = mock(DependencyCarrier.class);
         ElasticsearchClient client = mock(ElasticsearchClient.class, Answers.RETURNS_MOCKS);
@@ -89,7 +89,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_super_user_and_al_privileges_can_view_all_cursors() throws Exception {
         Functions functions = new Functions(Map.of());
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         Sessions sessions = newSessions(nodeCtx);
         Session session1 = sessions.newSession("doc", User.of("Arthur"));
@@ -114,7 +114,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_user_can_only_view_their_own_cursors() throws Exception {
         Functions functions = new Functions(Map.of());
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         Sessions sessions = newSessions(nodeCtx);
 
@@ -133,7 +133,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_uses_global_statement_timeout_as_default_for() throws Exception {
         Functions functions = new Functions(Map.of());
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         Sessions sessions = new Sessions(
             nodeCtx,

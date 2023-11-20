@@ -28,7 +28,7 @@ import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -47,13 +47,13 @@ import java.util.Locale;
 public class TransportCreatePublicationAction extends AbstractDDLTransportAction<CreatePublicationRequest, AcknowledgedResponse> {
 
     public static final String ACTION_NAME = "internal:crate:replication/logical/publication/create";
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
     @Inject
     public TransportCreatePublicationAction(TransportService transportService,
                                             ClusterService clusterService,
                                             ThreadPool threadPool,
-                                            UserLookup userLookup) {
+                                            RoleLookup userLookup) {
         super(ACTION_NAME,
               transportService,
               clusterService,

@@ -45,11 +45,11 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class LineProcessorTest {
 
-    UserLookup userLookup = () -> List.of(User.CRATE_USER);
+    RoleLookup userLookup = () -> List.of(User.CRATE_USER);
     NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), userLookup);
     InputFactory inputFactory = new InputFactory(nodeCtx);
 

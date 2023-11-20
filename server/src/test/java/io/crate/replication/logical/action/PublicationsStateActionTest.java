@@ -49,7 +49,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.user.Privilege;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -116,7 +116,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        UserLookup userLookup = mock(UserLookup.class);
+        RoleLookup userLookup = mock(RoleLookup.class);
         when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
         when(userLookup.findUser("subscriber")).thenReturn(subscriber);
 
@@ -152,7 +152,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        UserLookup userLookup = mock(UserLookup.class);
+        RoleLookup userLookup = mock(RoleLookup.class);
         when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
         when(userLookup.findUser("subscriber")).thenReturn(subscriber);
 
@@ -182,7 +182,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        UserLookup userLookup = mock(UserLookup.class);
+        RoleLookup userLookup = mock(RoleLookup.class);
         when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
         when(userLookup.findUser("subscriber")).thenReturn(subscriber);
 

@@ -21,42 +21,33 @@
 
 package io.crate.user;
 
-import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.jetbrains.annotations.Nullable;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class AlterUserRequest extends AcknowledgedRequest<AlterUserRequest> {
+public class WriteRoleResponse extends AcknowledgedResponse {
 
-    private final String userName;
-    private final SecureHash secureHash;
+    private final boolean roleDoesExist;
 
-    public AlterUserRequest(String userName, @Nullable SecureHash secureHash) {
-        this.userName = userName;
-        this.secureHash = secureHash;
+    WriteRoleResponse(boolean acknowledged, boolean roleDoesExist) {
+        super(acknowledged);
+        this.roleDoesExist = roleDoesExist;
     }
 
-    public String userName() {
-        return userName;
+    boolean doesUserExist() {
+        return roleDoesExist;
     }
 
-    @Nullable
-    public SecureHash secureHash() {
-        return secureHash;
-    }
-
-    public AlterUserRequest(StreamInput in) throws IOException {
+    public WriteRoleResponse(StreamInput in) throws IOException {
         super(in);
-        userName = in.readString();
-        secureHash = in.readOptionalWriteable(SecureHash::readFrom);
+        roleDoesExist = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(userName);
-        out.writeOptionalWriteable(secureHash);
+        out.writeBoolean(roleDoesExist);
     }
 }

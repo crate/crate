@@ -188,18 +188,15 @@ import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -223,7 +220,7 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 /**
  * {@link IntegTestCase} is an abstract base class to run integration
@@ -1685,9 +1682,9 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
-        UserLookup userLookup;
+        RoleLookup userLookup;
         try {
-            userLookup = cluster().getInstance(UserLookup.class, node);
+            userLookup = cluster().getInstance(RoleLookup.class, node);
         } catch (ConfigurationException ignored) {
             // If enterprise is not enabled there is no UserLookup instance bound in guice
             userLookup = () -> List.of(User.CRATE_USER);

@@ -19,35 +19,38 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.user;
+package io.crate.analyze;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import java.util.function.Consumer;
 
-import java.io.IOException;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.GenericProperties;
 
-public class WriteUserResponse extends AcknowledgedResponse {
+abstract class AnalyzedRole implements AnalyzedStatement {
 
-    private final boolean userDoesExist;
+    private final String roleName;
+    private final GenericProperties<Symbol> properties;
 
-    WriteUserResponse(boolean acknowledged, boolean userDoesExist) {
-        super(acknowledged);
-        this.userDoesExist = userDoesExist;
+    AnalyzedRole(String roleName, GenericProperties<Symbol> properties) {
+        this.roleName = roleName;
+        this.properties = properties;
     }
 
-    boolean doesUserExist() {
-        return userDoesExist;
+    public GenericProperties<Symbol> properties() {
+        return properties;
     }
 
-    public WriteUserResponse(StreamInput in) throws IOException {
-        super(in);
-        userDoesExist = in.readBoolean();
+    public String roleName() {
+        return roleName;
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeBoolean(userDoesExist);
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        properties.properties().values().forEach(consumer);
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
     }
 }

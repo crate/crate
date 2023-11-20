@@ -40,7 +40,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 
 public class ToCharFunction extends Scalar<String, Object> {
@@ -149,7 +149,7 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Scalar<String, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<String, Object> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
         assert arguments.size() == 2 : "Invalid number of arguments";
 
         if (!arguments.get(1).symbolType().isValueSymbol()) {

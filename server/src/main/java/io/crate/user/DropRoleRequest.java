@@ -19,19 +19,42 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.user;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-public class AnalyzedCreateUser extends AnalyzedUser {
+import java.io.IOException;
 
-    public AnalyzedCreateUser(String userName, GenericProperties<Symbol> properties) {
-        super(userName, properties);
+public class DropRoleRequest extends AcknowledgedRequest<DropRoleRequest> {
+
+    private final String roleName;
+    private final boolean ifExists;
+
+    DropRoleRequest(String roleName, boolean ifExists) {
+        this.roleName = roleName;
+        this.ifExists = ifExists;
+    }
+
+    String roleName() {
+        return roleName;
+    }
+
+    boolean ifExists() {
+        return ifExists;
+    }
+
+    public DropRoleRequest(StreamInput in) throws IOException {
+        super(in);
+        roleName = in.readString();
+        ifExists = in.readBoolean();
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitAnalyzedCreateUser(this, context);
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(roleName);
+        out.writeBoolean(ifExists);
     }
 }

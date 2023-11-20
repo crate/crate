@@ -28,19 +28,18 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class CreateUserRequest extends AcknowledgedRequest<CreateUserRequest> {
+public class AlterRoleRequest extends AcknowledgedRequest<AlterRoleRequest> {
 
-    private final String userName;
-    @Nullable
+    private final String roleName;
     private final SecureHash secureHash;
 
-    public CreateUserRequest(String userName, @Nullable SecureHash attributes) {
-        this.userName = userName;
-        this.secureHash = attributes;
+    public AlterRoleRequest(String roleName, @Nullable SecureHash secureHash) {
+        this.roleName = roleName;
+        this.secureHash = secureHash;
     }
 
-    public String userName() {
-        return userName;
+    public String roleName() {
+        return roleName;
     }
 
     @Nullable
@@ -48,16 +47,16 @@ public class CreateUserRequest extends AcknowledgedRequest<CreateUserRequest> {
         return secureHash;
     }
 
-    public CreateUserRequest(StreamInput in) throws IOException {
+    public AlterRoleRequest(StreamInput in) throws IOException {
         super(in);
-        userName = in.readString();
+        roleName = in.readString();
         secureHash = in.readOptionalWriteable(SecureHash::readFrom);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(userName);
+        out.writeString(roleName);
         out.writeOptionalWriteable(secureHash);
     }
 }

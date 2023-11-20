@@ -31,7 +31,7 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.testing.SQLResponse;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public abstract class BaseUsersIntegrationTest extends IntegTestCase {
 
@@ -74,7 +74,7 @@ public abstract class BaseUsersIntegrationTest extends IntegTestCase {
 
     public SQLResponse executeAs(String stmt, String userName) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        UserLookup userLookup = cluster().getInstance(UserLookup.class);
+        RoleLookup userLookup = cluster().getInstance(RoleLookup.class);
         User user = Objects.requireNonNull(userLookup.findUser(userName), "User " + userName + " must exist");
         try (Session session = sqlOperations.newSession(null, user)) {
             return execute(stmt, null, session);

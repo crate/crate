@@ -44,7 +44,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class PgCatalogITest extends IntegTestCase {
 
@@ -104,7 +104,7 @@ public class PgCatalogITest extends IntegTestCase {
         execute("create user hoschi");
         execute("grant dql on table doc.t1 to hoschi");
 
-        UserLookup userLookup = cluster().getInstance(UserLookup.class);
+        RoleLookup userLookup = cluster().getInstance(RoleLookup.class);
         Sessions sessions = cluster().getInstance(Sessions.class);
         try (var session = sessions.newSession("doc", userLookup.findUser("hoschi"))) {
             execute("select nspname from pg_catalog.pg_namespace order by nspname", session);

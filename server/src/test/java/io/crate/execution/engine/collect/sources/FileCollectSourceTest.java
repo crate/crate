@@ -51,7 +51,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class FileCollectSourceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -87,7 +87,7 @@ public class FileCollectSourceTest extends CrateDummyClusterServiceUnitTest {
             Settings.EMPTY
         );
 
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
         FileCollectSource fileCollectSource = new FileCollectSource(
             new NodeContext(new Functions(Map.of()), userLookup),
             clusterService,

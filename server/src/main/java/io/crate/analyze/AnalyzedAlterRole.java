@@ -21,36 +21,17 @@
 
 package io.crate.analyze;
 
-import java.util.function.Consumer;
-
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
 
-abstract class AnalyzedUser implements AnalyzedStatement {
+public class AnalyzedAlterRole extends AnalyzedRole {
 
-    private final String userName;
-    private final GenericProperties<Symbol> properties;
-
-    AnalyzedUser(String userName, GenericProperties<Symbol> properties) {
-        this.userName = userName;
-        this.properties = properties;
-    }
-
-    public GenericProperties<Symbol> properties() {
-        return properties;
-    }
-
-    public String userName() {
-        return userName;
+    public AnalyzedAlterRole(String roleName, GenericProperties<Symbol> properties) {
+        super(roleName, properties);
     }
 
     @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-        properties.properties().values().forEach(consumer);
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return true;
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitAnalyzedAlterRole(this, context);
     }
 }
