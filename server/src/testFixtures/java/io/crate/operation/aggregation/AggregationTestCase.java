@@ -390,7 +390,6 @@ public abstract class AggregationTestCase extends ESTestCase {
             List.of(),
             List.of(),
             null,
-            true,
             new String[] { shard.shardId().getIndexName() },
             new String[] { shard.shardId().getIndexName() },
             1,
