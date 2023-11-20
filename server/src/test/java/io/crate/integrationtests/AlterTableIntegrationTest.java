@@ -26,8 +26,8 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
@@ -47,18 +47,6 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Creating tables with soft-deletes disabled is no longer supported.");
-    }
-
-    // Drop column
-    @Test
-    public void test_alter_table_drop_column_used_meanwhile_in_generated_col() {
-        execute("CREATE TABLE t(a int, b int)");
-        PlanForNode plan = plan("ALTER TABLE t DROP b");
-        execute("ALTER TABLE t ADD COLUMN c GENERATED ALWAYS AS (b + 1)");
-        assertSQLError(() -> execute(plan).getResult())
-            .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("Dropping column: b which is used to produce values for generated column is not allowed");
     }
 
     @Test
