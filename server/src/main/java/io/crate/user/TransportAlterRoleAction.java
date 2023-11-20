@@ -42,10 +42,10 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.user.metadata.UsersMetadata;
 
-public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUserRequest, WriteUserResponse> {
+public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRoleRequest, WriteRoleResponse> {
 
     @Inject
-    public TransportAlterUserAction(TransportService transportService,
+    public TransportAlterRoleAction(TransportService transportService,
                                     ClusterService clusterService,
                                     ThreadPool threadPool) {
         super(
@@ -53,7 +53,7 @@ public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUse
             transportService,
             clusterService,
             threadPool,
-            AlterUserRequest::new
+            AlterRoleRequest::new
         );
     }
 
@@ -63,40 +63,40 @@ public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUse
     }
 
     @Override
-    protected WriteUserResponse read(StreamInput in) throws IOException {
-        return new WriteUserResponse(in);
+    protected WriteRoleResponse read(StreamInput in) throws IOException {
+        return new WriteRoleResponse(in);
     }
 
     @Override
-    protected void masterOperation(AlterUserRequest request,
+    protected void masterOperation(AlterRoleRequest request,
                                    ClusterState state,
-                                   ActionListener<WriteUserResponse> listener) {
-        clusterService.submitStateUpdateTask("alter_user [" + request.userName() + "]",
-            new AckedClusterStateUpdateTask<WriteUserResponse>(Priority.URGENT, request, listener) {
+                                   ActionListener<WriteRoleResponse> listener) {
+        clusterService.submitStateUpdateTask("alter_role [" + request.roleName() + "]",
+                new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
 
-                private boolean userExists = true;
+                    private boolean userExists = true;
 
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                    userExists = alterUser(
-                        mdBuilder,
-                        request.userName(),
-                        request.secureHash()
-                    );
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                }
+                    @Override
+                    public ClusterState execute(ClusterState currentState) throws Exception {
+                        Metadata currentMetadata = currentState.metadata();
+                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+                        userExists = alterRole(
+                                mdBuilder,
+                                request.roleName(),
+                                request.secureHash()
+                        );
+                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                    }
 
-                @Override
-                protected WriteUserResponse newResponse(boolean acknowledged) {
-                    return new WriteUserResponse(acknowledged, userExists);
-                }
-            });
+                    @Override
+                    protected WriteRoleResponse newResponse(boolean acknowledged) {
+                        return new WriteRoleResponse(acknowledged, userExists);
+                    }
+                });
     }
 
     @VisibleForTesting
-    static boolean alterUser(Metadata.Builder mdBuilder, String userName, @Nullable SecureHash secureHash) {
+    static boolean alterRole(Metadata.Builder mdBuilder, String userName, @Nullable SecureHash secureHash) {
         UsersMetadata oldMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         if (oldMetadata == null || !oldMetadata.contains(userName)) {
             return false;
@@ -112,7 +112,7 @@ public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUse
     }
 
     @Override
-    protected ClusterBlockException checkBlock(AlterUserRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(AlterRoleRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

@@ -38,7 +38,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
@@ -46,7 +46,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     private final UserDefinedFunctionsIntegrationTest.DummyLang dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
     private Sessions sqlOperations;
-    private UserLookup userLookup;
+    private RoleLookup userLookup;
 
     private void assertPrivilegeIsGranted(String privilege) {
         SQLResponse response = executeAsSuperuser("select count(*) from sys.privileges where grantee = ? and type = ?",
@@ -78,7 +78,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         for (UserDefinedFunctionService udfService : udfServices) {
             udfService.registerLanguage(dummyLang);
         }
-        userLookup = cluster().getInstance(UserLookup.class);
+        userLookup = cluster().getInstance(RoleLookup.class);
         sqlOperations = cluster().getInstance(Sessions.class, null);
         executeAsSuperuser("create user " + TEST_USERNAME);
     }

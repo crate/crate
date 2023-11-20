@@ -42,10 +42,10 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.util.Collections;
 
-public class TransportCreateUserAction extends TransportMasterNodeAction<CreateUserRequest, WriteUserResponse> {
+public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateRoleRequest, WriteRoleResponse> {
 
     @Inject
-    public TransportCreateUserAction(TransportService transportService,
+    public TransportCreateRoleAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool) {
         super(
@@ -53,7 +53,7 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
             transportService,
             clusterService,
             threadPool,
-            CreateUserRequest::new
+            CreateRoleRequest::new
         );
     }
 
@@ -63,36 +63,36 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
     }
 
     @Override
-    protected WriteUserResponse read(StreamInput in) throws IOException {
-        return new WriteUserResponse(in);
+    protected WriteRoleResponse read(StreamInput in) throws IOException {
+        return new WriteRoleResponse(in);
     }
 
     @Override
-    protected void masterOperation(CreateUserRequest request,
+    protected void masterOperation(CreateRoleRequest request,
                                    ClusterState state,
-                                   ActionListener<WriteUserResponse> listener) throws Exception {
-        clusterService.submitStateUpdateTask("create_user [" + request.userName() + "]",
-            new AckedClusterStateUpdateTask<WriteUserResponse>(Priority.URGENT, request, listener) {
+                                   ActionListener<WriteRoleResponse> listener) throws Exception {
+        clusterService.submitStateUpdateTask("create_role [" + request.roleName() + "]",
+                new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
 
-                private boolean alreadyExists = false;
+                    private boolean alreadyExists = false;
 
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                    alreadyExists = putUser(mdBuilder, request.userName(), request.secureHash());
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                }
+                    @Override
+                    public ClusterState execute(ClusterState currentState) throws Exception {
+                        Metadata currentMetadata = currentState.metadata();
+                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+                        alreadyExists = putUser(mdBuilder, request.roleName(), request.secureHash());
+                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                    }
 
-                @Override
-                protected WriteUserResponse newResponse(boolean acknowledged) {
-                    return new WriteUserResponse(acknowledged, alreadyExists);
-                }
-            });
+                    @Override
+                    protected WriteRoleResponse newResponse(boolean acknowledged) {
+                        return new WriteRoleResponse(acknowledged, alreadyExists);
+                    }
+                });
     }
 
     @Override
-    protected ClusterBlockException checkBlock(CreateUserRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(CreateRoleRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
     }
 

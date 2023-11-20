@@ -22,7 +22,7 @@
 package io.crate.auth;
 
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.settings.SecureString;
@@ -34,9 +34,9 @@ import java.util.Objects;
 public class ClientCertAuth implements AuthenticationMethod {
 
     static final String NAME = "cert";
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
-    ClientCertAuth(UserLookup userLookup) {
+    ClientCertAuth(RoleLookup userLookup) {
         this.userLookup = userLookup;
     }
 

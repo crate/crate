@@ -25,15 +25,15 @@ import org.elasticsearch.common.settings.SecureString;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 
 public class TrustAuthenticationMethod implements AuthenticationMethod {
 
     static final String NAME = "trust";
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
-    public TrustAuthenticationMethod(UserLookup userLookup) {
+    public TrustAuthenticationMethod(RoleLookup userLookup) {
         this.userLookup = userLookup;
     }
 

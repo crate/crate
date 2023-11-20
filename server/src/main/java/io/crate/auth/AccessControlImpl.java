@@ -32,7 +32,7 @@ import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
-import io.crate.analyze.AnalyzedAlterUser;
+import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -46,7 +46,7 @@ import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
-import io.crate.analyze.AnalyzedCreateUser;
+import io.crate.analyze.AnalyzedCreateRole;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDeleteStatement;
@@ -55,7 +55,7 @@ import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
-import io.crate.analyze.AnalyzedDropUser;
+import io.crate.analyze.AnalyzedDropRole;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
@@ -111,13 +111,13 @@ import io.crate.sql.tree.SetStatement;
 import io.crate.user.Privilege;
 import io.crate.user.Privileges;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public final class AccessControlImpl implements AccessControl {
 
     private final User sessionUser;
     private final User authenticatedUser;
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
     private final CoordinatorSessionSettings sessionSettings;
 
     /**
@@ -126,7 +126,7 @@ public final class AccessControlImpl implements AccessControl {
      *                       observe updates to the default schema.
      *                       (Which can change at runtime within the life-time of a session)
      */
-    public AccessControlImpl(UserLookup userLookup, CoordinatorSessionSettings sessionSettings) {
+    public AccessControlImpl(RoleLookup userLookup, CoordinatorSessionSettings sessionSettings) {
         this.userLookup = userLookup;
         this.sessionSettings = sessionSettings;
         this.sessionUser = sessionSettings.sessionUser();
@@ -173,10 +173,10 @@ public final class AccessControlImpl implements AccessControl {
 
     private static final class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
 
-        private final UserLookup userLookup;
+        private final RoleLookup userLookup;
         private final String defaultSchema;
 
-        public RelationVisitor(UserLookup userLookup, String defaultSchema) {
+        public RelationVisitor(RoleLookup userLookup, String defaultSchema) {
             this.userLookup = userLookup;
             this.defaultSchema = defaultSchema;
         }
@@ -269,7 +269,7 @@ public final class AccessControlImpl implements AccessControl {
         private final String defaultSchema;
         private final User authenticatedUser;
 
-        public StatementVisitor(UserLookup userLookup, String defaultSchema, User authenticatedUser) {
+        public StatementVisitor(RoleLookup userLookup, String defaultSchema, User authenticatedUser) {
             this.authenticatedUser = authenticatedUser;
             this.relationVisitor = new RelationVisitor(userLookup, defaultSchema);
             this.defaultSchema = defaultSchema;
@@ -339,9 +339,9 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAnalyzedAlterUser(AnalyzedAlterUser analysis, User user) {
+        public Void visitAnalyzedAlterRole(AnalyzedAlterRole analysis, User user) {
             // user is allowed to change it's own properties
-            if (!analysis.userName().equals(user.name())) {
+            if (!analysis.roleName().equals(user.name())) {
                 throw new UnauthorizedException("A regular user can use ALTER USER only on himself. " +
                                                 "To modify other users superuser permissions are required.");
             }
@@ -720,7 +720,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitAnalyzedCreateUser(AnalyzedCreateUser createUser, User user) {
+        protected Void visitAnalyzedCreateRole(AnalyzedCreateRole createRole, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -732,7 +732,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitDropUser(AnalyzedDropUser dropUser, User user) {
+        protected Void visitDropRole(AnalyzedDropRole dropRole, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,

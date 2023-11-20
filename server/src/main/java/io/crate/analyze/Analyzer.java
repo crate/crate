@@ -41,6 +41,7 @@ import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
@@ -48,7 +49,6 @@ import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
-import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
@@ -79,10 +79,10 @@ import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
@@ -145,7 +145,7 @@ public class Analyzer {
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final PrivilegesAnalyzer privilegesAnalyzer;
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
-    private final UserAnalyzer userAnalyzer;
+    private final RoleAnalyzer roleAnalyzer;
     private final ViewAnalyzer viewAnalyzer;
     private final SwapTableAnalyzer swapTableAnalyzer;
     private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
@@ -191,7 +191,7 @@ public class Analyzer {
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
         this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, nodeCtx);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
-        this.userAnalyzer = new UserAnalyzer(nodeCtx);
+        this.roleAnalyzer = new RoleAnalyzer(nodeCtx);
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, nodeCtx);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer(nodeCtx);
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
@@ -319,7 +319,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitAlterRole(AlterRole<?> node, Analysis context) {
-            return userAnalyzer.analyze(
+            return roleAnalyzer.analyze(
                 (AlterRole<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
@@ -383,7 +383,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
+        public AnalyzedStatement visitCreateRepository(CreateRepository<?> node, Analysis context) {
             return createRepositoryAnalyzer.analyze(
                 (CreateRepository<Expression>) node,
                 context.paramTypeHints(),
@@ -399,7 +399,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
+        public AnalyzedStatement visitCreateTable(CreateTable<?> node, Analysis analysis) {
             return createTableStatementAnalyzer.analyze(
                 (CreateTable<Expression>) node,
                 analysis.paramTypeHints(),
@@ -407,16 +407,16 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateTableAs(CreateTableAs node, Analysis analysis) {
+        public AnalyzedStatement visitCreateTableAs(CreateTableAs<?> node, Analysis analysis) {
             return createTableAsAnalyzer.analyze(
-                node,
+                (CreateTableAs<Expression>) node,
                 analysis.paramTypeHints(),
                 analysis.transactionContext());
         }
 
         @Override
         public AnalyzedStatement visitCreateRole(CreateRole node, Analysis context) {
-            return userAnalyzer.analyze(
+            return roleAnalyzer.analyze(
                 node,
                 context.paramTypeHints(),
                 context.transactionContext());
@@ -479,13 +479,13 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedDropTable visitDropTable(DropTable<?> node, Analysis context) {
+        public AnalyzedDropTable<?> visitDropTable(DropTable<?> node, Analysis context) {
             return dropTableAnalyzer.analyze(node, context.sessionSettings());
         }
 
         @Override
         public AnalyzedStatement visitDropRole(DropRole node, Analysis context) {
-            return new AnalyzedDropUser(node.name(), node.ifExists());
+            return new AnalyzedDropRole(node.name(), node.ifExists());
         }
 
         @Override
@@ -553,6 +553,7 @@ public class Analyzer {
             );
         }
 
+        @Override
         public AnalyzedStatement visitResetStatement(ResetStatement<?> node, Analysis context) {
             return resetStatementAnalyzer.analyze(
                 (ResetStatement<Expression>) node,

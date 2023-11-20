@@ -27,9 +27,9 @@ public class UserManagementModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(TransportCreateUserAction.class).asEagerSingleton();
-        bind(TransportDropUserAction.class).asEagerSingleton();
-        bind(TransportAlterUserAction.class).asEagerSingleton();
+        bind(TransportCreateRoleAction.class).asEagerSingleton();
+        bind(TransportDropRoleAction.class).asEagerSingleton();
+        bind(TransportAlterRoleAction.class).asEagerSingleton();
         bind(TransportPrivilegesAction.class).asEagerSingleton();
         bind(UserManager.class).to(UserManagerService.class).asEagerSingleton();
     }

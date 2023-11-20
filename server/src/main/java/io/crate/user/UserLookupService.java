@@ -37,7 +37,7 @@ import org.elasticsearch.common.inject.Inject;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 
-public class UserLookupService implements UserLookup, ClusterStateListener {
+public class UserLookupService implements RoleLookup, ClusterStateListener {
 
     private volatile Set<User> users = Set.of(User.CRATE_USER);
 

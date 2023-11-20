@@ -21,7 +21,7 @@
 
 package io.crate.auth;
 
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.inject.Inject;
 
@@ -31,10 +31,10 @@ import org.elasticsearch.common.inject.Inject;
  */
 public class AlwaysOKAuthentication implements Authentication {
 
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
     @Inject
-    public AlwaysOKAuthentication(UserLookup userLookup) {
+    public AlwaysOKAuthentication(RoleLookup userLookup) {
         this.userLookup = userLookup;
     }
 
