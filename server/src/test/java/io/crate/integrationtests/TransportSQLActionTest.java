@@ -1540,6 +1540,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
     }
 
+    @Test
+    public void test_negated_and_three_value_query() throws Exception {
+        execute("CREATE TABLE t1(a INT, b INT)");
+        execute("INSERT INTO t1(a, b) VALUES (null, -1), (null, null), (-1, -1), (1, 1), (null, 1)");
+        execute("refresh table t1");
+        execute("SELECT * FROM t1 WHERE NOT (a AND b) order by a");
+        assertThat(response).hasRows("-1| -1", "NULL| -1");
+    }
 
     @Test
     public void testSelectFrom_Doc() throws Exception {
