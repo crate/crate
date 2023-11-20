@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -315,11 +316,11 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP a"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Dropping column: a which is used to produce values for generated column is not allowed");
+            .hasMessage("Cannot drop column `a`. It's used in generated column `b`: (a + 1)");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP o['oo']['ooa']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Dropping column: o['oo']['ooa'] which is used to produce values for generated column is not allowed");
+            .hasMessage("Cannot drop column `o['oo']['ooa']`. It's used in generated column `b`: (o['oo']['ooa'] + 1)");
     }
 
     @Test
