@@ -193,6 +193,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.references = references.entrySet().stream()
             .filter(entry -> !entry.getValue().isDropped())
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+        DocSysColumns.forTable(ident, this.references::put);
         this.columns = this.references.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> r.column().isRoot())
