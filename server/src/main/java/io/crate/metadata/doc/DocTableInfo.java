@@ -162,7 +162,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo(RelationName ident,
                         Map<ColumnIdent, Reference> references,
-                        Collection<ColumnIdent> notNullColumns,
                         Map<ColumnIdent, IndexReference> indexColumns,
                         Map<ColumnIdent, String> analyzers,
                         @Nullable String pkConstraintName,
@@ -182,6 +181,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         @Nullable Version versionUpgraded,
                         boolean closed,
                         Set<Operation> supportedOperations) {
+        this.notNullColumns = references.values().stream()
+            .filter(r -> !r.column().isSystemColumn())
+            .filter(r -> !primaryKeys.contains(r.column()))
+            .filter(r -> !r.isNullable())
+            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .map(Reference::column)
+            .toList();
         this.droppedColumns = references.values().stream()
             .filter(Reference::isDropped)
             .collect(Collectors.toSet());
@@ -202,7 +208,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .filter(r -> r instanceof GeneratedReference)
             .map(r -> (GeneratedReference) r)
             .toList();
-        this.notNullColumns = notNullColumns;
         this.indexColumns = indexColumns;
         leafNamesByOid = new HashMap<>();
         Stream.concat(Stream.concat(this.references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
@@ -526,6 +531,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return ident.fqn();
     }
 
+    /**
+     * @return columns which are not nullable; excludes primary keys which are implicitly not-null
+     **/
     public Collection<ColumnIdent> notNullColumns() {
         return notNullColumns;
     }

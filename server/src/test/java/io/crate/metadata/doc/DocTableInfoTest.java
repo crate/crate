@@ -72,7 +72,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                     null
                 )
             ),
-            List.of(),
             Map.of(),
             Map.of(),
             null,
@@ -142,7 +141,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo info = new DocTableInfo(
             dummy,
             references,
-            List.of(),
             Map.of(),
             Map.of(),
             null,
@@ -283,7 +281,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                             null
                     )
                 ),
-                List.of(),
                 Map.of(),
                 Map.of(),
                 null,

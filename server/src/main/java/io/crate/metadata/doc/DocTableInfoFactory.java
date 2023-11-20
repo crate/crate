@@ -262,7 +262,6 @@ public class DocTableInfoFactory {
         return new DocTableInfo(
             relation,
             references,
-            notNullColumns,
             indexColumns.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
             analyzers,
