@@ -35,11 +35,11 @@ import org.junit.Test;
 
 import io.crate.user.SecureHash;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class UserAuthenticationMethodTest extends ESTestCase {
 
-    private static class CrateOrNullUserLookup implements UserLookup {
+    private static class CrateOrNullUserLookup implements RoleLookup {
 
         @Override
         public Iterable<User> users() {

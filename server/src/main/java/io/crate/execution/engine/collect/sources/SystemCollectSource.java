@@ -25,7 +25,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.common.collections.Iterables;
 
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import io.crate.user.UserManager;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -73,7 +73,7 @@ public class SystemCollectSource implements CollectSource {
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
 
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
     private final InformationSchemaTableDefinitions informationSchemaTables;
     private final SysTableDefinitions sysTables;
     private final PgCatalogTableDefinitions pgCatalogTables;

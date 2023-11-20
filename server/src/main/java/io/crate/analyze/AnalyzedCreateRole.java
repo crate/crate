@@ -24,14 +24,21 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
 
-public class AnalyzedAlterUser extends AnalyzedUser {
+public class AnalyzedCreateRole extends AnalyzedRole {
 
-    public AnalyzedAlterUser(String userName, GenericProperties<Symbol> properties) {
-        super(userName, properties);
+    private final boolean isUser;
+
+    public AnalyzedCreateRole(String roleName, boolean isUser, GenericProperties<Symbol> properties) {
+        super(roleName, properties);
+        this.isUser = isUser;
+    }
+
+    public boolean isUser() {
+        return isUser;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitAnalyzedAlterUser(this, context);
+        return visitor.visitAnalyzedCreateRole(this, context);
     }
 }

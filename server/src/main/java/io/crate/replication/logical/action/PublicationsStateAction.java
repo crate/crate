@@ -55,7 +55,7 @@ import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class PublicationsStateAction extends ActionType<PublicationsStateAction.Response> {
 
@@ -76,13 +76,13 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
     @Singleton
     public static class TransportAction extends TransportMasterNodeReadAction<Request, Response> {
 
-        private final UserLookup userLookup;
+        private final RoleLookup userLookup;
 
         @Inject
         public TransportAction(TransportService transportService,
                                ClusterService clusterService,
                                ThreadPool threadPool,
-                               UserLookup userLookup) {
+                               RoleLookup userLookup) {
             super(Settings.EMPTY,
                   NAME,
                   false,

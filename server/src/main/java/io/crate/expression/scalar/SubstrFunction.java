@@ -37,7 +37,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class SubstrFunction extends Scalar<String, Object> {
 
@@ -146,7 +146,7 @@ public class SubstrFunction extends Scalar<String, Object> {
         }
 
         @Override
-        public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+        public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
             Symbol patternSymbol = arguments.get(1);
             if (patternSymbol instanceof Input<?> input) {
                 String pattern = (String) input.value();

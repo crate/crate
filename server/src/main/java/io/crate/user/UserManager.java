@@ -32,16 +32,16 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 /**
  * responsible for creating and deleting users
  */
-public interface UserManager extends UserLookup {
+public interface UserManager extends RoleLookup {
 
     /**
-     * Create a user.
+     * Create a role.
      * This never raises but always returns a failed future in error cases.
      *
-     * @param userName name of the user to create
+     * @param roleName name of the role to create
      * @return 1 if the user was created, otherwise a failed future.
      */
-    CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw);
+    CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw);
 
     /**
      * Delete a user.
@@ -51,17 +51,17 @@ public interface UserManager extends UserLookup {
      * @return 1 if dropped, 0 if not found and {@code suppressNotFoundError} is true.
      *         Otherwise a failure
      */
-    CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError);
+    CompletableFuture<Long> dropRole(String userName, boolean suppressNotFoundError);
 
     /**
-     * Modifies a user.
+     * Modifies a user/role.
      * This never raises but always returns a failed future in error cases.
      *
-     * @param userName of the existing user to modify
+     * @param roleName of the existing role to modify
      * @param newHashedPw new password; if null the password is removed from the user
      * @return 1 if the user has been updated, otherwise a failed future.
      */
-    CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw);
+    CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw);
 
     /**
      * Apply given list of {@link Privilege}s for each given user

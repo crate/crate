@@ -32,15 +32,15 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class SetSessionAuthorizationPlan implements Plan {
 
     private final AnalyzedSetSessionAuthorizationStatement setSessionAuthorization;
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
     public SetSessionAuthorizationPlan(AnalyzedSetSessionAuthorizationStatement setSessionAuthorization,
-                                       UserLookup userLookup) {
+                                       RoleLookup userLookup) {
         this.setSessionAuthorization = setSessionAuthorization;
         this.userLookup = userLookup;
     }

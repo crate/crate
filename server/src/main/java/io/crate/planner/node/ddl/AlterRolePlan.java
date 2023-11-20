@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.analyze.AnalyzedCreateUser;
+import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.user.UserManager;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,13 +34,13 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.user.SecureHash;
 import io.crate.user.UserActions;
 
-public class CreateUserPlan implements Plan {
+public class AlterRolePlan implements Plan {
 
-    private final AnalyzedCreateUser createUser;
     private final UserManager userManager;
+    private final AnalyzedAlterRole alterRole;
 
-    public CreateUserPlan(AnalyzedCreateUser createUser, UserManager userManager) {
-        this.createUser = createUser;
+    public AlterRolePlan(AnalyzedAlterRole alterRole, UserManager userManager) {
+        this.alterRole = alterRole;
         this.userManager = userManager;
     }
 
@@ -55,12 +55,12 @@ public class CreateUserPlan implements Plan {
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
         SecureHash newPassword = UserActions.generateSecureHash(
-            createUser.properties(),
-            params,
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext());
+                alterRole.properties(),
+                params,
+                plannerContext.transactionContext(),
+                plannerContext.nodeContext());
 
-        userManager.createUser(createUser.userName(), newPassword)
+        userManager.alterRole(alterRole.roleName(), newPassword)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

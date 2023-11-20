@@ -40,7 +40,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class ImplicitCastFunction extends Scalar<Object, Object> {
 
@@ -71,7 +71,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Scalar<Object, Object> compile(List<Symbol> args, String currentUser, UserLookup userLookup) {
+    public Scalar<Object, Object> compile(List<Symbol> args, String currentUser, RoleLookup userLookup) {
         assert args.size() == 2 : "number of arguments must be 2";
         Symbol input = args.get(1);
         if (input instanceof Input) {

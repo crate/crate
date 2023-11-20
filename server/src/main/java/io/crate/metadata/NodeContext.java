@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -30,10 +30,10 @@ public class NodeContext {
 
     private final Functions functions;
     private final long serverStartTimeInMs;
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
     @Inject
-    public NodeContext(Functions functions, UserLookup userLookup) {
+    public NodeContext(Functions functions, RoleLookup userLookup) {
         this.functions = functions;
         this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();;
         this.userLookup = userLookup;
@@ -47,7 +47,7 @@ public class NodeContext {
         return serverStartTimeInMs;
     }
 
-    public UserLookup userLookup() {
+    public RoleLookup userLookup() {
         return userLookup;
     }
 }

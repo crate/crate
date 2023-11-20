@@ -51,7 +51,7 @@ import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsExceptio
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
 
@@ -59,14 +59,14 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
 
     private final String source;
     private final LogicalReplicationService logicalReplicationService;
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
     @Inject
     public TransportCreateSubscriptionAction(TransportService transportService,
                                              ClusterService clusterService,
                                              LogicalReplicationService logicalReplicationService,
                                              ThreadPool threadPool,
-                                             UserLookup userLookup) {
+                                             RoleLookup userLookup) {
         super(ACTION_NAME,
               transportService,
               clusterService,

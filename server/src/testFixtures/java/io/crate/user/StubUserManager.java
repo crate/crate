@@ -36,18 +36,18 @@ public class StubUserManager implements UserManager {
     private final List<User> users = List.of(User.CRATE_USER);
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("createUser is not implemented in StubUserManager"));
+    public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("createRole is not implemented in StubUserManager"));
     }
 
     @Override
-    public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("dropUser is not implemented in StubUserManager"));
+    public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("dropRole is not implemented in StubUserManager"));
     }
 
     @Override
-    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("alterUser is not implemented in StubUserManager"));
+    public CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw) {
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("alterRole is not implemented in StubUserManager"));
     }
 
     @Override
