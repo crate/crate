@@ -63,11 +63,11 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    protected R visitAnalyzedCreateUser(AnalyzedCreateUser analysis, C context) {
+    protected R visitAnalyzedCreateRole(AnalyzedCreateRole analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    protected R visitDropUser(AnalyzedDropUser analysis, C context) {
+    protected R visitDropRole(AnalyzedDropRole analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 
@@ -107,7 +107,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitAnalyzedAlterUser(AnalyzedAlterUser analysis, C context) {
+    public R visitAnalyzedAlterRole(AnalyzedAlterRole analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 

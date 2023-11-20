@@ -43,12 +43,12 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Locale;
 
-public class TransportDropUserAction extends TransportMasterNodeAction<DropUserRequest, WriteUserResponse> {
+public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleRequest, WriteRoleResponse> {
 
     private final LogicalReplicationService logicalReplicationService;
 
     @Inject
-    public TransportDropUserAction(TransportService transportService,
+    public TransportDropRoleAction(TransportService transportService,
                                    ClusterService clusterService,
                                    ThreadPool threadPool,
                                    LogicalReplicationService logicalReplicationService) {
@@ -57,7 +57,7 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
             transportService,
             clusterService,
             threadPool,
-            DropUserRequest::new
+            DropRoleRequest::new
         );
         this.logicalReplicationService = logicalReplicationService;
     }
@@ -68,14 +68,14 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
     }
 
     @Override
-    protected WriteUserResponse read(StreamInput in) throws IOException {
-        return new WriteUserResponse(in);
+    protected WriteRoleResponse read(StreamInput in) throws IOException {
+        return new WriteRoleResponse(in);
     }
 
     @Override
-    protected void masterOperation(DropUserRequest request,
+    protected void masterOperation(DropRoleRequest request,
                                    ClusterState state,
-                                   ActionListener<WriteUserResponse> listener) throws Exception {
+                                   ActionListener<WriteRoleResponse> listener) throws Exception {
 
 
         String errorMsg = "User '%s' cannot be dropped. %s '%s' needs to be dropped first.";
@@ -84,9 +84,9 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
         logicalReplicationService
                 .subscriptions()
                 .forEach((key, value) -> {
-                    if (value.owner().equals(request.userName())) {
+                    if (value.owner().equals(request.roleName())) {
                         throw new IllegalStateException(
-                                String.format(Locale.ENGLISH, errorMsg, request.userName(), "Subscription", key)
+                                String.format(Locale.ENGLISH, errorMsg, request.roleName(), "Subscription", key)
                         );
                     }
                 });
@@ -95,44 +95,44 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
         logicalReplicationService
                 .publications()
                 .forEach((key, value) -> {
-                    if (value.owner().equals(request.userName())) {
+                    if (value.owner().equals(request.roleName())) {
                         throw new IllegalStateException(
-                                String.format(Locale.ENGLISH, errorMsg, request.userName(), "Publication", key)
+                                String.format(Locale.ENGLISH, errorMsg, request.roleName(), "Publication", key)
                         );
                     }
                 });
 
-        clusterService.submitStateUpdateTask("drop_user [" + request.userName() + "]",
-            new AckedClusterStateUpdateTask<WriteUserResponse>(Priority.URGENT, request, listener) {
+        clusterService.submitStateUpdateTask("drop_role [" + request.roleName() + "]",
+                new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
 
-                private boolean alreadyExists = true;
+                    private boolean alreadyExists = true;
 
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                    alreadyExists = dropUser(
-                        mdBuilder,
-                        currentMetadata.custom(UsersMetadata.TYPE),
-                        request.userName()
-                    );
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                }
+                    @Override
+                    public ClusterState execute(ClusterState currentState) throws Exception {
+                        Metadata currentMetadata = currentState.metadata();
+                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+                        alreadyExists = dropRole(
+                                mdBuilder,
+                                currentMetadata.custom(UsersMetadata.TYPE),
+                                request.roleName()
+                        );
+                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                    }
 
-                @Override
-                protected WriteUserResponse newResponse(boolean acknowledged) {
-                    return new WriteUserResponse(acknowledged, alreadyExists);
-                }
-            });
+                    @Override
+                    protected WriteRoleResponse newResponse(boolean acknowledged) {
+                        return new WriteRoleResponse(acknowledged, alreadyExists);
+                    }
+                });
     }
 
     @Override
-    protected ClusterBlockException checkBlock(DropUserRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(DropRoleRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
     }
 
     @VisibleForTesting
-    static boolean dropUser(Metadata.Builder mdBuilder,
+    static boolean dropRole(Metadata.Builder mdBuilder,
                             @Nullable UsersMetadata oldMetadata,
                             String name) {
         if (oldMetadata == null || oldMetadata.contains(name) == false) {

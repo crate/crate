@@ -21,40 +21,58 @@
 
 package io.crate.user;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class DropUserRequest extends AcknowledgedRequest<DropUserRequest> {
+public class CreateRoleRequest extends AcknowledgedRequest<CreateRoleRequest> {
 
-    private final String userName;
-    private final boolean ifExists;
+    private final String roleName;
+    private final boolean isUser;
+    @Nullable
+    private final SecureHash secureHash;
 
-    DropUserRequest(String userName, boolean ifExists) {
-        this.userName = userName;
-        this.ifExists = ifExists;
+    public CreateRoleRequest(String roleName, boolean isUser, @Nullable SecureHash attributes) {
+        this.roleName = roleName;
+        this.isUser = isUser;
+        this.secureHash = attributes;
     }
 
-    String userName() {
-        return userName;
+    public String roleName() {
+        return roleName;
     }
 
-    boolean ifExists() {
-        return ifExists;
+    public boolean isUser() {
+        return isUser;
     }
 
-    public DropUserRequest(StreamInput in) throws IOException {
+    @Nullable
+    public SecureHash secureHash() {
+        return secureHash;
+    }
+
+    public CreateRoleRequest(StreamInput in) throws IOException {
         super(in);
-        userName = in.readString();
-        ifExists = in.readBoolean();
+        roleName = in.readString();
+        if (in.getVersion().onOrAfter(Version.V_5_6_0)) {
+            this.isUser = in.readBoolean();
+        } else {
+            this.isUser = true;
+        }
+        secureHash = in.readOptionalWriteable(SecureHash::readFrom);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(userName);
-        out.writeBoolean(ifExists);
+        out.writeString(roleName);
+        if (out.getVersion().onOrAfter(Version.V_5_6_0)) {
+            out.writeBoolean(isUser);
+        }
+        out.writeOptionalWriteable(secureHash);
     }
 }

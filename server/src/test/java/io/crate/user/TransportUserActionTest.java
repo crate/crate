@@ -38,7 +38,7 @@ public class TransportUserActionTest extends ESTestCase {
     @Test
     public void testCreateFirstUser() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder();
-        TransportCreateUserAction.putUser(mdBuilder, "root", null);
+        TransportCreateRoleAction.putUser(mdBuilder, "root", null);
         UsersMetadata metadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         assertThat(metadata.userNames()).containsExactly("root");
     }
@@ -46,7 +46,7 @@ public class TransportUserActionTest extends ESTestCase {
     @Test
     public void testEmptyPrivilegesAreCreatedForNewUsers() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder();
-        TransportCreateUserAction.putUser(mdBuilder, "root", null);
+        TransportCreateRoleAction.putUser(mdBuilder, "root", null);
         UsersPrivilegesMetadata metadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         assertThat(metadata.getUserPrivileges("root")).isEmpty();
     }
@@ -55,26 +55,26 @@ public class TransportUserActionTest extends ESTestCase {
     public void testCreateUserAlreadyExists() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY));
-        assertThat(TransportCreateUserAction.putUser(mdBuilder, "Arthur", null)).isTrue();
+        assertThat(TransportCreateRoleAction.putUser(mdBuilder, "Arthur", null)).isTrue();
     }
 
     @Test
     public void testCreateUser() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(UsersMetadata.TYPE, new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY));
-        TransportCreateUserAction.putUser(mdBuilder, "Trillian", null);
+        TransportCreateRoleAction.putUser(mdBuilder, "Trillian", null);
         UsersMetadata newMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         assertThat(newMetadata.userNames()).containsExactlyInAnyOrder("Trillian", "Arthur");
     }
 
     @Test
     public void testDropUserNoUsersAtAll() throws Exception {
-        assertThat(TransportDropUserAction.dropUser(Metadata.builder(), null, "root")).isFalse();
+        assertThat(TransportDropRoleAction.dropRole(Metadata.builder(), null, "root")).isFalse();
     }
 
     @Test
     public void testDropNonExistingUser() throws Exception {
-        boolean res = TransportDropUserAction.dropUser(
+        boolean res = TransportDropRoleAction.dropRole(
                 Metadata.builder(),
                 new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY),
                 "trillian"
@@ -86,7 +86,7 @@ public class TransportUserActionTest extends ESTestCase {
     public void testDropUser() throws Exception {
         UsersMetadata oldMetadata = new UsersMetadata(UserDefinitions.DUMMY_USERS);
         Metadata.Builder mdBuilder = Metadata.builder();
-        boolean res = TransportDropUserAction.dropUser(mdBuilder, oldMetadata, "Arthur");
+        boolean res = TransportDropRoleAction.dropRole(mdBuilder, oldMetadata, "Arthur");
         assertThat(users(mdBuilder)).containsExactly("Ford");
         assertThat(res).isTrue();
     }

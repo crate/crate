@@ -22,7 +22,7 @@
 package io.crate.auth;
 
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
@@ -32,9 +32,9 @@ import org.jetbrains.annotations.Nullable;
 public class PasswordAuthenticationMethod implements AuthenticationMethod {
 
     public static final String NAME = "password";
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
 
-    PasswordAuthenticationMethod(UserLookup userLookup) {
+    PasswordAuthenticationMethod(RoleLookup userLookup) {
         this.userLookup = userLookup;
     }
 

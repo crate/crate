@@ -22,7 +22,7 @@
 package io.crate.auth;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.apache.http.conn.DnsResolver;
 import org.apache.logging.log4j.LogManager;
@@ -93,11 +93,11 @@ public class HostBasedAuthentication implements Authentication {
      }
      */
     private SortedMap<String, Map<String, String>> hbaConf;
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
     private final DnsResolver dnsResolver;
 
     @Inject
-    public HostBasedAuthentication(Settings settings, UserLookup userLookup, DnsResolver dnsResolver) {
+    public HostBasedAuthentication(Settings settings, RoleLookup userLookup, DnsResolver dnsResolver) {
         hbaConf = convertHbaSettingsToHbaConf(settings);
         this.userLookup = userLookup;
         this.dnsResolver = dnsResolver;

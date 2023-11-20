@@ -40,15 +40,15 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.user.Privilege;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
-    private final BiFunction<UserLookup, Object, User> getUser;
+    private final BiFunction<RoleLookup, Object, User> getUser;
 
     private final TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege;
 
-    protected static final BiFunction<UserLookup, Object, User> USER_BY_NAME = (userLookup, userName) -> {
+    protected static final BiFunction<RoleLookup, Object, User> USER_BY_NAME = (userLookup, userName) -> {
         var user = userLookup.findUser((String) userName);
         if (user == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "User %s does not exist", userName));
@@ -56,7 +56,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         return user;
     };
 
-    protected static final BiFunction<UserLookup, Object, User> USER_BY_OID = (userLookup, userOid) -> {
+    protected static final BiFunction<RoleLookup, Object, User> USER_BY_OID = (userLookup, userOid) -> {
         var user = userLookup.findUser((Integer) userOid);
         if (user == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "User with OID %d does not exist", userOid));
@@ -78,7 +78,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
     protected HasPrivilegeFunction(Signature signature,
                                    BoundSignature boundSignature,
-                                   BiFunction<UserLookup, Object, User> getUser,
+                                   BiFunction<RoleLookup, Object, User> getUser,
                                    TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature);
         this.getUser = getUser;
@@ -91,7 +91,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Scalar<Boolean, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<Boolean, Object> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
         // When possible, user is looked up only once.
         // Privilege string normalization/mapping into CrateDB Privilege.Type is also done once if possible
         Object userValue = null;

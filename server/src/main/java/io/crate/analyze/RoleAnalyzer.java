@@ -32,26 +32,27 @@ import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 
-public class UserAnalyzer {
+public class RoleAnalyzer {
 
     private final NodeContext nodeCtx;
 
-    UserAnalyzer(NodeContext nodeCtx) {
+    RoleAnalyzer(NodeContext nodeCtx) {
         this.nodeCtx = nodeCtx;
     }
 
-    public AnalyzedCreateUser analyze(CreateRole node,
+    public AnalyzedCreateRole analyze(CreateRole node,
                                       ParamTypeHints paramTypeHints,
                                       CoordinatorTxnCtx txnContext) {
-        return new AnalyzedCreateUser(
+        return new AnalyzedCreateRole(
             node.name(),
+            node.isUser(),
             mappedProperties(node.properties(), paramTypeHints, txnContext));
     }
 
-    public AnalyzedAlterUser analyze(AlterRole<Expression> node,
+    public AnalyzedAlterRole analyze(AlterRole<Expression> node,
                                      ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx txnContext) {
-        return new AnalyzedAlterUser(
+        return new AnalyzedAlterRole(
             node.name(),
             mappedProperties(node.properties(), paramTypeHints, txnContext));
     }

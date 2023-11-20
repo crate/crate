@@ -64,7 +64,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.http.Headers;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -85,7 +85,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Settings settings;
     private final Sessions sqlOperations;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
-    private final UserLookup userLookup;
+    private final RoleLookup userLookup;
     private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Netty4CorsConfig corsConfig;
 
@@ -94,7 +94,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     SqlHttpHandler(Settings settings,
                    Sessions sqlOperations,
                    Function<String, CircuitBreaker> circuitBreakerProvider,
-                   UserLookup userLookup,
+                   RoleLookup userLookup,
                    Function<CoordinatorSessionSettings, AccessControl> getAccessControl,
                    Netty4CorsConfig corsConfig) {
         super(false);

@@ -217,7 +217,7 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.types.DataTypes;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 import io.crate.user.UserLookupService;
 import io.crate.user.UserManagementModule;
 
@@ -539,7 +539,7 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
-            UserLookup userLookup = new UserLookupService(clusterService);
+            RoleLookup userLookup = new UserLookupService(clusterService);
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
                 ? new HostBasedAuthentication(settings, userLookup, SystemDefaultDnsResolver.INSTANCE)
                 : new AlwaysOKAuthentication(userLookup);
@@ -774,7 +774,7 @@ public class Node implements Closeable {
                     b.bind(NettyBootstrap.class).toInstance(nettyBootstrap);
                     b.bind(SslContextProvider.class).toInstance(sslContextProvider);
                     b.bind(RerouteService.class).toInstance(rerouteService);
-                    b.bind(UserLookup.class).toInstance(userLookup);
+                    b.bind(RoleLookup.class).toInstance(userLookup);
                     b.bind(Authentication.class).toInstance(authentication);
                     b.bind(LogicalReplicationService.class).toInstance(logicalReplicationService);
                     b.bind(LogicalReplicationSettings.class).toInstance(logicalReplicationSettings);

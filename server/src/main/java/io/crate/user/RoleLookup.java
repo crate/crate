@@ -19,41 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.user;
 
-import io.crate.expression.symbol.Symbol;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.function.Consumer;
+import io.crate.metadata.pgcatalog.OidHash;
 
-public class AnalyzedDropUser implements AnalyzedStatement {
+@FunctionalInterface
+public interface RoleLookup {
 
-    private final String userName;
-    private final boolean ifExists;
-
-    public AnalyzedDropUser(String userName, boolean ifExists) {
-        this.userName = userName;
-        this.ifExists = ifExists;
+    /**
+     * finds a user by username
+     */
+    @Nullable
+    default User findUser(String userName) {
+        for (var user : users()) {
+            if (user.name().equals(userName)) {
+                return user;
+            }
+        }
+        return null;
     }
 
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitDropUser(this, context);
+    /**
+     * finds a user by OID
+     */
+    @Nullable
+    default User findUser(int userOid) {
+        for (var user : users()) {
+            if (userOid == OidHash.userOid(user.name())) {
+                return user;
+            }
+        }
+        return null;
     }
 
-    public String userName() {
-        return userName;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return true;
-    }
-
-    @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-    }
+    Iterable<User> users();
 }

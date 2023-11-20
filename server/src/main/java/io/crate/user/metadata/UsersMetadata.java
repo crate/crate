@@ -21,7 +21,14 @@
 
 package io.crate.user.metadata;
 
-import io.crate.user.SecureHash;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -30,15 +37,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+
+import io.crate.user.SecureHash;
 
 public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -115,7 +116,7 @@ public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     }
 
     /**
-     * UsersMetadata v2 has the form of:
+     * UsersMetadata has the form of:
      *
      * users: {
      *   "user1": {
@@ -130,15 +131,6 @@ public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
      *   },
      *   ...
      * }
-     *
-     * UsersMetadata v1 has the form of:
-     *
-     * users: [
-     *   "user1",
-     *   "user2",
-     *   ...
-     * ]
-     *
      */
     public static UsersMetadata fromXContent(XContentParser parser) throws IOException {
         Map<String, SecureHash> users = new HashMap<>();
@@ -146,19 +138,16 @@ public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
         if (token == XContentParser.Token.FIELD_NAME && parser.currentName().equals("users")) {
             token = parser.nextToken();
-            if (token == XContentParser.Token.START_ARRAY) {
-                // UsersMetadata v1
-                while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY && token != null) {
-                    users.put(parser.text(), null); // old users do not have passwords
-                }
-            } else if (token == XContentParser.Token.START_OBJECT) {
-                // UsersMetadata v2
+            if (token == XContentParser.Token.START_OBJECT) {
                 while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
                     String userName = parser.currentName();
                     if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
                         users.put(userName, SecureHash.fromXContent(parser));
                     }
                 }
+            } else {
+                // each custom metadata is packed inside an object.
+                throw new ElasticsearchParseException("failed to parse users, expected an object token at start");
             }
             if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                 // each custom metadata is packed inside an object.

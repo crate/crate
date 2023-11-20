@@ -36,7 +36,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.TrimMode;
 import io.crate.types.DataTypes;
-import io.crate.user.UserLookup;
+import io.crate.user.RoleLookup;
 
 
 public final class TrimFunctions {
@@ -174,7 +174,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+        public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
             assert arguments.size() == 3 : "number of args must be 3";
 
             Symbol modeSymbol = arguments.get(2);
