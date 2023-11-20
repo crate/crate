@@ -24,12 +24,12 @@ package io.crate.analyze;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 
-import io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
@@ -160,13 +160,17 @@ public class AlterTableDropColumnAnalyzer {
                                                             "is part of INDEX: " + indexRef + " is not allowed");
                 }
             }
-
-            if (generatedColRefs.contains(refToDrop)) {
-                throw new UnsupportedOperationException(
-                    "Dropping column: " + colToDrop.sqlFqn() + " which is used to produce values for " +
-                    "generated column is not allowed");
+            for (var genRef : tableInfo.generatedColumns()) {
+                if (genRef.referencedReferences().contains(refToDrop)) {
+                    throw new UnsupportedOperationException(String.format(
+                        Locale.ENGLISH,
+                        "Cannot drop column `%s`. It's used in generated column `%s`: %s",
+                        colToDrop.sqlFqn(),
+                        genRef.column().sqlFqn(),
+                        genRef.formattedGeneratedExpression()
+                    ));
+                }
             }
-
             for (var checkConstraint : tableInfo.checkConstraints()) {
                 Set<ColumnIdent> columnsInConstraint = new HashSet<>();
                 RefVisitor.visitRefs(checkConstraint.expression(), r -> columnsInConstraint.add(r.column()));

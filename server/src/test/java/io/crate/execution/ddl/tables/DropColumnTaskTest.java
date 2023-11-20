@@ -21,11 +21,13 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterModule;
@@ -35,7 +37,10 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.MapperTestUtils;
 import org.junit.Test;
 
+import io.crate.analyze.DropColumn;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -46,36 +51,49 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_drop_simple_column() throws Exception {
         var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int)")
+            .addTable("create table tbl (x int, y int, z int)")
             .build();
         DocTableInfo tbl = e.resolveTableInfo("tbl");
+        ClusterState initialState = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
             THREAD_POOL,
             tbl,
-            clusterService.state(),
+            initialState,
             Version.CURRENT,
             createTempDir()
         )) {
             var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
-            ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
-            SimpleReference colToDrop = new SimpleReference(
-                refIdent,
-                RowGranularity.DOC,
-                DataTypes.SHORT, // irrelevant
-                333, // irrelevant
-                null
-            );
+            Reference colToDrop = tbl.getReference(new ColumnIdent("y"));
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
-            ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
+            ClusterState newState = dropColumnTask.execute(initialState, request);
+
+            assertThat(newState.version())
+                .as("Version is not increased. The MasterService does when the state is applied")
+                .isEqualTo(initialState.version());
+            assertThat(newState.metadata().version())
+                .as("Version is not increased. The MasterService does when the state is applied")
+                .isEqualTo(initialState.metadata().version());
+
+            String indexName = tbl.ident().indexNameOrAlias();
+            assertThat(newState.metadata().index(indexName).getVersion())
+                .isGreaterThan(initialState.metadata().index(indexName).getVersion());
+
             DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             assertThat(newTable.getReference(colToDrop.column())).isNull();
+            assertThat(newTable.columns()).hasSize(2);
+            assertThat(newTable.droppedColumns()).satisfiesExactly(
+                x -> assertThat(x).isReference()
+                    .hasName("_dropped_2")
+                    .hasPosition(2)
+            );
         }
     }
 
@@ -93,19 +111,21 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             createTempDir()
         )) {
             var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
-            ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("oo"));
-            SimpleReference colToDrop = new SimpleReference(
-                refIdent,
-                RowGranularity.DOC,
-                DataTypes.SHORT, // irrelevant
-                333, // irrelevant
-                null
-            );
+            Reference colToDrop = tbl.getReference(new ColumnIdent("o", "oo"));
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
             DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             assertThat(newTable.getReference(colToDrop.column())).isNull();
+            Reference o = newTable.getReference(new ColumnIdent("o"));
+            assertThat(o.valueType()).isExactlyInstanceOf(ObjectType.class);
+            ObjectType objectType = (ObjectType) o.valueType();
+            assertThat(objectType.innerTypes())
+                .as("Parent column objectType is updated")
+                .containsExactly(
+                    Map.entry("a", DataTypes.INTEGER),
+                    Map.entry("b", DataTypes.INTEGER)
+                );
         }
     }
 
@@ -168,6 +188,31 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(newTable.getReference(colToDrop.column())).isNull();
             assertThat(newTable.checkConstraints()).hasSize(1);
             assertThat(newTable.checkConstraints().get(0).expressionStr()).isEqualTo("\"x\" > 0");
+        }
+    }
+
+    @Test
+    public void test_cannot_drop_column_used_in_generated_expression() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int, z as (y + 1))")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        ClusterState state = clusterService.state();
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            state,
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            Reference ref = tbl.getReference(new ColumnIdent("y"));
+
+            DropColumnRequest request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(ref, true)));
+            assertThatThrownBy(() -> dropColumnTask.execute(state, request))
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage(
+                    "Cannot drop column `y`. It's used in generated column `z`: (y + 1)");
         }
     }
 
