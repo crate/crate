@@ -19,50 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.tables;
+package io.crate.analyze;
 
 import java.io.IOException;
-import java.util.List;
 
-import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
+import org.elasticsearch.common.io.stream.Writeable;
 
-import io.crate.analyze.DropColumn;
-import io.crate.metadata.RelationName;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.Reference;
 
-public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {
+public record DropColumn(Reference ref, boolean ifExists) implements Writeable {
 
-    private final RelationName relationName;
-    private final List<DropColumn> colsToDrop;
-
-    public DropColumnRequest(@NotNull RelationName relationName,
-                             @NotNull List<DropColumn> colsToDrop) {
-        this.relationName = relationName;
-        this.colsToDrop = colsToDrop;
-    }
-
-    public DropColumnRequest(StreamInput in) throws IOException {
-        super(in);
-        this.relationName = new RelationName(in);
-        this.colsToDrop = in.readList(DropColumn::new);
+    public DropColumn(StreamInput in) throws IOException {
+        this(Reference.fromStream(in), in.readBoolean());
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        relationName.writeTo(out);
-        out.writeCollection(colsToDrop);
-    }
-
-    @NotNull
-    public RelationName relationName() {
-        return this.relationName;
-    }
-
-    @NotNull
-    public List<DropColumn> colsToDrop() {
-        return this.colsToDrop;
+        Symbols.toStream(ref, out);
+        out.writeBoolean(ifExists);
     }
 }

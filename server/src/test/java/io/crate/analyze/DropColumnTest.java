@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;

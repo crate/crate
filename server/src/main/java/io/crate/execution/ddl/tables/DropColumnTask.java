@@ -47,7 +47,7 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 
 import io.crate.analyze.AlterTableDropColumnAnalyzer;
-import io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
+import io.crate.analyze.DropColumn;
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;

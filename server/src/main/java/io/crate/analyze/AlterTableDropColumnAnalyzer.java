@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 
-import io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;

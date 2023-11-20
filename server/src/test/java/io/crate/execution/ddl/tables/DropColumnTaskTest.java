@@ -21,9 +21,9 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -35,6 +35,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.MapperTestUtils;
 import org.junit.Test;
 
+import io.crate.analyze.DropColumn;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
