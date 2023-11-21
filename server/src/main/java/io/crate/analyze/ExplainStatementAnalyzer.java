@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import java.util.EnumSet;
 import java.util.List;
 
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -34,6 +35,9 @@ import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Statement;
 
 public class ExplainStatementAnalyzer {
+
+    private static final EnumSet<Explain.Option> ONLY_COSTS = EnumSet.of(Explain.Option.COSTS);
+    private static final EnumSet<Explain.Option> ONLY_ANALYZE = EnumSet.of(Explain.Option.ANALYZE);
 
     private final Analyzer analyzer;
 
@@ -49,7 +53,7 @@ public class ExplainStatementAnalyzer {
 
         if (node.options().isEmpty()) {
             // default case, no options, show costs
-            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, true, false);
+            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, ONLY_COSTS);
         }
 
         var isCostsActivated = node.isOptionActivated(Explain.Option.COSTS);
@@ -64,12 +68,16 @@ public class ExplainStatementAnalyzer {
             var timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
             var subStatement = analyzer.analyzedStatement(statement, analysis);
             profilingContext.stopTimerAndStoreDuration(timer);
-            return new ExplainAnalyzedStatement(subStatement, profilingContext, false, false);
-        } else if (node.isOptionExplicitlyDeactivated(Explain.Option.COSTS)) {
-            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, false, isVerboseActivated);
-        } else {
-            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, true, isVerboseActivated);
+            return new ExplainAnalyzedStatement(subStatement, profilingContext, ONLY_ANALYZE);
         }
+        EnumSet<Explain.Option> explainOptions = EnumSet.noneOf(Explain.Option.class);
+        if (!node.isOptionExplicitlyDeactivated(Explain.Option.COSTS)) {
+            explainOptions.add(Explain.Option.COSTS);
+        }
+        if (isVerboseActivated) {
+            explainOptions.add(Explain.Option.VERBOSE);
+        }
+        return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, explainOptions);
     }
 
     private static final AstVisitor<Void, Void> EXPLAIN_CHECK_VISITOR = new AstVisitor<>() {

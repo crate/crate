@@ -21,6 +21,13 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.AmbiguousColumnException;
@@ -31,13 +38,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.profile.ProfilingContext;
+import io.crate.sql.tree.Explain;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
 
@@ -45,20 +47,20 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final ProfilingContext context;
     private final List<Symbol> outputs;
     private final RelationName relationName;
-    private final boolean showCosts;
-    private final boolean verbose;
+    private final EnumSet<Explain.Option> options;
+
     private static final String PLAN_COLUMN_NAME = "QUERY PLAN";
     private static final String STEP_COLUMN_NAME = "STEP";
 
     ExplainAnalyzedStatement(AnalyzedStatement statement,
                              @Nullable ProfilingContext context,
-                             boolean showCosts,
-                             boolean verbose) {
+                             EnumSet<Explain.Option> options) {
         relationName = new RelationName(null, "explain");
         this.statement = statement;
         this.context = context;
         this.outputs = new ArrayList<>();
-        if (verbose) {
+        this.options = options;
+        if (options.contains(Explain.Option.VERBOSE)) {
             ScopedSymbol stepField = new ScopedSymbol(
                 relationName,
                 new ColumnIdent(STEP_COLUMN_NAME),
@@ -72,16 +74,14 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
             context == null ? DataTypes.STRING : DataTypes.UNTYPED_OBJECT
         );
         outputs.add(queryPlanField);
-        this.showCosts = showCosts;
-        this.verbose = verbose;
     }
 
     public boolean showCosts() {
-        return showCosts;
+        return options.contains(Explain.Option.COSTS);
     }
 
     public boolean verbose() {
-        return verbose;
+        return options.contains(Explain.Option.VERBOSE);
     }
 
     @Override
