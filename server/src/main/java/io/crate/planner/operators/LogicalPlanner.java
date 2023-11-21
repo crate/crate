@@ -433,13 +433,15 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation querySelectRelation, List<Symbol> outputs) {
             SplitPoints splitPoints = SplitPointsBuilder.create(querySelectRelation);
-            var allOutputs = extractOutputs(querySelectRelation, splitPoints.toCollect());
+            List<Symbol> allOutputs = splitPoints.toCollect();
 
             // create implicit join
             AnalyzedRelation topRelation = null;
             if (querySelectRelation.from().size() == 1) {
                 topRelation = querySelectRelation.from().get(0);
+
             } else {
+                allOutputs = extractOutputs(querySelectRelation, splitPoints.toCollect());
                 Iterator<AnalyzedRelation> iterator = querySelectRelation.from().iterator();
                 var relation = iterator.next();
 
