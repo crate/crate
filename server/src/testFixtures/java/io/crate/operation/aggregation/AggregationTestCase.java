@@ -392,8 +392,9 @@ public abstract class AggregationTestCase extends ESTestCase {
             null,
             new String[] { shard.shardId().getIndexName() },
             new String[] { shard.shardId().getIndexName() },
-            1,
-            Settings.EMPTY,
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                .build(),
             List.of(),
             List.of(),
             ColumnPolicy.STRICT,
