@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
@@ -171,7 +172,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         ColumnIdent clusteredBy,
                         String[] concreteIndices,
                         String[] concreteOpenIndices,
-                        int numberOfShards,
                         Settings tableParameters,
                         List<ColumnIdent> partitionedBy,
                         List<PartitionName> partitions,
@@ -234,7 +234,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.clusteredBy = clusteredBy;
         this.concreteIndices = concreteIndices;
         this.concreteOpenIndices = concreteOpenIndices;
-        this.numberOfShards = numberOfShards;
+        Integer maybeNumberOfShards = tableParameters.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, null);
+        if (maybeNumberOfShards == null) {
+            throw new IllegalArgumentException("must specify numberOfShards for " + ident);
+        }
+        this.numberOfShards = maybeNumberOfShards;
         this.numberOfReplicas = NumberOfReplicas.fromSettings(tableParameters);
         this.tableParameters = tableParameters;
         isPartitioned = !partitionedByColumns.isEmpty();

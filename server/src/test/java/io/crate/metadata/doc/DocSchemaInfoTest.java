@@ -33,6 +33,7 @@ import java.util.Map;
 import javax.script.ScriptException;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -255,8 +256,9 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
             null,
             new String[0],
             new String[0],
-            5,
-            Settings.EMPTY,
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
+                .build(),
             List.of(),
             List.of(),
             ColumnPolicy.DYNAMIC,

@@ -123,7 +123,6 @@ public class DocTableInfoFactory {
         Map<String, Object> mappingSource;
         Settings tableParameters;
         IndexMetadata.State state;
-        int numberOfShards;
         String[] concreteIndices;
         try {
             concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
@@ -159,7 +158,6 @@ public class DocTableInfoFactory {
             state = index.getState();
             MappingMetadata mapping = index.mapping();
             mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
-            numberOfShards = index.getNumberOfShards();
             concreteOpenIndices = concreteIndices;
             if (concreteIndices.length == 0) {
                 throw new RelationUnknown(relation);
@@ -177,7 +175,6 @@ public class DocTableInfoFactory {
             boolean isClosed = Maps.getOrDefault(
                 Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
             state = isClosed ? State.CLOSE : State.OPEN;
-            numberOfShards = tableParameters.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5);
             // We need all concrete open indices, as closed indices must not appear in the routing.
             concreteOpenIndices = IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
@@ -259,7 +256,6 @@ public class DocTableInfoFactory {
             clusteredBy,
             concreteIndices,
             concreteOpenIndices,
-            numberOfShards,
             tableParameters,
             partitionedBy,
             partitions,

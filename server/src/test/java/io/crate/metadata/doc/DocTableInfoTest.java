@@ -80,8 +80,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             null,
             new String[0],
             new String[0],
-            5,
-            Settings.EMPTY,
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
+                .build(),
             List.of(),
             List.of(),
             ColumnPolicy.DYNAMIC,
@@ -147,8 +148,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             null,
             new String[0],
             new String[0],
-            5,
-            Settings.EMPTY,
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
+                .build(),
             List.of(),
             List.of(),
             ColumnPolicy.DYNAMIC,
@@ -285,8 +287,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 null,
                 new String[0],
                 new String[0],
-                5,
-                Settings.EMPTY,
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
+                    .build(),
                 List.of(),
                 List.of(),
                 ColumnPolicy.DYNAMIC,
