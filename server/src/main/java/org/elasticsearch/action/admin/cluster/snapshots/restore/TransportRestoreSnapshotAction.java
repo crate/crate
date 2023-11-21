@@ -87,7 +87,7 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
                 request.includeGlobalSettings(),
                 request.globalSettings());
 
-        restoreService.restoreSnapshot(restoreRequest, new ActionListener<RestoreCompletionResponse>() {
+        restoreService.restoreSnapshot(restoreRequest, request.tablesToRestore(), new ActionListener<>() {
             @Override
             public void onResponse(RestoreCompletionResponse restoreCompletionResponse) {
                 if (restoreCompletionResponse.getRestoreInfo() == null && request.waitForCompletion()) {
