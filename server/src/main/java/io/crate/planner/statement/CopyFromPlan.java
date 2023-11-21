@@ -37,11 +37,10 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -166,10 +165,17 @@ public final class CopyFromPlan implements Plan {
         } else {
             partitionIdent = null;
         }
-        var properties = copyFrom.properties().map(eval);
-        var nodeFiltersPredicate = discoveryNodePredicate(
+        final var properties = copyFrom.properties().map(eval);
+        final var nodeFiltersPredicate = discoveryNodePredicate(
             properties.properties().getOrDefault(NodeFilters.NAME, null));
-        var settings = genericPropertiesToSettings(properties);
+        final var settings = genericPropertiesToSettings(properties);
+
+        boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
+        boolean waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
+        if (!waitForCompletion && returnSummary) {
+            throw new UnsupportedOperationException(
+                "Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
+        }
         var inputFormat = settingAsEnum(
             FileUriCollectPhase.InputFormat.class,
             settings.get(INPUT_FORMAT_SETTING.getKey(), INPUT_FORMAT_SETTING.getDefault(Settings.EMPTY)));

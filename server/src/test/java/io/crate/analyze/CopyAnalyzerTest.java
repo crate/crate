@@ -25,6 +25,8 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -394,5 +396,15 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .build();
         BoundCopyTo analysis = analyze("COPY doc.generated_copy (i) TO DIRECTORY '/dummy'");
         assertThat(analysis.outputNames()).containsExactly("i");
+    }
+
+    @Test
+    public void test_cannot_use_return_summary_without_waiting_for_completion() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        assertThatThrownBy(() -> analyze("copy tbl from '/*' with (wait_for_completion = false) return summary"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
     }
 }
