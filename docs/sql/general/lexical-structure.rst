@@ -232,12 +232,11 @@ quoted if used as identifiers::
     | update            |
     | user              |
     | using             |
-    | verbose           |
     | when              |
     | where             |
     | with              |
     +-------------------+
-    SELECT 96 rows in set (... sec)
+    SELECT 95 rows in set (... sec)
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example below
 are *identifiers*, which identify names of tables, columns, and other database
