@@ -82,7 +82,9 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Tuned the behavior of the ``ANALYZE`` statement and the periodic stats update.
+  The operations should now require fewer reads from disk and the rate limiting
+  via the ``stats.service.max_bytes_per_sec`` setting should work better.
 
 Administration and Operations
 -----------------------------

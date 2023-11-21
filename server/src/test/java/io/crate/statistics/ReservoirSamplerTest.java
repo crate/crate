@@ -22,8 +22,8 @@
 package io.crate.statistics;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -32,10 +32,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.RateLimiter;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
@@ -46,9 +48,13 @@ import org.junit.Test;
 import com.carrotsearch.hppc.LongArrayList;
 
 import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Schemas;
+import io.crate.statistics.ReservoirSampler.SearchContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.QueryTester;
 
 public class ReservoirSamplerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -70,39 +76,83 @@ public class ReservoirSamplerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_rate_limiter_pause_not_called_if_throttling_disabled() throws IOException {
-        long fetchId = 123L;
-        ReservoirSampler.DocIdToRow docIdToRow = mock(ReservoirSampler.DocIdToRow.class);
-        when(docIdToRow.apply(anyInt())).thenReturn(new Object[]{});
-
-        RowCellsAccountingWithEstimators rowAccounting = mock(RowCellsAccountingWithEstimators.class);
-
-        // FetchId.decodeReaderId(123) returns 0, second List should have an element with index 0.
-        LongArrayList fetchIds = new LongArrayList();
-        fetchIds.add(fetchId);
-        sampler.createRecords(fetchIds, List.of(docIdToRow), RamAccounting.NO_ACCOUNTING, rowAccounting, 1);
+    public void test_rate_limiter_pause_not_called_if_throttling_disabled() throws Throwable {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (x int)"
+        );
+        builder.indexValues("x", 1, 2, 3, 4, 5, 6, 7);
+        try (var tester = builder.build()) {
+            ArrayList<SearchContext> searchers = new ArrayList<>(1);
+            IndexSearcher searcher = tester.searcher();
+            searchers.add(new SearchContext(
+                searcher,
+                List.of(Literal.of("dummy")),
+                List.of()
+            ));
+            RowCellsAccountingWithEstimators rowAccounting = mock(RowCellsAccountingWithEstimators.class);
+            // FetchId.decodeReaderId(123) returns 0, second List should have an element with index 0.
+            LongArrayList fetchIds = new LongArrayList();
+            long fetchId = 123L;
+            fetchIds.add(fetchId);
+            ArrayList<Row> samples = sampler.createRecords(
+                fetchIds,
+                searchers,
+                RamAccounting.NO_ACCOUNTING,
+                rowAccounting,
+                1
+            );
+            assertThat(samples).hasSize(1);
+        }
         verify(rateLimiter, never()).pause(anyLong());
     }
 
     @Test
     public void test_rate_limiter_pause_called_if_throttling_enabled() throws Exception {
-        ClusterSettings clusterSettings = clusterService.getClusterSettings();
-        long bytesPerSec = 2;
-        clusterSettings.applySettings(Settings.builder().put(TableStatsService.STATS_SERVICE_THROTTLING_SETTING.getKey(), bytesPerSec).build());
-
-        long fetchId = 1L;
-        ReservoirSampler.DocIdToRow docIdToRow = mock(ReservoirSampler.DocIdToRow.class);
-        when(docIdToRow.apply(anyInt())).thenReturn(new Object[]{});
-
         RowCellsAccountingWithEstimators rowAccounting = mock(RowCellsAccountingWithEstimators.class);
+        long bytesPerSec = 2;
         long rowSize = bytesPerSec + 1; // ensure 1 pause
         when(rowAccounting.accountRowBytes(any())).thenReturn(rowSize);
 
-        // FetchId.decodeReaderId(1) returns 0, second List should have an element with index 0.
-        LongArrayList fetchIds = new LongArrayList();
-        fetchIds.add(fetchId);
-        sampler.createRecords(fetchIds, List.of(docIdToRow), RamAccounting.NO_ACCOUNTING, rowAccounting, 1);
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (x int)"
+        );
+        builder.indexValues("x", 1, 2, 3, 4, 5, 6, 7);
+        try (var tester = builder.build()) {
+            ClusterSettings clusterSettings = clusterService.getClusterSettings();
+            clusterSettings.applySettings(
+                Settings.builder()
+                    .put(TableStatsService.STATS_SERVICE_THROTTLING_SETTING.getKey(), bytesPerSec)
+                    .build()
+            );
 
+            ArrayList<SearchContext> searchersByReaderId = new ArrayList<>(1);
+            IndexSearcher searcher = tester.searcher();
+            searchersByReaderId.add(new SearchContext(
+                searcher,
+                List.of(Literal.of("dummy")),
+                List.of()
+            ));
+            // FetchId.decodeReaderId(123) returns 0, second List should have an element with index 0.
+            LongArrayList fetchIds = new LongArrayList();
+            long fetchId = 123L;
+            fetchIds.add(fetchId);
+            ArrayList<Row> samples = sampler.createRecords(
+                fetchIds,
+                searchersByReaderId,
+                RamAccounting.NO_ACCOUNTING,
+                rowAccounting,
+                1
+            );
+            assertThat(samples).hasSize(1);
+        }
         verify(rateLimiter, times(1)).pause(anyLong());
     }
 }

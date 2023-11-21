@@ -28,9 +28,9 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.function.IntFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,6 +38,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Scorable;
@@ -59,12 +60,14 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
 import io.crate.Streamer;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -80,6 +83,7 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -193,6 +197,10 @@ public final class ReservoirSampler {
         }
     }
 
+    record SearchContext(IndexSearcher searcher,
+                         List<Input<?>> inputs,
+                         List<? extends LuceneCollectorExpression<?>> expressions) {}
+
     @SuppressWarnings("rawtypes")
     private Samples getSamples(List<Reference> columns,
                                int maxSamples,
@@ -205,7 +213,7 @@ public final class ReservoirSampler {
                                RamAccounting ramAccounting) {
         ramAccounting.addBytes(DataTypes.LONG.fixedSize() * (long) maxSamples);
         Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
-        ArrayList<DocIdToRow> docIdToRowsFunctionPerReader = new ArrayList<>();
+        ArrayList<SearchContext> searchers = new ArrayList<>();
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
@@ -228,7 +236,7 @@ public final class ReservoirSampler {
                     docTable.partitionedByColumns()
                 )
             ).getCtx(coordinatorTxnCtx);
-            ctx.add(columns);
+            ctx.add(Lists2.map(columns, DocReferences::toSourceLookup));
             List<Input<?>> inputs = ctx.topLevelInputs();
             List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
             CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
@@ -244,14 +252,14 @@ public final class ReservoirSampler {
                     searchersToRelease.add(searcher);
                     totalNumDocs += searcher.getIndexReader().numDocs();
                     totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
-                    DocIdToRow docIdToRow = new DocIdToRow(searcher, inputs, expressions);
-                    docIdToRowsFunctionPerReader.add(docIdToRow);
                     try {
                         // We do the sampling in 2 phases. First we get the docIds;
                         // then we retrieve the column values for the sampled docIds.
                         // we do this in 2 phases because the reservoir sampling might override previously seen
                         // items and we want to avoid unnecessary disk-lookup
-                        var collector = new ReservoirCollector(fetchIdSamples, searchersToRelease.size() - 1);
+                        int readerIdx = searchers.size();
+                        searchers.add(new SearchContext(searcher, inputs, expressions));
+                        var collector = new ReservoirCollector(fetchIdSamples, readerIdx);
                         searcher.search(new MatchAllDocsQuery(), collector);
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
@@ -262,79 +270,102 @@ public final class ReservoirSampler {
         }
 
         var rowAccounting = new RowCellsAccountingWithEstimators(Symbols.typeView(columns), ramAccounting, 0);
-        ArrayList<Row> records = createRecords(fetchIdSamples.samples(), docIdToRowsFunctionPerReader, ramAccounting, rowAccounting, maxSamples);
-        return new Samples(records, streamers, totalNumDocs, totalSizeInBytes);
+        try {
+            ArrayList<Row> records = createRecords(
+                fetchIdSamples.samples(),
+                searchers,
+                ramAccounting,
+                rowAccounting,
+                maxSamples
+            );
+            return new Samples(records, streamers, totalNumDocs, totalSizeInBytes);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
+    /**
+     * @param searchers - the index of the elements must match the readerId of the fetchIds in the samples
+     */
     @VisibleForTesting
     ArrayList<Row> createRecords(LongArrayList samples,
-                                 List<DocIdToRow> docIdToRowsFunctionPerReader,
+                                 ArrayList<SearchContext> searchers,
                                  RamAccounting ramAccounting,
                                  RowCellsAccountingWithEstimators rowAccounting,
-                                 int maxSamples) {
-        ArrayList<Row> records = new ArrayList<>();
-        long bytesSinceLastPause = 0;
+                                 int maxSamples) throws IOException {
+        record Docs(LeafReaderContext leafContext,
+                    IntArrayList docIds,
+                    List<Input<?>> inputs,
+                    List<? extends LuceneCollectorExpression<?>> expressions) {
+        }
 
+        // Group by leafReaderContext first to avoid switching between them on each new docIds.
+        // Switching could lead to loading different docValues repeatedly,
+        // which would thrash the fs cache and work against the rate limiting
+        HashMap<Object, Docs> subDocsByLeafReader = new HashMap<>();
         for (LongCursor cursor : samples) {
             long fetchId = cursor.value;
             int readerId = FetchId.decodeReaderId(fetchId);
-            DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
-            Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
+            int docId = FetchId.decodeDocId(fetchId);
 
-            try {
-                long bytesRead = rowAccounting.accountRowBytes(row);
-                ramAccounting.addBytes(bytesRead);
-                bytesSinceLastPause = maybePause(bytesRead, bytesSinceLastPause);
-            } catch (CircuitBreakingException e) {
-                LOGGER.info(
-                    "Stopped gathering samples for `ANALYZE` operation because circuit breaker triggered. "
-                        + "Generating statistics with {} instead of {} records",
-                    records.size(),
-                    maxSamples
-                );
-                break;
-            }
-            records.add(new RowN(row));
-        }
-
-        return records;
-    }
-
-    static class DocIdToRow implements IntFunction<Object[]> {
-
-        private final Engine.Searcher searcher;
-        private final List<Input<?>> inputs;
-        private final List<? extends LuceneCollectorExpression<?>> expressions;
-
-        DocIdToRow(Engine.Searcher searcher,
-                   List<Input<?>> inputs,
-                   List<? extends LuceneCollectorExpression<?>> expressions) {
-            this.searcher = searcher;
-            this.inputs = inputs;
-            this.expressions = expressions;
-        }
-
-        @Override
-        public Object[] apply(int docId) {
-            List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
+            SearchContext searchContext = searchers.get(readerId);
+            assert searchContext != null : "Must have a search context for readerId: " + readerId;
+            List<LeafReaderContext> leaves = searchContext.searcher.getIndexReader().leaves();
             int readerIndex = ReaderUtil.subIndex(docId, leaves);
             LeafReaderContext leafContext = leaves.get(readerIndex);
             int subDoc = docId - leafContext.docBase;
-            try {
-                var readerContext = new ReaderContext(leafContext);
-                for (LuceneCollectorExpression<?> expression : expressions) {
-                    expression.setNextReader(readerContext);
-                    expression.setNextDocId(subDoc);
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
+
+            Docs docs = subDocsByLeafReader.get(leafContext.id());
+            if (docs == null) {
+                IntArrayList docIds = new IntArrayList();
+                docs = new Docs(
+                    leafContext,
+                    docIds,
+                    searchContext.inputs,
+                    searchContext.expressions
+                );
+                subDocsByLeafReader.put(leafContext.id(), docs);
             }
-            Object[] cells = new Object[inputs.size()];
-            for (int i = 0; i < cells.length; i++) {
-                cells[i] = inputs.get(i).value();
-            }
-            return cells;
+            docs.docIds.add(subDoc);
         }
+
+        ArrayList<Row> records = new ArrayList<>(samples.size());
+        long bytesSinceLastPause = 0;
+        for (var entry : subDocsByLeafReader.entrySet()) {
+            Docs docs = entry.getValue();
+            var readerContext = new ReaderContext(docs.leafContext);
+            for (LuceneCollectorExpression<?> expression : docs.expressions) {
+                expression.setNextReader(readerContext);
+            }
+            List<Input<?>> inputs = docs.inputs();
+            // Sorting the docIds should help avoid segment switches
+            int[] docIds = docs.docIds.toArray();
+            Arrays.sort(docIds);
+            for (int docId : docIds) {
+                for (LuceneCollectorExpression<?> expression : docs.expressions) {
+                    expression.setNextDocId(docId);
+                }
+                Object[] row = new Object[inputs.size()];
+                for (int i = 0; i < row.length; i++) {
+                    row[i] = inputs.get(i).value();
+                }
+                try {
+                    long bytesRead = rowAccounting.accountRowBytes(row);
+                    ramAccounting.addBytes(bytesRead);
+                    bytesSinceLastPause = maybePause(bytesRead, bytesSinceLastPause);
+                } catch (CircuitBreakingException e) {
+                    LOGGER.info(
+                        "Stopped gathering samples for `ANALYZE` operation because circuit breaker triggered. "
+                            + "Generating statistics with {} instead of {} records",
+                        records.size(),
+                        maxSamples
+                    );
+                    break;
+                }
+                records.add(new RowN(row));
+            }
+        }
+        return records;
     }
 
     private static class ReservoirCollector implements Collector {
