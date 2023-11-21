@@ -35,7 +35,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.planner.optimizer.tracer.OptimizerProgressTracker;
+import io.crate.planner.optimizer.tracer.OptimizerTracer;
 
 /**
  * The optimizer takes an operator tree of logical plans and creates an optimized plan.
@@ -53,7 +53,7 @@ public class IterativeOptimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, OptimizerProgressTracker tracer) {
+    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, OptimizerTracer tracer) {
         var memo = new Memo(plan);
         var planStatsWithMemo = planStats.withMemo(memo);
 
@@ -85,7 +85,7 @@ public class IterativeOptimizer {
      * @param context the context of the optimizer
      * @return true if there were any changes of plans on the node or it's children or false if not
      */
-    private boolean exploreGroup(int group, Context context, OptimizerProgressTracker tracer) {
+    private boolean exploreGroup(int group, Context context, OptimizerTracer tracer) {
         // tracks whether this group or any children groups change as
         // this method executes
         var progress = exploreNode(group, context, tracer);
@@ -103,7 +103,7 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private boolean exploreNode(int group, Context context, OptimizerProgressTracker tracer) {
+    private boolean exploreNode(int group, Context context, OptimizerTracer tracer) {
         var rules = context.rules;
         var resolvePlan = context.groupReferenceResolver;
         var node = context.memo.resolve(group);
@@ -145,7 +145,7 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private boolean exploreChildren(int group, Context context, OptimizerProgressTracker tracer) {
+    private boolean exploreChildren(int group, Context context, OptimizerTracer tracer) {
         boolean progress = false;
 
         var expression = context.memo.resolve(group);

@@ -38,7 +38,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
-import io.crate.planner.optimizer.tracer.OptimizerProgressTracker;
+import io.crate.planner.optimizer.tracer.OptimizerTracer;
 
 public class Optimizer {
 
@@ -57,7 +57,7 @@ public class Optimizer {
     public LogicalPlan optimize(LogicalPlan plan,
                                 PlanStats planStats,
                                 CoordinatorTxnCtx txnCtx,
-                                OptimizerProgressTracker tracer) {
+                                OptimizerTracer tracer) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
         LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx, tracer);
         var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, tracer));
@@ -89,7 +89,7 @@ public class Optimizer {
                                       LogicalPlan plan,
                                       PlanStats planStats,
                                       TransactionContext txnCtx,
-                                      OptimizerProgressTracker tracer) {
+                                      OptimizerTracer tracer) {
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
         // trying to re-apply the rules as long as at least one plan was transformed.
@@ -124,7 +124,7 @@ public class Optimizer {
                                                    NodeContext nodeCtx,
                                                    TransactionContext txnCtx,
                                                    Function<LogicalPlan, LogicalPlan> resolvePlan,
-                                                   OptimizerProgressTracker tracer) {
+                                                   OptimizerTracer tracer) {
         Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
         if (match.isPresent()) {
             tracer.ruleMatched(rule);

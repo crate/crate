@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -130,10 +131,8 @@ import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
-import io.crate.planner.node.management.VerboseOptimizerProgressTracker;
+import io.crate.planner.node.management.VerboseOptimizerTracer;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.planner.optimizer.tracer.LoggingOptimizerProgressTracker;
-import io.crate.planner.optimizer.tracer.OptimizerProgressTracker;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.planner.statement.DeletePlanner;
@@ -156,15 +155,13 @@ import io.crate.statistics.TableStats;
 import io.crate.user.UserManager;
 
 @Singleton
-public class Planner {
+public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     private static final Logger LOGGER = LogManager.getLogger(Planner.class);
 
     private final ClusterService clusterService;
     private final TableStats tableStats;
     private final LogicalPlanner logicalPlanner;
-    private final OptimizerProgressTracker defaultTracker = LoggingOptimizerProgressTracker.getInstance();
-    private final TrackablePlanner defaultTrackablePlanner = new TrackablePlanner(defaultTracker);
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
     private final UserManager userManager;
@@ -218,171 +215,163 @@ public class Planner {
      * @return plan
      */
     public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
-        return analyzedStatement.accept(defaultTrackablePlanner, plannerContext);
+        return analyzedStatement.accept(this, plannerContext);
     }
 
-    private class TrackablePlanner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
+    @Override
+    protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, PlannerContext context) {
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                                                              "Cannot create Plan from AnalyzedStatement \"%s\"  - not supported.", analyzedStatement));
+    }
 
-        private final OptimizerProgressTracker tracer;
+    @Override
+    public Plan visitAnalyze(AnalyzedAnalyze analyzedAnalyze, PlannerContext context) {
+        return new AnalyzePlan();
+    }
 
-        TrackablePlanner(OptimizerProgressTracker tracer) {
-            this.tracer = tracer;
-        }
+    @Override
+    public Plan visitBegin(AnalyzedBegin analyzedBegin, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
 
-        @Override
-        protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, PlannerContext context) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "Cannot create Plan from AnalyzedStatement \"%s\"  - not supported.", analyzedStatement));
-        }
+    @Override
+    public Plan visitCommit(AnalyzedCommit analyzedCommit, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
 
-        @Override
-        public Plan visitAnalyze(AnalyzedAnalyze analyzedAnalyze, PlannerContext context) {
-            return new AnalyzePlan();
-        }
+    @Override
+    public Plan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
+        return logicalPlanner.plan(relation, context);
+    }
 
-        @Override
-        public Plan visitBegin(AnalyzedBegin analyzedBegin, PlannerContext context) {
-            return NoopPlan.INSTANCE;
-        }
+    @Override
+    public Plan visitSwapTable(AnalyzedSwapTable swapTable, PlannerContext context) {
+        return new SwapTablePlan(swapTable);
+    }
 
-        @Override
-        public Plan visitCommit(AnalyzedCommit analyzedCommit, PlannerContext context) {
-            return NoopPlan.INSTANCE;
-        }
+    @Override
+    public Plan visitGCDanglingArtifacts(AnalyzedGCDanglingArtifacts gcDanglingArtifacts, PlannerContext context) {
+        return new GCDangingArtifactsPlan();
+    }
 
-        @Override
-        public Plan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
-            return logicalPlanner.plan(relation, context, tracer);
-        }
+    @Override
+    public Plan visitDecommissionNode(AnalyzedDecommissionNode decommissionNode, PlannerContext context) {
+        return new DecommissionNodePlan(decommissionNode);
+    }
 
-        @Override
-        public Plan visitSwapTable(AnalyzedSwapTable swapTable, PlannerContext context) {
-            return new SwapTablePlan(swapTable);
-        }
+    @Override
+    protected Plan visitAnalyzedInsertStatement(AnalyzedInsertStatement statement, PlannerContext context) {
+        return logicalPlanner.plan(statement, context);
+    }
 
-        @Override
-        public Plan visitGCDanglingArtifacts(AnalyzedGCDanglingArtifacts gcDanglingArtifacts, PlannerContext context) {
-            return new GCDangingArtifactsPlan();
-        }
+    @Override
+    public Plan visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, PlannerContext context) {
+        return UpdatePlanner.plan(
+            update, context, new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context)));
+    }
 
-        @Override
-        public Plan visitDecommissionNode(AnalyzedDecommissionNode decommissionNode, PlannerContext context) {
-            return new DecommissionNodePlan(decommissionNode);
-        }
+    @Override
+    protected Plan visitAnalyzedDeleteStatement(AnalyzedDeleteStatement statement, PlannerContext context) {
+        return DeletePlanner.planDelete(
+            statement,
+            new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context)),
+            context
+        );
+    }
 
-        @Override
-        protected Plan visitAnalyzedInsertStatement(AnalyzedInsertStatement statement, PlannerContext context) {
-            return logicalPlanner.plan(statement, context, tracer);
-        }
+    @Override
+    protected Plan visitCopyFromStatement(AnalyzedCopyFrom analysis, PlannerContext context) {
+        return new CopyFromPlan(analysis);
+    }
 
-        @Override
-        public Plan visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, PlannerContext context) {
-            return UpdatePlanner.plan(
-                update, context, new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context, tracer)));
-        }
+    @Override
+    protected Plan visitCopyToStatement(AnalyzedCopyTo analysis, PlannerContext context) {
+        return new CopyToPlan(analysis, tableStats);
+    }
 
-        @Override
-        protected Plan visitAnalyzedDeleteStatement(AnalyzedDeleteStatement statement, PlannerContext context) {
-            return DeletePlanner.planDelete(
-                statement,
-                new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context, tracer)),
-                context
-            );
-        }
+    @Override
+    public Plan visitShowCreateTableAnalyzedStatement(AnalyzedShowCreateTable statement, PlannerContext context) {
+        return new ShowCreateTablePlan(statement);
+    }
 
-        @Override
-        protected Plan visitCopyFromStatement(AnalyzedCopyFrom analysis, PlannerContext context) {
-            return new CopyFromPlan(analysis);
-        }
+    @Override
+    protected Plan visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis,
+                                                          PlannerContext context) {
+        return new CreateRepositoryPlan(analysis);
+    }
 
-        @Override
-        protected Plan visitCopyToStatement(AnalyzedCopyTo analysis, PlannerContext context) {
-            return new CopyToPlan(analysis, tableStats);
-        }
-
-        @Override
-        public Plan visitShowCreateTableAnalyzedStatement(AnalyzedShowCreateTable statement, PlannerContext context) {
-            return new ShowCreateTablePlan(statement);
-        }
-
-        @Override
-        protected Plan visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis,
-                                                              PlannerContext context) {
-            return new CreateRepositoryPlan(analysis);
-        }
-
-        @Override
-        public Plan visitDropRepositoryAnalyzedStatement(AnalyzedDropRepository analysis,
-                                                         PlannerContext context) {
-            return new DropRepositoryPlan(analysis);
-        }
-
-        @Override
-        public Plan visitCreateSnapshotAnalyzedStatement(AnalyzedCreateSnapshot analysis,
-                                                         PlannerContext context) {
-            return new CreateSnapshotPlan(analysis);
-        }
-
-        @Override
-        public Plan visitDropSnapshotAnalyzedStatement(AnalyzedDropSnapshot analysis,
-                                                       PlannerContext context) {
-            return new DropSnapshotPlan(analysis);
-        }
-
-        @Override
-        public Plan visitDCLStatement(DCLStatement statement, PlannerContext context) {
-            return new GenericDCLPlan(statement);
-        }
-
-        @Override
-        public Plan visitDropTable(AnalyzedDropTable<?> dropTable, PlannerContext context) {
-            return new DropTablePlan(dropTable);
-        }
-
-        @Override
-        public Plan visitCreateTable(AnalyzedCreateTable createTable, PlannerContext context) {
-            return new CreateTablePlan(createTable, numberOfShards, tableCreator);
-        }
-
-        @Override
-        public Plan visitCreateTableAs(AnalyzedCreateTableAs createTableAs, PlannerContext context) {
-            return CreateTableAsPlan.of(
-                createTableAs, numberOfShards, tableCreator, context, logicalPlanner, tracer
-            );
-        }
-
-        @Override
-        public Plan visitAlterTable(AnalyzedAlterTable alterTable, PlannerContext context) {
-            return new AlterTablePlan(alterTable);
-        }
-
-        @Override
-        public Plan visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis,
-                                                PlannerContext context) {
-            return new AlterBlobTablePlan(analysis);
-        }
-
-        @Override
-        public Plan visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis,
-                                                 PlannerContext context) {
-            return new CreateBlobTablePlan(analysis, numberOfShards);
-        }
-
-        public Plan visitRefreshTableStatement(AnalyzedRefreshTable analysis, PlannerContext context) {
-            return new RefreshTablePlan(analysis);
-        }
-
-        @Override
-        public Plan visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis,
-                                                  PlannerContext context) {
-            return new AlterTableRenameTablePlan(analysis);
-        }
-
-        @Override
-        public Plan visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis,
+    @Override
+    public Plan visitDropRepositoryAnalyzedStatement(AnalyzedDropRepository analysis,
                                                      PlannerContext context) {
-            return new AlterTableOpenClosePlan(analysis);
-        }
+        return new DropRepositoryPlan(analysis);
+    }
+
+    @Override
+    public Plan visitCreateSnapshotAnalyzedStatement(AnalyzedCreateSnapshot analysis,
+                                                     PlannerContext context) {
+        return new CreateSnapshotPlan(analysis);
+    }
+
+    @Override
+    public Plan visitDropSnapshotAnalyzedStatement(AnalyzedDropSnapshot analysis,
+                                                   PlannerContext context) {
+        return new DropSnapshotPlan(analysis);
+    }
+
+    @Override
+    public Plan visitDCLStatement(DCLStatement statement, PlannerContext context) {
+        return new GenericDCLPlan(statement);
+    }
+
+    @Override
+    public Plan visitDropTable(AnalyzedDropTable<?> dropTable, PlannerContext context) {
+        return new DropTablePlan(dropTable);
+    }
+
+    @Override
+    public Plan visitCreateTable(AnalyzedCreateTable createTable, PlannerContext context) {
+        return new CreateTablePlan(createTable, numberOfShards, tableCreator);
+    }
+
+    @Override
+    public Plan visitCreateTableAs(AnalyzedCreateTableAs createTableAs, PlannerContext context) {
+        return CreateTableAsPlan.of(
+            createTableAs, numberOfShards, tableCreator, context, logicalPlanner
+        );
+    }
+
+    @Override
+    public Plan visitAlterTable(AnalyzedAlterTable alterTable, PlannerContext context) {
+        return new AlterTablePlan(alterTable);
+    }
+
+    @Override
+    public Plan visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis,
+                                            PlannerContext context) {
+        return new AlterBlobTablePlan(analysis);
+    }
+
+    @Override
+    public Plan visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis,
+                                             PlannerContext context) {
+        return new CreateBlobTablePlan(analysis, numberOfShards);
+    }
+
+    public Plan visitRefreshTableStatement(AnalyzedRefreshTable analysis, PlannerContext context) {
+        return new RefreshTablePlan(analysis);
+    }
+
+    @Override
+    public Plan visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis,
+                                              PlannerContext context) {
+        return new AlterTableRenameTablePlan(analysis);
+    }
+
+    @Override
+    public Plan visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis,
+                                                 PlannerContext context) {
+        return new AlterTableOpenClosePlan(analysis);
+    }
 
     @Override
     protected Plan visitAnalyzedCreateRole(AnalyzedCreateRole analysis,
@@ -400,232 +389,229 @@ public class Planner {
         return new DropRolePlan(analysis, userManager);
     }
 
-        protected Plan visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, PlannerContext context) {
-            return new CreateAnalyzerPlan(analysis);
-        }
+    protected Plan visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, PlannerContext context) {
+        return new CreateAnalyzerPlan(analysis);
+    }
 
-        @Override
-        public Plan visitAlterTableAddColumn(AnalyzedAlterTableAddColumn alterTableAddColumn,
-                                             PlannerContext context) {
-            return new AlterTableAddColumnPlan(alterTableAddColumn);
-        }
-
-        @Override
-        public Plan visitAlterTableDropColumn(AnalyzedAlterTableDropColumn alterTableDropColumn,
-                                              PlannerContext context) {
-            return new AlterTableDropColumnPlan(alterTableDropColumn);
-        }
-
-        @Override
-        public Plan visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint,
-                                                       PlannerContext context) {
-            return new AlterTableDropCheckConstraintPlan(dropCheckConstraint);
-        }
-
-        @Override
-        protected Plan visitCreateFunction(AnalyzedCreateFunction analysis,
-                                           PlannerContext context) {
-            return new CreateFunctionPlan(analysis);
-        }
-
-        @Override
-        public Plan visitDropFunction(AnalyzedDropFunction analysis, PlannerContext context) {
-            return new DropFunctionPlan(analysis);
-        }
-
-        @Override
-        protected Plan visitDropAnalyzerStatement(AnalyzedDropAnalyzer analysis, PlannerContext context) {
-            return new DropAnalyzerPlan(analysis);
-        }
-
-        @Override
-        public Plan visitResetAnalyzedStatement(AnalyzedResetStatement resetStatement, PlannerContext context) {
-            if (resetStatement.settingsToRemove().isEmpty()) {
-                return NoopPlan.INSTANCE;
-            }
-            return new ResetSettingsPlan(resetStatement);
-        }
-
-        @Override
-        public Plan visitRestoreSnapshotAnalyzedStatement(AnalyzedRestoreSnapshot analysis, PlannerContext context) {
-            return new RestoreSnapshotPlan(analysis);
-        }
-
-        @Override
-        public Plan visitSetStatement(AnalyzedSetStatement setStatement, PlannerContext context) {
-            switch (setStatement.scope()) {
-                case TIME_ZONE:
-                    var settings = setStatement.settings();
-                    if (!settings.get(0).expression().toString().equalsIgnoreCase("'utc'")) {
-                        LOGGER.warn("SET TIME ZONE `{}` statement will be ignored. ", settings);
-                    }
-                    return NoopPlan.INSTANCE;
-                case LOCAL:
-                    LOGGER.info(
-                        "SET LOCAL `{}` statement will be ignored. " +
-                            "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.", setStatement.settings());
-                    return NoopPlan.INSTANCE;
-                case SESSION:
-                    return new SetSessionPlan(setStatement.settings(), sessionSettingRegistry);
-                case GLOBAL:
-                default:
-                    return new UpdateSettingsPlan(setStatement.settings(), setStatement.isPersistent());
-            }
-        }
-
-        @Override
-        public Plan visitSetSessionAuthorizationStatement(AnalyzedSetSessionAuthorizationStatement analysis,
-                                                          PlannerContext context) {
-            if (analysis.scope() == SetSessionAuthorizationStatement.Scope.LOCAL) {
-                LOGGER.info(
-                    "SET LOCAL SESSION AUTHORIZATION 'username' statement will be ignored. " +
-                        "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.");
-                return NoopPlan.INSTANCE;
-            } else {
-                return new SetSessionAuthorizationPlan(analysis, userManager);
-            }
-        }
-
-        @Override
-        public Plan visitSetTransaction(AnalyzedSetTransaction setTransaction, PlannerContext context) {
-            LOGGER.info("'SET TRANSACTION' statement is ignored. CrateDB doesn't support transactions");
-            return NoopPlan.INSTANCE;
-        }
-
-        @Override
-        public Plan visitKillAnalyzedStatement(AnalyzedKill analysis, PlannerContext context) {
-            return new KillPlan(analysis.jobId());
-        }
-
-        @Override
-        public Plan visitDeallocateAnalyzedStatement(AnalyzedDeallocate analysis, PlannerContext context) {
-            return NoopPlan.INSTANCE;
-        }
-
-        @Override
-        public Plan visitDiscard(AnalyzedDiscard discard, PlannerContext context) {
-            return NoopPlan.INSTANCE;
-        }
-
-        @Override
-        public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
-            AnalyzedStatementVisitor<PlannerContext, Plan> planner = this;
-            VerboseOptimizerProgressTracker tracker = new VerboseOptimizerProgressTracker(
-                defaultTracker,
-                explainAnalyzedStatement.showCosts()
-            );
-            if (explainAnalyzedStatement.verbose()) {
-                planner = new TrackablePlanner(tracker);
-            }
-            ProfilingContext ctx = explainAnalyzedStatement.context();
-            if (ctx == null) {
-                return new ExplainPlan(
-                    explainAnalyzedStatement.statement().accept(planner, context),
-                    explainAnalyzedStatement.showCosts(),
-                    null,
-                    explainAnalyzedStatement.verbose(),
-                    tracker.getSteps()
-                );
-            } else {
-                Timer timer = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
-                Plan subPlan = explainAnalyzedStatement.statement().accept(planner, context);
-                ctx.stopTimerAndStoreDuration(timer);
-                return new ExplainPlan(
-                    subPlan,
-                    explainAnalyzedStatement.showCosts(),
-                    ctx,
-                    explainAnalyzedStatement.verbose(),
-                    tracker.getSteps()
-                );
-            }
-        }
-
-        @Override
-        public Plan visitCreateViewStmt(CreateViewStmt createViewStmt, PlannerContext context) {
-            return new CreateViewPlan(createViewStmt);
-        }
-
-        @Override
-        public Plan visitDropView(AnalyzedDropView dropView, PlannerContext context) {
-            return new DropViewPlan(dropView);
-        }
-
-        @Override
-        public Plan visitOptimizeTableStatement(AnalyzedOptimizeTable analysis, PlannerContext context) {
-            return new OptimizeTablePlan(analysis);
-        }
-
-        @Override
-        protected Plan visitRerouteMoveShard(AnalyzedRerouteMoveShard analysis, PlannerContext context) {
-            return new AlterTableReroutePlan(analysis);
-        }
-
-        @Override
-        protected Plan visitRerouteAllocateReplicaShard(AnalyzedRerouteAllocateReplicaShard analysis,
-                                                        PlannerContext context) {
-            return new AlterTableReroutePlan(analysis);
-        }
-
-        @Override
-        protected Plan visitRerouteCancelShard(AnalyzedRerouteCancelShard analysis, PlannerContext context) {
-            return new AlterTableReroutePlan(analysis);
-        }
-
-        @Override
-        public Plan visitReroutePromoteReplica(AnalyzedPromoteReplica analysis, PlannerContext context) {
-            return new AlterTableReroutePlan(analysis);
-        }
-
-        @Override
-        public Plan visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, PlannerContext context) {
-            return new RerouteRetryFailedPlan();
-        }
-
-        @Override
-        public Plan visitCreatePublication(AnalyzedCreatePublication createPublication,
-                                           PlannerContext context) {
-            return new CreatePublicationPlan(createPublication);
-        }
-
-        @Override
-        public Plan visitDropPublication(AnalyzedDropPublication dropPublication,
+    @Override
+    public Plan visitAlterTableAddColumn(AnalyzedAlterTableAddColumn alterTableAddColumn,
                                          PlannerContext context) {
-            return new DropPublicationPlan(dropPublication);
-        }
+        return new AlterTableAddColumnPlan(alterTableAddColumn);
+    }
 
-        @Override
-        public Plan visitAlterPublication(AnalyzedAlterPublication alterPublication, PlannerContext context) {
-            return new AlterPublicationPlan(alterPublication);
-        }
-
-        @Override
-        public Plan visitCreateSubscription(AnalyzedCreateSubscription createSubscription,
-                                            PlannerContext context) {
-            return new CreateSubscriptionPlan(createSubscription);
-        }
-
-        @Override
-        public Plan visitDropSubscription(AnalyzedDropSubscription dropSubscription,
+    @Override
+    public Plan visitAlterTableDropColumn(AnalyzedAlterTableDropColumn alterTableDropColumn,
                                           PlannerContext context) {
-            return new DropSubscriptionPlan(dropSubscription);
-        }
+        return new AlterTableDropColumnPlan(alterTableDropColumn);
+    }
 
-        @Override
-        public Plan visitDeclare(AnalyzedDeclare declare, PlannerContext context) {
-            AnalyzedStatement query = declare.query();
-            Plan queryPlan = query.accept(this, context);
-            return new DeclarePlan(declare, queryPlan);
-        }
+    @Override
+    public Plan visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint,
+                                                   PlannerContext context) {
+        return new AlterTableDropCheckConstraintPlan(dropCheckConstraint);
+    }
 
-        @Override
-        public Plan visitFetch(AnalyzedFetch fetch, PlannerContext context) {
-            return new FetchPlan(fetch);
-        }
+    @Override
+    protected Plan visitCreateFunction(AnalyzedCreateFunction analysis,
+                                       PlannerContext context) {
+        return new CreateFunctionPlan(analysis);
+    }
 
-        @Override
-        public Plan visitClose(AnalyzedClose close, PlannerContext context) {
-            return new ClosePlan(close);
+    @Override
+    public Plan visitDropFunction(AnalyzedDropFunction analysis, PlannerContext context) {
+        return new DropFunctionPlan(analysis);
+    }
+
+    @Override
+    protected Plan visitDropAnalyzerStatement(AnalyzedDropAnalyzer analysis, PlannerContext context) {
+        return new DropAnalyzerPlan(analysis);
+    }
+
+    @Override
+    public Plan visitResetAnalyzedStatement(AnalyzedResetStatement resetStatement, PlannerContext context) {
+        if (resetStatement.settingsToRemove().isEmpty()) {
+            return NoopPlan.INSTANCE;
         }
+        return new ResetSettingsPlan(resetStatement);
+    }
+
+    @Override
+    public Plan visitRestoreSnapshotAnalyzedStatement(AnalyzedRestoreSnapshot analysis, PlannerContext context) {
+        return new RestoreSnapshotPlan(analysis);
+    }
+
+    @Override
+    public Plan visitSetStatement(AnalyzedSetStatement setStatement, PlannerContext context) {
+        switch (setStatement.scope()) {
+            case TIME_ZONE:
+                var settings = setStatement.settings();
+                if (!settings.get(0).expression().toString().equalsIgnoreCase("'utc'")) {
+                    LOGGER.warn("SET TIME ZONE `{}` statement will be ignored. ", settings);
+                }
+                return NoopPlan.INSTANCE;
+            case LOCAL:
+                LOGGER.info(
+                    "SET LOCAL `{}` statement will be ignored. " +
+                    "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.", setStatement.settings());
+                return NoopPlan.INSTANCE;
+            case SESSION:
+                return new SetSessionPlan(setStatement.settings(), sessionSettingRegistry);
+            case GLOBAL:
+            default:
+                return new UpdateSettingsPlan(setStatement.settings(), setStatement.isPersistent());
+        }
+    }
+
+    @Override
+    public Plan visitSetSessionAuthorizationStatement(AnalyzedSetSessionAuthorizationStatement analysis,
+                                                      PlannerContext context) {
+        if (analysis.scope() == SetSessionAuthorizationStatement.Scope.LOCAL) {
+            LOGGER.info(
+                "SET LOCAL SESSION AUTHORIZATION 'username' statement will be ignored. " +
+                "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.");
+            return NoopPlan.INSTANCE;
+        } else {
+            return new SetSessionAuthorizationPlan(analysis, userManager);
+        }
+    }
+
+    @Override
+    public Plan visitSetTransaction(AnalyzedSetTransaction setTransaction, PlannerContext context) {
+        LOGGER.info("'SET TRANSACTION' statement is ignored. CrateDB doesn't support transactions");
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitKillAnalyzedStatement(AnalyzedKill analysis, PlannerContext context) {
+        return new KillPlan(analysis.jobId());
+    }
+
+    @Override
+    public Plan visitDeallocateAnalyzedStatement(AnalyzedDeallocate analysis, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitDiscard(AnalyzedDiscard discard, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
+        PlannerContext plannerContext = context;
+        VerboseOptimizerTracer tracer = null;
+        if (explainAnalyzedStatement.verbose()) {
+            tracer = new VerboseOptimizerTracer(explainAnalyzedStatement.showCosts());
+            plannerContext = context.withOptimizerTracer(tracer);
+        }
+        ProfilingContext ctx = explainAnalyzedStatement.context();
+        if (ctx == null) {
+            return new ExplainPlan(
+                explainAnalyzedStatement.statement().accept(this, plannerContext),
+                explainAnalyzedStatement.showCosts(),
+                null,
+                explainAnalyzedStatement.verbose(),
+                tracer != null ? tracer.getSteps() : Collections.emptyList()
+            );
+        } else {
+            Timer timer = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
+            Plan subPlan = explainAnalyzedStatement.statement().accept(this, plannerContext);
+            ctx.stopTimerAndStoreDuration(timer);
+            return new ExplainPlan(
+                subPlan,
+                explainAnalyzedStatement.showCosts(),
+                ctx,
+                explainAnalyzedStatement.verbose(),
+                tracer != null ? tracer.getSteps() : Collections.emptyList()
+            );
+        }
+    }
+
+    @Override
+    public Plan visitCreateViewStmt(CreateViewStmt createViewStmt, PlannerContext context) {
+        return new CreateViewPlan(createViewStmt);
+    }
+
+    @Override
+    public Plan visitDropView(AnalyzedDropView dropView, PlannerContext context) {
+        return new DropViewPlan(dropView);
+    }
+
+    @Override
+    public Plan visitOptimizeTableStatement(AnalyzedOptimizeTable analysis, PlannerContext context) {
+        return new OptimizeTablePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteMoveShard(AnalyzedRerouteMoveShard analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteAllocateReplicaShard(AnalyzedRerouteAllocateReplicaShard analysis,
+                                                    PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteCancelShard(AnalyzedRerouteCancelShard analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    public Plan visitReroutePromoteReplica(AnalyzedPromoteReplica analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    public Plan visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, PlannerContext context) {
+        return new RerouteRetryFailedPlan();
+    }
+
+    @Override
+    public Plan visitCreatePublication(AnalyzedCreatePublication createPublication,
+                                       PlannerContext context) {
+        return new CreatePublicationPlan(createPublication);
+    }
+
+    @Override
+    public Plan visitDropPublication(AnalyzedDropPublication dropPublication,
+                                     PlannerContext context) {
+        return new DropPublicationPlan(dropPublication);
+    }
+
+    @Override
+    public Plan visitAlterPublication(AnalyzedAlterPublication alterPublication, PlannerContext context) {
+        return new AlterPublicationPlan(alterPublication);
+    }
+
+    @Override
+    public Plan visitCreateSubscription(AnalyzedCreateSubscription createSubscription,
+                                        PlannerContext context) {
+        return new CreateSubscriptionPlan(createSubscription);
+    }
+
+    @Override
+    public Plan visitDropSubscription(AnalyzedDropSubscription dropSubscription,
+                                      PlannerContext context) {
+        return new DropSubscriptionPlan(dropSubscription);
+    }
+
+    @Override
+    public Plan visitDeclare(AnalyzedDeclare declare, PlannerContext context) {
+        AnalyzedStatement query = declare.query();
+        Plan queryPlan = query.accept(this, context);
+        return new DeclarePlan(declare, queryPlan);
+    }
+
+    @Override
+    public Plan visitFetch(AnalyzedFetch fetch, PlannerContext context) {
+        return new FetchPlan(fetch);
+    }
+
+    @Override
+    public Plan visitClose(AnalyzedClose close, PlannerContext context) {
+        return new ClosePlan(close);
     }
 }
 

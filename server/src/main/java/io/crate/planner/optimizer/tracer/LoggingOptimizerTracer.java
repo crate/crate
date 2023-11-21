@@ -29,20 +29,20 @@ import io.crate.planner.operators.PrintContext;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 
-public class LoggingOptimizerProgressTracker implements OptimizerProgressTracker {
+public class LoggingOptimizerTracer implements OptimizerTracer {
 
-    private static final Logger LOGGER = LogManager.getLogger(LoggingOptimizerProgressTracker.class);
+    private static final Logger LOGGER = LogManager.getLogger(LoggingOptimizerTracer.class);
 
-    private static final LoggingOptimizerProgressTracker INSTANCE = new LoggingOptimizerProgressTracker();
+    private static final LoggingOptimizerTracer INSTANCE = new LoggingOptimizerTracer();
 
-    private LoggingOptimizerProgressTracker() {
+    private LoggingOptimizerTracer() {
     }
 
-    public static OptimizerProgressTracker getInstance() {
+    public static OptimizerTracer getInstance() {
         if (LOGGER.isTraceEnabled()) {
             return INSTANCE;
         }
-        return NoOpOptimizerProgressTracker.INSTANCE;
+        return OptimizerTracer.NOOP;
     }
 
     @Override

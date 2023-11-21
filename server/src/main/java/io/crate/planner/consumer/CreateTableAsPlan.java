@@ -36,7 +36,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.planner.optimizer.tracer.OptimizerProgressTracker;
 
 public final class CreateTableAsPlan implements Plan {
 
@@ -49,10 +48,9 @@ public final class CreateTableAsPlan implements Plan {
                                        NumberOfShards numberOfShards,
                                        TableCreator tableCreator,
                                        PlannerContext context,
-                                       LogicalPlanner logicalPlanner,
-                                       OptimizerProgressTracker tracer) {
+                                       LogicalPlanner logicalPlanner) {
         Supplier<LogicalPlan> postponedInsertPlan =
-            () -> logicalPlanner.plan(analyzedCreateTableAs.analyzePostponedInsertStatement(), context, tracer);
+            () -> logicalPlanner.plan(analyzedCreateTableAs.analyzePostponedInsertStatement(), context);
         return new CreateTableAsPlan(
             analyzedCreateTableAs.analyzedCreateTable(),
             postponedInsertPlan,

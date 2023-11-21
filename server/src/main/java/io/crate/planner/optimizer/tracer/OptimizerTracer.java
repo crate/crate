@@ -25,7 +25,21 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 
-public interface OptimizerProgressTracker {
+public interface OptimizerTracer {
+
+    OptimizerTracer NOOP = new OptimizerTracer() {
+        @Override
+        public void optimizationStarted(LogicalPlan initialPlan, PlanStats planStats) {
+        }
+
+        @Override
+        public void ruleMatched(Rule<?> rule) {
+        }
+
+        @Override
+        public void ruleApplied(Rule<?> rule, LogicalPlan plan, PlanStats planStats) {
+        }
+    };
 
     void optimizationStarted(LogicalPlan initialPlan, PlanStats planStats);
 

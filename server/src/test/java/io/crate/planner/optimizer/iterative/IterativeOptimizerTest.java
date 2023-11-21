@@ -39,7 +39,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
-import io.crate.planner.optimizer.tracer.NoOpOptimizerProgressTracker;
+import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.statistics.TableStats;
 
 public class IterativeOptimizerTest {
@@ -58,7 +58,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters()));
 
-        var result = optimizer.optimize(filter2, planStats, ctx, NoOpOptimizerProgressTracker.INSTANCE);
+        var result = optimizer.optimize(filter2, planStats, ctx, OptimizerTracer.NOOP);
         assertThat(result).isEqualTo("Filter[(true AND true)]\n" +
                                              "  └ TestPlan[]");
     }
@@ -75,7 +75,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, planStats, ctx, NoOpOptimizerProgressTracker.INSTANCE);
+        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP);
         assertThat(result).isEqualTo(
             """
             OrderBy[]
@@ -110,7 +110,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MoveFilterBeneathOrder(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, planStats, ctx, NoOpOptimizerProgressTracker.INSTANCE);
+        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP);
 
         assertThat(result).isEqualTo(
             """

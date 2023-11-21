@@ -56,7 +56,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
-import io.crate.planner.optimizer.tracer.NoOpOptimizerProgressTracker;
 import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
@@ -93,8 +92,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx, NoOpOptimizerProgressTracker.INSTANCE));
-        return logicalPlanner.plan(mss, plannerCtx,subqueryPlanner, false, NoOpOptimizerProgressTracker.INSTANCE);
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
+        return logicalPlanner.plan(mss, plannerCtx,subqueryPlanner, false);
     }
 
     private Join buildJoin(LogicalPlan operator) {
@@ -475,7 +474,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
-        LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx, NoOpOptimizerProgressTracker.INSTANCE);
+        LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
         ExecutionPlan build = operator.build(
             mock(DependencyCarrier.class), plannerCtx, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
@@ -496,7 +495,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         var plannerCtx = e.getPlannerContext(clusterService.state());
         plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
 
-        LogicalPlan join = logicalPlanner.plan(mss, plannerCtx, NoOpOptimizerProgressTracker.INSTANCE);
+        LogicalPlan join = logicalPlanner.plan(mss, plannerCtx);
         WindowAgg windowAggOperator = (WindowAgg) ((Eval) ((RootRelationBoundary) join).source).source;
         assertThat(join.outputs()).contains(windowAggOperator.windowFunctions().get(0));
     }

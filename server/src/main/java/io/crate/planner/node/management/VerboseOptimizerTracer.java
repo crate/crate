@@ -19,31 +19,54 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.tracer;
+package io.crate.planner.node.management;
+
+import static io.crate.planner.node.management.ExplainPlan.createPrintContext;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.tracer.LoggingOptimizerTracer;
+import io.crate.planner.optimizer.tracer.OptimizerTracer;
 
-public class NoOpOptimizerProgressTracker implements OptimizerProgressTracker {
+public class VerboseOptimizerTracer implements OptimizerTracer {
 
-    public static final NoOpOptimizerProgressTracker INSTANCE = new NoOpOptimizerProgressTracker();
+    private final OptimizerTracer defaultTracker = LoggingOptimizerTracer.getInstance();
+    private final List<OptimizerStep> steps = new ArrayList<>();
+    private final boolean showCosts;
 
-    private NoOpOptimizerProgressTracker() {
+    public VerboseOptimizerTracer(boolean showCosts) {
+        this.showCosts = showCosts;
     }
 
     @Override
     public void optimizationStarted(LogicalPlan initialPlan, PlanStats planStats) {
-
+        // A plan can go through multiple optimizers. Here, we capture the initial plan only once.
+        if (steps.isEmpty()) {
+            var printContext = createPrintContext(planStats, showCosts);
+            initialPlan.print(printContext);
+            steps.add(OptimizerStep.initial(printContext.toString()));
+        }
+        defaultTracker.optimizationStarted(initialPlan, planStats);
     }
 
     @Override
     public void ruleMatched(Rule<?> rule) {
-
+        defaultTracker.ruleMatched(rule);
     }
 
     @Override
     public void ruleApplied(Rule<?> rule, LogicalPlan plan, PlanStats planStats) {
+        var printContext = createPrintContext(planStats, showCosts);
+        plan.print(printContext);
+        steps.add(OptimizerStep.ruleApplied(rule, printContext.toString()));
+        defaultTracker.ruleApplied(rule, plan, planStats);
+    }
 
+    public List<OptimizerStep> getSteps() {
+        return steps;
     }
 }
