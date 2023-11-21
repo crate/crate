@@ -509,7 +509,8 @@ def load_tests(loader, suite, ignore):
 
     for fn in doctest_files('general/builtins/window-functions.rst',
                             'general/dql/joins.rst',
-                            'general/builtins/subquery-expressions.rst'):
+                            'general/builtins/subquery-expressions.rst',
+                            'sql/statements/explain.rst'):
         tests.append(docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo))
 
     for fn in doctest_files('general/dml.rst',):

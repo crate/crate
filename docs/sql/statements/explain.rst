@@ -34,39 +34,47 @@ The ``EXPLAIN`` command displays the execution plan that the planner generates
 for the supplied statement. The plan is returned as a nested object containing
 the plan tree.
 
+.. Hidden: Analyze to display costs in the EXPLAIN VERBOSE output.
+
+    cr> ANALYZE;
+    ANALYZE OK, 1 row affected (0.004 sec)
+
 The ``VERBOSE`` option, available through ``EXPLAIN VERBOSE`` or
 ``EXPLAIN (VERBOSE TRUE)``, provides a breakdown of the steps performed by the
 optimizer. An example output looks like this::
 
-    cr> EXPLAIN VERBOSE SELECT * FROM t1, t2 WHERE t1.id = t2.id AND t1.id > 2;
-    +------------------------------------+-----------------------------------------------------------------+
-    | STEP                               | QUERY PLAN                                                      |
-    +------------------------------------+-----------------------------------------------------------------+
-    | Initial logical plan               | Filter[(id > 2::bigint)] (rows=0)                               |
-    |                                    |   └ Join[INNER | (id = id)] (rows=1)                            |
-    |                                    |     ├ Collect[doc.t1 | [id, name] | true] (rows=74)             |
-    |                                    |     └ Collect[doc.t2 | [id] | true] (rows=48)                   |
-    | optimizer_move_filter_beneath_join | Join[INNER | (id = id)] (rows=1)                                |
-    |                                    |   ├ Filter[(id > 2::bigint)] (rows=24)                          |
-    |                                    |   │  └ Collect[doc.t1 | [id, name] | true] (rows=74)            |
-    |                                    |   └ Collect[doc.t2 | [id] | true] (rows=48)                     |
-    | optimizer_rewrite_join_plan        | HashJoin[(id = id)] (rows=1)                                    |
-    |                                    |   ├ Filter[(id > 2::bigint)] (rows=24)                          |
-    |                                    |   │  └ Collect[doc.t1 | [id, name] | true] (rows=74)            |
-    |                                    |   └ Collect[doc.t2 | [id] | true] (rows=48)                     |
-    | optimizer_merge_filter_and_collect | HashJoin[(id = id)] (rows=1)                                    |
-    |                                    |   ├ Collect[doc.t1 | [id, name] | (id > 2::bigint)] (rows=24)   |
-    |                                    |   └ Collect[doc.t2 | [id] | true] (rows=48)                     |
-    | optimizer_reorder_hash_join        | Eval[id, name, id] (rows=0)                                     |
-    |                                    |   └ HashJoin[(id = id)] (rows=0)                                |
-    |                                    |     ├ Collect[doc.t2 | [id] | true] (rows=48)                   |
-    |                                    |     └ Collect[doc.t1 | [id, name] | (id > 2::bigint)] (rows=24) |
-    | Final logical plan                 | Eval[id, name, id] (rows=0)                                     |
-    |                                    |   └ HashJoin[(id = id)] (rows=0)                                |
-    |                                    |     ├ Collect[doc.t2 | [id] | true] (rows=48)                   |
-    |                                    |     └ Collect[doc.t1 | [id, name] | (id > 2::bigint)] (rows=24) |
-    +------------------------------------+-----------------------------------------------------------------+
-    EXPLAIN 6 rows in set (0.009 sec)
+    cr> EXPLAIN VERBOSE
+    ... SELECT employees.id
+    ... FROM employees, departments
+    ... WHERE employees.dept_id = departments.id AND departments.name = 'IT';
+    +------------------------------------+----------------------------------------------------------------------+
+    | STEP                               | QUERY PLAN                                                           |
+    +------------------------------------+----------------------------------------------------------------------+
+    | Initial logical plan               | Eval[id] (rows=0)                                                    |
+    |                                    |   └ Filter[(name = 'IT')] (rows=0)                                   |
+    |                                    |     └ Join[INNER | (dept_id = id)] (rows=3)                          |
+    |                                    |       ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)      |
+    |                                    |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
+    | optimizer_move_filter_beneath_join | Eval[id] (rows=3)                                                    |
+    |                                    |   └ Join[INNER | (dept_id = id)] (rows=3)                            |
+    |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
+    |                                    |     └ Filter[(name = 'IT')] (rows=1)                                 |
+    |                                    |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
+    | optimizer_rewrite_join_plan        | Eval[id] (rows=3)                                                    |
+    |                                    |   └ HashJoin[(dept_id = id)] (rows=3)                                |
+    |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
+    |                                    |     └ Filter[(name = 'IT')] (rows=1)                                 |
+    |                                    |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
+    | optimizer_merge_filter_and_collect | Eval[id] (rows=3)                                                    |
+    |                                    |   └ HashJoin[(dept_id = id)] (rows=3)                                |
+    |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
+    |                                    |     └ Collect[doc.departments | [id, name] | (name = 'IT')] (rows=1) |
+    | Final logical plan                 | Eval[id] (rows=3)                                                    |
+    |                                    |   └ HashJoin[(dept_id = id)] (rows=3)                                |
+    |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
+    |                                    |     └ Collect[doc.departments | [id] | (name = 'IT')] (rows=1)       |
+    +------------------------------------+----------------------------------------------------------------------+
+    EXPLAIN 5 rows in set (0.210 sec)
 
 When issuing ``EXPLAIN ANALYZE`` or ``EXPLAIN (ANALYZE TRUE)`` the plan of the
 statement is executed and timings of the different phases of the plan are returned.
