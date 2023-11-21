@@ -89,6 +89,7 @@ import io.crate.sql.tree.JoinType;
  * <p>
  * See {@link MoveFilterBeneathJoinTest} for more examples.
  */
+
 public final class MoveFilterBeneathJoin implements Rule<Filter> {
 
     private final Capture<AbstractJoinPlan> joinCapture;
