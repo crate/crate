@@ -34,7 +34,7 @@ public class IdentifiersTest {
         // Either add the new term to `nonReserved` in `SqlBase.4g` or add a breaking changes entry and adapt this test.
         assertThat(
             (int) Identifiers.KEYWORDS.stream().filter(Identifiers.Keyword::isReserved).count())
-            .isEqualTo(96);
+            .isEqualTo(95);
     }
 
     @Test

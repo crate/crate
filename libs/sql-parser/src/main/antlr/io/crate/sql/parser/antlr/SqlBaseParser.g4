@@ -996,6 +996,7 @@ nonReserved
     | UNCOMMITTED
     | VALUES
     | VARYING
+    | VERBOSE
     | VIEW
     | WINDOW
     | WITHOUT
