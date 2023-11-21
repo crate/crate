@@ -169,15 +169,21 @@ public final class CopyFromPlan implements Plan {
         } else {
             partitionIdent = null;
         }
-        var properties = copyFrom.properties().map(eval);
-        var nodeFiltersPredicate = discoveryNodePredicate(
+        final var properties = copyFrom.properties().map(eval);
+        final var nodeFiltersPredicate = discoveryNodePredicate(
             properties.properties().getOrDefault(NodeFilters.NAME, null));
-        var settings = Settings.builder().put(properties).build();
+        final var settings = Settings.builder().put(properties).build();
 
         if (properties.properties().containsKey("validation")) {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog(
                 "copy_from.validation",
                 "Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
+        }
+        boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
+        boolean waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
+        if (!waitForCompletion && returnSummary) {
+            throw new UnsupportedOperationException(
+                "Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
         }
         var inputFormat = settingAsEnum(
             FileUriCollectPhase.InputFormat.class,
