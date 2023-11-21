@@ -401,4 +401,14 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         BoundCopyTo analysis = analyze("COPY doc.generated_copy (i) TO DIRECTORY '/dummy'");
         assertThat(analysis.outputNames()).containsExactly("i");
     }
+
+    @Test
+    public void test_cannot_use_return_summary_without_waiting_for_completion() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        assertThatThrownBy(() -> analyze("copy tbl from '/*' with (wait_for_completion = false) return summary"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
+    }
 }
