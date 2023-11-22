@@ -43,6 +43,11 @@ public class VerboseOptimizerTracer implements OptimizerTracer {
     }
 
     @Override
+    public boolean isActive() {
+        return true;
+    }
+
+    @Override
     public void optimizationStarted(LogicalPlan initialPlan, PlanStats planStats) {
         // A plan can go through multiple optimizers. Here, we capture the initial plan only once.
         if (steps.isEmpty()) {
