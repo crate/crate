@@ -71,7 +71,7 @@ public class IterativeOptimizer {
         tracer.optimizationStarted(plan, planStatsWithMemo);
 
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo), tracer);
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo, tracer));
         return memo.extract();
     }
 
@@ -85,17 +85,17 @@ public class IterativeOptimizer {
      * @param context the context of the optimizer
      * @return true if there were any changes of plans on the node or it's children or false if not
      */
-    private boolean exploreGroup(int group, Context context, OptimizerTracer tracer) {
+    private boolean exploreGroup(int group, Context context) {
         // tracks whether this group or any children groups change as
         // this method executes
-        var progress = exploreNode(group, context, tracer);
+        var progress = exploreNode(group, context);
 
-        while (exploreChildren(group, context, tracer)) {
+        while (exploreChildren(group, context)) {
             progress = true;
             // This is an important part! We keep track
             // if the children changed and try again the
             // current group in case we can match additional rules
-            if (!exploreNode(group, context, tracer)) {
+            if (!exploreNode(group, context)) {
                 // no additional matches, so bail out
                 break;
             }
@@ -103,7 +103,7 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private boolean exploreNode(int group, Context context, OptimizerTracer tracer) {
+    private boolean exploreNode(int group, Context context) {
         var rules = context.rules;
         var resolvePlan = context.groupReferenceResolver;
         var node = context.memo.resolve(group);
@@ -127,7 +127,7 @@ public class IterativeOptimizer {
                     nodeCtx,
                     context.txnCtx,
                     resolvePlan,
-                    tracer
+                    context.tracer
                 );
                 if (transformed != null) {
                     // the plan changed, update memo to reference to the new plan
@@ -135,7 +135,7 @@ public class IterativeOptimizer {
                     node = transformed;
                     done = false;
                     progress = true;
-                    tracer.ruleApplied(rule, context.memo.extract(), context.planStats);
+                    context.tracer.ruleApplied(rule, context.memo.extract(), context.planStats);
                 }
             }
         }
@@ -145,13 +145,13 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private boolean exploreChildren(int group, Context context, OptimizerTracer tracer) {
+    private boolean exploreChildren(int group, Context context) {
         boolean progress = false;
 
         var expression = context.memo.resolve(group);
         for (var child : expression.sources()) {
             if (child instanceof GroupReference g) {
-                if (exploreGroup(g.groupId(), context, tracer)) {
+                if (exploreGroup(g.groupId(), context)) {
                     progress = true;
                 }
             } else {
@@ -166,6 +166,7 @@ public class IterativeOptimizer {
         Function<LogicalPlan, LogicalPlan> groupReferenceResolver,
         List<Rule<?>> rules,
         CoordinatorTxnCtx txnCtx,
-        PlanStats planStats
+        PlanStats planStats,
+        OptimizerTracer tracer
     ) {}
 }
