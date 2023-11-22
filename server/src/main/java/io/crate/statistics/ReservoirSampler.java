@@ -65,6 +65,7 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -80,6 +81,7 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -228,7 +230,7 @@ public final class ReservoirSampler {
                     docTable.partitionedByColumns()
                 )
             ).getCtx(coordinatorTxnCtx);
-            ctx.add(columns);
+            ctx.add(Lists2.map(columns, DocReferences::toSourceLookup));
             List<Input<?>> inputs = ctx.topLevelInputs();
             List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
             CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());

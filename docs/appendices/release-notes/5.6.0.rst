@@ -85,7 +85,7 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Reduced the amount of disk reads necessary for ``ANALYZE`` operations.
 
 Administration and Operations
 -----------------------------
