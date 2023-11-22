@@ -49,6 +49,9 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused queries with a ``NOT`` expression in the where
+  clause to fail on evaluation ``NULL`` correctly.
+
 - Creating a table that uses a table-function as part of a default expression or
   generated expression now results in an error on table creation, instead of
   never inserting records due to runtime failures.

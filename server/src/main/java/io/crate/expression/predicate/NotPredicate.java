@@ -31,14 +31,10 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
 import io.crate.data.Input;
-import io.crate.expression.operator.AndOperator;
-import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.any.AnyEqOperator;
-import io.crate.expression.operator.any.AnyNeqOperator;
-import io.crate.expression.operator.any.AnyRangeOperator;
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.scalar.Ignore3vlFunction;
-import io.crate.expression.scalar.conditional.CaseFunction;
-import io.crate.expression.scalar.conditional.CoalesceFunction;
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -99,11 +95,13 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     }
 
 
-    private final SymbolToNotNullRangeQueryArgs INNER_VISITOR = new SymbolToNotNullRangeQueryArgs();
+    private final SkipThreeValuedLogicVisitor SKIP_3VL_VISITOR = new SkipThreeValuedLogicVisitor();
 
-    private static class SymbolToNotNullContext {
+    private static class SkipThreeValuedLogicContext {
+
         private final HashSet<Reference> references = new HashSet<>();
-        boolean hasStrictThreeValuedLogicFunction = false;
+        boolean skip3ValuedLogic = false;
+        boolean containsFunction = false;
 
         void add(Reference symbol) {
             references.add(symbol);
@@ -112,50 +110,48 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         Set<Reference> references() {
             return references;
         }
+
+        boolean skip() {
+            return skip3ValuedLogic || false == containsFunction;
+        }
     }
 
-    private static class SymbolToNotNullRangeQueryArgs extends SymbolVisitor<SymbolToNotNullContext, Void> {
+    /**
+     * Three valued logic systems are defined in logic as systems in which there are 3 truth values: true,
+     * false and an indeterminate third value (in our case null is the third value).
+     * <p>
+     * This is a set of cases for which inputs evaluating to null needs can be explicitly excluded
+     * in the boolean queries
+     */
+    private static class SkipThreeValuedLogicVisitor extends SymbolVisitor<SkipThreeValuedLogicContext, Void> {
 
-        /**
-        * Three valued logic systems are defined in logic as systems in which there are 3 truth values: true,
-        * false and an indeterminate third value (in our case null is the third value).
-        * <p>
-        * This is a set of functions for which inputs evaluating to null needs to be explicitly included or
-        * excluded (in the case of 'not ...') in the boolean queries
-        */
-        private final Set<String> STRICT_3VL_FUNCTIONS =
-            Set.of(
-                AnyEqOperator.NAME,
-                AnyNeqOperator.NAME,
-                AndOperator.NAME,
-                AnyRangeOperator.Comparison.GT.opName(),
-                AnyRangeOperator.Comparison.GTE.opName(),
-                AnyRangeOperator.Comparison.LT.opName(),
-                AnyRangeOperator.Comparison.LTE.opName(),
-                LikeOperators.ANY_LIKE,
-                LikeOperators.ANY_NOT_LIKE,
-                CoalesceFunction.NAME,
-                CaseFunction.NAME
-            );
+        private final Set<String> IGNORE_FUNCTIONS = Set.of(ImplicitCastFunction.NAME, ExplicitCastFunction.NAME, MatchPredicate.NAME);
 
         @Override
-        public Void visitReference(Reference symbol, SymbolToNotNullContext context) {
+        public Void visitReference(Reference symbol, SkipThreeValuedLogicContext context) {
             context.add(symbol);
             return null;
         }
 
         @Override
-        public Void visitFunction(Function function, SymbolToNotNullContext context) {
+        public Void visitFunction(Function function, SkipThreeValuedLogicContext context) {
             String functionName = function.name();
             if (Ignore3vlFunction.NAME.equals(functionName)) {
+                context.skip3ValuedLogic = true;
                 return null;
-            }
-            if (!STRICT_3VL_FUNCTIONS.contains(functionName)) {
-                for (Symbol arg : function.arguments()) {
-                    arg.accept(this, context);
+            } else if (EqOperator.NAME.equals(functionName)) {
+                var a = function.arguments().get(0);
+                var b = function.arguments().get(1);
+                // in the  case x = `foo` or foo = `x` 3vl can be skipped
+                if (a instanceof Reference && b instanceof Literal<?> ||
+                    a instanceof Literal<?> && a instanceof Reference) {
+                    context.skip3ValuedLogic = true;
                 }
-            } else {
-                context.hasStrictThreeValuedLogicFunction = true;
+            } else if (!IGNORE_FUNCTIONS.contains(functionName)) {
+                context.containsFunction = true;
+            }
+            for (Symbol arg : function.arguments()) {
+                arg.accept(this, context);
             }
             return null;
         }
@@ -188,28 +184,32 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
 
         Query innerQuery = arg.accept(context.visitor(), context);
         Query notX = Queries.not(innerQuery);
+        // When the three-valued-logic can be skipped we ignore null values.
+        // In this case we can add an optimization ignoring all matches where the field is not present.
+        // Three-valued-logic can be skipped under the following conditions:
+        // - No function is involved `NOT x`
+        // - Simple equality from a reference to a value `NOT x = 1`
+        // - ignore3vl function `ignore3vl( ... )`
+        var skip3vl = new SkipThreeValuedLogicContext();
+        arg.accept(SKIP_3VL_VISITOR, skip3vl);
 
-        SymbolToNotNullContext ctx = new SymbolToNotNullContext();
-        arg.accept(INNER_VISITOR, ctx);
-
-        if (ctx.hasStrictThreeValuedLogicFunction) {
+        if (skip3vl.skip()) {
+            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+            builder.add(notX, BooleanClause.Occur.MUST);
+            for (Reference reference : skip3vl.references()) {
+                if (reference.isNullable()) {
+                    var refExistsQuery = IsNullPredicate.refExistsQuery(reference, context, false);
+                    if (refExistsQuery != null) {
+                        builder.add(refExistsQuery, BooleanClause.Occur.MUST);
+                    }
+                }
+            }
+            return builder.build();
+        } else {
             return new BooleanQuery.Builder()
                 .add(notX, Occur.MUST)
                 .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
                 .build();
         }
-
-        // not x =  not x & x is not null
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(notX, BooleanClause.Occur.MUST);
-        for (Reference reference : ctx.references()) {
-            if (reference.isNullable()) {
-                var refExistsQuery = IsNullPredicate.refExistsQuery(reference, context, false);
-                if (refExistsQuery != null) {
-                    builder.add(refExistsQuery, BooleanClause.Occur.MUST);
-                }
-            }
-        }
-        return builder.build();
     }
 }

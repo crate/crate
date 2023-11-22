@@ -45,6 +45,38 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_not_simple_reference_with_3vl() {
+        assertThat(convert("NOT name")).hasToString(
+            "+(+*:* -name) +FieldExistsQuery [field=name]");
+    }
+
+    @Test
+    public void test_not_equals_reference_without_3vl() {
+        assertThat(convert("NOT name = 'foo'")).hasToString(
+            "+(+*:* -name:foo) +FieldExistsQuery [field=name]");
+        assertThat(convert("NOT 'foo' = name")).hasToString(
+            "+(+*:* -name:foo) +FieldExistsQuery [field=name]");
+    }
+
+    @Test
+    public void test_equal_or_with_3vl() {
+        assertThat(convert("NOT name = (x OR f)")).hasToString(
+            "+(+*:* -(name = (x OR f))) #(NOT (name = (x OR f)))");
+    }
+
+    @Test
+    public void test_cast_function_without_3vl() {
+        assertThat(convert("NOT name = '1'::Int")).hasToString(
+            "+(+*:* -name:1) +FieldExistsQuery [field=name]");
+    }
+
+    @Test
+    public void test_match_function() {
+        assertThat(convert("NOT (match(name, 'foo'))")).hasToString(
+            "+(+*:* -name:foo)");
+    }
+
+    @Test
     public void testComplexOperatorTreeWith3vlAndIgnore3vl() {
         assertThat(convert("NOT name = 'foo' AND NOT ignore3vl(name = 'bar')")).hasToString(
             "+(+(+*:* -name:foo) +FieldExistsQuery [field=name]) +(+(+*:* -name:bar))");
@@ -65,5 +97,11 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
         // make sure there is no field-exists-query for the references
         assertThat(convert("NOT (x AND f)")).hasToString(
             "+(+*:* -(+x +f)) #(NOT (x AND f))");
+    }
+
+    @Test
+    public void test_negated_or_three_value_query() {
+        assertThat(convert("NOT (x OR f)")).hasToString(
+            "+(+*:* -((x f)~1)) #(NOT (x OR f))");
     }
 }
