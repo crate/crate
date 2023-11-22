@@ -37,7 +37,7 @@ the plan tree.
 .. Hidden: Analyze to display costs in the EXPLAIN VERBOSE output.
 
     cr> ANALYZE;
-    ANALYZE OK, 1 row affected (0.004 sec)
+    ANALYZE OK, 1 row affected (... sec)
 
 The ``VERBOSE`` option, available through ``EXPLAIN VERBOSE`` or
 ``EXPLAIN (VERBOSE TRUE)``, provides a breakdown of the steps performed by the
@@ -74,7 +74,7 @@ optimizer. An example output looks like this::
     |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
     |                                    |     └ Collect[doc.departments | [id] | (name = 'IT')] (rows=1)       |
     +------------------------------------+----------------------------------------------------------------------+
-    EXPLAIN 5 rows in set (0.210 sec)
+    EXPLAIN 5 rows in set (... sec)
 
 When issuing ``EXPLAIN ANALYZE`` or ``EXPLAIN (ANALYZE TRUE)`` the plan of the
 statement is executed and timings of the different phases of the plan are returned.
