@@ -46,6 +46,11 @@ public class LoggingOptimizerTracer implements OptimizerTracer {
     }
 
     @Override
+    public boolean isActive() {
+        return LOGGER.isTraceEnabled();
+    }
+
+    @Override
     public void optimizationStarted(LogicalPlan initialPlan, PlanStats planStatsWithMemo) {
         PrintContext printContext = new PrintContext(planStatsWithMemo);
         initialPlan.print(printContext);

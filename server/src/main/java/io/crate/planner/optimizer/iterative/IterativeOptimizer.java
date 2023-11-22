@@ -135,7 +135,10 @@ public class IterativeOptimizer {
                     node = transformed;
                     done = false;
                     progress = true;
-                    context.tracer.ruleApplied(rule, context.memo.extract(), context.planStats);
+                    var tracer = context.tracer;
+                    if (tracer.isActive()) {
+                        tracer.ruleApplied(rule, context.memo.extract(), context.planStats);
+                    }
                 }
             }
         }
