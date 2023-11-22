@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -130,6 +131,7 @@ import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
+import io.crate.planner.node.management.VerboseOptimizerTracer;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
@@ -496,14 +498,32 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
+        PlannerContext plannerContext = context;
+        VerboseOptimizerTracer tracer = null;
+        if (explainAnalyzedStatement.verbose()) {
+            tracer = new VerboseOptimizerTracer(explainAnalyzedStatement.showCosts());
+            plannerContext = context.withOptimizerTracer(tracer);
+        }
         ProfilingContext ctx = explainAnalyzedStatement.context();
         if (ctx == null) {
-            return new ExplainPlan(explainAnalyzedStatement.statement().accept(this, context), explainAnalyzedStatement.showCosts(), null);
+            return new ExplainPlan(
+                explainAnalyzedStatement.statement().accept(this, plannerContext),
+                explainAnalyzedStatement.showCosts(),
+                null,
+                explainAnalyzedStatement.verbose(),
+                tracer != null ? tracer.getSteps() : Collections.emptyList()
+            );
         } else {
             Timer timer = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
-            Plan subPlan = explainAnalyzedStatement.statement().accept(this, context);
+            Plan subPlan = explainAnalyzedStatement.statement().accept(this, plannerContext);
             ctx.stopTimerAndStoreDuration(timer);
-            return new ExplainPlan(subPlan, explainAnalyzedStatement.showCosts(), ctx);
+            return new ExplainPlan(
+                subPlan,
+                explainAnalyzedStatement.showCosts(),
+                ctx,
+                explainAnalyzedStatement.verbose(),
+                tracer != null ? tracer.getSteps() : Collections.emptyList()
+            );
         }
     }
 

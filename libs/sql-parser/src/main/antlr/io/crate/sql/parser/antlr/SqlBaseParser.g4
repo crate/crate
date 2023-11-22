@@ -41,7 +41,7 @@ statement
     | START TRANSACTION (transactionMode (COMMA? transactionMode)*)?                 #startTransaction
     | COMMIT (WORK | TRANSACTION)?                                                   #commit
     | END (WORK | TRANSACTION)?                                                      #commit
-    | EXPLAIN (ANALYZE | explainOptions*) statement                                  #explain
+    | EXPLAIN (ANALYZE | VERBOSE | explainOptions*) statement                        #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
     | UPDATE aliasedRelation
@@ -723,7 +723,7 @@ explainOptions
    ;
 
 explainOption
-   : (ANALYZE | COSTS) booleanLiteral?
+   : (ANALYZE | COSTS | VERBOSE) booleanLiteral?
    ;
 
 matchPredicateIdents
@@ -996,6 +996,7 @@ nonReserved
     | UNCOMMITTED
     | VALUES
     | VARYING
+    | VERBOSE
     | VIEW
     | WINDOW
     | WITHOUT

@@ -64,6 +64,9 @@ SQL Statements
 
 - Added support for named ``PRIMARY KEY`` constraints.
 
+- Extended the :ref:`EXPLAIN <ref-explain>` statement to support the ``VERBOSE``
+  option.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 

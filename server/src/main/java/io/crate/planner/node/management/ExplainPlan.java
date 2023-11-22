@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -36,6 +37,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -48,6 +50,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.data.RowN;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;
@@ -70,6 +73,7 @@ import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.PrintContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.profile.ProfilingContext;
@@ -90,11 +94,19 @@ public class ExplainPlan implements Plan {
     @Nullable
     private final ProfilingContext context;
     private final boolean showCosts;
+    private final boolean verbose;
+    private final List<OptimizerStep> optimizerSteps;
 
-    public ExplainPlan(Plan subExecutionPlan, boolean showCosts, @Nullable ProfilingContext context) {
+    public ExplainPlan(Plan subExecutionPlan,
+                       boolean showCosts,
+                       @Nullable ProfilingContext context,
+                       boolean verbose,
+                       List<OptimizerStep> optimizerSteps) {
         this.subPlan = subExecutionPlan;
         this.context = context;
         this.showCosts = showCosts;
+        this.verbose = verbose;
+        this.optimizerSteps = optimizerSteps;
     }
 
     public Plan subPlan() {
@@ -103,6 +115,10 @@ public class ExplainPlan implements Plan {
 
     public boolean showCosts() {
         return showCosts;
+    }
+
+    public boolean verbose() {
+        return verbose;
     }
 
     @Override
@@ -151,9 +167,22 @@ public class ExplainPlan implements Plan {
             }
         } else {
             if (subPlan instanceof LogicalPlan logicalPlan) {
-                var planAsString = printLogicalPlan(logicalPlan, plannerContext, showCosts);
-                consumer.accept(InMemoryBatchIterator.of(new Row1(planAsString), SENTINEL), null);
-            } else if (subPlan instanceof CopyFromPlan) {
+                if (verbose) {
+                    List<RowN> rows = optimizerSteps.stream()
+                        .map(step -> {
+                            if (step.isInitial()) {
+                                return new RowN("Initial logical plan", step.planAsString());
+                            }
+                            return new RowN(step.rule().sessionSettingName(), step.planAsString());
+                        })
+                        .collect(Collectors.toCollection(ArrayList::new));
+                    rows.add(new RowN("Final logical plan", printLogicalPlan(logicalPlan, plannerContext, showCosts)));
+                    consumer.accept(InMemoryBatchIterator.of(rows, SENTINEL, false), null);
+                } else {
+                    var planAsString = printLogicalPlan(logicalPlan, plannerContext, showCosts);
+                    consumer.accept(InMemoryBatchIterator.of(new Row1(planAsString), SENTINEL), null);
+                }
+            } else if (subPlan instanceof CopyFromPlan && !verbose) {
                 BoundCopyFrom boundCopyFrom = CopyFromPlan.bind(
                     ((CopyFromPlan) subPlan).copyFrom(),
                     plannerContext.transactionContext(),
@@ -169,6 +198,9 @@ public class ExplainPlan implements Plan {
                     subQueryResults);
                 String planAsJson = DataTypes.STRING.implicitCast(PlanPrinter.objectMap(executionPlan));
                 consumer.accept(InMemoryBatchIterator.of(new Row1(planAsJson), SENTINEL), null);
+            } else if (verbose) {
+                consumer.accept(null,
+                    new UnsupportedOperationException("EXPLAIN VERBOSE not supported for " + subPlan.getClass().getSimpleName()));
             } else {
                 consumer.accept(InMemoryBatchIterator.of(
                     new Row1("EXPLAIN not supported for " + subPlan.getClass().getSimpleName()), SENTINEL), null);
@@ -178,15 +210,18 @@ public class ExplainPlan implements Plan {
 
     @VisibleForTesting
     public static String printLogicalPlan(LogicalPlan logicalPlan, PlannerContext plannerContext, boolean showCosts) {
-        final PrintContext printContext;
-        if (showCosts) {
-            printContext = new PrintContext(plannerContext.planStats());
-        } else {
-            printContext = new PrintContext(null);
-        }
+        final PrintContext printContext = createPrintContext(plannerContext.planStats(), showCosts);
         var optimizedLogicalPlan = logicalPlan.accept(CAST_OPTIMIZER, plannerContext);
         optimizedLogicalPlan.print(printContext);
         return printContext.toString();
+    }
+
+    public static PrintContext createPrintContext(PlanStats planStats, boolean showCosts) {
+        if (showCosts) {
+            return new PrintContext(planStats);
+        } else {
+            return new PrintContext(null);
+        }
     }
 
     private BiConsumer<Void, Throwable> createResultConsumer(DependencyCarrier executor,

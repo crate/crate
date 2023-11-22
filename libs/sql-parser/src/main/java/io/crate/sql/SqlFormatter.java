@@ -235,6 +235,8 @@ public final class SqlFormatter {
             append(indent, "EXPLAIN");
             if (node.isAnalyze()) {
                 builder.append(" ANALYZE");
+            } else if (node.isVerbose()) {
+                builder.append(" VERBOSE");
             } else {
                 var options = node.options();
                 if (options.isEmpty() == false) {

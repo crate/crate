@@ -38,6 +38,7 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -142,6 +143,41 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 
+    @Test
+    public void test_explain_verbose() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN VERBOSE " + statement);
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isFalse();
+            assertThat(plan.showCosts()).isTrue();
+            assertThat(plan.verbose()).isTrue();
+        }
+    }
+
+    @Test
+    public void test_explain_verbose_as_option_activated() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN (VERBOSE true) " + statement);
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isFalse();
+            assertThat(plan.showCosts()).isTrue();
+            assertThat(plan.verbose()).isTrue();
+        }
+    }
+
+    @Test
+    public void test_explain_verbose_as_option_deactivated() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN (VERBOSE false)" + statement);
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isFalse();
+            assertThat(plan.showCosts()).isTrue();
+            assertThat(plan.verbose()).isFalse();
+        }
+    }
 
     @Test
     public void testExplainAnalyzeMultiPhasePlanNotSupported() {
@@ -174,13 +210,37 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_explain_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
         var e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE ts1 (ts TIMESTAMP)")
+            .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)")
             .build();
 
-        ExplainPlan plan = e.plan("EXPLAIN (COSTS FALSE) SELECT * FROM ts1 WHERE ts = 1662740986992");
+        ExplainPlan plan = e.plan("EXPLAIN (COSTS FALSE) SELECT * FROM ts1 WHERE ts = ts");
         var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
-            "Collect[doc.ts1 | [ts] | (ts = 1662740986992::bigint)]"
+            "Collect[doc.ts1 | [ts] | true]"
+        );
+    }
+
+    @Test
+    public void test_explain_verbose_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)")
+            .build();
+        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+
+        ExplainPlan plan = e.plan("EXPLAIN (VERBOSE TRUE, COSTS FALSE) SELECT * FROM ts1 WHERE ts = ts");
+        List<Object[]> rows = execute(plan, plannerContext);
+        assertThat(rows).containsExactly(
+            new Object[]{
+                "Initial logical plan",
+                """
+                Filter[(ts = ts)]
+                  └ Collect[doc.ts1 | [ts] | true]"""},
+            new Object[]{
+                "optimizer_merge_filter_and_collect",
+                "Collect[doc.ts1 | [ts] | (ts = ts)]"},
+            new Object[]{
+                "Final logical plan",
+                "Collect[doc.ts1 | [ts] | true]"}
         );
     }
 
@@ -220,5 +280,118 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    ├ Collect[doc.a | [x] | true]\n" +
             "    └ Collect[doc.b | [x] | true]"
         );
+    }
+
+    @Test
+    public void test_explain_verbose_costs_adds_estimated_rows_to_output() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.a (x int)")
+            .addTable("CREATE TABLE doc.b (x int)")
+            .build();
+        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+
+        e.updateTableStats(Map.of(
+            new RelationName("doc", "a"), new Stats(100, 100, Map.of()),
+            new RelationName("doc", "b"), new Stats(100, 100, Map.of())
+        ));
+
+        ExplainPlan plan = e.plan("EXPLAIN VERBOSE SELECT COUNT(a.x) FROM a join b on a.x = b.x");
+        List<Object[]> rows = execute(plan, plannerContext);
+        assertThat(rows).containsExactly(
+            new Object[]{
+                "Initial logical plan",
+                """
+                HashAggregate[count(x)] (rows=1)
+                  └ Join[INNER | (x = x)] (rows=0)
+                    ├ Collect[doc.a | [x] | true] (rows=100)
+                    └ Collect[doc.b | [x] | true] (rows=100)"""},
+            new Object[]{
+                "optimizer_rewrite_join_plan",
+                """
+                HashAggregate[count(x)] (rows=1)
+                  └ HashJoin[(x = x)] (rows=0)
+                    ├ Collect[doc.a | [x] | true] (rows=100)
+                    └ Collect[doc.b | [x] | true] (rows=100)"""},
+            new Object[]{
+                "Final logical plan",
+                """
+                HashAggregate[count(x)] (rows=1)
+                  └ HashJoin[(x = x)] (rows=0)
+                    ├ Collect[doc.a | [x] | true] (rows=100)
+                    └ Collect[doc.b | [x] | true] (rows=100)"""}
+        );
+
+        plan = e.plan("EXPLAIN (VERBOSE TRUE, COSTS TRUE) SELECT COUNT(a.x) FROM a join b on a.x = b.x");
+        rows = execute(plan, plannerContext);
+        assertThat(rows).containsExactly(
+            new Object[]{
+                "Initial logical plan",
+                """
+                HashAggregate[count(x)] (rows=1)
+                  └ Join[INNER | (x = x)] (rows=0)
+                    ├ Collect[doc.a | [x] | true] (rows=100)
+                    └ Collect[doc.b | [x] | true] (rows=100)"""},
+            new Object[]{
+                "optimizer_rewrite_join_plan",
+                """
+                HashAggregate[count(x)] (rows=1)
+                  └ HashJoin[(x = x)] (rows=0)
+                    ├ Collect[doc.a | [x] | true] (rows=100)
+                    └ Collect[doc.b | [x] | true] (rows=100)"""},
+            new Object[]{
+                "Final logical plan",
+                """
+                HashAggregate[count(x)] (rows=1)
+                  └ HashJoin[(x = x)] (rows=0)
+                    ├ Collect[doc.a | [x] | true] (rows=100)
+                    └ Collect[doc.b | [x] | true] (rows=100)"""}
+        );
+
+        plan = e.plan("EXPLAIN (VERBOSE TRUE, COSTS FALSE) SELECT COUNT(a.x) FROM a join b on a.x = b.x");
+        rows = execute(plan, plannerContext);
+        assertThat(rows).containsExactly(
+            new Object[]{
+                "Initial logical plan",
+                """
+                HashAggregate[count(x)]
+                  └ Join[INNER | (x = x)]
+                    ├ Collect[doc.a | [x] | true]
+                    └ Collect[doc.b | [x] | true]"""},
+            new Object[]{
+                "optimizer_rewrite_join_plan",
+                """
+                HashAggregate[count(x)]
+                  └ HashJoin[(x = x)]
+                    ├ Collect[doc.a | [x] | true]
+                    └ Collect[doc.b | [x] | true]"""},
+            new Object[]{
+                "Final logical plan",
+                """
+                HashAggregate[count(x)]
+                  └ HashJoin[(x = x)]
+                    ├ Collect[doc.a | [x] | true]
+                    └ Collect[doc.b | [x] | true]"""}
+        );
+    }
+
+    private static List<Object[]> execute(ExplainPlan plan, PlannerContext plannerContext) throws Exception {
+        AtomicReference<BatchIterator<Row>> itRef = new AtomicReference<>();
+
+        plan.execute(null, plannerContext, new RowConsumer() {
+            @Override
+            public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+                itRef.set(iterator);
+            }
+
+            @Override
+            public CompletableFuture<?> completionFuture() {
+                return null;
+            }
+        }, Row.EMPTY, SubQueryResults.EMPTY);
+
+        BatchIterator<Row> batchIterator = itRef.get();
+        TestingRowConsumer testingBatchConsumer = new TestingRowConsumer();
+        testingBatchConsumer.accept(batchIterator, null);
+        return testingBatchConsumer.getResult();
     }
 }

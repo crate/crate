@@ -21,6 +21,13 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.AmbiguousColumnException;
@@ -31,11 +38,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.profile.ProfilingContext;
+import io.crate.sql.tree.Explain;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
 
 public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
 
@@ -43,24 +47,41 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final ProfilingContext context;
     private final List<Symbol> outputs;
     private final RelationName relationName;
-    private final boolean showCosts;
-    private static final String COLUMN_NAME = "QUERY PLAN";
+    private final EnumSet<Explain.Option> options;
 
-    ExplainAnalyzedStatement(AnalyzedStatement statement, @Nullable ProfilingContext context, boolean showCosts) {
+    private static final String PLAN_COLUMN_NAME = "QUERY PLAN";
+    private static final String STEP_COLUMN_NAME = "STEP";
+
+    ExplainAnalyzedStatement(AnalyzedStatement statement,
+                             @Nullable ProfilingContext context,
+                             EnumSet<Explain.Option> options) {
         relationName = new RelationName(null, "explain");
-        ScopedSymbol field = new ScopedSymbol(
-            relationName,
-            new ColumnIdent(COLUMN_NAME),
-            context == null ? DataTypes.STRING : DataTypes.UNTYPED_OBJECT
-        );
         this.statement = statement;
         this.context = context;
-        this.outputs = List.of(field);
-        this.showCosts = showCosts;
+        this.outputs = new ArrayList<>();
+        this.options = options;
+        if (options.contains(Explain.Option.VERBOSE)) {
+            ScopedSymbol stepField = new ScopedSymbol(
+                relationName,
+                new ColumnIdent(STEP_COLUMN_NAME),
+                DataTypes.STRING
+            );
+            outputs.add(stepField);
+        }
+        ScopedSymbol queryPlanField = new ScopedSymbol(
+            relationName,
+            new ColumnIdent(PLAN_COLUMN_NAME),
+            context == null ? DataTypes.STRING : DataTypes.UNTYPED_OBJECT
+        );
+        outputs.add(queryPlanField);
     }
 
     public boolean showCosts() {
-        return showCosts;
+        return options.contains(Explain.Option.COSTS);
+    }
+
+    public boolean verbose() {
+        return options.contains(Explain.Option.VERBOSE);
     }
 
     @Override

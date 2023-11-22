@@ -66,6 +66,11 @@ You can run the doctests for a specific file (e.g., ``filename.rst``)::
     it might be coming from outdated builds in your working tree. Resolving the
     situation mostly works by running ``./mvnw clean``.
 
+To test examples from a documentation file extend the function ``load_tests``
+from ``blackbox/test_docs.py`` by adding the file in the same way as other files
+are already included. Note that the function sets up an environment with
+predefined tables in which the examples run. Therefore, you can either use these
+tables in the examples or create your own (for instance, in a hidden block).
 
 Reset the docs build
 ====================

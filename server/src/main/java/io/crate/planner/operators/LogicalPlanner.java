@@ -113,6 +113,7 @@ import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
+import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.types.DataTypes;
 
 /**
@@ -204,6 +205,7 @@ public class LogicalPlanner {
 
     public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
         CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
+        OptimizerTracer tracer = plannerContext.optimizerTracer();
         AnalyzedRelation relation = selectSymbol.relation();
 
         final int fetchSize;
@@ -235,8 +237,8 @@ public class LogicalPlanner {
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx);
+        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx, tracer);
+        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         return new RootRelationBoundary(prunedPlan);
@@ -272,18 +274,20 @@ public class LogicalPlanner {
                             SubqueryPlanner subqueryPlanner,
                             boolean avoidTopLevelFetch) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
+        OptimizerTracer tracer = plannerContext.optimizerTracer();
         PlanStats planStats = plannerContext.planStats();
         var planBuilder = new PlanBuilder(subqueryPlanner, planStats);
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
-        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx);
+        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx, tracer);
+        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx, tracer);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
             prunedPlan,
             planStats,
-            coordinatorTxnCtx
+            coordinatorTxnCtx,
+            tracer
         );
         if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
             return fetchOptimized;
@@ -615,7 +619,8 @@ public class LogicalPlanner {
                     LogicalPlanner.this,
                     subqueryPlanner),
                 context.planStats(),
-                context.transactionContext()
+                context.transactionContext(),
+                context.optimizerTracer()
             );
         }
     }

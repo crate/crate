@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import java.util.EnumSet;
 import java.util.List;
 
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -35,6 +36,9 @@ import io.crate.sql.tree.Statement;
 
 public class ExplainStatementAnalyzer {
 
+    private static final EnumSet<Explain.Option> ONLY_COSTS = EnumSet.of(Explain.Option.COSTS);
+    private static final EnumSet<Explain.Option> ONLY_ANALYZE = EnumSet.of(Explain.Option.ANALYZE);
+
     private final Analyzer analyzer;
 
     ExplainStatementAnalyzer(Analyzer analyzer) {
@@ -42,12 +46,14 @@ public class ExplainStatementAnalyzer {
     }
 
     public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
+        var isVerboseActivated = node.isOptionActivated(Explain.Option.VERBOSE);
+
         Statement statement = node.getStatement();
-        statement.accept(CHECK_VISITOR, null);
+        statement.accept(isVerboseActivated ? EXPLAIN_VERBOSE_CHECK_VISITOR : EXPLAIN_CHECK_VISITOR, null);
 
         if (node.options().isEmpty()) {
             // default case, no options, show costs
-            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, true);
+            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, ONLY_COSTS);
         }
 
         var isCostsActivated = node.isOptionActivated(Explain.Option.COSTS);
@@ -55,20 +61,26 @@ public class ExplainStatementAnalyzer {
 
         if (isCostsActivated && isAnalyzeActivated) {
             throw new IllegalArgumentException("The ANALYZE and COSTS options are not allowed together");
+        } else if (isAnalyzeActivated && isVerboseActivated) {
+            throw new IllegalArgumentException("The ANALYZE and VERBOSE options are not allowed together");
         } else if (isAnalyzeActivated) {
             var profilingContext = new ProfilingContext(List.of());
             var timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
             var subStatement = analyzer.analyzedStatement(statement, analysis);
             profilingContext.stopTimerAndStoreDuration(timer);
-            return new ExplainAnalyzedStatement(subStatement, profilingContext, false);
-        } else if (isCostsActivated) {
-            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, true);
-        } else {
-            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, false);
+            return new ExplainAnalyzedStatement(subStatement, profilingContext, ONLY_ANALYZE);
         }
+        EnumSet<Explain.Option> explainOptions = EnumSet.noneOf(Explain.Option.class);
+        if (!node.isOptionExplicitlyDeactivated(Explain.Option.COSTS)) {
+            explainOptions.add(Explain.Option.COSTS);
+        }
+        if (isVerboseActivated) {
+            explainOptions.add(Explain.Option.VERBOSE);
+        }
+        return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, explainOptions);
     }
 
-    private static final AstVisitor<Void, Void> CHECK_VISITOR = new AstVisitor<>() {
+    private static final AstVisitor<Void, Void> EXPLAIN_CHECK_VISITOR = new AstVisitor<>() {
 
         @Override
         protected Void visitQuery(Query node, Void context) {
@@ -86,4 +98,16 @@ public class ExplainStatementAnalyzer {
         }
     };
 
+    private static final AstVisitor<Void, Void> EXPLAIN_VERBOSE_CHECK_VISITOR = new AstVisitor<>() {
+
+        @Override
+        protected Void visitQuery(Query node, Void context) {
+            return null;
+        }
+
+        @Override
+        protected Void visitNode(Node node, Void context) {
+            throw new UnsupportedFeatureException("EXPLAIN VERBOSE is not supported for " + node);
+        }
+    };
 }
