@@ -91,3 +91,9 @@ Administration and Operations
 -----------------------------
 
 - Allowed un-indexed columns or columns without doc-values to be queryable.
+
+- Added the new options ``schema_rename_pattern``,
+  ``schema_rename_replacement``, ``table_rename_pattern`` and
+  ``table_rename_replacement`` to :ref:`RESTORE SNAPSHOT<sql-restore-snapshot>`
+  to allow renaming tables during restore.
+

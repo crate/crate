@@ -167,3 +167,40 @@ is restored to the cluster:
   selected tables from the snapshot are restored or an error occurred.
   In order to monitor the restore operation the * :ref:`sys.shards
   <sys-shards>` table can be queried.
+
+:schema_rename_pattern:
+  (Default ``(.+)``) Regular expression matching schemas of restored tables.
+  Used to restore table into a different schema. Capture groups ``()`` can be
+  used to reuse portions of the table schema and then used in
+  ``schema_rename_replacement``. Default value matches the entire schema name.
+
+:schema_rename_replacement:
+  (Default ``$1``) Replacement pattern used to restore table into a different
+  schema. Can include groups, captured in ``schema_rename_pattern``. By default
+  no replacement is happening and tables are restored into their original
+  schemas.
+
+  Example: ``prefix_$1`` combined with default ``schema_rename_pattern`` adds
+  'prefix' to all restored table schemas.
+
+  Example: ``target`` combined with default ``schema_rename_pattern``
+  restores all tables into the ``target`` schema.
+
+:table_rename_pattern:
+  (Default ``(.+)``) Regular expression matching names of restored tables.
+  Used to rename tables on restoring. Capture groups ``()`` can be used to
+  reuse portions of the table name and then used in
+  ``table_rename_replacement``. Default value matches the entire table name.
+
+:table_rename_replacement:
+  (Default ``$1``) Replacement pattern used to rename tables on restoring.
+  Can include groups, captured in ``table_rename_pattern``. By default no
+  replacement is happening and tables are restored with their original names.
+  Example: ``prefix_$1`` combined with default ``table_rename_pattern`` adds
+  'prefix' to all restored table names.
+
+.. CAUTION::
+
+   Restore will abort with a failure if there is a name collision after
+   evaluating the rename operations, or if a table with the same name as the
+   rename target already exists.

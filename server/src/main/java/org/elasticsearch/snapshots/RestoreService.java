@@ -19,6 +19,10 @@
 
 package org.elasticsearch.snapshots;
 
+import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
+import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
+import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
+import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static java.util.Collections.unmodifiableSet;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
@@ -32,6 +36,7 @@ import static org.elasticsearch.snapshots.SnapshotUtils.filterIndices;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -106,6 +111,9 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.PartitionAlreadyExistsException;
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.execution.ddl.Templates;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -278,7 +286,9 @@ public class RestoreService implements ClusterStateApplier {
                         final Metadata metadata = metadataBuilder.build();
                         // Apply renaming on index names, returning a map of names where
                         // the key is the renamed index and the value is the original name
-                        final Map<String, String> indices = renamedIndices(request, indicesInSnapshot);
+                        final Map<String, String> indices = applyRenameToIndices(request, indicesInSnapshot);
+
+                        final Map<RelationName, String> templates = applyRenameToTemplates(request, resolvedTemplates);
 
                         // Now we can start the actual restore process by adding shards to be recovered in the cluster state
                         // and updating cluster metadata (global and index) as needed
@@ -290,7 +300,7 @@ public class RestoreService implements ClusterStateApplier {
                             listener,
                             request,
                             indices,
-                            resolvedTemplates,
+                            templates,
                             metadata
                         );
                         clusterService.submitStateUpdateTask("restore_snapshot[" + snapshotName + ']', updateTask);
@@ -303,8 +313,12 @@ public class RestoreService implements ClusterStateApplier {
         });
     }
 
-    private boolean allTemplates(List<String> resolvedTemplates) {
-        return resolvedTemplates.size() == 1 && resolvedTemplates.get(0).equals("_all");
+    private boolean allTemplates(Collection<String> resolvedTemplates) {
+        return resolvedTemplates.size() == 1 && resolvedTemplates.contains(Metadata.ALL);
+    }
+
+    private boolean allTemplates(Map<RelationName, String> templates) {
+        return templates.isEmpty();
     }
 
     /**
@@ -376,7 +390,7 @@ public class RestoreService implements ClusterStateApplier {
         }
 
         if (request.includeIndices() && resolvedTemplates.isEmpty()) {
-            resolvedTemplates.add("_all");
+            resolvedTemplates.add(Metadata.ALL);
         }
     }
 
@@ -424,7 +438,7 @@ public class RestoreService implements ClusterStateApplier {
         private final RestoreRequest request;
         private final Map<String, String> indices;
 
-        private final List<String> resolvedTemplates;
+        private final Map<RelationName, String> templates;
 
         private final Metadata metadata;
         final String restoreUUID = UUIDs.randomBase64UUID();
@@ -437,7 +451,7 @@ public class RestoreService implements ClusterStateApplier {
                                                 ActionListener<RestoreCompletionResponse> listener,
                                                 RestoreRequest request,
                                                 Map<String, String> indices,
-                                                List<String> resolvedTemplates,
+                                                Map<RelationName, String> templates,
                                                 Metadata metadata) {
             this.snapshotInfo = snapshotInfo;
             this.snapshotId = snapshotId;
@@ -446,7 +460,7 @@ public class RestoreService implements ClusterStateApplier {
             this.listener = listener;
             this.request = request;
             this.indices = indices;
-            this.resolvedTemplates = resolvedTemplates;
+            this.templates = templates;
             this.metadata = metadata;
         }
 
@@ -598,10 +612,11 @@ public class RestoreService implements ClusterStateApplier {
                 shards = ImmutableOpenMap.of();
             }
 
-            validateExistingTemplates(resolvedTemplates);
+            validateExistingTemplates(templates);
             checkAliasNameConflicts(indices, aliases);
             // Restore templates (but do NOT overwrite existing templates)
-            restoreTemplates(resolvedTemplates, mdBuilder, currentState);
+            restoreTemplates(templates, mdBuilder, currentState);
+            createRenamedTemplates(templates, mdBuilder);
 
             // Restore global state if needed
             if (request.includeGlobalSettings() && metadata.persistentSettings() != null) {
@@ -685,9 +700,13 @@ public class RestoreService implements ClusterStateApplier {
             // Index exist - checking that it's closed
             if (currentIndexMetadata.getState() != IndexMetadata.State.CLOSE) {
                 // TODO: Enable restore for open indices
-                throw new SnapshotRestoreException(snapshot, "cannot restore index [" + renamedIndex + "] because an open index " +
-                                                                "with same name already exists in the cluster. Either close or delete the existing index or restore the " +
-                                                                "index under a different name by providing a rename pattern and replacement name");
+                IndexParts indexParts = new IndexParts(renamedIndex);
+                RelationName relationName = new RelationName(indexParts.getSchema(), indexParts.getTable());
+                if (indexParts.isPartitioned()) {
+                    throw new PartitionAlreadyExistsException(new PartitionName(relationName, indexParts.getPartitionIdent()));
+                } else {
+                    throw new RelationAlreadyExists(relationName);
+                }
             }
             // Index exist - checking if it's partial restore
             if (partial) {
@@ -757,24 +776,51 @@ public class RestoreService implements ClusterStateApplier {
             return builder.settings(settingsBuilder).build();
         }
 
-        private void restoreTemplates(List<String> resolvedTemplates,
+        private void restoreTemplates(Map<RelationName, String> templates,
                                       Metadata.Builder mdBuilder,
                                       ClusterState currentState) {
             if (metadata.templates() != null) {
                 for (ObjectCursor<IndexTemplateMetadata> cursor : metadata.templates().values()) {
                     if (currentState.metadata().templates().get(cursor.value.name()) == null
-                        && (allTemplates(resolvedTemplates) || resolvedTemplates.contains(cursor.value.name()))) {
+                        && (allTemplates(templates) || templates.values().contains(cursor.value.name()))) {
                         mdBuilder.put(cursor.value);
                     }
                 }
             }
         }
 
-        private void validateExistingTemplates(List<String> resolvedTemplates) {
-            if (request.indicesOptions().ignoreUnavailable() || allTemplates(resolvedTemplates)) {
+        /**
+         * Creates new templates based on existing ones.
+         * Used when restoring a partitioned table with rename options.
+         */
+        private void createRenamedTemplates(Map<RelationName, String> templates,
+                                            Metadata.Builder mdBuilder) {
+            if (metadata.templates() != null) {
+                if (allTemplates(templates)) {
+                    List<String> allTemplates = new ArrayList<>();
+                    for (ObjectCursor<IndexTemplateMetadata> cursor : metadata.templates().values()) {
+                        allTemplates.add(cursor.value.name());
+                    }
+                    templates = applyRenameToTemplates(request, allTemplates);
+                }
+                for (Map.Entry<RelationName, String> entry: templates.entrySet()) {
+                    RelationName renamedIdent = entry.getKey();
+                    String renamedTemplateName = PartitionName.templateName(renamedIdent.schema(), renamedIdent.name());
+                    if (renamedTemplateName.equals(entry.getValue()) == false) {
+                        IndexTemplateMetadata sourceTemplateMetadata = metadata.templates().get(entry.getValue());
+                        assert sourceTemplateMetadata != null : "Template which was renamed must exist in the snapshot";
+                        IndexTemplateMetadata.Builder renamedTemplate = Templates.copyWithNewName(sourceTemplateMetadata, renamedIdent);
+                        mdBuilder.put(renamedTemplate);
+                    }
+                }
+            }
+        }
+
+        private void validateExistingTemplates(Map<RelationName, String> templates) {
+            if (request.indicesOptions().ignoreUnavailable() || allTemplates(templates)) {
                 return;
             }
-            for (String template : resolvedTemplates) {
+            for (String template : templates.values()) {
                 if (!metadata.templates().containsKey(template)) {
                     throw new ResourceNotFoundException("[{}] template not found", template);
                 }
@@ -1034,20 +1080,83 @@ public class RestoreService implements ClusterStateApplier {
         return failedShards;
     }
 
-    private Map<String, String> renamedIndices(RestoreRequest request, List<String> filteredIndices) {
+    private Map<String, String> applyRenameToIndices(RestoreRequest request, List<String> indices) {
+
         Map<String, String> renamedIndices = new HashMap<>();
-        for (String index : filteredIndices) {
-            String renamedIndex = index;
-            if (request.renameReplacement() != null && request.renamePattern() != null) {
-                renamedIndex = index.replaceAll(request.renamePattern(), request.renameReplacement());
+        for (String index : indices) {
+            String renamed = index;
+            // At least one non-default value is provided.
+            if (request.tableRenamePattern().equals(TABLE_RENAME_PATTERN.getDefault(Settings.EMPTY)) == false
+                ||
+                request.tableRenameReplacement().equals(TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY)) == false
+                ||
+                request.schemaRenamePattern().equals(SCHEMA_RENAME_PATTERN.getDefault(Settings.EMPTY)) == false
+                ||
+                request.schemaRenameReplacement().equals(SCHEMA_RENAME_REPLACEMENT.getDefault(Settings.EMPTY)) == false
+            ) {
+                IndexParts indexParts = new IndexParts(renamed);
+                String schema = indexParts.getSchema();
+                String table = indexParts.getTable();
+                table = table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement());
+                schema = schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement());
+
+                // Use intermediate RelationName to do some validations
+                // and also handle blob/doc schemas for non-partitioned tables
+                RelationName renamedIdent = new RelationName(schema, table);
+                if (indexParts.isPartitioned()) {
+                    renamed = IndexParts.toIndexName(
+                        renamedIdent.schema(),
+                        renamedIdent.name(),
+                        indexParts.getPartitionIdent()
+                    );
+                } else {
+                    renamed = renamedIdent.indexNameOrAlias();
+                }
             }
-            String previousIndex = renamedIndices.put(renamedIndex, index);
-            if (previousIndex != null) {
+            String previous = renamedIndices.put(renamed, index);
+            if (previous != null) {
                 throw new SnapshotRestoreException(request.repositoryName, request.snapshotName,
-                        "indices [" + index + "] and [" + previousIndex + "] are renamed into the same index [" + renamedIndex + "]");
+                    "indices [" + index + "] and [" + previous + "] are renamed into the same index [" + renamed + "]");
             }
         }
         return Collections.unmodifiableMap(renamedIndices);
+    }
+
+    private Map<RelationName, String> applyRenameToTemplates(RestoreRequest request, List<String> templates) {
+        if (allTemplates(templates)) {
+            return Map.of();
+        }
+
+        Map<RelationName, String> renamedTemplates = new HashMap<>();
+        for (String template : templates) {
+
+            IndexParts indexParts = new IndexParts(template);
+            String schema = indexParts.getSchema();
+            String table = indexParts.getTable();
+            // Use intermediate RelationName to handle blob/doc scenarios.
+            RelationName renamedIdent = new RelationName(schema, table);
+
+            // At least one non-default value is provided.
+            if (request.tableRenamePattern().equals(TABLE_RENAME_PATTERN.getDefault(Settings.EMPTY)) == false
+                    ||
+                request.tableRenameReplacement().equals(TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY)) == false
+                    ||
+                request.schemaRenamePattern().equals(SCHEMA_RENAME_PATTERN.getDefault(Settings.EMPTY)) == false
+                    ||
+                request.schemaRenameReplacement().equals(SCHEMA_RENAME_REPLACEMENT.getDefault(Settings.EMPTY)) == false
+            ) {
+                table = table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement());
+                schema = schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement());
+                renamedIdent = new RelationName(schema, table);
+            }
+            String previous = renamedTemplates.put(renamedIdent, template);
+            if (previous != null) {
+                throw new SnapshotRestoreException(request.repositoryName, request.snapshotName,
+                    "templates [" + template + "] and [" + previous + "] " +
+                        "are renamed into the same template [" + renamedIdent.indexNameOrAlias() + "]");
+            }
+        }
+        return Collections.unmodifiableMap(renamedTemplates);
     }
 
     /**
@@ -1121,9 +1230,13 @@ public class RestoreService implements ClusterStateApplier {
 
         private final String[] templates;
 
-        private final String renamePattern;
+        private final String tableRenamePattern;
 
-        private final String renameReplacement;
+        private final String tableRenameReplacement;
+
+        private final String schemaRenamePattern;
+
+        private final String schemaRenameReplacement;
 
         private final IndicesOptions indicesOptions;
 
@@ -1157,8 +1270,8 @@ public class RestoreService implements ClusterStateApplier {
          * @param indices            list of indices to restore
          * @param templates          list of indices to templates
          * @param indicesOptions     indices options
-         * @param renamePattern      pattern to rename indices
-         * @param renameReplacement  replacement for renamed indices
+         * @param tableRenamePattern      pattern to rename indices
+         * @param tableRenameReplacement  replacement for renamed indices
          * @param settings           repository specific restore settings
          * @param masterNodeTimeout  master node timeout
          * @param partial            allow partial restore
@@ -1172,7 +1285,9 @@ public class RestoreService implements ClusterStateApplier {
          * @param globalSettings     global settings to restore
          */
         public RestoreRequest(String repositoryName, String snapshotName, String[] indices, String[] templates, IndicesOptions indicesOptions,
-                              String renamePattern, String renameReplacement, Settings settings,
+                              String tableRenamePattern, String tableRenameReplacement,
+                              String schemaRenamePattern, String schemaRenameReplacement,
+                              Settings settings,
                               TimeValue masterNodeTimeout, boolean partial, boolean includeAliases,
                               Settings indexSettings, String[] ignoreIndexSettings, String cause,
                               boolean includeIndices,
@@ -1184,8 +1299,10 @@ public class RestoreService implements ClusterStateApplier {
             this.snapshotName = Objects.requireNonNull(snapshotName);
             this.indices = indices;
             this.templates = templates;
-            this.renamePattern = renamePattern;
-            this.renameReplacement = renameReplacement;
+            this.tableRenamePattern = tableRenamePattern;
+            this.tableRenameReplacement = tableRenameReplacement;
+            this.schemaRenamePattern = schemaRenamePattern;
+            this.schemaRenameReplacement = schemaRenameReplacement;
             this.indicesOptions = indicesOptions;
             this.settings = settings;
             this.masterNodeTimeout = masterNodeTimeout;
@@ -1250,22 +1367,20 @@ public class RestoreService implements ClusterStateApplier {
             return indicesOptions;
         }
 
-        /**
-         * Returns rename pattern
-         *
-         * @return rename pattern
-         */
-        public String renamePattern() {
-            return renamePattern;
+        public String tableRenamePattern() {
+            return tableRenamePattern;
         }
 
-        /**
-         * Returns replacement pattern
-         *
-         * @return replacement pattern
-         */
-        public String renameReplacement() {
-            return renameReplacement;
+        public String tableRenameReplacement() {
+            return tableRenameReplacement;
+        }
+
+        public String schemaRenamePattern() {
+            return schemaRenamePattern;
+        }
+
+        public String schemaRenameReplacement() {
+            return schemaRenameReplacement;
         }
 
         /**

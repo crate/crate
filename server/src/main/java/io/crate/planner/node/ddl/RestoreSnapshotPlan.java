@@ -23,6 +23,10 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
+import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
+import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
+import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
+import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 import static org.elasticsearch.snapshots.RestoreService.isIndexPartitionOfTable;
 
@@ -53,14 +57,13 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.PartitionAlreadyExistsException;
-import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -126,10 +129,19 @@ public class RestoreSnapshotPlan implements Plan {
                 })
                 .collect(Collectors.toList());
 
+            String tableRenamePattern = TABLE_RENAME_PATTERN.get(settings);
+            String tableRenameReplacement = TABLE_RENAME_REPLACEMENT.get(settings);
+            String schemaRenamePattern = SCHEMA_RENAME_PATTERN.get(settings);
+            String schemaRenameReplacement = SCHEMA_RENAME_REPLACEMENT.get(settings);
+
             RestoreSnapshotRequest request = new RestoreSnapshotRequest(
                 restoreSnapshot.repository(),
                 restoreSnapshot.snapshot())
                 .tablesToRestore(tablesToRestore)
+                .tableRenamePattern(tableRenamePattern)
+                .tableRenameReplacement(tableRenameReplacement)
+                .schemaRenamePattern(schemaRenamePattern)
+                .schemaRenameReplacement(schemaRenameReplacement)
                 .indicesOptions(indicesOptions)
                 .settings(settings)
                 .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
@@ -207,14 +219,13 @@ public class RestoreSnapshotPlan implements Plan {
 
             try {
                 DocTableInfo docTableInfo = schemas.getTableInfo(relationName, Operation.RESTORE_SNAPSHOT);
-                if (table.partitionProperties().isEmpty()) {
-                    throw new RelationAlreadyExists(relationName);
-                }
-                var partitionName = toPartitionName(
-                    docTableInfo,
-                    Lists2.map(table.partitionProperties(), x -> x.map(eval)));
-                if (docTableInfo.partitions().contains(partitionName)) {
-                    throw new PartitionAlreadyExistsException(partitionName);
+                // Table existence check is done later after resolving indices and applying all table name/schema renaming options.
+                PartitionName partitionName = null;
+                if (table.partitionProperties().isEmpty() == false) {
+                    partitionName = toPartitionName(
+                        docTableInfo,
+                        Lists2.map(table.partitionProperties(), x -> x.map(eval))
+                    );
                 }
                 restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
             } catch (RelationUnknown | SchemaUnknownException e) {

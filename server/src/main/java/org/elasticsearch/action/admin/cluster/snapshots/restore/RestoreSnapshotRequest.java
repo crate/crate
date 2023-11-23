@@ -60,8 +60,10 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     @Deprecated
     private String[] templates = Strings.EMPTY_ARRAY;
     private IndicesOptions indicesOptions = IndicesOptions.strictExpandOpen();
-    private String renamePattern;
-    private String renameReplacement;
+    private String tableRenamePattern;
+    private String tableRenameReplacement;
+    private String schemaRenamePattern;
+    private String schemaRenameReplacement;
     private boolean waitForCompletion;
     private boolean includeGlobalState = false;
     private boolean partial = false;
@@ -77,6 +79,8 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     private String[] globalSettings = Strings.EMPTY_ARRAY;
 
     private List<TableOrPartition> tablesToRestore = List.of();
+
+
 
     public record TableOrPartition(RelationName table, @Nullable String partitionIdent) implements Writeable {
 
@@ -230,17 +234,17 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     }
 
     /**
-     * Sets rename pattern that should be applied to restored indices.
+     * Sets table rename pattern that should be applied to restored indices.
      * <p>
      * Indices that match the rename pattern will be renamed according to {@link #renameReplacement(String)}. The
      * rename pattern is applied according to the {@link java.util.regex.Matcher#appendReplacement(StringBuffer, String)}
-     * The request will fail if two or more indices will be renamed into the same name.
+     * The request will fail if two or more tables will be renamed into the same FQN.
      *
-     * @param renamePattern rename pattern
+     * @param tableRenamePattern rename pattern
      * @return this request
      */
-    public RestoreSnapshotRequest renamePattern(String renamePattern) {
-        this.renamePattern = renamePattern;
+    public RestoreSnapshotRequest tableRenamePattern(String tableRenamePattern) {
+        this.tableRenamePattern = tableRenamePattern;
         return this;
     }
 
@@ -249,29 +253,62 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
      *
      * @return rename pattern
      */
-    public String renamePattern() {
-        return renamePattern;
+    public String tableRenamePattern() {
+        return tableRenamePattern;
     }
 
     /**
-     * Sets rename replacement
+     * Sets table rename replacement
      * <p>
-     * See {@link #renamePattern(String)} for more information.
+     * See {@link #tableRenamePattern(String)} for more information.
      *
-     * @param renameReplacement rename replacement
+     * @param tableRenameReplacement rename replacement
      */
-    public RestoreSnapshotRequest renameReplacement(String renameReplacement) {
-        this.renameReplacement = renameReplacement;
+    public RestoreSnapshotRequest tableRenameReplacement(String tableRenameReplacement) {
+        this.tableRenameReplacement = tableRenameReplacement;
         return this;
     }
 
     /**
-     * Returns rename replacement
+     * Returns table rename replacement
      *
-     * @return rename replacement
+     * @return table rename replacement
      */
-    public String renameReplacement() {
-        return renameReplacement;
+    public String tableRenameReplacement() {
+        return tableRenameReplacement;
+    }
+
+    /**
+     * Sets schema rename pattern that should be applied to restored indices.
+     * <p>
+     * Schemas that match the rename pattern will be renamed according to {@link #tableRenameReplacement(String)}. The
+     * rename pattern is applied according to the {@link java.util.regex.Matcher#appendReplacement(StringBuffer, String)}
+     * The request will fail if two or more tables will be renamed into the same FQN.
+     *
+     * @param schemaRenamePattern rename pattern
+     * @return this request
+     */
+    public RestoreSnapshotRequest schemaRenamePattern(String schemaRenamePattern) {
+        this.schemaRenamePattern = schemaRenamePattern;
+        return this;
+    }
+
+    public String schemaRenamePattern() {
+        return schemaRenamePattern;
+    }
+
+    /**
+     * Sets schema rename replacement
+     * <p>
+     * See {@link #schemaRenamePattern()} (String)} for more information.
+     */
+    public RestoreSnapshotRequest schemaRenameReplacement(String schemaRenameReplacement) {
+        this.schemaRenameReplacement = schemaRenameReplacement;
+        return this;
+    }
+
+    public String schemaRenameReplacement() {
+        return schemaRenameReplacement;
     }
 
     /**
@@ -521,8 +558,14 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         repository = in.readString();
         indices = in.readStringArray();
         indicesOptions = IndicesOptions.readIndicesOptions(in);
-        renamePattern = in.readOptionalString();
-        renameReplacement = in.readOptionalString();
+        if (in.getVersion().before(Version.V_5_6_0)) {
+            tableRenamePattern = in.readOptionalString();
+            tableRenameReplacement = in.readOptionalString();
+        } else {
+            // Since 5.6 there are default values which behave similarly as pre-5.6 with NULL values.
+            tableRenamePattern = in.readString();
+            tableRenameReplacement = in.readString();
+        }
         waitForCompletion = in.readBoolean();
         if (in.getVersion().before(Version.V_4_5_0)) {
             // ensure streaming BWC, read in unused `includeGlobalState`
@@ -543,6 +586,8 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         }
         if (in.getVersion().onOrAfter(Version.V_5_6_0)) {
             tablesToRestore = in.readList(TableOrPartition::new);
+            schemaRenamePattern = in.readString();
+            schemaRenameReplacement = in.readString();
         }
     }
 
@@ -553,8 +598,14 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         out.writeString(repository);
         out.writeStringArray(indices);
         indicesOptions.writeIndicesOptions(out);
-        out.writeOptionalString(renamePattern);
-        out.writeOptionalString(renameReplacement);
+        if (out.getVersion().before(Version.V_5_6_0)) {
+            out.writeOptionalString(tableRenamePattern);
+            out.writeOptionalString(tableRenameReplacement);
+        } else {
+            // Since 5.6 there are default values which behave similarly as pre-5.6 with NULL values.
+            out.writeString(tableRenamePattern);
+            out.writeString(tableRenameReplacement);
+        }
         out.writeBoolean(waitForCompletion);
         if (out.getVersion().before(Version.V_4_5_0)) {
             // streaming BWC, write remmoved `includeGlobalState`
@@ -575,6 +626,8 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         }
         if (out.getVersion().onOrAfter(Version.V_5_6_0)) {
             out.writeCollection(tablesToRestore);
+            out.writeString(schemaRenamePattern);
+            out.writeString(schemaRenameReplacement);
         }
     }
 
@@ -596,8 +649,10 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             Objects.equals(repository, that.repository) &&
             Arrays.equals(indices, that.indices) &&
             Objects.equals(indicesOptions, that.indicesOptions) &&
-            Objects.equals(renamePattern, that.renamePattern) &&
-            Objects.equals(renameReplacement, that.renameReplacement) &&
+            Objects.equals(tableRenamePattern, that.tableRenamePattern) &&
+            Objects.equals(tableRenameReplacement, that.tableRenameReplacement) &&
+            Objects.equals(schemaRenamePattern, that.schemaRenamePattern) &&
+            Objects.equals(schemaRenameReplacement, that.schemaRenameReplacement) &&
             Objects.equals(settings, that.settings) &&
             Objects.equals(indexSettings, that.indexSettings) &&
             Arrays.equals(ignoreIndexSettings, that.ignoreIndexSettings) &&
@@ -610,9 +665,11 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(snapshot, repository, indicesOptions, renamePattern, renameReplacement, waitForCompletion,
+        int result = Objects.hash(snapshot, repository, indicesOptions, tableRenamePattern, tableRenameReplacement,waitForCompletion,
             includeGlobalState, partial, includeAliases, settings, indexSettings,
-            includeIndices, includeCustomMetadata, includeGlobalSettings);
+            includeIndices, includeCustomMetadata, includeGlobalSettings,
+            schemaRenamePattern, schemaRenameReplacement
+        );
         result = 31 * result + Arrays.hashCode(indices);
         result = 31 * result + Arrays.hashCode(ignoreIndexSettings);
         result = 31 * result + Arrays.hashCode(customMetadataTypes);

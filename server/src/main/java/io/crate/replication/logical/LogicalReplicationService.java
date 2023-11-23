@@ -21,6 +21,10 @@
 
 package io.crate.replication.logical;
 
+import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
+import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
+import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
+import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
 import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
@@ -295,8 +299,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                 indicesToRestore.toArray(new String[0]),
                 templatesToRestore.toArray(new String[0]),
                 IndicesOptions.LENIENT_EXPAND_OPEN,
-                null,
-                null,
+                TABLE_RENAME_PATTERN.getDefault(Settings.EMPTY),
+                TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY),
+                SCHEMA_RENAME_PATTERN.getDefault(Settings.EMPTY),
+                SCHEMA_RENAME_REPLACEMENT.getDefault(Settings.EMPTY),
                 restoreSettings,
                 DEFAULT_MASTER_NODE_TIMEOUT,
                 false,
