@@ -68,6 +68,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseRandomizedSchema;
 
 public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
@@ -909,6 +910,118 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("DROP TABLE my_table");
         execute("DROP ANALYZER a1");
         execute("DROP FUNCTION custom(string)");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_restore_non_partitioned_tables_with_different_fqn() throws Exception {
+        execute_statements_that_restore_tables_with_different_fqn(false);
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_restore_partitioned_tables_with_different_fqn() throws Exception {
+        execute_statements_that_restore_tables_with_different_fqn(true);
+
+        // Restore specific partition.
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE source.my_table_1 PARTITION (date='1970-01-01') with (" +
+            "ignore_unavailable=false, " +
+            "wait_for_completion=true, " +
+            "table_rename_replacement = '$1_single_partition')"
+        );
+        execute("select concat(table_schema, '.', table_name) as fqn from information_schema.tables " +
+            "where table_schema = 'source' and table_name like 'my_table_1%' " +
+            "order by fqn"
+        );
+        assertThat(response).hasRows(
+            "source.my_table_1",
+            "source.my_table_1_single_partition"
+        );
+
+        execute("select partition_ident from information_schema.table_partitions " +
+            "where table_name = 'my_table_1_single_partition'");
+        assertThat(response).hasRowCount(1);
+        assertThat(response).hasRows( "04130");
+    }
+
+
+    /**
+     * Tracks special case of passing '_all' as templates which should be handled specifically.
+     */
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_restore_partitioned_tables_rename_all() throws Exception {
+        // One with doc schema and another with custom schema.
+        createTable("source.my_table_1", true);
+        createTable("my_table_2", true);
+
+        createSnapshot(SNAPSHOT_NAME, "source.my_table_1", "my_table_2");
+        waitNoPendingTasksOnAll();
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " ALL with (" +
+            "wait_for_completion=true," +
+            "schema_rename_replacement = 'schema_prefix_$1'," +
+            "table_rename_replacement = 'table_postfix_$1')"
+        );
+
+        execute("select concat(table_schema, '.', table_name) as fqn from information_schema.tables " +
+            "where table_name like '%my_table%' " +
+            "order by fqn"
+        );
+        assertThat(response).hasRows(
+            "doc.my_table_2",
+            "schema_prefix_doc.table_postfix_my_table_2",
+            "schema_prefix_source.table_postfix_my_table_1",
+            "source.my_table_1"
+        );
+    }
+
+    private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {
+        // One with doc schema and another with custom schema.
+        createTable("source.my_table_1", partitioned);
+        createTable("my_table_2", partitioned);
+
+        createSnapshot(SNAPSHOT_NAME, "source.my_table_1", "my_table_2");
+        waitNoPendingTasksOnAll();
+
+        restoreWithDifferentName();
+        restoreIntoDifferentSchema();
+    }
+
+    private void restoreWithDifferentName() {
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE source.my_table_1, my_table_2 with (" +
+            "wait_for_completion=true," +
+            "table_rename_replacement = 'my_prefix_$1')"
+        );
+
+        execute("select concat(table_schema, '.', table_name) as fqn from information_schema.tables " +
+            "where table_name like '%my_table%' " +
+            "order by fqn"
+        );
+        assertThat(response).hasRows(
+            "doc.my_prefix_my_table_2",
+            "doc.my_table_2",
+            "source.my_prefix_my_table_1",
+            "source.my_table_1"
+        );
+    }
+
+    private void restoreIntoDifferentSchema() {
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE source.my_table_1, my_table_2 with (" +
+            "wait_for_completion=true," +
+            "schema_rename_replacement = 'target')"
+        );
+
+        execute("select concat(table_schema, '.', table_name) as fqn from information_schema.tables " +
+            "where table_name like 'my_table%' " + // No % at the beginning to exclude irrelevant tables from the restoreWithDifferentName() call.
+            "order by fqn"
+        );
+        assertThat(response).hasRows(
+            "doc.my_table_2",
+            "source.my_table_1",
+            "target.my_table_1",
+            "target.my_table_2"
+        );
     }
 
     private void assertSnapShotState(String snapShotName, SnapshotState state) {

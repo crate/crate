@@ -49,9 +49,7 @@ import org.junit.Test;
 
 import io.crate.data.Row;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.PartitionUnknownException;
-import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.PartitionName;
@@ -294,13 +292,6 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testRestoreExistingTable() throws Exception {
-        assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE users"))
-            .isExactlyInstanceOf(RelationAlreadyExists.class)
-            .hasMessage("Relation 'doc.users' already exists.");
-    }
-
-    @Test
     public void testRestoreUnsupportedParameter() throws Exception {
         assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE users WITH (foo=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -334,14 +325,6 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var table = statement.restoreTables().iterator().next();
         assertThat(table.partitionName()).isEqualTo(partitionName);
         assertThat(table.tableIdent()).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "unknown_parted"));
-    }
-
-    @Test
-    public void testRestoreSingleExistingPartition() throws Exception {
-        assertThatThrownBy(
-            () -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=1395961200000)"))
-            .isExactlyInstanceOf(PartitionAlreadyExistsException.class)
-            .hasMessage("Partition '.partitioned.parted.04732cpp6ksjcc9i60o30c1g' already exists");
     }
 
     @Test
