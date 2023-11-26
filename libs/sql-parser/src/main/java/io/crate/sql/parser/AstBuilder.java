@@ -963,15 +963,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitExplain(SqlBaseParser.ExplainContext context) {
         if (context.ANALYZE() != null) {
-            return new Explain((Statement) visit(context.statement()), true, Map.of(Explain.Option.ANALYZE, true), false);
+            return new Explain((Statement) visit(context.statement()), Map.of(Explain.Option.ANALYZE, true));
         } else if (context.VERBOSE() != null) {
             var options = Map.of(
                 Explain.Option.COSTS, true,
                 Explain.Option.VERBOSE, true
             );
-            return new Explain((Statement) visit(context.statement()), false, options, true);
+            return new Explain((Statement) visit(context.statement()), options);
         } else if (context.explainOptions() == null) {
-            return new Explain((Statement) visit(context.statement()), false, Map.of(Explain.Option.COSTS, true), false);
+            return new Explain((Statement) visit(context.statement()), Map.of(Explain.Option.COSTS, true));
         } else {
             var options = new LinkedHashMap<Explain.Option, Boolean>();
             for (SqlBaseParser.ExplainOptionsContext explainOptions : context.explainOptions()) {
@@ -985,7 +985,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                     }
                 }
             }
-            return new Explain((Statement) visit(context.statement()), false, options, false);
+            return new Explain((Statement) visit(context.statement()), options);
         }
     }
 

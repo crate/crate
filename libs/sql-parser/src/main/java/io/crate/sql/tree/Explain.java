@@ -37,27 +37,14 @@ public class Explain extends Statement {
     private final Statement statement;
     // Possible values for options is `true`, `false`, `null`
     private final Map<Option, Boolean> options;
-    // The below flags exist only for SqlFormatter
-    private final boolean analyze;
-    private final boolean verbose;
 
-    public Explain(Statement statement, boolean analyze, Map<Option, Boolean> options, boolean verbose) {
+    public Explain(Statement statement, Map<Option, Boolean> options) {
         this.statement = requireNonNull(statement, "statement is null");
-        this.analyze = analyze;
         this.options = options;
-        this.verbose = verbose;
     }
 
     public Statement getStatement() {
         return statement;
-    }
-
-    public boolean isAnalyze() {
-        return analyze;
-    }
-
-    public boolean isVerbose() {
-        return verbose;
     }
 
     public Map<Option, Boolean> options() {
@@ -88,23 +75,19 @@ public class Explain extends Statement {
             return false;
         }
         Explain explain = (Explain) o;
-        return analyze == explain.analyze &&
-            verbose == explain.verbose &&
-            Objects.equals(statement, explain.statement) &&
+        return Objects.equals(statement, explain.statement) &&
             Objects.equals(options, explain.options);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(statement, options, analyze, verbose);
+        return Objects.hash(statement, options);
     }
 
     public String toString() {
         return "Explain{" +
                "statement=" + statement +
                ", options=" + options +
-               ", analyze=" + analyze +
-               ", verbose=" + verbose +
                '}';
     }
 }
