@@ -34,6 +34,9 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexType;
@@ -514,6 +517,12 @@ public class AnalyzedColumnDefinition<T> {
 
     public void generatedExpression(T generatedExpression) {
         this.generatedExpression = generatedExpression;
+        if (generatedExpression instanceof Symbol symbol) {
+            if (SymbolVisitors.any(Symbols::isTableFunction, symbol)) {
+                throw new UnsupportedOperationException(
+                    "Cannot use table function in generated expression of column `" + name + "`");
+            }
+        }
     }
 
     @Nullable
@@ -532,6 +541,10 @@ public class AnalyzedColumnDefinition<T> {
 
     public void defaultExpression(T defaultExpression) {
         this.defaultExpression = defaultExpression;
+        if (defaultExpression instanceof Symbol symbol && SymbolVisitors.any(Symbols::isTableFunction, symbol)) {
+            throw new UnsupportedOperationException(
+                "Cannot use table function in default expression of column `" + name + "`");
+        }
     }
 
     void setStorageProperties(GenericProperties<T> storageProperties) {

@@ -27,6 +27,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -1754,5 +1755,19 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(references).containsKeys(x);
         Reference xRef = references.get(x);
         assertThat(xRef).isReference("x", new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
+    }
+
+    @Test
+    public void test_cannot_use_table_functions_in_generated_columns() throws Exception {
+        assertThatThrownBy(() -> analyze("create table tbl (x text, y text[] as regexp_matches(x, '(a(.+)z)'))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use table function in generated expression of column `y`");
+    }
+
+    @Test
+    public void test_cannot_use_table_function_in_default_expression() throws Exception {
+        assertThatThrownBy(() -> analyze("create table tbl (x int default generate_series(1, 10))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use table function in default expression of column `x`");
     }
 }

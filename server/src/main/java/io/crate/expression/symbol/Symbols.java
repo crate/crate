@@ -67,6 +67,10 @@ public class Symbols {
         return s instanceof Function && ((Function) s).signature().getKind() == FunctionType.AGGREGATE;
     }
 
+    public static boolean isTableFunction(Symbol s) {
+        return s instanceof Function fn && fn.signature().getKind() == FunctionType.TABLE;
+    }
+
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
         return Lists2.mapLazy(symbols, Symbol::valueType);
     }
