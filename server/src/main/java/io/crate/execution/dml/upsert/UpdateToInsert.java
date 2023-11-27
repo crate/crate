@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.analyze.Id;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.execution.dml.IndexItem;
@@ -48,7 +49,6 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
 /**
@@ -161,13 +161,12 @@ public final class UpdateToInsert {
                 this.columns.add(insertColumn);
             }
         }
+        List<String> updateColumnList = Arrays.asList(updateColumns);
         for (var ref : table.columns()) {
             // The Indexer later on injects the generated column values
             // We only include them here if they are provided in the `updateColumns` to validate
             // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
-            if (ref instanceof GeneratedReference
-                    && !Arrays.asList(updateColumns).contains(ref.column().fqn())
-                    && !table.primaryKey().contains(ref.column())) {
+            if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                 continue;
             }
             if (!this.columns.contains(ref)) {
@@ -205,11 +204,6 @@ public final class UpdateToInsert {
     public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
         Values values = new Values(doc, excludedValues);
         Object[] insertValues = new Object[columns.size()];
-        int pkSize = table.primaryKey().equals(List.of(DocSysColumns.ID))
-            ? 0
-            : table.primaryKey().size();
-        String[] primaryKeys = new String[pkSize];
-
         Iterator<Reference> it = columns.iterator();
         for (int i = 0; it.hasNext(); i++) {
             Reference ref = it.next();
@@ -244,26 +238,9 @@ public final class UpdateToInsert {
             }
             Maps.mergeInto(source, targetPath.name(), targetPath.path(), value);
         }
-
-        for (int pkIndex = 0; pkIndex < pkSize; pkIndex++) {
-            ColumnIdent pk = table.primaryKey().get(pkIndex);
-            Object value;
-            if (pk.isTopLevel()) {
-                int valuesIdx = Reference.indexOf(columns, pk);
-                assert valuesIdx > -1 : "Primary key column must exist in columns";
-                value = insertValues[valuesIdx];
-            } else {
-                int valuesIdx = Reference.indexOf(columns, pk.getRoot());
-                Object object = insertValues[valuesIdx];
-                value = Maps.getByPath((Map<String, Object>) object, pk.path());
-            }
-            if (value != null) {
-                primaryKeys[pkIndex] = value.toString();
-            }
-        }
         return new IndexItem.StaticItem(
             doc.getId(),
-            Arrays.asList(primaryKeys),
+            Id.decode(table.primaryKey(), doc.getId()),
             insertValues,
             doc.getSeqNo(),
             doc.getPrimaryTerm()
