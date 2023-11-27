@@ -27,13 +27,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
+import io.crate.analyze.Id;
 import io.crate.execution.dml.IndexItem;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.InputColumn;
@@ -48,7 +51,7 @@ import io.crate.testing.SQLExecutor;
 
 public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
-    private static Doc doc(String index, Map<String, Object> source) {
+    private static Doc doc(String id, String index, Map<String, Object> source) {
         Supplier<String> rawSource = () -> {
             try {
                 return Strings.toString(JsonXContent.builder().map(source));
@@ -56,7 +59,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                 throw new RuntimeException(e1);
             }
         };
-        return new Doc(1, index, "id-1", 1, 1, 1, source, rawSource);
+        return new Doc(1, index, id, 1, 1, 1, source, rawSource);
     }
 
     @Test
@@ -73,7 +76,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 10, "y", 5);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices()[0], source);
 
         IndexItem item = updateToInsert.convert(
             doc,
@@ -98,7 +101,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 10, "y", 5);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices()[0], source);
 
         IndexItem item = updateToInsert.convert(
             doc,
@@ -123,7 +126,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 1, "o", Map.of("y", 2));
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(3) },
@@ -147,7 +150,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 1, "y", 5);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(8) },
@@ -174,7 +177,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 12);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices()[0], source);
 
         Symbol[] assignments = new Symbol[] { Literal.of(8) };
         IndexItem item = updateToInsert.convert(doc, assignments, new Object[0]);
@@ -196,7 +199,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 12);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1), Literal.of(2) },
@@ -224,7 +227,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("y", 1, "o", Map.of("x", 3));
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc("3", table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1) },
@@ -275,7 +278,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             );
 
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(20) },
@@ -315,7 +318,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             );
 
         Map<String, Object> source = Map.of("x", 1, "y", Map.of("a", 2), "z", 3);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        String id = UUIDs.randomBase64UUID();
+        Doc doc = doc(id, table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
                 doc,
                 new Symbol[] { Literal.of(20) },
@@ -353,7 +357,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             insertColumns
         );
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        String id = Id.encode(List.of("1", "2"), -1);
+        Doc doc = doc(id, table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
@@ -361,11 +366,10 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(updateToInsert.columns()).satisfiesExactly(
             x -> assertThat(x).isReference("x"),
-            x -> assertThat(x).isReference("z"),
-            x -> assertThat(x).isReference("y")
+            x -> assertThat(x).isReference("z")
         );
         assertThat(item.pkValues()).containsExactly("1", "2");
-        assertThat(item.insertValues()).containsExactly(1, 20, 2);
+        assertThat(item.insertValues()).containsExactly(1, 20);
     }
 
     @Test
@@ -401,7 +405,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             "o", Map.of("y", 2),
             "z", 3
         );
-        Doc doc = doc(table.concreteIndices()[0], source);
+        String id = Id.encode(List.of("1", "2"), -1);
+        Doc doc = doc(id, table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
@@ -442,7 +447,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             "y", 10,
             "z", 3
         );
-        Doc doc = doc(table.concreteIndices()[0], source);
+        String id = Id.encode(List.of("1", "10"), -1);
+        Doc doc = doc(id, table.concreteIndices()[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },

@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -38,23 +39,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.metadata.PartitionName;
-import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends IntegTestCase {
@@ -1946,5 +1947,38 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             assertThat(persistedTopLevel).isEqualTo(returningTopLevel);
             assertThat(persistedSubColumn).isEqualTo(returningSubColumn);
         }
+    }
+
+    @Test
+    public void test_insert_on_conflict_with_generated_primary_key() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+               "real_id" BIGINT NOT NULL,
+               "date" TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+               "value" DOUBLE PRECISION,
+               "year" INTEGER GENERATED ALWAYS AS EXTRACT(YEAR FROM "date"),
+               PRIMARY KEY ("real_id", "date", "year")
+            )
+            """);
+        execute("""
+            INSERT INTO tbl (real_id, \"date\", value) VALUES (6, '2030-11-15 12:13:13', 99999)
+            ON CONFLICT (real_id, \"date\", year)
+            DO UPDATE SET value = excluded.value
+            """);
+        execute("refresh table tbl");
+        execute("select year, value from tbl");
+        assertThat(response).hasRows(
+            "2030| 99999.0"
+        );
+        execute("""
+            INSERT INTO tbl (real_id, \"date\", value) VALUES (6, '2030-11-15 12:13:13', 99998)
+            ON CONFLICT (real_id, \"date\", year)
+            DO UPDATE SET value = excluded.value
+            """);
+        execute("refresh table tbl");
+        execute("select year, value from tbl");
+        assertThat(response).hasRows(
+            "2030| 99998.0"
+        );
     }
 }
