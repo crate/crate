@@ -49,6 +49,10 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused the value for generated primary key columns to
+  evaluate to ``NULL`` in ``INSERT INTO .. ON CONFLICT`` statements if the
+  column wasn't part of the target column list.
+
 - Creating a table that uses a table-function as part of a default expression or
   generated expression now results in an error on table creation, instead of
   never inserting records due to runtime failures.
