@@ -21,16 +21,17 @@
 
 package io.crate.user;
 
-import io.crate.metadata.IndexParts;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.metadata.IndexParts;
 
 public class UserPrivileges implements Iterable<Privilege> {
 
@@ -116,8 +117,7 @@ public class UserPrivileges implements Iterable<Privilege> {
      */
     public boolean matchPrivilege(@Nullable Privilege.Type type,
                                   Privilege.Clazz clazz,
-                                  @Nullable String ident,
-                                  String defaultSchema) {
+                                  @Nullable String ident) {
         Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, clazz, ident));
         if (foundPrivilege == null) {
             switch (clazz) {
@@ -126,7 +126,7 @@ public class UserPrivileges implements Iterable<Privilege> {
                     break;
                 case TABLE:
                 case VIEW:
-                    String schemaIdent = new IndexParts(ident, defaultSchema).getSchema();
+                    String schemaIdent = new IndexParts(ident).getSchema();
                     foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
                         foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));

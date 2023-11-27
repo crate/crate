@@ -88,10 +88,9 @@ public class User {
      * @param type           privilege type
      * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
      * @param ident          ident of the object
-     * @param defaultSchema  the default schema of the current session
      */
-    public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident, String defaultSchema) {
-        return isSuperUser() || privileges.matchPrivilege(type, clazz, ident, defaultSchema);
+    public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+        return isSuperUser() || privileges.matchPrivilege(type, clazz, ident);
     }
 
     /**
