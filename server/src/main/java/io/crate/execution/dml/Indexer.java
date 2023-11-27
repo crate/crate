@@ -203,9 +203,6 @@ public class Indexer {
                 }
             }
             if (column.isRoot()) {
-                if (targetColumns.contains(ref)) {
-                    return NestableCollectExpression.constant(null);
-                }
                 Symbol defaultExpression = ref.defaultExpression();
                 if (defaultExpression == null) {
                     if (ref instanceof GeneratedReference generated) {
