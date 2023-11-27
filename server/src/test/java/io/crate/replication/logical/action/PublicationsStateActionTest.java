@@ -48,8 +48,8 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.user.Privilege;
-import io.crate.user.User;
 import io.crate.user.RoleLookup;
+import io.crate.user.User;
 
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -73,7 +73,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     public void test_resolve_relation_names_for_all_tables_ignores_table_with_soft_delete_disabled() throws Exception {
         var user = new User("dummy", Set.of(), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -105,13 +105,13 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     public void test_resolve_relation_names_for_all_tables_ignores_table_when_pub_owner_doesnt_have_read_write_define_permissions() throws Exception {
         var publicationOwner = new User("publisher", Set.of(), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 return ident.equals("doc.t1");
             }
         };
         var subscriber = new User("subscriber", Set.of(), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 return true;
             }
         };
@@ -140,14 +140,14 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     public void test_resolve_relation_names_for_all_tables_ignores_table_when_subscriber_doesnt_have_read_permissions() throws Exception {
         var publicationOwner = new User("publisher", Set.of(), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 return true;
             }
         };
 
         var subscriber = new User("subscriber", Set.of(), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 return ident.equals("doc.t1");
             }
         };
@@ -170,14 +170,14 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     public void test_resolve_relation_names_for_fixed_tables_ignores_table_when_subscriber_doesnt_have_read_permissions() throws Exception {
         var publicationOwner = new User("publisher", Set.of(), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 return true;
             }
         };
 
         var subscriber = new User("subscriber", Set.of(), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 return ident.equals("doc.t1");
             }
         };
