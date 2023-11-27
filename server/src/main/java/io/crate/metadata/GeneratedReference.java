@@ -68,6 +68,10 @@ public class GeneratedReference implements Reference {
             throw new UnsupportedOperationException(
                 "Aggregation functions are not allowed in generated columns: " + generatedExpression);
         }
+        if (SymbolVisitors.any(Symbols::isTableFunction, generatedExpression)) {
+            throw new UnsupportedOperationException(
+                "Cannot use table function in generated expression of column `" + ref.column().fqn() + "`");
+        }
         this.referencedReferences = new ArrayList<>();
         RefVisitor.visitRefs(generatedExpression, referencedReferences::add);
     }

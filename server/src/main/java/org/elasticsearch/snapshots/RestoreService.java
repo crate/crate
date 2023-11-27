@@ -97,6 +97,7 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
@@ -307,16 +308,17 @@ public class RestoreService implements ClusterStateApplier {
     }
 
     /**
-     * Resolves indices and templates from the request.
-     * @param resolvedIndices is used to accumulate all resolved indices (or empty list to indicate all indices).
-     * @param resolvedTemplates is used to accumulate all resolved templates (or "_all" to indicate all templates).
-     */
-    private static void resolveIndices(RestoreRequest request,
-                                       @Nullable List<TableOrPartition> tablesToRestore,
-                                       List<String> availableIndices,
-                                       Version minNodeVersion,
-                                       List<String> resolvedIndices,
-                                       List<String> resolvedTemplates) {
+    * Resolves indices and templates from the request.
+    * @param resolvedIndices is used to accumulate all resolved indices (or empty list to indicate all indices).
+    * @param resolvedTemplates is used to accumulate all resolved templates (or "_all" to indicate all templates).
+    */
+    @VisibleForTesting
+    static void resolveIndices(RestoreRequest request,
+                               @Nullable List<TableOrPartition> tablesToRestore,
+                               List<String> availableIndices,
+                               Version minNodeVersion,
+                               List<String> resolvedIndices,
+                               List<String> resolvedTemplates) {
         if (minNodeVersion.onOrAfter(Version.V_5_6_0) && tablesToRestore != null) {
             for (TableOrPartition tableOrPartition : tablesToRestore) {
                 String partitionTemplate = PartitionName.templateName(
@@ -343,19 +345,24 @@ public class RestoreService implements ClusterStateApplier {
                     resolvedTemplates.add(partitionTemplate);
                 } else {
                     String name = tableOrPartition.table().indexNameOrAlias();
+                    boolean found = false;
                     for (String index : availableIndices) {
                         if (name.equals(index)) {
                             resolvedIndices.add(index);
-                            return;
+                            found = true;
+                            break;
                         } else if (isIndexPartitionOfTable(index, tableOrPartition.table())) {
                             // add a partitions wildcard
                             // to match all partitions if a partitioned table was meant
                             resolvedIndices.add(partitionTemplate + "*");
                             resolvedTemplates.add(partitionTemplate);
-                            return;
+                            found = true;
+                            break;
                         }
                     }
-                    resolvedTemplates.add(partitionTemplate);
+                    if (found == false) {
+                        resolvedTemplates.add(partitionTemplate);
+                    }
                 }
             }
         } else {
