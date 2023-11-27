@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -1958,5 +1959,38 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             assertThat(persistedTopLevel).isEqualTo(returningTopLevel);
             assertThat(persistedSubColumn).isEqualTo(returningSubColumn);
         }
+    }
+
+    @Test
+    public void test_insert_on_conflict_with_generated_primary_key() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+               "real_id" BIGINT NOT NULL,
+               "date" TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+               "value" DOUBLE PRECISION,
+               "year" INTEGER GENERATED ALWAYS AS EXTRACT(YEAR FROM "date"),
+               PRIMARY KEY ("real_id", "date", "year")
+            )
+            """);
+        execute("""
+            INSERT INTO tbl (real_id, \"date\", value) VALUES (6, '2030-11-15 12:13:13', 99999)
+            ON CONFLICT (real_id, \"date\", year)
+            DO UPDATE SET value = excluded.value
+        """);
+        execute("refresh table tbl");
+        execute("select year, value from tbl");
+        assertThat(response).hasRows(
+            "2030| 99999.0"
+        );
+        execute("""
+            INSERT INTO tbl (real_id, \"date\", value) VALUES (6, '2030-11-15 12:13:13', 99998)
+            ON CONFLICT (real_id, \"date\", year)
+            DO UPDATE SET value = excluded.value
+        """);
+        execute("refresh table tbl");
+        execute("select year, value from tbl");
+        assertThat(response).hasRows(
+            "2030| 99998.0"
+        );
     }
 }
