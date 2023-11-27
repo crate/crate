@@ -39,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
@@ -135,9 +136,17 @@ public class SimpleReference implements Reference {
         this.indexType = indexType;
         this.nullable = nullable;
         this.hasDocValues = hasDocValues;
-        this.defaultExpression = defaultExpression != null ? defaultExpression.cast(type) : null;
         this.oid = oid;
         this.isDropped = isDropped;
+        if (defaultExpression == null) {
+            this.defaultExpression = null;
+        } else {
+            if (SymbolVisitors.any(Symbols::isTableFunction, defaultExpression)) {
+                throw new UnsupportedOperationException(
+                    "Cannot use table function in default expression of column `" + ident.columnIdent().fqn() + "`");
+            }
+            this.defaultExpression = defaultExpression.cast(type);
+        }
     }
 
     /**
