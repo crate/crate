@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -39,7 +40,6 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
@@ -48,10 +48,10 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void testEquals() {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        DataType<?> dataType1 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
-        DataType<?> dataType2 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
-        Symbol defaultExpression1 = Literal.of(Map.of("f", 10));
-        Symbol defaultExpression2 = Literal.of(Map.of("f", 10));
+        var dataType1 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
+        var dataType2 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
+        Symbol defaultExpression1 = Literal.of(dataType1, List.of(Map.of("f", 10)));
+        Symbol defaultExpression2 = Literal.of(dataType2, List.of(Map.of("f", 10)));
         SimpleReference reference1 = new SimpleReference(referenceIdent,
                                                          RowGranularity.DOC,
                                                          dataType1,
@@ -69,6 +69,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
@@ -78,7 +79,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             false,
             true,
             0,
-            Literal.of(Map.of("f", 10)
+            Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
 
@@ -95,6 +96,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void test_streaming_of_reference_position_before_4_6_0() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
@@ -104,7 +106,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             false,
             true,
             0,
-            Literal.of(Map.of("f", 10)
+            Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
 
