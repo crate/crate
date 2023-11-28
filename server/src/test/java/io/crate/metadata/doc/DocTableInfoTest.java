@@ -23,12 +23,14 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
@@ -37,6 +39,8 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.DropColumn;
 import io.crate.exceptions.ColumnUnknownException;
@@ -57,6 +61,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
@@ -387,5 +392,91 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 x -> assertThat(x).isReference().hasName("name")
             );
         }
+    }
+
+    @Test
+    public void test_can_add_column_to_table() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, point object as (x int))")
+            .build();
+        DocTableInfo table1 = e.resolveTableInfo("tbl");
+        Reference xref = table1.getReference(new ColumnIdent("x"));
+        Reference pointRef = table1.getReference(new ColumnIdent("point"));
+        SimpleReference newReference = new SimpleReference(
+            new ReferenceIdent(table1.ident(), "y"),
+            RowGranularity.DOC,
+            DataTypes.LONG,
+            -1,
+            null
+        );
+        AtomicLong oidSupplier = new AtomicLong(2);
+        DocTableInfo table2 = table1.addColumns(
+            e.nodeCtx,
+            oidSupplier::incrementAndGet,
+            List.of(newReference),
+            new IntArrayList(),
+            Map.of()
+        );
+        assertThat(table2.columns()).satisfiesExactly(
+            x -> assertThat(x).isReference()
+                .hasName("x")
+                .hasType(DataTypes.INTEGER)
+                .hasPosition(1)
+                .isSameAs(xref),
+            x -> assertThat(x).isReference()
+                .hasName("point")
+                .hasPosition(2)
+                .hasType(pointRef.valueType())
+                .isSameAs(pointRef),
+            x -> assertThat(x).isReference()
+                .hasName("y")
+                .hasPosition(4)
+                .hasType(DataTypes.LONG)
+        );
+
+
+        SimpleReference pointY = new SimpleReference(
+            new ReferenceIdent(table1.ident(), new ColumnIdent("point", "y")),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            -1,
+            null
+        );
+        DocTableInfo table3 = table2.addColumns(
+            e.nodeCtx,
+            oidSupplier::incrementAndGet,
+            List.of(pointY),
+            new IntArrayList(),
+            Map.of()
+        );
+        Reference newPointRef = table3.getReference(new ColumnIdent("point"));
+        assertThat(newPointRef.valueType()).isExactlyInstanceOf(ObjectType.class);
+        DataType<?> yInnerType = ((ObjectType) newPointRef.valueType()).innerType("y");
+        assertThat(yInnerType).isEqualTo(DataTypes.INTEGER);
+    }
+
+    @Test
+    public void test_cannot_add_child_column_without_defining_parents() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Reference ox = new SimpleReference(
+            new ReferenceIdent(table.ident(), new ColumnIdent("o", "x")),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            -1,
+            null
+        );
+        assertThatThrownBy(() ->
+            table.addColumns(
+                e.nodeCtx,
+                () -> 2,
+                List.of(ox),
+                new IntArrayList(),
+                Map.of()
+            )
+        ).isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot create parents of new column implicitly. `o` is undefined");
     }
 }

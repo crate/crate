@@ -21,13 +21,12 @@
 
 package io.crate.metadata;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
@@ -281,15 +280,12 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference withColumnOid(LongSupplier oidSupplier) {
-        if (ref.oid() != COLUMN_OID_UNASSIGNED) {
+    public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+        Reference newRef = ref.withOidAndPosition(acquireOid, acquirePosition);
+        if (newRef == ref) {
             return this;
         }
-        return new GeneratedReference(
-                ref.withColumnOid(oidSupplier),
-                formattedGeneratedExpression,
-                generatedExpression
-        );
+        return new GeneratedReference(newRef, formattedGeneratedExpression, generatedExpression);
     }
 
     @Override
@@ -306,7 +302,7 @@ public class GeneratedReference implements Reference {
         return new GeneratedReference(
             ref.withValueType(type),
             formattedGeneratedExpression,
-            generatedExpression
+            generatedExpression.cast(type)
         );
     }
 

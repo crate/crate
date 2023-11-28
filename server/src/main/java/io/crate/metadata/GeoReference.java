@@ -28,6 +28,7 @@ import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_GEOH
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -180,24 +181,26 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Reference withColumnOid(LongSupplier oidSupplier) {
-        if (oid != COLUMN_OID_UNASSIGNED) {
+    public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+        long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
+        int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
+        if (newOid == oid && newPosition == position) {
             return this;
         }
         return new GeoReference(
-                ident,
-                type,
-                columnPolicy,
-                indexType,
-                nullable,
-                position,
-                oidSupplier.getAsLong(),
-                isDropped,
-                defaultExpression,
-                geoTree,
-                precision,
-                treeLevels,
-                distanceErrorPct
+            ident,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            newPosition,
+            newOid,
+            isDropped,
+            defaultExpression,
+            geoTree,
+            precision,
+            treeLevels,
+            distanceErrorPct
         );
     }
 

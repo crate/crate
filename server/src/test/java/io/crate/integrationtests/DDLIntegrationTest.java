@@ -911,7 +911,6 @@ public class DDLIntegrationTest extends IntegTestCase {
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
         execute("alter table test add column added timestamp with time zone generated always as date_trunc('day', ts)");
-        ensureYellow();
         String expectedMapping = "{\"default\":" +
                                  "{\"dynamic\":\"strict\"," +
                                  "\"_meta\":{" +
@@ -924,7 +923,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"added\":{\"type\":\"date\",\"position\":3,\"oid\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
                                  "}}}";
 
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        JSONAssert.assertEquals(getIndexMapping("test"), expectedMapping, JSONCompareMode.LENIENT);
     }
 
 
