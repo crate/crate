@@ -59,4 +59,17 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
             .isEqualTo(q2)
             .hasToString("name:foo");
     }
+
+    @Test
+    public void test_negated_and_three_value_query() {
+        // make sure there is no field-exists-query for the references
+        assertThat(convert("NOT (x AND f)")).hasToString(
+            "+(+*:* -(+_cast(x, 'boolean') +_cast(f, 'boolean'))) #(NOT (_cast(x, 'boolean') AND _cast(f, 'boolean')))");
+    }
+
+    @Test
+    public void test_negated_concat_with_three_valued_logic() {
+        assertThat(convert("NOT (x || 1) < -1")).hasToString(
+            "+(+*:* -(_cast(concat(_cast(x, 'text'), '1'), 'integer') < -1)) #(NOT (_cast(concat(_cast(x, 'text'), '1'), 'integer') < -1))");
+    }
 }
