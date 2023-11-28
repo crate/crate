@@ -31,7 +31,10 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
 import io.crate.data.Input;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.OrOperator;
+import io.crate.expression.operator.any.AnyRangeOperator;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
@@ -41,13 +44,17 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class NotPredicate extends Scalar<Boolean, Boolean> {
 
@@ -125,7 +132,25 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
      */
     private static class SkipThreeValuedLogicVisitor extends SymbolVisitor<SkipThreeValuedLogicContext, Void> {
 
-        private final Set<String> IGNORE_FUNCTIONS = Set.of(ImplicitCastFunction.NAME, ExplicitCastFunction.NAME, MatchPredicate.NAME);
+        private final Set<String> IGNORE_3VL_FUNCTIONS = Set.of(
+            MatchPredicate.NAME,
+            Ignore3vlFunction.NAME
+        );
+
+        private final Set<String> CAST_FUNCTIONS = Set.of(
+            ImplicitCastFunction.NAME,
+            ExplicitCastFunction.NAME
+        );
+
+        private final Set<String> COMPARISON_OPERATORS = Set.of(
+            EqOperator.NAME,
+            AndOperator.NAME,
+            OrOperator.NAME,
+            AnyRangeOperator.Comparison.GT.opName(),
+            AnyRangeOperator.Comparison.GTE.opName(),
+            AnyRangeOperator.Comparison.LT.opName(),
+            AnyRangeOperator.Comparison.LTE.opName()
+        );
 
         @Override
         public Void visitReference(Reference symbol, SkipThreeValuedLogicContext context) {
@@ -136,18 +161,29 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         @Override
         public Void visitFunction(Function function, SkipThreeValuedLogicContext context) {
             String functionName = function.name();
-            if (Ignore3vlFunction.NAME.equals(functionName)) {
+            if (IGNORE_3VL_FUNCTIONS.contains(functionName)) {
                 context.skip3ValuedLogic = true;
                 return null;
-            } else if (EqOperator.NAME.equals(functionName)) {
+            } else if (CAST_FUNCTIONS.contains(functionName)) {
+                var arg = function.arguments().get(0);
+                if (arg instanceof Reference ref) {
+                    DataType<?> dataType = ref.valueType();
+                    if (ref.valueType() instanceof ObjectType) {
+                        // Skip 3vl logic for objects to make sure empty objects don't match
+                        context.skip3ValuedLogic = true;
+                    }
+                }
+            } else if (COMPARISON_OPERATORS.contains(functionName)) {
+                context.containsFunction = true;
                 var a = function.arguments().get(0);
                 var b = function.arguments().get(1);
-                // in the  case x = `foo` or foo = `x` 3vl can be skipped
+                // In the case of a comparison operator when the value is not null such as
+                // x = `foo` 3vl can be skipped because if x is null the comparison is false.
                 if (a instanceof Reference && b instanceof Literal<?> ||
-                    a instanceof Literal<?> && a instanceof Reference) {
+                   a instanceof Literal<?> && b instanceof Reference) {
                     context.skip3ValuedLogic = true;
                 }
-            } else if (!IGNORE_FUNCTIONS.contains(functionName)) {
+            } else {
                 context.containsFunction = true;
             }
             for (Symbol arg : function.arguments()) {
@@ -184,12 +220,14 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
 
         Query innerQuery = arg.accept(context.visitor(), context);
         Query notX = Queries.not(innerQuery);
-        // When the three-valued-logic can be skipped we ignore null values.
-        // In this case we can add an optimization ignoring all matches where the field is not present.
-        // Three-valued-logic can be skipped under the following conditions:
-        // - No function is involved `NOT x`
-        // - Simple equality from a reference to a value `NOT x = 1`
-        // - ignore3vl function `ignore3vl( ... )`
+
+        /* When the three-valued-logic can be skipped we ignore null values.
+         * In this case we can add an optimization ignoring all matches where the field is not present.
+         * Three-valued-logic can be skipped under the following conditions:
+         * - No function is involved `NOT x`
+         * - Simple equality from a reference to a value `NOT x = 1`
+         * - ignore3vl function `ignore3vl( ... )`
+         */
         var skip3vl = new SkipThreeValuedLogicContext();
         arg.accept(SKIP_3VL_VISITOR, skip3vl);
 
@@ -205,11 +243,11 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 }
             }
             return builder.build();
-        } else {
-            return new BooleanQuery.Builder()
-                .add(notX, Occur.MUST)
-                .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
-                .build();
         }
+
+        return new BooleanQuery.Builder()
+            .add(notX, Occur.MUST)
+            .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
+            .build();
     }
 }
