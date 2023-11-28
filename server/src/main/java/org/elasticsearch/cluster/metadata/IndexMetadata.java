@@ -38,8 +38,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -68,6 +66,7 @@ import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
@@ -798,7 +797,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
 
     public static class Builder {
 
-        private String index;
+        private String indexName;
         private State state = State.OPEN;
         private long version = 1;
         private long mappingVersion = 1;
@@ -811,15 +810,15 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         private final ImmutableOpenIntMap.Builder<Set<String>> inSyncAllocationIds;
         private Integer routingNumShards;
 
-        public Builder(String index) {
-            this.index = index;
+        public Builder(String indexName) {
+            this.indexName = indexName;
             this.aliases = ImmutableOpenMap.builder();
             this.customMetadata = ImmutableOpenMap.builder();
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder();
         }
 
         public Builder(IndexMetadata indexMetadata) {
-            this.index = indexMetadata.getIndex().getName();
+            this.indexName = indexMetadata.getIndex().getName();
             this.state = indexMetadata.state;
             this.version = indexMetadata.version;
             this.mappingVersion = indexMetadata.mappingVersion;
@@ -834,11 +833,11 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         }
 
         public String index() {
-            return index;
+            return indexName;
         }
 
         public Builder index(String index) {
-            this.index = index;
+            this.indexName = index;
             return this;
         }
 
@@ -1046,26 +1045,26 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
 
             Integer maybeNumberOfShards = settings.getAsInt(SETTING_NUMBER_OF_SHARDS, null);
             if (maybeNumberOfShards == null) {
-                throw new IllegalArgumentException("must specify numberOfShards for index [" + index + "]");
+                throw new IllegalArgumentException("must specify numberOfShards for index [" + indexName + "]");
             }
             int numberOfShards = maybeNumberOfShards;
             if (numberOfShards <= 0) {
-                throw new IllegalArgumentException("must specify positive number of shards for index [" + index + "]");
+                throw new IllegalArgumentException("must specify positive number of shards for index [" + indexName + "]");
             }
 
             Integer maybeNumberOfReplicas = settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, null);
             if (maybeNumberOfReplicas == null) {
-                throw new IllegalArgumentException("must specify numberOfReplicas for index [" + index + "]");
+                throw new IllegalArgumentException("must specify numberOfReplicas for index [" + indexName + "]");
             }
             int numberOfReplicas = maybeNumberOfReplicas;
             if (numberOfReplicas < 0) {
-                throw new IllegalArgumentException("must specify non-negative number of shards for index [" + index + "]");
+                throw new IllegalArgumentException("must specify non-negative number of shards for index [" + indexName + "]");
             }
 
             int routingPartitionSize = INDEX_ROUTING_PARTITION_SIZE_SETTING.get(settings);
             if (routingPartitionSize != 1 && routingPartitionSize >= getRoutingNumShards()) {
                 throw new IllegalArgumentException("routing partition size [" + routingPartitionSize + "] should be a positive number"
-                        + " less than the number of shards [" + getRoutingNumShards() + "] for [" + index + "]");
+                        + " less than the number of shards [" + getRoutingNumShards() + "] for [" + indexName + "]");
             }
             // fill missing slots in inSyncAllocationIds with empty set if needed and make all entries immutable
             ImmutableOpenIntMap.Builder<Set<String>> filledInSyncAllocationIds = ImmutableOpenIntMap.builder();
@@ -1124,7 +1123,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             final String uuid = settings.get(SETTING_INDEX_UUID, INDEX_UUID_NA_VALUE);
 
             return new IndexMetadata(
-                new Index(index, uuid),
+                new Index(indexName, uuid),
                 version,
                 mappingVersion,
                 settingsVersion,

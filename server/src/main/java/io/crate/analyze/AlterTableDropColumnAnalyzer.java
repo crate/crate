@@ -24,9 +24,7 @@ package io.crate.analyze;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 
@@ -35,7 +33,6 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -91,9 +88,8 @@ public class AlterTableDropColumnAnalyzer {
                 }
             }
         }
-        dropColumns = validateDynamic(tableInfo, dropColumns);
         validateStatic(tableInfo, dropColumns);
-
+        tableInfo.dropColumns(dropColumns);
         return new AnalyzedAlterTableDropColumn(tableInfo, dropColumns);
     }
 
@@ -119,13 +115,6 @@ public class AlterTableDropColumnAnalyzer {
                 throw new UnsupportedOperationException("Dropping INDEX column '" + colToDrop.fqn() + "' is not supported");
             }
 
-            for (var indexRef : tableInfo.indexColumns()) {
-                if (indexRef.columns().contains(refToDrop)) {
-                    throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
-                                                            "is part of INDEX: " + indexRef +
-                                                            " is not allowed");
-                }
-            }
             if (tableInfo.primaryKey().contains(colToDrop)) {
                 throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                                                         "is part of the PRIMARY KEY is not allowed");
@@ -139,71 +128,5 @@ public class AlterTableDropColumnAnalyzer {
                                                         "is part of the 'PARTITIONED BY' columns is not allowed");
             }
         }
-    }
-
-    /** Validate restrictions based on properties that change and need to be rechecked during execution*/
-    public static List<DropColumn> validateDynamic(DocTableInfo tableInfo, List<DropColumn> dropColumns) {
-        var generatedColRefs = new HashSet<>();
-        for (var genRef : tableInfo.generatedColumns()) {
-            generatedColRefs.addAll(genRef.referencedReferences());
-        }
-        var leftOverCols = tableInfo.columns().stream().map(Reference::column).collect(Collectors.toSet());
-        ArrayList<DropColumn> validatedDropCols = new ArrayList<>(dropColumns.size());
-
-        for (int i = 0 ; i < dropColumns.size(); i++) {
-            var refToDrop = dropColumns.get(i).ref();
-            var colToDrop = refToDrop.column();
-
-            for (var indexRef : tableInfo.indexColumns()) {
-                if (indexRef.columns().contains(refToDrop)) {
-                    throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
-                                                            "is part of INDEX: " + indexRef + " is not allowed");
-                }
-            }
-            for (var genRef : tableInfo.generatedColumns()) {
-                if (genRef.referencedReferences().contains(refToDrop)) {
-                    throw new UnsupportedOperationException(String.format(
-                        Locale.ENGLISH,
-                        "Cannot drop column `%s`. It's used in generated column `%s`: %s",
-                        colToDrop.sqlFqn(),
-                        genRef.column().sqlFqn(),
-                        genRef.formattedGeneratedExpression()
-                    ));
-                }
-            }
-            for (var checkConstraint : tableInfo.checkConstraints()) {
-                Set<ColumnIdent> columnsInConstraint = new HashSet<>();
-                RefVisitor.visitRefs(checkConstraint.expression(), r -> columnsInConstraint.add(r.column()));
-                if (columnsInConstraint.size() > 1 && columnsInConstraint.contains(colToDrop)) {
-                    throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
-                        "is used in CHECK CONSTRAINT: " + checkConstraint.name() + " is not allowed");
-                }
-                boolean constraintColIsSubColOfColToDrop = false;
-                for (var columnInConstraint : columnsInConstraint) {
-                    if (columnInConstraint.isChildOf(colToDrop)) {
-                        constraintColIsSubColOfColToDrop = true; // subcol of the dropped col referred in constraint
-                    }
-                }
-                if (constraintColIsSubColOfColToDrop) {
-                    for (var columnInConstraint : columnsInConstraint) {
-                        // Check if sibling, parent, or cols of another object are contained in the same constraint
-                        if (columnInConstraint.isChildOf(colToDrop) == false
-                            && columnInConstraint.path().equals(colToDrop.path()) == false) {
-                            throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() +
-                                " which is used in CHECK CONSTRAINT: " + checkConstraint.name() +
-                                " is not allowed");
-                        }
-                    }
-                }
-            }
-
-            leftOverCols.remove(colToDrop);
-            validatedDropCols.add(new DropColumn(refToDrop, dropColumns.get(i).ifExists()));
-        }
-
-        if (leftOverCols.isEmpty()) {
-            throw new UnsupportedOperationException("Dropping all columns of a table is not allowed");
-        }
-        return validatedDropCols;
     }
 }
