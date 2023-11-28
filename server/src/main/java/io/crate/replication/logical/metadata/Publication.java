@@ -23,10 +23,11 @@ package io.crate.replication.logical.metadata;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -113,48 +114,60 @@ public class Publication implements Writeable {
 
 
     public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state, User publicationOwner, User subscriber, String publicationName) {
-        if (isForAllTables()) {
-            Map<RelationName, RelationMetadata> relations = new HashMap<>();
-            Metadata metadata = state.metadata();
-            for (var cursor : metadata.templates().keys()) {
-                String templateName = cursor.value;
-                IndexParts indexParts = new IndexParts(templateName);
-                RelationName relationName = indexParts.toRelationName();
-                if (indexParts.isPartitioned()
-                        && userCanPublish(relationName, publicationOwner, publicationName)
-                        && subscriberCanRead(relationName, subscriber, publicationName)) {
-                    relations.put(relationName, RelationMetadata.fromMetadata(relationName, metadata));
-                }
-            }
-            for (var cursor : metadata.indices().values()) {
-                var indexMetadata = cursor.value;
-                var indexParts = new IndexParts(indexMetadata.getIndex().getName());
-                if (indexParts.isPartitioned()) {
-                    continue;
-                }
-                RelationName relationName = indexParts.toRelationName();
+        // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
+        Predicate<String> indexFilter = indexName -> {
+            var indexMetadata = state.metadata().index(indexName);
+            if (indexMetadata != null) {
                 boolean softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(indexMetadata.getSettings());
                 if (softDeletes == false) {
                     LOGGER.warn(
                         "Table '{}' won't be replicated as the required table setting " +
                             "'soft_deletes.enabled' is set to: {}",
-                        relationName,
+                        RelationName.fromIndexName(indexName),
                         softDeletes
                     );
-                    continue;
+                    return false;
                 }
-                if (userCanPublish(relationName, publicationOwner, publicationName) && subscriberCanRead(relationName, subscriber, publicationName)) {
-                    relations.put(relationName, RelationMetadata.fromMetadata(relationName, metadata));
+                var routingTable = state.routingTable().index(indexName);
+                assert routingTable != null : "routingTable must not be null";
+                return routingTable.allPrimaryShardsActive();
+
+            }
+            // Partitioned table case (template, no index).
+            return true;
+        };
+
+        var relations = new HashSet<RelationName>();
+
+        if (isForAllTables()) {
+            Metadata metadata = state.metadata();
+            for (var cursor : metadata.templates().keys()) {
+                String templateName = cursor.value;
+                IndexParts indexParts = new IndexParts(templateName);
+                RelationName relationName = indexParts.toRelationName();
+                if (indexParts.isPartitioned()) {
+                    relations.add(relationName);
                 }
             }
-            return relations;
+            for (var cursor : metadata.indices().values()) {
+                var indexMetadata = cursor.value;
+                var indexName = indexMetadata.getIndex().getName();
+                var indexParts = new IndexParts(indexName);
+                if (indexParts.isPartitioned() == false) {
+                    relations.add(indexParts.toRelationName());
+                }
+            }
         } else {
-            return tables.stream()
-                .filter(relationName -> userCanPublish(relationName, publicationOwner, publicationName))
-                .filter(relationName -> subscriberCanRead(relationName, subscriber, publicationName))
-                .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata()))
-                .collect(Collectors.toMap(x -> x.name(), x -> x));
+            relations.addAll(tables);
         }
+
+        return relations.stream()
+            .filter(relationName -> indexFilter.test(relationName.indexNameOrAlias()))
+            .filter(relationName -> userCanPublish(relationName, publicationOwner, publicationName))
+            .filter(relationName -> subscriberCanRead(relationName, subscriber, publicationName))
+            .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), indexFilter))
+            .collect(Collectors.toMap(RelationMetadata::name, x -> x));
+
     }
 
     private static boolean subscriberCanRead(RelationName relationName, User subscriber, String publicationName) {
