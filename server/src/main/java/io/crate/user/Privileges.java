@@ -21,6 +21,8 @@
 
 package io.crate.user;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RelationUnknown;
@@ -29,8 +31,6 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-
-import org.jetbrains.annotations.Nullable;
 
 public class Privileges {
 
@@ -50,7 +50,7 @@ public class Privileges {
             return;
         }
         //noinspection PointlessBooleanExpression
-        if (user.hasPrivilege(type, clazz, ident, defaultSchema) == false) {
+        if (user.hasPrivilege(type, clazz, ident) == false) {
             boolean objectIsVisibleToUser = user.hasAnyPrivilege(clazz, ident);
             if (objectIsVisibleToUser) {
                 throw new MissingPrivilegeException(user.name(), type);

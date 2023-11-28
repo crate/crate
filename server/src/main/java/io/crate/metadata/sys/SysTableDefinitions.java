@@ -80,7 +80,7 @@ public class SysTableDefinitions {
                     .filter(x ->
                         user.isSuperUser()
                         || user.name().equals(x.username())
-                        || user.hasPrivilege(Type.AL, Clazz.CLUSTER, null, txnCtx.sessionSettings().currentSchema()))
+                        || user.hasPrivilege(Type.AL, Clazz.CLUSTER, null))
                     .iterator()
             ),
             sysJobsTable.expressions(),
@@ -92,7 +92,7 @@ public class SysTableDefinitions {
                     .filter(x ->
                         user.isSuperUser()
                         || user.name().equals(x.username())
-                        || user.hasPrivilege(Type.AL, Clazz.CLUSTER, null, txnCtx.sessionSettings().currentSchema()))
+                        || user.hasPrivilege(Type.AL, Clazz.CLUSTER, null))
                     .iterator()
             ),
             sysJobsLogTable.expressions(),

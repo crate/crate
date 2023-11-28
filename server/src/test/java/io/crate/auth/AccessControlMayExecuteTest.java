@@ -34,8 +34,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
@@ -43,6 +41,7 @@ import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ClusterServiceUtils;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -106,14 +105,14 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                                              "crate")),
                         null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
                 return true;
             }
         };
         superUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, superUser.name()));
                 return true;
             }
@@ -581,7 +580,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         // custom user has only DML privileges
         var customUser = new User("normal", Set.of(), Set.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
                 return Privilege.Type.DDL == type;
             }

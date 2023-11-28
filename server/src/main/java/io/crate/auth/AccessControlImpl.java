@@ -26,13 +26,13 @@ import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
 import java.util.Locale;
 
 import io.crate.analyze.AnalyzedAlterBlobTable;
+import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
-import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -43,19 +43,19 @@ import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
+import io.crate.analyze.AnalyzedCreateRole;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
-import io.crate.analyze.AnalyzedCreateRole;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
+import io.crate.analyze.AnalyzedDropRole;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
-import io.crate.analyze.AnalyzedDropRole;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
@@ -110,8 +110,8 @@ import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
 import io.crate.sql.tree.SetStatement;
 import io.crate.user.Privilege;
 import io.crate.user.Privileges;
-import io.crate.user.User;
 import io.crate.user.RoleLookup;
+import io.crate.user.User;
 
 public final class AccessControlImpl implements AccessControl {
 
@@ -306,9 +306,9 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitSwapTable(AnalyzedSwapTable swapTable, User user) {
-            if (!user.hasPrivilege(Privilege.Type.AL, Privilege.Clazz.CLUSTER, null, defaultSchema)) {
-                if (!user.hasPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, swapTable.target().ident().fqn(), defaultSchema)
-                    || !user.hasPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, swapTable.source().ident().fqn(), defaultSchema)
+            if (!user.hasPrivilege(Privilege.Type.AL, Privilege.Clazz.CLUSTER, null)) {
+                if (!user.hasPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, swapTable.target().ident().fqn())
+                    || !user.hasPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, swapTable.source().ident().fqn())
                 ) {
                     throw new MissingPrivilegeException(user.name());
                 }

@@ -93,10 +93,14 @@ public class DataTypeTesting {
                 return () -> (T) (Boolean) random.nextBoolean();
 
             case StringType.ID:
-                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(random.nextInt(10));
+                Integer maxLength = type.characterMaximumLength();
+                return () -> {
+                    int length = maxLength == null ? random.nextInt(10) : random.nextInt(maxLength + 1);
+                    return (T) RandomizedTest.randomAsciiLettersOfLength(length);
+                };
 
             case CharacterType.ID:
-                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(((CharacterType) type).lengthLimit());
+                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(type.characterMaximumLength());
 
             case IpType.ID:
                 return () -> {

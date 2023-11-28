@@ -211,7 +211,7 @@ public class Sessions {
     public Iterable<Cursor> getCursors(User user) {
         return () -> sessions.values().stream()
             .filter(session ->
-                user.hasPrivilege(Type.AL, Clazz.CLUSTER, null, session.sessionSettings().currentSchema())
+                user.hasPrivilege(Type.AL, Clazz.CLUSTER, null)
                 || session.sessionSettings().sessionUser().equals(user))
             .flatMap(session -> StreamSupport.stream(session.cursors.spliterator(), false))
             .iterator();

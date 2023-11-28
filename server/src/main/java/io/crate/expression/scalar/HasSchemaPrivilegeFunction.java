@@ -26,17 +26,16 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.TriFunction;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
-import io.crate.user.User;
 import io.crate.user.RoleLookup;
+import io.crate.user.User;
 
 public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
@@ -51,7 +50,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
                 return true;
             }
             // Last argument is null as it's not used for Privilege.Clazz.SCHEMA
-            result |= user.hasPrivilege(type, Privilege.Clazz.SCHEMA, schemaName, null);
+            result |= user.hasPrivilege(type, Privilege.Clazz.SCHEMA, schemaName);
         }
         return result;
     };
