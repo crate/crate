@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
@@ -170,22 +171,24 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference withColumnOid(LongSupplier oidSupplier) {
-        if (oid != COLUMN_OID_UNASSIGNED) {
+    public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+        long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
+        int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
+        if (newOid == oid && newPosition == position) {
             return this;
         }
         return new SimpleReference(
-                ident,
-                granularity,
-                type,
-                columnPolicy,
-                indexType,
-                nullable,
-                hasDocValues,
-                position,
-                oidSupplier.getAsLong(),
-                isDropped,
-                defaultExpression
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            newPosition,
+            newOid,
+            isDropped,
+            defaultExpression
         );
     }
 

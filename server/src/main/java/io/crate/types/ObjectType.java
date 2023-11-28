@@ -80,7 +80,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public static class Builder {
 
-        Map<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
+        final LinkedHashMap<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
 
         public Builder setInnerType(String key, DataType<?> innerType) {
             innerTypesBuilder.put(key, innerType);
@@ -279,6 +279,12 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public ObjectType withoutChild(String childColumn) {
         LinkedHashMap<String, DataType<?>> newInnerTypes = new LinkedHashMap<>(innerTypes);
         newInnerTypes.remove(childColumn);
+        return new ObjectType(Collections.unmodifiableMap(newInnerTypes));
+    }
+
+    public ObjectType withChild(String childColumn, DataType<?> type) {
+        LinkedHashMap<String, DataType<?>> newInnerTypes = new LinkedHashMap<>(innerTypes);
+        newInnerTypes.put(childColumn, type);
         return new ObjectType(Collections.unmodifiableMap(newInnerTypes));
     }
 

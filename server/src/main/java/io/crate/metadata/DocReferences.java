@@ -113,7 +113,7 @@ public final class DocReferences {
         List<Reference> references = new ArrayList<>(sourceReferences.size());
         Map<ColumnIdent, Reference> referencesMap = new HashMap<>(sourceReferences.size());
         for (var ref : sourceReferences) {
-            var newRef = ref.withColumnOid(columnOidSupplier);
+            var newRef = ref.withOidAndPosition(columnOidSupplier, () -> ref.position());
             references.add(newRef);
             referencesMap.put(newRef.column(), newRef);
         }

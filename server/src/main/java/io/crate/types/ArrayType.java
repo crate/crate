@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -349,6 +350,16 @@ public class ArrayType<T> extends DataType<List<T>> {
             dataType = ((ArrayType<?>) dataType).innerType();
         }
         return dataType;
+    }
+
+    /**
+     * Updates the inner most type of a (nested) array type using an operator.
+     * It preserves the number of dimensions and can be used safely on non-array too.
+     */
+    public static DataType<?> updateLeaf(DataType<?> type, UnaryOperator<DataType<?>> updateLeaf) {
+        int dimensions = ArrayType.dimensions(type);
+        DataType<?> leafType = unnest(type);
+        return makeArray(updateLeaf.apply(leafType), dimensions);
     }
 
     /**
