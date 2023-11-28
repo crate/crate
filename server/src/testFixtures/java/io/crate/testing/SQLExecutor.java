@@ -31,6 +31,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOC
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -69,6 +70,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
@@ -552,6 +554,18 @@ public class SQLExecutor {
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
+            return this;
+        }
+
+        public Builder startShards(String... indices) {
+            var clusterState = clusterService.state();
+            for (var index : indices) {
+                var indexName = new IndexParts(index).toRelationName().indexNameOrAlias();
+                final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, INITIALIZING);
+                clusterState = allocationService.applyStartedShards(clusterState, startedShards);
+            }
+            clusterState = allocationService.reroute(clusterState, "reroute after starting");
+            ClusterServiceUtils.setState(clusterService, clusterState);
             return this;
         }
 
