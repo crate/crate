@@ -37,7 +37,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
@@ -65,7 +65,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     private Session testUserSession(String defaultSchema) {
-        User user = userLookup.findUser(TEST_USERNAME);
+        Role user = userLookup.findUser(TEST_USERNAME);
         assertThat(user).isNotNull();
         return sqlOperations.newSession(defaultSchema, user);
     }
@@ -135,7 +135,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testGrantPrivilegeToSuperuserThrowsException() {
-        String superuserName = User.CRATE_USER.name();
+        String superuserName = Role.CRATE_USER.name();
         Asserts.assertSQLError(() -> executeAsSuperuser("grant DQL to " + superuserName))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4004)

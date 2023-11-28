@@ -43,7 +43,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
 
@@ -55,13 +55,13 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(User.CRATE_USER),
+            () -> List.of(Role.CRATE_USER),
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
-        User user = handler.userFromAuthHeader(null);
-        assertThat(user, is(User.CRATE_USER));
+        Role user = handler.userFromAuthHeader(null);
+        assertThat(user, is(Role.CRATE_USER));
     }
 
     @Test
@@ -73,12 +73,12 @@ public class SqlHttpHandlerTest {
             settings,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(User.of("trillian")),
+            () -> List.of(Role.userOf("trillian")),
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
-        User user = handler.userFromAuthHeader(null);
+        Role user = handler.userFromAuthHeader(null);
         assertThat(user.name(), is("trillian"));
     }
 
@@ -88,18 +88,18 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(User.of("Aladdin")),
+            () -> List.of(Role.userOf("Aladdin")),
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
-        User user = handler.userFromAuthHeader("Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        Role user = handler.userFromAuthHeader("Basic QWxhZGRpbjpPcGVuU2VzYW1l");
         assertThat(user.name(), is("Aladdin"));
     }
 
     @Test
     public void testSessionSettingsArePreservedAcrossRequests() {
-        User dummyUser = User.of("crate");
+        Role dummyUser = Role.userOf("crate");
         var sessionSettings = new CoordinatorSessionSettings(dummyUser);
 
         var mockedSession = mock(Session.class);

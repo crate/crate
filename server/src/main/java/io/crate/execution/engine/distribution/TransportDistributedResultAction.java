@@ -29,8 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -42,6 +40,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
@@ -60,7 +59,7 @@ import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.Transports;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 
 public class TransportDistributedResultAction extends TransportAction<NodeRequest<DistributedResultRequest>, DistributedResultResponse> {
@@ -215,7 +214,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
                 excludedNodeIds,
                 List.of(request.jobId()),
-                User.CRATE_USER.name(),
+                Role.CRATE_USER.name(),
                 "Received data for job=" + request.jobId() + " but there is no job context present. " +
                 "This can happen due to bad network latency or if individual nodes are unresponsive due to high load"
             );

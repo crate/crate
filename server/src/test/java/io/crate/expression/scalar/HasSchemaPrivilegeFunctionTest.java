@@ -37,24 +37,24 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SqlExpressions;
 import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
-    private static final User TEST_USER = User.of("test");
-    private static final User TEST_USER_WITH_AL_ON_CLUSTER =
-        User.of("testUserWithClusterAL",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", User.CRATE_USER.name())),
+    private static final Role TEST_USER = Role.userOf("test");
+    private static final Role TEST_USER_WITH_AL_ON_CLUSTER =
+        Role.userOf("testUserWithClusterAL",
+                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", Role.CRATE_USER.name())),
                 null);
-    private static final User TEST_USER_WITH_DQL_ON_SYS =
-        User.of("testUserWithSysDQL",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", User.CRATE_USER.name())),
+    private static final Role TEST_USER_WITH_DQL_ON_SYS =
+        Role.userOf("testUserWithSysDQL",
+                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", Role.CRATE_USER.name())),
                 null);
 
     @Before
     public void prepare() {
         sqlExpressions = new SqlExpressions(
-            tableSources, null, randomFrom(TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS, User.CRATE_USER), List.of(TEST_USER));
+            tableSources, null, randomFrom(TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS, Role.CRATE_USER), List.of(TEST_USER));
     }
 
     @Test
@@ -124,7 +124,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
     @Test
     public void test_user_with_DQL_permission_has_USAGE_but_not_CREATE_privilege_for_regular_schema() {
         Privilege usage = new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate");
-        var user = User.of("test", Set.of(usage), null);
+        var user = Role.userOf("test", Set.of(usage), null);
         sqlExpressions = new SqlExpressions(tableSources, null, user);
         assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE')", true);
         assertEvaluate("has_schema_privilege('test', 'doc', 'create, USAGE, CREATE')", true); // true if has at least one privilege
@@ -140,7 +140,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
     public void test_user_with_DDL_permission_has_CREATE_but_not_USAGE_privilege_for_regular_schema() {
         // having CREATE doesn't mean having USAGE - checked in PG13 as well.
         Privilege create = new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc", "crate");
-        var user = User.of("test", Set.of(create), null);
+        var user = Role.userOf("test", Set.of(create), null);
         sqlExpressions = new SqlExpressions(tableSources, null, user);
         assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE')", false);
         assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE, CREATE')", true); // true if has at least one privilege

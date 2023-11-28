@@ -26,14 +26,14 @@ import static io.crate.testing.Asserts.isLiteral;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class PgGetUserByIdFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPgGetUserById() {
-        assertEvaluate("pg_get_userbyid('1')", User.CRATE_USER.name());
-        assertNormalize("pg_get_userbyid(2)", isLiteral(User.CRATE_USER.name()));
+        assertEvaluate("pg_get_userbyid('1')", Role.CRATE_USER.name());
+        assertNormalize("pg_get_userbyid(2)", isLiteral(Role.CRATE_USER.name()));
     }
 
     @Test
@@ -43,6 +43,6 @@ public class PgGetUserByIdFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPgGetUserByIdWithFQN() {
-        assertEvaluate("pg_catalog.pg_get_userbyid(1)", User.CRATE_USER.name());
+        assertEvaluate("pg_catalog.pg_get_userbyid(1)", Role.CRATE_USER.name());
     }
 }

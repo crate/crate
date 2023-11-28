@@ -42,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.types.DataTypes;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 
 public class ConnectionInfo implements Writeable {
@@ -223,7 +223,7 @@ public class ConnectionInfo implements Writeable {
      **/
     public String user() {
         String userName = USERNAME.get(settings);
-        return userName == null ? User.CRATE_USER.name() : userName;
+        return userName == null ? Role.CRATE_USER.name() : userName;
     }
 
     @Nullable

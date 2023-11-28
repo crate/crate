@@ -43,7 +43,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.UserManager;
 
 public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUnitTest {
@@ -70,8 +70,8 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
     @Test
     public void test_set_session_auth_modifies_the_session_user() throws Exception {
         var sessionSettings = e.getSessionSettings();
-        sessionSettings.setSessionUser(User.CRATE_USER);
-        var user = User.of("test");
+        sessionSettings.setSessionUser(Role.CRATE_USER);
+        var user = Role.userOf("test");
         when(userManager.findUser(eq(user.name()))).thenReturn(user);
 
         execute(e.plan("SET SESSION AUTHORIZATION " + user.name()));
@@ -82,7 +82,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
     @Test
     public void test_set_session_auth_to_default_sets_session_user_to_authenticated_user() throws Exception {
         var sessionSettings = e.getSessionSettings();
-        sessionSettings.setSessionUser(User.of("test"));
+        sessionSettings.setSessionUser(Role.userOf("test"));
         assertThat(
             sessionSettings.sessionUser(),
             is(not(sessionSettings.authenticatedUser()))

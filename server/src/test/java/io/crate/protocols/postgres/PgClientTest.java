@@ -61,8 +61,8 @@ import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.user.Role;
 import io.crate.user.StubUserManager;
-import io.crate.user.User;
 
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
@@ -97,7 +97,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         var networkService = new NetworkService(List.of());
         var namedWriteableRegistry = new NamedWriteableRegistry(List.of());
         var circuitBreakerService = new NoneCircuitBreakerService();
-        Authentication authentication = new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER));
+        Authentication authentication = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
         var sslContextProvider = new SslContextProvider(serverNodeSettings);
         var serverTransport = new Netty4Transport(
             serverNodeSettings,
@@ -125,7 +125,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             sslContextProvider
         ); // clientTransport is closed via clientTransportService
         var sqlOperations = mock(Sessions.class);
-        when(sqlOperations.newSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
+        when(sqlOperations.newSession(any(String.class), any(Role.class))).thenReturn(mock(Session.class));
         PostgresNetty postgresNetty = new PostgresNetty(
             serverNodeSettings,
             new SessionSettingRegistry(Set.of()),

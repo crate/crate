@@ -35,12 +35,12 @@ import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 
 public class AuthenticationContextTest extends ESTestCase {
 
-    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER));
+    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
 
     @Test
     public void testAuthenticationContextCycle() throws Exception {
@@ -52,7 +52,7 @@ public class AuthenticationContextTest extends ESTestCase {
         AuthenticationContext authContext = new AuthenticationContext(
             authMethod, connProperties, userName, LogManager.getLogger(AuthenticationContextTest.class));
         authContext.setSecurePassword(passwd);
-        assertThat(authContext.authenticate(), is(User.CRATE_USER));
+        assertThat(authContext.authenticate(), is(Role.CRATE_USER));
         assertThat(authContext.password().getChars(), is(passwd));
         authContext.close();
 

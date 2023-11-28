@@ -29,6 +29,7 @@ import io.crate.sql.tree.GenericProperties;
 abstract class AnalyzedRole implements AnalyzedStatement {
 
     private final String roleName;
+
     private final GenericProperties<Symbol> properties;
 
     AnalyzedRole(String roleName, GenericProperties<Symbol> properties) {

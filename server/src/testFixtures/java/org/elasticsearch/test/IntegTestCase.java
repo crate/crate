@@ -213,13 +213,13 @@ import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestExecutionConfig;
-import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 /**
@@ -1687,7 +1687,7 @@ public abstract class IntegTestCase extends ESTestCase {
             userLookup = cluster().getInstance(RoleLookup.class, node);
         } catch (ConfigurationException ignored) {
             // If enterprise is not enabled there is no UserLookup instance bound in guice
-            userLookup = () -> List.of(User.CRATE_USER);
+            userLookup = () -> List.of(Role.CRATE_USER);
         }
         try (Session session = sqlOperations.newSession(schema, userLookup.findUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
@@ -1770,7 +1770,7 @@ public abstract class IntegTestCase extends ESTestCase {
         TableStats tableStats = cluster().getInstance(TableStats.class, nodeName);
 
         CoordinatorSessionSettings sessionSettings = new CoordinatorSessionSettings(
-            User.CRATE_USER,
+            Role.CRATE_USER,
             sqlExecutor.getCurrentSchema()
         );
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
@@ -1879,7 +1879,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
-        try (Session session = sqlOperations.newSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
+        try (Session session = sqlOperations.newSession(sqlExecutor.getCurrentSchema(), Role.CRATE_USER)) {
             SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
             this.response = response;
             return response;
@@ -1995,7 +1995,7 @@ public abstract class IntegTestCase extends ESTestCase {
     protected Session createSessionOnNode(String nodeName) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, nodeName);
         return sqlOperations.newSession(
-            sqlExecutor.getCurrentSchema(), User.CRATE_USER);
+            sqlExecutor.getCurrentSchema(), Role.CRATE_USER);
     }
 
     /**
@@ -2008,7 +2008,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     protected Session createSession(@Nullable String defaultSchema) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.newSession(defaultSchema, User.CRATE_USER);
+        return sqlOperations.newSession(defaultSchema, Role.CRATE_USER);
     }
 
     private TestExecutionConfig testExecutionConfig() {

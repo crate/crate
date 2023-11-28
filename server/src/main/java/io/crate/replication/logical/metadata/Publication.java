@@ -42,7 +42,7 @@ import org.elasticsearch.index.IndexSettings;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class Publication implements Writeable {
 
@@ -113,7 +113,7 @@ public class Publication implements Writeable {
     }
 
 
-    public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state, User publicationOwner, User subscriber, String publicationName) {
+    public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state, Role publicationOwner, Role subscriber, String publicationName) {
         // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
         Predicate<String> indexFilter = indexName -> {
             var indexMetadata = state.metadata().index(indexName);
@@ -170,7 +170,7 @@ public class Publication implements Writeable {
 
     }
 
-    private static boolean subscriberCanRead(RelationName relationName, User subscriber, String publicationName) {
+    private static boolean subscriberCanRead(RelationName relationName, Role subscriber, String publicationName) {
         boolean canRead = subscriber.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, relationName.fqn());
         if (canRead == false) {
             if (LOGGER.isInfoEnabled()) {
@@ -181,7 +181,7 @@ public class Publication implements Writeable {
         return canRead;
     }
 
-    private static boolean userCanPublish(RelationName relationName, User publicationOwner, String publicationName) {
+    private static boolean userCanPublish(RelationName relationName, Role publicationOwner, String publicationName) {
         for (Privilege.Type type: Privilege.Type.READ_WRITE_DEFINE) {
             // This check is triggered only on ALL TABLES case.
             // Required privileges correspond to those we check for the pre-defined tables case in AccessControlImpl.visitCreatePublication.

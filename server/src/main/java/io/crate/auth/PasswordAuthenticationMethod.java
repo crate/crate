@@ -21,13 +21,13 @@
 
 package io.crate.auth;
 
-import io.crate.user.User;
-import io.crate.user.RoleLookup;
-import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
-
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.user.Role;
+import io.crate.user.RoleLookup;
+import io.crate.user.SecureHash;
 
 public class PasswordAuthenticationMethod implements AuthenticationMethod {
 
@@ -40,8 +40,8 @@ public class PasswordAuthenticationMethod implements AuthenticationMethod {
 
     @Nullable
     @Override
-    public User authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
-        User user = userLookup.findUser(userName);
+    public Role authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
+        Role user = userLookup.findUser(userName);
         if (user != null && passwd != null && passwd.length() > 0) {
             SecureHash secureHash = user.password();
             if (secureHash != null && secureHash.verifyHash(passwd)) {

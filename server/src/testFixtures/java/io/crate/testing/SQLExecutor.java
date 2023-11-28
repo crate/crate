@@ -180,8 +180,8 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
+import io.crate.user.Role;
 import io.crate.user.StubUserManager;
-import io.crate.user.User;
 import io.crate.user.UserManager;
 
 /**
@@ -250,7 +250,7 @@ public class SQLExecutor {
         private final UserDefinedFunctionService udfService;
         private final LogicalReplicationService logicalReplicationService;
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
-        private User user = User.CRATE_USER;
+        private Role user = Role.CRATE_USER;
         private UserManager userManager = new StubUserManager();
 
         private final TableStats tableStats = new TableStats();
@@ -385,7 +385,7 @@ public class SQLExecutor {
             return this;
         }
 
-        public Builder setUser(User user) {
+        public Builder setUser(Role user) {
             this.user = user;
             return this;
         }

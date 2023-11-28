@@ -54,7 +54,7 @@ import org.junit.Test;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class TransportServiceHandshakeTests extends ESTestCase {
 
@@ -93,7 +93,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             new NamedWriteableRegistry(Collections.emptyList()),
             new NoneCircuitBreakerService(),
             nettyBootstrap,
-            new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER)),
+            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
             new SslContextProvider(settings)
         );
         TransportService transportService = new MockTransportService(

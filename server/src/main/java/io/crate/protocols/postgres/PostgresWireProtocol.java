@@ -71,7 +71,7 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -435,7 +435,7 @@ public class PostgresWireProtocol {
     private void finishAuthentication(Channel channel) {
         assert authContext != null : "finishAuthentication() requires an authContext instance";
         try {
-            User authenticatedUser = authContext.authenticate();
+            Role authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
             session = sessions.newSession(database, authenticatedUser);
             String options = properties.getProperty("options");

@@ -35,14 +35,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -133,7 +132,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
         assertThat(activeTasks.size(), is(1));
-        assertThat(tasksService.killAll(User.CRATE_USER.name()).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killAll(Role.CRATE_USER.name()).get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get(), is(true));
         assertThat(activeTasks.size(), is(0));
@@ -170,7 +169,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
         assertThat(activeTasks.size(), is(2));
-        assertThat(tasksService.killJobs(List.of(jobId), User.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get(), is(true));
         assertThat(kill2Called.get(), is(false));
@@ -210,7 +209,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder.addTask(new DummyTask(1));
         tasksService.createTask(builder);
 
-        assertThat(tasksService.killAll(User.CRATE_USER.name()).get(), is(2));
+        assertThat(tasksService.killAll(Role.CRATE_USER.name()).get(), is(2));
     }
 
     @Test
@@ -227,7 +226,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
-        assertThat(tasksService.killJobs(jobsToKill, User.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(jobsToKill, Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
     }
 
     @Test

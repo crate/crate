@@ -32,7 +32,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -75,7 +75,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
             SqlParser.createStatement(
                 "CREATE FUNCTION bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"),
+            new CoordinatorSessionSettings(Role.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY,
             e.cursors
         );
@@ -89,7 +89,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.analyze(
             SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"),
+            new CoordinatorSessionSettings(Role.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY,
             e.cursors
         );

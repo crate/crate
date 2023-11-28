@@ -31,7 +31,7 @@ import io.crate.metadata.Schemas;
 
 public class PrivilegesTest extends ESTestCase {
 
-    private static final User USER = User.of("ford");
+    private static final Role USER = Role.userOf("ford");
 
     @Test
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {

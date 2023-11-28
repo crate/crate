@@ -21,11 +21,31 @@
 
 package io.crate.auth;
 
+import static io.crate.protocols.SSL.getSession;
+import static io.netty.buffer.Unpooled.copiedBuffer;
+
+import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.Certificate;
+import java.util.Locale;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Tuple;
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -38,24 +58,6 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-
-import org.jetbrains.annotations.Nullable;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
-import java.security.cert.Certificate;
-import java.util.Locale;
-
-import static io.crate.protocols.SSL.getSession;
-import static io.netty.buffer.Unpooled.copiedBuffer;
 
 
 public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object> {
@@ -110,7 +112,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {
-                User user = authMethod.authenticate(username, password, connectionProperties);
+                Role user = authMethod.authenticate(username, password, connectionProperties);
                 if (user != null && LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
                 }

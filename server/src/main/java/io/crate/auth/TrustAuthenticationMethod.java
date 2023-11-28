@@ -24,7 +24,7 @@ package io.crate.auth;
 import org.elasticsearch.common.settings.SecureString;
 
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 
@@ -38,8 +38,8 @@ public class TrustAuthenticationMethod implements AuthenticationMethod {
     }
 
     @Override
-    public User authenticate(String userName, SecureString passwd, ConnectionProperties connectionProperties) {
-        User user = userLookup.findUser(userName);
+    public Role authenticate(String userName, SecureString passwd, ConnectionProperties connectionProperties) {
+        Role user = userLookup.findUser(userName);
         if (user == null) {
             throw new RuntimeException("trust authentication failed for user \"" + userName + "\"");
         }

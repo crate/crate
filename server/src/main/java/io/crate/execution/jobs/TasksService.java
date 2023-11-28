@@ -33,8 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -43,6 +41,7 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.jetbrains.annotations.Nullable;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -52,7 +51,7 @@ import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.kill.KillAllListener;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 @Singleton
 public class TasksService extends AbstractLifecycleComponent {
@@ -129,7 +128,7 @@ public class TasksService extends AbstractLifecycleComponent {
         return new RootTask.Builder(
             LOGGER,
             jobId,
-            User.CRATE_USER.name(),
+            Role.CRATE_USER.name(),
             clusterService.localNode().getId(),
             Collections.emptySet(),
             jobsLogs);
@@ -181,7 +180,7 @@ public class TasksService extends AbstractLifecycleComponent {
      * are completed and never fails.
      */
     public CompletableFuture<Integer> killAll(String userName) {
-        boolean isSuperUser = userName.equals(User.CRATE_USER.name());
+        boolean isSuperUser = userName.equals(Role.CRATE_USER.name());
         if (isSuperUser) {
             for (KillAllListener killAllListener : killAllListeners) {
                 try {
@@ -202,7 +201,7 @@ public class TasksService extends AbstractLifecycleComponent {
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFuture countDownFuture = new CountdownFuture(toKill.size());
-        boolean isSuperUser = userName.equals(User.CRATE_USER.name());
+        boolean isSuperUser = userName.equals(Role.CRATE_USER.name());
         for (UUID jobId : toKill) {
             RootTask ctx = activeTasks.get(jobId);
             if (ctx == null) {
@@ -226,7 +225,7 @@ public class TasksService extends AbstractLifecycleComponent {
     }
 
     public CompletableFuture<Integer> killJobs(Collection<UUID> toKill, String userName, @Nullable String reason) {
-        boolean isSuperUser = userName.equals(User.CRATE_USER.name());
+        boolean isSuperUser = userName.equals(Role.CRATE_USER.name());
         if (isSuperUser) {
             for (KillAllListener killAllListener : killAllListeners) {
                 for (UUID job : toKill) {

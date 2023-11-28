@@ -21,14 +21,15 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.auth.AuthenticationMethod;
-import io.crate.user.User;
-import io.crate.common.annotations.VisibleForTesting;
+import java.io.Closeable;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.SecureString;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.Closeable;
+
+import io.crate.auth.AuthenticationMethod;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.user.Role;
 
 class AuthenticationContext implements Closeable {
 
@@ -58,8 +59,8 @@ class AuthenticationContext implements Closeable {
     }
 
     @Nullable
-    User authenticate() {
-        User user = authMethod.authenticate(userName, password, connProperties);
+    Role authenticate() {
+        Role user = authMethod.authenticate(userName, password, connProperties);
         if (user != null && logger.isTraceEnabled()) {
             logger.trace("Authentication succeeded user \"{}\" and method \"{}\".", user.name(), authMethod.name());
         }

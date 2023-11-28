@@ -22,13 +22,12 @@
 package io.crate.user.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.user.metadata.RolesDefinitions.usersMetadataOf;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
-
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -40,31 +39,28 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.user.Role;
-import io.crate.user.SecureHash;
-
-public class UsersMetadataTest extends ESTestCase {
+public class RolesMetadataTest extends ESTestCase {
 
     @Test
-    public void testUsersMetadataStreaming() throws IOException {
-        UsersMetadata users = of(RolesDefinitions.SINGLE_USER_ONLY);
+    public void test_roles_metadata_streaming() throws IOException {
+        RolesMetadata roles = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES);
         BytesStreamOutput out = new BytesStreamOutput();
-        users.writeTo(out);
+        roles.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        UsersMetadata users2 = new UsersMetadata(in);
-        assertThat(users2).isEqualTo(users);
+        RolesMetadata roles2 = new RolesMetadata(in);
+        assertThat(roles2).isEqualTo(roles);
     }
 
     @Test
-    public void testUsersMetadataToXContent() throws IOException {
+    public void test_roles_metadata_to_x_content() throws IOException {
         XContentBuilder builder = JsonXContent.builder();
 
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
 
-        UsersMetadata users = of(RolesDefinitions.DUMMY_USERS_WITHOUT_PASSWORD);
-        users.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        RolesMetadata roles = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES);
+        roles.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
@@ -72,22 +68,22 @@ public class UsersMetadataTest extends ESTestCase {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             Strings.toString(builder));
         parser.nextToken(); // start object
-        UsersMetadata users2 = UsersMetadata.fromXContent(parser);
-        assertThat(users2).isEqualTo(users);
+        RolesMetadata roles2 = RolesMetadata.fromXContent(parser);
+        assertThat(roles2).isEqualTo(roles);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken()).isNull();
     }
 
     @Test
-    public void testUsersMetadataWithoutAttributesToXContent() throws IOException {
+    public void test_roles_metadata_without_attributes_to_xcontent() throws IOException {
         XContentBuilder builder = JsonXContent.builder();
 
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
 
-        UsersMetadata users = of(RolesDefinitions.SINGLE_USER_ONLY);
-        users.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        RolesMetadata roles = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
+        roles.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
@@ -95,31 +91,43 @@ public class UsersMetadataTest extends ESTestCase {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             Strings.toString(builder));
         parser.nextToken(); // start object
-        UsersMetadata users2 = UsersMetadata.fromXContent(parser);
-        assertThat(users2).isEqualTo(users);
+        RolesMetadata roles2 = RolesMetadata.fromXContent(parser);
+        assertThat(roles2).isEqualTo(roles);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken()).isNull();
     }
 
     @Test
-    public void testUserMetadataWithAttributesStreaming() throws Exception {
-        UsersMetadata writeUserMeta = of(RolesDefinitions.DUMMY_USERS);
+    public void test_roles_metadata_with_attributes_streaming() throws Exception {
+        RolesMetadata writeRolesMeta = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES);
         BytesStreamOutput out = new BytesStreamOutput();
-        writeUserMeta.writeTo(out);
+        writeRolesMeta.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        UsersMetadata readUserMeta = new UsersMetadata(in);
+        RolesMetadata readRolesMeta = new RolesMetadata(in);
 
-        assertThat(readUserMeta.users()).isEqualTo(writeUserMeta.users());
+        assertThat(readRolesMeta.roles()).isEqualTo(writeRolesMeta.roles());
     }
 
-    private static UsersMetadata of(Map<String, Role> users) {
-        Map<String, SecureHash> map = new HashMap<>(users.size());
-        for (var user : users.entrySet()) {
-            if (user.getValue().isUser())
-                map.put(user.getKey(), user.getValue().password());
-        }
-        return new UsersMetadata(Collections.unmodifiableMap(map));
+    @Test
+    public void test_add_old_users_metadata_to_roles_metadata() {
+        RolesMetadata rolesMetadata = RolesMetadata.ofOldUsersMetadata(usersMetadataOf(RolesDefinitions.DUMMY_USERS));
+        assertThat(rolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
+            Map.of("Arthur", RolesDefinitions.DUMMY_USERS.get("Arthur"),
+                "Ford", RolesDefinitions.DUMMY_USERS.get("Ford")));
+    }
+
+    @Test
+    public void test_roles_metadata_from_cluster_state() {
+        var oldUsersMetadata = usersMetadataOf(RolesDefinitions.DUMMY_USERS);
+        var oldRolesMetadata = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES);
+        Metadata.Builder mdBuilder = new Metadata.Builder()
+            .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        var newRolesMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
+        assertThat(newRolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
+            Map.of("Arthur", RolesDefinitions.DUMMY_USERS.get("Arthur"),
+                "Ford", RolesDefinitions.DUMMY_USERS.get("Ford")));
     }
 }

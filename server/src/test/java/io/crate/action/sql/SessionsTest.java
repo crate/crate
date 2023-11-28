@@ -54,7 +54,7 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.user.Privilege;
 import io.crate.user.Privilege.State;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
@@ -62,7 +62,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
         Functions functions = new Functions(Map.of());
-        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(Role.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         DependencyCarrier dependencies = mock(DependencyCarrier.class);
         ElasticsearchClient client = mock(ElasticsearchClient.class, Answers.RETURNS_MOCKS);
@@ -89,16 +89,16 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_super_user_and_al_privileges_can_view_all_cursors() throws Exception {
         Functions functions = new Functions(Map.of());
-        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(Role.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         Sessions sessions = newSessions(nodeCtx);
-        Session session1 = sessions.newSession("doc", User.of("Arthur"));
+        Session session1 = sessions.newSession("doc", Role.userOf("Arthur"));
         session1.cursors.add("c1", newCursor());
 
-        Session session2 = sessions.newSession("doc", User.of("Trillian"));
+        Session session2 = sessions.newSession("doc", Role.userOf("Trillian"));
         session2.cursors.add("c2", newCursor());
 
-        assertThat(sessions.getCursors(User.CRATE_USER)).hasSize(2);
+        assertThat(sessions.getCursors(Role.CRATE_USER)).hasSize(2);
 
         var ALprivilege = new Privilege(
             State.GRANT,
@@ -107,22 +107,22 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             null,
             "crate"
         );
-        User admin = User.of("admin", Set.of(ALprivilege), null);
+        Role admin = Role.userOf("admin", Set.of(ALprivilege), null);
         assertThat(sessions.getCursors(admin)).hasSize(2);
     }
 
     @Test
     public void test_user_can_only_view_their_own_cursors() throws Exception {
         Functions functions = new Functions(Map.of());
-        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(Role.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         Sessions sessions = newSessions(nodeCtx);
 
-        User arthur = User.of("Arthur");
+        Role arthur = Role.userOf("Arthur");
         Session session1 = sessions.newSession("doc", arthur);
         session1.cursors.add("c1", newCursor());
 
-        User trillian = User.of("Trillian");
+        Role trillian = Role.userOf("Trillian");
         Session session2 = sessions.newSession("doc", trillian);
         session2.cursors.add("c2", newCursor());
 
@@ -133,7 +133,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_uses_global_statement_timeout_as_default_for() throws Exception {
         Functions functions = new Functions(Map.of());
-        RoleLookup userLookup = () -> List.of(User.CRATE_USER);
+        RoleLookup userLookup = () -> List.of(Role.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         Sessions sessions = new Sessions(
             nodeCtx,
@@ -147,7 +147,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             new TableStats()
         );
-        Session session = sessions.newSession("doc", User.CRATE_USER);
+        Session session = sessions.newSession("doc", Role.CRATE_USER);
         assertThat(session.sessionSettings().statementTimeout())
             .isEqualTo(TimeValue.timeValueSeconds(30));
     }

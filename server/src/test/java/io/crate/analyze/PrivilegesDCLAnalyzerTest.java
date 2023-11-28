@@ -49,13 +49,13 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.user.Privilege;
+import io.crate.user.Role;
 import io.crate.user.StubUserManager;
-import io.crate.user.User;
 import io.crate.user.UserManager;
 
 public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final User GRANTOR_TEST_USER = User.of("test");
+    private static final Role GRANTOR_TEST_USER = Role.userOf("test");
 
     private static final UserManager USER_MANAGER = new StubUserManager();
 

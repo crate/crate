@@ -21,25 +21,26 @@
 
 package io.crate.execution.engine;
 
-import io.crate.execution.jobs.kill.KillJobsNodeRequest;
-import io.crate.execution.jobs.kill.KillResponse;
-import io.crate.execution.support.ActionExecutor;
-import io.crate.user.User;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.ThreadPools;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.ThreadPools;
+import io.crate.user.Role;
 
 class InterceptingRowConsumer implements RowConsumer {
 
@@ -95,7 +96,7 @@ class InterceptingRowConsumer implements RowConsumer {
             KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
                 List.of(),
                 List.of(jobId),
-                User.CRATE_USER.name(),
+                Role.CRATE_USER.name(),
                 "An error was encountered: " + failure
             );
             killNodeAction

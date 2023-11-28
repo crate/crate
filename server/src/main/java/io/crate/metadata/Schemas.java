@@ -36,9 +36,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.spell.LevenshteinDistance;
@@ -49,6 +46,8 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -71,7 +70,7 @@ import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 
 @Singleton
@@ -110,7 +109,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         this.builtInSchemas = builtInSchemas;
     }
 
-    public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, User user, SearchPath searchPath) {
+    public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, Role user, SearchPath searchPath) {
         String identSchema = schemaName(ident);
         String tableName = relationName(ident);
 
@@ -150,7 +149,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return tableInfo;
     }
 
-    private static List<String> getSimilarTables(User user, String tableName, Iterable<TableInfo> tables) {
+    private static List<String> getSimilarTables(Role user, String tableName, Iterable<TableInfo> tables) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
         for (TableInfo table : tables) {
@@ -169,7 +168,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             .collect(Collectors.toList());
     }
 
-    private List<String> getSimilarSchemas(User user, String schema) {
+    private List<String> getSimilarSchemas(Role user, String schema) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
         for (String availableSchema : schemas.keySet()) {

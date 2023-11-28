@@ -21,9 +21,10 @@
 
 package io.crate.user;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
+import java.io.IOException;
+import java.util.Collections;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -32,15 +33,17 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.util.Collections;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.user.metadata.RolesMetadata;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateRoleRequest, WriteRoleResponse> {
 
@@ -71,6 +74,10 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
     protected void masterOperation(CreateRoleRequest request,
                                    ClusterState state,
                                    ActionListener<WriteRoleResponse> listener) throws Exception {
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0) == false) {
+            throw new IllegalStateException("Cannot create new users/roles until all nodes are upgraded to 5.6");
+        }
+
         clusterService.submitStateUpdateTask("create_role [" + request.roleName() + "]",
                 new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
 
@@ -80,7 +87,7 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
                     public ClusterState execute(ClusterState currentState) throws Exception {
                         Metadata currentMetadata = currentState.metadata();
                         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                        alreadyExists = putUser(mdBuilder, request.roleName(), request.secureHash());
+                        alreadyExists = putRole(mdBuilder, request.roleName(), request.isUser(), request.secureHash());
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
 
@@ -102,21 +109,24 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
      * @return boolean true if the user already exists, otherwise false
      */
     @VisibleForTesting
-    static boolean putUser(Metadata.Builder mdBuilder, String name, @Nullable SecureHash secureHash) {
-        UsersMetadata oldMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        if (oldMetadata != null && oldMetadata.contains(name)) {
+    static boolean putRole(Metadata.Builder mdBuilder, String roleName, boolean isUser, @Nullable SecureHash secureHash) {
+        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
+        UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        if ((oldUsersMetadata != null && oldUsersMetadata.contains(roleName)) ||
+            (oldRolesMetadata != null && oldRolesMetadata.contains(roleName))) {
             return true;
         }
-        // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersMetadata newMetadata = UsersMetadata.newInstance(oldMetadata);
-        newMetadata.put(name, secureHash);
-        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(UsersMetadata.TYPE, newMetadata);
+
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
+        newMetadata.put(roleName, isUser, secureHash);
+
+        assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
+        mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
 
         // create empty privileges for this user
         UsersPrivilegesMetadata privilegesMetadata = UsersPrivilegesMetadata.copyOf(
             (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
-        privilegesMetadata.createPrivileges(name, Collections.emptySet());
+        privilegesMetadata.createPrivileges(roleName, Collections.emptySet());
         mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, privilegesMetadata);
         return false;
     }
