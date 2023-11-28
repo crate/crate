@@ -49,6 +49,9 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused queries with a ``NOT`` expression in the where
+  clause to fail on evaluation ``NULL`` correctly.
+
 - Fixed an issue that caused the value for generated primary key columns to
   evaluate to ``NULL`` in ``INSERT INTO .. ON CONFLICT`` statements if the
   column wasn't part of the target column list.
