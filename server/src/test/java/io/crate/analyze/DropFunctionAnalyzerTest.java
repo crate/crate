@@ -32,7 +32,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -61,7 +61,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropFunctionWithSessionSetSchema() throws Exception {
         AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.analyze(
             SqlParser.createStatement("DROP FUNCTION bar(long, object)"),
-            new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"),
+            new CoordinatorSessionSettings(Role.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY,
             e.cursors
         );
@@ -73,7 +73,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
         AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.analyze(
-            SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"), new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"), ParamTypeHints.EMPTY, e.cursors);
+            SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"), new CoordinatorSessionSettings(Role.CRATE_USER, "my_schema"), ParamTypeHints.EMPTY, e.cursors);
 
         assertThat(analysis.schema()).isEqualTo("my_other_schema");
         assertThat(analysis.name()).isEqualTo("bar");

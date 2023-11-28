@@ -34,14 +34,14 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
-import io.crate.user.User;
 
 public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
     public static final String NAME = "has_schema_privilege";
 
-    private static final TriFunction<User, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_NAME = (user, schema, privileges) -> {
+    private static final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_NAME = (user, schema, privileges) -> {
         String schemaName = (String) schema;
         boolean result = false;
         for (Privilege.Type type: privileges) {
@@ -55,7 +55,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
         return result;
     };
 
-    private static final TriFunction<User, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_OID = (user, schema, privileges) -> {
+    private static final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_OID = (user, schema, privileges) -> {
         Integer schemaOid = (Integer) schema;
         boolean result = false;
         for (Privilege.Type type: privileges) {
@@ -164,8 +164,8 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
     protected HasSchemaPrivilegeFunction(Signature signature,
                                          BoundSignature boundSignature,
-                                         BiFunction<RoleLookup, Object, User> getUser,
-                                         TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                         BiFunction<RoleLookup, Object, Role> getUser,
+                                         TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

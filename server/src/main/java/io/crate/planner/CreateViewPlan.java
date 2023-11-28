@@ -50,7 +50,7 @@ import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Table;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public final class CreateViewPlan implements Plan {
 
@@ -72,7 +72,7 @@ public final class CreateViewPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
 
-        User owner = createViewStmt.owner();
+        Role owner = createViewStmt.owner();
         String formattedQuery = SqlFormatter.formatSql(createViewStmt.query(), makeExpressions(params));
         ensureFormattedQueryCanStillBeAnalyzed(
             createViewStmt.name(),

@@ -100,7 +100,7 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.postgres.types.PgOidVectorType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -262,11 +262,11 @@ public class SQLTransportExecutor {
     public Session newSession() {
         return clientProvider.sqlOperations().newSession(
             searchPath.currentSchema(),
-            User.CRATE_USER
+            Role.CRATE_USER
         );
     }
 
-    public SQLResponse executeAs(String stmt, User user) {
+    public SQLResponse executeAs(String stmt, Role user) {
         try (Session session = clientProvider.sqlOperations().newSession(null, user)) {
             return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         }
@@ -365,7 +365,7 @@ public class SQLTransportExecutor {
             if (random.nextBoolean()) {
                 properties.setProperty("prepareThreshold", "-1"); // always use prepared statements
             }
-            properties.put("user", User.CRATE_USER.name());
+            properties.put("user", Role.CRATE_USER.name());
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
                 for (String setSessionStmt : setSessionStatementsList) {

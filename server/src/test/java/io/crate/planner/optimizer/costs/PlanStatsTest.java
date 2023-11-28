@@ -22,7 +22,6 @@
 package io.crate.planner.optimizer.costs;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -55,13 +54,13 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-    private NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of(User.CRATE_USER));
+    private NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of(Role.CRATE_USER));
 
     @Test
     public void test_collect() throws Exception {

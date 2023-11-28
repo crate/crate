@@ -136,13 +136,17 @@ public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         Map<String, SecureHash> users = new HashMap<>();
         XContentParser.Token token = parser.nextToken();
 
-        if (token == XContentParser.Token.FIELD_NAME && parser.currentName().equals("users")) {
+        if (token == XContentParser.Token.FIELD_NAME && parser.currentName().equals(TYPE)) {
             token = parser.nextToken();
             if (token == XContentParser.Token.START_OBJECT) {
                 while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
                     String userName = parser.currentName();
                     if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
-                        users.put(userName, SecureHash.fromXContent(parser));
+                        if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+                            users.put(userName, SecureHash.fromXContent(parser));
+                        } else {
+                            users.put(userName, null);
+                        }
                     }
                 }
             } else {
@@ -157,7 +161,6 @@ public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         }
         return new UsersMetadata(users);
     }
-
 
     @Override
     public EnumSet<Metadata.XContentContext> context() {

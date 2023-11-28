@@ -21,20 +21,20 @@
 
 package io.crate.execution.jobs.kill;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
-
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.user.User;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportRequest;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.user.Role;
 
 public class KillJobsNodeRequest extends TransportRequest {
 
@@ -95,7 +95,7 @@ public class KillJobsNodeRequest extends TransportRequest {
             } else {
                 // Before 4.3 the only user who was allowed to invoke KILL was the super-user
                 // So we know it must have been `crate`
-                userName = User.CRATE_USER.name();
+                userName = Role.CRATE_USER.name();
             }
         }
 

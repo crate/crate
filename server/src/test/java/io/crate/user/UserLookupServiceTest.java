@@ -21,15 +21,18 @@
 
 package io.crate.user;
 
-import static io.crate.user.User.CRATE_USER;
+import static io.crate.user.Role.CRATE_USER;
+import static io.crate.user.metadata.RolesDefinitions.DUMMY_USERS_AND_ROLES;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.Set;
 
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.metadata.UserDefinitions;
+import io.crate.user.metadata.RolesDefinitions;
+import io.crate.user.metadata.RolesMetadata;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 
@@ -38,16 +41,36 @@ public class UserLookupServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNullAndEmptyMetadata() {
         // the users list will always contain a crate user
-        Set<User> users = UserLookupService.getUsers(null, null);
-        assertThat(users).containsExactly(CRATE_USER);
+        Set<Role> roles = UserLookupService.getRoles(null, null, null);
+        assertThat(roles).containsExactly(CRATE_USER);
 
-        users = UserLookupService.getUsers(new UsersMetadata(), new UsersPrivilegesMetadata());
-        assertThat(users).containsExactly(CRATE_USER);
+        roles = UserLookupService.getRoles(new UsersMetadata(), new RolesMetadata(), new UsersPrivilegesMetadata());
+        assertThat(roles).containsExactly(CRATE_USER);
     }
 
     @Test
-    public void testNewUser() {
-        Set<User> users = UserLookupService.getUsers(new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY), new UsersPrivilegesMetadata());
-        assertThat(users).containsExactlyInAnyOrder(User.of("Arthur"), CRATE_USER);
+    public void testUsersAndRoles() {
+        Set<Role> roles = UserLookupService.getRoles(
+            null,
+            new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES),
+            new UsersPrivilegesMetadata());
+
+        assertThat(roles).containsExactlyInAnyOrder(
+            DUMMY_USERS_AND_ROLES.get("Ford"),
+            DUMMY_USERS_AND_ROLES.get("John"),
+            Role.roleOf("DummyRole"),
+            CRATE_USER);
+    }
+
+    @Test
+    public void test_old_users_metadata_is_preferred_over_roles_metadata() {
+        Set<Role> roles = UserLookupService.getRoles(
+            new UsersMetadata(Collections.singletonMap("Arthur", null)),
+            new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES),
+            new UsersPrivilegesMetadata());
+
+        assertThat(roles).containsExactlyInAnyOrder(
+            Role.userOf("Arthur"),
+            CRATE_USER);
     }
 }

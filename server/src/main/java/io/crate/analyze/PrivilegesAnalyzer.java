@@ -21,9 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.user.Privilege;
-import io.crate.user.Privilege.State;
-import io.crate.user.User;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -35,13 +39,9 @@ import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.RevokePrivilege;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import io.crate.user.Privilege;
+import io.crate.user.Privilege.State;
+import io.crate.user.Role;
 
 /**
  * Analyzer for privileges related statements (ie GRANT/REVOKE statements)
@@ -55,7 +55,7 @@ class PrivilegesAnalyzer {
         this.schemas = schemas;
     }
 
-    AnalyzedPrivileges analyzeGrant(GrantPrivilege node, User user, SearchPath searchPath) {
+    AnalyzedPrivileges analyzeGrant(GrantPrivilege node, Role user, SearchPath searchPath) {
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
 
@@ -63,7 +63,7 @@ class PrivilegesAnalyzer {
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, idents, clazz));
     }
 
-    AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, User user, SearchPath searchPath) {
+    AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, Role user, SearchPath searchPath) {
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true, searchPath, schemas);
 
@@ -71,7 +71,7 @@ class PrivilegesAnalyzer {
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, idents, clazz));
     }
 
-    AnalyzedPrivileges analyzeDeny(DenyPrivilege node, User user, SearchPath searchPath) {
+    AnalyzedPrivileges analyzeDeny(DenyPrivilege node, Role user, SearchPath searchPath) {
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
 
@@ -137,7 +137,7 @@ class PrivilegesAnalyzer {
     }
 
     private static Set<Privilege> privilegeTypesToPrivileges(Collection<Privilege.Type> privilegeTypes,
-                                                             User grantor,
+                                                             Role grantor,
                                                              State state,
                                                              List<String> idents,
                                                              Privilege.Clazz clazz) {

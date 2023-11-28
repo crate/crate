@@ -55,7 +55,7 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 public class TransportCreateSubscriptionActionTest {
@@ -95,7 +95,7 @@ public class TransportCreateSubscriptionActionTest {
             userLookup
         );
 
-        when(userLookup.findUser(anyString())).thenReturn(User.CRATE_USER);
+        when(userLookup.findUser(anyString())).thenReturn(Role.CRATE_USER);
 
         final DiscoveryNode dataNode = new DiscoveryNode(
             "node",

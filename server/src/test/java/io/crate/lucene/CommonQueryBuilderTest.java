@@ -66,7 +66,7 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -94,7 +94,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
             TableRelation tableRelation = new TableRelation(tableInfo);
             Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
-            SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation, User.CRATE_USER);
+            SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation, Role.CRATE_USER);
 
             Query query = convert(sqlExpressions.normalize(sqlExpressions.asSymbol("x = null")));
 

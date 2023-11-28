@@ -31,7 +31,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 public class SetSessionAuthorizationPlan implements Plan {
@@ -58,7 +58,7 @@ public class SetSessionAuthorizationPlan implements Plan {
                               SubQueryResults subQueryResults) throws Exception {
         var sessionSettings = plannerContext.transactionContext().sessionSettings();
         String userName = setSessionAuthorization.user();
-        User user;
+        Role user;
         if (userName != null) {
             user = userLookup.findUser(userName);
             if (user == null) {

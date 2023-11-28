@@ -49,7 +49,7 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.StatementClassifier;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class RamAccountingQueueSinkTest extends ESTestCase {
 
@@ -127,11 +127,11 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
             TimeValue.timeValueSeconds(1L)
         );
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff01"),
-            "select 1", 1L, User.CRATE_USER, classification), null, 2000L));
+            "select 1", 1L, Role.CRATE_USER, classification), null, 2000L));
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff02"),
-            "select 1", 1L, User.CRATE_USER, classification), null, 4000L));
+            "select 1", 1L, Role.CRATE_USER, classification), null, 4000L));
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff03"),
-            "select 1", 1L, User.CRATE_USER, classification), null, 7000L));
+            "select 1", 1L, Role.CRATE_USER, classification), null, 7000L));
 
         TimeBasedQEviction.removeExpiredLogs(q, 10_000L, 5_000L);
         assertThat(q).hasSize(1);

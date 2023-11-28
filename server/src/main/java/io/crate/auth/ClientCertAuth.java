@@ -21,15 +21,16 @@
 
 package io.crate.auth;
 
-import io.crate.user.User;
-import io.crate.user.RoleLookup;
-import io.crate.protocols.SSL;
-import io.crate.protocols.postgres.ConnectionProperties;
-import org.elasticsearch.common.settings.SecureString;
-
-import org.jetbrains.annotations.Nullable;
 import java.security.cert.Certificate;
 import java.util.Objects;
+
+import org.elasticsearch.common.settings.SecureString;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.protocols.SSL;
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.user.Role;
+import io.crate.user.RoleLookup;
 
 public class ClientCertAuth implements AuthenticationMethod {
 
@@ -42,12 +43,12 @@ public class ClientCertAuth implements AuthenticationMethod {
 
     @Nullable
     @Override
-    public User authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
+    public Role authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
         Certificate clientCert = connProperties.clientCert();
         if (clientCert != null) {
             String commonName = SSL.extractCN(clientCert);
             if (Objects.equals(userName, commonName) || connProperties.protocol() == Protocol.TRANSPORT) {
-                User user = userLookup.findUser(userName);
+                Role user = userLookup.findUser(userName);
                 if (user != null) {
                     return user;
                 }

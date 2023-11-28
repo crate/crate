@@ -21,6 +21,8 @@
 
 package io.crate.user;
 
+import java.util.Collection;
+
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.pgcatalog.OidHash;
@@ -32,10 +34,10 @@ public interface RoleLookup {
      * finds a user by username
      */
     @Nullable
-    default User findUser(String userName) {
-        for (var user : users()) {
-            if (user.name().equals(userName)) {
-                return user;
+    default Role findUser(String userName) {
+        for (var role : roles()) {
+            if (role.isUser() && role.name().equals(userName)) {
+                return role;
             }
         }
         return null;
@@ -45,14 +47,14 @@ public interface RoleLookup {
      * finds a user by OID
      */
     @Nullable
-    default User findUser(int userOid) {
-        for (var user : users()) {
-            if (userOid == OidHash.userOid(user.name())) {
-                return user;
+    default Role findUser(int userOid) {
+        for (var role : roles()) {
+            if (role.isUser() && userOid == OidHash.userOid(role.name())) {
+                return role;
             }
         }
         return null;
     }
 
-    Iterable<User> users();
+    Collection<Role> roles();
 }

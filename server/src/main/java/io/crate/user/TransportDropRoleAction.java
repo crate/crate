@@ -21,10 +21,10 @@
 
 package io.crate.user;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
+import java.io.IOException;
+import java.util.Locale;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -39,9 +39,11 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.Locale;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.user.metadata.RolesMetadata;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleRequest, WriteRoleResponse> {
 
@@ -77,6 +79,9 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
                                    ClusterState state,
                                    ActionListener<WriteRoleResponse> listener) throws Exception {
 
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0) == false) {
+            throw new IllegalStateException("Cannot create new users/roles until all nodes are upgraded to 5.6");
+        }
 
         String errorMsg = "User '%s' cannot be dropped. %s '%s' needs to be dropped first.";
 
@@ -113,7 +118,6 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
                         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
                         alreadyExists = dropRole(
                                 mdBuilder,
-                                currentMetadata.custom(UsersMetadata.TYPE),
                                 request.roleName()
                         );
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
@@ -132,23 +136,23 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
     }
 
     @VisibleForTesting
-    static boolean dropRole(Metadata.Builder mdBuilder,
-                            @Nullable UsersMetadata oldMetadata,
-                            String name) {
-        if (oldMetadata == null || oldMetadata.contains(name) == false) {
+    static boolean dropRole(Metadata.Builder mdBuilder, String roleName) {
+        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
+        UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        if ((oldUsersMetadata == null || !oldUsersMetadata.contains(roleName)) &&
+            (oldRolesMetadata == null || !oldRolesMetadata.contains(roleName))) {
             return false;
         }
-        // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersMetadata newMetadata = UsersMetadata.newInstance(oldMetadata);
-        newMetadata.remove(name);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
+        newMetadata.remove(roleName);
 
-        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(UsersMetadata.TYPE, newMetadata);
+        assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
+        mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
 
-        // removes all privileges for this user
+        // removes all privileges for this user/role
         UsersPrivilegesMetadata privilegesMetadata = UsersPrivilegesMetadata.copyOf(
             (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
-        privilegesMetadata.dropPrivileges(name);
+        privilegesMetadata.dropPrivileges(roleName);
         mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, privilegesMetadata);
 
         return true;

@@ -36,29 +36,29 @@ import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.Asserts;
 import io.crate.testing.SqlExpressions;
 import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
 
-    private static final User TEST_USER = User.of("test");
-    private static final User TEST_USER_WITH_CREATE =
-        User.of("testWithCreate",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc", User.CRATE_USER.name())),
+    private static final Role TEST_USER = Role.userOf("test");
+    private static final Role TEST_USER_WITH_CREATE =
+        Role.userOf("testWithCreate",
+                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc", Role.CRATE_USER.name())),
                 null);
-    private static final User TEST_USER_WITH_AL_ON_CLUSTER =
-        User.of("testUserWithClusterAL",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", User.CRATE_USER.name())),
+    private static final Role TEST_USER_WITH_AL_ON_CLUSTER =
+        Role.userOf("testUserWithClusterAL",
+                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", Role.CRATE_USER.name())),
                 null);
-    private static final User TEST_USER_WITH_DQL_ON_SYS =
-        User.of("testUserWithSysDQL",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", User.CRATE_USER.name())),
+    private static final Role TEST_USER_WITH_DQL_ON_SYS =
+        Role.userOf("testUserWithSysDQL",
+                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", Role.CRATE_USER.name())),
                 null);
 
     @Before
     public void prepare() {
         sqlExpressions = new SqlExpressions(
-            tableSources, null, randomFrom(User.CRATE_USER, TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS),
-            List.of(User.CRATE_USER, TEST_USER, TEST_USER_WITH_CREATE));
+            tableSources, null, randomFrom(Role.CRATE_USER, TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS),
+            List.of(Role.CRATE_USER, TEST_USER, TEST_USER_WITH_CREATE));
     }
 
     @Test
@@ -145,7 +145,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
         assertEvaluate("has_database_privilege('testWithCreate', 'crate', 'CONNECT, temp, CREATE, TEMP')", true);
 
         // Same as above but with session user
-        sqlExpressions = new SqlExpressions(tableSources, null, User.CRATE_USER);
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
         assertEvaluate("has_database_privilege('crate', 'CREATE')", true);
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_CREATE);
         assertEvaluate("has_database_privilege('crate', 'CONNECT')", true);
@@ -158,7 +158,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
     public void test_same_results_for_name_and_oid() {
         int dbOid = Constants.DB_OID;
         int userOid = OidHash.userOid("test");
-        int crateUserOid = OidHash.userOid(User.CRATE_USER.name());
+        int crateUserOid = OidHash.userOid(Role.CRATE_USER.name());
         // Testing all 6 possible signatures, for a normal user but also for superuser.
         assertEvaluate("has_database_privilege('crate', 'crate', 'CREATE')", true);
         assertEvaluate("has_database_privilege('test', 'crate', 'CREATE')", false);
@@ -170,7 +170,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
         assertEvaluate("has_database_privilege(" + crateUserOid + "," + dbOid + ", 'CREATE')", true);
         assertEvaluate("has_database_privilege(" + userOid + "," + dbOid + ", 'CONNECT')", true);
 
-        sqlExpressions = new SqlExpressions(tableSources, null, User.CRATE_USER);
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
         assertEvaluate("has_database_privilege('crate', 'CREATE')", true);
         assertEvaluate("has_database_privilege(" + dbOid + ", 'CREATE')", true);
 

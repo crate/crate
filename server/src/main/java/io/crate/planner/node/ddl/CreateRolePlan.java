@@ -60,6 +60,11 @@ public class CreateRolePlan implements Plan {
             plannerContext.transactionContext(),
             plannerContext.nodeContext());
 
+        if (createRole.isUser() == false && newPassword != null) {
+            throw new UnsupportedOperationException("Creating a ROLE with a password is not allowed, " +
+                                                    "use CREATE USER instead");
+        }
+
         userManager.createRole(createRole.roleName(), createRole.isUser(), newPassword)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }

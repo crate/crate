@@ -63,7 +63,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.http.Headers;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
@@ -215,7 +215,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @VisibleForTesting
     Session ensureSession(FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
-        User authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
+        Role authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
         if (session == null) {
             session = sqlOperations.newSession(defaultSchema, authenticatedUser);
@@ -293,7 +293,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             });
     }
 
-    User userFromAuthHeader(@Nullable String authHeaderValue) {
+    Role userFromAuthHeader(@Nullable String authHeaderValue) {
         String username = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue).v1();
         // Fallback to trusted user from configuration
         if (username == null || username.isEmpty()) {

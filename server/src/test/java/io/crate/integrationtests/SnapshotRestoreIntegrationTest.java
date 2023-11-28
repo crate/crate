@@ -30,6 +30,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -40,7 +41,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.lucene.tests.util.TestUtil;
 import org.apache.lucene.util.SetOnce;
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
@@ -69,6 +72,8 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.user.metadata.RolesMetadata;
+import io.crate.user.metadata.UsersMetadata;
 
 public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
@@ -974,6 +979,65 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             "schema_prefix_source.table_postfix_my_table_1",
             "source.my_table_1"
         );
+    }
+
+    @Test
+    public void test_restore_old_users() throws IOException {
+        File repoDir = TEMPORARY_FOLDER.getRoot().toPath().toAbsolutePath().toFile();
+        try (InputStream stream = Files.newInputStream(getDataPath("/repos/oldusersmetadata_repo.zip"))) {
+            TestUtil.unzip(stream, repoDir.toPath());
+        }
+        execute(
+            "CREATE REPOSITORY users_repo TYPE \"fs\" with (location=?, compress=true, readonly=true)",
+            new Object[]{repoDir.getAbsolutePath()}
+        );
+        execute("CREATE USER \"John\" WITH (password='johns-password')");
+        execute("CREATE USER \"Arthur\"");
+        execute("CREATE USER \"Marios\"");
+        execute("SELECT * FROM sys.users ORDER BY name");
+        assertThat(response).hasRows(
+            "Arthur| NULL| false",
+            "John| ********| false",
+            "Marios| NULL| false",
+            "crate| NULL| true");
+
+        // Snapshot contains the following users:
+        // CREATE USER "Arthur" WITH (password='arthurs-password');
+        // CREATE USER "Ford" WITH (password='fords-password');
+        // CREATE USER "John";
+        execute("RESTORE SNAPSHOT users_repo.usersnap USERS with (wait_for_completion=true)");
+
+        execute("SELECT * FROM sys.users ORDER BY name");
+        assertThat(response).hasRows(
+            "Arthur| ********| false",
+            "Ford| ********| false",
+            "John| NULL| false",
+            "crate| NULL| true");
+
+        // Before any CREATE/ALTER/DROP operation, RolesMetadata still has the users&roles defined
+        // but only UsersMetadata are used
+        RolesMetadata rolesMetadata = cluster().clusterService().state().metadata().custom(RolesMetadata.TYPE);
+        assertThat(rolesMetadata).isNotNull();
+        Assertions.assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "John", "Marios");
+        UsersMetadata usersMetadata = cluster().clusterService().state().metadata().custom(UsersMetadata.TYPE);
+        assertThat(usersMetadata).isNotNull();
+        assertThat(usersMetadata.users()).containsOnlyKeys("Arthur", "Ford", "John");
+
+        execute("ALTER USER \"John\" SET (password='johns-new-password')");
+        execute("SELECT * FROM sys.users ORDER BY name");
+        assertThat(response).hasRows(
+            "Arthur| ********| false",
+            "Ford| ********| false",
+            "John| ********| false",
+            "crate| NULL| true");
+
+        // After CREATE/ALTER/DROP operation, current RolesMetadata is dropped and
+        // recreated from UsersMetadata, thus fully overriden by these restored UsersMetadata
+        rolesMetadata = cluster().clusterService().state().metadata().custom(RolesMetadata.TYPE);
+        assertThat(rolesMetadata).isNotNull();
+        Assertions.assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "Ford", "John");
+        usersMetadata = cluster().clusterService().state().metadata().custom(UsersMetadata.TYPE);
+        assertThat(usersMetadata).isNull();
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {

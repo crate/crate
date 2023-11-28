@@ -30,11 +30,11 @@ import org.junit.Test;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Symbol;
 import io.crate.testing.SqlExpressions;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class UserFunctionTest extends ScalarTestCase {
 
-    private static final User TEST_USER = User.of("testUser");
+    private static final Role TEST_USER = Role.userOf("testUser");
 
     @Before
     public void prepare() {

@@ -21,7 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.user.User;
+import java.util.Locale;
+import java.util.Optional;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -36,10 +40,7 @@ import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.Table;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.Locale;
-import java.util.Optional;
+import io.crate.user.Role;
 
 /**
  * Rewrites the SHOW statements into Select queries.
@@ -90,7 +91,7 @@ class ShowStatementAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             table.getName(),
             Operation.SHOW_CREATE,
-            User.CRATE_USER,
+            Role.CRATE_USER,
             analysis.sessionSettings().searchPath()
         );
         return new AnalyzedShowCreateTable(tableInfo);

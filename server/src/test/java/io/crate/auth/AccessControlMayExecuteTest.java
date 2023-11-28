@@ -23,7 +23,7 @@ package io.crate.auth;
 
 import static io.crate.expression.udf.UdfUnitTest.DUMMY_LANG;
 import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
-import static io.crate.user.User.CRATE_USER;
+import static io.crate.user.Role.CRATE_USER;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -67,7 +67,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.UserLookupService;
 import io.crate.user.UserManager;
 import io.crate.user.UserManagerService;
@@ -75,10 +75,10 @@ import io.crate.user.UserManagerService;
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
 
     private List<List<Object>> validationCallArguments;
-    private User user;
+    private Role user;
     private SQLExecutor e;
     private UserManager userManager;
-    private User superUser;
+    private Role superUser;
 
     @Before
     public void setUpSQLExecutor() throws Exception {
@@ -96,21 +96,22 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
 
-        user = new User("normal",
-                        Set.of(),
+        user = new Role("normal",
+                        true,
                         Set.of(new Privilege(Privilege.State.GRANT,
                                              Privilege.Type.DQL,
                                              Privilege.Clazz.SCHEMA,
                                              "custom_schema",
                                              "crate")),
-                        null) {
+                        null,
+            Set.of()) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
                 return true;
             }
         };
-        superUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), Set.of(), null) {
+        superUser = new Role("crate", true, Set.of(), null, EnumSet.of(Role.UserRole.SUPERUSER)) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, superUser.name()));
@@ -121,7 +122,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
             @Nullable
             @Override
-            public User findUser(String userName) {
+            public Role findUser(String userName) {
                 if ("crate".equals(userName)) {
                     return superUser;
                 }
@@ -134,7 +135,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             null,
             null,
             mock(SysTableRegistry.class),
-            clusterService,
             userLookupService,
             new DDLClusterStateService());
 
@@ -180,7 +180,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze(stmt, CRATE_USER);
     }
 
-    private void analyze(String stmt, User user) {
+    private void analyze(String stmt, Role user) {
         e.analyzer.analyze(
             SqlParser.createStatement(stmt), new CoordinatorSessionSettings(user), ParamTypeHints.EMPTY, e.cursors);
     }
@@ -199,7 +199,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         assertAskedForTable(type, ident, user);
     }
 
-    private void assertAskedForTable(Privilege.Type type, String ident, User user) {
+    private void assertAskedForTable(Privilege.Type type, String ident, Role user) {
         assertThat(validationCallArguments).anySatisfy(
             s -> assertThat(s).containsExactly(type, Privilege.Clazz.TABLE, ident, user.name()));
     }
@@ -578,7 +578,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_alter_cluster_swap_table_works_for_normal_user_with_no_AI_with_DDL_on_both_tables() {
         // custom user has only DML privileges
-        var customUser = new User("normal", Set.of(), Set.of(), null) {
+        var customUser = new Role("normal", true, Set.of(), null, Set.of()) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));

@@ -22,6 +22,8 @@
 package io.crate.metadata;
 
 
+import static org.elasticsearch.cluster.AbstractNamedDiffable.readDiffFrom;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +42,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.user.metadata.RolesMetadata;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 
@@ -60,12 +63,12 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UserDefinedFunctionsMetadata.TYPE,
-            in -> UserDefinedFunctionsMetadata.readDiffFrom(Metadata.Custom.class, UserDefinedFunctionsMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, UserDefinedFunctionsMetadata.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             ViewsMetadata.TYPE,
-            in -> ViewsMetadata.readDiffFrom(Metadata.Custom.class, ViewsMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, ViewsMetadata.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             Metadata.Custom.class,
@@ -75,7 +78,17 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UsersMetadata.TYPE,
-            in -> UsersMetadata.readDiffFrom(Metadata.Custom.class, UsersMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, UsersMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            RolesMetadata.TYPE,
+            RolesMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            RolesMetadata.TYPE,
+            in -> readDiffFrom(Metadata.Custom.class, RolesMetadata.TYPE, in)
         ));
 
         entries.add(new NamedWriteableRegistry.Entry(
@@ -86,7 +99,7 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UsersPrivilegesMetadata.TYPE,
-            in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             Metadata.Custom.class,
@@ -96,7 +109,7 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             PublicationsMetadata.TYPE,
-            in -> PublicationsMetadata.readDiffFrom(Metadata.Custom.class, PublicationsMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, PublicationsMetadata.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             Metadata.Custom.class,
@@ -106,7 +119,7 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             SubscriptionsMetadata.TYPE,
-            in -> SubscriptionsMetadata.readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
         ));
 
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
@@ -130,6 +143,11 @@ public class MetadataModule extends AbstractModule {
             Metadata.Custom.class,
             new ParseField(UsersMetadata.TYPE),
             UsersMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(RolesMetadata.TYPE),
+            RolesMetadata::fromXContent
         ));
         entries.add(new NamedXContentRegistry.Entry(
             Metadata.Custom.class,

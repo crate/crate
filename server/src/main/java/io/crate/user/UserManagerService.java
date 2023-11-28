@@ -26,11 +26,9 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
@@ -45,14 +43,14 @@ import io.crate.user.metadata.SysUsersTableInfo;
 @Singleton
 public class UserManagerService implements UserManager {
 
-    private static final Consumer<User> ENSURE_DROP_ROLE_NOT_SUPERUSER = user -> {
+    private static final Consumer<Role> ENSURE_DROP_ROLE_NOT_SUPERUSER = user -> {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot drop a superuser '%s'", user.name()));
         }
     };
 
-    private static final Consumer<User> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER = user -> {
+    private static final Consumer<Role> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER = user -> {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot alter privileges for superuser '%s'", user.name()));
@@ -74,7 +72,6 @@ public class UserManagerService implements UserManager {
                               TransportAlterRoleAction transportAlterRoleAction,
                               TransportPrivilegesAction transportPrivilegesAction,
                               SysTableRegistry sysTableRegistry,
-                              ClusterService clusterService,
                               RoleLookup userLookup,
                               DDLClusterStateService ddlClusterStateService) {
         this.transportCreateRoleAction = transportCreateRoleAction;
@@ -85,7 +82,8 @@ public class UserManagerService implements UserManager {
         var userTable = SysUsersTableInfo.create();
         sysTableRegistry.registerSysTable(
             userTable,
-            () -> CompletableFuture.completedFuture(userLookup.users()),
+            () -> CompletableFuture.completedFuture(
+                userLookup.roles().stream().filter(Role::isUser).toList()),
             userTable.expressions(),
             false
         );
@@ -93,7 +91,7 @@ public class UserManagerService implements UserManager {
         var privilegesTable = SysPrivilegesTableInfo.create();
         sysTableRegistry.registerSysTable(
             privilegesTable,
-            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(userLookup.users())),
+            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(userLookup.roles())),
             privilegesTable.expressions(),
             false
         );
@@ -153,7 +151,7 @@ public class UserManagerService implements UserManager {
         return new AccessControlImpl(userLookup, sessionSettings);
     }
 
-    public Iterable<User> users() {
-        return userLookup.users();
+    public Collection<Role> roles() {
+        return userLookup.roles();
     }
 }

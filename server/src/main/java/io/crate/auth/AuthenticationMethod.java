@@ -21,11 +21,11 @@
 
 package io.crate.auth;
 
-import io.crate.user.User;
-import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.settings.SecureString;
-
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.user.Role;
 
 public interface AuthenticationMethod {
 
@@ -36,7 +36,7 @@ public interface AuthenticationMethod {
      * @throws RuntimeException if the authentication failed
      */
     @Nullable
-    User authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties);
+    Role authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties);
 
     /**
      * @return unique name of the authentication method

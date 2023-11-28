@@ -39,16 +39,16 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.user.Privilege;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
-import io.crate.user.User;
 
 public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
-    private final BiFunction<RoleLookup, Object, User> getUser;
+    private final BiFunction<RoleLookup, Object, Role> getUser;
 
-    private final TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege;
+    private final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege;
 
-    protected static final BiFunction<RoleLookup, Object, User> USER_BY_NAME = (userLookup, userName) -> {
+    protected static final BiFunction<RoleLookup, Object, Role> USER_BY_NAME = (userLookup, userName) -> {
         var user = userLookup.findUser((String) userName);
         if (user == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "User %s does not exist", userName));
@@ -56,7 +56,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         return user;
     };
 
-    protected static final BiFunction<RoleLookup, Object, User> USER_BY_OID = (userLookup, userOid) -> {
+    protected static final BiFunction<RoleLookup, Object, Role> USER_BY_OID = (userLookup, userOid) -> {
         var user = userLookup.findUser((Integer) userOid);
         if (user == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "User with OID %d does not exist", userOid));
@@ -78,8 +78,8 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
     protected HasPrivilegeFunction(Signature signature,
                                    BoundSignature boundSignature,
-                                   BiFunction<RoleLookup, Object, User> getUser,
-                                   TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                   BiFunction<RoleLookup, Object, Role> getUser,
+                                   TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature);
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
@@ -118,7 +118,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         // When we pass NULL to the compiled version, it treats last argument like regular evaluate:
         // does null check and parses privileges string.
         var sessionUser = USER_BY_NAME.apply(userLookup, currentUser);
-        User user = getUser.apply(userLookup, userValue);
+        Role user = getUser.apply(userLookup, userValue);
         validateCallPrivileges(sessionUser, user);
         return new CompiledHasPrivilege(signature, boundSignature, sessionUser, user, compiledPrivileges);
     }
@@ -144,7 +144,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         Object userNameOrOid, schemaNameOrOid, privileges;
 
         var sessionUser = USER_BY_NAME.apply(nodeCtx.userLookup(), txnCtx.sessionSettings().userName());
-        User user;
+        Role user;
         if (args.length == 2) {
             schemaNameOrOid = args[0].value();
             privileges = args[1].value();
@@ -168,8 +168,8 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
     private class CompiledHasPrivilege extends Scalar<Boolean, Object> {
 
-        private final User sessionUser;
-        private final User user;
+        private final Role sessionUser;
+        private final Role user;
 
         // We don't use String to avoid unnecessary cast of the ignored argument
         // when function provides pre-computed results
@@ -177,8 +177,8 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
         private CompiledHasPrivilege(Signature signature,
                                      BoundSignature boundSignature,
-                                     User sessionUser,
-                                     User user,
+                                     Role sessionUser,
+                                     Role user,
                                      @Nullable Collection<Privilege.Type> compiledPrivileges) {
             super(signature, boundSignature);
             this.sessionUser = sessionUser;
@@ -211,7 +211,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         }
     }
 
-    protected static void validateCallPrivileges(User sessionUser, User user) {
+    protected static void validateCallPrivileges(Role sessionUser, Role user) {
         // Only superusers can call this function for other users
         if (user.name().equals(sessionUser.name()) == false
             && sessionUser.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges") == false

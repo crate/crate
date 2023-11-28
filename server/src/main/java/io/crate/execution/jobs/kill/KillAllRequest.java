@@ -21,14 +21,14 @@
 
 package io.crate.execution.jobs.kill;
 
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import io.crate.user.User;
-
-import java.io.IOException;
+import io.crate.user.Role;
 
 public class KillAllRequest extends TransportRequest {
 
@@ -45,7 +45,7 @@ public class KillAllRequest extends TransportRequest {
         } else {
             // Before 4.3 only the Crate user was allowed invoke a kill statement
             // So we can set the userName to CRATE
-            userName = User.CRATE_USER.name();
+            userName = Role.CRATE_USER.name();
         }
     }
 

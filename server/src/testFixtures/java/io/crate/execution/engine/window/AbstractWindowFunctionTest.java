@@ -67,7 +67,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -93,7 +93,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         sqlExpressions = new SqlExpressions(
             tableSources,
             tableRelation,
-            User.CRATE_USER,
+            Role.CRATE_USER,
             additionalModules
         );
         inputFactory = new InputFactory(sqlExpressions.nodeCtx);
