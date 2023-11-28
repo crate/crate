@@ -36,9 +36,20 @@ import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.operator.any.AnyNeqOperator;
 import io.crate.expression.operator.any.AnyRangeOperator;
+import io.crate.expression.scalar.ArrayAppendFunction;
+import io.crate.expression.scalar.ArrayCatFunction;
+import io.crate.expression.scalar.ArrayUniqueFunction;
+import io.crate.expression.scalar.ConcatFunction;
+import io.crate.expression.scalar.ConcatWsFunction;
+import io.crate.expression.scalar.FormatFunction;
 import io.crate.expression.scalar.Ignore3vlFunction;
+import io.crate.expression.scalar.SubscriptObjectFunction;
+import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.scalar.arithmetic.MapFunction;
+import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
+import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -150,7 +161,19 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 LikeOperators.ANY_LIKE,
                 LikeOperators.ANY_NOT_LIKE,
                 CoalesceFunction.NAME,
-                CaseFunction.NAME
+                CaseFunction.NAME,
+                ConcatFunction.NAME,
+                ConcatWsFunction.NAME,
+                ArrayCatFunction.NAME,
+                ArrayAppendFunction.NAME,
+                ArrayFunction.NAME,
+                ArrayUniqueFunction.NAME,
+                FormatFunction.NAME,
+                IfFunction.NAME,
+                IsNullPredicate.NAME,
+                MapFunction.NAME,
+                TryCastFunction.NAME,
+                SubscriptObjectFunction.NAME
             );
 
         @Override
