@@ -36,7 +36,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-class ArrayAppendFunction extends Scalar<List<Object>, Object> {
+public class ArrayAppendFunction extends Scalar<List<Object>, Object> {
 
     public static final String NAME = "array_append";
 
