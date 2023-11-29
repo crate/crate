@@ -32,7 +32,9 @@ import java.util.Map;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -41,6 +43,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -52,6 +55,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -339,5 +343,50 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x).isReference().hasName("x"),
             x -> assertThat(x).isReference().hasName("y")
         );
+    }
+
+    @Test
+    public void test_write_to_preserves_indices() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable(
+                """
+                create table tbl (
+                    id int primary key,
+                    name text,
+                    description text index using fulltext with (analyzer = 'simple'),
+                    index name_ft using fulltext (name) with (analyzer = 'standard')
+                )
+                """
+            )
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        ClusterState state = clusterService.state();
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            state,
+            Version.V_5_4_0,
+            createTempDir()
+        )) {
+
+            Metadata metadata = state.metadata();
+            Metadata.Builder builder = new Metadata.Builder(metadata);
+            tbl.writeTo(imd -> indexEnv.mapperService(), metadata, builder);
+
+            DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(e.nodeCtx);
+            DocTableInfo tbl2 = docTableInfoFactory.create(tbl.ident(), builder.build());
+
+            Reference description = tbl2.getReference(new ColumnIdent("description"));
+            assertThat(description).isIndexReference()
+                .hasName("description")
+                .hasAnalyzer("simple");
+
+            IndexReference indexColumn = tbl2.indexColumn(new ColumnIdent("name_ft"));
+            assertThat(indexColumn).isNotNull();
+            assertThat(indexColumn.analyzer()).isEqualTo("standard");
+            assertThat(indexColumn.columns()).satisfiesExactly(
+                x -> assertThat(x).isReference().hasName("name")
+            );
+        }
     }
 }
