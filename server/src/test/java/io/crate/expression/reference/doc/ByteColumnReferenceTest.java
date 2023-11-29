@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.stream.IntStream;
@@ -37,7 +37,6 @@ public class ByteColumnReferenceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testByteExpression() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,

@@ -365,8 +365,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             tbl,
             state,
-            Version.V_5_4_0,
-            createTempDir()
+            Version.V_5_4_0
         )) {
 
             Metadata metadata = state.metadata();

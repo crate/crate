@@ -700,7 +700,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_any_neq_operator_maps_column_names_to_oids() throws Exception {
         final long oid = 123;
         try (QueryTester tester = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,

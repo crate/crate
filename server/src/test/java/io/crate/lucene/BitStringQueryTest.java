@@ -48,7 +48,6 @@ public class BitStringQueryTest extends CrateDummyClusterServiceUnitTest {
 
     private QueryTester.Builder builder(String createTable) throws IOException {
         return new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
