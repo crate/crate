@@ -224,7 +224,7 @@
     <versions.aws>1.12.353</versions.aws>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>22.3.0</versions.graalvm>
+    <versions.graalvm>23.0.2</versions.graalvm>
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>4.9.0</versions.mockito>
