@@ -447,19 +447,38 @@ public class DocTableInfoFactory {
                             .sources(sources);
                     }
                 } else {
-                    Reference ref = new SimpleReference(
-                        refIdent,
-                        granularity,
-                        type,
-                        ColumnPolicy.DYNAMIC,
-                        indexType,
-                        nullable,
-                        hasDocValues,
-                        position,
-                        oid,
-                        isDropped,
-                        defaultExpression
-                    );
+                    Reference ref;
+                    if (analyzer == null) {
+                        ref = new SimpleReference(
+                            refIdent,
+                            granularity,
+                            type,
+                            ColumnPolicy.DYNAMIC,
+                            indexType,
+                            nullable,
+                            hasDocValues,
+                            position,
+                            oid,
+                            isDropped,
+                            defaultExpression
+                        );
+                    } else {
+                        ref = new IndexReference(
+                            refIdent,
+                            granularity,
+                            type,
+                            ColumnPolicy.DYNAMIC,
+                            indexType,
+                            nullable,
+                            hasDocValues,
+                            position,
+                            oid,
+                            isDropped,
+                            defaultExpression,
+                            List.of(),
+                            analyzer
+                        );
+                    }
                     references.put(column, ref);
                 }
             }

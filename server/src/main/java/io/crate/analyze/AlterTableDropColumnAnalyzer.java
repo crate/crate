@@ -33,9 +33,9 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
@@ -111,7 +111,7 @@ public class AlterTableDropColumnAnalyzer {
             }
             uniqueSet.add(colToDrop);
 
-            if (refToDrop.symbolType() == SymbolType.INDEX_REFERENCE) {
+            if (refToDrop instanceof IndexReference indexRef && !indexRef.columns().isEmpty()) {
                 throw new UnsupportedOperationException("Dropping INDEX column '" + colToDrop.fqn() + "' is not supported");
             }
 
