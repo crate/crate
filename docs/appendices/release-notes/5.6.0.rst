@@ -87,6 +87,19 @@ Performance and Resilience Improvements
 
 - Reduced the amount of disk reads necessary for ``ANALYZE`` operations.
 
+- Improved filter push-down for left/right outer joins when the joins are
+  nested e.g.::
+
+    SELECT * FROM (SELECT * FROM a LEFT JOIN b ON a.a = b.b LEFT JOIN c ON b.b = c.c) t WHERE b > 1;
+  
+  Now, the above query will result in the following logical plan ::
+
+    NestedLoopJoin[LEFT | (b = c)] (rows=unknown)
+      ├ HashJoin[(a = b)] (rows=unknown)
+      │  ├ Collect[doc.a | [a] | true] (rows=unknown)
+      │  └ Collect[doc.b | [b] | (b > 1)] (rows=unknown)
+      └ Collect[doc.c | [c] | true] (rows=unknown)
+
 Administration and Operations
 -----------------------------
 
