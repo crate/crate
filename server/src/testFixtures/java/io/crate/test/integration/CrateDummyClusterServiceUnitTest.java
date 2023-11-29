@@ -21,6 +21,15 @@
 
 package io.crate.test.integration;
 
+import static org.elasticsearch.test.ClusterServiceUtils.createClusterStatePublisher;
+import static org.elasticsearch.test.ClusterServiceUtils.createNoOpNodeConnectionsService;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -43,15 +52,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import static org.elasticsearch.test.ClusterServiceUtils.createClusterStatePublisher;
-import static org.elasticsearch.test.ClusterServiceUtils.createNoOpNodeConnectionsService;
 
 public class CrateDummyClusterServiceUnitTest extends ESTestCase {
 

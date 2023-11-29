@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
@@ -128,8 +129,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 THREAD_POOL,
                 table,
                 clusterService.state(),
-                Version.CURRENT,
-                createTempDir()
+                Version.CURRENT
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
             AddColumnRequest request = new AddColumnRequest(
@@ -739,8 +739,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 THREAD_POOL,
                 table,
                 clusterService.state(),
-                Version.CURRENT,
-                createTempDir())) {
+                Version.CURRENT)) {
 
             MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
@@ -1394,8 +1393,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 THREAD_POOL,
                 table,
                 clusterService.state(),
-                Version.CURRENT,
-                createTempDir())) {
+                Version.CURRENT)) {
 
                 Map<String, Object> value = dataGenerator.get();
                 MapperService mapperService = indexEnv.mapperService();

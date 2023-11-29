@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -64,8 +65,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             tbl,
             clusterService.state(),
-            Version.CURRENT,
-            createTempDir()
+            Version.CURRENT
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("x"));
@@ -121,8 +121,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             tbl,
             clusterService.state(),
-            Version.CURRENT,
-            createTempDir()
+            Version.CURRENT
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
             ReferenceIdent shapesIdent = new ReferenceIdent(tbl.ident(), "shapes");
@@ -225,8 +224,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             tbl,
             state,
-            Version.CURRENT,
-            createTempDir()
+            Version.CURRENT
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
@@ -260,8 +258,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             tbl,
             state,
-            Version.CURRENT,
-            createTempDir()
+            Version.CURRENT
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
             ReferenceIdent refIdent1 = new ReferenceIdent(tbl.ident(), "y");
@@ -304,8 +301,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             tbl,
             state,
-            Version.CURRENT,
-            createTempDir()
+            Version.CURRENT
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
             SimpleReference newColumn1 = new SimpleReference(
@@ -342,8 +338,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             tbl,
             clusterService.state(),
-            Version.V_5_4_0,
-            createTempDir()
+            Version.V_5_4_0
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
 

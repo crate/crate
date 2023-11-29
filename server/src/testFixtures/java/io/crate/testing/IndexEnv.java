@@ -63,6 +63,7 @@ import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.doc.DocTableInfo;
 
 public final class IndexEnv implements AutoCloseable {
@@ -78,11 +79,11 @@ public final class IndexEnv implements AutoCloseable {
     public IndexEnv(ThreadPool threadPool,
                     DocTableInfo table,
                     ClusterState clusterState,
-                    Version indexVersion,
-                    Path tempDir) throws IOException {
+                    Version indexVersion) throws IOException {
         String indexName = table.ident().indexNameOrAlias();
         assert clusterState.metadata().hasIndex(indexName) : "ClusterState must contain the index: " + indexName;
 
+        Path tempDir = CrateLuceneTestCase.createTempDir();
         Index index = new Index(indexName, UUIDs.randomBase64UUID());
         Settings nodeSettings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, indexVersion)

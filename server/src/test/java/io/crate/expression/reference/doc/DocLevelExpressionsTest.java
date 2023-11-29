@@ -66,8 +66,7 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
                 .iterator()
                 .next(),
             clusterService.state(),
-            Version.CURRENT,
-            createTempDir()
+            Version.CURRENT
         );
         IndexWriter writer = indexEnv.writer();
         insertValues(writer);

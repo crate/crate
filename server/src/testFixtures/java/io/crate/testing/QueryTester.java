@@ -25,7 +25,6 @@ import static java.util.Objects.requireNonNull;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -80,13 +79,12 @@ public final class QueryTester implements AutoCloseable {
         private final IndexEnv indexEnv;
         private final LuceneQueryBuilder queryBuilder;
 
-        public Builder(Path tempDir,
-                       ThreadPool threadPool,
+        public Builder(ThreadPool threadPool,
                        ClusterService clusterService,
                        Version indexVersion,
                        String createTableStmt,
                        AbstractModule... additionalModules) throws IOException {
-            this(tempDir,
+            this(
                 threadPool,
                 clusterService,
                 indexVersion,
@@ -97,8 +95,7 @@ public final class QueryTester implements AutoCloseable {
                 additionalModules);
         }
 
-        public Builder(Path tempDir,
-                       ThreadPool threadPool,
+        public Builder(ThreadPool threadPool,
                        ClusterService clusterService,
                        Version indexVersion,
                        String createTableStmt,
@@ -119,8 +116,7 @@ public final class QueryTester implements AutoCloseable {
                 threadPool,
                 table,
                 clusterService.state(),
-                indexVersion,
-                tempDir
+                indexVersion
             );
             queryBuilder = new LuceneQueryBuilder(plannerContext.nodeContext());
             var docTableRelation = new DocTableRelation(table);

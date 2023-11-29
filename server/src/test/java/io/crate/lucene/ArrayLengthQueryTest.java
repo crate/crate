@@ -49,7 +49,6 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUpTester() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
@@ -264,7 +263,6 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             );
 
             try (QueryTester tester = new QueryTester.Builder(
-                createTempDir(),
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
