@@ -40,7 +40,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
+public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_unique";
 
