@@ -444,8 +444,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stringNotAnalyzed.defaultExpression()).isLiteral("default");
 
         Reference stringAnalyzed = table.getReference(new ColumnIdent("stringAnalyzed"));
+        assertThat(stringAnalyzed).isExactlyInstanceOf(IndexReference.class);
         assertThat(stringAnalyzed.indexType()).isEqualTo(IndexType.FULLTEXT);
         assertThat(stringAnalyzed.defaultExpression()).isLiteral("default");
+        assertThat(((IndexReference) stringAnalyzed).analyzer()).isEqualTo("standard");
 
         Reference integerWithCast = table.getReference(new ColumnIdent("integerWithCast"));
         assertThat(integerWithCast.indexType()).isEqualTo(IndexType.PLAIN);
