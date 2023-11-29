@@ -26,10 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.ObjectAssert;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Aggregation;
@@ -43,6 +42,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
@@ -114,6 +114,12 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
     public ReferenceAssert isReference() {
         isNotNull();
         isInstanceOf(Reference.class);
+        return new ReferenceAssert((Reference) actual);
+    }
+
+    public ReferenceAssert isIndexReference() {
+        isNotNull();
+        isExactlyInstanceOf(IndexReference.class);
         return new ReferenceAssert((Reference) actual);
     }
 

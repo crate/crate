@@ -739,7 +739,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public Metadata.Builder writeTo(CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService,
                                     Metadata metadata,
                                     Metadata.Builder metadataBuilder) throws IOException {
-        List<Reference> allColumns = Stream.concat(references.values().stream(), droppedColumns.stream())
+        List<Reference> allColumns = Stream.concat(
+                Stream.concat(
+                    droppedColumns.stream(),
+                    indexColumns.values().stream()
+                ),
+                references.values().stream()
+            )
             .filter(ref -> !ref.column().isSystemColumn())
             .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
             .toList();

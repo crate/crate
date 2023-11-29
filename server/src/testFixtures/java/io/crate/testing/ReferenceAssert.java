@@ -21,13 +21,15 @@
 
 package io.crate.testing;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.assertj.core.api.AbstractAssert;
+
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
-import org.assertj.core.api.AbstractAssert;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class ReferenceAssert extends AbstractAssert<ReferenceAssert, Reference> {
 
@@ -77,5 +79,10 @@ public class ReferenceAssert extends AbstractAssert<ReferenceAssert, Reference> 
         return this;
     }
 
+    public ReferenceAssert hasAnalyzer(String analyzer) {
+        isExactlyInstanceOf(IndexReference.class);
+        assertThat(((IndexReference) actual).analyzer()).isEqualTo(analyzer);
+        return this;
+    }
 
 }
