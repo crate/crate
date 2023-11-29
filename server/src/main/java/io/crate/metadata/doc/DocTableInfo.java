@@ -689,12 +689,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ColumnIdent parent = columnIdent.getParent();
             if (parent != null) {
                 Reference parentRef = references.get(parent);
-                DataType<?> parentType = parentRef.valueType();
-                int dimensions = ArrayType.dimensions(parentType);
-                DataType<?> parentTypeElement = ArrayType.unnest(parentType);
-                ObjectType newObjectType = ((ObjectType) parentTypeElement)
-                    .withoutChild(columnIdent.leafName());
-                DataType<?> newParentType = ArrayType.makeArray(newObjectType, dimensions);
+                DataType<?> newParentType = ArrayType.updateLeaf(
+                    parentRef.valueType(),
+                    leaf -> ((ObjectType) leaf).withoutChild(columnIdent.leafName())
+                );
                 Reference updatedParent = parentRef.withValueType(newParentType);
                 newReferences.replace(parent, updatedParent);
                 changedReferences.put(parentRef, updatedParent);
