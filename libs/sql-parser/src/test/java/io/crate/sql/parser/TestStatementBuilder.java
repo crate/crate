@@ -1984,6 +1984,18 @@ public class TestStatementBuilder {
             .hasMessage("line 1:30: mismatched input 'add' expecting 'DROP'");
     }
 
+    @Test
+    public void test_like_with_pattern_as_a_c_style_string() {
+        printStatement("select 'TextToMatch' LIKE E'Te\\%tch'");
+        printStatement("select 'TextToMatch' NOT LIKE E'Te\\%tch'");
+        printStatement("select 'TextToMatch' ILIKE E'te\\%tch'");
+        printStatement("select 'TextToMatch' NOT ILIKE E'te\\%tch'");
+        printStatement("select 'TextToMatch' LIKE ANY (array[E'Te\\%tch'])");
+        printStatement("select 'TextToMatch' NOT LIKE ANY (array[E'Te\\%tch'])");
+        printStatement("select 'TextToMatch' ILIKE ANY (array[E'te\\%tch'])");
+        printStatement("select 'TextToMatch' NOT ILIKE ANY (array[E'te\\%tch'])");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
