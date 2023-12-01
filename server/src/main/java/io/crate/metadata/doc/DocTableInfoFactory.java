@@ -232,7 +232,6 @@ public class DocTableInfoFactory {
             assert reference != null : "Column present in generatedColumns must exist";
             GeneratedReference generatedRef = new GeneratedReference(
                 reference,
-                generatedExpressionStr,
                 generatedExpression
             );
             references.put(column, generatedRef);
