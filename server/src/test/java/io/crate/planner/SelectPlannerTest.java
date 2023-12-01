@@ -863,7 +863,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = e.logicalPlan("select 1 from t_pk_part_generated where ts = 0");
         assertThat(plan).isEqualTo(
-            "Get[doc.t_pk_part_generated | 1 | DocKeys{0::bigint, 0::bigint} | ((ts = 0::bigint) AND (p AS date_trunc('day', ts) = 0::bigint))]"
+            "Get[doc.t_pk_part_generated | 1 | DocKeys{0::bigint, 0::bigint} | ((ts = 0::bigint) AND (p = 0::bigint))]"
         );
     }
 

@@ -181,7 +181,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from partdatebin where ts > '2023-05-01'");
         assertThat(query.query()).isSQL(
-            "((doc.partdatebin.ts > 1682899200000::bigint) AND (month AS date_bin('P28D'::interval, ts, 0::bigint) >= 1681344000000::bigint))"
+            "((doc.partdatebin.ts > 1682899200000::bigint) AND (month >= 1681344000000::bigint))"
         );
     }
 }

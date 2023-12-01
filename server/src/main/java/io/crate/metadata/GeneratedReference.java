@@ -179,12 +179,12 @@ public class GeneratedReference implements Reference {
 
     @Override
     public String toString() {
-        return toString(Style.UNQUALIFIED);
+        return column().quotedOutputName() + " AS " + formattedGeneratedExpression;
     }
 
     @Override
     public String toString(Style style) {
-        return column().quotedOutputName() + " AS " + formattedGeneratedExpression;
+        return column().quotedOutputName();
     }
 
     @Override
