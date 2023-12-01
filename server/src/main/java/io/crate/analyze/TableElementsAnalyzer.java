@@ -333,7 +333,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     }
                     return x;
                 });
-                ref = new GeneratedReference(ref, generated.toString(Style.UNQUALIFIED), generated);
+                ref = new GeneratedReference(ref, generated);
             }
 
             builtReference = ref;

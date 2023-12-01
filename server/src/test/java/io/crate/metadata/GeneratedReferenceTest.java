@@ -66,7 +66,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         String formattedGeneratedExpression = "concat(a, 'bar')";
         SimpleReference simpleRef = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
         Symbol generatedExpression = expressions.normalize(executor.asSymbol(formattedGeneratedExpression));
-        GeneratedReference generatedReferenceInfo = new GeneratedReference(simpleRef, formattedGeneratedExpression, generatedExpression);
+        GeneratedReference generatedReferenceInfo = new GeneratedReference(simpleRef, generatedExpression);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(out, generatedReferenceInfo);
@@ -91,7 +91,6 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         Symbol dateTrunc = executor.asSymbol("date_trunc('year', a::timestamp)");
         var generatedReference = new GeneratedReference(
             simpleRef,
-            "date_trunc('year', a::timestamp)",
             dateTrunc
         );
         Symbol cast = generatedReference.cast(DataTypes.STRING, CastMode.EXPLICIT);

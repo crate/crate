@@ -54,9 +54,13 @@ public class GeneratedReference implements Reference {
     private final Symbol generatedExpression;
     private final List<Reference> referencedReferences;
 
-    public GeneratedReference(Reference ref,
-                              String formattedGeneratedExpression,
-                              Symbol generatedExpression) {
+    public GeneratedReference(Reference ref, Symbol generatedExpression) {
+        this(ref, generatedExpression.toString(Style.UNQUALIFIED),generatedExpression);
+    }
+
+    private GeneratedReference(Reference ref,
+                               String formattedGeneratedExpression,
+                               Symbol generatedExpression) {
         assert generatedExpression != null : "GeneratedExpression is required";
         assert generatedExpression.valueType().equals(ref.valueType())
             : "The type of the generated expression must match the valueType of the `GeneratedReference`";
@@ -163,8 +167,7 @@ public class GeneratedReference implements Reference {
             return false;
         }
         GeneratedReference that = (GeneratedReference) o;
-        return Objects.equals(formattedGeneratedExpression, that.formattedGeneratedExpression) &&
-               Objects.equals(generatedExpression, that.generatedExpression) &&
+        return Objects.equals(generatedExpression, that.generatedExpression) &&
                Objects.equals(referencedReferences, that.referencedReferences) &&
                Objects.equals(ref, that.ref);
     }
