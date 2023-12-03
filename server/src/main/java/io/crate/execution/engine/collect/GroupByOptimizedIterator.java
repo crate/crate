@@ -132,7 +132,7 @@ final class GroupByOptimizedIterator {
             return null; // group by on non-reference
         }
         keyRef = (Reference) DocReferences.inverseSourceLookup(keyRef);
-        MappedFieldType keyFieldType = fieldTypeLookup.get(keyRef.column().fqn());
+        MappedFieldType keyFieldType = fieldTypeLookup.get(keyRef.storageIdent());
         if (keyFieldType == null || !keyFieldType.hasDocValues()) {
             return null;
         }
@@ -181,7 +181,7 @@ final class GroupByOptimizedIterator {
         return getIterator(
             bigArrays,
             searcher.item(),
-            keyRef.column().fqn(),
+            keyRef.storageIdent(),
             aggregations,
             expressions,
             aggExpressions,
