@@ -70,6 +70,20 @@ If you want to attach a debugger to the instance, you'd have to enable the debug
 Then create an "Attach" configuration in your IDE or editor. If using Visual
 Studio Code you can use the pre-defined "Attach to CrateDB" configuration.
 
+Using an IDE
+============
+
+`IntelliJ IDEA`_ will pick up project structure from the maven poms, but you will need to configure
+the 'crate-libs-sql-parser' generated sources manually, due to an `IDE bug`_.  First, build the
+sources outside of your IDE:
+
+    ./mvnw clean install -DskipTests=true
+
+Then import the project into your IDE, go to Project Settings / Modules / crate-libs-sql-parser and
+mark '>target/generated-sources/antlr' as a Source Folder.
+
+Finally, run a `git clean` to remove pointless IntelliJ file changes to checked in config files
+
 Running Tests
 =============
 
@@ -77,7 +91,7 @@ Refer to `Tests cheatsheet <tests.rst>`_.
 
 
 Checkstyle
-----------
+==========
 
 If you use IntelliJ, there is a Checkstyle plugin available which lets you check
 Checkstyle compliance from within the IDE.
@@ -91,7 +105,7 @@ To run checkstyle with maven, use::
     ./mvnw compile checkstyle:checkstyle
 
 Test Coverage
---------------
+=============
 
 You can create test coverage reports with `jacoco`_ by running::
 
@@ -102,7 +116,7 @@ The test coverage report (in HTML) can then be found in
 
 
 Forbidden APIs
---------------
+==============
 
 To run the `Forbidden APIs`_ tool::
 
@@ -148,6 +162,7 @@ to reset everything and re-compile::
 .. _hosted OpenJDK archives on Crate.io CDN: https://cdn.crate.io/downloads/openjdk/
 .. _IDE integration: https://github.com/crate/crate/blob/master/devs/docs/basics.rst#using-an-ide
 .. _IntelliJ IDEA: https://www.jetbrains.com/idea/
+.. _IDE bug: https://youtrack.jetbrains.com/issue/IDEA-267558/Project-generated-sources-not-marked-automatically-instead-it-marks-annotations-folder-as-generated-sources.-So-I-have-to-go-to
 .. _jacoco: http://www.eclemma.org/jacoco/
 .. _Java: http://www.java.com/
 .. _logging documentation: https://crate.io/docs/en/stable/configuration.html#logging
