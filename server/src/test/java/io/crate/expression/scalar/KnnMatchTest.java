@@ -47,7 +47,6 @@ public class KnnMatchTest extends ScalarTestCase {
     public void test_knn_query_builder() throws Exception {
         String createTable = "create table tbl (x float_vector(4))";
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,

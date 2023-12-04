@@ -228,7 +228,7 @@
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>4.9.0</versions.mockito>
-    <versions.jdbc>42.6.0</versions.jdbc>
+    <versions.jdbc>42.7.0</versions.jdbc>
     <versions.jsonassert>1.5.1</versions.jsonassert>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>

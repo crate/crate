@@ -21,7 +21,7 @@
 
 package io.crate.lucene;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -82,7 +82,6 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_NumTermsPerDocQuery_maps_column_idents_to_oids() throws Exception {
         final long oid = 123;
         try (QueryTester tester = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,

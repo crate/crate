@@ -1,16 +1,10 @@
 .. _version_5.4.6:
 
-==========================
-Version 5.4.6 - Unreleased
-==========================
+=============
+Version 5.4.6
+=============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.4.6 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2023-11-30.
 
 .. NOTE::
 
@@ -46,8 +40,8 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that caused queries with a ``NOT`` expression in the where
-  clause to fail on evaluation ``NULL`` correctly.
+- Fixed an issue that caused queries with a ``NOT`` expression in the
+  ``WHERE`` clause to fail evaluating ``NULL`` correctly.
 
 - Fixed an issue that caused the value for generated primary key columns to
   evaluate to ``NULL`` in ``INSERT INTO .. ON CONFLICT`` statements if the
@@ -62,7 +56,7 @@ Fixes
   combination is not supported instead of running into a ``ClassCastException``.
 
 - Fixed an issue that caused queries with a ``NOT (a AND b)`` expression
-  in the where-clause to not evaluate correctly with null values.
+  in the ``WHERE`` clause to not evaluate correctly with ``NULL`` values.
 
 - Fixed an issue that caused queries with a ``NOT`` or ``!=`` on a ``CASE``
   expression containing a nullable column to exclude ``NULL`` entries.

@@ -21,23 +21,60 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.AbstractJoinPlan;
-import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Capture;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
-
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
 
 import java.util.function.Function;
 
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.AbstractJoinPlan;
+import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.matcher.Capture;
+import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.sql.tree.JoinType;
+
+/**
+ * Splits the given filter and pushes the split filters down to preserved sides of the joins.
+ * Note: a side is preserved, if the join returns all or a subset of the rows from the side and
+ * non-preserved, if it can provide extra null rows.
+ * Preserved sides:
+ *      LHS of LEFT join
+ *      RHS of RIGHT join
+ *      neither sides of FULL join
+ *      both sides of CROSS and INNER joins.
+ * <p>
+ * Below example describes how this rule and {@link RewriteFilterOnOuterJoinToInnerJoin} work together:
+ * cr> create table t1 (x int);
+ * CREATE OK, 1 row affected  (2.083 sec)
+ * cr> create table t2 (x int);
+ * CREATE OK, 1 row affected  (1.785 sec)
+ * cr> explain verbose select * from t1 left join t2 on t1.x = t2.x where t1.x > 1 and t2.x > 1;
+ * +------------------------------------------------------+------------------------------------------------------+
+ * | STEP                                                 | QUERY PLAN                                           |
+ * +------------------------------------------------------+------------------------------------------------------+
+ * | Initial logical plan                                 | Filter[((x > 1) AND (x > 1))] (rows=0)               |
+ * |                                                      |   └ Join[LEFT | (x = x)] (rows=unknown)              |
+ * |                                                      |     ├ Collect[doc.t1 | [x] | true] (rows=unknown)    |
+ * |                                                      |     └ Collect[doc.t2 | [x] | true] (rows=unknown)    |
+ * | optimizer_move_filter_beneath_join                   | Filter[(x > 1)] (rows=0)                             | <-- MoveFilterBeneathJoin splits the filter and pushes down to preserved sides of the joins.
+ * |                                                      |   └ Join[LEFT | (x = x)] (rows=unknown)              |
+ * |                                                      |     ├ Filter[(x > 1)] (rows=0)                       |
+ * |                                                      |     │  └ Collect[doc.t1 | [x] | true] (rows=unknown) |
+ * |                                                      |     └ Collect[doc.t2 | [x] | true] (rows=unknown)    |
+ * | optimizer_rewrite_filter_on_outer_join_to_inner_join | Join[INNER | (x = x)] (rows=unknown)                 | <-- RewriteFilterOnOuterJoinToInnerJoin pushes down (t2.x > 1) and LEFT join is re-written to INNER join.
+ * |                                                      |   ├ Filter[(x > 1)] (rows=0)                         |
+ * |                                                      |   │  └ Collect[doc.t1 | [x] | true] (rows=unknown)   |
+ * |                                                      |   └ Filter[(x > 1)] (rows=0)                         |
+ * |                                                      |     └ Collect[doc.t2 | [x] | true] (rows=unknown)    |
+ * <p>
+ * See {@link MoveFilterBeneathJoinTest} for more examples.
+ */
 public final class MoveFilterBeneathJoin implements Rule<Filter> {
 
     private final Capture<AbstractJoinPlan> joinCapture;
@@ -49,9 +86,7 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
             .with(source(),
                   typeOf(AbstractJoinPlan.class)
                       .capturedAs(joinCapture)
-                      // Can't apply this on OUTER JOINs as outer join actively produce new null rows
-                      // We need to run the filter on top of these null rows to produce the correct results
-                      .with(join -> !join.joinType().isOuter())
+                      .with(join -> join.joinType() != JoinType.FULL)
             );
     }
 

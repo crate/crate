@@ -80,7 +80,6 @@ public class AnyEqOperatorTest extends ScalarTestCase {
     @Test
     public void test_uses_terms_query_for_unnested_array_refs() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,

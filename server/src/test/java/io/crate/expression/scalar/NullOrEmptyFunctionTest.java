@@ -40,7 +40,6 @@ public class NullOrEmptyFunctionTest extends ScalarTestCase {
         assertEvaluate("null_or_empty({})", true);
 
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
@@ -65,7 +64,6 @@ public class NullOrEmptyFunctionTest extends ScalarTestCase {
         assertEvaluate("null_or_empty([])", true);
 
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,

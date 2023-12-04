@@ -125,7 +125,6 @@ public class EqOperatorTest extends ScalarTestCase {
             resetClusterService();
 
             try (QueryTester tester = new QueryTester.Builder(
-                createTempDir(),
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
@@ -155,7 +154,6 @@ public class EqOperatorTest extends ScalarTestCase {
     @Test
     public void test_terms_query_on_empty_object() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,

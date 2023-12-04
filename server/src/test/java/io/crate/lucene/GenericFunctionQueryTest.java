@@ -38,7 +38,6 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_generic_function_query_cannot_be_cached_with_un_deterministic_functions_present() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
@@ -56,7 +55,6 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_generic_function_query_can_be_cached_if_deterministic() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
