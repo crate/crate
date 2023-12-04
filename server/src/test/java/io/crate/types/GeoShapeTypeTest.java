@@ -21,26 +21,23 @@
 
 package io.crate.types;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.GeoJSONUtilsTest;
 
-public class GeoShapeTypeTest extends ESTestCase {
+public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     private static final List<String> WKT = List.of(
         "multipolygon empty",
@@ -54,6 +51,13 @@ public class GeoShapeTypeTest extends ESTestCase {
         "point ( 10.05  10.28 )",
         "multipoint (10 10, 20 20)"
     );
+
+    private GeoShapeType type = GeoShapeType.INSTANCE;
+
+    @Override
+    public DataType<Map<String, Object>> getType() {
+        return type;
+    }
 
     private static Map<String, Object> parse(String json) {
         try {
@@ -111,23 +115,6 @@ public class GeoShapeTypeTest extends ESTestCase {
               "  }")
     );
 
-    private GeoShapeType type = GeoShapeType.INSTANCE;
-
-    @Test
-    public void testStreamer() throws Exception {
-        for (Map<String, Object> geoJSON : GEO_JSON) {
-            Map<String, Object> value = type.implicitCast(geoJSON);
-
-            BytesStreamOutput out = new BytesStreamOutput();
-            type.streamer().writeValueTo(out, value);
-            StreamInput in = out.bytes().streamInput();
-            Map<String, Object> streamedValue = type.readValueFrom(in);
-
-            assertThat(streamedValue.size()).isEqualTo(value.size());
-            assertThat(streamedValue.get("type")).isEqualTo(value.get("type"));
-            assertThat(streamedValue.get("coordinates")).isEqualTo(value.get("coordinates"));
-        }
-    }
 
     @Test
     public void testCompareValueTo() throws Exception {
