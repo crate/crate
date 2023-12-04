@@ -30,12 +30,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -59,7 +62,11 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.DropColumn;
 import io.crate.analyze.NumberOfReplicas;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
@@ -72,8 +79,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -87,8 +96,10 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
@@ -678,12 +689,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ColumnIdent parent = columnIdent.getParent();
             if (parent != null) {
                 Reference parentRef = references.get(parent);
-                DataType<?> parentType = parentRef.valueType();
-                int dimensions = ArrayType.dimensions(parentType);
-                DataType<?> parentTypeElement = ArrayType.unnest(parentType);
-                ObjectType newObjectType = ((ObjectType) parentTypeElement)
-                    .withoutChild(columnIdent.leafName());
-                DataType<?> newParentType = ArrayType.makeArray(newObjectType, dimensions);
+                DataType<?> newParentType = ArrayType.updateLeaf(
+                    parentRef.valueType(),
+                    leaf -> ((ObjectType) leaf).withoutChild(columnIdent.leafName())
+                );
                 Reference updatedParent = parentRef.withValueType(newParentType);
                 newReferences.replace(parent, updatedParent);
                 changedReferences.put(parentRef, updatedParent);
@@ -756,7 +765,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 pKeyIndices.add(idx);
             }
         }
-        Map<String, String> checkConstraintMap = HashMap.newHashMap(checkConstraints.size());
+        LinkedHashMap<String, String> checkConstraintMap = LinkedHashMap.newLinkedHashMap(checkConstraints.size());
         for (var check : checkConstraints) {
             checkConstraintMap.put(check.name(), check.expressionStr());
         }
@@ -800,4 +809,137 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
         return metadataBuilder;
     }
+
+    private boolean addNewReferences(LongSupplier acquireOid,
+                                     AtomicInteger positions,
+                                     HashMap<ColumnIdent, Reference> newReferences,
+                                     HashMap<ColumnIdent, List<Reference>> tree,
+                                     @Nullable ColumnIdent node) {
+        List<Reference> children = tree.get(node);
+        if (children == null) {
+            return false;
+        }
+        boolean addedColumn = false;
+        for (Reference newRef : children) {
+            ColumnIdent newColumn = newRef.column();
+            Reference exists = getReference(newColumn);
+            if (exists == null) {
+                addedColumn = true;
+                newReferences.put(newColumn, newRef.withOidAndPosition(acquireOid, positions::incrementAndGet));
+            } else if (exists.valueType().id() != newRef.valueType().id()) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
+                    newColumn,
+                    exists.valueType().getName(),
+                    newRef.valueType().getName()));
+            }
+            boolean addedChildren = addNewReferences(acquireOid, positions, newReferences, tree, newColumn);
+            addedColumn = addedColumn || addedChildren;
+        }
+        return addedColumn;
+    }
+
+    private List<Reference> addMissingParents(List<Reference> columns) {
+        ArrayList<Reference> result = new ArrayList<>(columns);
+        for (Reference ref : columns) {
+            for (ColumnIdent parent : ref.column().parents()) {
+                if (!Symbols.containsColumn(result, parent)) {
+                    Reference parentRef = getReference(parent);
+                    if (parentRef == null) {
+                        throw new UnsupportedOperationException(
+                            "Cannot create parents of new column implicitly. `" + parent + "` is undefined");
+                    }
+                    result.add(parentRef);
+                }
+            }
+        }
+        return result;
+    }
+
+    public DocTableInfo addColumns(NodeContext nodeCtx,
+                                   LongSupplier acquireOid,
+                                   List<Reference> newColumns,
+                                   IntArrayList pKeyIndices,
+                                   Map<String, String> newCheckConstraints) {
+        HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
+        droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
+        int maxPosition = maxPosition();
+        AtomicInteger positions = new AtomicInteger(maxPosition);
+        List<Reference> newColumnsWithParents = addMissingParents(newColumns);
+        HashMap<ColumnIdent, List<Reference>> tree = Reference.buildTree(newColumnsWithParents);
+        boolean addedColumn = addNewReferences(acquireOid, positions, newReferences, tree, null);
+        if (!addedColumn) {
+            return this;
+        }
+        for (Reference newRef : newColumns) {
+            ColumnIdent newColumn = newRef.column();
+            ColumnIdent parent = newColumn.getParent();
+            if (parent == null || Reference.indexOf(newColumns, parent) >= 0) {
+                continue;
+            }
+            Reference parentRef = newReferences.get(parent);
+            assert parentRef != null : "Parent reference must exist for:" + newColumn;
+            DataType<?> newParentType = ArrayType.updateLeaf(
+                parentRef.valueType(),
+                leaf -> ((ObjectType) leaf).withChild(newColumn.leafName(), newRef.valueType())
+            );
+            Reference updatedParentRef = parentRef.withValueType(newParentType);
+            newReferences.replace(parent, updatedParentRef);
+        }
+        List<ColumnIdent> newPrimaryKeys;
+        if (pKeyIndices.isEmpty()) {
+            newPrimaryKeys = primaryKeys;
+        } else {
+            newPrimaryKeys = new ArrayList<>(primaryKeys);
+            for (var cursor : pKeyIndices) {
+                int pkIndex = cursor.value;
+                Reference pkColumn = newColumns.get(pkIndex);
+                newPrimaryKeys.add(pkColumn.column());
+            }
+        }
+        List<CheckConstraint<Symbol>> newChecks;
+        if (newCheckConstraints.isEmpty()) {
+            newChecks = checkConstraints;
+        } else {
+            newChecks = new ArrayList<>(checkConstraints);
+            CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                txnCtx,
+                nodeCtx,
+                ParamTypeHints.EMPTY,
+                new TableReferenceResolver(newReferences, ident),
+                null
+            );
+            var expressionAnalysisContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+            for (var entry : newCheckConstraints.entrySet()) {
+                String name = entry.getKey();
+                String expressionStr = entry.getValue();
+                Expression expression = SqlParser.createExpression(expressionStr);
+                Symbol expressionSymbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+                newChecks.add(new CheckConstraint<Symbol>(name, expressionSymbol, expressionStr));
+            }
+        }
+        return new DocTableInfo(
+            ident,
+            newReferences,
+            indexColumns,
+            analyzers,
+            pkConstraintName,
+            newPrimaryKeys,
+            newChecks,
+            clusteredBy,
+            concreteIndices,
+            concreteOpenIndices,
+            tableParameters,
+            partitionedBy,
+            partitions,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations
+        );
+    }
+
 }

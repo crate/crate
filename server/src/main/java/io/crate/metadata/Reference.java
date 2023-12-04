@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -89,7 +90,7 @@ public interface Reference extends Symbol {
 
     Reference withReferenceIdent(ReferenceIdent referenceIdent);
 
-    Reference withColumnOid(LongSupplier oidSupplier);
+    Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition);
 
     Reference withDropped(boolean dropped);
 
