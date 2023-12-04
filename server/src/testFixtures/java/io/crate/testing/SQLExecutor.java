@@ -31,12 +31,13 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOC
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,8 +52,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 import java.util.stream.Stream;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
@@ -71,6 +70,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
@@ -132,6 +132,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexParts;
@@ -189,8 +190,6 @@ import io.crate.user.UserManager;
  * Can be used for unit-tests tests which don't require the full execution-layer/nodes to be started.
  */
 public class SQLExecutor {
-
-    private static final Logger LOGGER = LogManager.getLogger(SQLExecutor.class);
 
     public final Sessions sqlOperations;
     public final Analyzer analyzer;
@@ -277,10 +276,10 @@ public class SQLExecutor {
             nodeCtx = createNodeContext(additionalModules);
             DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
-            File homeDir = createTempDir();
+            Path homeDir = CrateLuceneTestCase.createTempDir();
             Environment environment = new Environment(
-                Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.getAbsolutePath()).build(),
-                homeDir.toPath().resolve("config")
+                Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.toAbsolutePath()).build(),
+                homeDir.resolve("config")
             );
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
@@ -438,21 +437,6 @@ public class SQLExecutor {
             );
         }
 
-        private static File createTempDir() {
-            int attempt = 0;
-            while (attempt < 3) {
-                try {
-                    attempt++;
-                    File tempDir = File.createTempFile("temp", Long.toString(System.nanoTime()));
-                    tempDir.deleteOnExit();
-                    return tempDir;
-                } catch (IOException e) {
-                    LOGGER.warn("Unable to create temp dir on attempt {} due to {}", attempt, e.getMessage());
-                }
-            }
-            throw new IllegalStateException("Cannot create temp dir");
-        }
-
         public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
             return addPartitionedTable(createTableStmt, Settings.EMPTY, partitions);
         }
@@ -570,6 +554,18 @@ public class SQLExecutor {
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
+            return this;
+        }
+
+        public Builder startShards(String... indices) {
+            var clusterState = clusterService.state();
+            for (var index : indices) {
+                var indexName = new IndexParts(index).toRelationName().indexNameOrAlias();
+                final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, INITIALIZING);
+                clusterState = allocationService.applyStartedShards(clusterState, startedShards);
+            }
+            clusterState = allocationService.reroute(clusterState, "reroute after starting");
+            ClusterServiceUtils.setState(clusterService, clusterState);
             return this;
         }
 

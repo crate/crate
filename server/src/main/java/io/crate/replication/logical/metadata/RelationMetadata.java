@@ -24,8 +24,7 @@ package io.crate.replication.logical.metadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Predicate;
 
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -35,6 +34,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -58,7 +58,7 @@ public record RelationMetadata(RelationName name,
         out.writeOptionalWriteable(template);
     }
 
-    public static RelationMetadata fromMetadata(RelationName table, Metadata metadata) {
+    public static RelationMetadata fromMetadata(RelationName table, Metadata metadata, Predicate<String> filter) {
         String indexNameOrAlias = table.indexNameOrAlias();
         var indexMetadata = metadata.index(indexNameOrAlias);
         if (indexMetadata == null) {
@@ -71,7 +71,9 @@ public record RelationMetadata(RelationName name,
             );
             ArrayList<IndexMetadata> indicesMetadata = new ArrayList<>(concreteIndices.length);
             for (String concreteIndex : concreteIndices) {
-                indicesMetadata.add(metadata.index(concreteIndex));
+                if (filter.test(concreteIndex)) {
+                    indicesMetadata.add(metadata.index(concreteIndex));
+                }
             }
             return new RelationMetadata(table, indicesMetadata, templateMetadata);
         }

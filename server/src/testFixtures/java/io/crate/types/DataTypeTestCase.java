@@ -24,6 +24,7 @@ package io.crate.types;
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -88,8 +89,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                 THREAD_POOL,
                 table,
                 clusterService.state(),
-                Version.CURRENT,
-                createTempDir())) {
+                Version.CURRENT)) {
             T value = dataGenerator.get();
 
             MapperService mapperService = indexEnv.mapperService();

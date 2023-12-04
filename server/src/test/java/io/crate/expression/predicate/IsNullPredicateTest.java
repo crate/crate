@@ -60,8 +60,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 THREAD_POOL,
                 table,
                 clusterService.state(),
-                Version.CURRENT,
-                createTempDir())) {
+                Version.CURRENT)) {
             Context context = luceneQueryBuilder.convert(
                 query,
                 txnCtx,
@@ -92,8 +91,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
             THREAD_POOL,
             table,
             clusterService.state(),
-            Version.CURRENT,
-            createTempDir())) {
+            Version.CURRENT)) {
             Query query = luceneQueryBuilder.convert(
                 sqlExpressions.asSymbol("obj_ignored['x'] is NULL"),
                 txnCtx,

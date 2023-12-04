@@ -52,7 +52,6 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     private QueryTester.Builder getBuilder(String createStatement) throws IOException {
         return new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
@@ -235,7 +234,6 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
             String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.STRICT, null));
             String stmt = "create table tbl (id int primary key, x " + typeDefinition + " storage with (columnstore = false))";
             QueryTester.Builder builder = new QueryTester.Builder(
-                createTempDir(),
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,

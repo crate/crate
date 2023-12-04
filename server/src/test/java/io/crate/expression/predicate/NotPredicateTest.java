@@ -60,7 +60,6 @@ public class NotPredicateTest extends ScalarTestCase {
     @Test
     public void test_not_on_case_uses_strict_3vl() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,

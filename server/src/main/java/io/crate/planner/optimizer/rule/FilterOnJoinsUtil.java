@@ -21,7 +21,12 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static java.util.Objects.requireNonNullElse;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
@@ -32,13 +37,7 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
-
-import org.jetbrains.annotations.Nullable;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import io.crate.sql.tree.JoinType;
 
 final class FilterOnJoinsUtil {
 
@@ -56,69 +55,74 @@ final class FilterOnJoinsUtil {
                 getNewSource(query, join.rhs())
             ));
         }
-        Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);
-        int initialParts = splitQuery.size();
-        if (splitQuery.size() == 1 && splitQuery.keySet().iterator().next().size() > 1) {
+        Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
+        final int initialParts = splitQueries.size();
+        if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
         LogicalPlan lhs = join.lhs();
         LogicalPlan rhs = join.rhs();
 
-        LogicalPlan newLhs = null;
-        LogicalPlan newRhs = null;
-
         HashSet<RelationName> lhsRelations = new HashSet<>(lhs.getRelationNames());
         HashSet<RelationName> rhsRelations = new HashSet<>(rhs.getRelationNames());
 
-        Symbol queryForLhs = splitQuery.remove(lhsRelations);
-        Symbol queryForRhs = splitQuery.remove(rhsRelations);
+        Symbol leftQuery = splitQueries.remove(lhsRelations);
+        Symbol rightQuery = splitQueries.remove(rhsRelations);
 
-        if (queryForRhs == null && queryForLhs == null) {
+        if (leftQuery == null && rightQuery == null) {
             // we don't have a match for the filter on rhs/lhs yet
             // let's see if we have partial match with a subsection of the relations
-            var it = splitQuery.entrySet().iterator();
+            var it = splitQueries.entrySet().iterator();
             while (it.hasNext()) {
                 var entry = it.next();
                 var relationNames = entry.getKey();
-                var symbol = entry.getValue();
+                var splitQuery = entry.getValue();
 
                 var matchesLhs = Sets.intersection(lhsRelations, relationNames);
                 var matchesRhs = Sets.intersection(rhsRelations, relationNames);
 
                 if (matchesRhs.isEmpty() == false && matchesLhs.isEmpty()) {
-                    // push filter to rhs
-                    newRhs = getNewSource(symbol, requireNonNullElse(newRhs, rhs));
+                    rightQuery = rightQuery == null ? splitQuery : AndOperator.of(rightQuery, splitQuery);
                     it.remove();
                 } else if (matchesRhs.isEmpty() && matchesLhs.isEmpty() == false) {
-                    // push filter to lhs
-                    newLhs = getNewSource(symbol, requireNonNullElse(newLhs, lhs));
+                    leftQuery = leftQuery == null ? splitQuery : AndOperator.of(leftQuery, splitQuery);
                     it.remove();
                 }
             }
-            if (newLhs == null && newRhs == null) {
-                // no match at all
-                // nothing to change
-                return null;
-            } else if (newLhs == null) {
-                // match on the rhs, lhs remains
-                newLhs = lhs;
-            } else if (newRhs == null) {
-                // match on the lhs, rhs remains
-                newRhs = rhs;
-            }
+        }
+
+        LogicalPlan newLhs = lhs;
+        LogicalPlan newRhs = rhs;
+        var joinType = join.joinType();
+        if (joinType == JoinType.INNER || joinType == JoinType.CROSS) {
+            newLhs = getNewSource(leftQuery, lhs);
+            newRhs = getNewSource(rightQuery, rhs);
         } else {
-            newLhs = getNewSource(queryForLhs, lhs);
-            newRhs = getNewSource(queryForRhs, rhs);
+            if (joinType == JoinType.LEFT) {
+                newLhs = getNewSource(leftQuery, lhs);
+                if (rightQuery != null) {
+                    splitQueries.put(rhsRelations, rightQuery);
+                }
+            } else if (joinType == JoinType.RIGHT) {
+                newRhs = getNewSource(rightQuery, rhs);
+                if (leftQuery != null) {
+                    splitQueries.put(lhsRelations, leftQuery);
+                }
+            }
+        }
+
+        if (newLhs == lhs && newRhs == rhs) {
+            return null;
         }
 
         var newJoin = join.replaceSources(List.of(newLhs, newRhs));
 
-        if (splitQuery.isEmpty()) {
+        if (splitQueries.isEmpty()) {
             return newJoin;
-        } else if (initialParts == splitQuery.size()) {
+        } else if (initialParts == splitQueries.size()) {
             return null;
         } else {
-            return new Filter(newJoin, AndOperator.join(splitQuery.values()));
+            return new Filter(newJoin, AndOperator.join(splitQueries.values()));
         }
     }
 }

@@ -45,7 +45,6 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
     @Before
     public void prepare() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             indexVersion(),

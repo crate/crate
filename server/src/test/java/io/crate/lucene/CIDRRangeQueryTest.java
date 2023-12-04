@@ -62,7 +62,6 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
 
     private void test(Object[] valuesToIndex, String queryStr, Object... expectedResults) throws Throwable {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
