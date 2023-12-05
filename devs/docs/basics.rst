@@ -80,7 +80,7 @@ To import the project into `IntelliJ IDEA`_, first build the sources outside of 
 Then import the project into IntelliJ.  You may need to explicitly reload maven projects
 to ensure that it correctly picks up generated source files from antlr.
 
-Finally, run a `git clean` to remove pointless IntelliJ file changes to checked in config files
+Finally, run a `git clean` to remove pointless IntelliJ file changes to checked in config files.
 
 Running Tests
 =============
