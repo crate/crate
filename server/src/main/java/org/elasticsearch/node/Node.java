@@ -76,7 +76,6 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
-import org.elasticsearch.cluster.metadata.TemplateUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.BatchedRerouteService;
@@ -579,14 +578,15 @@ public class Node implements Closeable {
                     .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
             indexMetadataUpgraders.add(new MetadataIndexUpgrader());
 
-            final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(customMetadataUpgraders,
-                                                                           indexTemplateMetadataUpgraders);
-            final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(settings,
-                                                                                                            xContentRegistry,
-                                                                                                            indicesModule.getMapperRegistry(),
-                                                                                                            settingsModule.getIndexScopedSettings(),
-                                                                                                            indexMetadataUpgraders);
-            new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetadataUpgraders);
+            final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(
+                customMetadataUpgraders,
+                indexTemplateMetadataUpgraders);
+            final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
+                settings,
+                xContentRegistry,
+                indicesModule.getMapperRegistry(),
+                settingsModule.getIndexScopedSettings(),
+                indexMetadataUpgraders);
             final Netty4Transport transport = new Netty4Transport(
                 settings,
                 Version.CURRENT,
@@ -682,6 +682,7 @@ public class Node implements Closeable {
                 clusterModule.getAllocationService(),
                 metadataCreateIndexService,
                 metadataIndexUpgradeService,
+                metadataUpgrader,
                 clusterService.getClusterSettings(),
                 shardLimitValidator
             );
