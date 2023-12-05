@@ -70,6 +70,18 @@ If you want to attach a debugger to the instance, you'd have to enable the debug
 Then create an "Attach" configuration in your IDE or editor. If using Visual
 Studio Code you can use the pre-defined "Attach to CrateDB" configuration.
 
+Using an IDE
+============
+
+To import the project into `IntelliJ IDEA`_, first build the sources outside of your IDE with::
+
+    $ ./mvnw clean install -DskipTests=true
+
+Then import the project into IntelliJ.  You may need to explicitly reload maven projects
+to ensure that it correctly picks up generated source files from antlr.
+
+Finally, run a `git clean` to remove pointless IntelliJ file changes to checked in config files.
+
 Running Tests
 =============
 
@@ -77,7 +89,7 @@ Refer to `Tests cheatsheet <tests.rst>`_.
 
 
 Checkstyle
-----------
+==========
 
 If you use IntelliJ, there is a Checkstyle plugin available which lets you check
 Checkstyle compliance from within the IDE.
@@ -91,7 +103,7 @@ To run checkstyle with maven, use::
     ./mvnw compile checkstyle:checkstyle
 
 Test Coverage
---------------
+=============
 
 You can create test coverage reports with `jacoco`_ by running::
 
@@ -102,7 +114,7 @@ The test coverage report (in HTML) can then be found in
 
 
 Forbidden APIs
---------------
+==============
 
 To run the `Forbidden APIs`_ tool::
 
