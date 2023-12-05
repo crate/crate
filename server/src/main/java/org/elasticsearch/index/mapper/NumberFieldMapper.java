@@ -53,18 +53,17 @@ public class NumberFieldMapper extends FieldMapper {
         FIELD_TYPE.freeze();
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         private final NumberType type;
 
         public Builder(String name, NumberType type) {
             super(name, FIELD_TYPE);
             this.type = type;
-            builder = this;
         }
 
         @Override
-        public Builder indexOptions(IndexOptions indexOptions) {
+        public void indexOptions(IndexOptions indexOptions) {
             throw new MapperParsingException(
                     "index_options not allowed in field [" + name + "] of type [" + type.typeName() + "]");
         }
@@ -95,7 +94,7 @@ public class NumberFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Mapper.Builder<?> parse(String name,
+        public Mapper.Builder parse(String name,
                                        Map<String, Object> node,
                                        ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name, type);

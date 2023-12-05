@@ -92,13 +92,12 @@ public class BitStringFieldMapper extends FieldMapper {
         }
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         private Integer length;
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
-            this.builder = this;
         }
 
         @Override
@@ -125,7 +124,7 @@ public class BitStringFieldMapper extends FieldMapper {
     public static class TypeParser implements Mapper.TypeParser {
 
         @Override
-        public org.elasticsearch.index.mapper.Mapper.Builder<?> parse(
+        public org.elasticsearch.index.mapper.Mapper.Builder parse(
                 String name,
                 Map<String, Object> node,
                 ParserContext parserContext) throws MapperParsingException {

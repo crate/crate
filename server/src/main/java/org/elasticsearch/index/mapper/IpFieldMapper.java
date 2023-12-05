@@ -54,11 +54,10 @@ public class IpFieldMapper extends FieldMapper {
         }
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
-            builder = this;
         }
 
         @Override
@@ -83,7 +82,7 @@ public class IpFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name);
             TypeParsers.parseField(builder, name, node);
             return builder;

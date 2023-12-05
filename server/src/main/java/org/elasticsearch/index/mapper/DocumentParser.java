@@ -399,7 +399,7 @@ final class DocumentParser {
             if (dynamic == ObjectMapper.Dynamic.STRICT) {
                 throw new StrictDynamicMappingException(mapper.fullPath(), currentFieldName);
             } else if (dynamic == ObjectMapper.Dynamic.TRUE) {
-                Mapper.Builder<?> builder = new ObjectMapper.Builder<>(currentFieldName);
+                Mapper.Builder builder = new ObjectMapper.Builder(currentFieldName);
                 builder.position(getPositionEstimate(context));
                 Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
                 objectMapper = builder.build(builderContext);
@@ -537,15 +537,15 @@ final class DocumentParser {
         }
     }
 
-    private static Mapper.Builder<?> newLongBuilder(String name) {
+    private static Mapper.Builder newLongBuilder(String name) {
         return new NumberFieldMapper.Builder(name, NumberFieldMapper.NumberType.LONG);
     }
 
-    private static Mapper.Builder<?> newFloatBuilder(String name) {
+    private static Mapper.Builder newFloatBuilder(String name) {
         return new NumberFieldMapper.Builder(name, NumberFieldMapper.NumberType.FLOAT);
     }
 
-    static Mapper.Builder<?> createBuilderFromDynamicValue(final ParseContext context, XContentParser.Token token, String currentFieldName) throws IOException {
+    static Mapper.Builder createBuilderFromDynamicValue(final ParseContext context, XContentParser.Token token, String currentFieldName) throws IOException {
         if (token == XContentParser.Token.VALUE_STRING) {
             return new KeywordFieldMapper.Builder(currentFieldName);
         } else if (token == XContentParser.Token.VALUE_NUMBER) {
@@ -576,7 +576,7 @@ final class DocumentParser {
             return;
         }
         final Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
-        final Mapper.Builder<?> builder = createBuilderFromDynamicValue(context, token, currentFieldName);
+        final Mapper.Builder builder = createBuilderFromDynamicValue(context, token, currentFieldName);
         builder.position(getPositionEstimate(context));
         Mapper mapper = builder.build(builderContext);
         context.addDynamicMapper(mapper);
@@ -666,7 +666,7 @@ final class DocumentParser {
                     case STRICT:
                         throw new StrictDynamicMappingException(parent.fullPath(), paths[i]);
                     case TRUE:
-                        Mapper.Builder<?> builder = new ObjectMapper.Builder<>(paths[i]);
+                        Mapper.Builder builder = new ObjectMapper.Builder(paths[i]);
                         builder.position(getPositionEstimate(context));
                         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(),
                             context.path());

@@ -57,26 +57,22 @@ public class ObjectMapper extends Mapper implements Cloneable {
         STRICT
     }
 
-    public static class Builder<T extends Builder<T>> extends Mapper.Builder<T> {
+    public static class Builder extends Mapper.Builder {
 
         protected Dynamic dynamic = DYNAMIC;
 
-        protected final List<Mapper.Builder<?>> mappersBuilders = new ArrayList<>();
+        protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
 
-        @SuppressWarnings("unchecked")
         public Builder(String name) {
             super(name);
-            this.builder = (T) this;
         }
 
-        public T dynamic(Dynamic dynamic) {
+        public void dynamic(Dynamic dynamic) {
             this.dynamic = dynamic;
-            return builder;
         }
 
-        public T add(Mapper.Builder<?> builder) {
+        public void add(Mapper.Builder builder) {
             mappersBuilders.add(builder);
-            return this.builder;
         }
 
         @Override
@@ -85,7 +81,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             context.path().add(pathName);
 
             Map<String, Mapper> mappers = new HashMap<>();
-            for (Mapper.Builder<?> builder : mappersBuilders) {
+            for (Mapper.Builder builder : mappersBuilders) {
                 Mapper mapper = builder.build(context);
                 var name = mapper.simpleName();
                 if (mapper.columnOID() != COLUMN_OID_UNASSIGNED) {
@@ -222,7 +218,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                     String realFieldName = fieldNameParts[fieldNameParts.length - 1];
                     Mapper.Builder fieldBuilder = typeParser.parse(realFieldName, propNode, parserContext);
                     for (int i = fieldNameParts.length - 2; i >= 0; --i) {
-                        ObjectMapper.Builder<?> intermediate = new ObjectMapper.Builder<>(fieldNameParts[i]);
+                        ObjectMapper.Builder intermediate = new ObjectMapper.Builder(fieldNameParts[i]);
                         intermediate.add(fieldBuilder);
                         fieldBuilder = intermediate;
                     }
