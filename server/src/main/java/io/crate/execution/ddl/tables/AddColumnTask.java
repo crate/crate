@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
 import static io.crate.execution.ddl.tables.MappingUtil.mergeConstraints;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
@@ -51,9 +50,11 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Maps;
+import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -77,7 +78,12 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
     public ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
-
+        for (var ref : request.references()) {
+            IndexReference indexColumn = currentTable.indexColumn(ref.column());
+            if (indexColumn != null) {
+                throw new UnsupportedOperationException("Index column `" + ref.column() + "` already exists");
+            }
+        }
         List<Reference> normalizedColumns = normalizeColumns(request, currentTable);
         if (normalizedColumns == null) {
             return currentState;
