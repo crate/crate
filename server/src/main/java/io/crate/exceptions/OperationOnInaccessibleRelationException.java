@@ -21,18 +21,34 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.RelationName;
-
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
-public class OperationOnInaccessibleRelationException extends RuntimeException implements TableScopeException {
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-    private RelationName relationName;
+import io.crate.metadata.RelationName;
+
+public class OperationOnInaccessibleRelationException extends ElasticsearchException implements TableScopeException {
+
+    private final RelationName relationName;
 
     public OperationOnInaccessibleRelationException(RelationName relationName, String msg) {
         super(msg);
         this.relationName = relationName;
+    }
+
+    public OperationOnInaccessibleRelationException(StreamInput in) throws IOException {
+        super(in);
+        relationName = new RelationName(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        relationName.writeTo(out);
     }
 
     @Override
