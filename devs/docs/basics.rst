@@ -160,7 +160,6 @@ to reset everything and re-compile::
 .. _hosted OpenJDK archives on Crate.io CDN: https://cdn.crate.io/downloads/openjdk/
 .. _IDE integration: https://github.com/crate/crate/blob/master/devs/docs/basics.rst#using-an-ide
 .. _IntelliJ IDEA: https://www.jetbrains.com/idea/
-.. _IDE bug: https://youtrack.jetbrains.com/issue/IDEA-267558/Project-generated-sources-not-marked-automatically-instead-it-marks-annotations-folder-as-generated-sources.-So-I-have-to-go-to
 .. _jacoco: http://www.eclemma.org/jacoco/
 .. _Java: http://www.java.com/
 .. _logging documentation: https://crate.io/docs/en/stable/configuration.html#logging
