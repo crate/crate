@@ -40,11 +40,11 @@ import java.util.Map;
  */
 public class ObjectArrayMapper extends ObjectMapper {
 
-    static class Builder extends ObjectMapper.Builder<Builder> {
+    static class Builder extends ObjectMapper.Builder {
 
-        private final ObjectMapper.Builder<?> innerBuilder;
+        private final ObjectMapper.Builder innerBuilder;
 
-        Builder(String name, ObjectMapper.Builder<?> innerBuilder) {
+        Builder(String name, ObjectMapper.Builder innerBuilder) {
             super(name);
             this.innerBuilder = innerBuilder;
         }

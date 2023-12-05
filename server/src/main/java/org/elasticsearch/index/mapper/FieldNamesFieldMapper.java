@@ -62,7 +62,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    static class Builder extends MetadataFieldMapper.Builder<Builder> {
+    static class Builder extends MetadataFieldMapper.Builder {
         private boolean enabled = Defaults.ENABLED;
 
         public Builder(MappedFieldType existing) {
@@ -84,7 +84,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
         @Override
-        public MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public MetadataFieldMapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             return new Builder(parserContext.mapperService().fieldType(NAME));
         }
 

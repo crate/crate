@@ -39,7 +39,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
     public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
         try {
-            Mapper.Builder<?> innerBuilder = detectInnerMapper(context, name, context.parser());
+            Mapper.Builder innerBuilder = detectInnerMapper(context, name, context.parser());
             if (innerBuilder == null) {
                 return null;
             }
@@ -65,7 +65,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
     }
 
 
-    private static Mapper.Builder<?> detectInnerMapper(ParseContext parseContext,
+    private static Mapper.Builder detectInnerMapper(ParseContext parseContext,
                                                        String fieldName,
                                                        XContentParser parser) throws IOException {
         XContentParser.Token token = parser.currentToken();

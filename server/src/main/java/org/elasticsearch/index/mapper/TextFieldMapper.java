@@ -62,7 +62,7 @@ public class TextFieldMapper extends FieldMapper {
         public static final int POSITION_INCREMENT_GAP = 100;
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         protected NamedAnalyzer indexAnalyzer;
         protected NamedAnalyzer searchAnalyzer;
@@ -72,72 +72,61 @@ public class TextFieldMapper extends FieldMapper {
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
-            builder = this;
         }
 
         @Override
-        public Builder docValues(boolean docValues) {
+        public void docValues(boolean docValues) {
             if (docValues) {
                 throw new IllegalArgumentException("[text] fields do not support doc values");
             }
-            return super.docValues(docValues);
         }
 
-        public Builder indexAnalyzer(NamedAnalyzer indexAnalyzer) {
+        public void indexAnalyzer(NamedAnalyzer indexAnalyzer) {
             this.indexAnalyzer = indexAnalyzer;
-            return builder;
         }
 
-        public Builder searchAnalyzer(NamedAnalyzer searchAnalyzer) {
+        public void searchAnalyzer(NamedAnalyzer searchAnalyzer) {
             this.searchAnalyzer = searchAnalyzer;
-            return builder;
         }
 
-        public Builder searchQuoteAnalyzer(NamedAnalyzer searchQuoteAnalyzer) {
+        public void searchQuoteAnalyzer(NamedAnalyzer searchQuoteAnalyzer) {
             this.searchQuoteAnalyzer = searchQuoteAnalyzer;
-            return builder;
         }
 
-        public Builder omitNorms(boolean omitNorms) {
+        public void omitNorms(boolean omitNorms) {
             this.fieldType.setOmitNorms(omitNorms);
             this.omitNormsSet = true;
-            return builder;
         }
 
-        public Builder storeTermVectors(boolean termVectors) {
+        public void storeTermVectors(boolean termVectors) {
             if (termVectors != this.fieldType.storeTermVectors()) {
                 this.fieldType.setStoreTermVectors(termVectors);
             } // don't set it to false, it is default and might be flipped by a more specific option
-            return builder;
         }
 
-        public Builder storeTermVectorOffsets(boolean termVectorOffsets) {
+        public void storeTermVectorOffsets(boolean termVectorOffsets) {
             if (termVectorOffsets) {
                 this.fieldType.setStoreTermVectors(termVectorOffsets);
             }
             this.fieldType.setStoreTermVectorOffsets(termVectorOffsets);
-            return builder;
         }
 
-        public Builder storeTermVectorPositions(boolean termVectorPositions) {
+        public void storeTermVectorPositions(boolean termVectorPositions) {
             if (termVectorPositions) {
                 this.fieldType.setStoreTermVectors(termVectorPositions);
             }
             this.fieldType.setStoreTermVectorPositions(termVectorPositions);
-            return builder;
         }
 
-        public Builder storeTermVectorPayloads(boolean termVectorPayloads) {
+        public void storeTermVectorPayloads(boolean termVectorPayloads) {
             if (termVectorPayloads) {
                 this.fieldType.setStoreTermVectors(termVectorPayloads);
             }
             this.fieldType.setStoreTermVectorPayloads(termVectorPayloads);
-            return builder;
         }
 
-        public Builder sources(List<String> sources) {
+        public void sources(List<String> sources) {
             this.sources = sources;
-            return this;
         }
 
         private TextFieldType buildFieldType(BuilderContext context) {
@@ -174,7 +163,7 @@ public class TextFieldMapper extends FieldMapper {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder<?> parse(String fieldName, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder parse(String fieldName, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             TextFieldMapper.Builder builder = new TextFieldMapper.Builder(fieldName);
             builder.indexAnalyzer(parserContext.getIndexAnalyzers().getDefaultIndexAnalyzer());
             builder.searchAnalyzer(parserContext.getIndexAnalyzers().getDefaultSearchAnalyzer());

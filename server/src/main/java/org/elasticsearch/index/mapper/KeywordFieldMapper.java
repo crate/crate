@@ -61,7 +61,7 @@ public final class KeywordFieldMapper extends FieldMapper {
         public static final String NULL_VALUE = null;
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         protected String nullValue = Defaults.NULL_VALUE;
         private Integer lengthLimit;
@@ -69,34 +69,29 @@ public final class KeywordFieldMapper extends FieldMapper {
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
-            builder = this;
         }
 
-        public Builder lengthLimit(int lengthLimit) {
+        public void lengthLimit(int lengthLimit) {
             if (lengthLimit < 0) {
                 throw new IllegalArgumentException("[legnth_limit] must be positive, got " + lengthLimit);
             }
             this.lengthLimit = lengthLimit;
-            return this;
         }
 
-        public Builder blankPadding(boolean blankPadding) {
+        public void blankPadding(boolean blankPadding) {
             this.blankPadding = blankPadding;
-            return this;
         }
 
         @Override
-        public Builder indexOptions(IndexOptions indexOptions) {
+        public void indexOptions(IndexOptions indexOptions) {
             if (indexOptions.compareTo(IndexOptions.DOCS_AND_FREQS) > 0) {
                 throw new IllegalArgumentException("The [keyword] field does not support positions, got [index_options]="
                         + indexOptionToString(indexOptions));
             }
-            return super.indexOptions(indexOptions);
         }
 
-        public Builder nullValue(String nullValue) {
+        public void nullValue(String nullValue) {
             this.nullValue = nullValue;
-            return builder;
         }
 
         private KeywordFieldType buildFieldType(BuilderContext context) {
@@ -130,7 +125,7 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             KeywordFieldMapper.Builder builder = new KeywordFieldMapper.Builder(name);
             parseField(builder, name, node);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
