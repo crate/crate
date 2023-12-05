@@ -49,4 +49,5 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that allowed adding a column under the same name as an existing
+  index definition.

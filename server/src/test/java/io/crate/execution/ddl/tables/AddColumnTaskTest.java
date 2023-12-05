@@ -332,4 +332,38 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(addedColumn).isReference().hasOid(COLUMN_OID_UNASSIGNED);
         }
     }
+
+    @Test
+    public void test_cannot_add_column_that_clashes_with_index() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x text, index i using fulltext (x))")
+            .build();
+
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            clusterService.state(),
+            Version.V_5_4_0
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            SimpleReference colToAdd = new SimpleReference(
+                new ReferenceIdent(tbl.ident(), "i"),
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                2,
+                null
+            );
+            List<Reference> columns = List.of(colToAdd);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            assertThatThrownBy(() -> addColumnTask.execute(clusterService.state(), request))
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Index column `i` already exists");
+        }
+    }
 }
