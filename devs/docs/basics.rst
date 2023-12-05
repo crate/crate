@@ -73,14 +73,12 @@ Studio Code you can use the pre-defined "Attach to CrateDB" configuration.
 Using an IDE
 ============
 
-`IntelliJ IDEA`_ will pick up project structure from the maven poms, but you will need to configure
-the 'crate-libs-sql-parser' generated sources manually, due to an `IDE bug`_.  First, build the
-sources outside of your IDE:
+To import the project into `IntelliJ IDEA`_, first build the sources outside of your IDE with:
 
-    ./mvnw clean install -DskipTests=true
+    $ ./mvnw clean install -DskipTests=true
 
-Then import the project into your IDE, go to Project Settings / Modules / crate-libs-sql-parser and
-mark '>target/generated-sources/antlr' as a Source Folder.
+Then import the project into IntelliJ.  You may need to explicitly reload maven projects
+to ensure that it correctly picks up generated source files from antlr.
 
 Finally, run a `git clean` to remove pointless IntelliJ file changes to checked in config files
 
