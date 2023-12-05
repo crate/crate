@@ -66,24 +66,21 @@ public class DateFieldMapper extends FieldMapper {
         }
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         private Explicit<String> format = new Explicit<>(DEFAULT_FORMAT_PATTERN, false);
         private Boolean ignoreTimezone;
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
-            builder = this;
         }
 
-        public Builder ignoreTimezone(boolean ignoreTimezone) {
+        public void ignoreTimezone(boolean ignoreTimezone) {
             this.ignoreTimezone = ignoreTimezone;
-            return builder;
         }
 
-        public Builder format(String format) {
+        public void format(String format) {
             this.format = new Explicit<>(format, true);
-            return this;
         }
 
         protected DateFieldType setupFieldType(BuilderContext context) {
@@ -116,7 +113,7 @@ public class DateFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name);
             TypeParsers.parseField(builder, name, node);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {

@@ -62,11 +62,10 @@ public class BooleanFieldMapper extends FieldMapper {
         public static final BytesRef FALSE = new BytesRef("F");
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
-            this.builder = this;
         }
 
         @Override
@@ -87,7 +86,7 @@ public class BooleanFieldMapper extends FieldMapper {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder<Builder> parse(String name,
+        public Mapper.Builder parse(String name,
                                              Map<String, Object> node,
                                              ParserContext parserContext) throws MapperParsingException {
             BooleanFieldMapper.Builder builder = new BooleanFieldMapper.Builder(name);

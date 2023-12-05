@@ -161,7 +161,7 @@ public class TypeParsers {
     /**
      * Parse common field attributes such as {@code doc_values} or {@code store}.
      */
-    public static void parseField(FieldMapper.Builder<?> builder,
+    public static void parseField(FieldMapper.Builder builder,
                                   String name,
                                   Map<String, Object> fieldNode) {
         for (Iterator<Map.Entry<String, Object>> iterator = fieldNode.entrySet().iterator(); iterator.hasNext();) {
@@ -245,7 +245,7 @@ public class TypeParsers {
         }
     }
 
-    public static void parseCopyFields(Object propNode, FieldMapper.Builder<?> builder) {
+    public static void parseCopyFields(Object propNode, FieldMapper.Builder builder) {
         FieldMapper.CopyTo.Builder copyToBuilder = new FieldMapper.CopyTo.Builder();
         if (propNode instanceof List<?> nodes) {
             for (Object node : nodes) {

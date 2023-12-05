@@ -36,7 +36,7 @@ public abstract class MetadataFieldMapper extends FieldMapper {
     public interface TypeParser extends Mapper.TypeParser {
 
         @Override
-        MetadataFieldMapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException;
+        MetadataFieldMapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException;
 
         /**
          * Get the default {@link MetadataFieldMapper} to use, if nothing had to be parsed.
@@ -45,17 +45,16 @@ public abstract class MetadataFieldMapper extends FieldMapper {
         MetadataFieldMapper getDefault(ParserContext parserContext);
     }
 
-    public abstract static class Builder<T extends Builder<T>> extends FieldMapper.Builder<T> {
+    public abstract static class Builder extends FieldMapper.Builder {
         public Builder(String name, FieldType fieldType) {
             super(name, fieldType);
         }
 
         @Override
-        public T index(boolean index) {
+        public void index(boolean index) {
             if (index == false) {
                 throw new IllegalArgumentException("Metadata fields must be indexed");
             }
-            return builder;
         }
 
         public abstract MetadataFieldMapper build(BuilderContext context);

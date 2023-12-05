@@ -56,12 +56,11 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         FIELD_TYPE.freeze();
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         public Builder(String name) {
             super(name, FIELD_TYPE);
             hasDocValues = true;
-            builder = this;
         }
 
 
@@ -84,7 +83,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder<?> parse(String name,
+        public Mapper.Builder parse(String name,
                                        Map<String, Object> node,
                                        ParserContext parserContext) throws MapperParsingException {
             Builder builder = new GeoPointFieldMapper.Builder(name);

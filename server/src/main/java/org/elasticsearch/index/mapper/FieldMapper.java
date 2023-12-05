@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
 
-    public abstract static class Builder<T extends Builder<T>> extends Mapper.Builder<T> {
+    public abstract static class Builder extends Mapper.Builder {
 
         protected final FieldType fieldType;
         protected boolean indexOptionsSet = false;
@@ -55,33 +55,28 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             this.fieldType = new FieldType(fieldType);
         }
 
-        public T index(boolean index) {
+        public void index(boolean index) {
             this.indexed = index;
             if (index == false) {
                 this.fieldType.setIndexOptions(IndexOptions.NONE);
             }
-            return builder;
         }
 
-        public T store(boolean store) {
+        public void store(boolean store) {
             this.fieldType.setStored(store);
-            return builder;
         }
 
-        public T docValues(boolean docValues) {
+        public void docValues(boolean docValues) {
             this.hasDocValues = docValues;
-            return builder;
         }
 
-        public T indexOptions(IndexOptions indexOptions) {
+        public void indexOptions(IndexOptions indexOptions) {
             this.fieldType.setIndexOptions(indexOptions);
             this.indexOptionsSet = true;
-            return builder;
         }
 
-        public T copyTo(CopyTo copyTo) {
+        public void copyTo(CopyTo copyTo) {
             this.copyTo = copyTo;
-            return builder;
         }
 
         protected String buildFullName(BuilderContext context) {

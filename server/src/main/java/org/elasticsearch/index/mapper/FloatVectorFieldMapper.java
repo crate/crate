@@ -67,7 +67,7 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
         }
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
         private int dimensions = 0;
 
@@ -104,7 +104,7 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
     public static class TypeParser implements Mapper.TypeParser {
 
         @Override
-        public Mapper.Builder<?> parse(String name,
+        public Mapper.Builder parse(String name,
                                        Map<String, Object> node,
                                        ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name);

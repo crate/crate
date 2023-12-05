@@ -89,18 +89,18 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         this.innerMapper = innerMapper;
     }
 
-    private static FieldType getFieldType(Mapper.Builder<?> builder) {
-        if (builder instanceof FieldMapper.Builder<?> fieldMapperBuilder) {
+    private static FieldType getFieldType(Mapper.Builder builder) {
+        if (builder instanceof FieldMapper.Builder fieldMapperBuilder) {
             return fieldMapperBuilder.fieldType;
         }
         throw new IllegalArgumentException("expected a FieldMapper.Builder");
     }
 
-    public static class Builder extends FieldMapper.Builder<Builder> {
+    public static class Builder extends FieldMapper.Builder {
 
-        private final Mapper.Builder<?> innerBuilder;
+        private final Mapper.Builder innerBuilder;
 
-        public Builder(String name, Mapper.Builder<?> innerBuilder) {
+        public Builder(String name, Mapper.Builder innerBuilder) {
             super(name, getFieldType(innerBuilder));
             this.innerBuilder = innerBuilder;
         }

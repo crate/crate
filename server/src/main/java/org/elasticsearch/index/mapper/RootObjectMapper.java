@@ -33,11 +33,10 @@ public class RootObjectMapper extends ObjectMapper {
 
     private ColumnPositionResolver<Mapper> columnPositionResolver = new ColumnPositionResolver<>();
 
-    public static class Builder extends ObjectMapper.Builder<Builder> {
+    public static class Builder extends ObjectMapper.Builder {
 
         public Builder(String name) {
             super(name);
-            this.builder = this;
         }
 
         @Override
@@ -67,7 +66,7 @@ public class RootObjectMapper extends ObjectMapper {
     public static class TypeParser extends ObjectMapper.TypeParser {
 
         @Override
-        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             RootObjectMapper.Builder builder = new Builder(name);
             Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator();
             while (iterator.hasNext()) {
