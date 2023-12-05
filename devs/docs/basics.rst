@@ -73,7 +73,7 @@ Studio Code you can use the pre-defined "Attach to CrateDB" configuration.
 Using an IDE
 ============
 
-To import the project into `IntelliJ IDEA`_, first build the sources outside of your IDE with:
+To import the project into `IntelliJ IDEA`_, first build the sources outside of your IDE with::
 
     $ ./mvnw clean install -DskipTests=true
 
