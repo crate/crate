@@ -824,6 +824,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ColumnIdent newColumn = newRef.column();
             Reference exists = getReference(newColumn);
             if (exists == null) {
+                if (indexColumns.containsKey(newColumn)) {
+                    throw new UnsupportedOperationException(String.format(
+                        Locale.ENGLISH,
+                        "Index column `%s` already exists",
+                        newColumn
+                    ));
+                }
                 addedColumn = true;
                 newReferences.put(newColumn, newRef.withOidAndPosition(acquireOid, positions::incrementAndGet));
             } else if (exists.valueType().id() != newRef.valueType().id()) {
