@@ -149,6 +149,33 @@ public class IndexTemplateUpgraderTest {
         assertThat(compressedXContent.string(), is("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}"));
     }
 
+    @Test
+    public void test__dropped_0_is_removed_from_template_mapping() throws Throwable {
+        String templateName = PartitionName.templateName("doc", "events");
+        var template = IndexTemplateMetadata.builder(templateName)
+            .patterns(List.of("*"))
+            .putMapping(
+                "{" +
+                    "   \"default\": {" +
+                    "       \"properties\": {" +
+                    "           \"name\": {" +
+                    "               \"type\": \"keyword\"" +
+                    "           }," +
+                    "           \"_dropped_0\": {" +
+                    "           }" +
+                    "       }" +
+                    "   }" +
+                    "}")
+            .build();
+
+        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
+        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        IndexTemplateMetadata updatedTemplate = result.get(templateName);
+
+        CompressedXContent compressedXContent = updatedTemplate.mapping();
+        assertThat(compressedXContent.string(), is("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}"));
+    }
+
 
     /*
      * test_populateColumnPositions_method_* variants are copied from TransportSchemaUpdateActionTest
