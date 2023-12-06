@@ -191,6 +191,7 @@ It's possible to drop multiple columns at once.
 
     It's not allowed to drop a column:
 
+    - which is a :ref:`system column <sql_administration_system_columns>`
     - which is part of a :ref:`PRIMARY KEY <primary_key_constraint>`
     - used in :ref:`CLUSTERED BY column <gloss-clustered-by-column>`
     - used in :ref:`PARTITIONED BY <gloss-partitioned-by-column>`
