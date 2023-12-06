@@ -833,15 +833,23 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitLikePredicate(LikePredicate node, ExpressionAnalysisContext context) {
-            if (node.getEscape() != null) {
-                throw new UnsupportedOperationException("ESCAPE is not supported.");
-            }
             Symbol expression = node.getValue().accept(this, context);
             Symbol pattern = node.getPattern().accept(this, context);
-            return allocateFunction(
-                LikeOperators.arrayOperatorName(node.ignoreCase()),
-                List.of(expression, pattern),
-                context);
+            if (node.getEscape() != null) {
+                Symbol escape = node.getEscape().accept(this, context);
+                return allocateFunction(
+                    LikeOperators.likeOperatorName(node.ignoreCase()),
+                    List.of(expression, pattern, escape),
+                    context
+                );
+            } else {
+                return allocateFunction(
+                    LikeOperators.likeOperatorName(node.ignoreCase()),
+                    List.of(expression, pattern),
+                    context
+                );
+            }
+
         }
 
         @Override

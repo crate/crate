@@ -57,8 +57,8 @@ public final class AnyNotLikeOperator extends AnyOperator {
     @Override
     boolean matches(Object probe, Object candidate) {
         // Accept both sides of arguments to be patterns
-        return !LikeOperators.matches((String) probe, (String) candidate, caseSensitivity) &&
-               !LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
+        return !LikeOperators.matches((String) probe, (String) candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) &&
+               !LikeOperators.matches((String) candidate, (String) probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
     }
 
     @Override
@@ -71,7 +71,11 @@ public final class AnyNotLikeOperator extends AnyOperator {
             if (value == null) {
                 continue;
             }
-            var likeQuery = caseSensitivity.likeQuery(columnName, (String) value, probe.indexType() != IndexType.NONE);
+            var likeQuery = caseSensitivity.likeQuery(columnName,
+                (String) value,
+                LikeOperators.DEFAULT_ESCAPE,
+                probe.indexType() != IndexType.NONE
+            );
             if (likeQuery == null) {
                 return null;
             }
@@ -83,7 +87,7 @@ public final class AnyNotLikeOperator extends AnyOperator {
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         String pattern = (String) probe.value();
-        String regexString = LikeOperators.patternToRegex(pattern, LikeOperators.DEFAULT_ESCAPE, false);
+        String regexString = LikeOperators.patternToRegex(pattern, LikeOperators.DEFAULT_ESCAPE);
         regexString = regexString.substring(1, regexString.length() - 1);
         String notLike = negateWildcard(regexString);
 
