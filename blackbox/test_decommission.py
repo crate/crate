@@ -343,8 +343,16 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
             )
             t.start()
 
-        decommission(self.clients[1], self.node_names[1])
-        self.assertEqual(wait_for_cluster_size(self.clients[0], TestGracefulStopDuringQueryExecution.NUM_SERVERS - 1), True)
+        # Ensure we don't hold a connection open to the node getting stopped
+        self.clients[1].close()
+        decommission(self.clients[0], self.node_names[1])
+        try:
+            self.assertEqual(wait_for_cluster_size(self.clients[0], TestGracefulStopDuringQueryExecution.NUM_SERVERS - 1), True)
+        except:
+            # Need to stop threads, otherwise the test would get stuck
+            run_queries[0] = False
+            threads_finished_b.wait()
+            raise
 
         run_queries[0] = False
         threads_finished_b.wait()
