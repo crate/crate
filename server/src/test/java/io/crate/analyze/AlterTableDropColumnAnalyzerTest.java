@@ -380,4 +380,15 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping columns of a table created before version 5.5 is not supported");
     }
+
+    @Test
+    public void test_dropping_system_column_is_not_allowed() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE t (x int)")
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP _doc"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Dropping a system column is not allowed");
+    }
 }
