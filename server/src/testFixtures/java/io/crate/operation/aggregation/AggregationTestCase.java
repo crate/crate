@@ -34,6 +34,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +79,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoveryState;
@@ -100,8 +100,10 @@ import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
+import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.DocValuesAggregates;
@@ -144,19 +146,12 @@ public abstract class AggregationTestCase extends ESTestCase {
     protected MemoryManager memoryManager;
     private ThreadPool threadPool;
 
-    private IndicesModule indicesModule;
-    private IndicesService indexServices;
-    private IndexService indexService;
-
     @Override
     public void setUp() throws Exception {
         super.setUp();
         nodeCtx = createNodeContext();
         threadPool = new TestThreadPool(getClass().getName(), Settings.EMPTY);
         memoryManager = new OnHeapMemoryManager(RAM_ACCOUNTING::addBytes);
-        indicesModule = new IndicesModule(List.of());
-        indexServices = mock(IndicesService.class);
-        indexService = mock(IndexService.class);
     }
 
     @Override
@@ -212,17 +207,14 @@ public abstract class AggregationTestCase extends ESTestCase {
             }
         }
         List<Reference> targetColumns = toReference(actualArgumentTypes);
-        var shard = newStartedPrimaryShard(buildMapping(targetColumns));
+        var shard = newStartedPrimaryShard(targetColumns, threadPool);
         var mapperService = shard.mapperService();
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
             mapperService::fieldType,
             List.of()
         );
-        when(indexService.getShard(shard.shardId().id()))
-            .thenReturn(shard);
-        when(indexServices.indexServiceSafe(shard.routingEntry().index()))
-            .thenReturn(indexService);
+
         try {
             insertDataIntoShard(shard, data, targetColumns);
             shard.refresh("test");
@@ -328,34 +320,15 @@ public abstract class AggregationTestCase extends ESTestCase {
                 )
             );
         }
-        var collectPhase = new RoutedCollectPhase(
-            UUID.randomUUID(),
-            1,
-            "collect",
-            new Routing(Map.of()),
-            RowGranularity.SHARD,
-            toCollectRefs,
-            List.of(
-                new AggregationProjection(
-                    List.of(aggregation),
-                    RowGranularity.SHARD,
-                    AggregateMode.ITER_PARTIAL
-                )
-            ),
-            WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST
+        var projections = List.of(
+            new AggregationProjection(
+                List.of(aggregation),
+                RowGranularity.SHARD,
+                AggregateMode.ITER_PARTIAL
+            )
         );
-        var collectTask = new CollectTask(
-            collectPhase,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            mock(MapSideDataCollectOperation.class),
-            RamAccounting.NO_ACCOUNTING,
-            ramAccounting -> memoryManager,
-            new TestingRowConsumer(),
-            new SharedShardContexts(indexServices, UnaryOperator.identity()),
-            minNodeVersion,
-            4096);
-
+        var collectPhase = createCollectPhase(toCollectRefs, projections);
+        var collectTask = createCollectTask(shard, collectPhase, minNodeVersion);
         var batchIterator = DocValuesAggregates.tryOptimize(
             nodeCtx.functions(),
             refResolver,
@@ -444,7 +417,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         }
     }
 
-    private XContentBuilder buildMapping(List<Reference> targetColumns) throws IOException {
+    private static XContentBuilder buildMapping(List<Reference> targetColumns) throws IOException {
         Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
             AllocPosition.forNewTable(),
             Reference.buildTree(targetColumns)
@@ -458,8 +431,10 @@ public abstract class AggregationTestCase extends ESTestCase {
     /**
      * Creates a new empty primary shard and starts it.
      */
-    private IndexShard newStartedPrimaryShard(XContentBuilder mapping) throws Exception {
-        IndexShard shard = newPrimaryShard(mapping);
+    public static IndexShard newStartedPrimaryShard(List<Reference> targetColumns,
+                                                    ThreadPool threadPool) throws Exception {
+        var mapping = buildMapping(targetColumns);
+        IndexShard shard = newPrimaryShard(mapping, threadPool);
         shard.markAsRecovering(
             "store",
             new RecoveryState(
@@ -498,7 +473,7 @@ public abstract class AggregationTestCase extends ESTestCase {
      * Creates a new initializing primary shard.
      * The shard will have its own unique data path.
      */
-    private IndexShard newPrimaryShard(XContentBuilder mapping) throws IOException {
+    private static IndexShard newPrimaryShard(XContentBuilder mapping, ThreadPool threadPool) throws IOException {
         ShardRouting routing = TestShardRouting.newShardRouting(
             new ShardId("index", UUIDs.base64UUID(), 0),
             randomAlphaOfLength(10),
@@ -525,12 +500,13 @@ public abstract class AggregationTestCase extends ESTestCase {
             nodePath.resolve(shardId),
             shardId
         );
-        return newPrimaryShard(routing, shardPath, indexMetadata);
+        return newPrimaryShard(routing, shardPath, indexMetadata, threadPool);
     }
 
-    private IndexShard newPrimaryShard(ShardRouting routing,
-                                       ShardPath shardPath,
-                                       IndexMetadata indexMetadata) throws IOException {
+    private static IndexShard newPrimaryShard(ShardRouting routing,
+                                              ShardPath shardPath,
+                                              IndexMetadata indexMetadata,
+                                              ThreadPool threadPool) throws IOException {
         var indexSettings = new IndexSettings(indexMetadata, Settings.EMPTY);
         var queryCache = DisabledQueryCache.instance();
         var store = new Store(
@@ -540,10 +516,9 @@ public abstract class AggregationTestCase extends ESTestCase {
             new DummyShardLock(shardPath.getShardId())
         );
         var mapperService = MapperTestUtils.newMapperService(
-            xContentRegistry(),
+            DEFAULT_NAMED_X_CONTENT_REGISTRY,
             createTempDir(),
             indexSettings.getSettings(),
-            indicesModule,
             routing.getIndexName()
         );
         mapperService.merge(indexMetadata, MAPPING_RECOVERY);
@@ -572,8 +547,10 @@ public abstract class AggregationTestCase extends ESTestCase {
         return shard;
     }
 
-    private void closeShard(IndexShard shard) throws IOException {
-        IOUtils.close(() -> shard.close("test", false), shard.store());
+    public static void closeShard(IndexShard shard) throws IOException {
+        if (shard != null) {
+            IOUtils.close(() -> shard.close("test", false), shard.store());
+        }
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -638,5 +615,40 @@ public abstract class AggregationTestCase extends ESTestCase {
             );
         }
         return references;
+    }
+
+    public static CollectTask createCollectTask(IndexShard shard, CollectPhase collectPhase, Version minNodeVersion) {
+        var indexServices = mock(IndicesService.class);
+        var indexService = mock(IndexService.class);
+        when(indexService.getShard(shard.shardId().id()))
+            .thenReturn(shard);
+        when(indexServices.indexServiceSafe(shard.routingEntry().index()))
+            .thenReturn(indexService);
+        return new CollectTask(
+            collectPhase,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            mock(MapSideDataCollectOperation.class),
+            RAM_ACCOUNTING,
+            ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
+            new TestingRowConsumer(),
+            new SharedShardContexts(indexServices, UnaryOperator.identity()),
+            minNodeVersion,
+            4096
+        );
+    }
+
+    public static RoutedCollectPhase createCollectPhase(List<Symbol> toCollectRefs,
+                                                        Collection<? extends Projection> projections) {
+        return new RoutedCollectPhase(
+            UUID.randomUUID(),
+            1,
+            "collect",
+            new Routing(Map.of()),
+            RowGranularity.SHARD,
+            toCollectRefs,
+            projections,
+            WhereClause.MATCH_ALL.queryOrFallback(),
+            DistributionInfo.DEFAULT_BROADCAST
+        );
     }
 }

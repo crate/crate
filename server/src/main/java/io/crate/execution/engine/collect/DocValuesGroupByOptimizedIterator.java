@@ -112,7 +112,7 @@ final class DocValuesGroupByOptimizedIterator {
                 return null; // group by on non-reference
             }
             var columnKeyRef = (Reference) DocReferences.inverseSourceLookup(docKeyRef);
-            var keyFieldType = fieldTypeLookup.get(columnKeyRef.column().fqn());
+            var keyFieldType = fieldTypeLookup.get(columnKeyRef.storageIdent());
             if (keyFieldType == null || !keyFieldType.hasDocValues()) {
                 return null;
             } else {

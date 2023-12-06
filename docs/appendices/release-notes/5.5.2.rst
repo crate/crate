@@ -49,5 +49,8 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a performance regression introduced in 5.5.0 for queries with
+   ``GROUP BY`` on a single column.
+
 - Fixed an issue that allowed adding a column under the same name as an existing
   index definition.

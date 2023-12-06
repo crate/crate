@@ -21,6 +21,10 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.operation.aggregation.AggregationTestCase.closeShard;
+import static io.crate.operation.aggregation.AggregationTestCase.createCollectPhase;
+import static io.crate.operation.aggregation.AggregationTestCase.createCollectTask;
+import static io.crate.operation.aggregation.AggregationTestCase.newStartedPrimaryShard;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
@@ -44,7 +48,9 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.index.shard.IndexShard;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,6 +58,8 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
+import io.crate.exceptions.JobKilledException;
+import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
@@ -59,6 +67,10 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.lucene.FieldTypeLookup;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -240,6 +252,54 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
 
         assertThat(rowConsumer.getResult()).containsExactlyInAnyOrder(
             new Object[]{"0", 0L, 6L}, new Object[]{"1", 1L, 4L});
+    }
+
+    @Test
+    public void test_create_optimized_iterator_for_single_string_key() throws Exception {
+        GroupProjection groupProjection = new GroupProjection(
+            List.of(new InputColumn(0, DataTypes.STRING)),
+            List.of(),
+            AggregateMode.ITER_PARTIAL,
+            RowGranularity.SHARD
+        );
+        var reference = new SimpleReference(
+            new ReferenceIdent(new RelationName("doc", "test"), "x"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
+            0,
+            111,
+            false,
+            null
+        );
+        IndexShard shard = newStartedPrimaryShard(List.of(reference), THREAD_POOL);
+        var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
+        var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
+        var nodeCtx = createNodeContext();
+        FieldTypeLookup fieldTypeLookup = shard.mapperService()::fieldType;
+        var referenceResolver = new LuceneReferenceResolver(shard.shardId().getIndexName(), fieldTypeLookup, List.of());
+
+        var it = DocValuesGroupByOptimizedIterator.tryOptimize(
+            functions,
+            referenceResolver,
+            shard,
+            mock(DocTableInfo.class),
+            new LuceneQueryBuilder(nodeCtx),
+            fieldTypeLookup,
+            new DocInputFactory(
+                nodeCtx,
+                referenceResolver
+            ),
+            collectPhase,
+            collectTask
+        );
+        assertThat(it).isNotNull();
+
+        collectTask.kill(JobKilledException.of(null));
+        closeShard(shard);
     }
 
     @Test

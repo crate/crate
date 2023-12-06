@@ -945,7 +945,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         return xContent.createParser(xContentRegistry(), LoggingDeprecationHandler.INSTANCE, data.streamInput());
     }
 
-    private static final NamedXContentRegistry DEFAULT_NAMED_X_CONTENT_REGISTRY =
+    protected static final NamedXContentRegistry DEFAULT_NAMED_X_CONTENT_REGISTRY =
             new NamedXContentRegistry(ClusterModule.getNamedXWriteables());
 
     /**
