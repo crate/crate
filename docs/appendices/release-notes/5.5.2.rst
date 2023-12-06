@@ -58,3 +58,8 @@ Fixes
 - Fixed an issue with wrong escaping of backslash in
   :ref:`C-style escaped strings <sql_escape_string_literals>`.
   ``SELECT E'\%'`` used to return ``\%`` instead of ``%``.
+
+- Fixed an issue that caused ``ALTER TABLE DROP COLUMN`` to falsely report
+  success on dropping :ref:`system columns <sql_administration_system_columns>`
+  despite any follow up queries on the dropped columns work as expected. Now
+  an exception is thrown.
