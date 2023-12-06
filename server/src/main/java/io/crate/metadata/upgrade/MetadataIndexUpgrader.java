@@ -21,6 +21,9 @@
 
 package io.crate.metadata.upgrade;
 
+import static io.crate.execution.ddl.tables.MappingUtil.DROPPED_COLUMN_NAME_PREFIX;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -82,6 +85,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
             return null;
         }
         Map<String, Object> oldMapping = mappingMetadata.sourceAsMap();
+        removeInvalidPropertyGeneratedByDroppingSysCols(oldMapping);
         upgradeColumnPositions(oldMapping, indexTemplateMetadata);
         upgradeIndexColumnMapping(oldMapping, indexTemplateMetadata);
         LinkedHashMap<String, Object> newMapping = new LinkedHashMap<>(oldMapping.size());
@@ -168,6 +172,18 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
             }
         }
         return updated;
+    }
+
+    public static boolean removeInvalidPropertyGeneratedByDroppingSysCols(Map<String, Object> defaultMapping) {
+        Map<String, Object> properties = Maps.get(defaultMapping, "properties");
+        if (properties != null) {
+            String droppedUnassigned = DROPPED_COLUMN_NAME_PREFIX + COLUMN_OID_UNASSIGNED;
+            if (properties.containsKey(droppedUnassigned)) {
+                properties.remove(droppedUnassigned);
+                return true;
+            }
+        }
+        return false;
     }
 
     static void upgradeIndexColumnMapping(Map<String, Object> oldMapping,

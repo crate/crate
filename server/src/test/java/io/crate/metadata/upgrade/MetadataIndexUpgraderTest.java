@@ -87,6 +87,32 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
     }
 
     @Test
+    public void test__dropped_0_is_removed_from_mapping() throws Throwable {
+        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("doc", "users").indexNameOrAlias())
+            .settings(Settings.builder().put("index.version.created", VersionUtils.randomVersion(random())))
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .putMapping(
+                "{" +
+                    "   \"_all\": {\"enabled\": false}," +
+                    "   \"properties\": {" +
+                    "       \"name\": {" +
+                    "           \"type\": \"keyword\"" +
+                    "       }," +
+                    "       \"_dropped_0\": {" +
+                    "       }" +
+                    "   }" +
+                    "}")
+            .build();
+
+        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
+
+        MappingMetadata mapping = updatedMetadata.mapping();
+        assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}"));
+    }
+
+    @Test
     public void test_mappingMetadata_set_to_null() throws Throwable {
         IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("blob", "b1").indexNameOrAlias())
             .settings(Settings.builder().put("index.version.created", Version.V_4_7_0))
