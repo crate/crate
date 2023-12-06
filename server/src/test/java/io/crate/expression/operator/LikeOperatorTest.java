@@ -185,4 +185,12 @@ public class LikeOperatorTest extends ScalarTestCase {
         var re = patternToRegex(expression, DEFAULT_ESCAPE, true);
         assertEquals("^\\{\\}$", re);
     }
+
+    @Test
+    public void test_wildcard_escaped_in_c_style_string() {
+        assertEvaluate("'TextToMatch' LIKE E'Te\\%tch'", true);
+        assertEvaluate("'TextToMatch' NOT LIKE E'Te\\%tch'", false);
+        assertEvaluate("'TextToMatch' ILIKE E'te\\%tch'", true);
+        assertEvaluate("'TextToMatch' NOT ILIKE E'te\\%tch'", false);
+    }
 }

@@ -54,3 +54,7 @@ Fixes
 
 - Fixed an issue that allowed adding a column under the same name as an existing
   index definition.
+
+- Fixed an issue with wrong escaping of backslash in
+  :ref:`C-style escaped strings <sql_escape_string_literals>`.
+  ``SELECT E'\%'`` used to return ``\%`` instead of ``%``.

@@ -124,8 +124,7 @@ public class Literals {
                         i = endIdx - 1; // skip already consumed chars
                         break;
                     default:
-                        // non-valid escaped char sequence
-                        builder.append(currentChar);
+                        // Ignore backslash in C-Style escaped string unless it's escaped by another backslash.
                 }
             } else if (currentChar == '\'' && i > 1 && i + 1 < length) {
                 // handle normal escaped quote: ''

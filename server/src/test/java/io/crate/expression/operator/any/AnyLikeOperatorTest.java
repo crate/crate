@@ -141,4 +141,10 @@ public class AnyLikeOperatorTest extends ScalarTestCase {
         assertNormalize("1 ilike any ([1, null, 2])", isLiteral(true));
         assertNormalize("1 not ilike any ([1])", isLiteral(false));
     }
+
+    @Test
+    public void test_wildcard_escaped_in_c_style_string() {
+        assertEvaluate("'TextToMatch' LIKE ANY ([E'Te\\%tch'])", true);
+        assertEvaluate("'TextToMatch' ILIKE ANY ([E'te\\%tch'])", true);
+    }
 }
