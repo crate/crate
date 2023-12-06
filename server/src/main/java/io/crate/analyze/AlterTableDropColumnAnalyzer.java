@@ -111,6 +111,10 @@ public class AlterTableDropColumnAnalyzer {
             }
             uniqueSet.add(colToDrop);
 
+            if (colToDrop.isSystemColumn()) {
+                throw new IllegalArgumentException("Dropping a system column is not allowed");
+            }
+
             if (refToDrop instanceof IndexReference indexRef && !indexRef.columns().isEmpty()) {
                 throw new UnsupportedOperationException("Dropping INDEX column '" + colToDrop.fqn() + "' is not supported");
             }
