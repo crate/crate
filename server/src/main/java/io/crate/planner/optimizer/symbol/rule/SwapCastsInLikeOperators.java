@@ -72,6 +72,17 @@ public class SwapCastsInLikeOperators implements Rule<Function> {
         CastMode castMode = castFunction.castMode();
         assert castMode != null : "Pattern matched, function must be a cast";
         Symbol castedLiteral = literal.cast(StringType.INSTANCE, castMode);
-        return new Function(likeFunction.signature(), List.of(reference, castedLiteral), likeFunction.valueType());
+        List<Symbol> newArgs;
+        if (likeFunction.arguments().size() == 3) {
+            // Don't lose ESCAPE character.
+            newArgs = List.of(reference, castedLiteral, likeFunction.arguments().get(2));
+        } else {
+            newArgs = List.of(reference, castedLiteral);
+        }
+        return new Function(
+            likeFunction.signature(),
+            newArgs,
+            likeFunction.valueType()
+        );
     }
 }

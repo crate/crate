@@ -683,26 +683,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testLikeEscapeInWhereQuery() {
-        var executor = SQLExecutor.builder(clusterService)
-            .build();
-        // ESCAPE is not supported yet
-        assertThatThrownBy(() -> executor.analyze("select * from sys.nodes where name like 'foo' escape 'o'"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("ESCAPE is not supported.");
-    }
-
-    @Test
-    public void testILikeEscapeInWhereQuery() {
-        var executor = SQLExecutor.builder(clusterService)
-            .build();
-        // ESCAPE is not supported yet
-        assertThatThrownBy(() -> executor.analyze("select * from sys.nodes where name ilike 'foo%' escape 'o'"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("ESCAPE is not supported.");
-    }
-
-    @Test
     public void testLikeNoStringDataTypeInWhereQuery() {
         var executor = SQLExecutor.builder(clusterService)
             .build();

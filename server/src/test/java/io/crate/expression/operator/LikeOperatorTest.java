@@ -24,6 +24,7 @@ package io.crate.expression.operator;
 import static io.crate.expression.operator.LikeOperators.DEFAULT_ESCAPE;
 import static io.crate.expression.operator.LikeOperators.patternToRegex;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -105,7 +106,7 @@ public class LikeOperatorTest extends ScalarTestCase {
     @Test
     public void testExpressionToRegexExactlyOne() {
         String expression = "fo_bar";
-        assertEquals("^fo.bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo.bar$", patternToRegex(expression, DEFAULT_ESCAPE));
     }
 
     @Test
@@ -124,37 +125,37 @@ public class LikeOperatorTest extends ScalarTestCase {
     @Test
     public void testExpressionToRegexZeroOrMore() {
         String expression = "fo%bar";
-        assertEquals("^fo.*bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo.*bar$", patternToRegex(expression, DEFAULT_ESCAPE));
     }
 
     @Test
     public void testExpressionToRegexEscapingPercent() {
         String expression = "fo\\%bar";
-        assertEquals("^fo%bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo%bar$", patternToRegex(expression, DEFAULT_ESCAPE));
     }
 
     @Test
     public void testExpressionToRegexEscapingUnderline() {
         String expression = "fo\\_bar";
-        assertEquals("^fo_bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo_bar$", patternToRegex(expression, DEFAULT_ESCAPE));
     }
 
     @Test
     public void testExpressionToRegexEscaping() {
         String expression = "fo\\\\_bar";
-        assertEquals("^fo\\\\.bar$", patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo\\\\.bar$", patternToRegex(expression, DEFAULT_ESCAPE));
     }
 
     @Test
     public void testExpressionToRegexEscapingMutli() {
         String expression = "%%\\%sum%%";
-        assertEquals("^.*.*%sum.*.*$", patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^.*.*%sum.*.*$", patternToRegex(expression, DEFAULT_ESCAPE));
     }
 
     @Test
     public void testExpressionToRegexMaliciousPatterns() {
         String expression = "fo(ooo)?o[asdf]o\\bar^$.*";
-        assertEquals("^fo\\(ooo\\)\\?o\\[asdf\\]obar\\^\\$\\.\\*$", patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo\\(ooo\\)\\?o\\[asdf\\]obar\\^\\$\\.\\*$", patternToRegex(expression, DEFAULT_ESCAPE));
     }
 
     @Test
@@ -182,7 +183,7 @@ public class LikeOperatorTest extends ScalarTestCase {
     @Test
     public void testPatternToRegexPrependsBackSlashBeforeCurlyBraces() {
         String expression = "{}";
-        var re = patternToRegex(expression, DEFAULT_ESCAPE, true);
+        var re = patternToRegex(expression, DEFAULT_ESCAPE);
         assertEquals("^\\{\\}$", re);
     }
 
@@ -192,5 +193,34 @@ public class LikeOperatorTest extends ScalarTestCase {
         assertEvaluate("'TextToMatch' NOT LIKE E'Te\\%tch'", false);
         assertEvaluate("'TextToMatch' ILIKE E'te\\%tch'", true);
         assertEvaluate("'TextToMatch' NOT ILIKE E'te\\%tch'", false);
+    }
+
+    @Test
+    public void test_custom_escape_character() {
+        assertEvaluate("'Test' LIKE 'Te%' escape 'e'", false); // % is taken literally
+        assertEvaluate("'T%' LIKE 'Te%' escape 'e'", true); // % is taken literally
+        // Negate expressions above
+        assertEvaluate("'Test' NOT LIKE 'Te%' escape 'e'", true);
+        assertEvaluate("'T%' NOT LIKE 'Te%' escape 'e'", false);
+
+        // Case-insensitive matching, pattern has only lowercase characters.
+        assertEvaluate("'Test' ILIKE 'te%' escape 'e'", false); // % is taken literally
+        assertEvaluate("'T%' ILIKE 'te%' escape 'e'", true); // % is taken literally
+        // Negate expressions above
+        assertEvaluate("'Test' NOT ILIKE 'te%' escape 'e'", true);
+        assertEvaluate("'T%' NOT ILIKE 'te%' escape 'e'", false);
+
+    }
+
+    @Test
+    public void test_like_with_non_single_char_escape_throws_error() {
+        assertThatThrownBy(() -> assertEvaluate("'Test' LIKE 'Te%' ESCAPE 'ab'", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("ESCAPE must be a single character");
+    }
+
+    @Test
+    public void test_like_with_empty_escape_disables_escaping() {
+        assertEvaluate("'Test' LIKE 'T\\%' ESCAPE ''", false);
     }
 }

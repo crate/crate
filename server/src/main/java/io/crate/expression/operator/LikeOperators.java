@@ -46,7 +46,7 @@ public class LikeOperators {
 
     public static final char DEFAULT_ESCAPE = '\\';
 
-    public static String arrayOperatorName(boolean ignoreCase) {
+    public static String likeOperatorName(boolean ignoreCase) {
         return ignoreCase ? OP_ILIKE : OP_LIKE;
     }
 
@@ -64,7 +64,7 @@ public class LikeOperators {
         SENSITIVE {
 
             @Override
-            public Query likeQuery(String fqColumn, String pattern, boolean isIndexed) {
+            public Query likeQuery(String fqColumn, String pattern, Character escapeChar, boolean isIndexed) {
                 if (isIndexed) {
                     String luceneWildcard = convertSqlLikeToLuceneWildcard(pattern);
                     Term term = new Term(fqColumn, luceneWildcard);
@@ -82,9 +82,9 @@ public class LikeOperators {
         INSENSITIVE {
 
             @Override
-            public Query likeQuery(String fqColumn, String pattern, boolean isIndexed) {
+            public Query likeQuery(String fqColumn, String pattern, Character escapeChar, boolean isIndexed) {
                 if (isIndexed) {
-                    String regex = patternToRegex(pattern);
+                    String regex = patternToRegex(pattern, escapeChar);
                     Term term = new Term(fqColumn, regex);
                     return new CrateRegexQuery(term, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
                 }
@@ -98,7 +98,7 @@ public class LikeOperators {
         };
 
         @Nullable
-        public abstract Query likeQuery(String fqColumn, String pattern, boolean isIndexed);
+        public abstract Query likeQuery(String fqColumn, String pattern, Character escapeChar, boolean isIndexed);
 
         public abstract int patternFlags();
     }
@@ -117,6 +117,29 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 OP_ILIKE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.INSENSITIVE)
+        );
+
+        module.register(
+            Signature.scalar(
+                OP_LIKE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.SENSITIVE)
+        );
+        module.register(
+            Signature.scalar(
+                OP_ILIKE,
+                DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 Operator.RETURN_TYPE.getTypeSignature()
@@ -182,24 +205,20 @@ public class LikeOperators {
         );
     }
 
-    static final Pattern makePattern(String pattern, CaseSensitivity caseSensitivity) {
-        return Pattern.compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), caseSensitivity.patternFlags());
+    static final Pattern makePattern(String pattern, CaseSensitivity caseSensitivity, Character escape) {
+        return Pattern.compile(patternToRegex(pattern, escape), caseSensitivity.patternFlags());
     }
 
-    public static boolean matches(String expression, String pattern, CaseSensitivity caseSensitivity) {
-        return makePattern(pattern, caseSensitivity).matcher(expression).matches();
+    public static boolean matches(String expression, String pattern, Character escape, CaseSensitivity caseSensitivity) {
+        return makePattern(pattern, caseSensitivity, escape).matcher(expression).matches();
     }
 
-    public static String patternToRegex(String patternString) {
-        return patternToRegex(patternString, DEFAULT_ESCAPE, true);
-    }
-
-    public static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
+    public static String patternToRegex(String patternString, @Nullable Character escapeChar) {
         StringBuilder regex = new StringBuilder(patternString.length() * 2);
         regex.append('^');
         boolean escaped = false;
         for (char currentChar : patternString.toCharArray()) {
-            if (shouldEscape && !escaped && currentChar == escapeChar) {
+            if (escapeChar != null && !escaped && currentChar == escapeChar) {
                 escaped = true;
             } else {
                 switch (currentChar) {

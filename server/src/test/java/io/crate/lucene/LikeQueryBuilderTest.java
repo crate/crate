@@ -116,6 +116,11 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("vchar_name LIKE 'Trillian%'");
         assertThat(query).hasToString("vchar_name:Trillian*");
         assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
+
+        // Verify that version with ESCAPE doesn't lose it on rewriting function.
+        query = convert("vchar_name LIKE 'Trillian%' ESCAPE '\\'");
+        assertThat(query).hasToString("vchar_name:Trillian*");
+        assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
     }
 
     @Test

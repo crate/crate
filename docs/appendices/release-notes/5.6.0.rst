@@ -86,6 +86,9 @@ SQL Standard and PostgreSQL Compatibility
 - Changed ``pg_catalog.pg_roles`` table to be properly populated, as previously
   it was always returning ``0`` rows.
 
+- Added support of optional ``ESCAPE`` parameter to
+  :ref:`LIKE and ILIKE <sql_dql_like>` operators.
+
 Data Types
 ----------
 
