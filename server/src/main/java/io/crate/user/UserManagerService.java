@@ -38,6 +38,7 @@ import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.user.metadata.SysPrivilegesTableInfo;
+import io.crate.user.metadata.SysRolesTableInfo;
 import io.crate.user.metadata.SysUsersTableInfo;
 
 @Singleton
@@ -85,6 +86,14 @@ public class UserManagerService implements UserManager {
             () -> CompletableFuture.completedFuture(
                 userLookup.roles().stream().filter(Role::isUser).toList()),
             userTable.expressions(),
+            false
+        );
+        var rolesTable = SysRolesTableInfo.create();
+        sysTableRegistry.registerSysTable(
+            rolesTable,
+            () -> CompletableFuture.completedFuture(
+                userLookup.roles().stream().filter(r -> r.isUser() == false).toList()),
+                rolesTable.expressions(),
             false
         );
 

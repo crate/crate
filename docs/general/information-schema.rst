@@ -123,6 +123,7 @@ number of replicas.
     | sys                | operations_log          | BASE TABLE |             NULL | NULL               |
     | sys                | privileges              | BASE TABLE |             NULL | NULL               |
     | sys                | repositories            | BASE TABLE |             NULL | NULL               |
+    | sys                | roles                   | BASE TABLE |             NULL | NULL               |
     | sys                | segments                | BASE TABLE |             NULL | NULL               |
     | sys                | shards                  | BASE TABLE |             NULL | NULL               |
     | sys                | snapshot_restore        | BASE TABLE |             NULL | NULL               |
@@ -130,7 +131,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 63 rows in set (... sec)
+    SELECT 64 rows in set (... sec)
 
 
 The table also contains additional information such as the specified

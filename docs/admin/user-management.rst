@@ -125,7 +125,7 @@ The ``sys.users`` table shows all users in the cluster which can be used for
 authentication. The initial superuser ``crate`` which is available for all
 CrateDB clusters is also part of that list.
 
-To list all existing users query that table::
+To list all existing users query the table::
 
     cr> SELECT * FROM sys.users order by name;
     +-------------+----------+-----------+
@@ -148,8 +148,35 @@ shows whether the user has superuser privileges or not.
     <scalar-current_user>`, :ref:`USER <scalar-user>` and :ref:`SESSION_USER
     <scalar-session_user>`.
 
+List roles
+==========
+
+.. hide:
+
+    cr> CREATE ROLE role_a;
+    CREATE OK, 1 row affected (... sec)
+    cr> CREATE ROLE role_b;
+    CREATE OK, 1 row affected (... sec)
+
+CrateDB exposes database roles via the read-only :ref:`sys-roles` system table.
+The ``sys.roles`` table shows all roles in the cluster which can be used to
+group privileges.
+
+To list all existing roles query the table::
+
+    cr> SELECT * FROM sys.roles order by name;
+    +--------+
+    | name   |
+    +--------+
+    | role_a |
+    | role_b |
+    +--------+
+    SELECT 2 rows in set (... sec)
+
+The column ``name`` shows the unique name of the role.
+
 .. vale off
-.. Drop Users
+.. Drop Users & Roles
 .. hide:
 
     cr> DROP USER "Custom User";
@@ -157,4 +184,8 @@ shows whether the user has superuser privileges or not.
     cr> DROP USER user_a;
     DROP OK, 1 row affected (... sec)
     cr> DROP USER user_b;
+    DROP OK, 1 row affected (... sec)
+    cr> DROP ROLE role_a;
+    DROP OK, 1 row affected (... sec)
+    cr> DROP ROLE role_b;
     DROP OK, 1 row affected (... sec)

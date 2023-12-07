@@ -993,13 +993,14 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         );
         execute("CREATE USER \"John\" WITH (password='johns-password')");
         execute("CREATE USER \"Arthur\"");
-        execute("CREATE USER \"Marios\"");
+        execute("CREATE ROLE \"DummyRole\"");
         execute("SELECT * FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
             "Arthur| NULL| false",
             "John| ********| false",
-            "Marios| NULL| false",
             "crate| NULL| true");
+        execute("SELECT * FROM sys.roles ORDER BY name");
+        assertThat(response).hasRows("DummyRole");
 
         // Snapshot contains the following users:
         // CREATE USER "Arthur" WITH (password='arthurs-password');
@@ -1013,12 +1014,14 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             "Ford| ********| false",
             "John| NULL| false",
             "crate| NULL| true");
+        execute("SELECT count(*) FROM sys.roles");
+        assertThat(response).hasRows("0");
 
         // Before any CREATE/ALTER/DROP operation, RolesMetadata still has the users&roles defined
         // but only UsersMetadata are used
         RolesMetadata rolesMetadata = cluster().clusterService().state().metadata().custom(RolesMetadata.TYPE);
         assertThat(rolesMetadata).isNotNull();
-        Assertions.assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "John", "Marios");
+        Assertions.assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "John", "DummyRole");
         UsersMetadata usersMetadata = cluster().clusterService().state().metadata().custom(UsersMetadata.TYPE);
         assertThat(usersMetadata).isNotNull();
         assertThat(usersMetadata.users()).containsOnlyKeys("Arthur", "Ford", "John");
@@ -1030,6 +1033,8 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             "Ford| ********| false",
             "John| ********| false",
             "crate| NULL| true");
+        execute("SELECT count(*) FROM sys.roles");
+        assertThat(response).hasRows("0");
 
         // After CREATE/ALTER/DROP operation, current RolesMetadata is dropped and
         // recreated from UsersMetadata, thus fully overriden by these restored UsersMetadata
