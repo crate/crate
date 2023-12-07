@@ -755,6 +755,7 @@ public class TestStatementBuilder {
     public void testCreateTableDefaultExpression() {
         printStatement("create table test (col1 int default 1)");
         printStatement("create table test (col1 int default random())");
+        printStatement("create table test (col1 int not null default 1)");
     }
 
     @Test
@@ -763,6 +764,52 @@ public class TestStatementBuilder {
             () -> printStatement("create table test (col1 int default random() as 1+1)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column [col1]: the default and generated expressions are mutually exclusive");
+    }
+
+    @Test
+    public void test_create_table_column_with_duplicated_constraints_is_not_allowed() {
+        var constraintDefinitions = List.of(
+            "INDEX OFF",
+            "DEFAULT 1",
+            "GENERATED ALWAYS AS 1+1",
+            "PRIMARY KEY",
+            "STORAGE WITH(foobar=1)"
+        );
+        for (var constraintDefinition : constraintDefinitions) {
+            assertThatThrownBy(
+                () -> printStatement("CREATE TABLE test (col1 INT " + constraintDefinition + " " + constraintDefinition + ")"))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessageStartingWith("Column [col1]: multiple")
+                .hasMessageEndingWith("constraints found");
+        }
+    }
+
+    @Test
+    public void test_create_table_column_with_allowed_duplicated_constraints() {
+        printStatement("CREATE TABLE test (col1 INT NOT NULL NOT NULL)");
+    }
+
+    @Test
+    public void test_alter_table_add_column_with_duplicated_constraints_is_not_allowed() {
+        var constraintDefinitions = List.of(
+            "INDEX OFF",
+            "DEFAULT 1",
+            "GENERATED ALWAYS AS 1+1",
+            "PRIMARY KEY",
+            "STORAGE WITH(foobar=1)"
+        );
+        for (var constraintDefinition : constraintDefinitions) {
+            assertThatThrownBy(
+                () -> printStatement("ALTER TABLE test ADD COLUMN col1 INT " + constraintDefinition + " " + constraintDefinition))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessageStartingWith("Column [\"col1\"]: multiple")
+                .hasMessageEndingWith("constraints found");
+        }
+    }
+
+    @Test
+    public void test_alter_table_add_column_with_ignored_duplicated_constraints() {
+        printStatement("ALTER TABLE test ADD COLUMN col1 INT NOT NULL NOT NULL");
     }
 
     @Test

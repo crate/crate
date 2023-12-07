@@ -120,6 +120,7 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DecommissionNodeStatement;
+import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DiscardStatement;
@@ -148,6 +149,7 @@ import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GCDanglingArtifacts;
+import io.crate.sql.tree.GeneratedExpressionConstraint;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.GrantPrivilege;
@@ -1112,8 +1114,6 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     public Node visitColumnDefinition(SqlBaseParser.ColumnDefinitionContext context) {
         return new ColumnDefinition(
             getIdentText(context.ident()),
-            visitOptionalContext(context.defaultExpr, Expression.class),
-            visitOptionalContext(context.generatedExpr, Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
@@ -1131,6 +1131,20 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitPrimaryKeyConstraint(SqlBaseParser.PrimaryKeyConstraintContext context) {
         return new PrimaryKeyConstraint<>(visitCollection(context.columns().primaryExpression(), Expression.class));
+    }
+
+    @Override
+    public Node visitColumnGeneratedConstraint(SqlBaseParser.ColumnGeneratedConstraintContext context) {
+        Expression expression = (Expression) visit(context.expr());
+        String expressionStr = ExpressionFormatter.formatStandaloneExpression(expression);
+        return new GeneratedExpressionConstraint<>(expression, expressionStr);
+    }
+
+    @Override
+    public Node visitColumnDefaultConstraint(SqlBaseParser.ColumnDefaultConstraintContext context) {
+        Expression expression = (Expression) visit(context.expr());
+        String expressionStr = ExpressionFormatter.formatStandaloneExpression(expression);
+        return new DefaultConstraint<>(expression, expressionStr);
     }
 
     @Override
@@ -1301,7 +1315,6 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     public Node visitAddColumnDefinition(SqlBaseParser.AddColumnDefinitionContext context) {
         return new AddColumnDefinition(
             visit(context.subscriptSafe()),
-            visitOptionalContext(context.expr(), Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }

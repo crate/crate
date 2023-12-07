@@ -384,6 +384,14 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
+    public R visitDefaultConstraint(DefaultConstraint<?> node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitGeneratedExpressionConstraint(GeneratedExpressionConstraint<?> node, C context) {
+        return visitNode(node, context);
+    }
+
     public R visitDropCheckConstraint(DropCheckConstraint<?> node, C context) {
         return visitNode(node, context);
     }
