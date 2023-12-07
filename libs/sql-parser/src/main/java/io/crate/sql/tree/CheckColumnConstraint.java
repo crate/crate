@@ -21,12 +21,13 @@
 
 package io.crate.sql.tree;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class CheckColumnConstraint<T> extends ColumnConstraint<T> {
+import org.jetbrains.annotations.Nullable;
+
+public final class CheckColumnConstraint<T> extends ColumnConstraint<T> {
 
     @Nullable
     private final String name;

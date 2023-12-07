@@ -24,8 +24,8 @@ package io.crate.sql.tree;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
 
+public final class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
     private static final String NAME = "PRIMARY_KEY";
 
     @Override

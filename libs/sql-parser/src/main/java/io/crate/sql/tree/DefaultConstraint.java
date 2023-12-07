@@ -25,54 +25,57 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public final class ColumnStorageDefinition<T> extends ColumnConstraint<T> {
+public final class DefaultConstraint<T> extends ColumnConstraint<T> {
 
-    private final GenericProperties<T> properties;
+    private final T expression;
+    private final String expressionStr;
 
-    public ColumnStorageDefinition(GenericProperties<T> properties) {
-        this.properties = properties;
+    public DefaultConstraint(T expression, String expressionStr) {
+        this.expression = expression;
+        this.expressionStr = expressionStr;
     }
 
-    public GenericProperties<T> properties() {
-        return properties;
+    public T expression() {
+        return expression;
+    }
+
+    public String expressionStr() {
+        return expressionStr;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitColumnStorageDefinition(this, context);
+        return visitor.visitDefaultConstraint(this, context);
     }
 
     @Override
     public <U> ColumnConstraint<U> map(Function<? super T, ? extends U> mapper) {
-        return new ColumnStorageDefinition<>(properties.map(mapper));
+        return new DefaultConstraint<U>(mapper.apply(expression), expressionStr);
     }
 
     @Override
     public void visit(Consumer<? super T> consumer) {
-        properties.properties().values().forEach(consumer);
+        consumer.accept(expression);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ColumnStorageDefinition<?> that = (ColumnStorageDefinition<?>) o;
-        return Objects.equals(properties, that.properties);
+        if (this == o) return true;
+        if (!(o instanceof DefaultConstraint<?> that)) return false;
+        return Objects.equals(expression, that.expression)
+            && Objects.equals(expressionStr, that.expressionStr);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(properties);
+        return Objects.hash(expression, expressionStr);
     }
 
     @Override
     public String toString() {
-        return "ColumnStorageDefinition{" +
-               "properties=" + properties +
-               '}';
+        return "DefaultConstraint{" +
+            "expression=" + expression +
+            ", expressionStr='" + expressionStr + '\'' +
+            '}';
     }
 }

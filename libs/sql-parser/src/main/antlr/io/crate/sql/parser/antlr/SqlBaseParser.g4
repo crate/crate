@@ -633,11 +633,11 @@ tableElement
     ;
 
 columnDefinition
-    : ident dataType? (DEFAULT defaultExpr=expr)? ((GENERATED ALWAYS)? AS generatedExpr=expr)? columnConstraint*
+    : ident dataType? columnConstraint*
     ;
 
 addColumnDefinition
-    : ADD COLUMN? subscriptSafe dataType? ((GENERATED ALWAYS)? AS expr)? columnConstraint*
+    : ADD COLUMN? subscriptSafe dataType? columnConstraint*
     ;
 
 dropColumnDefinition
@@ -684,6 +684,8 @@ columnConstraint
     | INDEX USING method=ident withProperties?                                       #columnIndexConstraint
     | INDEX OFF                                                                      #columnIndexOff
     | STORAGE withProperties                                                         #columnStorageDefinition
+    | DEFAULT defaultExpr=expr                                                       #columnDefaultConstraint
+    | (GENERATED ALWAYS)? AS generatedExpr=expr                                      #columnGeneratedConstraint
     | checkConstraint                                                                #columnCheckConstraint
     ;
 
