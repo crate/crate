@@ -2162,6 +2162,9 @@ The ``sys.users`` table contains all existing database users in the cluster.
 | ``superuser`` | Flag to indicate whether the user is a       | ``BOOLEAN`` |
 |               | superuser.                                   |             |
 +---------------+----------------------------------------------+-------------+
+| ``password``  | ``********`` if there is a password set or   | ``TEXT``    |
+|               | ``NULL`` if there is not.                    |             |
++---------------+----------------------------------------------+-------------+
 
 .. _sys-allocations:
 
