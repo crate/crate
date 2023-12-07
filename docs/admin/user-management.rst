@@ -120,7 +120,7 @@ statement returns an error::
 List users
 ==========
 
-CrateDB exposes database users via the read-only ``sys.users`` system table.
+CrateDB exposes database users via the read-only :ref:`sys-users` system table.
 The ``sys.users`` table shows all users in the cluster which can be used for
 authentication. The initial superuser ``crate`` which is available for all
 CrateDB clusters is also part of that list.
@@ -147,3 +147,14 @@ shows whether the user has superuser privileges or not.
     :ref:`system information functions <scalar-sysinfo>`: :ref:`CURRENT_USER
     <scalar-current_user>`, :ref:`USER <scalar-user>` and :ref:`SESSION_USER
     <scalar-session_user>`.
+
+.. vale off
+.. Drop Users
+.. hide:
+
+    cr> DROP USER "Custom User";
+    DROP OK, 1 row affected (... sec)
+    cr> DROP USER user_a;
+    DROP OK, 1 row affected (... sec)
+    cr> DROP USER user_b;
+    DROP OK, 1 row affected (... sec)
