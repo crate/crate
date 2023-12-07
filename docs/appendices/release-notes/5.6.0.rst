@@ -110,3 +110,5 @@ Administration and Operations
   ``table_rename_replacement`` to :ref:`RESTORE SNAPSHOT<sql-restore-snapshot>`
   to allow renaming tables during restore.
 
+- Added :ref:`sys.roles<sys-roles>` table which contains all database roles
+  defined in the cluster.

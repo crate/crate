@@ -2166,6 +2166,19 @@ The ``sys.users`` table contains all existing database users in the cluster.
 |               | ``NULL`` if there is not.                    |             |
 +---------------+----------------------------------------------+-------------+
 
+.. _sys-roles:
+
+Roles
+=====
+
+The ``sys.roles`` table contains all existing database roles in the cluster.
+
++---------------+----------------------------------------------+-------------+
+| Column Name   | Description                                  | Return Type |
++===============+==============================================+=============+
+| ``name``      | The name of the database user.               | ``TEXT``    |
++---------------+----------------------------------------------+-------------+
+
 .. _sys-allocations:
 
 Allocations

@@ -40,45 +40,46 @@ import io.crate.testing.SQLResponse;
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
-    private void assertUserIsCreated(String userName) throws Exception {
-        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
-            new Object[]{userName});
-        assertThat(response).hasRows("1");
-    }
-
-    private void assertUserDoesntExist(String userName) throws Exception {
-        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
-            new Object[]{userName});
-        assertThat(response).hasRows("0");
-    }
-
     @After
-    public void dropAllUsers() throws Exception {
+    public void dropAllUsersAndRoles() {
         // clean all created users
         executeAsSuperuser("SELECT name FROM sys.users WHERE superuser = FALSE");
         for (Object[] objects : response.rows()) {
             String user = (String) objects[0];
-            executeAsSuperuser("DROP user " + user);
+            executeAsSuperuser("DROP USER " + user);
+        }
+        // clean all created roles
+        executeAsSuperuser("SELECT name FROM sys.roles");
+        for (Object[] objects : response.rows()) {
+            String role = (String) objects[0];
+            executeAsSuperuser("DROP ROLE " + role);
         }
     }
 
     @Test
-    public void testCreateUser() throws Exception {
+    public void testCreateUser() {
         executeAsSuperuser("create user trillian");
         assertThat(response).hasRowCount(1);
         assertUserIsCreated("trillian");
     }
 
     @Test
-    public void testCreateRole() throws Exception {
+    public void testCreateRole() {
+        executeAsSuperuser("create role dummy_role");
+        assertThat(response).hasRowCount(1);
+        assertRoleIsCreated("dummy_role");
+    }
+
+    @Test
+    public void test_create_role_with_password_is_not_allowed() {
         assertThatThrownBy(() -> executeAsSuperuser("create role dummy with (password='pwd')"))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Creating a ROLE with a password is not allowed, use CREATE USER instead");
     }
 
     @Test
-    public void testSysUsersTableColumns() throws Exception {
-        // The sys users table contains two columns, name and superuser
+    public void testSysUsersTableColumns() {
+        // The sys.users table contains 3 columns, name, password and superuser flag
         executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
         assertThat(response).hasRows(
                 "name| text",
@@ -87,14 +88,14 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testSysUsersTableDefaultUser() throws Exception {
+    public void testSysUsersTableDefaultUser() {
         // The sys.users table always contains the superuser crate
         executeAsSuperuser("select name, password, superuser from sys.users where name = 'crate'");
         assertThat(response).hasRows("crate| NULL| true");
     }
 
     @Test
-    public void testSysUsersTable() throws Exception {
+    public void testSysUsersTable() {
         executeAsSuperuser("CREATE USER arthur");
         assertUserIsCreated("arthur");
         executeAsSuperuser("CREATE USER ford WITH (password = 'foo')");
@@ -107,13 +108,32 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testCreateUserWithPasswordExpression() throws Exception {
+    public void testSysRolesTableColumns() {
+        // The sys.roles table contains one column
+        executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='roles' and table_schema='sys'");
+        assertThat(response).hasRows("name| text");
+    }
+
+    @Test
+    public void testSysRolesTable() {
+        executeAsSuperuser("CREATE ROLE role1");
+        assertRoleIsCreated("role1");
+        executeAsSuperuser("CREATE ROLE role2");
+        assertRoleIsCreated("role2");
+        executeAsSuperuser("SELECT * FROM sys.roles ORDER BY name");
+        assertThat(response).hasRows(
+            "role1",
+            "role2");
+    }
+
+    @Test
+    public void testCreateUserWithPasswordExpression() {
         executeAsSuperuser("CREATE USER arthur WITH (password = substr(?, 3))", new Object[]{"**password"});
         assertUserIsCreated("arthur");
     }
 
     @Test
-    public void testAlterUserPassword() throws Exception {
+    public void testAlterUserPassword() {
         executeAsSuperuser("CREATE USER arthur");
         assertUserIsCreated("arthur");
         executeAsSuperuser("CREATE USER ford WITH (password = ?)", new Object[]{"foo"});
@@ -127,7 +147,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testAlterRolePassword() throws Exception {
+    public void testAlterRolePassword() {
         executeAsSuperuser("CREATE ROLE dummy");
         assertThatThrownBy(() -> executeAsSuperuser("ALTER ROLE dummy SET (password = ?)", new Object[]{"pass"}))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
@@ -135,7 +155,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testAlterUserResetPassword() throws Exception {
+    public void testAlterUserResetPassword() {
         executeAsSuperuser("CREATE USER arthur WITH (password = 'foo')");
         assertUserIsCreated("arthur");
         executeAsSuperuser("ALTER USER arthur SET (password = null)");
@@ -144,7 +164,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testAlterNonExistingUserThrowsException() throws Exception {
+    public void testAlterNonExistingUserThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 40410)
@@ -152,7 +172,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testDropUser() throws Exception {
+    public void testDropUser() {
         executeAsSuperuser("create user ford");
         assertUserIsCreated("ford");
         executeAsSuperuser("drop user ford");
@@ -160,13 +180,13 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testDropUserIfExists() throws Exception {
+    public void testDropUserIfExists() {
         executeAsSuperuser("drop user if exists not_exist_if_exists");
         assertThat(response).hasRowCount(0);
     }
 
     @Test
-    public void testDropUserUnAuthorized() throws Exception {
+    public void testDropUserUnAuthorized() {
         Asserts.assertSQLError(() -> executeAsNormalUser("drop user ford"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
@@ -174,7 +194,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testCreateUserUnAuthorized() throws Exception {
+    public void testCreateUserUnAuthorized() {
         Asserts.assertSQLError(() -> executeAsNormalUser("create user ford"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
@@ -182,7 +202,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testCreateNormalUserUnAuthorized() throws Exception {
+    public void testCreateNormalUserUnAuthorized() {
         Asserts.assertSQLError(() -> executeAsNormalUser("create user ford"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
@@ -190,7 +210,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void test_create_user_as_regular_user_with_al_privileges() throws Exception {
+    public void test_create_user_as_regular_user_with_al_privileges() {
         executeAsSuperuser("CREATE USER trillian");
         executeAsSuperuser("GRANT AL TO trillian");
         executeAs("CREATE USER arthur", "trillian");
@@ -200,7 +220,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testCreateExistingUserThrowsException() throws Exception {
+    public void testCreateExistingUserThrowsException() {
         executeAsSuperuser("create user ford_exists");
         assertUserIsCreated("ford_exists");
 
@@ -211,7 +231,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testDropNonExistingUserThrowsException() throws Exception {
+    public void testDropNonExistingUserThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("drop user not_exists"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 40410)
@@ -219,10 +239,28 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testDropSuperUserThrowsException() throws Exception {
+    public void testDropSuperUserThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("drop user crate"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4004)
             .hasMessageContaining("Cannot drop a superuser 'crate'");
+    }
+
+    private void assertUserIsCreated(String userName) {
+        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
+            new Object[]{userName});
+        assertThat(response).hasRows("1");
+    }
+
+    private void assertRoleIsCreated(String roleName) {
+        SQLResponse response = executeAsSuperuser("select count(*) from sys.roles where name = ?",
+            new Object[]{roleName});
+        assertThat(response).hasRows("1");
+    }
+
+    private void assertUserDoesntExist(String userName) {
+        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
+            new Object[]{userName});
+        assertThat(response).hasRows("0");
     }
 }
