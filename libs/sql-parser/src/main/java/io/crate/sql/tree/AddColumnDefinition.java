@@ -31,35 +31,21 @@ public class AddColumnDefinition<T> extends TableElement<T> {
 
     private final T name;
     @Nullable
-    private final T generatedExpression;
-    @Nullable
     private final ColumnType<T> type;
     private final List<ColumnConstraint<T>> constraints;
 
     public AddColumnDefinition(T name,
-                               @Nullable T generatedExpression,
                                @Nullable ColumnType<T> type,
                                List<ColumnConstraint<T>> constraints) {
         this.name = name;
-        this.generatedExpression = generatedExpression;
         this.type = type;
         this.constraints = constraints;
-        if (type == null && generatedExpression == null) {
-            throw new IllegalArgumentException(
-                "Column [" + name + "]: data type needs to be provided " +
-                "or column should be defined as a generated expression");
-        }
+        ColumnDefinition.validateColumnConstraints(name.toString(), type, constraints);
     }
 
     public T name() {
         return name;
     }
-
-    @Nullable
-    public T generatedExpression() {
-        return generatedExpression;
-    }
-
 
     @Nullable
     public ColumnType<T> type() {
@@ -80,21 +66,19 @@ public class AddColumnDefinition<T> extends TableElement<T> {
         }
         AddColumnDefinition<?> that = (AddColumnDefinition<?>) o;
         return Objects.equals(name, that.name) &&
-               Objects.equals(generatedExpression, that.generatedExpression) &&
                Objects.equals(type, that.type) &&
                Objects.equals(constraints, that.constraints);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, generatedExpression, type, constraints);
+        return Objects.hash(name, type, constraints);
     }
 
     @Override
     public String toString() {
         return "AddColumnDefinition{" +
                "name=" + name +
-               ", generatedExpression=" + generatedExpression +
                ", type=" + type +
                ", constraints=" + constraints +
                '}';
@@ -108,7 +92,6 @@ public class AddColumnDefinition<T> extends TableElement<T> {
     @Override
     public void visit(Consumer<? super T> consumer) {
         consumer.accept(name);
-        consumer.accept(generatedExpression);
         for (ColumnConstraint<T> constraint : constraints) {
             constraint.visit(consumer);
         }

@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class NullColumnConstraint<T> extends ColumnConstraint<T> {
+public final class NullColumnConstraint<T> extends ColumnConstraint<T> {
     private static final String NAME = "NULL";
 
     @Override

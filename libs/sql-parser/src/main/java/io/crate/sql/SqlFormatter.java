@@ -64,6 +64,7 @@ import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
+import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
@@ -82,6 +83,7 @@ import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.Fetch.ScrollMode;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.GCDanglingArtifacts;
+import io.crate.sql.tree.GeneratedExpressionConstraint;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IndexColumnConstraint;
@@ -760,14 +762,6 @@ public final class SqlFormatter {
             if (type != null) {
                 type.accept(this, indent);
             }
-            if (columnDefinition.defaultExpression() != null) {
-                builder.append(" DEFAULT ")
-                    .append(formatStandaloneExpression(columnDefinition.defaultExpression(), parameters));
-            }
-            if (columnDefinition.generatedExpression() != null) {
-                builder.append(" GENERATED ALWAYS AS ")
-                    .append(formatStandaloneExpression(columnDefinition.generatedExpression(), parameters));
-            }
 
             if (!columnDefinition.constraints().isEmpty()) {
                 for (ColumnConstraint<?> constraint : columnDefinition.constraints()) {
@@ -891,6 +885,22 @@ public final class SqlFormatter {
         @Override
         public Void visitCheckColumnConstraint(CheckColumnConstraint<?> node, Integer indent) {
             visitCheckConstraint(node.name(), node.expressionStr());
+            return null;
+        }
+
+        @Override
+        public Void visitDefaultConstraint(DefaultConstraint<?> node, Integer context) {
+            visitConstraintName(node.name());
+            builder.append("DEFAULT ")
+                .append(formatStandaloneExpression((Expression) node.expression(), parameters));
+            return null;
+        }
+
+        @Override
+        public Void visitGeneratedExpressionConstraint(GeneratedExpressionConstraint<?> node, Integer context) {
+            visitConstraintName(node.name());
+            builder.append("GENERATED ALWAYS AS ")
+                .append(formatStandaloneExpression((Expression) node.expression(), parameters));
             return null;
         }
 

@@ -97,8 +97,6 @@ public final class NodeAssert extends AbstractAssert<NodeAssert, Node> {
 
         assertThat(columnDefinition.ident()).isEqualTo(expectedIdent);
         assertThat(columnDefinition.constraints()).isEmpty();
-        assertThat(columnDefinition.defaultExpression()).isNull();
-        assertThat(columnDefinition.generatedExpression()).isNull();
         assertThat(columnDefinition.type()).as("columnType").satisfies(columnTypeMatcher);
         return this;
     }

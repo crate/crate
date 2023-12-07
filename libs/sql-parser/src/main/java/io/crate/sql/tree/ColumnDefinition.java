@@ -32,51 +32,74 @@ public class ColumnDefinition<T> extends TableElement<T> {
     private final String ident;
 
     @Nullable
-    private final T defaultExpression;
-
-    @Nullable
-    private final T generatedExpression;
-
-    private final boolean generated;
-
-    @Nullable
     private final ColumnType<T> type;
 
     private final List<ColumnConstraint<T>> constraints;
 
     public ColumnDefinition(String ident,
-                            @Nullable T defaultExpression,
-                            @Nullable T generatedExpression,
                             @Nullable ColumnType<T> type,
                             List<ColumnConstraint<T>> constraints) {
-        this(ident, defaultExpression, generatedExpression, type, constraints, true, generatedExpression != null);
-    }
-
-    public ColumnDefinition(String ident,
-                            @Nullable T defaultExpression,
-                            @Nullable T generatedExpression,
-                            @Nullable ColumnType<T> type,
-                            List<ColumnConstraint<T>> constraints,
-                            boolean validate,
-                            boolean generated) {
         this.ident = ident;
-        this.defaultExpression = defaultExpression;
-        this.generatedExpression = generatedExpression;
-        this.generated = generated;
         this.type = type;
         this.constraints = constraints;
-        if (validate) {
-            validateColumnDefinition();
-        }
+        validateColumnConstraints(ident, type, constraints);
     }
 
-    private void validateColumnDefinition() {
-        if (type == null && generatedExpression == null) {
+    static <T> void validateColumnConstraints(String ident,
+                                              @Nullable ColumnType<T> type,
+                                              List<ColumnConstraint<T>> constraints) {
+        var hasConstraint = new boolean[5];
+        for (ColumnConstraint<T> constraint : constraints) {
+            switch (constraint) {
+                case PrimaryKeyColumnConstraint<T> ignored -> {
+                    if (hasConstraint[0]) {
+                        throw new IllegalArgumentException("Column [" + ident + "]: multiple primary key constraints found");
+                    }
+                    hasConstraint[0] = true;
+
+                }
+                case IndexColumnConstraint<T> ignored -> {
+                    if (hasConstraint[1]) {
+                        throw new IllegalArgumentException("Column [" + ident + "]: multiple index constraints found");
+                    }
+                    hasConstraint[1] = true;
+                }
+                case DefaultConstraint<T> ignored -> {
+                    if (hasConstraint[2]) {
+                        throw new IllegalArgumentException("Column [" + ident + "]: multiple default constraints found");
+                    }
+                    hasConstraint[2] = true;
+                }
+                case GeneratedExpressionConstraint<T> ignored -> {
+                    if (hasConstraint[3]) {
+                        throw new IllegalArgumentException("Column [" + ident + "]: multiple generated constraints found");
+                    }
+                    hasConstraint[3] = true;
+                }
+                case ColumnStorageDefinition<T> ignored -> {
+                    if (hasConstraint[4]) {
+                        throw new IllegalArgumentException("Column [" + ident + "]: multiple storage constraints found");
+                    }
+                    hasConstraint[4] = true;
+                }
+                case CheckColumnConstraint<T> ignored -> {
+                    // ignore
+                }
+                case NotNullColumnConstraint<T> ignored -> {
+                    // ignore
+                }
+                case NullColumnConstraint<T> ignored -> {
+                    // ignore
+                }
+            }
+        }
+
+        if (type == null && hasConstraint[3] == false) {
             throw new IllegalArgumentException("Column [" + ident + "]: data type needs to be provided " +
                                                "or column should be defined as a generated expression");
         }
 
-        if (defaultExpression != null && generatedExpression != null) {
+        if (hasConstraint[2] && hasConstraint[3]) {
             throw new IllegalArgumentException("Column [" + ident + "]: the default and generated expressions " +
                                                "are mutually exclusive");
         }
@@ -84,20 +107,6 @@ public class ColumnDefinition<T> extends TableElement<T> {
 
     public String ident() {
         return ident;
-    }
-
-    public boolean isGenerated() {
-        return generated;
-    }
-
-    @Nullable
-    public T generatedExpression() {
-        return generatedExpression;
-    }
-
-    @Nullable
-    public T defaultExpression() {
-        return defaultExpression;
     }
 
     @Nullable
@@ -118,26 +127,20 @@ public class ColumnDefinition<T> extends TableElement<T> {
             return false;
         }
         ColumnDefinition<?> that = (ColumnDefinition<?>) o;
-        return generated == that.generated &&
-               Objects.equals(ident, that.ident) &&
-               Objects.equals(defaultExpression, that.defaultExpression) &&
-               Objects.equals(generatedExpression, that.generatedExpression) &&
+        return Objects.equals(ident, that.ident) &&
                Objects.equals(type, that.type) &&
                Objects.equals(constraints, that.constraints);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(ident, defaultExpression, generatedExpression, generated, type, constraints);
+        return Objects.hash(ident, type, constraints);
     }
 
     @Override
     public String toString() {
         return "ColumnDefinition{" +
                "ident='" + ident + '\'' +
-               ", defaultExpression=" + defaultExpression +
-               ", generatedExpression=" + generatedExpression +
-               ", generated=" + generated +
                ", type=" + type +
                ", constraints=" + constraints +
                '}';
@@ -150,12 +153,6 @@ public class ColumnDefinition<T> extends TableElement<T> {
 
     @Override
     public void visit(Consumer<? super T> consumer) {
-        if (defaultExpression != null) {
-            consumer.accept(defaultExpression);
-        }
-        if (generatedExpression != null) {
-            consumer.accept(generatedExpression);
-        }
         for (ColumnConstraint<T> constraint : constraints) {
             constraint.visit(consumer);
         }

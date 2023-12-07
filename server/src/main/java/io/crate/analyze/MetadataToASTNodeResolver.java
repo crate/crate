@@ -51,7 +51,9 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GeneratedExpressionConstraint;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
@@ -142,6 +144,19 @@ public class MetadataToASTNodeResolver {
                     () -> extractColumnDefinitions(ident)
                 );
                 List<ColumnConstraint<Expression>> constraints = new ArrayList<>();
+
+                if (ref instanceof GeneratedReference generatedRef) {
+                    String formattedExpression = generatedRef.formattedGeneratedExpression();
+                    Expression generatedExpression = SqlParser.createExpression(formattedExpression);
+                    constraints.add(new GeneratedExpressionConstraint<>(null, generatedExpression, formattedExpression));
+                }
+                Symbol defaultExpr = ref.defaultExpression();
+                if (defaultExpr != null) {
+                    String symbol = defaultExpr.toString(Style.UNQUALIFIED);
+                    Expression defaultExpression = SqlParser.createExpression(symbol);
+                    constraints.add(new DefaultConstraint<>(null, defaultExpression, symbol));
+                }
+
                 if (!ref.isNullable()) {
                     constraints.add(new NotNullColumnConstraint<>());
                 }
@@ -185,18 +200,6 @@ public class MetadataToASTNodeResolver {
                     constraints.add(new IndexColumnConstraint<>(geoReference.geoTree(), new GenericProperties<>(properties)));
                 }
 
-                Expression generatedExpression = null;
-                if (ref instanceof GeneratedReference generatedRef) {
-                    String formattedExpression = generatedRef.formattedGeneratedExpression();
-                    generatedExpression = SqlParser.createExpression(formattedExpression);
-                }
-                Expression defaultExpression = null;
-                Symbol defaultExpr = ref.defaultExpression();
-                if (defaultExpr != null) {
-                    String symbol = defaultExpr.toString(Style.UNQUALIFIED);
-                    defaultExpression = SqlParser.createExpression(symbol);
-                }
-
                 StorageSupport<?> storageSupport = ref.valueType().storageSupportSafe();
                 boolean hasDocValuesPerDefault = storageSupport.getComputedDocValuesDefault(ref.indexType());
                 if (hasDocValuesPerDefault != ref.hasDocValues()) {
@@ -209,8 +212,6 @@ public class MetadataToASTNodeResolver {
                 String columnName = ident.leafName();
                 elements.add(new ColumnDefinition<>(
                     columnName,
-                    defaultExpression,
-                    generatedExpression,
                     columnType,
                     constraints)
                 );

@@ -80,8 +80,10 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GeneratedExpressionConstraint;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
@@ -546,24 +548,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 : ColumnIdent.getChildSafe(parent, columnDefinition.ident());
             RefBuilder builder = columns.get(columnName);
 
-            Expression defaultExpression = columnDefinition.defaultExpression();
-            if (defaultExpression != null) {
-                if (builder.type.id() == ObjectType.ID) {
-                    throw new IllegalArgumentException("Default values are not allowed for object columns: " + columnName);
-                }
-                Symbol defaultSymbol = expressionAnalyzer.convert(defaultExpression, expressionContext);
-                builder.defaultExpression = defaultSymbol.cast(builder.type, CastMode.IMPLICIT);
-                // only used to validate; result is not used to preserve functions like `current_timestamp`
-                normalizer.normalize(builder.defaultExpression, txnCtx);
-                RefVisitor.visitRefs(builder.defaultExpression, x -> {
-                    throw new UnsupportedOperationException(
-                        "Cannot reference columns in DEFAULT expression of `" + columnName + "`. " +
-                        "Maybe you wanted to use a string literal with single quotes instead: '" + x.column().name() + "'");
-                });
-                EnsureNoMatchPredicate.ensureNoMatchPredicate(defaultSymbol, "Cannot use MATCH in CREATE TABLE statements");
-            }
-
-            setGeneratedExpression(builder, columnDefinition.generatedExpression());
             for (var constraint : columnDefinition.constraints()) {
                 processConstraint(builder, constraint);
             }
@@ -580,21 +564,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             }
 
             return null;
-        }
-
-        private void setGeneratedExpression(RefBuilder builder, @Nullable Expression generatedExpression) {
-            if (generatedExpression == null) {
-                return;
-            }
-            builder.generated = expressionAnalyzer.convert(generatedExpression, expressionContext);
-            EnsureNoMatchPredicate.ensureNoMatchPredicate(builder.generated, "Cannot use MATCH in CREATE TABLE statements");
-            if (builder.type == DataTypes.UNDEFINED) {
-                builder.type = builder.generated.valueType();
-            } else {
-                builder.generated = builder.generated.cast(builder.type, CastMode.IMPLICIT);
-            }
-            // only used to validate; result is not used to preserve functions like `current_timestamp`
-            normalizer.normalize(builder.generated, txnCtx);
         }
 
         private void processConstraint(RefBuilder builder, ColumnConstraint<Expression> constraint) {
@@ -647,6 +616,38 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Column \"%s\" is declared as NOT NULL, therefore, cannot be declared NULL", columnName));
                 }
+            } else if (constraint instanceof DefaultConstraint<Expression> defaultConstraint) {
+                Expression defaultExpression = defaultConstraint.expression();
+                if (defaultExpression != null) {
+                    if (builder.type.id() == ObjectType.ID) {
+                        throw new IllegalArgumentException("Default values are not allowed for object columns: " + columnName);
+                    }
+                    Symbol defaultSymbol = expressionAnalyzer.convert(defaultExpression, expressionContext);
+                    builder.defaultExpression = defaultSymbol.cast(builder.type, CastMode.IMPLICIT);
+                    // only used to validate; result is not used to preserve functions like `current_timestamp`
+                    normalizer.normalize(builder.defaultExpression, txnCtx);
+                    RefVisitor.visitRefs(builder.defaultExpression, x -> {
+                        throw new UnsupportedOperationException(
+                            "Cannot reference columns in DEFAULT expression of `" + columnName + "`. " +
+                                "Maybe you wanted to use a string literal with single quotes instead: '" + x.column().name() + "'");
+                    });
+                    EnsureNoMatchPredicate.ensureNoMatchPredicate(defaultSymbol, "Cannot use MATCH in CREATE TABLE statements");
+                }
+            } else if (constraint instanceof GeneratedExpressionConstraint<Expression> generatedExpressionConstraint) {
+                Expression generatedExpression = generatedExpressionConstraint.expression();
+                if (generatedExpression != null) {
+                    builder.generated = expressionAnalyzer.convert(generatedExpression, expressionContext);
+                    EnsureNoMatchPredicate.ensureNoMatchPredicate(builder.generated, "Cannot use MATCH in CREATE TABLE statements");
+                    if (builder.type == DataTypes.UNDEFINED) {
+                        builder.type = builder.generated.valueType();
+                    } else {
+                        builder.generated = builder.generated.cast(builder.type, CastMode.IMPLICIT);
+                    }
+                    // only used to validate; result is not used to preserve functions like `current_timestamp`
+                    normalizer.normalize(builder.generated, txnCtx);
+                }
+            } else {
+                throw new UnsupportedOperationException("constraint not supported: " + constraint);
             }
         }
 
@@ -659,7 +660,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             ColumnIdent columnName = Symbols.pathFromSymbol(expressionAnalyzer.convert(name, expressionContext));
             RefBuilder builder = columns.get(columnName);
 
-            setGeneratedExpression(builder, columnDefinition.generatedExpression());
             for (var constraint : columnDefinition.constraints()) {
                 processConstraint(builder, constraint);
             }
