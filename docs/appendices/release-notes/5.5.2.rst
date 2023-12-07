@@ -66,3 +66,8 @@ Fixes
   success on dropping :ref:`system columns <sql_administration_system_columns>`
   despite any follow up queries on the dropped columns work as expected. Now
   an exception is thrown.
+
+- Fixed the SQL parser to be lenient with the position of constraint definitions
+  at the column definition of ``CREATE TABLE`` and ``ALTER TABLE`` statements.
+  E.g. ``CREATE TABLE t (a INT NULL DEFAULT 1)`` is now accepted while before
+  the ``NULL`` constraint had to be placed after the ``DEFAULT`` constraint.

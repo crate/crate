@@ -375,8 +375,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                 columnPolicy,
                 Lists2.map(innerTypes.entrySet(), e -> new ColumnDefinition<>(
                     e.getKey(),
-                    null,
-                    null,
                     e.getValue().toColumnType(columnPolicy, convertChildColumn),
                     List.of()
                 ))

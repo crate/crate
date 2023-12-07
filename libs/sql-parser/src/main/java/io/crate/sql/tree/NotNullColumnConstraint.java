@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class NotNullColumnConstraint<T> extends ColumnConstraint<T> {
+public final class NotNullColumnConstraint<T> extends ColumnConstraint<T> {
 
     private static final String NAME = "NOT NULL";
 

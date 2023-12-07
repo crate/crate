@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
 
-public class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
+public final class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
     private static final String NAME = "PRIMARY_KEY";
     @Nullable
     private final String constraintName;
