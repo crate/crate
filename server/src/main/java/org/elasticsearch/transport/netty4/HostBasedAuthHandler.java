@@ -32,7 +32,7 @@ import io.crate.auth.Authentication;
 import io.crate.auth.Protocol;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -63,7 +63,7 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
             Protocol.TRANSPORT,
             SSL.getSession(channel)
         );
-        String userName = User.CRATE_USER.name();
+        String userName = Role.CRATE_USER.name();
         var authMethod = authentication.resolveAuthenticationType(userName, connectionProperties);
         if (authMethod == null) {
             ReferenceCountUtil.release(msg);

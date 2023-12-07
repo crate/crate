@@ -65,7 +65,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -109,9 +109,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
         jobsLogSink.add(new JobContextLog(
-            new JobContext(UUID.randomUUID(), "insert into", 10L, User.CRATE_USER, null), null, 20L));
+            new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), null, 20L));
         jobsLogSink.add(new JobContextLog(
-            new JobContext(UUID.randomUUID(), "select * from t1", 10L, User.CRATE_USER, null), null, 20L));
+            new JobContext(UUID.randomUUID(), "select * from t1", 10L, Role.CRATE_USER, null), null, 20L));
         assertThat(StreamSupport.stream(jobsLogSink.spliterator(), false).count(), is(1L));
     }
 
@@ -253,7 +253,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             new Classification(SELECT, Collections.singleton("Collect"));
 
         jobsLogSink.add(new JobContextLog(
-            new JobContext(UUID.randomUUID(), "select 1", 1L, User.CRATE_USER, classification), null));
+            new JobContext(UUID.randomUUID(), "select 1", 1L, Role.CRATE_USER, classification), null));
 
         clusterSettings.applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
@@ -296,11 +296,11 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 while (doInsertJobs.get() && numJobs.get() < maxQueueSize) {
                     UUID uuid = UUID.randomUUID();
                     int i = numJobs.getAndIncrement();
-                    jobsLogs.logExecutionStart(uuid, "select 1", User.CRATE_USER, classification);
+                    jobsLogs.logExecutionStart(uuid, "select 1", Role.CRATE_USER, classification);
                     if (i % 2 == 0) {
                         jobsLogs.logExecutionEnd(uuid, null);
                     } else {
-                        jobsLogs.logPreExecutionFailure(uuid, "select 1", "failure", User.CRATE_USER);
+                        jobsLogs.logPreExecutionFailure(uuid, "select 1", "failure", Role.CRATE_USER);
                     }
                 }
                 latch.countDown();
@@ -365,7 +365,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExecutionStart() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        User user = User.of("arthur");
+        Role user = Role.userOf("arthur");
 
         Classification classification =
             new Classification(SELECT, Collections.singleton("Collect"));
@@ -384,7 +384,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExecutionFailure() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        User user = User.of("arthur");
+        Role user = Role.userOf("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
@@ -402,7 +402,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExecutionFailureIsRecordedInMetrics() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        User user = User.of("arthur");
+        Role user = Role.userOf("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));

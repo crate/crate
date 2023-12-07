@@ -21,17 +21,8 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.user.User;
-import io.crate.expression.reference.sys.job.JobContext;
-import io.crate.expression.reference.sys.job.JobContextLog;
-import io.crate.expression.reference.sys.operation.OperationContext;
-import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.metadata.sys.ClassifiedMetrics;
-import io.crate.metadata.sys.MetricsView;
-import io.crate.planner.operators.StatementClassifier;
+import static io.crate.planner.Plan.StatementType.UNDEFINED;
 
-import org.jetbrains.annotations.Nullable;
-import io.crate.common.annotations.ThreadSafe;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,7 +31,17 @@ import java.util.concurrent.locks.StampedLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
-import static io.crate.planner.Plan.StatementType.UNDEFINED;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.annotations.ThreadSafe;
+import io.crate.expression.reference.sys.job.JobContext;
+import io.crate.expression.reference.sys.job.JobContextLog;
+import io.crate.expression.reference.sys.operation.OperationContext;
+import io.crate.expression.reference.sys.operation.OperationContextLog;
+import io.crate.metadata.sys.ClassifiedMetrics;
+import io.crate.metadata.sys.MetricsView;
+import io.crate.planner.operators.StatementClassifier;
+import io.crate.user.Role;
 
 
 /**
@@ -96,7 +97,7 @@ public class JobsLogs {
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void logExecutionStart(UUID jobId, String statement, User user, StatementClassifier.Classification classification) {
+    public void logExecutionStart(UUID jobId, String statement, Role user, StatementClassifier.Classification classification) {
         activeRequests.increment();
         if (!isEnabled()) {
             return;
@@ -140,9 +141,9 @@ public class JobsLogs {
      * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)}
      * Call because an error happened during parse, analysis or plan.
      * <p>
-     * {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)} is only called after a Plan has been created and execution starts.
+     * {@link #logExecutionStart(UUID, String, Role, StatementClassifier.Classification)} is only called after a Plan has been created and execution starts.
      */
-    public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, User user) {
+    public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, Role user) {
         JobContextLog jobContextLog = new JobContextLog(
             new JobContext(jobId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), errorMessage);
         long stamp = jobsLogLock.readLock();

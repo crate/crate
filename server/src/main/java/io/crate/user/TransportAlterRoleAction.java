@@ -23,9 +23,7 @@ package io.crate.user;
 
 import java.io.IOException;
 
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.annotations.VisibleForTesting;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -39,7 +37,11 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.user.metadata.RolesMetadata;
 import io.crate.user.metadata.UsersMetadata;
 
 public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRoleRequest, WriteRoleResponse> {
@@ -71,6 +73,10 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
     protected void masterOperation(AlterRoleRequest request,
                                    ClusterState state,
                                    ActionListener<WriteRoleResponse> listener) {
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0) == false) {
+            throw new IllegalStateException("Cannot create new users/roles until all nodes are upgraded to 5.6");
+        }
+
         clusterService.submitStateUpdateTask("alter_role [" + request.roleName() + "]",
                 new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
 
@@ -96,17 +102,22 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
     }
 
     @VisibleForTesting
-    static boolean alterRole(Metadata.Builder mdBuilder, String userName, @Nullable SecureHash secureHash) {
-        UsersMetadata oldMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        if (oldMetadata == null || !oldMetadata.contains(userName)) {
+    static boolean alterRole(Metadata.Builder mdBuilder, String roleName, @Nullable SecureHash secureHash) {
+        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
+        UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        if ((oldUsersMetadata == null || !oldUsersMetadata.contains(roleName)) &&
+            (oldRolesMetadata == null || !oldRolesMetadata.contains(roleName))) {
             return false;
         }
-        // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersMetadata newMetadata = UsersMetadata.newInstance(oldMetadata);
-        newMetadata.put(userName, secureHash);
 
-        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(UsersMetadata.TYPE, newMetadata);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
+        if (newMetadata.roles().get(roleName).isUser() == false && secureHash != null) {
+            throw new UnsupportedFeatureException("Setting a password to a ROLE is not allowed");
+        }
+        newMetadata.put(roleName, true, secureHash);
+
+        assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
+        mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
 
         return true;
     }

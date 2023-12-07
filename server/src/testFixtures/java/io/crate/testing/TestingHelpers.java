@@ -90,7 +90,7 @@ import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class TestingHelpers {
 
@@ -186,13 +186,13 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(AbstractModule... additionalModules) {
-        return createNodeContext(List.of(User.CRATE_USER), additionalModules);
+        return createNodeContext(List.of(Role.CRATE_USER), additionalModules);
     }
 
-    public static NodeContext createNodeContext(List<User> users, AbstractModule... additionalModules) {
+    public static NodeContext createNodeContext(List<Role> roles, AbstractModule... additionalModules) {
         return new NodeContext(
             prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class),
-            () -> users
+            () -> roles
         );
     }
 
@@ -310,11 +310,11 @@ public class TestingHelpers {
         return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction) {
+    public static <T, K extends Comparable<K>> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction) {
         return isSortedBy(extractSortingKeyFunction, false, null);
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(
+    public static <T, K extends Comparable<K>> Matcher<Iterable<? extends T>> isSortedBy(
         final Function<T, K> extractSortingKeyFunction,
         final boolean descending,
         @Nullable final Boolean nullsFirst) {

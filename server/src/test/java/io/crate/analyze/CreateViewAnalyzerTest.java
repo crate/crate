@@ -38,11 +38,11 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final User TEST_USER = User.of("test_user");
+    private static final Role TEST_USER = Role.userOf("test_user");
     private SQLExecutor e;
 
     @Before

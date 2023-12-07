@@ -54,7 +54,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 public class PublicationsStateAction extends ActionType<PublicationsStateAction.Response> {
@@ -111,7 +111,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                                        ActionListener<Response> listener) throws Exception {
             // Ensure subscribing user was not dropped after remote connection was established on another side.
             // Subscribing users must be checked on a publisher side as they belong to the publishing cluster.
-            User subscriber = userLookup.findUser(request.subscribingUserName());
+            Role subscriber = userLookup.findUser(request.subscribingUserName());
             if (subscriber == null) {
                 throw new IllegalStateException(
                     String.format(
@@ -138,7 +138,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
                 // Publication owner cannot be null as we ensure that users who owns publication cannot be dropped.
                 // Also, before creating publication or subscription we check that owner was not dropped right before creation.
-                User publicationOwner = userLookup.findUser(publication.owner());
+                Role publicationOwner = userLookup.findUser(publication.owner());
                 allRelationsInPublications.putAll(publication.resolveCurrentRelations(state, publicationOwner, subscriber, publicationName));
             }
             listener.onResponse(new Response(allRelationsInPublications, unknownPublications));

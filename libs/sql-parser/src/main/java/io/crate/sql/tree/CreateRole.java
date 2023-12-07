@@ -71,10 +71,10 @@ public class CreateRole extends Statement {
 
     @Override
     public String toString() {
-        return "CreateRole{" +
-            "name='" + name + '\'' +
-            ", isUser=" + isUser +
-            ", properties=" + properties +
+        return "Create" + (isUser ? "User" : "Role") +
+            '{' +
+              "name='" + name + '\'' +
+              ", properties=" + properties +
             '}';
     }
 

@@ -59,7 +59,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
@@ -157,7 +157,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             assertThat(((Scalar) impl).evaluate(txnCtx, null, inputs))
                 .isEqualTo(expectedValue);
             assertThat(((Scalar) impl)
-                           .compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER))
+                           .compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER))
                            .evaluate(txnCtx, sqlExpressions.nodeCtx, inputs))
                 .isEqualTo(expectedValue);
         }
@@ -244,7 +244,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             Input<?> input = ctx.add(arg);
             arguments[i] = new AssertMax1ValueCallInput(input);
         }
-        Object actualValue = scalar.compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER))
+        Object actualValue = scalar.compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER))
             .evaluate(txnCtx, sqlExpressions.nodeCtx, arguments);
         assertThat((T) actualValue).satisfies(expectedValue);
 
@@ -260,18 +260,18 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings("rawtypes")
     public void assertCompile(String functionExpression,
                               java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
-        assertCompile(functionExpression, User.of("dummy"), () -> List.of(User.of("dummy")), matcher);
+        assertCompile(functionExpression, Role.userOf("dummy"), () -> List.of(Role.userOf("dummy")), matcher);
     }
 
     @SuppressWarnings("rawtypes")
     public void assertCompileAsSuperUser(String functionExpression,
                                          java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
-        assertCompile(functionExpression, User.CRATE_USER, () -> List.of(User.CRATE_USER), matcher);
+        assertCompile(functionExpression, Role.CRATE_USER, () -> List.of(Role.CRATE_USER), matcher);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void assertCompile(String functionExpression,
-                              User sessionUser,
+                              Role sessionUser,
                               RoleLookup userLookup,
                               java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);

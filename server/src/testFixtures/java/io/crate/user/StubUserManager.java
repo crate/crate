@@ -33,7 +33,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubUserManager implements UserManager {
 
-    private final List<User> users = List.of(User.CRATE_USER);
+    private final List<Role> roles = List.of(Role.CRATE_USER);
 
     @Override
     public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
@@ -56,18 +56,18 @@ public class StubUserManager implements UserManager {
     }
 
     @Override
-    public User findUser(int userOid) {
-        return User.CRATE_USER;
+    public Role findUser(int userOid) {
+        return Role.CRATE_USER;
     }
 
     @Override
-    public User findUser(String userName) {
-        return User.CRATE_USER;
+    public Role findUser(String userName) {
+        return Role.CRATE_USER;
     }
 
     @Override
-    public Iterable<User> users() {
-        return users;
+    public Collection<Role> roles() {
+        return roles;
     }
 
     @Override

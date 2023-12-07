@@ -61,7 +61,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class SysShardsTableInfo {
 
@@ -239,7 +239,7 @@ public class SysShardsTableInfo {
         String[] concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllIndices())
             .filter(index -> !IndexParts.isDangling(index))
             .toArray(String[]::new);
-        User user = sessionSettings != null ? sessionSettings.sessionUser() : null;
+        Role user = sessionSettings != null ? sessionSettings.sessionUser() : null;
         if (user != null) {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
             for (String indexName : concreteIndices) {

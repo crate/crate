@@ -40,7 +40,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -122,7 +122,8 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testAuthorized() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER)));
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(
+            Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)));
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -178,7 +179,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
-        User crateUser = User.of("crate", EnumSet.of(User.Role.SUPERUSER));
+        Role crateUser = Role.userOf("crate", EnumSet.of(Role.UserRole.SUPERUSER));
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of(crateUser));
 
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);

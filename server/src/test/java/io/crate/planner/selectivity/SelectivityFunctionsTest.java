@@ -50,7 +50,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -58,7 +58,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         new ModulesBuilder()
             .add(new OperatorModule())
             .createInjector().getInstance(Functions.class),
-        () -> List.of(User.CRATE_USER)
+        () -> List.of(Role.CRATE_USER)
     );
     TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 

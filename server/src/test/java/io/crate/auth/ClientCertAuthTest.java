@@ -40,14 +40,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class ClientCertAuthTest extends ESTestCase {
 
     private ConnectionProperties sslConnWithCert;
     // "example.com" is the CN used in SelfSignedCertificate
-    private User exampleUser = User.of("example.com");
+    private Role exampleUser = Role.userOf("example.com");
     private SSLSession sslSession;
 
     @BeforeClass
@@ -76,20 +76,20 @@ public class ClientCertAuthTest extends ESTestCase {
     public void testLookupValidUserWithCert() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(exampleUser));
 
-        User user = clientCertAuth.authenticate("example.com", null, sslConnWithCert);
+        Role user = clientCertAuth.authenticate("example.com", null, sslConnWithCert);
         assertThat(user).isEqualTo(exampleUser);
     }
 
     @Test
     public void testLookupValidUserWithCertWithDifferentCN() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(User.of("arthur")));
+        ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(Role.userOf("arthur")));
         assertThatThrownBy(() -> clientCertAuth.authenticate("arthur", null, sslConnWithCert))
             .hasMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
     }
 
     @Test
     public void testLookupUserWithMatchingCertThatDoesNotExist() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of());
+        ClientCertAuth clientCertAuth = new ClientCertAuth(List::of);
         assertThatThrownBy(() -> clientCertAuth.authenticate("example.com", null, sslConnWithCert))
             .hasMessage("Client certificate authentication failed for user \"example.com\"");
     }

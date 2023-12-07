@@ -56,7 +56,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public abstract class AbstractTableFunctionsTest extends ESTestCase {
 
@@ -110,7 +110,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         Function function = (Function) functionSymbol;
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
-        Scalar compiled = scalar.compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER));
+        Scalar compiled = scalar.compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER));
         assertThat(compiled, matcher.apply(scalar));
     }
 

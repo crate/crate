@@ -40,7 +40,7 @@ public class Privileges {
     public static void ensureUserHasPrivilege(Privilege.Type type,
                                               Privilege.Clazz clazz,
                                               @Nullable String ident,
-                                              User user,
+                                              Role user,
                                               String defaultSchema) throws MissingPrivilegeException {
         assert user != null : "User must not be null when trying to validate privileges";
         assert type != null : "Privilege type must not be null";
@@ -82,7 +82,7 @@ public class Privileges {
     @VisibleForTesting
     public static void ensureUserHasPrivilege(Privilege.Clazz clazz,
                                               @Nullable String ident,
-                                              User user) throws MissingPrivilegeException {
+                                              Role user) throws MissingPrivilegeException {
         assert user != null : "User must not be null when trying to validate privileges";
 
         // information_schema and pg_catalog should not be protected

@@ -67,7 +67,7 @@ import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class MetadataTrackerTest extends ESTestCase {
 
@@ -525,7 +525,7 @@ public class MetadataTrackerTest extends ESTestCase {
         PublicationsMetadata publicationsMetadata = publisherState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get("pub1");
         var publisherStateResponse = new Response(
-                publication.resolveCurrentRelations(publisherState, User.CRATE_USER, User.CRATE_USER, "dummy"), List.of());
+                publication.resolveCurrentRelations(publisherState, Role.CRATE_USER, Role.CRATE_USER, "dummy"), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
             SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
@@ -555,7 +555,7 @@ public class MetadataTrackerTest extends ESTestCase {
         PublicationsMetadata publicationsMetadata = publisherClusterState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get("pub1");
         var publisherStateResponse = new Response(
-                publication.resolveCurrentRelations(publisherClusterState, User.CRATE_USER, User.CRATE_USER, "dummy"), List.of());
+                publication.resolveCurrentRelations(publisherClusterState, Role.CRATE_USER, Role.CRATE_USER, "dummy"), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
             SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),

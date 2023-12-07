@@ -45,7 +45,7 @@ import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -129,12 +129,12 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_drop_publication_as_non_superuser_and_non_owner_raises_error() {
         var e = SQLExecutor.builder(clusterService)
-            .setUser(User.of("owner"))
+            .setUser(Role.userOf("owner"))
             .addPublication("pub1", true)
             .build();
         Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
                         SqlParser.createStatement("DROP PUBLICATION pub1"),
-                        new CoordinatorSessionSettings(User.of("other_user")),
+                        new CoordinatorSessionSettings(Role.userOf("other_user")),
                         ParamTypeHints.EMPTY,
                         e.cursors
             ))
@@ -178,12 +178,12 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_alter_publication_as_non_superuser_and_non_owner_raises_error() {
         var e = SQLExecutor.builder(clusterService)
-            .setUser(User.of("owner"))
+            .setUser(Role.userOf("owner"))
             .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
         Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
                         SqlParser.createStatement("ALTER PUBLICATION pub1 ADD TABLE doc.t2"),
-                        new CoordinatorSessionSettings(User.of("other_user")),
+                        new CoordinatorSessionSettings(Role.userOf("other_user")),
                         ParamTypeHints.EMPTY,
                         e.cursors
             ))
@@ -222,12 +222,12 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_drop_subscription_as_non_superuser_and_non_owner_raises_error() {
         var e = SQLExecutor.builder(clusterService)
-            .setUser(User.of("owner"))
+            .setUser(Role.userOf("owner"))
             .addSubscription("sub1", "pub1")
             .build();
         Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
                         SqlParser.createStatement("DROP SUBSCRIPTION sub1"),
-                        new CoordinatorSessionSettings(User.of("other_user")),
+                        new CoordinatorSessionSettings(Role.userOf("other_user")),
                         ParamTypeHints.EMPTY,
                         e.cursors
             ))
@@ -238,12 +238,12 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_alter_subscription_as_non_superuser_and_non_owner_raises_error() {
         var e = SQLExecutor.builder(clusterService)
-            .setUser(User.of("owner"))
+            .setUser(Role.userOf("owner"))
             .addSubscription("sub1", "pub1")
             .build();
         Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
                         SqlParser.createStatement("ALTER SUBSCRIPTION sub1 DISABLE"),
-                        new CoordinatorSessionSettings(User.of("other_user")),
+                        new CoordinatorSessionSettings(Role.userOf("other_user")),
                         ParamTypeHints.EMPTY,
                         e.cursors
             ))

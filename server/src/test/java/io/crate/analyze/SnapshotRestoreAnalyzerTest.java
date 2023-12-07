@@ -62,6 +62,8 @@ import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.user.metadata.RolesMetadata;
+import io.crate.user.metadata.UsersMetadata;
 
 public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -386,7 +388,13 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             assertThat(statement.restoreTables().isEmpty()).isTrue();
             assertThat(statement.includeTables()).isFalse();
             assertThat(statement.includeCustomMetadata()).isTrue();
-            assertThat(statement.customMetadataTypes()).containsExactly(entry.getValue());
+            if (entry.getValue().equals(RolesMetadata.TYPE)) {
+                assertThat(statement.customMetadataTypes()).containsExactlyInAnyOrder(
+                    entry.getValue(),
+                    UsersMetadata.TYPE);
+            } else {
+                assertThat(statement.customMetadataTypes()).containsExactly(entry.getValue());
+            }
             assertThat(statement.includeGlobalSettings()).isFalse();
             assertThat(statement.globalSettings().isEmpty()).isTrue();
         }
@@ -402,6 +410,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(statement.includeCustomMetadata()).isTrue();
         assertThat(statement.customMetadataTypes()).containsExactlyInAnyOrder(
             METADATA_CUSTOM_TYPE_MAP.get("USERS"),
+            UsersMetadata.TYPE,
             METADATA_CUSTOM_TYPE_MAP.get("PRIVILEGES")
         );
         assertThat(statement.includeGlobalSettings()).isFalse();

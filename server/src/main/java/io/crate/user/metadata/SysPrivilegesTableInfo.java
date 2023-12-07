@@ -25,12 +25,12 @@ import static io.crate.types.DataTypes.STRING;
 
 import java.util.stream.StreamSupport;
 
-import io.crate.user.Privilege;
-import io.crate.user.User;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.user.Privilege;
+import io.crate.user.Role;
 
 public class SysPrivilegesTableInfo {
 
@@ -65,8 +65,8 @@ public class SysPrivilegesTableInfo {
             .build();
     }
 
-    public static Iterable<PrivilegeRow> buildPrivilegesRows(Iterable<User> users) {
-        return () -> StreamSupport.stream(users.spliterator(), false)
+    public static Iterable<PrivilegeRow> buildPrivilegesRows(Iterable<Role> roles) {
+        return () -> StreamSupport.stream(roles.spliterator(), false)
             .flatMap(u -> StreamSupport.stream(u.privileges().spliterator(), false)
                 .map(p -> new PrivilegeRow(u.name(), p))
             ).iterator();

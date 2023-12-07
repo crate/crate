@@ -21,14 +21,14 @@
 
 package io.crate.expression.scalar.postgres;
 
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.user.Role.CRATE_USER;
+
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import static io.crate.user.User.CRATE_USER;
-import static io.crate.metadata.functions.Signature.scalar;
 
 public class PgGetUserByIdFunction {
 

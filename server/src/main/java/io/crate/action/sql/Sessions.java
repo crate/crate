@@ -52,7 +52,7 @@ import io.crate.protocols.postgres.KeyData;
 import io.crate.statistics.TableStats;
 import io.crate.user.Privilege.Clazz;
 import io.crate.user.Privilege.Type;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 
 @Singleton
@@ -142,7 +142,7 @@ public class Sessions {
         return session;
     }
 
-    public Session newSession(@Nullable String defaultSchema, User authenticatedUser) {
+    public Session newSession(@Nullable String defaultSchema, Role authenticatedUser) {
         CoordinatorSessionSettings sessionSettings;
         if (defaultSchema == null) {
             sessionSettings = new CoordinatorSessionSettings(authenticatedUser);
@@ -208,7 +208,7 @@ public class Sessions {
         return sessions.values();
     }
 
-    public Iterable<Cursor> getCursors(User user) {
+    public Iterable<Cursor> getCursors(Role user) {
         return () -> sessions.values().stream()
             .filter(session ->
                 user.hasPrivilege(Type.AL, Clazz.CLUSTER, null)

@@ -27,11 +27,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 
@@ -65,6 +67,13 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("create user trillian");
         assertThat(response).hasRowCount(1);
         assertUserIsCreated("trillian");
+    }
+
+    @Test
+    public void testCreateRole() throws Exception {
+        assertThatThrownBy(() -> executeAsSuperuser("create role dummy with (password='pwd')"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Creating a ROLE with a password is not allowed, use CREATE USER instead");
     }
 
     @Test
@@ -115,6 +124,14 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response).hasRows(
                 "arthur| ********| false",
                 "ford| ********| false");
+    }
+
+    @Test
+    public void testAlterRolePassword() throws Exception {
+        executeAsSuperuser("CREATE ROLE dummy");
+        assertThatThrownBy(() -> executeAsSuperuser("ALTER ROLE dummy SET (password = ?)", new Object[]{"pass"}))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Setting a password to a ROLE is not allowed");
     }
 
     @Test

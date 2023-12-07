@@ -42,18 +42,18 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public class AccessControlMaySeeTest extends ESTestCase {
 
     private List<List<Object>> validationCallArguments;
-    private User user;
+    private Role user;
     private AccessControl accessControl;
 
     @Before
     public void setUpUserAndValidator() {
         validationCallArguments = new ArrayList<>();
-        user = new User("normal", Set.of(), Set.of(), null) {
+        user = new Role("normal", true, Set.of(), null, Set.of()) {
 
             @Override
             public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {

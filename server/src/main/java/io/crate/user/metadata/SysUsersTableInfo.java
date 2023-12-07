@@ -24,21 +24,21 @@ package io.crate.user.metadata;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING;
 
-import io.crate.user.User;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.user.Role;
 
 public class SysUsersTableInfo {
 
     private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
     private static final String PASSWORD_PLACEHOLDER = "********";
 
-    public static SystemTable<User> create() {
-        return SystemTable.<User>builder(IDENT)
-            .add("name", STRING, User::name)
-            .add("superuser", BOOLEAN, User::isSuperUser)
+    public static SystemTable<Role> create() {
+        return SystemTable.<Role>builder(IDENT)
+            .add("name", STRING, Role::name)
+            .add("superuser", BOOLEAN, Role::isSuperUser)
             .add("password", STRING, x -> x.password() == null ? null : PASSWORD_PLACEHOLDER)
             .setPrimaryKeys(new ColumnIdent("name"))
             .build();

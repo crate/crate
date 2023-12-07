@@ -22,7 +22,7 @@
 package io.crate.user;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.RolesMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -110,14 +110,14 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
 
     @VisibleForTesting
     static List<String> validateUserNames(Metadata metadata, Collection<String> userNames) {
-        UsersMetadata usersMetadata = metadata.custom(UsersMetadata.TYPE);
-        if (usersMetadata == null) {
+        RolesMetadata rolesMetadata = metadata.custom(RolesMetadata.TYPE);
+        if (rolesMetadata == null) {
             return new ArrayList<>(userNames);
         }
         List<String> unknownUserNames = null;
         for (String userName : userNames) {
             //noinspection PointlessBooleanExpression
-            if (usersMetadata.userNames().contains(userName) == false) {
+            if (rolesMetadata.roleNames().contains(userName) == false) {
                 if (unknownUserNames == null) {
                     unknownUserNames = new ArrayList<>();
                 }

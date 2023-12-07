@@ -161,40 +161,39 @@ public final class SecureHash implements Writeable, ToXContent {
         boolean hasPassword = false;
 
         while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-            if (currentToken == XContentParser.Token.FIELD_NAME) {
-                while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) { // secure_hash
-                    hasPassword = true;
-                    if (currentToken == XContentParser.Token.FIELD_NAME) {
-                        String currentFieldName = parser.currentName();
-                        currentToken = parser.nextToken();
-                        switch (currentFieldName) {
-                            case X_CONTENT_KEY_ITERATIONS:
-                                if (currentToken != XContentParser.Token.VALUE_NUMBER) {
-                                    throw new ElasticsearchParseException(
-                                        "failed to parse SecureHash, 'iterations' value is not a number [{}]", currentToken);
-                                }
-                                iterations = parser.intValue();
-                                break;
-                            case X_CONTENT_KEY_HASH:
-                                if (currentToken.isValue() == false) {
-                                    throw new ElasticsearchParseException(
-                                        "failed to parse SecureHash, 'hash' does not contain any value [{}]", currentToken);
-                                }
-                                hash = parser.binaryValue();
-                                break;
-                            case X_CONTENT_KEY_SALT:
-                                if (currentToken.isValue() == false) {
-                                    throw new ElasticsearchParseException(
-                                        "failed to parse SecureHash, 'salt' does not contain any value [{}]", currentToken);
-                                }
-                                salt = parser.binaryValue();
-                                break;
-                            default:
-                                throw new ElasticsearchParseException("failed to parse secure_hash");
+            while (currentToken == XContentParser.Token.FIELD_NAME) {
+                hasPassword = true;
+                String currentFieldName = parser.currentName();
+                currentToken = parser.nextToken();
+                switch (currentFieldName) {
+                    case X_CONTENT_KEY_ITERATIONS:
+                        if (currentToken != XContentParser.Token.VALUE_NUMBER) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse SecureHash, 'iterations' value is not a number [{}]", currentToken);
                         }
-                    }
+                        iterations = parser.intValue();
+                        break;
+                    case X_CONTENT_KEY_HASH:
+                        if (currentToken.isValue() == false) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse SecureHash, 'hash' does not contain any value [{}]", currentToken);
+                        }
+                        hash = parser.binaryValue();
+                        break;
+                    case X_CONTENT_KEY_SALT:
+                        if (currentToken.isValue() == false) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse SecureHash, 'salt' does not contain any value [{}]", currentToken);
+                        }
+                        salt = parser.binaryValue();
+                        break;
+                    default:
+                        throw new ElasticsearchParseException("failed to parse secure_hash");
                 }
             }
+        }
+        if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            throw new ElasticsearchParseException("failed to parse secure_hash, expected an object token at the end");
         }
 
         if (hasPassword) {

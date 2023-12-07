@@ -21,25 +21,27 @@
 
 package io.crate.user;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.user.metadata.RolesMetadata;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 public class UserLookupService implements RoleLookup, ClusterStateListener {
 
-    private volatile Set<User> users = Set.of(User.CRATE_USER);
+    private volatile Set<Role> roles = Set.of(Role.CRATE_USER);
 
     @Inject
     public UserLookupService(ClusterService clusterService) {
@@ -47,8 +49,8 @@ public class UserLookupService implements RoleLookup, ClusterStateListener {
     }
 
     @Override
-    public Iterable<User> users() {
-        return users;
+    public Collection<Role> roles() {
+        return roles;
     }
 
     @Override
@@ -58,22 +60,25 @@ public class UserLookupService implements RoleLookup, ClusterStateListener {
 
         UsersMetadata prevUsers = prevMetadata.custom(UsersMetadata.TYPE);
         UsersMetadata newUsers = newMetadata.custom(UsersMetadata.TYPE);
+        RolesMetadata prevRoles = prevMetadata.custom(RolesMetadata.TYPE);
+        RolesMetadata newRoles = newMetadata.custom(RolesMetadata.TYPE);
 
         UsersPrivilegesMetadata prevUsersPrivileges = prevMetadata.custom(UsersPrivilegesMetadata.TYPE);
         UsersPrivilegesMetadata newUsersPrivileges = newMetadata.custom(UsersPrivilegesMetadata.TYPE);
 
-        if (prevUsers != newUsers || prevUsersPrivileges != newUsersPrivileges) {
-            users = getUsers(newUsers, newUsersPrivileges);
+        if (prevUsers != newUsers || prevRoles != newRoles || prevUsersPrivileges != newUsersPrivileges) {
+            roles = getRoles(newUsers, newRoles, newUsersPrivileges);
         }
     }
 
 
-    static Set<User> getUsers(@Nullable UsersMetadata metadata,
+    static Set<Role> getRoles(@Nullable UsersMetadata usersMetadata,
+                              @Nullable RolesMetadata rolesMetadata,
                               @Nullable UsersPrivilegesMetadata privilegesMetadata) {
-        HashSet<User> users = new HashSet<>();
-        users.add(User.CRATE_USER);
-        if (metadata != null) {
-            for (Map.Entry<String, SecureHash> user: metadata.users().entrySet()) {
+        Map<String, Role> roles = new HashMap<>();
+        roles.put(Role.CRATE_USER.name(), Role.CRATE_USER);
+        if (usersMetadata != null) {
+            for (Map.Entry<String, SecureHash> user: usersMetadata.users().entrySet()) {
                 String userName = user.getKey();
                 SecureHash password = user.getValue();
                 Set<Privilege> privileges = null;
@@ -84,9 +89,23 @@ public class UserLookupService implements RoleLookup, ClusterStateListener {
                         privilegesMetadata.createPrivileges(userName, Set.of());
                     }
                 }
-                users.add(User.of(userName, privileges, password));
+                roles.put(userName, Role.userOf(userName, privileges, password));
+            }
+        } else if (rolesMetadata != null) {
+            for (Map.Entry<String, Role> role: rolesMetadata.roles().entrySet()) {
+                String userName = role.getKey();
+                SecureHash password = role.getValue().password();
+                Set<Privilege> privileges = null;
+                if (privilegesMetadata != null) {
+                    privileges = privilegesMetadata.getUserPrivileges(userName);
+                    if (privileges == null) {
+                        // create empty set
+                        privilegesMetadata.createPrivileges(userName, Set.of());
+                    }
+                }
+                roles.put(userName, Role.of(userName, role.getValue().isUser(), privileges, password));
             }
         }
-        return Collections.unmodifiableSet(users);
+        return Collections.unmodifiableSet(new HashSet<>(roles.values()));
     }
 }

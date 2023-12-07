@@ -26,23 +26,22 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.TriFunction;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
 public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     public static final String NAME = "has_database_privilege";
 
-    private static final TriFunction<User, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_NAME =
+    private static final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_NAME =
         (user, db, privileges) -> {
             if (Constants.DB_NAME.equals(db) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -52,7 +51,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return checkPrivileges(user, privileges);
         };
 
-    private static final TriFunction<User, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_OID =
+    private static final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_OID =
         (user, db, privileges) -> {
             if (Constants.DB_OID != (Integer) db) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -62,7 +61,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return checkPrivileges(user, privileges);
         };
 
-    private static boolean checkPrivileges(User user, Collection<Privilege.Type> privileges) {
+    private static boolean checkPrivileges(Role user, Collection<Privilege.Type> privileges) {
         if (privileges.contains(Privilege.Type.DQL)) { // CONNECT
             return true;
         }
@@ -77,7 +76,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
         return result;
     }
 
-    private static boolean hasCreatePrivilege(User user) {
+    private static boolean hasCreatePrivilege(Role user) {
         if (user.isSuperUser()) {
             return true;
         }
@@ -194,8 +193,8 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     protected HasDatabasePrivilegeFunction(Signature signature,
                                            BoundSignature boundSignature,
-                                           BiFunction<RoleLookup, Object, User> getUser,
-                                           TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                           BiFunction<RoleLookup, Object, Role> getUser,
+                                           TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

@@ -110,13 +110,13 @@ import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
 import io.crate.sql.tree.SetStatement;
 import io.crate.user.Privilege;
 import io.crate.user.Privileges;
+import io.crate.user.Role;
 import io.crate.user.RoleLookup;
-import io.crate.user.User;
 
 public final class AccessControlImpl implements AccessControl {
 
-    private final User sessionUser;
-    private final User authenticatedUser;
+    private final Role sessionUser;
+    private final Role authenticatedUser;
     private final RoleLookup userLookup;
     private final CoordinatorSessionSettings sessionSettings;
 
@@ -162,10 +162,10 @@ public final class AccessControlImpl implements AccessControl {
 
     private static class RelationContext {
 
-        private User user;
+        private Role user;
         private final Privilege.Type type;
 
-        RelationContext(User user, Privilege.Type type) {
+        RelationContext(Role user, Privilege.Type type) {
             this.user = user;
             this.type = type;
         }
@@ -250,12 +250,12 @@ public final class AccessControlImpl implements AccessControl {
                 analyzedView.name().toString(),
                 context.user,
                 defaultSchema);
-            User owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());
+            Role owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());
             if (owner == null) {
                 throw new UnauthorizedException(
                     "Owner \"" + analyzedView.owner() + "\" of the view \"" + analyzedView.name().fqn() + "\" not found");
             }
-            User currentUser = context.user;
+            Role currentUser = context.user;
             context.user = owner;
             analyzedView.relation().accept(this, context);
             context.user = currentUser;
@@ -263,49 +263,49 @@ public final class AccessControlImpl implements AccessControl {
         }
     }
 
-    private static final class StatementVisitor extends AnalyzedStatementVisitor<User, Void> {
+    private static final class StatementVisitor extends AnalyzedStatementVisitor<Role, Void> {
 
         private final RelationVisitor relationVisitor;
         private final String defaultSchema;
-        private final User authenticatedUser;
+        private final Role authenticatedUser;
 
-        public StatementVisitor(RoleLookup userLookup, String defaultSchema, User authenticatedUser) {
+        public StatementVisitor(RoleLookup userLookup, String defaultSchema, Role authenticatedUser) {
             this.authenticatedUser = authenticatedUser;
             this.relationVisitor = new RelationVisitor(userLookup, defaultSchema);
             this.defaultSchema = defaultSchema;
         }
 
-        private void visitRelation(AnalyzedRelation relation, User user, Privilege.Type type) {
+        private void visitRelation(AnalyzedRelation relation, Role user, Privilege.Type type) {
             relation.accept(relationVisitor, new RelationContext(user, type));
         }
 
         @Override
-        protected Void visitAnalyzedStatement(AnalyzedStatement analyzedStatement, User user) {
+        protected Void visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Role user) {
             throwRequiresSuperUserPermission(user.name());
             return null;
         }
 
         @Override
-        public Void visitDeclare(AnalyzedDeclare declare, User user) {
+        public Void visitDeclare(AnalyzedDeclare declare, Role user) {
             declare.query().accept(this, user);
             return null;
         }
 
         @Override
-        public Void visitFetch(AnalyzedFetch fetch, User user) {
+        public Void visitFetch(AnalyzedFetch fetch, Role user) {
             // We always allow to fetch. The privileges are checked through `Declare` when the user creates the cursor.
             return null;
         }
 
         @Override
-        public Void visitClose(AnalyzedClose close, User user) {
+        public Void visitClose(AnalyzedClose close, Role user) {
             // We always allow to close a cursor. The privileges are checked through `Declare` when the user creates
             // the cursor.
             return null;
         }
 
         @Override
-        public Void visitSwapTable(AnalyzedSwapTable swapTable, User user) {
+        public Void visitSwapTable(AnalyzedSwapTable swapTable, Role user) {
             if (!user.hasPrivilege(Privilege.Type.AL, Privilege.Clazz.CLUSTER, null)) {
                 if (!user.hasPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, swapTable.target().ident().fqn())
                     || !user.hasPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, swapTable.source().ident().fqn())
@@ -317,7 +317,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitGCDanglingArtifacts(AnalyzedGCDanglingArtifacts gcDanglingArtifacts, User user) {
+        public Void visitGCDanglingArtifacts(AnalyzedGCDanglingArtifacts gcDanglingArtifacts, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -328,7 +328,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed rerouteRetryFailed, User user) {
+        public Void visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed rerouteRetryFailed, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -339,7 +339,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAnalyzedAlterRole(AnalyzedAlterRole analysis, User user) {
+        public Void visitAnalyzedAlterRole(AnalyzedAlterRole analysis, Role user) {
             // user is allowed to change it's own properties
             if (!analysis.roleName().equals(user.name())) {
                 throw new UnauthorizedException("A regular user can use ALTER USER only on himself. " +
@@ -349,7 +349,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAlterTable(AnalyzedAlterTable alterTable, User user) {
+        public Void visitAlterTable(AnalyzedAlterTable alterTable, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
@@ -360,7 +360,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCopyFromStatement(AnalyzedCopyFrom analysis, User user) {
+        protected Void visitCopyFromStatement(AnalyzedCopyFrom analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,
@@ -371,7 +371,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCopyToStatement(AnalyzedCopyTo analysis, User user) {
+        protected Void visitCopyToStatement(AnalyzedCopyTo analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DQL,
                 Privilege.Clazz.TABLE,
@@ -382,7 +382,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitCreateTable(AnalyzedCreateTable createTable, User user) {
+        public Void visitCreateTable(AnalyzedCreateTable createTable, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -393,7 +393,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitCreateTableAs(AnalyzedCreateTableAs createTableAs, User user) {
+        public Void visitCreateTableAs(AnalyzedCreateTableAs createTableAs, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -406,7 +406,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis, User user) {
+        protected Void visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
@@ -417,13 +417,13 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitAnalyzedDeleteStatement(AnalyzedDeleteStatement delete, User user) {
+        protected Void visitAnalyzedDeleteStatement(AnalyzedDeleteStatement delete, Role user) {
             visitRelation(delete.relation(), user, Privilege.Type.DML);
             return null;
         }
 
         @Override
-        protected Void visitAnalyzedInsertStatement(AnalyzedInsertStatement analysis, User user) {
+        protected Void visitAnalyzedInsertStatement(AnalyzedInsertStatement analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,
@@ -435,19 +435,19 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitSelectStatement(AnalyzedRelation relation, User user) {
+        public Void visitSelectStatement(AnalyzedRelation relation, Role user) {
             visitRelation(relation, user, Privilege.Type.DQL);
             return null;
         }
 
         @Override
-        public Void visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, User user) {
+        public Void visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, Role user) {
             visitRelation(update.table(), user, Privilege.Type.DML);
             return null;
         }
 
         @Override
-        protected Void visitCreateFunction(AnalyzedCreateFunction analysis, User user) {
+        protected Void visitCreateFunction(AnalyzedCreateFunction analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -458,7 +458,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropFunction(AnalyzedDropFunction analysis, User user) {
+        public Void visitDropFunction(AnalyzedDropFunction analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -469,7 +469,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropTable(AnalyzedDropTable<?> dropTable, User user) {
+        public Void visitDropTable(AnalyzedDropTable<?> dropTable, Role user) {
             TableInfo table = dropTable.table();
             if (table != null) {
                 Privileges.ensureUserHasPrivilege(
@@ -483,7 +483,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, User user) {
+        protected Void visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
@@ -494,7 +494,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis, User user) {
+        public Void visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -505,7 +505,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitRefreshTableStatement(AnalyzedRefreshTable analysis, User user) {
+        public Void visitRefreshTableStatement(AnalyzedRefreshTable analysis, Role user) {
             for (DocTableInfo tableInfo : analysis.tables().values()) {
                 Privileges.ensureUserHasPrivilege(
                     Privilege.Type.DQL,
@@ -518,7 +518,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis, User user) {
+        public Void visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
@@ -529,7 +529,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis, User user) {
+        public Void visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
@@ -540,7 +540,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitSetStatement(AnalyzedSetStatement analysis, User user) {
+        public Void visitSetStatement(AnalyzedSetStatement analysis, Role user) {
             if (analysis.scope().equals(SetStatement.Scope.GLOBAL)) {
                 Privileges.ensureUserHasPrivilege(
                     Privilege.Type.AL,
@@ -555,7 +555,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitSetSessionAuthorizationStatement(AnalyzedSetSessionAuthorizationStatement analysis,
-                                                          User sessionUser) {
+                                                          Role sessionUser) {
             if (analysis.user() != null && !authenticatedUser.name().equals(analysis.user())) {
                 throw new UnauthorizedException(String.format(
                     Locale.ENGLISH,
@@ -568,7 +568,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAlterTableAddColumn(AnalyzedAlterTableAddColumn analysis,
-                                             User user) {
+                                             Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
@@ -580,7 +580,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAlterTableDropColumn(AnalyzedAlterTableDropColumn analysis,
-                                              User user) {
+                                              Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
@@ -592,7 +592,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint,
-                                                       User user) {
+                                                       Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
@@ -603,7 +603,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis, User user) {
+        public Void visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
@@ -614,19 +614,19 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitKillAnalyzedStatement(AnalyzedKill analysis, User user) {
+        public Void visitKillAnalyzedStatement(AnalyzedKill analysis, Role user) {
             // All users can kill their own statements.
             // If the user doesn't have privileges to kill a certain job-id the row-count will be lower or 0
             return null;
         }
 
         @Override
-        public Void visitDeallocateAnalyzedStatement(AnalyzedDeallocate analysis, User user) {
+        public Void visitDeallocateAnalyzedStatement(AnalyzedDeallocate analysis, Role user) {
             return null;
         }
 
         @Override
-        public Void visitShowCreateTableAnalyzedStatement(AnalyzedShowCreateTable analysis, User user) {
+        public Void visitShowCreateTableAnalyzedStatement(AnalyzedShowCreateTable analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DQL,
                 Privilege.Clazz.TABLE,
@@ -637,7 +637,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropRepositoryAnalyzedStatement(AnalyzedDropRepository analysis, User user) {
+        public Void visitDropRepositoryAnalyzedStatement(AnalyzedDropRepository analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
@@ -648,7 +648,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropSnapshotAnalyzedStatement(AnalyzedDropSnapshot analysis, User user) {
+        public Void visitDropSnapshotAnalyzedStatement(AnalyzedDropSnapshot analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
@@ -659,7 +659,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitCreateSnapshotAnalyzedStatement(AnalyzedCreateSnapshot analysis, User user) {
+        public Void visitCreateSnapshotAnalyzedStatement(AnalyzedCreateSnapshot analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
@@ -670,7 +670,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitRestoreSnapshotAnalyzedStatement(AnalyzedRestoreSnapshot analysis, User user) {
+        public Void visitRestoreSnapshotAnalyzedStatement(AnalyzedRestoreSnapshot analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
@@ -681,7 +681,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitResetAnalyzedStatement(AnalyzedResetStatement resetAnalyzedStatement, User user) {
+        public Void visitResetAnalyzedStatement(AnalyzedResetStatement resetAnalyzedStatement, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -693,22 +693,22 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, User user) {
+        public Void visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, Role user) {
             return explainAnalyzedStatement.statement().accept(this, user);
         }
 
         @Override
-        public Void visitBegin(AnalyzedBegin analyzedBegin, User user) {
+        public Void visitBegin(AnalyzedBegin analyzedBegin, Role user) {
             return null;
         }
 
         @Override
-        public Void visitCommit(AnalyzedCommit analyzedCommit, User user) {
+        public Void visitCommit(AnalyzedCommit analyzedCommit, Role user) {
             return null;
         }
 
         @Override
-        public Void visitCreateViewStmt(CreateViewStmt createViewStmt, User user) {
+        public Void visitCreateViewStmt(CreateViewStmt createViewStmt, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -720,7 +720,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitAnalyzedCreateRole(AnalyzedCreateRole createRole, User user) {
+        protected Void visitAnalyzedCreateRole(AnalyzedCreateRole createRole, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -732,7 +732,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitDropRole(AnalyzedDropRole dropRole, User user) {
+        protected Void visitDropRole(AnalyzedDropRole dropRole, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -744,7 +744,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitPrivilegesStatement(AnalyzedPrivileges changePrivileges, User user) {
+        public Void visitPrivilegesStatement(AnalyzedPrivileges changePrivileges, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -767,7 +767,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropView(AnalyzedDropView dropView, User user) {
+        public Void visitDropView(AnalyzedDropView dropView, Role user) {
             for (RelationName name : dropView.views()) {
                 Privileges.ensureUserHasPrivilege(
                     Privilege.Type.DDL,
@@ -780,17 +780,17 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDiscard(AnalyzedDiscard discard, User context) {
+        public Void visitDiscard(AnalyzedDiscard discard, Role context) {
             return null;
         }
 
         @Override
-        public Void visitSetTransaction(AnalyzedSetTransaction setTransaction, User context) {
+        public Void visitSetTransaction(AnalyzedSetTransaction setTransaction, Role context) {
             return null;
         }
 
         @Override
-        public Void visitOptimizeTableStatement(AnalyzedOptimizeTable optimizeTable, User user) {
+        public Void visitOptimizeTableStatement(AnalyzedOptimizeTable optimizeTable, Role user) {
             for (TableInfo table : optimizeTable.tables().values()) {
                 Privileges.ensureUserHasPrivilege(
                     Privilege.Type.DDL,
@@ -804,7 +804,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitCreatePublication(AnalyzedCreatePublication createPublication, User user) {
+        public Void visitCreatePublication(AnalyzedCreatePublication createPublication, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -829,7 +829,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropPublication(AnalyzedDropPublication dropPublication, User user) {
+        public Void visitDropPublication(AnalyzedDropPublication dropPublication, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -841,7 +841,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAlterPublication(AnalyzedAlterPublication alterPublication, User user) {
+        public Void visitAlterPublication(AnalyzedAlterPublication alterPublication, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -864,7 +864,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitCreateSubscription(AnalyzedCreateSubscription createSubscription, User user) {
+        public Void visitCreateSubscription(AnalyzedCreateSubscription createSubscription, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -876,7 +876,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropSubscription(AnalyzedDropSubscription dropSubscription, User user) {
+        public Void visitDropSubscription(AnalyzedDropSubscription dropSubscription, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -888,7 +888,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAlterSubscription(AnalyzedAlterSubscription alterSubscription, User user) {
+        public Void visitAlterSubscription(AnalyzedAlterSubscription alterSubscription, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -900,7 +900,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAnalyze(AnalyzedAnalyze analyzedAnalyze, User user) {
+        public Void visitAnalyze(AnalyzedAnalyze analyzedAnalyze, Role user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -911,18 +911,18 @@ public final class AccessControlImpl implements AccessControl {
         }
     }
 
-    private static class MaskSensitiveExceptions extends CrateExceptionVisitor<User, Void> {
+    private static class MaskSensitiveExceptions extends CrateExceptionVisitor<Role, Void> {
 
         private static final MaskSensitiveExceptions INSTANCE = new MaskSensitiveExceptions();
 
         @Override
-        protected Void visitCrateException(CrateException e, User context) {
+        protected Void visitCrateException(CrateException e, Role context) {
             throw new IllegalStateException(String.format(Locale.ENGLISH,
                 "CrateException '%s' not supported by privileges exception validator", e.getClass()));
         }
 
         @Override
-        protected Void visitTableScopeException(TableScopeException e, User user) {
+        protected Void visitTableScopeException(TableScopeException e, Role user) {
             for (RelationName relationName : e.getTableIdents()) {
                 Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, relationName.toString(), user);
             }
@@ -930,7 +930,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitColumnUnknownException(ColumnUnknownException e, User user) {
+        protected Void visitColumnUnknownException(ColumnUnknownException e, Role user) {
             if (e.relationType() == ColumnUnknownException.RelationType.TABLE_FUNCTION) {
                 RelationName relationName = e.getTableIdents().iterator().next();
                 if (relationName == null) { // ex) select '{"x":10}'::object['y']
@@ -948,13 +948,13 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitSchemaScopeException(SchemaScopeException e, User context) {
+        protected Void visitSchemaScopeException(SchemaScopeException e, Role context) {
             Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, e.getSchemaName(), context);
             return null;
         }
 
         @Override
-        protected Void visitUnsupportedFunctionException(UnsupportedFunctionException e, User user) {
+        protected Void visitUnsupportedFunctionException(UnsupportedFunctionException e, Role user) {
             if (e.getSchemaName() != null) {
                 visitSchemaScopeException(e, user);
             }
@@ -962,13 +962,13 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitClusterScopeException(ClusterScopeException e, User context) {
+        protected Void visitClusterScopeException(ClusterScopeException e, Role context) {
             Privileges.ensureUserHasPrivilege(Privilege.Clazz.CLUSTER, null, context);
             return null;
         }
 
         @Override
-        protected Void visitUnscopedException(UnscopedException e, User context) {
+        protected Void visitUnscopedException(UnscopedException e, Role context) {
             return null;
         }
     }

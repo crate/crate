@@ -21,6 +21,12 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -36,20 +42,15 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
+import io.crate.user.metadata.RolesMetadata;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 class RestoreSnapshotAnalyzer {
 
     public static final Map<String, String> METADATA_CUSTOM_TYPE_MAP = Map.of(
         "VIEWS", ViewsMetadata.TYPE,
-        "USERS", UsersMetadata.TYPE,
+        "USERS", RolesMetadata.TYPE,
         "PRIVILEGES", UsersPrivilegesMetadata.TYPE,
         "UDFS", UserDefinedFunctionsMetadata.TYPE
     );
@@ -114,7 +115,7 @@ class RestoreSnapshotAnalyzer {
                 );
                 tables = Lists2.map(
                     restoreSnapshot.tables(),
-                    (table) -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx))
+                    table -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx))
                 );
             }
             case CUSTOM -> {
@@ -127,18 +128,19 @@ class RestoreSnapshotAnalyzer {
                         globalSettings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
                         includeGlobalSettings = true;
                     } else {
-                        var custom_type = METADATA_CUSTOM_TYPE_MAP.get(type_name);
-                        if (custom_type == null) {
+                        var customType = METADATA_CUSTOM_TYPE_MAP.get(type_name);
+                        if (customType == null) {
                             throw new IllegalArgumentException("Unknown metadata type '" + type_name + "'");
                         }
                         includeCustomMetadata = true;
-                        customMetadataTypes.add(custom_type);
+                        customMetadataTypes.add(customType);
+                        if (customType.equals(RolesMetadata.TYPE)) { // restore also old UsersMetadata
+                            customMetadataTypes.add(UsersMetadata.TYPE);
+                        }
                     }
                 }
             }
-            default -> {
-                throw new AssertionError("Unsupported restore mode='" + restoreSnapshot.mode() + "'");
-            }
+            default -> throw new AssertionError("Unsupported restore mode='" + restoreSnapshot.mode() + "'");
         }
 
         return new AnalyzedRestoreSnapshot(

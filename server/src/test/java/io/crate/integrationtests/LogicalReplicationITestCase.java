@@ -67,7 +67,7 @@ import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import io.crate.user.User;
+import io.crate.user.Role;
 
 public abstract class LogicalReplicationITestCase extends ESTestCase {
 
@@ -188,7 +188,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         return publisherSqlExecutor.exec(sql);
     }
 
-    SQLResponse executeOnPublisherAsUser(String sql, User user) {
+    SQLResponse executeOnPublisherAsUser(String sql, Role user) {
         return publisherSqlExecutor.executeAs(sql, user);
     }
 
@@ -317,7 +317,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         ensureGreenOnSubscriber();
     }
 
-    protected void createSubscriptionAsUser(String subName, String pubName, User user) throws Exception {
+    protected void createSubscriptionAsUser(String subName, String pubName, Role user) throws Exception {
         subscriberSqlExecutor.executeAs("CREATE SUBSCRIPTION " + subName +
             " CONNECTION '" + publisherConnectionUrl() + "' publication " + pubName, user);
         ensureGreenOnSubscriber();

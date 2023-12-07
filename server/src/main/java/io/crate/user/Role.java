@@ -30,38 +30,70 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.pgcatalog.OidHash;
 
-public class User {
+public class Role {
 
-    public static final User CRATE_USER = new User("crate", EnumSet.of(Role.SUPERUSER), Set.of(), null);
+    public static final Role CRATE_USER = new Role("crate",
+        true,
+        Set.of(),
+        null,
+        EnumSet.of(UserRole.SUPERUSER));
 
-    public enum Role {
+    public enum UserRole {
         SUPERUSER
     }
 
     private final String name;
-    private final Set<Role> roles;
+    private final boolean isUser;
     private final UserPrivileges privileges;
     @Nullable
     private final SecureHash password;
+    private final Set<UserRole> userRoles;
 
-    public User(String name, Set<Role> roles, Set<Privilege> privileges, @Nullable SecureHash password) {
-        this.roles = roles;
+    @VisibleForTesting
+    protected Role(String name,
+                   boolean isUser,
+                   Set<Privilege> privileges,
+                   @Nullable SecureHash password,
+                   Set<UserRole> userRoles) {
+        if (isUser == false) {
+            assert password == null : "Cannot create a Role with password";
+            assert userRoles.isEmpty() : "Cannot create a Role with UserRoles";
+        }
+
         this.name = name;
+        this.isUser = isUser;
         this.privileges = new UserPrivileges(privileges);
         this.password = password;
+        this.userRoles = userRoles;
     }
 
-    public static User of(String name) {
-        return new User(name, Set.of(), Set.of(), null);
+    public static Role of(String name,
+                 boolean isUser,
+                 Set<Privilege> privileges,
+                 @Nullable SecureHash password) {
+        return new Role(name, isUser, privileges == null ? Set.of() : privileges, password, Set.of());
     }
 
-    public static User of(String name, @Nullable Set<Privilege> privileges, SecureHash password) {
-        return new User(name, Set.of(), privileges == null ? Set.of() : privileges, password);
+    public static Role roleOf(String name) {
+        return new Role(name, false, Set.of(), null, Set.of());
+    }
+
+
+    public static Role userOf(String name) {
+        return new Role(name, true, Set.of(), null, Set.of());
+    }
+
+    public static Role userOf(String name, SecureHash password) {
+        return new Role(name, true, Set.of(), password, Set.of());
+    }
+
+    public static Role userOf(String name, @Nullable Set<Privilege> privileges, SecureHash password) {
+        return new Role(name, true, privileges == null ? Set.of() : privileges, password, Set.of());
     }
 
     @VisibleForTesting
-    public static User of(String name, EnumSet<Role> roles) {
-        return new User(name, roles, Set.of(), null);
+    public static Role userOf(String name, EnumSet<UserRole> userRoles) {
+        return new Role(name, true, Set.of(), null, userRoles);
     }
 
     public String name() {
@@ -73,8 +105,12 @@ public class User {
         return password;
     }
 
+    public boolean isUser() {
+        return isUser;
+    }
+
     public boolean isSuperUser() {
-        return roles.contains(Role.SUPERUSER);
+        return userRoles.contains(UserRole.SUPERUSER);
     }
 
     public Iterable<Privilege> privileges() {
@@ -132,19 +168,20 @@ public class User {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        User that = (User) o;
+        Role that = (Role) o;
         return Objects.equals(name, that.name) &&
-               Objects.equals(roles, that.roles) &&
-               Objects.equals(privileges, that.privileges);
+               Objects.equals(privileges, that.privileges) &&
+               Objects.equals(password, that.password) &&
+               Objects.equals(userRoles, that.userRoles);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, roles, privileges);
+        return Objects.hash(name, privileges, password, userRoles);
     }
 
     @Override
     public String toString() {
-        return "User{" + name + '}';
+        return (isUser ? "User{" : "Role{") + name + ", " + (password() == null ? "null" : "*****") + '}';
     }
 }
