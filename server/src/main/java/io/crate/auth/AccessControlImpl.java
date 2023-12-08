@@ -118,7 +118,6 @@ public final class AccessControlImpl implements AccessControl {
     private final Role sessionUser;
     private final Role authenticatedUser;
     private final RoleLookup userLookup;
-    private final CoordinatorSessionSettings sessionSettings;
 
     /**
      * @param sessionSettings for user and defaultSchema information.
@@ -128,7 +127,6 @@ public final class AccessControlImpl implements AccessControl {
      */
     public AccessControlImpl(RoleLookup userLookup, CoordinatorSessionSettings sessionSettings) {
         this.userLookup = userLookup;
-        this.sessionSettings = sessionSettings;
         this.sessionUser = sessionSettings.sessionUser();
         this.authenticatedUser = sessionSettings.authenticatedUser();
     }
@@ -139,7 +137,6 @@ public final class AccessControlImpl implements AccessControl {
             statement.accept(
                 new StatementVisitor(
                     userLookup,
-                    sessionSettings.searchPath().currentSchema(),
                     authenticatedUser
                 ),
                 sessionUser
@@ -149,8 +146,8 @@ public final class AccessControlImpl implements AccessControl {
 
     @Override
     public void ensureMaySee(Throwable t) throws MissingPrivilegeException {
-        if (!sessionUser.isSuperUser() && t instanceof CrateException) {
-            ((CrateException) t).accept(MaskSensitiveExceptions.INSTANCE, sessionUser);
+        if (!sessionUser.isSuperUser() && t instanceof CrateException ce) {
+            ce.accept(MaskSensitiveExceptions.INSTANCE, sessionUser);
         }
     }
 
@@ -174,11 +171,9 @@ public final class AccessControlImpl implements AccessControl {
     private static final class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
 
         private final RoleLookup userLookup;
-        private final String defaultSchema;
 
-        public RelationVisitor(RoleLookup userLookup, String defaultSchema) {
+        public RelationVisitor(RoleLookup userLookup) {
             this.userLookup = userLookup;
-            this.defaultSchema = defaultSchema;
         }
 
         @Override
@@ -199,8 +194,8 @@ public final class AccessControlImpl implements AccessControl {
                 context.type,
                 Privilege.Clazz.TABLE,
                 tableRelation.tableInfo().ident().fqn(),
-                context.user,
-                defaultSchema);
+                context.user
+            );
             return null;
         }
 
@@ -210,8 +205,8 @@ public final class AccessControlImpl implements AccessControl {
                 context.type,
                 Privilege.Clazz.TABLE,
                 relation.tableInfo().ident().fqn(),
-                context.user,
-                defaultSchema);
+                context.user
+            );
             return null;
         }
 
@@ -222,7 +217,7 @@ public final class AccessControlImpl implements AccessControl {
             // ex) select * from custom_schema.udf(); -- the user must have privilege for custom_schema
             if (schema != null) {
                 Privileges.ensureUserHasPrivilege(
-                    Privilege.Type.DQL, Privilege.Clazz.SCHEMA, schema, context.user, defaultSchema);
+                    Privilege.Type.DQL, Privilege.Clazz.SCHEMA, schema, context.user);
             }
             // On the other hand, all users should be able to access built-in functions without any privileges.
             // ex) select * from abs(1);
@@ -248,8 +243,8 @@ public final class AccessControlImpl implements AccessControl {
                 context.type,
                 Privilege.Clazz.VIEW,
                 analyzedView.name().toString(),
-                context.user,
-                defaultSchema);
+                context.user
+            );
             Role owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());
             if (owner == null) {
                 throw new UnauthorizedException(
@@ -266,13 +261,11 @@ public final class AccessControlImpl implements AccessControl {
     private static final class StatementVisitor extends AnalyzedStatementVisitor<Role, Void> {
 
         private final RelationVisitor relationVisitor;
-        private final String defaultSchema;
         private final Role authenticatedUser;
 
-        public StatementVisitor(RoleLookup userLookup, String defaultSchema, Role authenticatedUser) {
+        public StatementVisitor(RoleLookup userLookup, Role authenticatedUser) {
             this.authenticatedUser = authenticatedUser;
-            this.relationVisitor = new RelationVisitor(userLookup, defaultSchema);
-            this.defaultSchema = defaultSchema;
+            this.relationVisitor = new RelationVisitor(userLookup);
         }
 
         private void visitRelation(AnalyzedRelation relation, Role user, Privilege.Type type) {
@@ -322,8 +315,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -333,8 +326,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -354,8 +347,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 alterTable.tableInfo().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -365,8 +358,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -376,8 +369,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DQL,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().fqn(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -387,8 +380,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 createTable.relationName().schema(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -398,8 +391,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 createTableAs.analyzedCreateTable().relationName().schema(),
-                user,
-                defaultSchema
+                user
             );
             visitRelation(createTableAs.sourceRelation(), user, Privilege.Type.DQL);
             return null;
@@ -411,8 +403,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -428,8 +420,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             visitRelation(analysis.subQueryRelation(), user, Privilege.Type.DQL);
             return null;
         }
@@ -452,8 +444,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 analysis.schema(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -463,8 +455,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 analysis.schema(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -476,8 +468,8 @@ public final class AccessControlImpl implements AccessControl {
                     Privilege.Type.DDL,
                     Privilege.Clazz.TABLE,
                     table.ident().toString(),
-                    user,
-                    defaultSchema);
+                    user
+                );
             }
             return null;
         }
@@ -488,8 +480,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -499,8 +491,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 analysis.relationName().schema(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -511,8 +503,8 @@ public final class AccessControlImpl implements AccessControl {
                     Privilege.Type.DQL,
                     Privilege.Clazz.TABLE,
                     tableInfo.ident().fqn(),
-                    user,
-                    defaultSchema);
+                    user
+                );
             }
             return null;
         }
@@ -523,8 +515,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.sourceName().fqn(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -534,8 +526,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -546,8 +538,7 @@ public final class AccessControlImpl implements AccessControl {
                     Privilege.Type.AL,
                     Privilege.Clazz.CLUSTER,
                     null,
-                    user,
-                    defaultSchema
+                    user
                 );
             }
             return null;
@@ -573,8 +564,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.table().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -585,8 +576,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.table().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -597,8 +588,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 dropCheckConstraint.tableInfo().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -608,8 +599,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -631,8 +622,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DQL,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -642,8 +633,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -653,8 +644,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -664,8 +655,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -675,8 +666,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
 
@@ -686,8 +677,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             return null;
         }
@@ -713,8 +703,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 createViewStmt.name().schema(),
-                user,
-                defaultSchema);
+                user
+            );
             visitRelation(createViewStmt.analyzedQuery(), user, Privilege.Type.DQL);
             return null;
         }
@@ -725,8 +715,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             return null;
         }
@@ -737,8 +726,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             return null;
         }
@@ -749,8 +737,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             for (Privilege privilege : changePrivileges.privileges()) {
                 if (privilege.state() == Privilege.State.GRANT) {
@@ -758,8 +745,7 @@ public final class AccessControlImpl implements AccessControl {
                         privilege.ident().type(),
                         privilege.ident().clazz(),
                         privilege.ident().ident(),
-                        user,
-                        defaultSchema
+                        user
                     );
                 }
             }
@@ -773,8 +759,8 @@ public final class AccessControlImpl implements AccessControl {
                     Privilege.Type.DDL,
                     Privilege.Clazz.VIEW,
                     name.toString(),
-                    user,
-                    defaultSchema);
+                    user
+                );
             }
             return null;
         }
@@ -796,8 +782,7 @@ public final class AccessControlImpl implements AccessControl {
                     Privilege.Type.DDL,
                     Privilege.Clazz.TABLE,
                     table.ident().toString(),
-                    user,
-                    defaultSchema
+                    user
                 );
             }
             return null;
@@ -809,8 +794,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             // All tables cannot be checked on publication creation - they are checked before actual replication starts
             // and a table gets published only if publication owner has DQL, DML and DDL privileges on that table.
@@ -820,8 +804,7 @@ public final class AccessControlImpl implements AccessControl {
                         type,
                         Privilege.Clazz.TABLE,
                         relationName.fqn(),
-                        user,
-                        defaultSchema
+                        user
                     );
                 }
             }
@@ -834,8 +817,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             return null;
         }
@@ -846,8 +828,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             for (RelationName relationName: alterPublication.tables()) {
                 for (Privilege.Type type: READ_WRITE_DEFINE) {
@@ -855,8 +836,7 @@ public final class AccessControlImpl implements AccessControl {
                         type,
                         Privilege.Clazz.TABLE,
                         relationName.fqn(),
-                        user,
-                        defaultSchema
+                        user
                     );
                 }
             }
@@ -869,8 +849,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             return null;
         }
@@ -881,8 +860,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             return null;
         }
@@ -893,8 +871,7 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema
+                user
             );
             return null;
         }
@@ -905,8 +882,8 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user,
-                defaultSchema);
+                user
+            );
             return null;
         }
     }
