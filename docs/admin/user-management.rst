@@ -18,9 +18,10 @@ superusers that already exist in the CrateDB cluster. The `CREATE USER`_ and
 When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``. It is not possible to create any other superusers
 
-The definition of all users, including hashes of their passwords, is backed up
-together with the cluster's metadata when a snapshot is created, and it is 
-restored when using the ``ALL``, ``METADATA``, or ``USERS`` keywords with the 
+The definition of all users and roles, including hashes of their passwords,
+together with their privileges is backed up together with the cluster's metadata
+when a snapshot is created, and it is restored when using the ``ALL``,
+``METADATA``, or ``USERMANAGEMENT`` keywords with the
 :ref:`sql-restore-snapshot` command.
 
 .. rubric:: Table of contents

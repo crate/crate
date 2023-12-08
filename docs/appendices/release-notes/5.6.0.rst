@@ -41,17 +41,25 @@ Version 5.6.0 - Unreleased
 .. contents::
    :local:
 
+.. _5.6.0_breaking_changes:
 
 Breaking Changes
 ================
 
-None
+- When :ref:`restoring a snapshot <sql-restore-snapshot>`, ``USERS`` and
+  ``PRIVILEGES`` keywords, used to restore user management metadata has been
+  replaced by ``USERMANAGEMENT``, which dictates that all users and roles of the
+  database together with their privileges are restored. Restoring ``USERS`` or
+  ``PRIVILEGES`` separately is not possible anymore.
 
 Deprecations
 ============
 
-None
-
+- ``USERS`` and ``PRIVILEGES`` keywords, used when
+  :ref:`restoring a snapshot <sql-restore-snapshot>`, in order to restore users
+  and privileges metadata respectively, have been deprecated. They have been
+  replaced by ``USERMANAGEMENT`` and their behavior has been modified, please
+  see :ref:`Breaking Changes <5.6.0_breaking_changes>` for details.
 
 Changes
 =======
