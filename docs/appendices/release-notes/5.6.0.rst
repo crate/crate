@@ -72,6 +72,9 @@ SQL Standard and PostgreSQL Compatibility
 
 - Added an empty ``pg_catalog.pg_depend`` table.
 
+- Changed ``pg_catalog.pg_roles`` table to be properly populated, as previously
+  it was always returning ``0`` rows.
+
 Data Types
 ----------
 

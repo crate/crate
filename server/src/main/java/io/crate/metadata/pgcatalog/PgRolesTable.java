@@ -26,9 +26,14 @@ import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
+import static io.crate.user.metadata.SysUsersTableInfo.PASSWORD_PLACEHOLDER;
 
+import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import io.crate.user.Privilege;
+import io.crate.user.Privileges;
+import io.crate.user.Role;
 
 public final class PgRolesTable {
 
@@ -36,21 +41,34 @@ public final class PgRolesTable {
 
     private PgRolesTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("rolname", STRING, ignored -> null)
-            .add("rolsuper", BOOLEAN, ignored -> null)
-            .add("rolinherit", BOOLEAN, ignored -> null)
-            .add("rolcreaterole", BOOLEAN, ignored -> null)
-            .add("rolcreatedb", BOOLEAN, ignored -> null)
-            .add("rolcanlogin", BOOLEAN, ignored -> null)
-            .add("rolreplication", BOOLEAN, ignored -> null)
-            .add("rolconnlimit", INTEGER, ignored -> null)
-            .add("rolpassword", STRING, ignored -> null)
+    public static SystemTable<Role> create() {
+        return SystemTable.<Role>builder(IDENT)
+            .add("rolname", STRING, Role::name)
+            .add("rolsuper", BOOLEAN, Role::isSuperUser)
+            .add("rolinherit", BOOLEAN, r -> true) // Always inherit
+            .add("rolcreaterole", BOOLEAN, PgRolesTable::canCreateRoleOrSubscription)
+            .add("rolcreatedb", BOOLEAN, ignored -> null) // There is no create database functionality
+            .add("rolcanlogin", BOOLEAN, Role::isUser)
+            .add("rolreplication", BOOLEAN, PgRolesTable::canCreateRoleOrSubscription)
+            .add("rolconnlimit", INTEGER, r -> -1)
+            .add("rolpassword", STRING, r -> r.password() != null ? PASSWORD_PLACEHOLDER : null)
             .add("rolvaliduntil", TIMESTAMPZ, ignored -> null)
             .add("rolbypassrls", BOOLEAN, ignored -> null)
             .add("rolconfig", STRING_ARRAY, ignored -> null)
-            .add("oid", INTEGER, ignored -> null)
+            .add("oid", INTEGER, r -> OidHash.userOid(r.name()))
             .build();
+    }
+
+    private static boolean canCreateRoleOrSubscription(Role role) {
+        try {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                role);
+            return true;
+        } catch (MissingPrivilegeException e) {
+            return false;
+        }
     }
 }
