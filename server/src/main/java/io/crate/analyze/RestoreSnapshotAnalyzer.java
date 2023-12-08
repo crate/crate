@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.logging.DeprecationLogger;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -48,11 +51,20 @@ import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 class RestoreSnapshotAnalyzer {
 
-    public static final Map<String, String> METADATA_CUSTOM_TYPE_MAP = Map.of(
-        "VIEWS", ViewsMetadata.TYPE,
-        "USERS", RolesMetadata.TYPE,
-        "PRIVILEGES", UsersPrivilegesMetadata.TYPE,
-        "UDFS", UserDefinedFunctionsMetadata.TYPE
+    static final DeprecationLogger DEPRECATION_LOGGER =
+        new DeprecationLogger(LogManager.getLogger(RestoreSnapshotAnalyzer.class));
+
+    public static final List<String> USER_MANAGEMENT_METADATA = List.of(
+        UsersMetadata.TYPE, // Also restore old UsersMetadata
+        RolesMetadata.TYPE,
+        UsersPrivilegesMetadata.TYPE);
+
+    public static final Map<String, List<String>> METADATA_CUSTOM_TYPE_MAP = Map.of(
+        "VIEWS", List.of(ViewsMetadata.TYPE),
+        "UDFS", List.of(UserDefinedFunctionsMetadata.TYPE),
+        "USERS", USER_MANAGEMENT_METADATA,        // Deprecated, keeping for BWC
+        "PRIVILEGES", USER_MANAGEMENT_METADATA,   // Deprecated, keeping for BWC
+        "USERMANAGEMENT", USER_MANAGEMENT_METADATA
     );
 
     private final RepositoryService repositoryService;
@@ -119,24 +131,25 @@ class RestoreSnapshotAnalyzer {
                 );
             }
             case CUSTOM -> {
-                for (String type_name : restoreSnapshot.types()) {
-                    type_name = type_name.toUpperCase(Locale.ENGLISH);
-                    if (type_name.equals("TABLES")) {
+                for (String typeName : restoreSnapshot.types()) {
+                    typeName = typeName.toUpperCase(Locale.ENGLISH);
+                    if (typeName.equals("TABLES")) {
                         includeTables = true;
-                    } else if (type_name.equals("ANALYZERS")) {
+                    } else if (typeName.equals("ANALYZERS")) {
                         // custom analyzers are stored inside persistent cluster settings
                         globalSettings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
                         includeGlobalSettings = true;
                     } else {
-                        var customType = METADATA_CUSTOM_TYPE_MAP.get(type_name);
-                        if (customType == null) {
-                            throw new IllegalArgumentException("Unknown metadata type '" + type_name + "'");
+                        var customTypes = METADATA_CUSTOM_TYPE_MAP.get(typeName);
+                        if (customTypes == null) {
+                            throw new IllegalArgumentException("Unknown metadata type '" + typeName + "'");
+                        }
+                        if ("USERS".equals(typeName) || "PRIVILEGES".equals(typeName)) {
+                            DEPRECATION_LOGGER.deprecatedAndMaybeLog("restore_snapshot.metadata",
+                                typeName + " keyword is deprecated, please use USERMANAGEMENT instead");
                         }
                         includeCustomMetadata = true;
-                        customMetadataTypes.add(customType);
-                        if (customType.equals(RolesMetadata.TYPE)) { // restore also old UsersMetadata
-                            customMetadataTypes.add(UsersMetadata.TYPE);
-                        }
+                        customMetadataTypes.addAll(customTypes);
                     }
                 }
             }

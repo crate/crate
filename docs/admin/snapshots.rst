@@ -212,8 +212,8 @@ partitions). For example:
   On the other hand, you can use ``METADATA`` to restore *everything but*
   tables.
 
-- You can use ``USERS`` to restore database users only.  Or, you can
-  use ``USERS, PRIVILIGES`` to restore both database users and privileges.
+- You can use ``USERMANAGEMENT`` to restore database users, roles and their
+  privileges.
 
 See the :ref:`sql-restore-snapshot` documentation for all possible options.
 

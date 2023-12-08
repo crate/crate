@@ -32,8 +32,9 @@ where ``data_section``::
 
    {  TABLES |
       VIEWS |
-      USERS |
-      PRIVILEGES |
+      USERS |      -- Deprecated, use USERMANAGEMENT instead
+      PRIVILEGES | -- Deprecated, use USERMANAGEMENT instead
+      USERMANAGEMENT |
       ANALYZERS |
       UDFS }
 
@@ -55,9 +56,9 @@ with a ``table_ident`` and a optional partition reference given the
 It is possible to restore all tables using the ``TABLES`` keyword. This will
 restore all tables but will not restore metadata.
 
-To restore only the metadata (including views, users, privileges, analyzers,
-user-defined-functions, and all cluster settings), instead use the ``METADATA``
-keyword.
+To restore only the metadata (including views, users, roles, privileges,
+analyzers, user-defined-functions, and all cluster settings), instead use the
+``METADATA`` keyword.
 
 A single metadata group can be restored by using the related ``data_section``
 keyword.

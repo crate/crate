@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.analyze.RestoreSnapshotAnalyzer.METADATA_CUSTOM_TYPE_MAP;
+import static io.crate.analyze.RestoreSnapshotAnalyzer.USER_MANAGEMENT_METADATA;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
@@ -62,8 +63,6 @@ import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.metadata.RolesMetadata;
-import io.crate.user.metadata.UsersMetadata;
 
 public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -380,52 +379,55 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_restore_custom_metadata() {
-        for (var entry : METADATA_CUSTOM_TYPE_MAP.entrySet()) {
+        for (var meta : List.of("VIEWS", "UDFS")) {
             BoundRestoreSnapshot statement =
-                analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot " + entry.getKey());
+                analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot " + meta);
             assertThat(statement.repository()).isEqualTo("my_repo");
             assertThat(statement.snapshot()).isEqualTo("my_snapshot");
             assertThat(statement.restoreTables().isEmpty()).isTrue();
             assertThat(statement.includeTables()).isFalse();
             assertThat(statement.includeCustomMetadata()).isTrue();
-            if (entry.getValue().equals(RolesMetadata.TYPE)) {
-                assertThat(statement.customMetadataTypes()).containsExactlyInAnyOrder(
-                    entry.getValue(),
-                    UsersMetadata.TYPE);
-            } else {
-                assertThat(statement.customMetadataTypes()).containsExactly(entry.getValue());
-            }
+            assertThat(statement.customMetadataTypes())
+                .containsExactlyInAnyOrderElementsOf(METADATA_CUSTOM_TYPE_MAP.get(meta));
             assertThat(statement.includeGlobalSettings()).isFalse();
             assertThat(statement.globalSettings().isEmpty()).isTrue();
         }
     }
 
     @Test
-    public void test_restore_multiple_metadata() {
-        BoundRestoreSnapshot statement =
-            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot USERS, PRIVILEGES");
-        assertThat(statement.repository()).isEqualTo("my_repo");
-        assertThat(statement.snapshot()).isEqualTo("my_snapshot");
-        assertThat(statement.includeTables()).isFalse();
-        assertThat(statement.includeCustomMetadata()).isTrue();
-        assertThat(statement.customMetadataTypes()).containsExactlyInAnyOrder(
-            METADATA_CUSTOM_TYPE_MAP.get("USERS"),
-            UsersMetadata.TYPE,
-            METADATA_CUSTOM_TYPE_MAP.get("PRIVILEGES")
-        );
-        assertThat(statement.includeGlobalSettings()).isFalse();
-        assertThat(statement.globalSettings().isEmpty()).isTrue();
+    public void test_restore_user_mananagement_metadata() {
+        for (var meta : List.of("USERS", "PRIVILEGES", "USERMANAGEMENT")) {
+            RestoreSnapshotAnalyzer.DEPRECATION_LOGGER.resetLRU();
+
+            BoundRestoreSnapshot statement =
+                analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot " + meta);
+            assertThat(statement.repository()).isEqualTo("my_repo");
+            assertThat(statement.snapshot()).isEqualTo("my_snapshot");
+            assertThat(statement.includeTables()).isFalse();
+            assertThat(statement.restoreTables().isEmpty()).isTrue();
+            assertThat(statement.includeCustomMetadata()).isTrue();
+            assertThat(statement.customMetadataTypes()).containsExactlyInAnyOrderElementsOf(USER_MANAGEMENT_METADATA);
+            assertThat(statement.includeGlobalSettings()).isFalse();
+            assertThat(statement.globalSettings().isEmpty()).isTrue();
+
+            if ("USERS".equals(meta)) {
+                assertWarnings("USERS keyword is deprecated, please use USERMANAGEMENT instead");
+            }
+            if ("PRIVILEGES".equals(meta)) {
+                assertWarnings("PRIVILEGES keyword is deprecated, please use USERMANAGEMENT instead");
+            }
+        }
     }
 
     @Test
-    public void test_restore_tables_and_custom_metadata() {
+    public void test_restore_tables_and_views() {
         BoundRestoreSnapshot statement =
             analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLES, VIEWS");
         assertThat(statement.repository()).isEqualTo("my_repo");
         assertThat(statement.snapshot()).isEqualTo("my_snapshot");
         assertThat(statement.includeTables()).isTrue();
         assertThat(statement.includeCustomMetadata()).isTrue();
-        assertThat(statement.customMetadataTypes()).containsExactly(METADATA_CUSTOM_TYPE_MAP.get("VIEWS"));
+        assertThat(statement.customMetadataTypes()).containsExactlyElementsOf(METADATA_CUSTOM_TYPE_MAP.get("VIEWS"));
         assertThat(statement.includeGlobalSettings()).isFalse();
         assertThat(statement.globalSettings().isEmpty()).isTrue();
     }
