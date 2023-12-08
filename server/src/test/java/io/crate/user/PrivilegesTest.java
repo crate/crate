@@ -27,7 +27,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.MissingPrivilegeException;
-import io.crate.metadata.Schemas;
 
 public class PrivilegesTest extends ESTestCase {
 
@@ -36,7 +35,7 @@ public class PrivilegesTest extends ESTestCase {
     @Test
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {
         assertThatThrownBy(() ->
-            Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, USER, Schemas.DOC_SCHEMA_NAME))
+            Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, USER))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
             .hasMessage("Missing 'DQL' privilege for user 'ford'");
     }
@@ -45,7 +44,7 @@ public class PrivilegesTest extends ESTestCase {
     public void testNoExceptionIsThrownIfUserHasNotRequiredPrivilegeOnInformationSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
         Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "information_schema",
-                                          USER, Schemas.DOC_SCHEMA_NAME);
+                                          USER);
     }
 
     @Test

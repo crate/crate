@@ -32,7 +32,9 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 
-public class Privileges {
+public final class Privileges {
+
+    private Privileges() {}
 
     /**
      * Checks if the user the concrete privilege for the given class, ident and default schema, if not raise exception.
@@ -40,8 +42,7 @@ public class Privileges {
     public static void ensureUserHasPrivilege(Privilege.Type type,
                                               Privilege.Clazz clazz,
                                               @Nullable String ident,
-                                              Role user,
-                                              String defaultSchema) throws MissingPrivilegeException {
+                                              Role user) throws MissingPrivilegeException {
         assert user != null : "User must not be null when trying to validate privileges";
         assert type != null : "Privilege type must not be null";
 
