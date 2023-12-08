@@ -71,6 +71,21 @@ public class PgCatalogITest extends IntegTestCase {
         execute("drop view " + String.join(", ", fqQuotedViews));
     }
 
+    @After
+    public void dropAllUsers() {
+        // clean all created users and roles
+        execute("SELECT name FROM sys.users WHERE superuser = FALSE");
+        for (Object[] objects : response.rows()) {
+            String user = (String) objects[0];
+            execute("DROP user \"" + user + "\"");
+        }
+        execute("SELECT name FROM sys.roles");
+        for (Object[] objects : response.rows()) {
+            String role = (String) objects[0];
+            execute("DROP ROLE \"" + role + "\"");
+        }
+    }
+
     @Test
     public void testPgClassTable() {
         execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
@@ -456,5 +471,28 @@ public class PgCatalogITest extends IntegTestCase {
         execute("create table t (aa int constraint c_aa primary key)");
         execute("select conname from pg_catalog.pg_constraint where conname = 'c_aa'");
         assertThat(response).hasRows("c_aa");
+    }
+
+    @Test
+    public void test_pg_roles() {
+        execute("CREATE USER \"Arthur\" WITH (password='foo')");
+        execute("CREATE USER \"John\"");
+        execute("CREATE ROLE \"SuperDooper\"");
+        execute("GRANT AL TO \"SuperDooper\"");
+
+        execute("SELECT rolname, rolpassword, rolsuper, rolinherit, rolcreaterole, rolcanlogin, " +
+            "rolreplication, rolconnlimit, rolcreatedb, rolvaliduntil, rolbypassrls, rolconfig " +
+            "FROM pg_catalog.pg_roles ORDER BY rolname");
+        assertThat(response).hasRows(
+            "Arthur| ********| false| true| false| true| false| -1| NULL| NULL| NULL| NULL",
+            "John| NULL| false| true| false| true| false| -1| NULL| NULL| NULL| NULL",
+            "SuperDooper| NULL| false| true| true| false| true| -1| NULL| NULL| NULL| NULL",
+            "crate| NULL| true| true| true| true| true| -1| NULL| NULL| NULL| NULL");
+
+        execute("SELECT oid FROM pg_catalog.pg_roles");
+        assertThat(response).hasRowCount(4);
+        for (int i = 0; i < response.rowCount(); i++) {
+            assertThat(response.rows()[i][0]).isNotNull();
+        }
     }
 }
