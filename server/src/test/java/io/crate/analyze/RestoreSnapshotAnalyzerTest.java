@@ -64,7 +64,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
-public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTest {
+public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
     private PlannerContext plannerContext;
