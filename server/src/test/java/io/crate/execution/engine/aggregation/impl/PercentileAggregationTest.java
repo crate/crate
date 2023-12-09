@@ -22,13 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -104,8 +98,8 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
     @Test
     public void testReturnTypes() throws Exception {
-        assertEquals(DataTypes.DOUBLE, singleArgPercentile.boundSignature().returnType());
-        assertEquals(DataTypes.DOUBLE_ARRAY, arraysPercentile.boundSignature().returnType());
+        assertThat(singleArgPercentile.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
+        assertThat(arraysPercentile.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE_ARRAY);
     }
 
     @Test
@@ -116,7 +110,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
             for (int i = 0; i < rowsWithSingleFraction.length; i++) {
                 rowsWithSingleFraction[i] = new Object[]{ valueType.sanitizeValue(i), fractions.get(0) };
             }
-            assertThat(execSingleFractionPercentile(valueType, rowsWithSingleFraction), is(4.5));
+            assertThat(execSingleFractionPercentile(valueType, rowsWithSingleFraction)).isEqualTo(4.5);
         }
     }
 
@@ -128,10 +122,8 @@ public class PercentileAggregationTest extends AggregationTestCase {
             for (int i = 0; i < rowsWithFractionsArray.length; i++) {
                 rowsWithFractionsArray[i] = new Object[]{ valueType.sanitizeValue(i), fractions };
             }
-            assertThat(
-                execArrayFractionPercentile(valueType, rowsWithFractionsArray),
-                is(List.of(4.5, 7.5))
-            );
+            assertThat(execArrayFractionPercentile(valueType, rowsWithFractionsArray))
+                .isEqualTo(List.of(4.5, 7.5));
         }
     }
 
@@ -142,7 +134,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
             {10, null}
         });
 
-        assertTrue(result == null);
+        assertThat(result).isNull();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -180,10 +172,10 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: percentile(INPUT(0), INPUT(0))," +
-                                        " no overload found for matching argument types: (geo_point, double precision).");
-        execSingleFractionPercentile(DataTypes.GEO_POINT, new Object[][]{});
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.GEO_POINT, new Object[][]{}))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: percentile(INPUT(0), INPUT(0)), " +
+                                    "no overload found for matching argument types: (geo_point, double precision).");
     }
 
     @Test
@@ -192,21 +184,21 @@ public class PercentileAggregationTest extends AggregationTestCase {
             {null, 0.5},
             {null, 0.5}
         });
-        assertEquals(result, null);
+        assertThat(result).isNull();
     }
 
     @Test
     public void testEmptyPercentileFuncWithEmptyRows() throws Exception {
         Object result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{});
-        assertThat(result, is(nullValue()));
+        assertThat(result).isNull();
     }
 
     @Test
     public void testIterate() throws Exception {
         PercentileAggregation pa = singleArgPercentile;
         TDigestState state = pa.iterate(RamAccounting.NO_ACCOUNTING, memoryManager, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
-        assertThat(state, is(notNullValue()));
-        assertThat(state.fractions()[0], is(0.5));
+        assertThat(state).isNotNull();
+        assertThat(state.fractions()[0]).isEqualTo(0.5);
     }
 
     @Test
@@ -218,8 +210,8 @@ public class PercentileAggregationTest extends AggregationTestCase {
         TDigestState state2 = new TDigestState(100, new double[]{0.5});
         state2.add(20.0);
         TDigestState reducedState = pa.reduce(null, state1, state2);
-        assertThat(reducedState.fractions()[0], is(0.5));
-        assertThat(reducedState.centroidCount(), is(1));
+        assertThat(reducedState.fractions()[0]).isEqualTo(0.5);
+        assertThat(reducedState.centroidCount()).isEqualTo(1);
 
         // state 2 -> state 1
         state1 = new TDigestState(100, new double[]{0.5});
@@ -228,13 +220,14 @@ public class PercentileAggregationTest extends AggregationTestCase {
         state2 = new TDigestState(100, new double[]{0.5});
         state2.add(21.0);
         reducedState = pa.reduce(null, state1, state2);
-        assertThat(reducedState.fractions()[0], is(0.5));
-        assertThat(reducedState.centroidCount(), is(3));
+        assertThat(reducedState.fractions()[0]).isEqualTo(0.5);
+        assertThat(reducedState.centroidCount()).isEqualTo(3);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSingleItemFractionsArgumentResultsInArrayResult() {
-        AggregationFunction impl = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
+        var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
             Signature.aggregate(
                 PercentileAggregation.NAME,
                 DataTypes.LONG.getTypeSignature(),
@@ -252,12 +245,13 @@ public class PercentileAggregationTest extends AggregationTestCase {
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
         Object result = impl.terminatePartial(ramAccounting, state);
 
-        assertThat("result must be an array", result, instanceOf(List.class));
+        assertThat(result).isInstanceOf(List.class);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_percentile_accounts_memory_for_tdigeststate() throws Exception {
-        AggregationFunction impl = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
+        var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
             Signature.aggregate(
                 PercentileAggregation.NAME,
                 DataTypes.LONG.getTypeSignature(),

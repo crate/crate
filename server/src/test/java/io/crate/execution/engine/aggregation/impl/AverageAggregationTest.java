@@ -21,13 +21,12 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.Version;
 import org.joda.time.Period;
@@ -113,7 +112,7 @@ public class AverageAggregationTest extends AggregationTestCase {
         }
 
         // AverageAggregation returns double
-        Assertions.assertThat(executeAvgAgg(DataTypes.DOUBLE, data)).isEqualTo(10000.1d);
+        assertThat(executeAvgAgg(DataTypes.DOUBLE, data)).isEqualTo(10000.1d);
     }
 
     @Test
@@ -124,7 +123,7 @@ public class AverageAggregationTest extends AggregationTestCase {
         }
 
         //AverageAggregation returns double
-        Assertions.assertThat((double) executeAvgAgg(DataTypes.FLOAT, data))
+       assertThat((double) executeAvgAgg(DataTypes.FLOAT, data))
             .isEqualTo(10000.1d, Offset.offset(0.1d));
     }
 
