@@ -29,7 +29,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${versions.plugin.jar}</version>
         <executions>
           <execution>
             <goals>
@@ -41,7 +41,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>${versions.plugin.build-helper}</version>
         <executions>
           <execution>
             <id>add-testfixtures</id>
@@ -60,7 +60,7 @@
       <plugin>
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-maven-plugin</artifactId>
-        <version>4.13.1</version>
+        <version>${versions.plugin.antlr}</version>
         <configuration>
           <sourceDirectory>${basedir}/src/main/antlr</sourceDirectory>
           <visitor>true</visitor>

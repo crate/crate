@@ -11,13 +11,13 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>${versions.plugin.compiler}</version>
         <configuration>
         </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.2.2</version>
+        <version>${versions.plugin.surefire}</version>
         <configuration>
           <parallel>suites</parallel>
           <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -42,12 +42,12 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-report-plugin</artifactId>
-        <version>3.2.2</version>
+        <version>${versions.plugin.surefire-report}</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${versions.plugin.checkstyle}</version>
         <configuration>
           <configLocation>checkstyle.xml</configLocation>
           <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
@@ -70,7 +70,7 @@
       <plugin>
         <groupId>org.mvnsearch</groupId>
         <artifactId>toolchains-maven-plugin</artifactId>
-        <version>4.5.0</version>
+        <version>${versions.plugin.toolchain}</version>
         <executions>
           <execution>
             <goals>
@@ -90,7 +90,7 @@
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.11</version>
+        <version>${versions.plugin.jacoco}</version>
         <executions>
           <execution>
             <id>default-prepare-agent</id>
@@ -103,7 +103,7 @@
       <plugin>
         <groupId>de.thetaphi</groupId>
         <artifactId>forbiddenapis</artifactId>
-        <version>3.6</version>
+        <version>${versions.plugin.forbiddenapis}</version>
           <configuration>
             <failOnUnsupportedJava>false</failOnUnsupportedJava>
             <bundledSignatures>
@@ -131,7 +131,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-jlink-plugin</artifactId>
-        <version>3.1.0</version>
+        <version>${versions.plugin.jlink}</version>
         <extensions>true</extensions>
         <configuration>
           <addModules>
@@ -169,7 +169,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${versions.plugin.checkstyle}</version>
         <reportSets>
           <reportSet>
             <reports>
@@ -235,6 +235,23 @@
     <versions.azure_keyvault>1.2.4</versions.azure_keyvault>
 
     <versions.jmh>1.37</versions.jmh>
+
+    <!-- Maven Plugins -->
+    <versions.plugin.compiler>3.11.0</versions.plugin.compiler>
+    <versions.plugin.surefire>3.2.2</versions.plugin.surefire>
+    <versions.plugin.surefire-report>3.2.2</versions.plugin.surefire-report>
+    <versions.plugin.checkstyle>3.3.0</versions.plugin.checkstyle>
+    <versions.plugin.toolchain>4.5.0</versions.plugin.toolchain>
+    <versions.plugin.jacoco>0.8.11</versions.plugin.jacoco>
+    <versions.plugin.forbiddenapis>3.6</versions.plugin.forbiddenapis>
+    <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
+    <versions.plugin.assembly>3.6.0</versions.plugin.assembly>
+    <versions.plugin.download>1.7.1</versions.plugin.download>
+    <versions.plugin.git-commit>6.0.0</versions.plugin.git-commit>
+    <versions.plugin.shade>3.5.1</versions.plugin.shade>
+    <versions.plugin.jar>3.3.0</versions.plugin.jar>
+    <versions.plugin.build-helper>3.4.0</versions.plugin.build-helper>
+    <versions.plugin.antlr>4.13.1</versions.plugin.antlr>
   </properties>
 
   <modules>
