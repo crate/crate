@@ -18,7 +18,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${versions.plugin.jar}</version>
         <executions>
           <execution>
             <goals>
@@ -30,7 +30,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>${versions.plugin.build-helper}</version>
         <executions>
           <execution>
             <id>add-gradle-testfixtures</id>
