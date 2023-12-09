@@ -21,11 +21,10 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -36,6 +35,7 @@ import io.crate.types.DataTypes;
 
 public class ArrayAggTest extends AggregationTestCase {
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_array_agg_adds_all_items_to_array() throws Exception {
         var result = executeAggregation(
@@ -51,7 +51,7 @@ public class ArrayAggTest extends AggregationTestCase {
             true,
             List.of()
         );
-        assertThat((List<Object>) result, Matchers.contains(20, null, 42, 24));
+        assertThat((List<Object>) result).containsExactly(20, null, 42, 24);
     }
 
     @Test
@@ -61,6 +61,6 @@ public class ArrayAggTest extends AggregationTestCase {
             List.of(DataTypes.LONG),
             DataTypes.BIGINT_ARRAY
         ).boundSignature().returnType();
-        assertThat(returnType, Matchers.is(DataTypes.BIGINT_ARRAY));
+        assertThat(returnType).isEqualTo(DataTypes.BIGINT_ARRAY);
     }
 }

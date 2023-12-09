@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl.util;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 
@@ -35,10 +34,10 @@ public class OverflowAwareMutableLongTest {
         var value = new OverflowAwareMutableLong(5L);
         value.add(5L);
 
-        assertThat(value.hasValue(), is(true));
-        assertThat(value.primitiveSum(), is(10L));
-        assertThat(value.bigDecimalSum(), is(BigDecimal.ZERO));
-        assertThat(value.value(), is(BigDecimal.TEN));
+        assertThat(value.hasValue()).isTrue();
+        assertThat(value.primitiveSum()).isEqualTo(10L);
+        assertThat(value.bigDecimalSum()).isEqualTo(BigDecimal.ZERO);
+        assertThat(value.value()).isEqualTo(BigDecimal.TEN);
     }
 
     @Test
@@ -47,9 +46,9 @@ public class OverflowAwareMutableLongTest {
         value.add(5L);
 
         var expected = BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.valueOf(5));
-        assertThat(value.hasValue(), is(true));
-        assertThat(value.bigDecimalSum(), is(expected));
-        assertThat(value.value(), is(expected));
+        assertThat(value.hasValue()).isTrue();
+        assertThat(value.bigDecimalSum()).isEqualTo(expected);
+        assertThat(value.value()).isEqualTo(expected);
     }
 
     @Test
@@ -63,9 +62,9 @@ public class OverflowAwareMutableLongTest {
         //Last 5 summand is added after the overflow, it's kept in primitive
         var expectedBigDecimal = BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.valueOf(5));
 
-        assertThat(value.hasValue(), is(true));
-        assertThat(value.bigDecimalSum(), is(expectedBigDecimal));
-        assertThat(value.primitiveSum(), is(5L));
-        assertThat(value.value(), is(expected));
+        assertThat(value.hasValue()).isTrue();
+        assertThat(value.bigDecimalSum()).isEqualTo(expectedBigDecimal);
+        assertThat(value.primitiveSum()).isEqualTo(5L);
+        assertThat(value.value()).isEqualTo(expected);
     }
 }
