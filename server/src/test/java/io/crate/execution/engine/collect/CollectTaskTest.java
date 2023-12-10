@@ -106,6 +106,7 @@ public class CollectTaskTest extends ESTestCase {
         );
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testAddingSameContextTwice() throws Exception {
         RefCountedItem<IndexSearcher> mock1 = mock(RefCountedItem.class);
@@ -163,6 +164,7 @@ public class CollectTaskTest extends ESTestCase {
     }
 
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_kill_before_start_triggers_consumer() throws Exception {
         RefCountedItem<IndexSearcher> searcher = mock(RefCountedItem.class);
