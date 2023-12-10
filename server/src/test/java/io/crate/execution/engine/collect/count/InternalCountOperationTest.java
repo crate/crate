@@ -22,8 +22,6 @@
 package io.crate.execution.engine.collect.count;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -86,7 +84,7 @@ public class InternalCountOperationTest extends IntegTestCase {
 
         {
             CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE);
-            assertThat(count.get(5, TimeUnit.SECONDS), is(3L));
+            assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(3L);
         }
 
         Schemas schemas = cluster().getInstance(Schemas.class);
@@ -98,7 +96,7 @@ public class InternalCountOperationTest extends IntegTestCase {
         Symbol filter = sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'"));
         {
             CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, filter);
-            assertThat(count.get(5, TimeUnit.SECONDS), is(1L));
+            assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(1L);
         }
     }
 

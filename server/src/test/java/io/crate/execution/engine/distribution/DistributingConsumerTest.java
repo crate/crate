@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -42,7 +42,6 @@ import java.util.concurrent.TimeUnit;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -103,12 +102,12 @@ public class DistributingConsumerTest extends ESTestCase {
             distributingConsumer.accept(batchSimulatingIterator, null);
 
             List<Object[]> result = collectingConsumer.getResult();
-            assertThat(TestingHelpers.printedTable(new CollectionBucket(result)),
-                is("0\n" +
+            assertThat(TestingHelpers.printedTable(new CollectionBucket(result))).isEqualTo(
+                "0\n" +
                    "1\n" +
                    "2\n" +
                    "3\n" +
-                   "4\n"));
+                   "4\n");
 
             // pageSize=2 and 5 rows causes 3x pushResult
             verify(distributedResultAction, times(3)).doExecute(any(), any());
@@ -128,9 +127,9 @@ public class DistributingConsumerTest extends ESTestCase {
 
         distributingConsumer.accept(null, new CompletionException(new IllegalArgumentException("foobar")));
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("foobar");
-        collectingConsumer.getResult();
+        assertThatThrownBy(() -> collectingConsumer.getResult())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("foobar");
     }
 
     @Test
@@ -143,8 +142,8 @@ public class DistributingConsumerTest extends ESTestCase {
 
         distributingConsumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
 
-        expectedException.expect(InterruptedException.class);
-        collectingConsumer.getResult();
+        assertThatThrownBy(() -> collectingConsumer.getResult())
+            .isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -168,8 +167,8 @@ public class DistributingConsumerTest extends ESTestCase {
             };
         distributingConsumer.accept(batchSimulatingIterator, null);
 
-        expectedException.expect(CircuitBreakingException.class);
-        collectingConsumer.getResult();
+        assertThatThrownBy(() -> collectingConsumer.getResult())
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 
     private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers, TransportDistributedResultAction distributedResultAction) {
@@ -215,7 +214,7 @@ public class DistributingConsumerTest extends ESTestCase {
             ActionListener<DistributedResultResponse> listener = (ActionListener<DistributedResultResponse>) args[1];
             Throwable throwable = resultRequest.throwable();
             PageBucketReceiver bucketReceiver = distResultRXTask.getBucketReceiver(resultRequest.executionPhaseInputId());
-            assertThat(bucketReceiver, Matchers.notNullValue());
+            assertThat(bucketReceiver).isNotNull();
             if (throwable == null) {
                 bucketReceiver.setBucket(
                     resultRequest.bucketIdx(),

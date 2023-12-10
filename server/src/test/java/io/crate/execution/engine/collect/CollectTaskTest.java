@@ -21,10 +21,9 @@
 
 package io.crate.execution.engine.collect;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.assertThatThrownBy;
+import static io.crate.testing.Asserts.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -115,7 +114,7 @@ public class CollectTaskTest extends ESTestCase {
             collectTask.addSearcher(1, mock1);
             collectTask.addSearcher(1, mock2);
 
-            assertFalse(true); // second addContext call should have raised an exception
+            fail("2nd addContext call should have raised an exception");
         } catch (IllegalArgumentException e) {
             verify(mock1, times(1)).close();
             verify(mock2, times(0)).close(); // would be closed via `kill` on the context
@@ -125,7 +124,7 @@ public class CollectTaskTest extends ESTestCase {
     @Test
     public void testThreadPoolNameForDocTables() throws Exception {
         String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
+        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
     }
 
     @Test
@@ -138,29 +137,29 @@ public class CollectTaskTest extends ESTestCase {
         // sys.cluster (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.CLUSTER);
         String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
+        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
 
         // partition values only of a partitioned doc table (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.PARTITION);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
+        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
 
         // sys.nodes (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.NODE);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.GET));
+        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.GET);
 
         // sys.shards
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.SHARD);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.GET));
+        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.GET);
         when(routing.containsShards(localNodeId)).thenReturn(false);
 
         // information_schema.*
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, false);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SAME));
+        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SAME);
     }
 
 
@@ -170,10 +169,8 @@ public class CollectTaskTest extends ESTestCase {
         RefCountedItem<IndexSearcher> searcher = mock(RefCountedItem.class);
         collectTask.addSearcher(1, searcher);
         collectTask.kill(JobKilledException.of(null));
-        assertThrows(
-            JobKilledException.class,
-            consumer::getBucket
-        );
+        assertThatThrownBy(consumer::getBucket)
+            .isExactlyInstanceOf(JobKilledException.class);
         verify(searcher, times(1)).close();
     }
 
@@ -186,10 +183,8 @@ public class CollectTaskTest extends ESTestCase {
         collectTask.start();
         collectTask.kill(JobKilledException.of(null));
         futureBatchIterator.complete(batchIterator);
-        assertThrows(
-            JobKilledException.class,
-            consumer::getBucket
-        );
+        assertThatThrownBy(consumer::getBucket)
+            .isExactlyInstanceOf(JobKilledException.class);
     }
 
     @Test
@@ -241,7 +236,8 @@ public class CollectTaskTest extends ESTestCase {
     public void test_add_searcher_after_kill_completed_does_close_searcher() throws Exception {
         RefCountedItem<IndexSearcher> searcher = mock(RefCountedItem.class);
         collectTask.kill(JobKilledException.of(null));
-        assertThrows(JobKilledException.class, () -> collectTask.addSearcher(0, searcher));
+        assertThatThrownBy(() -> collectTask.addSearcher(0, searcher))
+            .isExactlyInstanceOf(JobKilledException.class);
         verify(searcher, times(1)).close();
     }
 
@@ -250,6 +246,7 @@ public class CollectTaskTest extends ESTestCase {
         when(collectOperation.createIterator(Mockito.any(), Mockito.any(), anyBoolean(), Mockito.any()))
             .thenThrow(new RuntimeException("create iterator failed"));
         collectTask.start();
-        assertThrows(RuntimeException.class, consumer::getBucket);
+        assertThatThrownBy(consumer::getBucket)
+            .isExactlyInstanceOf(RuntimeException.class);
     }
 }

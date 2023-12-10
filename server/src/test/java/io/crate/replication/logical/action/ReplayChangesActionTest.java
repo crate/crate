@@ -21,10 +21,7 @@
 
 package io.crate.replication.logical.action;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -121,7 +118,7 @@ public class ReplayChangesActionTest extends CrateDummyClusterServiceUnitTest {
         var exception = new AtomicReference<Throwable>();
         transportAction.shardOperationOnPrimary(req, indexShard, ActionListener.wrap(r -> {}, exception::set));
 
-        assertThat(exception.get(), instanceOf(InvalidShardEngineException.class));
+        assertThat(exception.get()).isExactlyInstanceOf(InvalidShardEngineException.class);
     }
 
     @Test
@@ -159,11 +156,11 @@ public class ReplayChangesActionTest extends CrateDummyClusterServiceUnitTest {
         var exception = new AtomicReference<Throwable>();
         transportAction.shardOperationOnPrimary(req, indexShard, ActionListener.wrap(result::set, exception::set));
 
-        assertThat(exception.get(), nullValue());
+        assertThat(exception.get()).isNull();
         var replicaReq = (ReplayChangesAction.Request) result.get().replicaRequest();
 
         // Failure happened on 2nd item, so only 1 item must be replicated
-        assertThat(replicaReq.changes().size(), is(1));
+        assertThat(replicaReq.changes()).hasSize(1);
     }
 
     @Test
@@ -192,7 +189,7 @@ public class ReplayChangesActionTest extends CrateDummyClusterServiceUnitTest {
         ArrayList<Engine.Result> engineResults = new ArrayList<>();
         transportAction.performOnPrimary(indexShard, req, new ArrayList<>(),0, engineResults::addAll, e -> {});
 
-        assertThat(engineResults.get(0).getFailure(), nullValue());
-        assertThat(engineResults.get(1).getFailure(), instanceOf(InvalidShardEngineException.class));
+        assertThat(engineResults.get(0).getFailure()).isNull();
+        assertThat(engineResults.get(1).getFailure()).isExactlyInstanceOf(InvalidShardEngineException.class);
     }
 }
