@@ -22,8 +22,8 @@
 package io.crate.execution.engine.collect.collectors;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -133,10 +133,11 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.kill(new InterruptedException("KILLED"));
         remoteCollector.doCollect();
 
+        //noinspection unchecked
         verify(transportJobAction, times(0)).doExecute(any(NodeRequest.class), any(ActionListener.class));
 
-        expectedException.expect(InterruptedException.class);
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(InterruptedException.class);
     }
 
 
@@ -146,9 +147,10 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.kill(new InterruptedException());
         remoteCollector.createRemoteContext();
 
+        //noinspection unchecked
         verify(transportJobAction, times(0)).doExecute(any(NodeRequest.class), any(ActionListener.class));
-        expectedException.expect(JobKilledException.class);
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(JobKilledException.class);
     }
 
     @Test
@@ -156,13 +158,13 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.doCollect();
         ArgumentCaptor<NodeRequest<JobRequest>> argumentCaptor = ArgumentCaptor.forClass(NodeRequest.class);
         verify(transportJobAction, times(1)).doExecute(argumentCaptor.capture(), listenerCaptor.capture());
-        assertThat(argumentCaptor.getValue().nodeId(), is("remoteNode"));
+        assertThat(argumentCaptor.getValue().nodeId()).isEqualTo("remoteNode");
 
         remoteCollector.kill(new InterruptedException());
 
         ActionListener<JobResponse> listener = listenerCaptor.getValue();
         listener.onResponse(new JobResponse(List.of()));
 
-        assertThat(numBroadcastCalls.get(), is(1));
+        assertThat(numBroadcastCalls).hasValue(1);
     }
 }

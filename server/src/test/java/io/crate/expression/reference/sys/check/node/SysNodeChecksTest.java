@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -78,9 +77,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
 
-        assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryExpectedNodesCheck.isValid(), is(true));
+        assertThat(recoveryExpectedNodesCheck.id()).isEqualTo(1);
+        assertThat(recoveryExpectedNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryExpectedNodesCheck.isValid()).isTrue();
     }
 
     @Test
@@ -99,9 +98,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
             new RecoveryExpectedNodesSysCheck(clusterService, settings);
 
-        assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryExpectedNodesCheck.isValid(), is(false));
+        assertThat(recoveryExpectedNodesCheck.id()).isEqualTo(1);
+        assertThat(recoveryExpectedNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryExpectedNodesCheck.isValid()).isFalse();
     }
 
     @Test
@@ -118,9 +117,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
             new RecoveryExpectedNodesSysCheck(clusterService, settings);
 
-        assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryExpectedNodesCheck.isValid(), is(false));
+        assertThat(recoveryExpectedNodesCheck.id()).isEqualTo(1);
+        assertThat(recoveryExpectedNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryExpectedNodesCheck.isValid()).isFalse();
     }
 
     @Test
@@ -140,9 +139,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
             new RecoveryExpectedNodesSysCheck(clusterService, settings);
 
-        assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryExpectedNodesCheck.isValid(), is(true));
+        assertThat(recoveryExpectedNodesCheck.id()).isEqualTo(1);
+        assertThat(recoveryExpectedNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryExpectedNodesCheck.isValid()).isTrue();
     }
 
     @Test
@@ -162,9 +161,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
             new RecoveryExpectedNodesSysCheck(clusterService, settings);
 
-        assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryExpectedNodesCheck.isValid(), is(false));
+        assertThat(recoveryExpectedNodesCheck.id()).isEqualTo(1);
+        assertThat(recoveryExpectedNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryExpectedNodesCheck.isValid()).isFalse();
     }
 
     @Test
@@ -172,9 +171,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
-        assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryAfterNodesCheck.isValid(), is(true));
+        assertThat(recoveryAfterNodesCheck.id()).isEqualTo(2);
+        assertThat(recoveryAfterNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryAfterNodesCheck.isValid()).isTrue();
     }
 
     @Test
@@ -194,9 +193,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, settings);
 
-        assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryAfterNodesCheck.isValid(), is(false));
+        assertThat(recoveryAfterNodesCheck.id()).isEqualTo(2);
+        assertThat(recoveryAfterNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryAfterNodesCheck.isValid()).isFalse();
     }
 
     @Test
@@ -214,9 +213,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, settings);
 
-        assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryAfterNodesCheck.isValid(), is(false));
+        assertThat(recoveryAfterNodesCheck.id()).isEqualTo(2);
+        assertThat(recoveryAfterNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryAfterNodesCheck.isValid()).isFalse();
     }
 
     @Test
@@ -236,9 +235,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, settings);
 
-        assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryAfterNodesCheck.isValid(), is(true));
+        assertThat(recoveryAfterNodesCheck.id()).isEqualTo(2);
+        assertThat(recoveryAfterNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryAfterNodesCheck.isValid()).isTrue();
     }
 
     @Test
@@ -250,7 +249,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(settings);
-        assertThat(recoveryAfterNodesCheck.isValid(), is(true));
+        assertThat(recoveryAfterNodesCheck.isValid()).isTrue();
     }
 
     @Test
@@ -262,16 +261,16 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(settings);
-        assertThat(recoveryAfterNodesCheck.isValid(), is(true));
+        assertThat(recoveryAfterNodesCheck.isValid()).isTrue();
     }
 
     @Test
     public void testRecoveryAfterTimeCheckWithDefaultSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(Settings.EMPTY);
 
-        assertThat(recoveryAfterNodesCheck.id(), is(3));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryAfterNodesCheck.isValid(), is(true));
+        assertThat(recoveryAfterNodesCheck.id()).isEqualTo(3);
+        assertThat(recoveryAfterNodesCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(recoveryAfterNodesCheck.isValid()).isTrue();
     }
 
     @Test
@@ -284,7 +283,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(settings);
 
-        assertThat(recoveryAfterNodesCheck.isValid(), is(false));
+        assertThat(recoveryAfterNodesCheck.isValid()).isFalse();
     }
 
     @Test
@@ -295,12 +294,12 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             mock(NodeService.class, Answers.RETURNS_MOCKS)
         );
 
-        assertThat(low.id(), is(6));
-        assertThat(low.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(low.id()).isEqualTo(6);
+        assertThat(low.severity()).isEqualTo(SysCheck.Severity.HIGH);
 
         // default threshold is: 85% used
-        assertThat(low.isValid(15, 100), is(true));
-        assertThat(low.isValid(14, 100), is(false));
+        assertThat(low.isValid(15, 100)).isTrue();
+        assertThat(low.isValid(14, 100)).isFalse();
     }
 
     @Test
@@ -310,7 +309,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             Settings.builder().put("cluster.routing.allocation.disk.threshold_enabled", false).build(),
             mock(NodeService.class, Answers.RETURNS_MOCKS)
         );
-        assertThat(check.isValid(), is(true));
+        assertThat(check.isValid()).isTrue();
     }
 
     @Test
@@ -321,12 +320,12 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             mock(NodeService.class, Answers.RETURNS_MOCKS)
         );
 
-        assertThat(high.id(), is(5));
-        assertThat(high.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(high.id()).isEqualTo(5);
+        assertThat(high.severity()).isEqualTo(SysCheck.Severity.HIGH);
 
         // default threshold is: 90% used
-        assertThat(high.isValid(10, 100), is(true));
-        assertThat(high.isValid(9, 100), is(false));
+        assertThat(high.isValid(10, 100)).isTrue();
+        assertThat(high.isValid(9, 100)).isFalse();
     }
 
     @Test
@@ -337,12 +336,12 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             mock(NodeService.class, Answers.RETURNS_MOCKS)
         );
 
-        assertThat(floodStage.id(), is(7));
-        assertThat(floodStage.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(floodStage.id()).isEqualTo(7);
+        assertThat(floodStage.severity()).isEqualTo(SysCheck.Severity.HIGH);
 
         // default threshold is: 95% used
-        assertThat(floodStage.isValid(5, 100), is(true));
-        assertThat(floodStage.isValid(4, 100), is(false));
+        assertThat(floodStage.isValid(5, 100)).isTrue();
+        assertThat(floodStage.isValid(4, 100)).isFalse();
     }
 
     @Test
@@ -394,9 +393,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
         var maxShardsPerNodeSysCheck = new MaxShardsPerNodeSysCheck(clusterService);
 
-        assertThat(maxShardsPerNodeSysCheck.id(), is(8));
-        assertThat(maxShardsPerNodeSysCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(maxShardsPerNodeSysCheck.isValid(), is(true));
+        assertThat(maxShardsPerNodeSysCheck.id()).isEqualTo(8);
+        assertThat(maxShardsPerNodeSysCheck.severity()).isEqualTo(SysCheck.Severity.MEDIUM);
+        assertThat(maxShardsPerNodeSysCheck.isValid()).isTrue();
 
         // Validate that with `cluster.max_shards_per_node = 90` and 85 shards the check fails
         setting = Settings.builder().put(ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey(), 90).build();
@@ -405,6 +404,6 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         when(clusterService.getClusterSettings()).thenReturn(clusterSettings);
 
         maxShardsPerNodeSysCheck = new MaxShardsPerNodeSysCheck(clusterService);
-        assertThat(maxShardsPerNodeSysCheck.isValid(), is(false));
+        assertThat(maxShardsPerNodeSysCheck.isValid()).isFalse();
     }
 }
