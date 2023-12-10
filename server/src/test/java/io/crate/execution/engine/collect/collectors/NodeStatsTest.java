@@ -84,9 +84,7 @@ public class NodeStatsTest extends ESTestCase {
     @Before
     public void prepare() {
         nodeStatsAction = mock(TransportNodeStatsAction.class);
-        nodeStatesExecutor = req -> {
-            return nodeStatsAction.execute(req);
-        };
+        nodeStatesExecutor = req -> nodeStatsAction.execute(req);
 
         idRef = new SimpleReference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
@@ -174,6 +172,7 @@ public class NodeStatsTest extends ESTestCase {
 
         ArgumentCaptor<NodeStatsRequest> req = ArgumentCaptor.forClass(NodeStatsRequest.class);
         // Hostnames needs to be collected so requests need to be performed
+        //noinspection unchecked
         verify(nodeStatsAction, times(2)).doExecute(req.capture(), any(ActionListener.class));
         var capturedReq1 = req.getAllValues().get(0);
         var capturedReq2 = req.getAllValues().get(1);

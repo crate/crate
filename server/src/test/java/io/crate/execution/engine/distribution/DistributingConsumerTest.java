@@ -173,9 +173,7 @@ public class DistributingConsumerTest extends ESTestCase {
             (byte) 0,
             0,
             Collections.singletonList("n1"),
-            req -> {
-                return distributedResultAction.execute(req);
-            },
+            distributedResultAction::execute,
             2 // pageSize
         );
     }
@@ -199,6 +197,7 @@ public class DistributingConsumerTest extends ESTestCase {
         );
     }
 
+    @SuppressWarnings("unchecked")
     private TransportDistributedResultAction createFakeTransport(Streamer<?>[] streamers, DistResultRXTask distResultRXTask) {
         TransportDistributedResultAction distributedResultAction = mock(TransportDistributedResultAction.class);
         doAnswer((InvocationOnMock invocationOnMock) -> {
