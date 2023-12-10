@@ -52,10 +52,16 @@ import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.TestTranslog;
 import org.elasticsearch.index.translog.Translog;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void testSyncerSendsOffCorrectDocuments() throws Exception {

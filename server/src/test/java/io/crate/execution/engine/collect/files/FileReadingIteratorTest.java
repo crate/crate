@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,8 +51,12 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockMakers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.testing.BatchIteratorTester;
@@ -59,8 +64,10 @@ import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 
 public class FileReadingIteratorTest extends ESTestCase {
 
-    private static ThreadPool THREAD_POOL;
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
+    private static ThreadPool THREAD_POOL;
 
     @BeforeClass
     public static void setupThreadPool() {
@@ -179,7 +186,8 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     @Test
     public void test_loadNextBatch_implements_retry_with_backoff() throws IOException {
-        ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
+        ScheduledExecutorService scheduler =
+            mock(ScheduledExecutorService.class, withSettings().mockMaker(MockMakers.SUBCLASS));
         var fi = new FileReadingIterator(
             List.of(),
             null,

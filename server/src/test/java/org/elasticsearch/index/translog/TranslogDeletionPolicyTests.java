@@ -38,14 +38,20 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 
 
 public class TranslogDeletionPolicyTests extends ESTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void testNoRetention() throws IOException {

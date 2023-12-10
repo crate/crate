@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.stats;
 import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,7 +41,11 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.MockMakers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
@@ -52,6 +57,9 @@ import io.crate.planner.operators.StatementClassifier;
 import io.crate.role.Role;
 
 public class RamAccountingQueueSinkTest extends ESTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private ScheduledExecutorService scheduler;
     private QueueSink<NoopLog> logSink;
@@ -80,7 +88,7 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
     }
 
     public static CircuitBreaker breaker() {
-        CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
+        CircuitBreaker circuitBreaker = mock(CircuitBreaker.class, withSettings().mockMaker(MockMakers.SUBCLASS));
         // mocked CircuitBreaker has unlimited memory (⌐■_■)
         when(circuitBreaker.getLimit()).thenReturn(Long.MAX_VALUE);
         return circuitBreaker;

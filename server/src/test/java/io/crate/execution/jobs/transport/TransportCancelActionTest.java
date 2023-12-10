@@ -26,13 +26,19 @@ import static org.mockito.Mockito.verify;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.action.sql.Sessions;
 import io.crate.protocols.postgres.KeyData;
 
 public class TransportCancelActionTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void test_node_op_calls_sessions_cancel_locally() throws Exception {

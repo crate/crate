@@ -32,16 +32,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Answers;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.action.sql.Sessions;
 import io.crate.common.unit.TimeValue;
@@ -49,6 +50,9 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private JobsLogs jobsLogs;
     private TestableDecommissioningService decommissioningService;
@@ -58,9 +62,9 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void init() throws Exception {
-        executorService = mock(ScheduledExecutorService.class, Answers.RETURNS_MOCKS);
+        executorService = mock(ScheduledExecutorService.class);
         jobsLogs = new JobsLogs(() -> true);
-        sqlOperations = mock(Sessions.class, Answers.RETURNS_MOCKS);
+        sqlOperations = mock(Sessions.class);
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
             clusterService,

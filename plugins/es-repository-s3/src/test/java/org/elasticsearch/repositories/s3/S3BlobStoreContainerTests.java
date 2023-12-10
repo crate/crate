@@ -47,8 +47,11 @@ import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.repositories.ESBlobStoreContainerTestCase;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
@@ -69,6 +72,9 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 import io.crate.common.collections.Tuple;
 
 public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Override
     protected BlobStore newBlobStore() {

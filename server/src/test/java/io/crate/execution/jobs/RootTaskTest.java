@@ -43,8 +43,11 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.Streamer;
 import io.crate.data.breaker.RamAccounting;
@@ -62,6 +65,9 @@ import io.crate.profile.ProfilingContext;
 import io.crate.types.IntegerType;
 
 public class RootTaskTest extends ESTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private Logger logger = LogManager.getLogger(RootTaskTest.class);
 

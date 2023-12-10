@@ -40,8 +40,11 @@ import org.elasticsearch.Version;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 
 import io.crate.common.collections.RefCountedItem;
@@ -61,6 +64,9 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 
 public class CollectTaskTest extends ESTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private CollectTask collectTask;
     private RoutedCollectPhase collectPhase;

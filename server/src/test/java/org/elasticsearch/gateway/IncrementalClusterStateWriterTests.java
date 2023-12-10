@@ -71,12 +71,18 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.common.collections.Tuple;
 
 public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private ClusterState clusterStateWithUnassignedIndex(IndexMetadata indexMetadata, boolean masterEligible) {
         Metadata metadata = Metadata.builder()

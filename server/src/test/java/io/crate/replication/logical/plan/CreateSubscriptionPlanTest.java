@@ -24,8 +24,11 @@ package io.crate.replication.logical.plan;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.data.Row;
 import io.crate.data.testing.TestingRowConsumer;
@@ -37,6 +40,9 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
 public class CreateSubscriptionPlanTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void test_create_subscription_plan_checks_subscribing_user() {

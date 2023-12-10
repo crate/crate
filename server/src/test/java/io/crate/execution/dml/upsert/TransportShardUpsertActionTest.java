@@ -62,8 +62,11 @@ import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
@@ -93,6 +96,9 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private static final RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
     private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT, List.of("1395874800000")).asIndexName();

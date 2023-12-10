@@ -31,8 +31,11 @@ import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -43,6 +46,9 @@ import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 
 public class HashInnerJoinBatchIteratorMemoryTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private final CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
 

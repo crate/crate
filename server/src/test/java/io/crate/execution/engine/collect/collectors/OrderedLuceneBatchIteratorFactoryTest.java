@@ -56,9 +56,11 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -77,6 +79,9 @@ import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 
 public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(
         List.of(LongType.INSTANCE),
@@ -97,8 +102,6 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
     @Before
     public void prepareSearchers() throws Exception {
-        MockitoAnnotations.openMocks(this);
-
         IndexWriter iw1 = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         IndexWriter iw2 = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
 

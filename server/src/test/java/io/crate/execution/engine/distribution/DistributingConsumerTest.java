@@ -28,6 +28,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 import java.util.Collections;
 import java.util.List;
@@ -44,8 +45,12 @@ import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.MockMakers;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.Streamer;
 import io.crate.data.CollectionBucket;
@@ -64,6 +69,9 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
 public class DistributingConsumerTest extends ESTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private ExecutorService executorService;
 
@@ -200,7 +208,8 @@ public class DistributingConsumerTest extends ESTestCase {
     }
 
     private TransportDistributedResultAction createFakeTransport(Streamer<?>[] streamers, DistResultRXTask distResultRXTask) {
-        TransportDistributedResultAction distributedResultAction = mock(TransportDistributedResultAction.class);
+        TransportDistributedResultAction distributedResultAction =
+            mock(TransportDistributedResultAction.class , withSettings().mockMaker(MockMakers.SUBCLASS));
         doAnswer((InvocationOnMock invocationOnMock) -> {
             Object[] args = invocationOnMock.getArguments();
             DistributedResultRequest resultRequest = ((NodeRequest<DistributedResultRequest>) args[0]).innerRequest();

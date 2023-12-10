@@ -27,8 +27,11 @@ import static org.mockito.Mockito.verify;
 
 import java.util.Collections;
 
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row1;
@@ -38,6 +41,9 @@ import io.crate.types.DataTypes;
 import io.netty.channel.Channel;
 
 public class ResultSetReceiverTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void testChannelIsPeriodicallyFlushedToAvoidConsumingTooMuchMemory() {

@@ -27,10 +27,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
@@ -38,6 +41,9 @@ import io.crate.common.unit.TimeValue;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void testSettingsChanges() {

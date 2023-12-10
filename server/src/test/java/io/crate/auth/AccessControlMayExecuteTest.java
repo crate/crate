@@ -43,8 +43,11 @@ import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.ParamTypeHints;
@@ -74,6 +77,9 @@ import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private List<List<Object>> validationCallArguments;
     private Role normalUser;

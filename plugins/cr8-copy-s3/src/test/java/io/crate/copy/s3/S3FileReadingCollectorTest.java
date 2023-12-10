@@ -40,9 +40,12 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 
 import com.amazonaws.services.s3.AmazonS3;
@@ -58,13 +61,16 @@ import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 
 public class S3FileReadingCollectorTest extends ESTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
+
     private static ThreadPool THREAD_POOL;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
         THREAD_POOL = new TestThreadPool(Thread.currentThread().getName());
     }
-
 
     @AfterClass
     public static void tearDownClass() {

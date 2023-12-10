@@ -65,13 +65,20 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.Scheduler;
 import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.common.unit.TimeValue;
 
 public class GlobalCheckpointListenersTests extends ESTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @FunctionalInterface
     interface TestGlobalCheckpointListener extends GlobalCheckpointListeners.GlobalCheckpointListener {
@@ -81,6 +88,9 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         }
 
     }
+
+    @Mock
+    private Logger mockLogger;
 
     private final ShardId shardId = new ShardId(new Index("index", "uuid"), 0);
     private final ScheduledThreadPoolExecutor scheduler =
@@ -183,7 +193,6 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
 
     @Test
     public void testFailingListenerReadyToBeNotified() {
-        final Logger mockLogger = mock(Logger.class);
         final GlobalCheckpointListeners globalCheckpointListeners =
                 new GlobalCheckpointListeners(shardId, scheduler, mockLogger);
         final long globalCheckpoint = randomLongBetween(NO_OPS_PERFORMED + 1, Long.MAX_VALUE);
@@ -275,7 +284,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
 
     @Test
     public void testFailingListenerOnUpdate() {
-        final Logger mockLogger = mock(Logger.class);
+
         final GlobalCheckpointListeners globalCheckpointListeners =
                 new GlobalCheckpointListeners(shardId, scheduler, mockLogger);
         globalCheckpointListeners.globalCheckpointUpdated(NO_OPS_PERFORMED);
@@ -330,7 +339,6 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
 
     @Test
     public void testFailingListenerOnClose() throws IOException {
-        final Logger mockLogger = mock(Logger.class);
         final GlobalCheckpointListeners globalCheckpointListeners =
                 new GlobalCheckpointListeners(shardId, scheduler, mockLogger);
         globalCheckpointListeners.globalCheckpointUpdated(NO_OPS_PERFORMED);
@@ -575,7 +583,6 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
 
     @Test
     public void testTimeout() throws InterruptedException {
-        final Logger mockLogger = mock(Logger.class);
         final GlobalCheckpointListeners globalCheckpointListeners =
                 new GlobalCheckpointListeners(shardId, scheduler, mockLogger);
         final TimeValue timeout = TimeValue.timeValueMillis(randomIntBetween(1, 50));

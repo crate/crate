@@ -79,16 +79,25 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 
 import com.carrotsearch.hppc.IntHashSet;
 
 public class InternalSnapshotsInfoServiceTests extends ESTestCase {
 
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
+
     private TestThreadPool threadPool;
     private ClusterService clusterService;
+    @Mock(mockMaker = MockMakers.SUBCLASS)
     private RepositoriesService repositoriesService;
     private RerouteService rerouteService;
 
@@ -98,7 +107,6 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
         super.setUp();
         threadPool = new TestThreadPool(getTestName());
         clusterService = ClusterServiceUtils.createClusterService(threadPool);
-        repositoriesService = mock(RepositoriesService.class);
         rerouteService = (reason, priority, listener) -> listener.onResponse(clusterService.state());
     }
 

@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 import java.util.Collections;
 import java.util.List;
@@ -38,10 +39,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mock;
+import org.mockito.MockMakers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -69,6 +74,10 @@ import io.crate.types.DataTypes;
 
 public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
+
+    @Mock(mockMaker = MockMakers.SUBCLASS)
     private TransportJobAction transportJobAction;
     private TransportKillJobsNodeAction transportKillJobsNodeAction;
     private RemoteCollector remoteCollector;
@@ -76,11 +85,12 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 
     @Captor
     public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
+    @Captor
+    public ArgumentCaptor<NodeRequest<JobRequest>> jobRequestCaptor;
     private AtomicInteger numBroadcastCalls;
 
     @Before
-    public void prepare() {
-        MockitoAnnotations.initMocks(this);
+    public void prepare() throws Exception {
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             jobId,
@@ -93,7 +103,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
-        transportJobAction = mock(TransportJobAction.class);
+        transportJobAction = mock(TransportJobAction.class, withSettings().mockMaker(MockMakers.SUBCLASS));
         TasksService tasksService = new TasksService(
             clusterService,
             new JobsLogs(() -> true));
@@ -114,12 +124,8 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             "localNode",
             "remoteNode",
-            req -> {
-                return transportJobAction.execute(req);
-            },
-            req -> {
-                return transportKillJobsNodeAction.execute(req);
-            },
+            req -> transportJobAction.execute(req),
+            req -> transportKillJobsNodeAction.execute(req),
             Runnable::run,
             tasksService,
             RamAccounting.NO_ACCOUNTING,
@@ -154,9 +160,8 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testKillRequestsAreMadeIfCollectorIsKilledAfterRemoteContextCreation() throws Exception {
         remoteCollector.doCollect();
-        ArgumentCaptor<NodeRequest<JobRequest>> argumentCaptor = ArgumentCaptor.forClass(NodeRequest.class);
-        verify(transportJobAction, times(1)).doExecute(argumentCaptor.capture(), listenerCaptor.capture());
-        assertThat(argumentCaptor.getValue().nodeId(), is("remoteNode"));
+        verify(transportJobAction, times(1)).doExecute(jobRequestCaptor.capture(), listenerCaptor.capture());
+        assertThat(jobRequestCaptor.getValue().nodeId(), is("remoteNode"));
 
         remoteCollector.kill(new InterruptedException());
 

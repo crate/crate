@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
@@ -40,7 +39,11 @@ import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
@@ -48,10 +51,14 @@ import io.netty.channel.embedded.EmbeddedChannel;
 
 public class TransportHandshakerTests extends ESTestCase {
 
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
+
     private TransportHandshaker handshaker;
     private DiscoveryNode node;
     private CloseableChannel channel;
     private TestThreadPool threadPool;
+    @Mock
     private TransportHandshaker.HandshakeRequestSender requestSender;
 
     @Override
@@ -59,7 +66,6 @@ public class TransportHandshakerTests extends ESTestCase {
         super.setUp();
         String nodeId = "node-id";
         channel = new CloseableChannel(new EmbeddedChannel(), false);
-        requestSender = mock(TransportHandshaker.HandshakeRequestSender.class);
         node = new DiscoveryNode(nodeId, nodeId, nodeId, "host", "host_address", buildNewFakeTransportAddress(), Collections.emptyMap(),
             Collections.emptySet(), Version.CURRENT);
         threadPool = new TestThreadPool("thread-poll");

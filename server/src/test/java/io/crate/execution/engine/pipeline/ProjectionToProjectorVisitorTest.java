@@ -46,7 +46,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.MockitoAnnotations;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -60,13 +59,13 @@ import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingLimitAndOffsetProjector;
+import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -97,9 +96,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     private OnHeapMemoryManager memoryManager;
 
     @Before
-    public void prepare() {
+    public void prepare() throws Exception {
         nodeCtx = createNodeContext();
-        MockitoAnnotations.initMocks(this);
         visitor = new ProjectionToProjectorVisitor(
             clusterService,
             null,
@@ -114,7 +112,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             t -> null,
             t -> null
         );
-        memoryManager = new OnHeapMemoryManager(usedBytes -> {});
+        memoryManager = new OnHeapMemoryManager(usedBytes -> {
+        });
 
         avgSignature = Signature.aggregate(
             "avg",

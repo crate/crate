@@ -49,8 +49,12 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 
 import io.crate.netty.NettyBootstrap;
@@ -60,10 +64,14 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class ReplayChangesActionTest extends CrateDummyClusterServiceUnitTest {
 
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
+
     private static final Index INDEX = new Index("index", UUIDs.randomBase64UUID());
     protected final ShardId shardId = new ShardId(INDEX, 0);
 
     private ReplayChangesAction.TransportAction transportAction;
+    @Mock
     private IndexShard indexShard;
     private NettyBootstrap nettyBootstrap;
 
@@ -77,7 +85,6 @@ public class ReplayChangesActionTest extends CrateDummyClusterServiceUnitTest {
         IndexService indexService = mock(IndexService.class);
 
         when(indicesService.indexServiceSafe(INDEX)).thenReturn(indexService);
-        indexShard = mock(IndexShard.class);
         when(indexService.getShard(0)).thenReturn(indexShard);
         when(indexShard.shardId()).thenReturn(shardId);
 

@@ -50,14 +50,20 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.node.NodeService;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     /**
      * We currently test deprecated settings for BWC. Enable warnings once the deprecated gateway settings are removed.

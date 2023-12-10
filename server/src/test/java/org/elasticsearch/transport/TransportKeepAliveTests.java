@@ -39,8 +39,13 @@ import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
@@ -49,8 +54,12 @@ import io.netty.channel.embedded.EmbeddedChannel;
 
 public class TransportKeepAliveTests extends ESTestCase {
 
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
+
     private final ConnectionProfile defaultProfile = ConnectionProfile.buildDefaultConnectionProfile(Settings.EMPTY);
     private byte[] expectedPingMessage;
+    @Mock(mockMaker = MockMakers.SUBCLASS)
     private BiFunction<CloseableChannel, byte[], ChannelFuture> pingSender;
     private TransportKeepAlive keepAlive;
     private CapturingThreadPool threadPool;
@@ -64,10 +73,8 @@ public class TransportKeepAliveTests extends ESTestCase {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void setUp() throws Exception {
         super.setUp();
-        pingSender = mock(BiFunction.class);
         when(pingSender.apply(Mockito.any(), Mockito.any(byte[].class))).thenReturn(mock(ChannelFuture.class));
         threadPool = new CapturingThreadPool();
         keepAlive = new TransportKeepAlive(threadPool, pingSender);

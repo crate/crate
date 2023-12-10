@@ -34,14 +34,20 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.execution.jobs.TasksService;
 import io.crate.netty.NettyBootstrap;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private NettyBootstrap nettyBootstrap;
 

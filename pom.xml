@@ -228,6 +228,17 @@
     </plugins>
   </reporting>
 
+  <dependencyManagement>
+    <dependencies>
+      <!-- Mockito requires higher version than the one pulled in by Assertj -->
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>${versions.bytebuddy}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>21</maven.compiler.source>
@@ -263,7 +274,8 @@
     <versions.graalvm>23.0.2</versions.graalvm>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>4.11.0</versions.mockito>
+    <versions.mockito>5.8.0</versions.mockito>
+    <versions.bytebuddy>1.14.10</versions.bytebuddy>
     <versions.jdbc>42.7.0</versions.jdbc>
     <versions.jsonassert>1.5.1</versions.jsonassert>
 

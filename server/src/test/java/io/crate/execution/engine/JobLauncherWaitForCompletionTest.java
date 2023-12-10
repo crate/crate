@@ -32,8 +32,11 @@ import java.util.concurrent.TimeoutException;
 
 import org.elasticsearch.indices.IndicesService;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.data.RowConsumer;
 import io.crate.data.testing.TestingRowConsumer;
@@ -45,6 +48,9 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
 public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     private PlannerContext plannerContext;
     private JobLauncher jobLauncher;

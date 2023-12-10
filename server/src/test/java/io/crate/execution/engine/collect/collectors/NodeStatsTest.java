@@ -44,8 +44,13 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockMakers;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.analyze.OrderBy;
 import io.crate.common.unit.TimeValue;
@@ -70,8 +75,12 @@ import io.crate.types.DataTypes;
 
 public class NodeStatsTest extends ESTestCase {
 
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
+
     private RoutedCollectPhase collectPhase;
     private Collection<DiscoveryNode> nodes = new HashSet<>();
+    @Mock(mockMaker = MockMakers.SUBCLASS)
     private TransportNodeStatsAction nodeStatsAction;
     private ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatesExecutor;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
@@ -83,7 +92,6 @@ public class NodeStatsTest extends ESTestCase {
 
     @Before
     public void prepare() {
-        nodeStatsAction = mock(TransportNodeStatsAction.class);
         nodeStatesExecutor = req -> {
             return nodeStatsAction.execute(req);
         };

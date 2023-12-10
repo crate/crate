@@ -40,11 +40,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.AnalyzedStatement;
@@ -66,6 +69,8 @@ import io.crate.types.DataTypes;
 
 public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void test_out_of_bounds_getParamType_fails() throws Exception {

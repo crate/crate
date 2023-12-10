@@ -41,8 +41,11 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
@@ -60,6 +63,9 @@ import io.crate.testing.SqlExpressions;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class InternalCountOperationTest extends IntegTestCase {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void testCount() throws Exception {

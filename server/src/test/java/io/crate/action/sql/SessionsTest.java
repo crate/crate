@@ -34,9 +34,12 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import io.crate.analyze.Analyzer;
 import io.crate.common.unit.TimeValue;
@@ -59,6 +62,9 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
+
+    @Rule
+    public MockitoRule initRule = MockitoJUnit.rule();
 
     @Test
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
