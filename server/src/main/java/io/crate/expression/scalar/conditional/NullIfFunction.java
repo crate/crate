@@ -37,11 +37,12 @@ public class NullIfFunction extends Scalar<Object, Object> {
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NON_NULLABLE),
             NullIfFunction::new
         );
     }

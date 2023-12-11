@@ -71,7 +71,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
                 boundSignature,
@@ -88,7 +88,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
                 boundSignature,
@@ -108,7 +108,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
                 boundSignature,
@@ -126,7 +126,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
                 boundSignature,
@@ -147,7 +147,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                     supportedType.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature(),
                     supportedType.getTypeSignature()
-                ),
+                ).withFeature(Feature.NON_NULLABLE),
                 (signature, boundSignature) -> new GenerateSeriesIntervals(
                     signature,
                     boundSignature,

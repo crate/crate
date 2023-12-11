@@ -43,11 +43,12 @@ public class ArrayAppendFunction extends Scalar<List<Object>, Object> {
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("array(E)")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NON_NULLABLE),
             ArrayAppendFunction::new
         );
     }

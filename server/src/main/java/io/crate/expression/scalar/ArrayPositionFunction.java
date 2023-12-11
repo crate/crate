@@ -48,19 +48,21 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
     public static void register(ScalarFunctionModule scalarFunctionModule) {
         scalarFunctionModule.register(
             Signature.scalar(NAME,
-                TypeSignature.parse("array(T)"),
-                TypeSignature.parse("T"),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("T")),
+                    TypeSignature.parse("array(T)"),
+                    TypeSignature.parse("T"),
+                    DataTypes.INTEGER.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("T"))
+                .withFeature(Feature.NULLABLE),
             ArrayPositionFunction::new);
 
         scalarFunctionModule.register(
             Signature.scalar(NAME,
-                TypeSignature.parse("array(T)"),
-                TypeSignature.parse("T"),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("T")),
+                    TypeSignature.parse("array(T)"),
+                    TypeSignature.parse("T"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("T"))
+                .withFeature(Feature.NULLABLE),
             ArrayPositionFunction::new);
     }
 

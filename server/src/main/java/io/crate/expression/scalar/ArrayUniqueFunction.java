@@ -47,19 +47,21 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NON_NULLABLE),
             ArrayUniqueFunction::new
         );
         module.register(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NON_NULLABLE),
             ArrayUniqueFunction::new
         );
     }

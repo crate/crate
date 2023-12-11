@@ -49,10 +49,10 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
 
         module.register(
             Signature.scalar(
-                NAME,
-                new ArrayType(DataTypes.NUMERIC).getTypeSignature(),
-                DataTypes.NUMERIC.getTypeSignature()
-            ),
+                    NAME,
+                    new ArrayType(DataTypes.NUMERIC).getTypeSignature(),
+                    DataTypes.NUMERIC.getTypeSignature()
+                ).withFeature(Feature.NULLABLE),
             ArraySumFunction::new
         );
 
@@ -64,10 +64,10 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
 
             module.register(
                 Signature.scalar(
-                    NAME,
-                    new ArrayType(supportedType).getTypeSignature(),
-                    inputDependantOutputType.getTypeSignature()
-                ),
+                        NAME,
+                        new ArrayType(supportedType).getTypeSignature(),
+                        inputDependantOutputType.getTypeSignature()
+                    ).withFeature(Feature.NULLABLE),
                 ArraySumFunction::new
             );
         }

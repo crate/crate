@@ -46,14 +46,14 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.TIMETZ.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             CurrentTimeFunction::new
         );
         module.register(
             Signature.scalar(
                 NAME,
                 DataTypes.TIMETZ.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             CurrentTimeFunction::new
         );
     }

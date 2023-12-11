@@ -25,6 +25,7 @@ import java.util.AbstractSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,6 +47,15 @@ public class Sets {
         Objects.requireNonNull(left);
         Objects.requireNonNull(right);
         return left.stream().noneMatch(right::contains);
+    }
+
+    @SafeVarargs
+    public static <T> Set<T> concat(Set<T> left, T ... right) {
+        Objects.requireNonNull(left);
+        Objects.requireNonNull(right);
+        var result = new HashSet<T>(left);
+        result.addAll(List.of(right));
+        return Collections.unmodifiableSet(result);
     }
 
     public static <T> Set<T> union(Set<T> left, Set<T> right) {

@@ -30,7 +30,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 public class ConcatWsFunction extends Scalar<String, String> {
-
     public static final String NAME = "concat_ws";
 
     public static void register(ScalarFunctionModule module) {
@@ -39,7 +38,9 @@ public class ConcatWsFunction extends Scalar<String, String> {
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ).withVariableArity(),
+            )
+            .withFeature(Feature.NULLABLE)
+            .withVariableArity(),
             ConcatWsFunction::new
         );
     }

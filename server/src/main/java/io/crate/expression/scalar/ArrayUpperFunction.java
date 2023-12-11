@@ -67,11 +67,12 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         for (var name : List.of(ARRAY_UPPER, ARRAY_LENGTH)) {
             module.register(
                 Signature.scalar(
-                    name,
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("E")),
+                        name,
+                        TypeSignature.parse("array(E)"),
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature()
+                    ).withTypeVariableConstraints(typeVariable("E"))
+                    .withFeature(Feature.NULLABLE),
                 ArrayUpperFunction::new
             );
         }

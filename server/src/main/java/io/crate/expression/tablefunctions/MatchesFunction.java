@@ -68,7 +68,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             (signature, boundSignature) -> new MatchesFunction(
                 signature,
                 boundSignature,
@@ -82,7 +82,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             (signature, boundSignature) -> new MatchesFunction(
                 signature,
                 boundSignature,

@@ -23,6 +23,8 @@ package io.crate.expression.scalar.postgres;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
+import java.util.EnumSet;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
@@ -47,7 +49,7 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
             scalar(
                 FQN,
                 DataTypes.INTEGER.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             PgBackendPidFunction::new
         );
     }

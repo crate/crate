@@ -45,7 +45,7 @@ public class IntervalArithmeticFunctions {
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::plus, signature, boundSignature)
         );
@@ -55,7 +55,7 @@ public class IntervalArithmeticFunctions {
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::minus, signature, boundSignature)
         );
@@ -65,7 +65,7 @@ public class IntervalArithmeticFunctions {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ),
+                ).withFeature(Scalar.Feature.NULLABLE),
             MultiplyIntervalByIntegerScalar::new
         );
         module.register(
@@ -74,7 +74,7 @@ public class IntervalArithmeticFunctions {
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             MultiplyIntervalByIntegerScalar::new
         );
     }

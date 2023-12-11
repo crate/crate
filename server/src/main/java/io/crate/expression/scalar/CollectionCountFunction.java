@@ -41,10 +41,11 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                DataTypes.LONG.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.LONG.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NULLABLE),
             CollectionCountFunction::new
         );
     }

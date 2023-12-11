@@ -59,6 +59,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.lucene.match.MatchQueries;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
@@ -90,7 +91,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         DataTypes.STRING.getTypeSignature(),
         DataTypes.UNTYPED_OBJECT.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
-    );
+    ).withFeature(Scalar.Feature.NON_NULLABLE);
 
     public static final Signature GEO_MATCH = Signature.scalar(
         NAME,
@@ -99,7 +100,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         DataTypes.STRING.getTypeSignature(),
         DataTypes.UNTYPED_OBJECT.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
-    );
+    ).withFeature(Scalar.Feature.NON_NULLABLE);
 
 
     public static void register(PredicateModule module) {

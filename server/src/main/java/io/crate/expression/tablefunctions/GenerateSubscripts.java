@@ -49,21 +49,23 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
     public static void register(TableFunctionModule module) {
         module.register(
             Signature.table(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NON_NULLABLE),
             GenerateSubscripts::new
         );
         module.register(
             Signature.table(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.BOOLEAN.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NON_NULLABLE),
             GenerateSubscripts::new
         );
     }
