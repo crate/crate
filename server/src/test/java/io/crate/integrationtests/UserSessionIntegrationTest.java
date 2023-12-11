@@ -30,7 +30,7 @@ import org.junit.Test;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
+public class UserSessionIntegrationTest extends BaseRolesIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

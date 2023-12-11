@@ -22,7 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedDropRole;
-import io.crate.user.UserManager;
+import io.crate.user.RoleManager;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -35,11 +35,11 @@ import io.crate.planner.operators.SubQueryResults;
 public class DropRolePlan implements Plan {
 
     private final AnalyzedDropRole dropRole;
-    private final UserManager userManager;
+    private final RoleManager roleManager;
 
-    public DropRolePlan(AnalyzedDropRole dropRole, UserManager userManager) {
+    public DropRolePlan(AnalyzedDropRole dropRole, RoleManager roleManager) {
         this.dropRole = dropRole;
-        this.userManager = userManager;
+        this.roleManager = roleManager;
     }
 
     @Override
@@ -52,7 +52,7 @@ public class DropRolePlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        userManager.dropRole(dropRole.roleName(), dropRole.ifExists())
+        roleManager.dropRole(dropRole.roleName(), dropRole.ifExists())
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

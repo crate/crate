@@ -72,7 +72,7 @@ If a user with the username specified in the SQL statement already exists the
 statement returns an error::
 
     cr> CREATE USER "Custom User";
-    UserAlreadyExistsException[User 'Custom User' already exists]
+    RoleAlreadyExistsException[Role 'Custom User' already exists]
 
 
 ``ALTER USER``
@@ -112,7 +112,7 @@ If a user with the username specified in the SQL statement does not exist the
 statement returns an error::
 
     cr> DROP USER user_c;
-    UserUnknownException[User 'user_c' does not exist]
+    RoleUnknownException[Role 'user_c' does not exist]
 
 .. NOTE::
 

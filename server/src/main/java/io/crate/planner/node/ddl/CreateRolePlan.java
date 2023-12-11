@@ -22,7 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedCreateRole;
-import io.crate.user.UserManager;
+import io.crate.user.RoleManager;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -37,11 +37,11 @@ import io.crate.user.UserActions;
 public class CreateRolePlan implements Plan {
 
     private final AnalyzedCreateRole createRole;
-    private final UserManager userManager;
+    private final RoleManager roleManager;
 
-    public CreateRolePlan(AnalyzedCreateRole createRole, UserManager userManager) {
+    public CreateRolePlan(AnalyzedCreateRole createRole, RoleManager roleManager) {
         this.createRole = createRole;
-        this.userManager = userManager;
+        this.roleManager = roleManager;
     }
 
     @Override
@@ -65,7 +65,7 @@ public class CreateRolePlan implements Plan {
                                                     "use CREATE USER instead");
         }
 
-        userManager.createRole(createRole.roleName(), createRole.isUser(), newPassword)
+        roleManager.createRole(createRole.roleName(), createRole.isUser(), newPassword)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

@@ -181,8 +181,8 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.user.Role;
-import io.crate.user.StubUserManager;
-import io.crate.user.UserManager;
+import io.crate.user.RoleManager;
+import io.crate.user.StubRoleManager;
 
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.
@@ -251,7 +251,7 @@ public class SQLExecutor {
         private final LogicalReplicationService logicalReplicationService;
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private Role user = Role.CRATE_USER;
-        private UserManager userManager = new StubUserManager();
+        private RoleManager roleManager = new StubRoleManager();
 
         private final TableStats tableStats = new TableStats();
         private Schemas schemas;
@@ -411,7 +411,7 @@ public class SQLExecutor {
                         mock(TransportDeleteRepositoryAction.class),
                         mock(TransportPutRepositoryAction.class)
                     ),
-                    userManager,
+                    roleManager,
                     sessionSettingRegistry,
                     logicalReplicationService
                 ),
@@ -424,7 +424,7 @@ public class SQLExecutor {
                         tableStats,
                         null,
                         null,
-                        userManager,
+                    roleManager,
                         sessionSettingRegistry
                     ),
                 relationAnalyzer,
@@ -713,8 +713,8 @@ public class SQLExecutor {
             return this;
         }
 
-        public Builder setUserManager(UserManager userManager) {
-            this.userManager = userManager;
+        public Builder setUserManager(RoleManager roleManager) {
+            this.roleManager = roleManager;
             return this;
         }
 

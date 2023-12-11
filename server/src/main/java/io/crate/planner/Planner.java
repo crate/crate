@@ -152,7 +152,7 @@ import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.replication.logical.plan.DropSubscriptionPlan;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
-import io.crate.user.UserManager;
+import io.crate.user.RoleManager;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
@@ -164,7 +164,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final LogicalPlanner logicalPlanner;
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
-    private final UserManager userManager;
+    private final RoleManager roleManager;
     private final SessionSettingRegistry sessionSettingRegistry;
 
     private List<String> awarenessAttributes;
@@ -176,14 +176,14 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    TableStats tableStats,
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
-                   UserManager userManager,
+                   RoleManager roleManager,
                    SessionSettingRegistry sessionSettingRegistry) {
         this.clusterService = clusterService;
         this.tableStats = tableStats;
         this.logicalPlanner = new LogicalPlanner(nodeCtx, () -> clusterService.state().nodes().getMinNodeVersion());
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
-        this.userManager = userManager;
+        this.roleManager = roleManager;
         this.sessionSettingRegistry = sessionSettingRegistry;
         initAwarenessAttributes(settings);
     }
@@ -376,17 +376,17 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     protected Plan visitAnalyzedCreateRole(AnalyzedCreateRole analysis,
                                            PlannerContext context) {
-        return new CreateRolePlan(analysis, userManager);
+        return new CreateRolePlan(analysis, roleManager);
     }
 
     @Override
     public Plan visitAnalyzedAlterRole(AnalyzedAlterRole analysis, PlannerContext context) {
-        return new AlterRolePlan(analysis, userManager);
+        return new AlterRolePlan(analysis, roleManager);
     }
 
     @Override
     protected Plan visitDropRole(AnalyzedDropRole analysis, PlannerContext context) {
-        return new DropRolePlan(analysis, userManager);
+        return new DropRolePlan(analysis, roleManager);
     }
 
     protected Plan visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, PlannerContext context) {
@@ -471,7 +471,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                 "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.");
             return NoopPlan.INSTANCE;
         } else {
-            return new SetSessionAuthorizationPlan(analysis, userManager);
+            return new SetSessionAuthorizationPlan(analysis, roleManager);
         }
     }
 

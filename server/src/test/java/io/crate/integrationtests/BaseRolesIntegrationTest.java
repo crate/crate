@@ -33,7 +33,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
-public abstract class BaseUsersIntegrationTest extends IntegTestCase {
+public abstract class BaseRolesIntegrationTest extends IntegTestCase {
 
     private Session superUserSession;
     private Session normalUserSession;

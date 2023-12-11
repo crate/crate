@@ -38,7 +38,7 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
+public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
 
     @After
     public void dropAllUsersAndRoles() {
@@ -168,7 +168,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         Asserts.assertSQLError(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 40410)
-            .hasMessageContaining("User 'unknown_user' does not exist");
+            .hasMessageContaining("Role 'unknown_user' does not exist");
     }
 
     @Test
@@ -227,7 +227,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         Asserts.assertSQLError(() -> executeAsSuperuser("create user ford_exists"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(CONFLICT, 4099)
-            .hasMessageContaining("User 'ford_exists' already exists");
+            .hasMessageContaining("Role 'ford_exists' already exists");
     }
 
     @Test
@@ -235,7 +235,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         Asserts.assertSQLError(() -> executeAsSuperuser("drop user not_exists"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 40410)
-            .hasMessageContaining("User 'not_exists' does not exist");
+            .hasMessageContaining("Role 'not_exists' does not exist");
     }
 
     @Test

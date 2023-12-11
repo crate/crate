@@ -68,16 +68,16 @@ import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
 import io.crate.user.Role;
-import io.crate.user.UserLookupService;
-import io.crate.user.UserManager;
-import io.crate.user.UserManagerService;
+import io.crate.user.RoleManager;
+import io.crate.user.RoleLookupService;
+import io.crate.user.RoleManagerService;
 
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
 
     private List<List<Object>> validationCallArguments;
     private Role user;
     private SQLExecutor e;
-    private UserManager userManager;
+    private RoleManager roleManager;
     private Role superUser;
 
     @Before
@@ -118,7 +118,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 return true;
             }
         };
-        UserLookupService userLookupService = new UserLookupService(clusterService) {
+        RoleLookupService roleLookupService = new RoleLookupService(clusterService) {
 
             @Nullable
             @Override
@@ -129,13 +129,13 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 return super.findUser(userName);
             }
         };
-        userManager = new UserManagerService(
+        roleManager = new RoleManagerService(
             null,
             null,
             null,
             null,
             mock(SysTableRegistry.class),
-            userLookupService,
+            roleLookupService,
             new DDLClusterStateService());
 
         e = SQLExecutor.builder(clusterService)
@@ -148,7 +148,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .setUser(superUser)
             .addView(new RelationName("doc", "v1"), "select * from users")
-            .setUserManager(userManager)
+            .setUserManager(roleManager)
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(
                 new UserDefinedFunctionMetadata(
@@ -719,7 +719,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         e = SQLExecutor.builder(clusterService)
             .setUser(user)
             .addPublication("pub1", true)
-            .setUserManager(userManager)
+            .setUserManager(roleManager)
             .build();
         analyze("DROP PUBLICATION pub1", user);
         assertAskedForCluster(Privilege.Type.AL);
@@ -730,7 +730,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         e = SQLExecutor.builder(clusterService)
             .setUser(user)
             .addPublication("pub1", false, new RelationName("doc", "t1"))
-            .setUserManager(userManager)
+            .setUserManager(roleManager)
             .build();
         analyze("ALTER PUBLICATION pub1 ADD TABLE t2", user);
         assertAskedForCluster(Privilege.Type.AL);
@@ -750,7 +750,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         e = SQLExecutor.builder(clusterService)
             .setUser(user)
             .addSubscription("sub1", "pub1")
-            .setUserManager(userManager)
+            .setUserManager(roleManager)
             .build();
         analyze("DROP SUBSCRIPTION sub1", user);
         assertAskedForCluster(Privilege.Type.AL);
@@ -761,7 +761,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         e = SQLExecutor.builder(clusterService)
             .setUser(user)
             .addSubscription("sub1", "pub1")
-            .setUserManager(userManager)
+            .setUserManager(roleManager)
             .build();
         analyze("ALTER SUBSCRIPTION sub1 DISABLE", user);
         assertAskedForCluster(Privilege.Type.AL);

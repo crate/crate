@@ -19,11 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.user;
+package io.crate.role;
 
 import org.elasticsearch.common.inject.AbstractModule;
 
-public class UserManagementModule extends AbstractModule {
+public class RoleManagementModule extends AbstractModule {
 
     @Override
     protected void configure() {
@@ -31,6 +31,6 @@ public class UserManagementModule extends AbstractModule {
         bind(TransportDropRoleAction.class).asEagerSingleton();
         bind(TransportAlterRoleAction.class).asEagerSingleton();
         bind(TransportPrivilegesAction.class).asEagerSingleton();
-        bind(UserManager.class).to(UserManagerService.class).asEagerSingleton();
+        bind(RoleManager.class).to(RoleManagerService.class).asEagerSingleton();
     }
 }

@@ -36,9 +36,9 @@ import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.user.Privilege;
-import io.crate.user.UserManager;
+import io.crate.user.RoleManager;
 
-public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
+public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
@@ -52,8 +52,8 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
             executeAsSuperuser("create user " + userName);
         }
 
-        UserManager userManager = cluster().getInstance(UserManager.class);
-        Long rowCount = userManager.applyPrivileges(USERNAMES, PRIVILEGES).get(5, TimeUnit.SECONDS);
+        RoleManager roleManager = cluster().getInstance(RoleManager.class);
+        Long rowCount = roleManager.applyPrivileges(USERNAMES, PRIVILEGES).get(5, TimeUnit.SECONDS);
         assertThat(rowCount, is(6L));
     }
 

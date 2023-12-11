@@ -46,7 +46,7 @@ import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.statistics.TableStats;
 import io.crate.user.Privilege;
-import io.crate.user.UserManagerService;
+import io.crate.user.RoleManagerService;
 
 public final class PgCatalogTableDefinitions {
 
@@ -60,7 +60,7 @@ public final class PgCatalogTableDefinitions {
                                      SessionSettingRegistry sessionSettingRegistry,
                                      Schemas schemas,
                                      LogicalReplicationService logicalReplicationService,
-                                     UserManagerService userManagerService) {
+                                     RoleManagerService roleManagerService) {
         tableDefinitions = new HashMap<>();
         tableDefinitions.put(PgStatsTable.NAME, new StaticTableDefinition<>(
                 tableStats::statsEntries,
@@ -147,7 +147,7 @@ public final class PgCatalogTableDefinitions {
             false
         ));
         tableDefinitions.put(PgRolesTable.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(userManagerService.roles()),
+            () -> completedFuture(roleManagerService.roles()),
             PgRolesTable.create().expressions(),
             false
         ));

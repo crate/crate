@@ -44,7 +44,7 @@ public class Role {
 
     private final String name;
     private final boolean isUser;
-    private final UserPrivileges privileges;
+    private final RolePrivileges privileges;
     @Nullable
     private final SecureHash password;
     private final Set<UserRole> userRoles;
@@ -62,7 +62,7 @@ public class Role {
 
         this.name = name;
         this.isUser = isUser;
-        this.privileges = new UserPrivileges(privileges);
+        this.privileges = new RolePrivileges(privileges);
         this.password = password;
         this.userRoles = userRoles;
     }

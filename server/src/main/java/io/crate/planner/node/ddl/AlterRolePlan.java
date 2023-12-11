@@ -22,7 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedAlterRole;
-import io.crate.user.UserManager;
+import io.crate.user.RoleManager;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -36,12 +36,12 @@ import io.crate.user.UserActions;
 
 public class AlterRolePlan implements Plan {
 
-    private final UserManager userManager;
+    private final RoleManager roleManager;
     private final AnalyzedAlterRole alterRole;
 
-    public AlterRolePlan(AnalyzedAlterRole alterRole, UserManager userManager) {
+    public AlterRolePlan(AnalyzedAlterRole alterRole, RoleManager roleManager) {
         this.alterRole = alterRole;
-        this.userManager = userManager;
+        this.roleManager = roleManager;
     }
 
     @Override
@@ -60,7 +60,7 @@ public class AlterRolePlan implements Plan {
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext());
 
-        userManager.alterRole(alterRole.roleName(), newPassword)
+        roleManager.alterRole(alterRole.roleName(), newPassword)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

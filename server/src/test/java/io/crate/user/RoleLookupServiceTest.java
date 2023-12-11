@@ -36,21 +36,21 @@ import io.crate.user.metadata.RolesMetadata;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 
-public class UserLookupServiceTest extends CrateDummyClusterServiceUnitTest {
+public class RoleLookupServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullAndEmptyMetadata() {
         // the users list will always contain a crate user
-        Set<Role> roles = UserLookupService.getRoles(null, null, null);
+        Set<Role> roles = RoleLookupService.getRoles(null, null, null);
         assertThat(roles).containsExactly(CRATE_USER);
 
-        roles = UserLookupService.getRoles(new UsersMetadata(), new RolesMetadata(), new UsersPrivilegesMetadata());
+        roles = RoleLookupService.getRoles(new UsersMetadata(), new RolesMetadata(), new UsersPrivilegesMetadata());
         assertThat(roles).containsExactly(CRATE_USER);
     }
 
     @Test
     public void testUsersAndRoles() {
-        Set<Role> roles = UserLookupService.getRoles(
+        Set<Role> roles = RoleLookupService.getRoles(
             null,
             new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES),
             new UsersPrivilegesMetadata());
@@ -64,7 +64,7 @@ public class UserLookupServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_old_users_metadata_is_preferred_over_roles_metadata() {
-        Set<Role> roles = UserLookupService.getRoles(
+        Set<Role> roles = RoleLookupService.getRoles(
             new UsersMetadata(Collections.singletonMap("Arthur", null)),
             new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES),
             new UsersPrivilegesMetadata());

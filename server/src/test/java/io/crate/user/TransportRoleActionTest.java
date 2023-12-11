@@ -19,14 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.user;
+package io.crate.role;
 
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.user.metadata.RolesDefinitions.DUMMY_USERS;
-import static io.crate.user.metadata.RolesDefinitions.DUMMY_USERS_AND_ROLES;
-import static io.crate.user.metadata.RolesDefinitions.SINGLE_USER_ONLY;
-import static io.crate.user.metadata.RolesDefinitions.getSecureHash;
-import static io.crate.user.metadata.RolesDefinitions.usersMetadataOf;
+import static io.crate.role.metadata.RolesDefinitions.DUMMY_USERS;
+import static io.crate.role.metadata.RolesDefinitions.DUMMY_USERS_AND_ROLES;
+import static io.crate.role.metadata.RolesDefinitions.SINGLE_USER_ONLY;
+import static io.crate.role.metadata.RolesDefinitions.getSecureHash;
+import static io.crate.role.metadata.RolesDefinitions.usersMetadataOf;
 
 import java.util.Map;
 
@@ -34,9 +34,9 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.user.metadata.RolesMetadata;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportRoleActionTest extends ESTestCase {
 

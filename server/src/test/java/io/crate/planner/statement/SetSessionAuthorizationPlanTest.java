@@ -44,19 +44,19 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.user.Role;
-import io.crate.user.UserManager;
+import io.crate.user.RoleManager;
 
 public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private UserManager userManager;
+    private RoleManager roleManager;
 
     @Before
     public void beforeEach() {
-        userManager = mock(UserManager.class);
-        when(userManager.getAccessControl(any(CoordinatorSessionSettings.class)))
+        roleManager = mock(RoleManager.class);
+        when(roleManager.getAccessControl(any(CoordinatorSessionSettings.class)))
             .thenReturn(AccessControl.DISABLED);
-        e = SQLExecutor.builder(clusterService).setUserManager(userManager).build();
+        e = SQLExecutor.builder(clusterService).setUserManager(roleManager).build();
     }
 
     @Test
@@ -72,7 +72,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
         var sessionSettings = e.getSessionSettings();
         sessionSettings.setSessionUser(Role.CRATE_USER);
         var user = Role.userOf("test");
-        when(userManager.findUser(eq(user.name()))).thenReturn(user);
+        when(roleManager.findUser(eq(user.name()))).thenReturn(user);
 
         execute(e.plan("SET SESSION AUTHORIZATION " + user.name()));
 
@@ -98,7 +98,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_set_session_auth_to_unknown_user_results_in_exception() throws Exception {
-        when(userManager.findUser(eq("unknown_user"))).thenReturn(null);
+        when(roleManager.findUser(eq("unknown_user"))).thenReturn(null);
         Plan plan = e.plan("SET SESSION AUTHORIZATION 'unknown_user'");
 
         expectedException.expectMessage("User 'unknown_user' does not exist.");

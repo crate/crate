@@ -39,12 +39,12 @@ import io.crate.user.metadata.RolesMetadata;
 import io.crate.user.metadata.UsersMetadata;
 import io.crate.user.metadata.UsersPrivilegesMetadata;
 
-public class UserLookupService implements RoleLookup, ClusterStateListener {
+public class RoleLookupService implements RoleLookup, ClusterStateListener {
 
     private volatile Set<Role> roles = Set.of(Role.CRATE_USER);
 
     @Inject
-    public UserLookupService(ClusterService clusterService) {
+    public RoleLookupService(ClusterService clusterService) {
         clusterService.addListener(this);
     }
 

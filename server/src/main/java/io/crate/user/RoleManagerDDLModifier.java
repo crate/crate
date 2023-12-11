@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 
 import java.util.List;
 
-public class UserManagerDDLModifier implements DDLClusterStateModifier {
+public class RoleManagerDDLModifier implements DDLClusterStateModifier {
 
     @Override
     public ClusterState onDropTable(ClusterState currentState, RelationName relationName) {
@@ -95,8 +95,8 @@ public class UserManagerDDLModifier implements DDLClusterStateModifier {
     }
 
     private static boolean transferTablePrivileges(Metadata.Builder mdBuilder,
-                                                RelationName sourceRelationName,
-                                                RelationName targetRelationName) {
+                                                   RelationName sourceRelationName,
+                                                   RelationName targetRelationName) {
         UsersPrivilegesMetadata oldMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         if (oldMetadata == null) {
             return false;

@@ -62,7 +62,7 @@ import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.user.Role;
-import io.crate.user.StubUserManager;
+import io.crate.user.StubRoleManager;
 
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
@@ -130,7 +130,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             serverNodeSettings,
             new SessionSettingRegistry(Set.of()),
             sqlOperations,
-            new StubUserManager(),
+            new StubRoleManager(),
             networkService,
             null,
             authentication,

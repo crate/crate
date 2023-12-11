@@ -63,10 +63,10 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
-import io.crate.exceptions.UserAlreadyExistsException;
+import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.exceptions.UserUnknownException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.VersioningValidationException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -177,7 +177,7 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.SCHEMA_UNKNOWN;
         } else if (throwable instanceof UserDefinedFunctionUnknownException) {
             httpErrorStatus = HttpErrorStatus.USER_DEFINED_FUNCTION_UNKNOWN;
-        } else if (throwable instanceof UserUnknownException) {
+        } else if (throwable instanceof RoleUnknownException) {
             httpErrorStatus = HttpErrorStatus.USER_UNKNOWN;
         } else if (throwable instanceof SnapshotMissingException) {
             httpErrorStatus = HttpErrorStatus.SNAPSHOT_UNKNOWN;
@@ -195,7 +195,7 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.REPOSITORY_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof InvalidSnapshotNameException) {
             httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
-        } else if (throwable instanceof UserAlreadyExistsException) {
+        } else if (throwable instanceof RoleAlreadyExistsException) {
             httpErrorStatus = HttpErrorStatus.USER_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof UserDefinedFunctionAlreadyExistsException) {
             httpErrorStatus = HttpErrorStatus.USER_DEFINED_FUNCTION_WITH_SAME_SIGNATURE_EXISTS_ALREADY;

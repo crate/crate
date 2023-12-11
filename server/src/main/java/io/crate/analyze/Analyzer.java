@@ -109,7 +109,7 @@ import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
-import io.crate.user.UserManager;
+import io.crate.user.RoleManager;
 
 @Singleton
 public class Analyzer {
@@ -126,7 +126,7 @@ public class Analyzer {
     private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
     private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
-    private final UserManager userManager;
+    private final RoleManager roleManager;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
@@ -166,14 +166,14 @@ public class Analyzer {
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
-                    UserManager userManager,
+                    RoleManager roleManager,
                     SessionSettingRegistry sessionSettingRegistry,
                     LogicalReplicationService logicalReplicationService
     ) {
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(clusterService, schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
-        this.userManager = userManager;
+        this.roleManager = roleManager;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, nodeCtx);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, nodeCtx);
@@ -226,7 +226,7 @@ public class Analyzer {
                 paramTypeHints,
                 cursors
             ));
-        userManager.getAccessControl(sessionSettings).ensureMayExecute(analyzedStatement);
+        roleManager.getAccessControl(sessionSettings).ensureMayExecute(analyzedStatement);
         return analyzedStatement;
     }
 

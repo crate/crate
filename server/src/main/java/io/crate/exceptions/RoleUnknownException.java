@@ -21,11 +21,26 @@
 
 package io.crate.exceptions;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
-public class UserAlreadyExistsException extends RuntimeException implements ConflictException, UnscopedException {
+public class RoleUnknownException extends RuntimeException implements ResourceUnknownException, UnscopedException {
 
-    public UserAlreadyExistsException(String userName) {
-        super(String.format(Locale.ENGLISH, "User '%s' already exists", userName));
+    public RoleUnknownException(String roleName) {
+        super(getMessage(Collections.singletonList(roleName)));
+    }
+
+    public RoleUnknownException(List<String> roleNames) {
+        super(getMessage(roleNames));
+    }
+
+    private static String getMessage(List<String> roleNames) {
+        //noinspection PointlessBooleanExpression
+        assert roleNames.isEmpty() == false : "At least one username must be provided";
+        if (roleNames.size() == 1) {
+            return String.format(Locale.ENGLISH, "Role '%s' does not exist", roleNames.get(0));
+        }
+        return String.format(Locale.ENGLISH, "Roles '%s' do not exist", String.join(", ", roleNames));
     }
 }

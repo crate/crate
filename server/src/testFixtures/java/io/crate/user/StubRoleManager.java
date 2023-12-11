@@ -31,28 +31,28 @@ import io.crate.auth.AccessControl;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 
-public class StubUserManager implements UserManager {
+public class StubRoleManager implements RoleManager {
 
     private final List<Role> roles = List.of(Role.CRATE_USER);
 
     @Override
     public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("createRole is not implemented in StubUserManager"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("createRole is not implemented in StubRoleManager"));
     }
 
     @Override
     public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("dropRole is not implemented in StubUserManager"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("dropRole is not implemented in StubRoleManager"));
     }
 
     @Override
     public CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("alterRole is not implemented in StubUserManager"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("alterRole is not implemented in StubRoleManager"));
     }
 
     @Override
-    public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("applyPrivileges is not implemented in StubUserManager"));
+    public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames, Collection<Privilege> privileges) {
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("applyPrivileges is not implemented in StubRoleManager"));
     }
 
     @Override
