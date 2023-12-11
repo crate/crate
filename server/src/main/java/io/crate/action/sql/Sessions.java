@@ -50,9 +50,9 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
 import io.crate.statistics.TableStats;
-import io.crate.user.Privilege.Clazz;
-import io.crate.user.Privilege.Type;
-import io.crate.user.Role;
+import io.crate.role.Privilege.Clazz;
+import io.crate.role.Privilege.Type;
+import io.crate.role.Role;
 
 
 @Singleton

@@ -21,17 +21,17 @@
 
 package io.crate.analyze;
 
-import static io.crate.user.Privilege.Clazz.CLUSTER;
-import static io.crate.user.Privilege.Clazz.SCHEMA;
-import static io.crate.user.Privilege.Clazz.TABLE;
-import static io.crate.user.Privilege.Clazz.VIEW;
-import static io.crate.user.Privilege.State.DENY;
-import static io.crate.user.Privilege.State.GRANT;
-import static io.crate.user.Privilege.State.REVOKE;
-import static io.crate.user.Privilege.Type.AL;
-import static io.crate.user.Privilege.Type.DDL;
-import static io.crate.user.Privilege.Type.DML;
-import static io.crate.user.Privilege.Type.DQL;
+import static io.crate.role.Privilege.Clazz.CLUSTER;
+import static io.crate.role.Privilege.Clazz.SCHEMA;
+import static io.crate.role.Privilege.Clazz.TABLE;
+import static io.crate.role.Privilege.Clazz.VIEW;
+import static io.crate.role.Privilege.State.DENY;
+import static io.crate.role.Privilege.State.GRANT;
+import static io.crate.role.Privilege.State.REVOKE;
+import static io.crate.role.Privilege.Type.AL;
+import static io.crate.role.Privilege.Type.DDL;
+import static io.crate.role.Privilege.Type.DML;
+import static io.crate.role.Privilege.Type.DQL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -48,10 +48,10 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
-import io.crate.user.RoleManager;
-import io.crate.user.StubRoleManager;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.RoleManager;
+import io.crate.role.StubRoleManager;
 
 public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

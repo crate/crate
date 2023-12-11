@@ -35,8 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
-import io.crate.user.Privilege;
-import io.crate.user.RoleManager;
+import io.crate.role.Privilege;
+import io.crate.role.RoleManager;
 
 public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 

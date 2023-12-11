@@ -48,8 +48,8 @@ import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 
 @UseRandomizedSchema(random = false)

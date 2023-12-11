@@ -26,7 +26,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class PgGetUserByIdFunctionTest extends ScalarTestCase {
 

@@ -42,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.types.DataTypes;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 
 public class ConnectionInfo implements Writeable {

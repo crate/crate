@@ -56,7 +56,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public abstract class AbstractTableFunctionsTest extends ESTestCase {
 

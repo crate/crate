@@ -51,7 +51,7 @@ import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.kill.KillAllListener;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 @Singleton
 public class TasksService extends AbstractLifecycleComponent {

@@ -38,7 +38,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

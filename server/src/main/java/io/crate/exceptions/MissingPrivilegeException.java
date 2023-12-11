@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-import io.crate.user.Privilege;
+import io.crate.role.Privilege;
 
 import java.util.Locale;
 

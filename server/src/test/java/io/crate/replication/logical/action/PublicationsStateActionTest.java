@@ -48,9 +48,9 @@ import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 

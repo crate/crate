@@ -109,7 +109,7 @@ import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
-import io.crate.user.RoleManager;
+import io.crate.role.RoleManager;
 
 @Singleton
 public class Analyzer {

@@ -34,7 +34,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathJoin;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class OptimizerTest {
 

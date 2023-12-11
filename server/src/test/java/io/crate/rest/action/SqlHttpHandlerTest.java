@@ -43,7 +43,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.user.Role;
+import io.crate.role.Role;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
 

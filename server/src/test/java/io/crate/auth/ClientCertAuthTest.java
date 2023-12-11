@@ -40,7 +40,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.Role;
+import io.crate.role.Role;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class ClientCertAuthTest extends ESTestCase {

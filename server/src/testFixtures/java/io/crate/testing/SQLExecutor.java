@@ -180,9 +180,9 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
-import io.crate.user.Role;
-import io.crate.user.RoleManager;
-import io.crate.user.StubRoleManager;
+import io.crate.role.Role;
+import io.crate.role.RoleManager;
+import io.crate.role.StubRoleManager;
 
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.

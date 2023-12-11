@@ -219,8 +219,8 @@ import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 /**
  * {@link IntegTestCase} is an abstract base class to run integration

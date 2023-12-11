@@ -66,7 +66,7 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 

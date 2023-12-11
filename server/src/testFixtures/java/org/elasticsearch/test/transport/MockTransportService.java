@@ -72,7 +72,7 @@ import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 /**
  * A mock delegate service that allows to simulate different network topology failures.

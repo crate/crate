@@ -40,7 +40,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.user.Role;
+import io.crate.role.Role;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;

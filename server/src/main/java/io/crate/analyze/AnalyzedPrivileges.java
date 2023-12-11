@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.user.Privilege;
+import io.crate.role.Privilege;
 import io.crate.expression.symbol.Symbol;
 
 import java.util.List;

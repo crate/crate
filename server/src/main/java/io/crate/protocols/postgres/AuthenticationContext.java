@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AuthenticationMethod;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 class AuthenticationContext implements Closeable {
 

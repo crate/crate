@@ -30,7 +30,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Query;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public final class CreateViewStmt implements AnalyzedStatement {
 

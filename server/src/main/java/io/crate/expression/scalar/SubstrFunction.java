@@ -37,7 +37,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.user.RoleLookup;
+import io.crate.role.RoleLookup;
 
 public class SubstrFunction extends Scalar<String, Object> {
 

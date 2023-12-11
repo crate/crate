@@ -44,8 +44,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public class LineProcessorTest {
 

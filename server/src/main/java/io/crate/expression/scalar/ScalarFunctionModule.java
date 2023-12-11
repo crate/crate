@@ -99,7 +99,7 @@ import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.user.scalar.UserFunction;
+import io.crate.role.scalar.UserFunction;
 
 public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImplementation> {
 

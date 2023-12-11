@@ -44,7 +44,7 @@ import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.support.ActionExecutor;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 /**
  * service that listens to node-disconnected-events and kills jobContexts that were started by the nodes that got disconnected

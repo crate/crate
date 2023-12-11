@@ -21,7 +21,7 @@
 
 package io.crate.auth;
 
-import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
+import static io.crate.role.Privilege.Type.READ_WRITE_DEFINE;
 
 import java.util.Locale;
 
@@ -108,10 +108,10 @@ import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
 import io.crate.replication.logical.analyze.AnalyzedDropPublication;
 import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
 import io.crate.sql.tree.SetStatement;
-import io.crate.user.Privilege;
-import io.crate.user.Privileges;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Privilege;
+import io.crate.role.Privileges;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public final class AccessControlImpl implements AccessControl {
 

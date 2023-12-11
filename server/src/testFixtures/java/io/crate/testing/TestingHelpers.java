@@ -90,7 +90,7 @@ import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class TestingHelpers {
 

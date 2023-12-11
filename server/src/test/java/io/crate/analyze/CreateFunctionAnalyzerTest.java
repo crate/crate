@@ -32,7 +32,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

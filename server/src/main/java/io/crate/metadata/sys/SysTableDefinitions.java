@@ -47,9 +47,9 @@ import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.user.Privilege;
-import io.crate.user.Privilege.Clazz;
-import io.crate.user.Privilege.Type;
+import io.crate.role.Privilege;
+import io.crate.role.Privilege.Clazz;
+import io.crate.role.Privilege.Type;
 
 public class SysTableDefinitions {
 

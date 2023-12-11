@@ -40,7 +40,7 @@ import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.ThreadPools;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 class InterceptingRowConsumer implements RowConsumer {
 

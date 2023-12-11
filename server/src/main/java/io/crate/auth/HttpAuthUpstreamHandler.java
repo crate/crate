@@ -45,7 +45,7 @@ import io.crate.common.collections.Tuple;
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.Role;
+import io.crate.role.Role;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;

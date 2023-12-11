@@ -58,9 +58,9 @@ import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
-import io.crate.user.RoleManager;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
+import io.crate.role.RoleManager;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)

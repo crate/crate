@@ -67,7 +67,7 @@ import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class MetadataTrackerTest extends ESTestCase {
 

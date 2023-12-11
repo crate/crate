@@ -51,7 +51,7 @@ import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsExceptio
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.user.RoleLookup;
+import io.crate.role.RoleLookup;
 
 public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
 

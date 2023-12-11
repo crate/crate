@@ -34,7 +34,7 @@ import org.elasticsearch.transport.TransportRequest;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class KillJobsNodeRequest extends TransportRequest {
 

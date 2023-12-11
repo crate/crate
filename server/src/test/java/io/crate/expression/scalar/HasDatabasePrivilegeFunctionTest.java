@@ -35,8 +35,8 @@ import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.Asserts;
 import io.crate.testing.SqlExpressions;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
 
 public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
 

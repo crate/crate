@@ -32,7 +32,7 @@ import io.crate.auth.Authentication;
 import io.crate.auth.Protocol;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.Role;
+import io.crate.role.Role;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;

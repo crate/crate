@@ -72,8 +72,8 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.user.metadata.RolesMetadata;
-import io.crate.user.metadata.UsersMetadata;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
 
 public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 

@@ -35,7 +35,7 @@ import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 
 public class AuthenticationContextTest extends ESTestCase {

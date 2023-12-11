@@ -65,7 +65,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 

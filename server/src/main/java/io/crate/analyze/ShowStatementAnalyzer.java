@@ -40,7 +40,7 @@ import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.Table;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 /**
  * Rewrites the SHOW statements into Select queries.

@@ -49,7 +49,7 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.StatementClassifier;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class RamAccountingQueueSinkTest extends ESTestCase {
 

@@ -41,7 +41,7 @@ import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.sys.ClassifiedMetrics;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 
 /**

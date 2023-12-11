@@ -49,7 +49,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-import io.crate.user.RoleLookup;
+import io.crate.role.RoleLookup;
 
 public final class MatchesFunction extends TableFunctionImplementation<List<Object>> {
 

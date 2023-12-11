@@ -30,8 +30,8 @@ import java.util.Set;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.user.Privilege;
-import io.crate.user.RolePrivileges;
+import io.crate.role.Privilege;
+import io.crate.role.RolePrivileges;
 
 public class RolePrivilegesTest extends ESTestCase {
 

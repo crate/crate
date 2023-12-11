@@ -43,7 +43,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
-import io.crate.user.RoleLookup;
+import io.crate.role.RoleLookup;
 
 class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 

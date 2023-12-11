@@ -50,7 +50,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
 

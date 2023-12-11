@@ -54,8 +54,8 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public class PublicationsStateAction extends ActionType<PublicationsStateAction.Response> {
 

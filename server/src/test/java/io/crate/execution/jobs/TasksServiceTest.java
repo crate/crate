@@ -41,7 +41,7 @@ import org.junit.Test;
 
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 

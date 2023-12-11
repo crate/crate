@@ -152,7 +152,7 @@ import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.replication.logical.plan.DropSubscriptionPlan;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
-import io.crate.user.RoleManager;
+import io.crate.role.RoleManager;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {

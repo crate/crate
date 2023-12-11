@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class KillAllRequest extends TransportRequest {
 

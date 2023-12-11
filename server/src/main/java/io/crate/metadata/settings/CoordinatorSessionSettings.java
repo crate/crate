@@ -29,7 +29,7 @@ import java.util.Set;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
 import io.crate.planner.optimizer.Rule;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 /**
  * A superset of {@link SessionSettings}.

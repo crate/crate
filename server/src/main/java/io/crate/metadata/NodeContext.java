@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.user.RoleLookup;
+import io.crate.role.RoleLookup;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 

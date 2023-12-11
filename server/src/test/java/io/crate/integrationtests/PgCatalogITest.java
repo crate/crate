@@ -44,7 +44,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.user.RoleLookup;
+import io.crate.role.RoleLookup;
 
 public class PgCatalogITest extends IntegTestCase {
 

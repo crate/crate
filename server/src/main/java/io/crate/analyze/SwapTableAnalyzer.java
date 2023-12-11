@@ -36,7 +36,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SwapTable;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public final class SwapTableAnalyzer {
 
