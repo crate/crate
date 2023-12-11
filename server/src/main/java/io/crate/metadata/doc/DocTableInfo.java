@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -289,6 +290,22 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .stream()
             .filter(r -> r.defaultExpression() != null)
             .toList();
+        Predicate<Reference> validateInnerTypes = ref -> {
+            String[] paths = ref.column().fqn().split("\\.");
+            var type = ref.valueType();
+            for (String path : paths) {
+                if (type instanceof ObjectType objectType) {
+                    type = objectType.innerTypes().get(path);
+                    if (type != null) {
+                        continue;
+                    }
+                }
+                return false;
+            }
+            return true;
+        };
+        assert this.references.values().stream().filter(ref -> ref.valueType() instanceof ObjectType)
+            .allMatch(validateInnerTypes) : "ObjectTypes innerTypes must be consistent to the columnIdents";
     }
 
     @Nullable
@@ -671,12 +688,28 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
     }
 
+    private void fixParentsInnerTypes(ColumnIdent column, @Nullable DataType<?> type, Map<ColumnIdent, Reference> newReferences) {
+        var parent = column.getParent();
+        if (parent == null) {
+            return;
+        }
+        Reference parentRef = references.get(parent);
+        DataType<?> newParentType = ArrayType.updateLeaf(
+            parentRef.valueType(),
+            leaf -> type == null ?
+                ((ObjectType) leaf).withoutChild(column.leafName()) :
+                ((ObjectType) leaf).withChild(column.leafName(), type)
+        );
+        Reference updatedParent = parentRef.withValueType(newParentType);
+        newReferences.replace(parent, updatedParent);
+        fixParentsInnerTypes(updatedParent.column(), updatedParent.valueType(), newReferences);
+    }
+
     public DocTableInfo dropColumns(List<DropColumn> columns) {
         validateDropColumns(columns);
         HashSet<Reference> toDrop = HashSet.newHashSet(columns.size());
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
         droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
-        HashMap<Reference, Reference> changedReferences = new HashMap<>();
         for (var column : columns) {
             ColumnIdent columnIdent = column.ref().column();
             Reference reference = references.get(columnIdent);
@@ -686,17 +719,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
                 continue;
             }
-            ColumnIdent parent = columnIdent.getParent();
-            if (parent != null) {
-                Reference parentRef = references.get(parent);
-                DataType<?> newParentType = ArrayType.updateLeaf(
-                    parentRef.valueType(),
-                    leaf -> ((ObjectType) leaf).withoutChild(columnIdent.leafName())
-                );
-                Reference updatedParent = parentRef.withValueType(newParentType);
-                newReferences.replace(parent, updatedParent);
-                changedReferences.put(parentRef, updatedParent);
-            }
+            fixParentsInnerTypes(columnIdent, null, newReferences);
             toDrop.add(reference.withDropped(true));
             newReferences.replace(columnIdent, reference.withDropped(true));
             for (var ref : references.values()) {
@@ -709,7 +732,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (toDrop.isEmpty()) {
             return this;
         }
-        Function<Symbol, Symbol> updateRef = symbol -> RefReplacer.replaceRefs(symbol, ref -> changedReferences.getOrDefault(ref, ref));
+        Function<Symbol, Symbol> updateRef = symbol -> RefReplacer.replaceRefs(symbol, ref -> newReferences.getOrDefault(ref.column(), ref));
         ArrayList<CheckConstraint<Symbol>> newCheckConstraints = new ArrayList<>(checkConstraints.size());
         for (var constraint : checkConstraints) {
             boolean drop = false;
@@ -876,6 +899,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         List<Reference> newColumnsWithParents = addMissingParents(newColumns);
         HashMap<ColumnIdent, List<Reference>> tree = Reference.buildTree(newColumnsWithParents);
         boolean addedColumn = addNewReferences(acquireOid, positions, newReferences, tree, null);
+        // newColumns include existing parents so some parents' innerTypes are re-created.
+        newColumns.forEach(ref -> fixParentsInnerTypes(ref.column(), ref.valueType(), newReferences));
         if (!addedColumn) {
             return this;
         }
@@ -885,14 +910,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             if (parent == null || Reference.indexOf(newColumns, parent) >= 0) {
                 continue;
             }
-            Reference parentRef = newReferences.get(parent);
-            assert parentRef != null : "Parent reference must exist for:" + newColumn;
-            DataType<?> newParentType = ArrayType.updateLeaf(
-                parentRef.valueType(),
-                leaf -> ((ObjectType) leaf).withChild(newColumn.leafName(), newRef.valueType())
-            );
-            Reference updatedParentRef = parentRef.withValueType(newParentType);
-            newReferences.replace(parent, updatedParentRef);
+            fixParentsInnerTypes(newColumn, newRef.valueType(), newReferences);
         }
         List<ColumnIdent> newPrimaryKeys;
         if (pKeyIndices.isEmpty()) {
