@@ -80,13 +80,13 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
         clusterService.submitStateUpdateTask("alter_role [" + request.roleName() + "]",
                 new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
 
-                    private boolean userExists = true;
+                    private boolean roleExists = true;
 
                     @Override
                     public ClusterState execute(ClusterState currentState) throws Exception {
                         Metadata currentMetadata = currentState.metadata();
                         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                        userExists = alterRole(
+                        roleExists = alterRole(
                                 mdBuilder,
                                 request.roleName(),
                                 request.secureHash()
@@ -96,7 +96,7 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
 
                     @Override
                     protected WriteRoleResponse newResponse(boolean acknowledged) {
-                        return new WriteRoleResponse(acknowledged, userExists);
+                        return new WriteRoleResponse(acknowledged, roleExists);
                     }
                 });
     }

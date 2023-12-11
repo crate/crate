@@ -217,8 +217,8 @@ import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.types.DataTypes;
 import io.crate.user.RoleLookup;
-import io.crate.user.UserLookupService;
-import io.crate.user.UserManagementModule;
+import io.crate.user.RoleLookupService;
+import io.crate.user.RoleManagementModule;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -416,7 +416,7 @@ public class Node implements Closeable {
             modules.add(new MonitorModule());
             modules.add(new SysChecksModule());
             modules.add(new SysNodeChecksModule());
-            modules.add(new UserManagementModule());
+            modules.add(new RoleManagementModule());
             modules.add(new AuthenticationModule());
             modules.add(new SessionSettingModule());
             modules.add(new AggregationImplModule());
@@ -538,7 +538,7 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
-            RoleLookup userLookup = new UserLookupService(clusterService);
+            RoleLookup userLookup = new RoleLookupService(clusterService);
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
                 ? new HostBasedAuthentication(settings, userLookup, SystemDefaultDnsResolver.INSTANCE)
                 : new AlwaysOKAuthentication(userLookup);

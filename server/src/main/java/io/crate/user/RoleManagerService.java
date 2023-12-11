@@ -32,8 +32,8 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
-import io.crate.exceptions.UserAlreadyExistsException;
-import io.crate.exceptions.UserUnknownException;
+import io.crate.exceptions.RoleAlreadyExistsException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -42,7 +42,7 @@ import io.crate.user.metadata.SysRolesTableInfo;
 import io.crate.user.metadata.SysUsersTableInfo;
 
 @Singleton
-public class UserManagerService implements UserManager {
+public class RoleManagerService implements RoleManager {
 
     private static final Consumer<Role> ENSURE_DROP_ROLE_NOT_SUPERUSER = user -> {
         if (user != null && user.isSuperUser()) {
@@ -58,33 +58,33 @@ public class UserManagerService implements UserManager {
         }
     };
 
-    private static final UserManagerDDLModifier DDL_MODIFIER = new UserManagerDDLModifier();
+    private static final RoleManagerDDLModifier DDL_MODIFIER = new RoleManagerDDLModifier();
 
     private final TransportCreateRoleAction transportCreateRoleAction;
     private final TransportDropRoleAction transportDropRoleAction;
     private final TransportAlterRoleAction transportAlterRoleAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
 
-    private final RoleLookup userLookup;
+    private final RoleLookup roleLookup;
 
     @Inject
-    public UserManagerService(TransportCreateRoleAction transportCreateRoleAction,
+    public RoleManagerService(TransportCreateRoleAction transportCreateRoleAction,
                               TransportDropRoleAction transportDropRoleAction,
                               TransportAlterRoleAction transportAlterRoleAction,
                               TransportPrivilegesAction transportPrivilegesAction,
                               SysTableRegistry sysTableRegistry,
-                              RoleLookup userLookup,
+                              RoleLookup roleLookup,
                               DDLClusterStateService ddlClusterStateService) {
         this.transportCreateRoleAction = transportCreateRoleAction;
         this.transportDropRoleAction = transportDropRoleAction;
         this.transportAlterRoleAction = transportAlterRoleAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
-        this.userLookup = userLookup;
+        this.roleLookup = roleLookup;
         var userTable = SysUsersTableInfo.create();
         sysTableRegistry.registerSysTable(
             userTable,
             () -> CompletableFuture.completedFuture(
-                userLookup.roles().stream().filter(Role::isUser).toList()),
+                roleLookup.roles().stream().filter(Role::isUser).toList()),
             userTable.expressions(),
             false
         );
@@ -92,7 +92,7 @@ public class UserManagerService implements UserManager {
         sysTableRegistry.registerSysTable(
             rolesTable,
             () -> CompletableFuture.completedFuture(
-                userLookup.roles().stream().filter(r -> r.isUser() == false).toList()),
+                roleLookup.roles().stream().filter(r -> r.isUser() == false).toList()),
                 rolesTable.expressions(),
             false
         );
@@ -100,7 +100,7 @@ public class UserManagerService implements UserManager {
         var privilegesTable = SysPrivilegesTableInfo.create();
         sysTableRegistry.registerSysTable(
             privilegesTable,
-            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(userLookup.roles())),
+            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roleLookup.roles())),
             privilegesTable.expressions(),
             false
         );
@@ -113,7 +113,7 @@ public class UserManagerService implements UserManager {
     public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
         return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw), r -> {
             if (r.doesUserExist()) {
-                throw new UserAlreadyExistsException(roleName);
+                throw new RoleAlreadyExistsException(roleName);
             }
             return 1L;
         });
@@ -121,13 +121,13 @@ public class UserManagerService implements UserManager {
 
     @Override
     public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
-        ENSURE_DROP_ROLE_NOT_SUPERUSER.accept(userLookup.findUser(roleName));
+        ENSURE_DROP_ROLE_NOT_SUPERUSER.accept(roleLookup.findUser(roleName));
         return transportDropRoleAction.execute(new DropRoleRequest(roleName, suppressNotFoundError), r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
                     return 0L;
                 }
-                throw new UserUnknownException(roleName);
+                throw new RoleUnknownException(roleName);
             }
             return 1L;
         });
@@ -137,18 +137,18 @@ public class UserManagerService implements UserManager {
     public CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw) {
         return transportAlterRoleAction.execute(new AlterRoleRequest(roleName, newHashedPw), r -> {
             if (r.doesUserExist() == false) {
-                throw new UserUnknownException(roleName);
+                throw new RoleUnknownException(roleName);
             }
             return 1L;
         });
     }
 
     @Override
-    public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-        userNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(userLookup.findUser(s)));
-        return transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), r -> {
+    public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames, Collection<Privilege> privileges) {
+        roleNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(roleLookup.findUser(s)));
+        return transportPrivilegesAction.execute(new PrivilegesRequest(roleNames, privileges), r -> {
             if (!r.unknownUserNames().isEmpty()) {
-                throw new UserUnknownException(r.unknownUserNames());
+                throw new RoleUnknownException(r.unknownUserNames());
             }
             return r.affectedRows();
         });
@@ -157,10 +157,10 @@ public class UserManagerService implements UserManager {
 
     @Override
     public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
-        return new AccessControlImpl(userLookup, sessionSettings);
+        return new AccessControlImpl(roleLookup, sessionSettings);
     }
 
     public Collection<Role> roles() {
-        return userLookup.roles();
+        return roleLookup.roles();
     }
 }

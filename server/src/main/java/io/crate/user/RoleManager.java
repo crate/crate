@@ -30,47 +30,47 @@ import io.crate.auth.AccessControl;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 /**
- * responsible for creating and deleting users
+ * responsible for creating and deleting roles (and users)
  */
-public interface UserManager extends RoleLookup {
+public interface RoleManager extends RoleLookup {
 
     /**
      * Create a role.
      * This never raises but always returns a failed future in error cases.
      *
      * @param roleName name of the role to create
-     * @return 1 if the user was created, otherwise a failed future.
+     * @return 1 if the role was created, otherwise a failed future.
      */
     CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw);
 
     /**
-     * Delete a user.
+     * Delete a roles.
      * This never raises but always returns a failed future in error cases.
      *
-     * @param userName the user to drop
+     * @param roleName the name of the role to drop
      * @return 1 if dropped, 0 if not found and {@code suppressNotFoundError} is true.
      *         Otherwise a failure
      */
-    CompletableFuture<Long> dropRole(String userName, boolean suppressNotFoundError);
+    CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError);
 
     /**
-     * Modifies a user/role.
+     * Modifies a role.
      * This never raises but always returns a failed future in error cases.
      *
      * @param roleName of the existing role to modify
-     * @param newHashedPw new password; if null the password is removed from the user
-     * @return 1 if the user has been updated, otherwise a failed future.
+     * @param newHashedPw new password; if null the password is removed from the role
+     * @return 1 if the role has been updated, otherwise a failed future.
      */
     CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw);
 
     /**
-     * Apply given list of {@link Privilege}s for each given user
+     * Apply given list of {@link Privilege}s for each given role
 
-     * @param userNames     List of user names all privileges should be applied for
+     * @param roleNames     List of role names all privileges should be applied for
      * @param privileges    List of privileges to apply
      * @return a future which returns the number of privileges which were successfully applied
      */
-    CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges);
+    CompletableFuture<Long> applyPrivileges(Collection<String> roleNames, Collection<Privilege> privileges);
 
     AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings);
 }

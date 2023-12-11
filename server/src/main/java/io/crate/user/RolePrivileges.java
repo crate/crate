@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.IndexParts;
 
-public class UserPrivileges implements Iterable<Privilege> {
+public class RolePrivileges implements Iterable<Privilege> {
 
     private final Map<PrivilegeIdent, Privilege> privilegeByIdent;
     private final boolean anyClusterPrivilege;
@@ -41,7 +41,7 @@ public class UserPrivileges implements Iterable<Privilege> {
     private final Set<String> anyTablePrivilege = new HashSet<>();
     private final Set<String> anyViewPrivilege = new HashSet<>();
 
-    public UserPrivileges(Collection<Privilege> privileges) {
+    public RolePrivileges(Collection<Privilege> privileges) {
         privilegeByIdent = new HashMap<>(privileges.size());
         boolean anyClusterPrivilege = false;
         for (Privilege privilege : privileges) {
@@ -174,7 +174,7 @@ public class UserPrivileges implements Iterable<Privilege> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        UserPrivileges that = (UserPrivileges) o;
+        RolePrivileges that = (RolePrivileges) o;
         return privilegeByIdent.equals(that.privilegeByIdent);
     }
 

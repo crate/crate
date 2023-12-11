@@ -53,7 +53,7 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.user.Role;
-import io.crate.user.StubUserManager;
+import io.crate.user.StubRoleManager;
 
 public class PostgresNettyPublishPortTest extends ESTestCase {
 
@@ -101,7 +101,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
     public void testBindAndPublishAddressDefault() {
         // First check if binding to a local works
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        StubUserManager userManager = new StubUserManager();
+        StubRoleManager userManager = new StubRoleManager();
         PostgresNetty psql = new PostgresNetty(
             Settings.EMPTY,
             new SessionSettingRegistry(Set.of()),
@@ -126,7 +126,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.host
         Settings settingsWithCustomHost = Settings.builder().put("network.host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        StubUserManager userManager = new StubUserManager();
+        StubRoleManager userManager = new StubRoleManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomHost,
             new SessionSettingRegistry(Set.of()),
@@ -155,7 +155,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.bind_host
         Settings settingsWithCustomBind = Settings.builder().put("network.bind_host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        StubUserManager userManager = new StubUserManager();
+        StubRoleManager userManager = new StubRoleManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomBind,
             new SessionSettingRegistry(Set.of()),
@@ -184,7 +184,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.publish_host
         Settings settingsWithCustomPublish = Settings.builder().put("network.publish_host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        StubUserManager userManager = new StubUserManager();
+        StubRoleManager userManager = new StubRoleManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomPublish,
             new SessionSettingRegistry(Set.of()),

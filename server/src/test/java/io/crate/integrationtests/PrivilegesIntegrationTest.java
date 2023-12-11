@@ -40,7 +40,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.user.Role;
 import io.crate.user.RoleLookup;
 
-public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
+public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     private static final String TEST_USERNAME = "privileges_test_user";
 
@@ -147,7 +147,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         Asserts.assertSQLError(() -> executeAsSuperuser("grant DQL to unknown_user"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 40410)
-            .hasMessageContaining("User 'unknown_user' does not exist");
+            .hasMessageContaining("Role 'unknown_user' does not exist");
     }
 
     @Test
@@ -155,7 +155,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         Asserts.assertSQLError(() -> executeAsSuperuser("grant DQL to unknown_user, also_unknown"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 40410)
-            .hasMessageContaining("Users 'unknown_user, also_unknown' do not exist");
+            .hasMessageContaining("Roles 'unknown_user, also_unknown' do not exist");
     }
 
     @Test
