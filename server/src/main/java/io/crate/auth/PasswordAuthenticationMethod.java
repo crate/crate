@@ -25,9 +25,9 @@ import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
-import io.crate.user.SecureHash;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
+import io.crate.role.SecureHash;
 
 public class PasswordAuthenticationMethod implements AuthenticationMethod {
 

@@ -22,7 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedDropRole;
-import io.crate.user.RoleManager;
+import io.crate.role.RoleManager;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

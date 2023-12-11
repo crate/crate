@@ -30,8 +30,8 @@ import org.junit.Before;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.testing.SQLResponse;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public abstract class BaseRolesIntegrationTest extends IntegTestCase {
 

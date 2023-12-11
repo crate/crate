@@ -45,7 +45,7 @@ import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

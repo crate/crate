@@ -60,8 +60,8 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.types.DataTypes;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
 
 public class SysShardsTableInfo {
 

@@ -22,7 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedAlterRole;
-import io.crate.user.RoleManager;
+import io.crate.role.RoleManager;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -31,8 +31,8 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.user.SecureHash;
-import io.crate.user.UserActions;
+import io.crate.role.SecureHash;
+import io.crate.role.UserActions;
 
 public class AlterRolePlan implements Plan {
 

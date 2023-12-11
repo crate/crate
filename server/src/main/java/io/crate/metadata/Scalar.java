@@ -33,7 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.FunctionToQuery;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.user.RoleLookup;
+import io.crate.role.RoleLookup;
 
 /**
  * Base class for Scalar functions in crate.

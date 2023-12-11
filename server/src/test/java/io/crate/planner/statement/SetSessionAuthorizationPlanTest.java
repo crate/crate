@@ -43,8 +43,8 @@ import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.Role;
-import io.crate.user.RoleManager;
+import io.crate.role.Role;
+import io.crate.role.RoleManager;
 
 public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUnitTest {
 

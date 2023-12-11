@@ -55,8 +55,8 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public class TransportCreateSubscriptionActionTest {
 

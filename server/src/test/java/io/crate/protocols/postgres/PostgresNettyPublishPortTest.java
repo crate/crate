@@ -52,8 +52,8 @@ import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.user.Role;
-import io.crate.user.StubRoleManager;
+import io.crate.role.Role;
+import io.crate.role.StubRoleManager;
 
 public class PostgresNettyPublishPortTest extends ESTestCase {
 

@@ -22,7 +22,7 @@
 package io.crate.auth;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.user.RoleLookup;
+import io.crate.role.RoleLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.apache.http.conn.DnsResolver;
 import org.apache.logging.log4j.LogManager;

@@ -22,8 +22,8 @@
 package io.crate.auth;
 
 import static io.crate.expression.udf.UdfUnitTest.DUMMY_LANG;
-import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
-import static io.crate.user.Role.CRATE_USER;
+import static io.crate.role.Privilege.Type.READ_WRITE_DEFINE;
+import static io.crate.role.Role.CRATE_USER;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -66,11 +66,11 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
-import io.crate.user.RoleManager;
-import io.crate.user.RoleLookupService;
-import io.crate.user.RoleManagerService;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.RoleManager;
+import io.crate.role.RoleLookupService;
+import io.crate.role.RoleManagerService;
 
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
 

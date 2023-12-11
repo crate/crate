@@ -50,7 +50,7 @@ import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Table;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public final class CreateViewPlan implements Plan {
 

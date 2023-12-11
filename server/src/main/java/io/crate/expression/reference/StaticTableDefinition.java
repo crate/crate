@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class StaticTableDefinition<T> {
 

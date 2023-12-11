@@ -59,7 +59,7 @@ import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.Transports;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 
 public class TransportDistributedResultAction extends TransportAction<NodeRequest<DistributedResultRequest>, DistributedResultResponse> {

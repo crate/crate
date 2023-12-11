@@ -54,7 +54,7 @@ import org.junit.Test;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class TransportServiceHandshakeTests extends ESTestCase {
 

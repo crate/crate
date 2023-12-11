@@ -41,8 +41,8 @@ import org.elasticsearch.index.IndexSettings;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
 
 public class Publication implements Writeable {
 

@@ -39,9 +39,9 @@ import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.RevokePrivilege;
-import io.crate.user.Privilege;
-import io.crate.user.Privilege.State;
-import io.crate.user.Role;
+import io.crate.role.Privilege;
+import io.crate.role.Privilege.State;
+import io.crate.role.Role;
 
 /**
  * Analyzer for privileges related statements (ie GRANT/REVOKE statements)

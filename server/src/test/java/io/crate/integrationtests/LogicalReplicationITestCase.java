@@ -67,7 +67,7 @@ import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public abstract class LogicalReplicationITestCase extends ESTestCase {
 

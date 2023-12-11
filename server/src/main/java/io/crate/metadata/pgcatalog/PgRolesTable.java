@@ -26,14 +26,14 @@ import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
-import static io.crate.user.metadata.SysUsersTableInfo.PASSWORD_PLACEHOLDER;
+import static io.crate.role.metadata.SysUsersTableInfo.PASSWORD_PLACEHOLDER;
 
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.user.Privilege;
-import io.crate.user.Privileges;
-import io.crate.user.Role;
+import io.crate.role.Privilege;
+import io.crate.role.Privileges;
+import io.crate.role.Role;
 
 public final class PgRolesTable {
 

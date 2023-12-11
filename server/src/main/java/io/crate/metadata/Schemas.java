@@ -69,8 +69,8 @@ import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
 
 
 @Singleton

@@ -52,10 +52,10 @@ import io.crate.protocols.postgres.KeyData;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.Privilege;
-import io.crate.user.Privilege.State;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Privilege;
+import io.crate.role.Privilege.State;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 

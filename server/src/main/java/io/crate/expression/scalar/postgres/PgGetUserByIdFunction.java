@@ -22,7 +22,7 @@
 package io.crate.expression.scalar.postgres;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.user.Role.CRATE_USER;
+import static io.crate.role.Role.CRATE_USER;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;

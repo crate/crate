@@ -24,8 +24,8 @@ package io.crate.auth;
 import org.elasticsearch.common.settings.SecureString;
 
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 
 public class TrustAuthenticationMethod implements AuthenticationMethod {

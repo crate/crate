@@ -45,8 +45,8 @@ import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.statistics.TableStats;
-import io.crate.user.Privilege;
-import io.crate.user.RoleManagerService;
+import io.crate.role.Privilege;
+import io.crate.role.RoleManagerService;
 
 public final class PgCatalogTableDefinitions {
 

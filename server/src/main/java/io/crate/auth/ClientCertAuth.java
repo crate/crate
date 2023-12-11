@@ -29,8 +29,8 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public class ClientCertAuth implements AuthenticationMethod {
 

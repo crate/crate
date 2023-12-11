@@ -37,8 +37,8 @@ import io.crate.action.sql.Sessions;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 

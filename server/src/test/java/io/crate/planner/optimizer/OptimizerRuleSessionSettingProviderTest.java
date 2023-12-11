@@ -40,7 +40,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class OptimizerRuleSessionSettingProviderTest {
 

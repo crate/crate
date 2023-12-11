@@ -26,7 +26,7 @@ import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.planner.operators.StatementClassifier.Classification;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class JobContext {
 

@@ -41,8 +41,8 @@ import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
 
 public class AccessControlMaySeeTest extends ESTestCase {
 

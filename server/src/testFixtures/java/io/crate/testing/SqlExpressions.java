@@ -51,7 +51,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
-import io.crate.user.Role;
+import io.crate.role.Role;
 
 public class SqlExpressions {
 

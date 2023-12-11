@@ -216,9 +216,9 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.types.DataTypes;
-import io.crate.user.RoleLookup;
-import io.crate.user.RoleLookupService;
-import io.crate.user.RoleManagementModule;
+import io.crate.role.RoleLookup;
+import io.crate.role.RoleLookupService;
+import io.crate.role.RoleManagementModule;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used

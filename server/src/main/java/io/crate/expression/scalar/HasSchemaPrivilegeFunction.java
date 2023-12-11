@@ -33,9 +33,9 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.types.DataTypes;
-import io.crate.user.Privilege;
-import io.crate.user.Role;
-import io.crate.user.RoleLookup;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.RoleLookup;
 
 public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 

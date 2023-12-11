@@ -61,8 +61,8 @@ import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.Role;
-import io.crate.user.StubRoleManager;
+import io.crate.role.Role;
+import io.crate.role.StubRoleManager;
 
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
