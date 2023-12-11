@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.systeminformation;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import io.crate.data.Input;
@@ -46,7 +47,7 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
                 FQN,
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             CurrentSchemasFunction::new
         );
     }

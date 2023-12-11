@@ -55,7 +55,7 @@ public final class TrimFunctions {
                 TRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new OneCharTrimFunction(
                     signature,
@@ -71,7 +71,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             TrimFunction::new
         );
 
@@ -81,7 +81,7 @@ public final class TrimFunctions {
                 LTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -96,7 +96,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -111,7 +111,7 @@ public final class TrimFunctions {
                 RTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -126,7 +126,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -142,7 +142,7 @@ public final class TrimFunctions {
                 BTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -157,7 +157,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,

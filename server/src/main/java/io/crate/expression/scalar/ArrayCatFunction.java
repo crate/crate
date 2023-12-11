@@ -48,7 +48,7 @@ public class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
                 TypeSignature.parse("array(E)"),
                 TypeSignature.parse("array(E)"),
                 TypeSignature.parse("array(E)")
-            )
+            ).withFeature(Feature.NON_NULLABLE)
                 .withTypeVariableConstraints(typeVariable("E")),
             ArrayCatFunction::new
         );

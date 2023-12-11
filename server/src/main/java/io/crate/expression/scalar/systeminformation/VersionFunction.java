@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import java.util.EnumSet;
 import java.util.Locale;
 
 import org.elasticsearch.Build;
@@ -48,7 +49,7 @@ public class VersionFunction extends Scalar<String, Void> {
             Signature.scalar(
                 FQN,
                 DataTypes.STRING.getTypeSignature()
-            ).withFeatures(Scalar.NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             VersionFunction::new
         );
 

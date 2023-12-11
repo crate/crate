@@ -49,10 +49,11 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
     public static void register(TableFunctionModule module) {
         module.register(
             Signature.table(
-                FUNCTION_NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("record(x E, n integer)")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    FUNCTION_NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("record(x E, n integer)")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NON_NULLABLE),
             PgExpandArray::new
         );
     }

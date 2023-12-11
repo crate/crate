@@ -24,6 +24,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
+import java.util.EnumSet;
 import java.util.Random;
 
 import io.crate.data.Input;
@@ -46,7 +47,7 @@ public class RandomFunction extends Scalar<Double, Void> {
             scalar(
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             RandomFunction::new
         );
     }

@@ -220,6 +220,14 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
          * So for f comparisons cannot be replaced.
          */
         COMPARISON_REPLACEMENT,
-        LAZY_ATTRIBUTES
+        LAZY_ATTRIBUTES,
+        /**
+         * If this feature is set, the function will return for null argument(s) as result null.
+         */
+        NULLABLE,
+        /**
+         * If this feature is set, the function will never return null.
+         */
+        NON_NULLABLE
     }
 }

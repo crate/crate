@@ -65,10 +65,11 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
     public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        TypeSignature.parse("E"),
-        DataTypes.BOOLEAN.getTypeSignature()
-    ).withTypeVariableConstraints(typeVariable("E"));
+            NAME,
+            TypeSignature.parse("E"),
+            DataTypes.BOOLEAN.getTypeSignature()
+        ).withFeature(Feature.NON_NULLABLE)
+        .withTypeVariableConstraints(typeVariable("E"));
 
     public static void register(PredicateModule module) {
         module.register(

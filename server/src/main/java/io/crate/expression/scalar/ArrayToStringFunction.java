@@ -45,21 +45,23 @@ class ArrayToStringFunction extends Scalar<String, Object> {
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
-                FQN,
-                TypeSignature.parse("array(E)"),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    FQN,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NULLABLE),
             ArrayToStringFunction::new
         );
         module.register(
             Signature.scalar(
-                FQN,
-                TypeSignature.parse("array(E)"),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    FQN,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NULLABLE),
             ArrayToStringFunction::new
         );
     }

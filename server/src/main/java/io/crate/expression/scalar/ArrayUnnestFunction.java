@@ -47,10 +47,11 @@ public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>
 
     public static final String NAME = "array_unnest";
     public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        TypeSignature.parse("array(array(E))"),
-        TypeSignature.parse("array(E)")
-    ).withTypeVariableConstraints(typeVariable("E"));
+            NAME,
+            TypeSignature.parse("array(array(E))"),
+            TypeSignature.parse("array(E)")
+        ).withTypeVariableConstraints(typeVariable("E"))
+        .withFeature(Feature.NULLABLE);
 
     public static void register(ScalarFunctionModule module) {
         module.register(SIGNATURE, ArrayUnnestFunction::new);

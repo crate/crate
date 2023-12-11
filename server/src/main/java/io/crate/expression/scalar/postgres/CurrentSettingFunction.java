@@ -49,7 +49,7 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
                 FQN,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.NULLABLE),
             (signature, boundSignature) ->
                 new CurrentSettingFunction(
                     signature,
@@ -64,7 +64,7 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.NULLABLE),
             (signature, boundSignature) ->
                 new CurrentSettingFunction(
                     signature,

@@ -45,6 +45,7 @@ public class FormatFunction extends Scalar<String, Object> {
             TypeSignature.parse("E"),
             DataTypes.STRING.getTypeSignature()
         )
+            .withFeature(Feature.NON_NULLABLE)
             .withTypeVariableConstraints(typeVariableOfAnyType("E"))
             .withVariableArity();
 

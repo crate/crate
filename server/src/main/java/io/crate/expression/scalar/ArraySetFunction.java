@@ -44,22 +44,24 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
         TypeSignature arrayESignature = TypeSignature.parse("array(E)");
         module.register(
             Signature.scalar(
-                NAME,
-                arrayESignature,
-                new ArrayType<>(DataTypes.INTEGER).getTypeSignature(),
-                arrayESignature,
-                arrayESignature
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    arrayESignature,
+                    new ArrayType<>(DataTypes.INTEGER).getTypeSignature(),
+                    arrayESignature,
+                    arrayESignature
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NULLABLE),
             ArraySetFunction::new
         );
         module.register(
             Signature.scalar(
-                NAME,
-                arrayESignature,
-                DataTypes.INTEGER.getTypeSignature(),
-                TypeSignature.parse("E"),
-                arrayESignature
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    arrayESignature,
+                    DataTypes.INTEGER.getTypeSignature(),
+                    TypeSignature.parse("E"),
+                    arrayESignature
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NULLABLE),
             SingleArraySetFunction::new
         );
     }
