@@ -26,6 +26,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -61,6 +63,7 @@ import io.crate.planner.distribution.DistributionInfo;
 @Singleton
 public class RemoteCollectorFactory {
 
+    private static final Logger LOGGER = LogManager.getLogger(RemoteCollectorFactory.class);
     private static final int SENDER_PHASE_ID = 0;
 
     private final ClusterService clusterService;
@@ -130,10 +133,15 @@ public class RemoteCollectorFactory {
                                                                       RoutedCollectPhase collectPhase,
                                                                       CollectTask collectTask,
                                                                       boolean requiresScroll) {
-        CapturingRowConsumer consumer = new CapturingRowConsumer(requiresScroll, new CompletableFuture<>());
+        CapturingRowConsumer consumer = new CapturingRowConsumer(requiresScroll, collectTask.completionFuture());
         String remoteNodeId = primaryRouting.currentNodeId();
         String localNodeId = clusterService.localNode().getId();
         UUID childJobId = UUIDs.dirtyUUID();
+        LOGGER.trace(
+            "Creating child remote collect with id={} for parent job={}",
+            childJobId,
+            collectPhase.jobId()
+        );
         RemoteCollector remoteCollector = new RemoteCollector(
             childJobId,
             collectTask.txnCtx().sessionSettings(),
@@ -147,6 +155,15 @@ public class RemoteCollectorFactory {
             consumer,
             createRemoteCollectPhase(childJobId, collectPhase, primaryRouting.shardId(), remoteNodeId)
         );
+        collectTask.completionFuture().exceptionally(err -> {
+            remoteCollector.kill(err);
+            consumer.capturedBatchIterator().whenComplete((bi, ignored) -> {
+                if (bi != null) {
+                    bi.kill(err);
+                }
+            });
+            return null;
+        });
         remoteCollector.doCollect();
         return consumer.capturedBatchIterator();
     }
