@@ -23,7 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
+import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource;
 
 import java.util.HashSet;
 import java.util.Map;
