@@ -21,6 +21,15 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -41,14 +50,6 @@ import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
 
 public class RemoteCollector {
 
@@ -155,12 +156,12 @@ public class RemoteCollector {
                 .whenComplete(
                     (resp, t) -> {
                         if (t == null) {
-                            LOGGER.trace("RemoteCollector jobAction=onResponse");
+                            LOGGER.trace("RemoteCollector jobId={} jobAction=onResponse collectorKilled={}", jobId, collectorKilled);
                             if (collectorKilled) {
                                 killRemoteContext();
                             }
                         } else {
-                            LOGGER.error("RemoteCollector jobAction=onFailure", t);
+                            LOGGER.error("RemoteCollector jobId={} jobAction=onFailure collectorKilled={} error={}", jobId, collectorKilled, t);
                             context.kill(t.getMessage());
                         }
                     }

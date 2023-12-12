@@ -49,6 +49,9 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a race condition that could lead to a memory leak when relocating a
+  shard from one node to another and concurrently running queries.
+
 - Fixed a performance regression introduced in 5.5.0 for queries with
    ``GROUP BY`` on a single column.
 
