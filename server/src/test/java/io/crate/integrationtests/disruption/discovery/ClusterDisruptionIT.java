@@ -58,7 +58,6 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.Murmur3HashFunction;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
@@ -74,6 +73,7 @@ import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
+import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.DuplicateKeyException;
 
@@ -388,7 +388,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         AtomicBoolean stopped = new AtomicBoolean();
         Thread[] threads = new Thread[between(1, 4)];
         AtomicInteger docID = new AtomicInteger();
-        Set<String> ackedDocs = ConcurrentCollections.newConcurrentSet();
+        Set<String> ackedDocs = Sets.newConcurrentHashSet();
         for (int i = 0; i < threads.length; i++) {
             threads[i] = new Thread(() -> {
                 while (stopped.get() == false && docID.get() < 5000) {

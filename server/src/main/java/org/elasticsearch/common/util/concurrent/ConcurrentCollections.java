@@ -19,8 +19,6 @@
 
 package org.elasticsearch.common.util.concurrent;
 
-import java.util.Collections;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -47,11 +45,6 @@ public abstract class ConcurrentCollections {
         return new ConcurrentHashMap<>(initalCapacity, 0.75f, AGGRESSIVE_CONCURRENCY_LEVEL);
     }
 
-    public static <V> Set<V> newConcurrentSet() {
-        return Collections.newSetFromMap(new ConcurrentHashMap<>());
-    }
-
     private ConcurrentCollections() {
-
     }
 }
