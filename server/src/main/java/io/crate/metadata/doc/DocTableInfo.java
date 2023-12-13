@@ -683,6 +683,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         for (var column : columns) {
             ColumnIdent columnIdent = column.ref().column();
             Reference reference = references.get(columnIdent);
+            if (toDrop.contains(reference)) {
+                continue;
+            }
             if (reference == null || reference.isDropped()) {
                 if (!column.ifExists()) {
                     throw new ColumnUnknownException(columnIdent, ident);
