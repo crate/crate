@@ -31,12 +31,12 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.junit.Test;
 
 import io.crate.action.FutureActionListener;
+import io.crate.common.collections.Sets;
 
 public class RecoveryRequestTrackerTests extends ESTestCase {
 
@@ -57,7 +57,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
 
     @Test
     public void testIdempotencyIsEnforced() throws Exception {
-        Set<Long> seqNosReturned = ConcurrentCollections.newConcurrentSet();
+        Set<Long> seqNosReturned = Sets.newConcurrentHashSet();
         ConcurrentMap<Long, Set<FutureActionListener<Void>>> seqToResult = new ConcurrentHashMap<>();
 
         RecoveryRequestTracker requestTracker = new RecoveryRequestTracker();
@@ -68,7 +68,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
             int iterations = randomIntBetween(2, 5);
             for (int i = 0; i < iterations; ++i) {
                 FutureActionListener<Void> future = new FutureActionListener<>();
-                Set<FutureActionListener<Void>> set = seqToResult.computeIfAbsent(seqNo, (k) -> ConcurrentCollections.newConcurrentSet());
+                Set<FutureActionListener<Void>> set = seqToResult.computeIfAbsent(seqNo, (k) -> Sets.newConcurrentHashSet());
                 set.add(future);
                 threadPool.generic().execute(() -> {
                     ActionListener<Void> listener = requestTracker.markReceivedAndCreateListener(seqNo, future);

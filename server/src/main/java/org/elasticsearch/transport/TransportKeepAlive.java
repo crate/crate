@@ -35,9 +35,9 @@ import org.elasticsearch.common.component.Lifecycle;
 import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.concurrent.AbstractLifecycleRunnable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
 import io.netty.channel.ChannelFuture;
 
@@ -137,7 +137,7 @@ final class TransportKeepAlive implements Closeable {
 
         private final TimeValue pingInterval;
 
-        private final Set<CloseableChannel> channels = ConcurrentCollections.newConcurrentSet();
+        private final Set<CloseableChannel> channels = Sets.newConcurrentHashSet();
 
         private final AtomicBoolean isStarted = new AtomicBoolean(false);
         private volatile long lastPingRelativeMillis;

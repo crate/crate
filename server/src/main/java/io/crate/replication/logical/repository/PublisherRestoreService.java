@@ -37,12 +37,12 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 
+import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
 import io.crate.replication.logical.action.RestoreShardRequest;
 import io.crate.replication.logical.seqno.RetentionLeaseHelper;
@@ -60,7 +60,7 @@ public class PublisherRestoreService extends AbstractLifecycleComponent {
     private final IndicesService indicesService;
     private final NodeClient nodeClient;
     private final Map<String, RestoreContext> onGoingRestores = new ConcurrentHashMap<>();
-    private final Set<Closeable> closableResources = ConcurrentCollections.newConcurrentSet();
+    private final Set<Closeable> closableResources = Sets.newConcurrentHashSet();
 
     @Inject
     public PublisherRestoreService(IndicesService indicesService, NodeClient nodeClient) {

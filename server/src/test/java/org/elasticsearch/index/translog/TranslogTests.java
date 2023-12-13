@@ -123,7 +123,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
@@ -149,6 +148,7 @@ import org.junit.Test;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
+import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 
@@ -3440,7 +3440,7 @@ public class TranslogTests extends ESTestCase {
         TranslogConfig config = getTranslogConfig(path);
         String translogUUID = Translog.createEmptyTranslog(
             config.getTranslogPath(), SequenceNumbers.NO_OPS_PERFORMED, shardId, primaryTerm.get());
-        Set<Long> persistedSeqNos = ConcurrentCollections.newConcurrentSet();
+        Set<Long> persistedSeqNos = Sets.newConcurrentHashSet();
         AtomicLong lastGlobalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
         LongSupplier globalCheckpointSupplier = () -> {
             if (randomBoolean()) {
