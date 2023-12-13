@@ -388,6 +388,15 @@ Parameters
   The S3 storage class used for objects stored in the repository. This only 
   affects the S3 storage class used for newly created objects in the repository.
 
+.. _sql-create-repo-s3-use_path_style_access:
+
+**use_path_style_access**
+  | *Type:*    ``boolean``
+  | *Default:* ``false``
+
+  Whether CrateDB should use path style access.
+  Useful for some S3-compatible providers.
+
 .. _sql-create-repo-azure:
 
 ``azure``

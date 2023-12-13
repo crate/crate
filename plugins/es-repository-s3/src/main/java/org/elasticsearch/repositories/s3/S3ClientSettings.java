@@ -31,6 +31,7 @@ import static org.elasticsearch.repositories.s3.S3RepositorySettings.READ_TIMEOU
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.SECRET_KEY_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.SESSION_TOKEN_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.USE_THROTTLE_RETRIES_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.USE_PATH_STYLE_ACCESS;
 
 import java.util.Objects;
 
@@ -83,6 +84,9 @@ final class S3ClientSettings {
     /** Whether the s3 client should use an exponential backoff retry policy. */
     final boolean throttleRetries;
 
+    /** Whether the s3 client should use path style access. */
+    final boolean pathStyleAccess;
+
     private S3ClientSettings(@Nullable AWSCredentials credentials,
                              String endpoint,
                              Protocol protocol,
@@ -92,7 +96,8 @@ final class S3ClientSettings {
                              String proxyPassword,
                              int readTimeoutMillis,
                              int maxRetries,
-                             boolean throttleRetries) {
+                             boolean throttleRetries,
+                             boolean pathStyleAccess) {
         this.credentials = credentials;
         this.endpoint = endpoint;
         this.protocol = protocol;
@@ -103,6 +108,7 @@ final class S3ClientSettings {
         this.readTimeoutMillis = readTimeoutMillis;
         this.maxRetries = maxRetries;
         this.throttleRetries = throttleRetries;
+        this.pathStyleAccess = pathStyleAccess;
     }
 
     private static AWSCredentials loadCredentials(Settings settings) {
@@ -151,7 +157,8 @@ final class S3ClientSettings {
                     proxyPassword.toString(),
                     Math.toIntExact(getConfigValue(settings, READ_TIMEOUT_SETTING).millis()),
                     getConfigValue(settings, MAX_RETRIES_SETTING),
-                    getConfigValue(settings, USE_THROTTLE_RETRIES_SETTING)
+                    getConfigValue(settings, USE_THROTTLE_RETRIES_SETTING),
+                    getConfigValue(settings, USE_PATH_STYLE_ACCESS)
             );
         }
     }
@@ -178,7 +185,8 @@ final class S3ClientSettings {
                protocol == that.protocol &&
                Objects.equals(proxyHost, that.proxyHost) &&
                Objects.equals(proxyUsername, that.proxyUsername) &&
-               Objects.equals(proxyPassword, that.proxyPassword);
+               Objects.equals(proxyPassword, that.proxyPassword) &&
+               pathStyleAccess == that.pathStyleAccess;
     }
 
     @Override
@@ -199,7 +207,8 @@ final class S3ClientSettings {
                             proxyPassword,
                             readTimeoutMillis,
                             maxRetries,
-                            throttleRetries);
+                            throttleRetries,
+                            pathStyleAccess);
     }
 
     private boolean compareCredentials(@Nullable AWSCredentials first, @Nullable AWSCredentials second) {

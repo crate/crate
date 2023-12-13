@@ -203,4 +203,12 @@ class S3RepositorySettings {
         "use_throttle_retries",
         ClientConfiguration.DEFAULT_THROTTLE_RETRIES,
         Setting.Property.NodeScope);
+
+
+    /**
+     * Whether to use Path Style Access.
+     */
+    static final Setting<Boolean> USE_PATH_STYLE_ACCESS = Setting.boolSetting(
+        "use_path_style_access",
+        false);
 }

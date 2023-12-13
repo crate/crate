@@ -48,6 +48,7 @@ import static org.elasticsearch.repositories.s3.S3RepositorySettings.READONLY_SE
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.SECRET_KEY_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.SERVER_SIDE_ENCRYPTION_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.STORAGE_CLASS_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.USE_PATH_STYLE_ACCESS;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.USE_THROTTLE_RETRIES_SETTING;
 
 /**
@@ -85,7 +86,8 @@ public class S3Repository extends BlobStoreRepository {
                        MAX_RETRIES_SETTING,
                        USE_THROTTLE_RETRIES_SETTING,
                        READONLY_SETTING,
-                       STORAGE_CLASS_SETTING);
+                       STORAGE_CLASS_SETTING,
+                       USE_PATH_STYLE_ACCESS);
     }
 
     private final S3Service service;
