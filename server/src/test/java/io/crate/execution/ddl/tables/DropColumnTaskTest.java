@@ -128,6 +128,33 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_can_drop_subcolumn_and_parent_together() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (o2 object as (c int)))")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            clusterService.state(),
+            Version.CURRENT
+        )) {
+            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            // parent specified first then its child
+            Reference colToDrop1 = tbl.getReference(new ColumnIdent("o", "o2"));
+            Reference colToDrop2 = tbl.getReference(new ColumnIdent("o", List.of("o2", "c")));
+            var request = new DropColumnRequest(tbl.ident(), List.of(
+                new DropColumn(colToDrop1, false),
+                new DropColumn(colToDrop2, false)));
+            ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
+
+            assertThat(newTable.getReference(colToDrop1.column())).isNull();
+            assertThat(newTable.getReference(colToDrop2.column())).isNull();
+        }
+    }
+
+    @Test
     public void test_is_no_op_if_columns_exist() throws Exception {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (x int, y int)")
