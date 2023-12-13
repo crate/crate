@@ -83,7 +83,9 @@ None
 Administration and Operations
 -----------------------------
 
-None
+- Added the ability to set a
+  :ref:`use_path_style_access <sql-create-repo-s3-use_path_style_access>` for
+  S3 repositories.
 
 User Interface
 --------------

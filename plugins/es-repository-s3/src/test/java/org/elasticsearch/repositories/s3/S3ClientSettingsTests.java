@@ -129,4 +129,12 @@ public class S3ClientSettingsTests extends ESTestCase {
         cache.add(settings);
         assertThat(cache.contains(settings)).isTrue();
     }
+    @Test
+    public void testPathStyleAccessCanBeSet() {
+        final S3ClientSettings settings = S3ClientSettings.getClientSettings(
+            Settings.builder()
+                .put("use_path_style_access", true)
+                .build());
+        assertThat(settings.pathStyleAccess).isEqualTo(true);
+    }
 }
