@@ -33,6 +33,7 @@ import org.elasticsearch.common.lucene.search.Queries;
 import io.crate.data.Input;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.operator.any.AnyNeqOperator;
 import io.crate.expression.operator.any.AnyRangeOperator;
@@ -50,6 +51,7 @@ import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.scalar.conditional.IfFunction;
+import io.crate.expression.scalar.conditional.NullIfFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -158,7 +160,9 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 IsNullPredicate.NAME,
                 MapFunction.NAME,
                 TryCastFunction.NAME,
-                SubscriptObjectFunction.NAME
+                SubscriptObjectFunction.NAME,
+                NullIfFunction.NAME,
+                OrOperator.NAME
             );
 
         @Override
