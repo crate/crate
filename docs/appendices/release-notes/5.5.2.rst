@@ -49,6 +49,9 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused queries with a ``NULLIF`` or ``OR`` expression in
+  the ``WHERE`` clause to fail evaluating ``NULL`` correctly.
+
 - Fixed a race condition that could lead to a memory leak when relocating a
   shard from one node to another and concurrently running queries.
 
