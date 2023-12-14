@@ -33,12 +33,16 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
 @Singleton
 public class TransportRenameColumnAction extends AbstractDDLTransportAction<RenameColumnRequest, AcknowledgedResponse> {
 
+    @VisibleForTesting
+    public static final AlterTableTask.AlterTableOperator<RenameColumnRequest> RENAME_COLUMN_OPERATOR =
+        (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.renameColumn(req.refToRename(), req.newName());
     private final NodeContext nodeContext;
     private final IndicesService indicesService;
 
@@ -63,7 +67,12 @@ public class TransportRenameColumnAction extends AbstractDDLTransportAction<Rena
 
     @Override
     public ClusterStateTaskExecutor<RenameColumnRequest> clusterStateTaskExecutor(RenameColumnRequest request) {
-        return new RenameColumnTask(nodeContext, indicesService::createIndexMapperService);
+        return new AlterTableTask<>(
+            nodeContext,
+            indicesService::createIndexMapperService,
+            request.relationName(),
+            RENAME_COLUMN_OPERATOR
+        );
     }
 
 
