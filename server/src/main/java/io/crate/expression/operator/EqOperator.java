@@ -71,11 +71,12 @@ public final class EqOperator extends Operator<Object> {
     public static final String NAME = "op_=";
 
     public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        TypeSignature.parse("E"),
-        TypeSignature.parse("E"),
-        Operator.RETURN_TYPE.getTypeSignature()
-    ).withTypeVariableConstraints(typeVariable("E"));
+            NAME,
+            TypeSignature.parse("E"),
+            TypeSignature.parse("E"),
+            Operator.RETURN_TYPE.getTypeSignature()
+        ).withFeature(Feature.NULLABLE)
+        .withTypeVariableConstraints(typeVariable("E"));
 
     public static void register(OperatorModule module) {
         module.register(

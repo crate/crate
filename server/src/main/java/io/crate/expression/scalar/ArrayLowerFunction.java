@@ -44,11 +44,12 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NULLABLE),
             ArrayLowerFunction::new
         );
     }

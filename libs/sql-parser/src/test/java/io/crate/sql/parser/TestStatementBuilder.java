@@ -2110,6 +2110,13 @@ public class TestStatementBuilder {
         printStatement("select 'TextToMatch' NOT ILIKE ANY (array[E'te\\%tch'])");
     }
 
+    @Test
+    public void test_escape_in_like() {
+        printStatement("select 'ab' LIKE 'a%' ESCAPE ''");  // Empty
+        printStatement("select 'ab' LIKE 'a%' ESCAPE ?");   // Parameter
+        printStatement("select 'ab' LIKE 'a%' ESCAPE 't'"); // Regular character
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");

@@ -60,11 +60,12 @@ public final class AllOperator extends Operator<Object> {
         for (var type : Type.values()) {
             module.register(
                 Signature.scalar(
-                    type.fullQualifiedName,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("array(E)"),
-                    Operator.RETURN_TYPE.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("E")),
+                        type.fullQualifiedName,
+                        TypeSignature.parse("E"),
+                        TypeSignature.parse("array(E)"),
+                        Operator.RETURN_TYPE.getTypeSignature()
+                    ).withTypeVariableConstraints(typeVariable("E"))
+                    .withFeature(Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new AllOperator(
                         signature,

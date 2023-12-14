@@ -21,6 +21,7 @@
 
 package io.crate.expression.operator;
 
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -36,7 +37,7 @@ public final class LteOperator {
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature(),
                     Operator.RETURN_TYPE.getTypeSignature()
-                ),
+                ).withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) -> new CmpOperator(
                     signature,
                     boundSignature,

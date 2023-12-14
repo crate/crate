@@ -35,6 +35,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.legacy.LegacySettings;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -57,7 +58,8 @@ public class UnnestFunction {
                     TypeSignature.parse("array(E)"),
                     TypeSignature.parse("E")
                 )
-                .withTypeVariableConstraints(typeVariable("E")),
+                .withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Scalar.Feature.NON_NULLABLE),
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
                 signature,
                 boundSignature,
@@ -74,7 +76,8 @@ public class UnnestFunction {
                     RowType.EMPTY.getTypeSignature()
                 )
                 .withTypeVariableConstraints(typeVariable("E"), typeVariableOfAnyType("N"))
-                .withVariableArity(),
+                .withFeature(Scalar.Feature.NON_NULLABLE)
+            .withVariableArity(),
             (signature, boundSignature) -> {
                 var argTypes = boundSignature.argTypes();
                 ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
@@ -99,7 +102,7 @@ public class UnnestFunction {
             Signature.table(
                 NAME,
                 DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NON_NULLABLE),
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
                 signature,
                 boundSignature,

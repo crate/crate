@@ -70,6 +70,18 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_negated_concat_with_three_valued_logic() {
         assertThat(convert("NOT (x || 1) < -1")).hasToString(
-            "+(+*:* -(concat(x, '1') < -1)) #(NOT (concat(x, '1') < -1))");
+            "+(+*:* -(concat(x, '1') < -1))");
+    }
+
+    @Test
+    public void test_nullif() {
+        assertThat(convert("NULLIF(2, x) != 1")).hasToString(
+            "+(+*:* -(nullif(2, x) = 1))");
+    }
+
+    @Test
+    public void test_negated_or() {
+        assertThat(convert("NOT (x OR y) > true")).hasToString(
+            "+(+*:* -((x OR y) > true)) #(NOT ((x OR y) > true))");
     }
 }

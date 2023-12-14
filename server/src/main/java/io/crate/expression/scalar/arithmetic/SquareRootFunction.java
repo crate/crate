@@ -23,6 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -35,7 +36,8 @@ public final class SquareRootFunction {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             module.register(
-                scalar(NAME, typeSignature, DataTypes.DOUBLE.getTypeSignature()),
+                scalar(NAME, typeSignature, DataTypes.DOUBLE.getTypeSignature())
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new DoubleScalar(signature, boundSignature, SquareRootFunction::sqrt)
             );

@@ -47,7 +47,8 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            )
+            .withFeature(Feature.NON_NULLABLE),
             StringConcatFunction::new
         );
 
@@ -57,7 +58,8 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             )
-                .withVariableArity(),
+            .withFeature(Feature.NON_NULLABLE)
+            .withVariableArity(),
             GenericConcatFunction::new
         );
 
@@ -69,7 +71,8 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 TypeSignature.parse("array(E)"),
                 TypeSignature.parse("array(E)")
             )
-                .withTypeVariableConstraints(typeVariable("E")),
+            .withFeature(Feature.NON_NULLABLE)
+            .withTypeVariableConstraints(typeVariable("E")),
             ArrayCatFunction::new
         );
 
@@ -79,7 +82,8 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            ),
+            )
+            .withFeature(Feature.NON_NULLABLE),
             ObjectMergeFunction::new
         );
     }

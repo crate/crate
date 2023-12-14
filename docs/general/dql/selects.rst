@@ -296,6 +296,20 @@ These operators can be used to query for rows where only part of a columns
 value should match something. The only difference is that, in the case of
 ``ILIKE``, the matching is case insensitive.
 
+Both ``LIKE`` and ``ILIKE`` support optional ``ESCAPE`` character. When no
+value is provided, backslash character ``\`` is used as the escape character.
+Providing an empty value disables escaping.
+
+Example of query with custom ESCAPE::
+
+    cr> SELECT 'test' LIKE 'te%' escape 'e' as res;
+    +-------+
+    | res   |
+    +-------+
+    | FALSE |
+    +-------+
+    SELECT 1 row in set (... sec)
+
 For example to get all locations where the name starts with ``Ar`` the
 following queries can be used::
 

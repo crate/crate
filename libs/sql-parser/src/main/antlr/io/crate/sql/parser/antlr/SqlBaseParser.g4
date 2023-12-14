@@ -287,7 +287,8 @@ predicate[ParserRuleContext value]
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                   #between
     | NOT? IN OPEN_ROUND_BRACKET expr (COMMA expr)* CLOSE_ROUND_BRACKET              #inList
     | NOT? IN subqueryExpression                                                     #inSubquery
-    | NOT? (LIKE | ILIKE) pattern=valueExpression (ESCAPE escape=valueExpression)?   #like
+    | NOT? (LIKE | ILIKE) pattern=valueExpression
+        (ESCAPE escape=parameterOrLiteral)?                                          #like
     | NOT? (LIKE | ILIKE) quant=setCmpQuantifier
         OPEN_ROUND_BRACKET v=valueExpression CLOSE_ROUND_BRACKET
         (ESCAPE escape=valueExpression)?                                             #arrayLike

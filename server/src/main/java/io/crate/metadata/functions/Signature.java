@@ -39,6 +39,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.common.collections.EnumSets;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Sets;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
@@ -202,6 +203,11 @@ public final class Signature implements Writeable, Accountable {
             return this;
         }
 
+        public Builder feature(Scalar.Feature feature) {
+            this.features = Sets.concat(this.features, feature);
+            return this;
+        }
+
         public Builder features(Set<Scalar.Feature> features) {
             this.features = features;
             return this;
@@ -351,6 +357,12 @@ public final class Signature implements Writeable, Accountable {
     public Signature withForbiddenCoercion() {
         return Signature.builder(this)
             .forbidCoercion()
+            .build();
+    }
+
+    public Signature withFeature(Scalar.Feature feature) {
+        return Signature.builder(this)
+            .feature(feature)
             .build();
     }
 

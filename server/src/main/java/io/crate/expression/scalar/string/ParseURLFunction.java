@@ -54,7 +54,7 @@ public final class ParseURLFunction extends Scalar<Object, String> {
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             ParseURLFunction::new
         );
     }

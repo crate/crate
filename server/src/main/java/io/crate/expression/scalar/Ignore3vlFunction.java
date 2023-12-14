@@ -54,7 +54,7 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
         NAME,
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
-    );
+    ).withFeature(Feature.NON_NULLABLE);
 
     public static void register(ScalarFunctionModule module) {
         module.register(

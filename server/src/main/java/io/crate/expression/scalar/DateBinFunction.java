@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import java.util.EnumSet;
 import java.util.List;
 
 import org.joda.time.Period;
@@ -47,7 +48,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMPZ.getTypeSignature(), // source
                 DataTypes.TIMESTAMPZ.getTypeSignature(), // origin
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+            ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE)),
             DateBinFunction::new);
 
         module.register(
@@ -57,7 +58,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMP.getTypeSignature(), // source
                 DataTypes.TIMESTAMP.getTypeSignature(), // origin
                 DataTypes.TIMESTAMP.getTypeSignature()
-            ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+            ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE)),
             DateBinFunction::new);
     }
 

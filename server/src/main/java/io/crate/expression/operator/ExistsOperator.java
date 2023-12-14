@@ -37,10 +37,11 @@ public class ExistsOperator extends Operator<List<Object>> {
 
     public static void register(OperatorModule module) {
         Signature signature = Signature.scalar(
-            NAME,
-            TypeSignature.parse("array(E)"),
-            Operator.RETURN_TYPE.getTypeSignature()
-        ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"));
+                NAME,
+                TypeSignature.parse("array(E)"),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+            .withFeature(Feature.NULLABLE);
         module.register(signature, ExistsOperator::new);
     }
 

@@ -55,16 +55,17 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
             Signature.scalar(
                 "null_or_empty",
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ),
+                DataTypes.BOOLEAN.getTypeSignature())
+                .withFeature(Feature.NON_NULLABLE),
             NullOrEmptyFunction::new
         );
         module.register(
             Signature.scalar(
-                "null_or_empty",
-                TypeSignature.parse("array(E)"),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("E")),
+                    "null_or_empty",
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.BOOLEAN.getTypeSignature()
+                ).withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("E"))
+                .withFeature(Feature.NON_NULLABLE),
             NullOrEmptyFunction::new
         );
     }

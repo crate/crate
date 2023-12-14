@@ -22,6 +22,8 @@
 
 package io.crate.expression.scalar.postgres;
 
+import java.util.EnumSet;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
@@ -43,7 +45,7 @@ public final class PgPostmasterStartTime extends Scalar<Long, Void> {
             Signature.scalar(
                 FQN,
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             PgPostmasterStartTime::new
         );
     }

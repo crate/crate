@@ -41,7 +41,7 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
             Signature.scalar(
                 FQN,
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.NON_NULLABLE),
             CurrentDatabaseFunction::new
         );
     }

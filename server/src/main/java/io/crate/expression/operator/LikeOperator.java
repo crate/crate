@@ -25,11 +25,14 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -41,16 +44,51 @@ import io.crate.role.RoleLookup;
 
 public class LikeOperator extends Operator<String> {
 
-    private final TriPredicate<String, String, CaseSensitivity> matcher;
+    private final FourPredicate<String, String, Character, CaseSensitivity> matcher;
     private final CaseSensitivity caseSensitivity;
+
+    private final java.util.function.Function<Input<String>[], Character> escapeFromInputs;
+    private final java.util.function.Function<List<Symbol>, Character> escapeFromSymbols;
+
+    private final int evaluateArgsCount;
 
     public LikeOperator(Signature signature,
                         BoundSignature boundSignature,
-                        TriPredicate<String, String, CaseSensitivity> matcher,
+                        FourPredicate<String, String, Character, CaseSensitivity> matcher,
                         CaseSensitivity caseSensitivity) {
         super(signature, boundSignature);
         this.matcher = matcher;
         this.caseSensitivity = caseSensitivity;
+        this.evaluateArgsCount = signature.getArgumentDataTypes().size();
+        if (signature.getArgumentDataTypes().size() == 3) {
+            escapeFromInputs = inputs -> validateAndGetEscape(inputs[2]);
+            escapeFromSymbols = symbols -> {
+                Symbol escape = symbols.get(2);
+                assert escape instanceof Literal<?> : "Escape character must be a literal";
+                return validateAndGetEscape((Literal<?>) escape);
+            };
+        } else {
+            // BWC branch for pre-5.6 signature without ESCAPE.
+            escapeFromInputs = (ignored) -> LikeOperators.DEFAULT_ESCAPE;
+            escapeFromSymbols = (ignored) -> LikeOperators.DEFAULT_ESCAPE;
+        }
+    }
+
+
+    /**
+     * @return escape character.
+     * NULL indicates disabled escaping.
+     */
+    @Nullable
+    private static Character validateAndGetEscape(Input<?> escapeInput) {
+        String value = (String) escapeInput.value();
+        if (value.length() > 1) {
+            throw new IllegalArgumentException("ESCAPE must be a single character");
+        }
+        if (value.isEmpty()) {
+            return null;
+        }
+        return value.charAt(0);
     }
 
     @Override
@@ -61,7 +99,8 @@ public class LikeOperator extends Operator<String> {
             if (value == null) {
                 return this;
             }
-            return new CompiledLike(signature, boundSignature, (String) value, caseSensitivity);
+            Character escapeChar = escapeFromSymbols.apply(arguments);
+            return new CompiledLike(signature, boundSignature, (String) value, escapeChar, caseSensitivity);
         }
         return super.compile(arguments, userName, userLookup);
     }
@@ -69,30 +108,47 @@ public class LikeOperator extends Operator<String> {
     @Override
     public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>... args) {
         assert args != null : "args must not be null";
-        assert args.length == 2 : "number of args must be 2";
+        assert args.length == evaluateArgsCount : "number of args must be " + evaluateArgsCount;
 
         String expression = args[0].value();
         String pattern = args[1].value();
         if (expression == null || pattern == null) {
             return null;
         }
-        return matcher.test(expression, pattern, caseSensitivity);
+        Character escapeChar = escapeFromInputs.apply(args);
+        return matcher.test(expression, pattern, escapeChar, caseSensitivity);
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal) {
-        Object value = literal.value();
-        assert value instanceof String
-            : "LikeOperator is registered for string types. Value must be a string";
-        return caseSensitivity.likeQuery(ref.storageIdent(), (String) value, ref.indexType() != IndexType.NONE);
+    @Nullable
+    public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
+        List<Symbol> args = function.arguments();
+        if (args.get(0) instanceof Reference ref
+            && args.get(1) instanceof Literal<?> patternLiteral
+        ) {
+            Object value = patternLiteral.value();
+            assert value instanceof String
+                : "LikeOperator is registered for string types. Value must be a string";
+            Character escapeChar = escapeFromSymbols.apply(args);
+            return caseSensitivity.likeQuery(ref.storageIdent(),
+                (String) value,
+                escapeChar,
+                ref.indexType() != IndexType.NONE
+            );
+        }
+        return null;
     }
 
     private static class CompiledLike extends Scalar<Boolean, String> {
         private final Pattern pattern;
 
-        CompiledLike(Signature signature, BoundSignature boundSignature, String pattern, CaseSensitivity caseSensitivity) {
+        CompiledLike(Signature signature,
+                     BoundSignature boundSignature,
+                     String pattern,
+                     Character escapeChar,
+                     CaseSensitivity caseSensitivity) {
             super(signature, boundSignature);
-            this.pattern = LikeOperators.makePattern(pattern, caseSensitivity);
+            this.pattern = LikeOperators.makePattern(pattern, caseSensitivity, escapeChar);
         }
 
         @SafeVarargs

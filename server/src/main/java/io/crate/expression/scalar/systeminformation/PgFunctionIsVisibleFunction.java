@@ -40,7 +40,7 @@ public final class PgFunctionIsVisibleFunction extends Scalar<Boolean, Integer> 
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
-            ),
+            ).withFeature(Feature.NULLABLE),
             PgFunctionIsVisibleFunction::new);
     }
 
