@@ -78,6 +78,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
                " text_no_index text index off storage with (columnstore = false)," +
                " x integer not null," +
                " x_no_docvalues int storage with (columnstore = false)," +
+               " y integer," +
                " f float," +
                " d double," +
                " obj object as (" +
