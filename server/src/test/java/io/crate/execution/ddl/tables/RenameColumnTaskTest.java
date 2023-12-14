@@ -66,7 +66,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             Reference refToRename = tbl.getReference(new ColumnIdent("x"));
             var newName = new ColumnIdent("y");
             var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
@@ -93,7 +94,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             Reference refToRename1 = tbl.getReference(new ColumnIdent("o"));
             var newName1 = new ColumnIdent("p");
             var request = new RenameColumnRequest(tbl.ident(), refToRename1, newName1);
@@ -129,11 +131,13 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "tbl"), List.of("3", "4")).asIndexName())
             .build();
         DocTableInfo tbl = e.resolveTableInfo("doc.tbl");
-        var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> MapperTestUtils.newMapperService(
+        var renameColumnTask = new AlterTableTask<>(e.nodeCtx, imd -> MapperTestUtils.newMapperService(
             new NamedXContentRegistry(ClusterModule.getNamedXWriteables()),
             createTempDir(),
             Settings.EMPTY,
-            "doc.tbl"));
+            "doc.tbl"),
+            tbl.ident(),
+            TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
         Reference refToRename = tbl.getReference(new ColumnIdent("x"));
         var newName = new ColumnIdent("y");
         var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
@@ -172,7 +176,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             Reference refToRename = tbl.getReference(new ColumnIdent("o", List.of("o2")));
             var newName = new ColumnIdent("o", List.of("p2"));
             var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
@@ -201,7 +206,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             Reference refToRename = tbl.getReference(new ColumnIdent("o", List.of("a")));
             var newName = new ColumnIdent("o", List.of("b"));
             var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
@@ -234,7 +240,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             Reference refToRename = tbl.getReference(new ColumnIdent("o"));
             var newName = new ColumnIdent("o2");
             var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
@@ -258,7 +265,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             Reference refToRename = tbl.getReference(new ColumnIdent("a"));
             var newName = new ColumnIdent("b");
             var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
@@ -280,7 +288,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             SimpleReference refToRename = new SimpleReference(
                 new ReferenceIdent(tbl.ident(), "a"),
                 RowGranularity.DOC,
@@ -315,7 +324,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             Reference refToRename = tbl.getReference(new ColumnIdent("x"));
             var newName = new ColumnIdent("y");
             var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
@@ -337,7 +347,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var renameColumnTask = new RenameColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var renameColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
             Reference refToRename = tbl.getReference(new ColumnIdent("x"));
             var newName = new ColumnIdent("x2");
             var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
