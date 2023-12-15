@@ -89,7 +89,7 @@ public class UserActionsTest extends ESTestCase {
     @Test
     public void testInvalidPasswordProperty() throws Exception {
         GenericProperties<Symbol> properties = new GenericProperties<>(Map.of("invalid", Literal.of("password")));
-        assertThatThrownBy( () -> UserActions.generateSecureHash(properties, Row.EMPTY, txnCtx, NODE_CTX))
+        assertThatThrownBy(() -> UserActions.generateSecureHash(properties, Row.EMPTY, txnCtx, NODE_CTX))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("\"invalid\" is not a valid user property");
     }

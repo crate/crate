@@ -311,12 +311,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                 Arrays.asList(insertColumns)
         );
         assertThat(updateToInsert.columns())
-                .as("Start References of columns() must match insertColumns")
-                .satisfiesExactly(
-                        x -> assertThat(x).isReference().hasName("z"),
-                        x -> assertThat(x).isReference().hasName("x"),
-                        x -> assertThat(x).isReference().hasName("y")
-                );
+            .as("Start References of columns() must match insertColumns")
+            .satisfiesExactly(
+                    x -> assertThat(x).isReference().hasName("z"),
+                    x -> assertThat(x).isReference().hasName("x"),
+                    x -> assertThat(x).isReference().hasName("y")
+            );
 
         Map<String, Object> source = Map.of("x", 1, "y", Map.of("a", 2), "z", 3);
         String id = UUIDs.randomBase64UUID();
@@ -327,7 +327,6 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] { Literal.of(3) }
         );
         assertThat(item.insertValues()).containsExactly(3, 1, Map.of("a", 20));
-
     }
 
     @Test

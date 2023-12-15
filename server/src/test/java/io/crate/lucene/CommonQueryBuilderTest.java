@@ -711,6 +711,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(tester.runQuery("a", "a != any(['s'])")).containsExactly("t");
         }
     }
+
     @Test
     public void test_eq_object_with_undefined_key() {
         Query query = convert("obj = {x=1, y=2, z=3}"); // z undefined
