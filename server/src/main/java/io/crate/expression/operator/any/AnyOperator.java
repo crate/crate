@@ -95,11 +95,12 @@ public abstract sealed class AnyOperator extends Operator<Object>
     private static void reg(OperatorModule module, String name, FunctionFactory operatorFactory) {
         module.register(
             Signature.scalar(
-                name,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)"),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
+                    name,
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("array(E)"),
+                    Operator.RETURN_TYPE.getTypeSignature()
+                ).withFeature(Feature.NULLABLE)
+                .withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
             operatorFactory
         );
     }
