@@ -10,15 +10,26 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-clean-plugin</artifactId>
         <version>${versions.plugin.clean}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${versions.plugin.resources}</version>
       </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${versions.plugin.compiler}</version>
         <configuration>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>${versions.plugin.install}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${versions.plugin.jar}</version>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -244,7 +255,10 @@
 
     <!-- Maven Plugins -->
     <versions.plugin.clean>3.3.2</versions.plugin.clean>
+    <versions.plugin.resources>3.3.1</versions.plugin.resources>
+    <versions.plugin.install>3.1.1</versions.plugin.install>
     <versions.plugin.compiler>3.11.0</versions.plugin.compiler>
+    <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.2.2</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.3.1</versions.plugin.checkstyle>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
