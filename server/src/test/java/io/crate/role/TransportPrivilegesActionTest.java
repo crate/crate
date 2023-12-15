@@ -35,18 +35,18 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.RolesHelper;
+import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportPrivilegesActionTest extends ESTestCase {
 
     private static final Privilege GRANT_DQL =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege GRANT_DML =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege DENY_DQL =
-        new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
 
     @Test

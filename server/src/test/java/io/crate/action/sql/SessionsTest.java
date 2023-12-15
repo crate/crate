@@ -49,14 +49,14 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
+import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.role.Privilege;
-import io.crate.role.Privilege.State;
-import io.crate.role.Role;
-import io.crate.role.Roles;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -102,7 +102,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(sessions.getCursors(Role.CRATE_USER)).hasSize(2);
 
         var ALprivilege = new Privilege(
-            State.GRANT,
+            PrivilegeState.GRANT,
             Privilege.Type.AL,
             Privilege.Clazz.CLUSTER,
             null,

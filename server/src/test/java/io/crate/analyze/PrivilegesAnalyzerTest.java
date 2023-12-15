@@ -25,13 +25,13 @@ import static io.crate.role.Privilege.Clazz.CLUSTER;
 import static io.crate.role.Privilege.Clazz.SCHEMA;
 import static io.crate.role.Privilege.Clazz.TABLE;
 import static io.crate.role.Privilege.Clazz.VIEW;
-import static io.crate.role.Privilege.State.DENY;
-import static io.crate.role.Privilege.State.GRANT;
-import static io.crate.role.Privilege.State.REVOKE;
 import static io.crate.role.Privilege.Type.AL;
 import static io.crate.role.Privilege.Type.DDL;
 import static io.crate.role.Privilege.Type.DML;
 import static io.crate.role.Privilege.Type.DQL;
+import static io.crate.role.PrivilegeState.DENY;
+import static io.crate.role.PrivilegeState.GRANT;
+import static io.crate.role.PrivilegeState.REVOKE;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -43,6 +43,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.StubRoleManager;
@@ -349,7 +350,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
     }
 
-    private Privilege privilegeOf(Privilege.State state, Privilege.Type type, Privilege.Clazz clazz, String ident) {
+    private Privilege privilegeOf(PrivilegeState state, Privilege.Type type, Privilege.Clazz clazz, String ident) {
         return new Privilege(state,
             type,
             clazz,

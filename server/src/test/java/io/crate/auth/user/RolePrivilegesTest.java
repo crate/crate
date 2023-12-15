@@ -31,20 +31,21 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
 import io.crate.role.RolePrivileges;
 
 public class RolePrivilegesTest extends ESTestCase {
 
     private static final Collection<Privilege> PRIVILEGES_CLUSTER_DQL = Set.of(
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")
     );
 
     private static final Collection<Privilege> PRIVILEGES_SCHEMA_DQL = Set.of(
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate")
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate")
     );
 
     private static final Collection<Privilege> PRIVILEGES_TABLE_DQL = Set.of(
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1", "crate")
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1", "crate")
     );
 
     private static final RolePrivileges USER_PRIVILEGES_CLUSTER = new RolePrivileges(PRIVILEGES_CLUSTER_DQL);
@@ -100,7 +101,7 @@ public class RolePrivilegesTest extends ESTestCase {
     @Test
     public void testMatchPrivilegeDenyResultsInNoMatch() throws Exception {
         Collection<Privilege> privileges = Set.of(
-            new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")
+            new Privilege(PrivilegeState.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")
         );
         RolePrivileges rolePrivileges = new RolePrivileges(privileges);
         assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null)).isFalse();
@@ -114,9 +115,9 @@ public class RolePrivilegesTest extends ESTestCase {
     @Test
     public void testMatchPrivilegeComplexSetIncludingDeny() throws Exception {
         Collection<Privilege> privileges = Set.of(
-            new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
-            new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate"),
-            new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1", "crate")
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeState.DENY, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate"),
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1", "crate")
         );
         RolePrivileges rolePrivileges = new RolePrivileges(privileges);
         assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isTrue();

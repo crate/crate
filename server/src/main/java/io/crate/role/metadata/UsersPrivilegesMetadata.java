@@ -44,8 +44,8 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.RelationName;
 import io.crate.role.Privilege;
-import io.crate.role.Privilege.State;
 import io.crate.role.PrivilegeIdent;
+import io.crate.role.PrivilegeState;
 
 public class UsersPrivilegesMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -176,7 +176,7 @@ public class UsersPrivilegesMetadata extends AbstractNamedDiffable<Metadata.Cust
                 PrivilegeIdent privilegeIdent = userPrivilege.ident();
                 if (privilegeIdent.equals(newPrivilege.ident())) {
                     userHadPrivilegeOnSameObject = true;
-                    if (newPrivilege.state().equals(State.REVOKE)) {
+                    if (newPrivilege.state().equals(PrivilegeState.REVOKE)) {
                         iterator.remove();
                         affectedCount++;
                         break;
@@ -192,7 +192,7 @@ public class UsersPrivilegesMetadata extends AbstractNamedDiffable<Metadata.Cust
                 }
             }
 
-            if (userHadPrivilegeOnSameObject == false && newPrivilege.state().equals(State.REVOKE) == false) {
+            if (userHadPrivilegeOnSameObject == false && newPrivilege.state().equals(PrivilegeState.REVOKE) == false) {
                 // revoking a privilege that was not granted is a no-op
                 affectedCount++;
                 userPrivileges.add(newPrivilege);
@@ -326,7 +326,7 @@ public class UsersPrivilegesMetadata extends AbstractNamedDiffable<Metadata.Cust
 
     private static void privilegeFromXContent(XContentParser parser, Set<Privilege> privileges) throws IOException {
         XContentParser.Token currentToken;
-        State state = null;
+        PrivilegeState state = null;
         Privilege.Type type = null;
         Privilege.Clazz clazz = null;
         String ident = null;
@@ -341,7 +341,7 @@ public class UsersPrivilegesMetadata extends AbstractNamedDiffable<Metadata.Cust
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'state' value is not a number [{}]", currentToken);
                         }
-                        state = State.values()[parser.intValue()];
+                        state = PrivilegeState.values()[parser.intValue()];
                         break;
                     case "type":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {

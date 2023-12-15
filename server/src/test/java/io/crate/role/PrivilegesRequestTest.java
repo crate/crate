@@ -35,11 +35,11 @@ public class PrivilegesRequestTest extends ESTestCase {
     public void testStreaming() throws Exception {
         List<String> users = List.of("ford", "arthur");
         List<Privilege> privileges = List.of(
-            new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
-            new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate"),
-            new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, null, "crate"),
-            new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, null, "crate"),
-            new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, null, "crate")
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, null, "crate"),
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, null, "crate"),
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, null, "crate")
         );
         PrivilegesRequest r1 = new PrivilegesRequest(users, privileges);
 
