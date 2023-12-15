@@ -123,7 +123,7 @@ public class AverageAggregationTest extends AggregationTestCase {
         }
 
         //AverageAggregation returns double
-       assertThat((double) executeAvgAgg(DataTypes.FLOAT, data))
+        assertThat((double) executeAvgAgg(DataTypes.FLOAT, data))
             .isEqualTo(10000.1d, Offset.offset(0.1d));
     }
 

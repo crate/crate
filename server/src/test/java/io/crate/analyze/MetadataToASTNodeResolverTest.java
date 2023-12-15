@@ -534,6 +534,7 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
             Matchers.containsString("\"g\" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))")
         );
     }
+
     @Test
     public void test_geo_shape_array_index_definition_is_preserved_in_cluster_state() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)

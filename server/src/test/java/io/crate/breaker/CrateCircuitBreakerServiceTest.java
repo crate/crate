@@ -113,7 +113,7 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testStats() throws Exception {
-        try(CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
+        try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             Settings.EMPTY, clusterService.getClusterSettings()
         )) {
             CircuitBreakerStats queryBreakerStats = breakerService.stats(HierarchyCircuitBreakerService.QUERY);

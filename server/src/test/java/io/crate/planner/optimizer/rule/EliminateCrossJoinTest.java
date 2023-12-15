@@ -23,7 +23,6 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -524,10 +523,10 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(b, a));
         assertThat(reordered).hasOperators(
-          "Filter[(x > 1)]",
-              "  └ Join[INNER | (x = y)]",
-              "    ├ Collect[doc.b | [y] | true]",
-              "    └ Collect[doc.a | [x] | true]"
+            "Filter[(x > 1)]",
+            "  └ Join[INNER | (x = y)]",
+            "    ├ Collect[doc.b | [y] | true]",
+            "    └ Collect[doc.a | [x] | true]"
         );
     }
 }

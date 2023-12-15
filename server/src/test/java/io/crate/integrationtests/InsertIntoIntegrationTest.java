@@ -1976,7 +1976,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             INSERT INTO tbl (real_id, \"date\", value) VALUES (6, '2030-11-15 12:13:13', 99999)
             ON CONFLICT (real_id, \"date\", year)
             DO UPDATE SET value = excluded.value
-        """);
+            """);
         execute("refresh table tbl");
         execute("select year, value from tbl");
         assertThat(response).hasRows(
@@ -1986,7 +1986,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             INSERT INTO tbl (real_id, \"date\", value) VALUES (6, '2030-11-15 12:13:13', 99998)
             ON CONFLICT (real_id, \"date\", year)
             DO UPDATE SET value = excluded.value
-        """);
+            """);
         execute("refresh table tbl");
         execute("select year, value from tbl");
         assertThat(response).hasRows(

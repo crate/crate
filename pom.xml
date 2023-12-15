@@ -59,6 +59,7 @@
           <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
           <consoleOutput>true</consoleOutput>
           <failsOnError>true</failsOnError>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
           <includeTestResources>false</includeTestResources>
           <linkXRef>false</linkXRef>
         </configuration>

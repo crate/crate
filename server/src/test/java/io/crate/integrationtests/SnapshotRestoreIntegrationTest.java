@@ -946,7 +946,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("select partition_ident from information_schema.table_partitions " +
             "where table_name = 'my_table_1_single_partition'");
         assertThat(response).hasRowCount(1);
-        assertThat(response).hasRows( "04130");
+        assertThat(response).hasRows("04130");
     }
 
 
