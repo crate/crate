@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.role.Privilege;
 import io.crate.expression.symbol.Symbol;
+import io.crate.role.RolePrivilege;
 
 import java.util.List;
 import java.util.Set;
@@ -32,10 +33,23 @@ public class AnalyzedPrivileges implements DCLStatement {
 
     private final List<String> userNames;
     private final Set<Privilege> privileges;
+    private final RolePrivilege rolePrivilege;
 
-    AnalyzedPrivileges(List<String> userNames, Set<Privilege> privileges) {
+    private AnalyzedPrivileges(List<String> userNames, Set<Privilege> privileges, RolePrivilege rolePrivilege) {
         this.userNames = userNames;
         this.privileges = privileges;
+        this.rolePrivilege = rolePrivilege;
+        assert (privileges.isEmpty() && rolePrivilege != null) ||
+            (rolePrivilege == null && privileges.isEmpty() == false) :
+            "privileges and rolePrivileges cannot be set together";
+    }
+
+    public static AnalyzedPrivileges ofPrivileges(List<String> userNames, Set<Privilege> privileges) {
+        return new AnalyzedPrivileges(userNames, privileges, null);
+    }
+
+    public static AnalyzedPrivileges ofRolePrivileges(List<String> userNames, RolePrivilege rolePrivilege) {
+        return new AnalyzedPrivileges(userNames, Set.of(), rolePrivilege);
     }
 
     @Override
@@ -49,6 +63,10 @@ public class AnalyzedPrivileges implements DCLStatement {
 
     public Set<Privilege> privileges() {
         return privileges;
+    }
+
+    public RolePrivilege rolePrivilege() {
+        return rolePrivilege;
     }
 
     @Override

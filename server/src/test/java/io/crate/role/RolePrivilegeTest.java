@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,33 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.role;
 
-import java.util.List;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Set;
 
-public final class GrantPrivilege extends PrivilegeStatement {
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Test;
 
-    public GrantPrivilege(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, clazz, tableOrSchemaNames);
-    }
+public class RolePrivilegeTest {
 
-    public GrantPrivilege(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, privilegeTypes, clazz, tableOrSchemaNames);
-    }
+    @Test
+    public void test_role_privilege_trip() throws Exception {
+        var out = new BytesStreamOutput();
+        var rolePrivilege = new RolePrivilege(PrivilegeState.GRANT, Set.of("role1", "role2", "role3"), "admin");
+        rolePrivilege.writeTo(out);
 
+        var in = out.bytes().streamInput();
+        var rolePrivilegeFromStream = new RolePrivilege(in);
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitGrantPrivilege(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return "GrantPrivilege{" +
-               "allPrivileges=" + all +
-               "privilegeTypes=" + privilegeTypes +
-               ", userNames=" + userNames +
-               '}';
+        assertThat(rolePrivilegeFromStream).isEqualTo(rolePrivilege);
     }
 }
