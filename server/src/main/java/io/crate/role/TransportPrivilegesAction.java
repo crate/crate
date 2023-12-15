@@ -114,24 +114,24 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @VisibleForTesting
-    static List<String> validateRoleNames(RolesMetadata rolesMetadata, Collection<String> userNames) {
+    static List<String> validateRoleNames(RolesMetadata rolesMetadata, Collection<String> roleNames) {
         if (rolesMetadata == null) {
-            return new ArrayList<>(userNames);
+            return new ArrayList<>(roleNames);
         }
-        List<String> unknownUserNames = null;
-        for (String userName : userNames) {
+        List<String> unknownRoleNames = null;
+        for (String roleName : roleNames) {
             //noinspection PointlessBooleanExpression
-            if (rolesMetadata.roleNames().contains(userName) == false) {
-                if (unknownUserNames == null) {
-                    unknownUserNames = new ArrayList<>();
+            if (rolesMetadata.roleNames().contains(roleName) == false) {
+                if (unknownRoleNames == null) {
+                    unknownRoleNames = new ArrayList<>();
                 }
-                unknownUserNames.add(userName);
+                unknownRoleNames.add(roleName);
             }
         }
-        if (unknownUserNames == null) {
+        if (unknownRoleNames == null) {
             return Collections.emptyList();
         }
-        return unknownUserNames;
+        return unknownRoleNames;
     }
 
     @VisibleForTesting
@@ -143,10 +143,15 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         RolesMetadata newMetadata = RolesMetadata.of(
             mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
 
-        List<String> unknownRoleNames = validateRoleNames(newMetadata, request.userNames());
+        List<String> unknownRoleNames = validateRoleNames(newMetadata, request.roleNames());
         long affectedRows = -1;
         if (unknownRoleNames.isEmpty()) {
-            affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.userNames(), request.privileges());
+            if (request.privileges().isEmpty() == false) {
+                affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.roleNames(), request.privileges());
+            } else {
+                affectedRows = newMetadata.applyPrivileges(request.roleNames(), request.rolePrivilege());
+                mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
+            }
         }
 
         if (newMetadata.equals(oldRolesMetadata) == false) {

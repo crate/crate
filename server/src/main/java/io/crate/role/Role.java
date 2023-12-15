@@ -23,6 +23,7 @@ package io.crate.role;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Objects;
@@ -41,6 +42,7 @@ public class Role implements Writeable, ToXContent {
 
     public static final Role CRATE_USER = new Role("crate",
         true,
+        Set.of(),
         Set.of(),
         null,
         EnumSet.of(UserRole.SUPERUSER));
@@ -94,6 +96,7 @@ public class Role implements Writeable, ToXContent {
 
     private final String name;
     private final RolePrivileges privileges;
+    private final Set<GrantedRole> grantedRoles;
     private final Set<UserRole> userRoles;
 
     private final Properties properties;
@@ -101,22 +104,32 @@ public class Role implements Writeable, ToXContent {
     public Role(String name,
                 boolean login,
                 Set<Privilege> privileges,
+                Set<GrantedRole> grantedRoles,
                 @Nullable SecureHash password,
                 Set<UserRole> userRoles) {
-        this(name, privileges, userRoles, new Properties(login, password));
+        this(name, privileges, grantedRoles, userRoles, new Properties(login, password));
     }
 
-    public Role(String name, Set<Privilege> privileges, Set<UserRole> userRoles, Properties properties) {
-        this(name, new RolePrivileges(privileges), userRoles, properties);
+    public Role(String name,
+                Set<Privilege> privileges,
+                Set<GrantedRole> grantedRoles,
+                Set<UserRole> userRoles,
+                Properties properties) {
+        this(name, new RolePrivileges(privileges), grantedRoles, userRoles, properties);
     }
 
-    public Role(String name, RolePrivileges privileges, Set<UserRole> userRoles, Properties properties) {
+    public Role(String name,
+                RolePrivileges privileges,
+                Set<GrantedRole> grantedRoles,
+                Set<UserRole> userRoles,
+                Properties properties) {
         if (properties.login == false) {
             assert properties.password == null : "Cannot create a Role with password";
             assert userRoles.isEmpty() : "Cannot create a Role with UserRoles";
         }
         this.name = name;
         this.privileges = privileges;
+        this.grantedRoles = Collections.unmodifiableSet(grantedRoles);
         this.userRoles = userRoles;
         this.properties = properties;
     }
@@ -129,17 +142,23 @@ public class Role implements Writeable, ToXContent {
             privilegesList.add(new Privilege(in));
         }
         privileges = new RolePrivileges(privilegesList);
+        int grantedRolesSize = in.readVInt();
+        Set<GrantedRole> grantedRoleSet = HashSet.newHashSet(grantedRolesSize);
+        for (int i = 0; i < grantedRolesSize; i++) {
+            grantedRoleSet.add(new GrantedRole(in));
+        }
+        grantedRoles = Collections.unmodifiableSet(grantedRoleSet);
         userRoles = Set.of();
         properties = new Properties(in);
 
     }
 
     public Role with(Set<Privilege> privileges) {
-        return new Role(name, privileges, userRoles, properties);
+        return new Role(name, privileges, grantedRoles, userRoles, properties);
     }
 
     public Role with(SecureHash password) {
-        return new Role(name, privileges, userRoles, new Properties(properties.login, password));
+        return new Role(name, privileges, grantedRoles, userRoles, new Properties(properties.login, password));
     }
 
 
@@ -164,6 +183,18 @@ public class Role implements Writeable, ToXContent {
         return privileges;
     }
 
+    public Set<GrantedRole> grantedRoles() {
+        return grantedRoles;
+    }
+
+    public Set<String> grantedRoleNames() {
+        Set<String> grantedRoleNames = HashSet.newHashSet(grantedRoles().size());
+        for (GrantedRole grantedRole : grantedRoles) {
+            grantedRoleNames.add(grantedRole.roleName());
+        }
+        return grantedRoleNames;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -171,13 +202,14 @@ public class Role implements Writeable, ToXContent {
         Role that = (Role) o;
         return Objects.equals(name, that.name) &&
                Objects.equals(privileges, that.privileges) &&
+               Objects.equals(grantedRoles, that.grantedRoles) &&
                Objects.equals(userRoles, that.userRoles) &&
                Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, privileges, properties, userRoles);
+        return Objects.hash(name, privileges, grantedRoles, properties, userRoles);
     }
 
     @Override
@@ -192,6 +224,7 @@ public class Role implements Writeable, ToXContent {
         for (var privilege : privileges) {
             privilege.writeTo(out);
         }
+        out.writeCollection(grantedRoles);
         properties.writeTo(out);
     }
 
@@ -202,6 +235,12 @@ public class Role implements Writeable, ToXContent {
         builder.startArray("privileges");
         for (Privilege privilege : privileges) {
             privilege.toXContent(builder, params);
+        }
+        builder.endArray();
+
+        builder.startArray("granted_roles");
+        for (var grantedRole : grantedRoles) {
+            grantedRole.toXContent(builder, params);
         }
         builder.endArray();
 
@@ -221,6 +260,7 @@ public class Role implements Writeable, ToXContent {
      *       {"state": 1, "type": 2, "class": 3, "ident": "some_table", "grantor": "grantor_username"},
      *       ...
      *     ],
+     *     "granted_roles: [{"role1", "grantor1"}, {"role2", "grantor2"}],
      *     "properties" {
      *       "login" : true,
      *       "secure_hash": {
@@ -241,6 +281,7 @@ public class Role implements Writeable, ToXContent {
         String roleName = parser.currentName();
         Properties properties = null;
         Set<Privilege> privileges = new HashSet<>();
+        Set<GrantedRole> grantedRoles = new HashSet<>();
 
         if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
             while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
@@ -268,6 +309,16 @@ public class Role implements Writeable, ToXContent {
                             privileges.add(Privilege.fromXContent(parser));
                         }
                         break;
+                    case "granted_roles":
+                        if (parser.nextToken() != XContentParser.Token.START_ARRAY) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse a role, expected an array token for granted_roles, got: " + parser.currentToken()
+                            );
+                        }
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            grantedRoles.add(GrantedRole.fromXContent(parser));
+                        }
+                        break;
                     default:
                         throw new ElasticsearchParseException(
                                 "failed to parse a Role, unexpected field name: " + parser.currentName()
@@ -283,6 +334,11 @@ public class Role implements Writeable, ToXContent {
         if (properties == null) {
             throw new ElasticsearchParseException("failed to parse role properties, not found");
         }
-        return new Role(roleName, privileges, Set.of(), properties);
+        return new Role(
+            roleName,
+            privileges,
+            grantedRoles,
+            Set.of(),
+            properties);
     }
 }

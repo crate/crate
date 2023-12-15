@@ -205,7 +205,7 @@ public final class SecureHash implements Writeable, ToXContent {
 
     @Override
     public int hashCode() {
-        return Objects.hash(iterations, salt, hash);
+        return Objects.hash(iterations, Arrays.hashCode(salt), Arrays.hashCode(hash));
     }
 
     @Override

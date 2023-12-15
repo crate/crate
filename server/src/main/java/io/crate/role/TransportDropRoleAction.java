@@ -22,6 +22,7 @@
 package io.crate.role;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Locale;
 
 import org.elasticsearch.Version;
@@ -136,7 +137,7 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
     }
 
     @VisibleForTesting
-    static boolean dropRole(Metadata.Builder mdBuilder, String roleName) {
+    static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         if (oldUsersMetadata == null && oldRolesMetadata == null) {
@@ -145,7 +146,8 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
 
         UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
-        var role = newMetadata.remove(roleName);
+        validateHasChildren(newMetadata.roles().values(), roleNameToDrop);
+        var role = newMetadata.remove(roleNameToDrop);
         if (role == null && newMetadata.equals(oldRolesMetadata)) {
             return false;
         }
@@ -154,5 +156,14 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
         mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
 
         return role != null;
+    }
+
+    private static void validateHasChildren(Collection<Role> roles, String roleNameToDrop) {
+        for (Role role : roles) {
+            if (role.grantedRoleNames().contains(roleNameToDrop)) {
+                throw new IllegalArgumentException(
+                    "Cannot drop ROLE: " + roleNameToDrop + " as it is granted on role: " + role.name());
+            }
+        }
     }
 }

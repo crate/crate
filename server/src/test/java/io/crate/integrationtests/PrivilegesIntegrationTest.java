@@ -35,10 +35,10 @@ import org.junit.Test;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.testing.Asserts;
-import io.crate.testing.SQLResponse;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.testing.Asserts;
+import io.crate.testing.SQLResponse;
 
 public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
@@ -84,8 +84,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @After
-    public void dropUsers() {
-        executeAsSuperuser("drop user " + TEST_USERNAME);
+    public void dropDbObjects() {
         executeAsSuperuser("drop view if exists v1, my_schema.v2, other_schema.v3");
     }
 
@@ -705,5 +704,22 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
                            " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname");
         String superUserResult = printedTable(response.rows());
         assertThat(newUserWithPrivilegesResult).isEqualTo(superUserResult);
+    }
+
+    @Test
+    public void test_create_user_as_regular_user_with_al_privileges_from_parent() throws Exception {
+        executeAsSuperuser("CREATE USER trillian");
+        assertUserIsCreated("trillian");
+        executeAsSuperuser("CREATE ROLE al_role");
+        assertRoleIsCreated("al_role");
+        executeAsSuperuser("GRANT al_role TO trillian");
+        Asserts.assertSQLError(() -> executeAs("CREATE ROLE test", "trillian"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(UNAUTHORIZED, 4011)
+            .hasMessageContaining("Missing 'AL' privilege for user 'trillian'");
+
+        executeAsSuperuser("GRANT AL TO al_role");
+        executeAs("CREATE ROLE test", "trillian");
+        assertRoleIsCreated("test");
     }
 }

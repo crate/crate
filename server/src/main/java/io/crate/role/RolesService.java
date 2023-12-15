@@ -24,6 +24,8 @@ package io.crate.role;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,7 +35,9 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.common.FourFunction;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -60,6 +64,11 @@ public class RolesService implements Roles, ClusterStateListener {
             return role;
         }
         return null;
+    }
+
+    @VisibleForTesting
+    protected Role findRole(String roleName) {
+        return roles.get(roleName);
     }
 
     @Override
@@ -97,11 +106,74 @@ public class RolesService implements Roles, ClusterStateListener {
                         privileges = oldPrivileges;
                     }
                 }
-                roles.put(userName, new Role(userName, true, privileges, password, Set.of()));
+                roles.put(userName, new Role(userName, true, privileges, Set.of(), password, Set.of()));
             }
         } else if (rolesMetadata != null) {
             roles.putAll(rolesMetadata.roles());
         }
         return Collections.unmodifiableMap(roles);
+    }
+
+    @Override
+    public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+        return hasPrivilege(user, type, clazz, ident, HAS_PRIVILEGE_FUNCTION);
+    }
+
+    @Override
+    public boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
+        return hasPrivilege(user, null, clazz, ident, HAS_ANY_PRIVILEGE_FUNCTION);
+    }
+
+    @Override
+    public boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
+        return user.isSuperUser() || hasPrivilege(user, type, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION);
+    }
+
+    private boolean hasPrivilege(Role role,
+                                 Privilege.Type type,
+                                 @Nullable Privilege.Clazz clazz,
+                                 @Nullable Object object,
+                                 FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> function) {
+        boolean hasPriv = role.isSuperUser() || function.apply(role, type, clazz, object);
+        if (hasPriv) {
+            return true;
+        }
+
+        Set<String> rolesVisited = new HashSet<>();
+        rolesVisited.add(role.name());
+        Set<String> rolesToVisit = new LinkedHashSet<>(role.grantedRoleNames());
+
+        var iter = rolesToVisit.iterator();
+        while (iter.hasNext()) {
+            String roleName = iter.next();
+            Set<String> result = hasPrivilegeOrParents(roleName, type, clazz, object, function);
+            if (result == null) {
+                return true;
+            }
+            rolesVisited.add(roleName);
+            result.removeAll(rolesVisited);
+            rolesToVisit = result;
+            iter = rolesToVisit.iterator();
+        }
+        return false;
+    }
+
+    /**
+     * @return null if privilege is resolved, or else the parents of the role
+     */
+    private Set<String> hasPrivilegeOrParents(
+        String roleName,
+        Privilege.Type type,
+        @Nullable Privilege.Clazz clazz,
+        @Nullable Object object,
+        FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> function) {
+
+        Role grantedRole = findRole(roleName);
+        assert grantedRole != null : "grantedRole must exist";
+        boolean hasPriv = function.apply(grantedRole, type, clazz, object);
+        if (hasPriv) {
+            return null;
+        }
+        return grantedRole.grantedRoleNames();
     }
 }

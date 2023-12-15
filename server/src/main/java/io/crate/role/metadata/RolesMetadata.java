@@ -23,8 +23,10 @@ package io.crate.role.metadata;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,9 +43,11 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.role.GrantedRole;
 import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
-import io.crate.role.SecureHash;
+import io.crate.role.RolePrivilegeToApply;
 
 public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -78,14 +82,10 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         RolesMetadata rolesMetadata = new RolesMetadata();
         for (var user : usersMetadata.users().entrySet()) {
             var userName = user.getKey();
-            var role = new Role(userName, true, getPrivileges.apply(userName), user.getValue(), Set.of());
+            var role = new Role(userName, true, getPrivileges.apply(userName), Set.of(), user.getValue(), Set.of());
             rolesMetadata.roles().put(userName, role);
         }
         return rolesMetadata;
-    }
-
-    public void put(String name, boolean isUser, SecureHash password) {
-        roles.put(name, new Role(name, isUser, Set.of(), password, Set.of()));
     }
 
     public boolean contains(String name) {
@@ -136,20 +136,15 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
      *
      * roles: {
      *   "role1": {
-     *     "properties" {
-     *       "login" : true,
-     *       "secure_hash": {
-     *         "iterations": INT,
-     *         "hash": BYTE[],
-     *         "salt": BYTE[]
-     *       }
-     *     }
+     *     ...
      *   },
      *   "role2": {
-     *     "properties" : {...},
+     *     ...
      *   },
      *   ...
      * }
+     *
+     * The format of each role can be found in {@link Role#fromXContent(XContentParser)}
      */
     public static RolesMetadata fromXContent(XContentParser parser) throws IOException {
         Map<String, Role> roles = new HashMap<>();
@@ -192,6 +187,48 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         return newMetadata;
     }
 
+    /**
+     * Applies the provided granted/revoked roles to the specified users.
+     *
+     * @return the number of affected role privileges
+     *         (doesn't count no-ops e.g.: granting a role to a user which already has)
+     */
+    public long applyPrivileges(Collection<String> userNames, RolePrivilegeToApply newRolePrivilegeToApply) {
+        long affectedPrivileges = 0L;
+        for (String userName : userNames) {
+            affectedPrivileges += applyRolePrivilegesToUser(userName, newRolePrivilegeToApply);
+        }
+        return affectedPrivileges;
+    }
+
+    private long applyRolePrivilegesToUser(String roleName, RolePrivilegeToApply newRolePrivilegeToApply) {
+        Role role = roles.get(roleName);
+
+        // Create a new set to avoid modifying in-place the granted roles as this will lead
+        // to no difference in previous and new metadata and thus cluster state
+        Set<GrantedRole> grantedRoles = new HashSet<>(role.grantedRoles());
+        long affectedCount = 0L;
+        for (var roleNameToApply : newRolePrivilegeToApply.roleNames()) {
+            if (roles.get(roleNameToApply).isUser()) {
+                throw new IllegalArgumentException("Cannot " + newRolePrivilegeToApply.state().name() + " a USER to a ROLE");
+            }
+            if (newRolePrivilegeToApply.state() == PrivilegeState.GRANT) {
+                if (grantedRoles.add(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
+                    roles.put(role.name(), new Role(
+                        role.name(), role.isUser(), Set.of(), grantedRoles, role.password(), Set.of()));
+                    affectedCount++;
+                }
+            } else if (newRolePrivilegeToApply.state() == PrivilegeState.REVOKE) {
+                if (grantedRoles.remove(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
+                    roles.put(role.name(), new Role(
+                        role.name(), role.isUser(), Set.of(), grantedRoles, role.password(), Set.of()));
+                    affectedCount++;
+                }
+            }
+        }
+        return affectedCount;
+    }
+
     @Override
     public EnumSet<Metadata.XContentContext> context() {
         return EnumSet.of(Metadata.XContentContext.GATEWAY, Metadata.XContentContext.SNAPSHOT);
@@ -203,7 +240,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         if (o == null || getClass() != o.getClass()) return false;
 
         RolesMetadata that = (RolesMetadata) o;
-        return roles.equals(that.roles);
+        return Objects.equals(roles, that.roles);
     }
 
     @Override

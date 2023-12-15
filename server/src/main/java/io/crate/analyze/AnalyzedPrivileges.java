@@ -21,26 +21,30 @@
 
 package io.crate.analyze;
 
-import io.crate.role.Privilege;
-import io.crate.expression.symbol.Symbol;
-import io.crate.role.RolePrivilege;
-
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.role.Privilege;
+import io.crate.role.RolePrivilegeToApply;
 
 public class AnalyzedPrivileges implements DCLStatement {
 
     private final List<String> userNames;
     private final Set<Privilege> privileges;
-    private final RolePrivilege rolePrivilege;
+    private final RolePrivilegeToApply rolePrivilegeToApply;
 
-    private AnalyzedPrivileges(List<String> userNames, Set<Privilege> privileges, RolePrivilege rolePrivilege) {
+    private AnalyzedPrivileges(List<String> userNames,
+                               Set<Privilege> privileges,
+                               @Nullable RolePrivilegeToApply rolePrivilegeToApply) {
         this.userNames = userNames;
         this.privileges = privileges;
-        this.rolePrivilege = rolePrivilege;
-        assert (privileges.isEmpty() && rolePrivilege != null) ||
-            (rolePrivilege == null && privileges.isEmpty() == false) :
+        this.rolePrivilegeToApply = rolePrivilegeToApply;
+        assert (privileges.isEmpty() && rolePrivilegeToApply != null) ||
+            (rolePrivilegeToApply == null && privileges.isEmpty() == false) :
             "privileges and rolePrivileges cannot be set together";
     }
 
@@ -48,8 +52,8 @@ public class AnalyzedPrivileges implements DCLStatement {
         return new AnalyzedPrivileges(userNames, privileges, null);
     }
 
-    public static AnalyzedPrivileges ofRolePrivileges(List<String> userNames, RolePrivilege rolePrivilege) {
-        return new AnalyzedPrivileges(userNames, Set.of(), rolePrivilege);
+    public static AnalyzedPrivileges ofRolePrivileges(List<String> userNames, RolePrivilegeToApply rolePrivilegeToApply) {
+        return new AnalyzedPrivileges(userNames, Set.of(), rolePrivilegeToApply);
     }
 
     @Override
@@ -65,8 +69,8 @@ public class AnalyzedPrivileges implements DCLStatement {
         return privileges;
     }
 
-    public RolePrivilege rolePrivilege() {
-        return rolePrivilege;
+    public RolePrivilegeToApply rolePrivilege() {
+        return rolePrivilegeToApply;
     }
 
     @Override
