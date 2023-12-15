@@ -79,7 +79,7 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
         }
 
         clusterService.submitStateUpdateTask("alter_role [" + request.roleName() + "]",
-                new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
+                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
 
                     private boolean roleExists = true;
 

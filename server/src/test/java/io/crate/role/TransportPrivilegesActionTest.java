@@ -59,7 +59,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         RolesMetadata initialRolesMetadata = new RolesMetadata(roles);
         mdBuilder.putCustom(RolesMetadata.TYPE, initialRolesMetadata);
         PrivilegesRequest denyPrivilegeRequest =
-            new PrivilegesRequest(Collections.singletonList("Ford"), Collections.singletonList(DENY_DQL));
+            new PrivilegesRequest(Collections.singletonList("Ford"), Collections.singletonList(DENY_DQL), null);
 
         //when
         TransportPrivilegesAction.applyPrivileges(mdBuilder, denyPrivilegeRequest);

@@ -27,7 +27,9 @@ import static io.crate.role.metadata.RolesHelper.SINGLE_USER_ONLY;
 import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -110,11 +112,28 @@ public class TransportRoleActionTest extends ESTestCase {
 
     @Test
     public void testDropUser() throws Exception {
-        RolesMetadata oldMetadata = new RolesMetadata(DUMMY_USERS);
-        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, oldMetadata);
+        RolesMetadata metadata = new RolesMetadata(DUMMY_USERS);
+        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
         boolean res = TransportDropRoleAction.dropRole(mdBuilder, "Arthur");
         assertThat(roles(mdBuilder)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
         assertThat(res).isTrue();
+    }
+
+    @Test
+    public void test_drop_role_with_children_is_not_allowed() {
+        var role1 = RolesHelper.roleOf("role1");
+        var role2 = RolesHelper.roleOf("role1", List.of("role1"));
+        var role3 = RolesHelper.roleOf("role3", List.of("role2"));
+        Map<String, Role> roles = Map.of(
+            "role1", role1,
+            "role2", role2,
+            "role3", role3
+        );
+        RolesMetadata metadata = new RolesMetadata(roles);
+        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
+        assertThatThrownBy(() -> TransportDropRoleAction.dropRole(mdBuilder, "role2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot drop ROLE: role2 as it is granted on role: role3");
     }
 
     @Test

@@ -467,7 +467,7 @@ T323	Explicit security for external routines			NO
 T324	Explicit security for SQL routines			NO		
 T325	Qualified SQL parameter references			NO		
 T326	Table functions			NO		
-T331	Basic roles			NO		
+T331	Basic roles			YES		
 T332	Extended roles			NO		
 T341	Overloading of SQL-invoked functions and procedures			NO		
 T351	Bracketed SQL comments (/*...*/ comments)			YES		

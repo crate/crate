@@ -21,18 +21,19 @@
 
 package io.crate.action.sql;
 
-import io.crate.analyze.AnalyzedPrivileges;
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.role.RoleManager;
-import io.crate.data.Row;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
+
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
+import io.crate.analyze.AnalyzedPrivileges;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.data.Row;
+import io.crate.role.RoleManager;
 
 /**
  * Visitor that dispatches requests based on Analysis class to different DCL actions.
@@ -64,7 +65,7 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         public CompletableFuture<Long> visitPrivilegesStatement(AnalyzedPrivileges analysis, RoleManager roleManager) {
-            return roleManager.applyPrivileges(analysis.userNames(), analysis.privileges());
+            return roleManager.applyPrivileges(analysis.userNames(), analysis.privileges(), analysis.rolePrivilege());
         }
     }
 }

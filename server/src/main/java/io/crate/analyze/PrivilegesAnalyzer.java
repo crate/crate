@@ -40,7 +40,7 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
-import io.crate.role.RolePrivilege;
+import io.crate.role.RolePrivilegeToApply;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.PrivilegeStatement;
@@ -109,7 +109,7 @@ class PrivilegesAnalyzer {
             }
             return AnalyzedPrivileges.ofRolePrivileges(
                 node.userNames(),
-                new RolePrivilege(state, new HashSet<>(node.privileges()),
+                new RolePrivilegeToApply(state, new HashSet<>(node.privileges()),
                     grantor.name()));
         } else {
             return AnalyzedPrivileges.ofPrivileges(node.userNames(),

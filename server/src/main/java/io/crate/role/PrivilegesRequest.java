@@ -21,56 +21,78 @@
 
 package io.crate.role;
 
-import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static org.elasticsearch.Version.V_5_6_0;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
+
 public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
 
-    private final Collection<String> userNames;
+    private final Collection<String> roleNames;
     private final Collection<Privilege> privileges;
 
-    PrivilegesRequest(Collection<String> userNames, Collection<Privilege> privileges) {
-        this.userNames = userNames;
+    @Nullable
+    private final RolePrivilegeToApply rolePrivilegeToApply;
+
+    PrivilegesRequest(Collection<String> roleNames,
+                      Collection<Privilege> privileges,
+                      @Nullable RolePrivilegeToApply rolePrivilegeToApply) {
+        this.roleNames = roleNames;
         this.privileges = privileges;
+        this.rolePrivilegeToApply = rolePrivilegeToApply;
     }
 
-    Collection<String> userNames() {
-        return userNames;
+    Collection<String> roleNames() {
+        return roleNames;
     }
 
     public Collection<Privilege> privileges() {
         return privileges;
     }
 
+    @Nullable
+    public RolePrivilegeToApply rolePrivilege() {
+        return rolePrivilegeToApply;
+    }
+
     public PrivilegesRequest(StreamInput in) throws IOException {
         super(in);
-        int userNamesSize = in.readVInt();
-        userNames = new ArrayList<>(userNamesSize);
-        for (int i = 0; i < userNamesSize; i++) {
-            userNames.add(in.readString());
+        int roleNamesSize = in.readVInt();
+        roleNames = new ArrayList<>(roleNamesSize);
+        for (int i = 0; i < roleNamesSize; i++) {
+            roleNames.add(in.readString());
         }
         int privilegesSize = in.readVInt();
         privileges = new ArrayList<>(privilegesSize);
         for (int i = 0; i < privilegesSize; i++) {
             privileges.add(new Privilege(in));
         }
+        if (in.getVersion().onOrAfter(V_5_6_0)) {
+            rolePrivilegeToApply = in.readOptionalWriteable(RolePrivilegeToApply::new);
+        } else {
+            rolePrivilegeToApply = null;
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(userNames.size());
-        for (String userName : userNames) {
-            out.writeString(userName);
+        out.writeVInt(roleNames.size());
+        for (String roleName : roleNames) {
+            out.writeString(roleName);
         }
         out.writeVInt(privileges.size());
         for (Privilege privilege : privileges) {
             privilege.writeTo(out);
+        }
+        if (out.getVersion().onOrAfter(V_5_6_0)) {
+            out.writeOptionalWriteable(rolePrivilegeToApply);
         }
     }
 }

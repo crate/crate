@@ -79,7 +79,7 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
         }
 
         clusterService.submitStateUpdateTask("create_role [" + request.roleName() + "]",
-                new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
+                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
 
                     private boolean alreadyExists = false;
 
@@ -117,7 +117,7 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         boolean exists = true;
         if (newMetadata.contains(roleName) == false) {
-            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), secureHash, Set.of()));
+            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash, Set.of()));
             exists = false;
         } else if (newMetadata.equals(oldRolesMetadata)) {
             // nothing changed, no need to update the cluster state

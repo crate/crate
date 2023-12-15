@@ -64,13 +64,17 @@ public interface RoleManager extends Roles {
     CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw);
 
     /**
-     * Apply given list of {@link Privilege}s for each given role
+     * Apply given list of {@link Privilege}s or {@link Role} for each given role
 
      * @param roleNames     List of role names all privileges should be applied for
      * @param privileges    List of privileges to apply
+     * @param rolePrivilegeToApply    role privileges to apply
      * @return a future which returns the number of privileges which were successfully applied
      */
-    CompletableFuture<Long> applyPrivileges(Collection<String> roleNames, Collection<Privilege> privileges);
+    CompletableFuture<Long> applyPrivileges(
+        Collection<String> roleNames,
+        Collection<Privilege> privileges,
+        RolePrivilegeToApply rolePrivilegeToApply);
 
     AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings);
 }

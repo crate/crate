@@ -30,31 +30,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.junit.After;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.testing.Asserts;
-import io.crate.testing.SQLResponse;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
-
-    @After
-    public void dropAllUsersAndRoles() {
-        // clean all created users
-        executeAsSuperuser("SELECT name FROM sys.users WHERE superuser = FALSE");
-        for (Object[] objects : response.rows()) {
-            String user = (String) objects[0];
-            executeAsSuperuser("DROP USER " + user);
-        }
-        // clean all created roles
-        executeAsSuperuser("SELECT name FROM sys.roles");
-        for (Object[] objects : response.rows()) {
-            String role = (String) objects[0];
-            executeAsSuperuser("DROP ROLE " + role);
-        }
-    }
 
     @Test
     public void testCreateUser() {
@@ -244,23 +226,5 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4004)
             .hasMessageContaining("Cannot drop a superuser 'crate'");
-    }
-
-    private void assertUserIsCreated(String userName) {
-        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
-            new Object[]{userName});
-        assertThat(response).hasRows("1");
-    }
-
-    private void assertRoleIsCreated(String roleName) {
-        SQLResponse response = executeAsSuperuser("select count(*) from sys.roles where name = ?",
-            new Object[]{roleName});
-        assertThat(response).hasRows("1");
-    }
-
-    private void assertUserDoesntExist(String userName) {
-        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
-            new Object[]{userName});
-        assertThat(response).hasRows("0");
     }
 }

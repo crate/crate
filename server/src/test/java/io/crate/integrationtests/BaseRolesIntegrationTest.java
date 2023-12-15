@@ -21,6 +21,8 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
+
 import java.util.Objects;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -61,6 +63,22 @@ public abstract class BaseRolesIntegrationTest extends IntegTestCase {
         normalUserSession.close();
     }
 
+    @After
+    public void dropAllUsersAndRoles() {
+        // clean all created users
+        executeAsSuperuser("SELECT name FROM sys.users WHERE superuser = FALSE");
+        for (Object[] objects : response.rows()) {
+            String user = (String) objects[0];
+            executeAsSuperuser("DROP USER " + user);
+        }
+        // clean all created roles
+        executeAsSuperuser("SELECT name FROM sys.roles");
+        for (Object[] objects : response.rows()) {
+            String role = (String) objects[0];
+            executeAsSuperuser("DROP ROLE " + role);
+        }
+    }
+
     public SQLResponse executeAsSuperuser(String stmt) {
         return executeAsSuperuser(stmt, null);
     }
@@ -80,5 +98,23 @@ public abstract class BaseRolesIntegrationTest extends IntegTestCase {
         try (Session session = sqlOperations.newSession(null, user)) {
             return execute(stmt, null, session);
         }
+    }
+
+    protected void assertUserIsCreated(String userName) {
+        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
+            new Object[]{userName});
+        assertThat(response).hasRows("1");
+    }
+
+    protected void assertRoleIsCreated(String roleName) {
+        SQLResponse response = executeAsSuperuser("select count(*) from sys.roles where name = ?",
+            new Object[]{roleName});
+        assertThat(response).hasRows("1");
+    }
+
+    protected void assertUserDoesntExist(String userName) {
+        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
+            new Object[]{userName});
+        assertThat(response).hasRows("0");
     }
 }
