@@ -267,15 +267,6 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
-    private AnalyzedPrivileges analyzePrivilegesStatement(String statement) {
-        return (AnalyzedPrivileges) e.analyzer.analyze(
-            SqlParser.createStatement(statement),
-            new CoordinatorSessionSettings(GRANTOR_TEST_USER),
-            ParamTypeHints.EMPTY,
-            e.cursors
-        );
-    }
-
     @Test
     public void testGrantOnUnknownSchemaDoesntThrowsException() {
         analyzePrivilegesStatement("GRANT DQL on schema hoichi TO user1");
@@ -316,7 +307,6 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         analyzePrivilegesStatement("REVOKE DQL ON TABLE information_schema.tables FROM user1");
     }
 
-
     @Test
     public void testRevokeOnInformationSchemaViewDoNotThrowException() {
         analyzePrivilegesStatement("REVOKE DQL ON TABLE information_schema.views FROM user1");
@@ -348,6 +338,38 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> analyzePrivilegesStatement("DENY DQL ON SCHEMA information_schema TO user1"))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+    }
+
+    @Test
+    public void test_grant_role_together_with_privileges_to_user_is_not_allowed() {
+        assertThatThrownBy(() -> analyzePrivilegesStatement("GRANT role1, role2, DML TO user1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Mixing up cluster privileges with roles is not allowed");
+    }
+
+    @Test
+    public void test_deny_role_is_not_allowed() {
+        assertThatThrownBy(() -> analyzePrivilegesStatement("DENY role1 TO user1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot DENY a role");
+    }
+
+    @Test
+    public void test_grant_role_to_user() {
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT role1, role2, role1 TO user1, user2");
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
+        assertThat(analysis.rolePrivilege().grantor()).isEqualTo("test");
+        assertThat(analysis.rolePrivilege().state()).isEqualTo(GRANT);
+        assertThat(analysis.rolePrivilege().roleNames()).containsExactlyInAnyOrder("role1", "role2");
+    }
+
+    private AnalyzedPrivileges analyzePrivilegesStatement(String statement) {
+        return (AnalyzedPrivileges) e.analyzer.analyze(
+            SqlParser.createStatement(statement),
+            new CoordinatorSessionSettings(GRANTOR_TEST_USER),
+            ParamTypeHints.EMPTY,
+            e.cursors
+        );
     }
 
     private Privilege privilegeOf(PrivilegeState state, Privilege.Type type, Privilege.Clazz clazz, String ident) {
