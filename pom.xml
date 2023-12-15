@@ -10,6 +10,11 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>${versions.plugin.clean}</version>
+      </plugin>
+      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${versions.plugin.compiler}</version>
         <configuration>
@@ -237,6 +242,7 @@
     <versions.jmh>1.37</versions.jmh>
 
     <!-- Maven Plugins -->
+    <versions.plugin.clean>3.3.2</versions.plugin.clean>
     <versions.plugin.compiler>3.11.0</versions.plugin.compiler>
     <versions.plugin.surefire>3.2.2</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.3.1</versions.plugin.checkstyle>
