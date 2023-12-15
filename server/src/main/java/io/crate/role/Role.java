@@ -113,7 +113,7 @@ public class Role implements ToXContent {
             return true;
         }
         for (Privilege privilege : privileges) {
-            if (privilege.state() == Privilege.State.GRANT && privilege.ident().type() == type) {
+            if (privilege.state() == PrivilegeState.GRANT && privilege.ident().type() == type) {
                 if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
                     return true;
                 }

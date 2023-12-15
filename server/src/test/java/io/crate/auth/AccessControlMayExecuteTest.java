@@ -61,16 +61,17 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
+import io.crate.role.Role;
+import io.crate.role.RoleManager;
+import io.crate.role.RoleManagerService;
+import io.crate.role.RolesService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.role.Privilege;
-import io.crate.role.Role;
-import io.crate.role.RoleManager;
-import io.crate.role.RolesService;
-import io.crate.role.RoleManagerService;
 
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
 
@@ -98,7 +99,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
         user = new Role("normal",
                         true,
-                        Set.of(new Privilege(Privilege.State.GRANT,
+                        Set.of(new Privilege(PrivilegeState.GRANT,
                                              Privilege.Type.DQL,
                                              Privilege.Clazz.SCHEMA,
                                              "custom_schema",
