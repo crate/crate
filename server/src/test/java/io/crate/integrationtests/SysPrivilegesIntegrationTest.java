@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -37,7 +36,6 @@ import org.junit.Test;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.RoleManager;
-import io.crate.testing.TestingHelpers;
 
 public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
@@ -55,7 +53,7 @@ public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
         RoleManager roleManager = cluster().getInstance(RoleManager.class);
         Long rowCount = roleManager.applyPrivileges(USERNAMES, PRIVILEGES).get(5, TimeUnit.SECONDS);
-        assertThat(rowCount, is(6L));
+        assertThat(rowCount).isEqualTo(6);
     }
 
     @After
@@ -69,33 +67,36 @@ public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     public void testTableColumns() {
         executeAsSuperuser("select column_name, data_type from information_schema.columns" +
                 " where table_name='privileges' and table_schema='sys'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("class| text\n" +
-                                                                    "grantee| text\n" +
-                                                                    "grantor| text\n" +
-                                                                    "ident| text\n" +
-                                                                    "state| text\n" +
-                                                                    "type| text\n"));
+        assertThat(response).hasRows(
+            "class| text",
+            "grantee| text",
+            "grantor| text",
+            "ident| text",
+            "state| text",
+            "type| text");
     }
 
     @Test
     public void testListingAsSuperUser() {
         executeAsSuperuser("select * from sys.privileges order by grantee, type");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("CLUSTER| arthur| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| arthur| crate| NULL| GRANT| DQL\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DQL\n" +
-                                                                    "CLUSTER| normal| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| normal| crate| NULL| GRANT| DQL\n"));
+        assertThat(response).hasRows(
+            "CLUSTER| arthur| crate| NULL| GRANT| DML",
+            "CLUSTER| arthur| crate| NULL| GRANT| DQL",
+            "CLUSTER| ford| crate| NULL| GRANT| DML",
+            "CLUSTER| ford| crate| NULL| GRANT| DQL",
+            "CLUSTER| normal| crate| NULL| GRANT| DML",
+            "CLUSTER| normal| crate| NULL| GRANT| DQL");
     }
 
     @Test
     public void testListingAsUserWithPrivilege() {
         executeAsSuperuser("select * from sys.privileges order by grantee, type");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("CLUSTER| arthur| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| arthur| crate| NULL| GRANT| DQL\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DQL\n" +
-                                                                    "CLUSTER| normal| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| normal| crate| NULL| GRANT| DQL\n"));
+        assertThat(response).hasRows(
+            "CLUSTER| arthur| crate| NULL| GRANT| DML",
+            "CLUSTER| arthur| crate| NULL| GRANT| DQL",
+            "CLUSTER| ford| crate| NULL| GRANT| DML",
+            "CLUSTER| ford| crate| NULL| GRANT| DQL",
+            "CLUSTER| normal| crate| NULL| GRANT| DML",
+            "CLUSTER| normal| crate| NULL| GRANT| DQL");
     }
 }
