@@ -26,6 +26,7 @@ import java.util.List;
 
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
+import org.apache.lucene.search.Pruning;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSelector;
 import org.apache.lucene.search.SortedNumericSortField;
@@ -264,7 +265,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             @Override
             public FieldComparator<?> newComparator(String fieldname,
                                                     int numHits,
-                                                    boolean enableSkipping,
+                                                    Pruning pruning,
                                                     boolean reversed) {
                 for (int i = 0; i < expressions.size(); i++) {
                     expressions.get(i).startCollect(collectorContext);

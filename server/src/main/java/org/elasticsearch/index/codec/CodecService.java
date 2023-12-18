@@ -22,12 +22,11 @@ package org.elasticsearch.index.codec;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.Codec;
-import org.apache.lucene.codecs.lucene95.Lucene95Codec;
+import org.apache.lucene.codecs.lucene99.Lucene99Codec;
 import org.elasticsearch.index.mapper.MapperService;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Since Lucene 4.0 low level index segments are read and written through a
@@ -49,13 +48,13 @@ public class CodecService {
     public CodecService(@Nullable MapperService mapperService, Logger logger) {
         final var codecs = new HashMap<String, Codec>();
         if (mapperService == null) {
-            codecs.put(DEFAULT_CODEC, new Lucene95Codec());
-            codecs.put(BEST_COMPRESSION_CODEC, new Lucene95Codec(Lucene95Codec.Mode.BEST_COMPRESSION));
+            codecs.put(DEFAULT_CODEC, new Lucene99Codec());
+            codecs.put(BEST_COMPRESSION_CODEC, new Lucene99Codec(Lucene99Codec.Mode.BEST_COMPRESSION));
         } else {
             codecs.put(DEFAULT_CODEC,
-                new PerFieldMappingPostingFormatCodec(Lucene95Codec.Mode.BEST_SPEED, mapperService, logger));
+                new PerFieldMappingPostingFormatCodec(Lucene99Codec.Mode.BEST_SPEED, mapperService, logger));
             codecs.put(BEST_COMPRESSION_CODEC,
-                new PerFieldMappingPostingFormatCodec(Lucene95Codec.Mode.BEST_COMPRESSION, mapperService, logger));
+                new PerFieldMappingPostingFormatCodec(Lucene99Codec.Mode.BEST_COMPRESSION, mapperService, logger));
         }
         codecs.put(LUCENE_DEFAULT_CODEC, Codec.getDefault());
         for (String codec : Codec.availableCodecs()) {
