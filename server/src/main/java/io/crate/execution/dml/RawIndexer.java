@@ -24,7 +24,6 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -115,11 +114,12 @@ public class RawIndexer {
         assert numExtra == nonDeterministicSynthetics.size() : "Insert columns/values expansion must be done in sync";
 
         Object[] insertValues = new Object[doc.size() + numExtra];
-        Iterator<Object> iterator = doc.values().iterator();
         List<Reference> columns = currentRowIndexer.columns();
         for (int i = 0; i < doc.size(); i++) {
             Reference reference = columns.get(i);
-            Object value = iterator.next();
+            // JSON file can have rows with same keys but in different order.
+            // We rely on reused currentRowIndexer's target columns order when fetching values from every row.
+            Object value = doc.get(reference.column().name()); // Not using FQN, we are fetching only top-level columns.
             DataType<?> type = reference.valueType();
             try {
                 insertValues[i] = type.implicitCast(value);

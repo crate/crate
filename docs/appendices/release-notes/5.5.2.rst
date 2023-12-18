@@ -74,3 +74,7 @@ Fixes
   at the column definition of ``CREATE TABLE`` and ``ALTER TABLE`` statements.
   E.g. ``CREATE TABLE t (a INT NULL DEFAULT 1)`` is now accepted while before
   the ``NULL`` constraint had to be placed after the ``DEFAULT`` constraint.
+
+- Fixed an issue introduced with CrateDB ``5.5.0`` that prevented importing
+  JSON file via ``COPY FROM`` if the file contained JSON entries with same
+  keys but in different order.
