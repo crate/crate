@@ -23,9 +23,10 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermRangeQuery;
 import org.junit.Test;
 
 public class BooleanEqQueryTest extends LuceneQueryBuilderTest {
@@ -55,8 +56,19 @@ public class BooleanEqQueryTest extends LuceneQueryBuilderTest {
     @Test
     public void test_BooleanEqQuery_rangeQuery() {
         Query query = convert("a1 >= true");
-        assertThat(query).isExactlyInstanceOf(TermRangeQuery.class);
-        assertThat(query).hasToString("a1:[T TO T}");
+        assertThat(query).isExactlyInstanceOf(TermQuery.class);
+        assertThat(query).hasToString("a1:T");
+
+        query = convert("a1 <= true");
+        assertThat(query).isExactlyInstanceOf(FieldExistsQuery.class);
+        assertThat(query).hasToString("FieldExistsQuery [field=a1]");
+
+        query = convert("a1 > true");
+        assertThat(query).isExactlyInstanceOf(MatchNoDocsQuery.class);
+
+        query = convert("a1 < true");
+        assertThat(query).isExactlyInstanceOf(TermQuery.class);
+        assertThat(query).hasToString("a1:F");
 
         query = convert("a2 >= true");
         // SortedNumericDocValuesRangeQuery.class is not public
@@ -64,8 +76,15 @@ public class BooleanEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(query).hasToString("a2:[1 TO 1]");
 
         query = convert("a2 <= true");
+        assertThat(query).isExactlyInstanceOf(FieldExistsQuery.class);
+        assertThat(query).hasToString("FieldExistsQuery [field=a2]");
+
+        query = convert("a2 > true");
+        assertThat(query).isExactlyInstanceOf(MatchNoDocsQuery.class);
+
+        query = convert("a2 < true");
         // SortedNumericDocValuesRangeQuery.class is not public
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesRangeQuery");
-        assertThat(query).hasToString("a2:[0 TO 1]");
+        assertThat(query).hasToString("a2:[0 TO 0]");
     }
 }
