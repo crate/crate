@@ -28,7 +28,7 @@ import org.apache.lucene.codecs.KnnVectorsFormat;
 import org.apache.lucene.codecs.KnnVectorsReader;
 import org.apache.lucene.codecs.KnnVectorsWriter;
 import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.codecs.lucene95.Lucene95Codec;
+import org.apache.lucene.codecs.lucene99.Lucene99Codec;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.elasticsearch.common.lucene.Lucene;
@@ -48,7 +48,7 @@ import io.crate.types.FloatVectorType;
  * configured for a specific field the default postings format is used.
  */
 // LUCENE UPGRADE: make sure to move to a new codec depending on the lucene version
-public class PerFieldMappingPostingFormatCodec extends Lucene95Codec {
+public class PerFieldMappingPostingFormatCodec extends Lucene99Codec {
     private final Logger logger;
     private final MapperService mapperService;
 
