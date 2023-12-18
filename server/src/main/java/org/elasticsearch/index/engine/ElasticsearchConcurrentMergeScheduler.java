@@ -32,13 +32,13 @@ import org.apache.lucene.index.SegmentCommitInfo;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.shard.ShardId;
 
+import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
 
 /**
@@ -51,7 +51,7 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
     private final Settings indexSettings;
     private final ShardId shardId;
 
-    private final Set<OnGoingMerge> onGoingMerges = ConcurrentCollections.newConcurrentSet();
+    private final Set<OnGoingMerge> onGoingMerges = Sets.newConcurrentHashSet();
     private final Set<OnGoingMerge> readOnlyOnGoingMerges = Collections.unmodifiableSet(onGoingMerges);
     private final MergeSchedulerConfig config;
 

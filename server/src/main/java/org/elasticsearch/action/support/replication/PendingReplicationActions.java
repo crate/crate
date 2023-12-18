@@ -28,11 +28,12 @@ import java.util.function.Consumer;
 
 import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.collections.Sets;
 
 public class PendingReplicationActions implements Consumer<ReplicationGroup>, Releasable {
 
@@ -87,7 +88,7 @@ public class PendingReplicationActions implements Consumer<ReplicationGroup>, Re
     // Visible for testing
     synchronized void acceptNewTrackedAllocationIds(Set<String> trackedAllocationIds) {
         for (String targetAllocationId : trackedAllocationIds) {
-            onGoingReplicationActions.putIfAbsent(targetAllocationId, ConcurrentCollections.newConcurrentSet());
+            onGoingReplicationActions.putIfAbsent(targetAllocationId, Sets.newConcurrentHashSet());
         }
         ArrayList<Set<RetryableAction<?>>> toCancel = new ArrayList<>();
         for (String allocationId : onGoingReplicationActions.keySet()) {

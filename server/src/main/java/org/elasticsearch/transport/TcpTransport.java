@@ -72,7 +72,6 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
@@ -84,6 +83,7 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Sets;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.netty.channel.ChannelFuture;
@@ -109,7 +109,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private final CircuitBreakerService circuitBreakerService;
 
     private final List<CloseableChannel> serverChannels = new ArrayList<>();
-    private final Set<CloseableChannel> acceptedChannels = ConcurrentCollections.newConcurrentSet();
+    private final Set<CloseableChannel> acceptedChannels = Sets.newConcurrentHashSet();
 
     // this lock is here to make sure we close this transport and disconnect all the client nodes
     // connections while no connect operations is going on

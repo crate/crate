@@ -65,7 +65,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.shard.IndexShardNotStartedException;
@@ -577,7 +576,7 @@ public class ReplicationOperationTests extends ESTestCase {
 
         public AtomicBoolean processedOnPrimary = new AtomicBoolean();
         public AtomicBoolean runPostReplicationActionsOnPrimary = new AtomicBoolean();
-        public Set<ShardRouting> processedOnReplicas = ConcurrentCollections.newConcurrentSet();
+        public Set<ShardRouting> processedOnReplicas = Sets.newConcurrentHashSet();
 
         Request(ShardId shardId) {
             this.shardId = shardId;
@@ -731,13 +730,13 @@ public class ReplicationOperationTests extends ESTestCase {
         final Map<ShardRouting, Exception> opFailures;
         private final boolean retryable;
 
-        final Set<ShardRouting> failedReplicas = ConcurrentCollections.newConcurrentSet();
+        final Set<ShardRouting> failedReplicas = Sets.newConcurrentHashSet();
 
         final Map<String, Long> generatedLocalCheckpoints = new ConcurrentHashMap<>();
 
         final Map<String, Long> generatedGlobalCheckpoints = new ConcurrentHashMap<>();
 
-        final Set<String> markedAsStaleCopies = ConcurrentCollections.newConcurrentSet();
+        final Set<String> markedAsStaleCopies = Sets.newConcurrentHashSet();
 
         TestReplicaProxy() {
             this(Collections.emptyMap());

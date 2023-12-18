@@ -38,17 +38,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.logging.log4j.util.Supplier;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataTypes;
@@ -65,7 +64,7 @@ public class BackgroundIndexer implements AutoCloseable {
     final CountDownLatch startLatch = new CountDownLatch(1);
     final AtomicBoolean hasBudget = new AtomicBoolean(false); // when set to true, writers will acquire writes from a semaphore
     final Semaphore availableBudget = new Semaphore(0);
-    private final Set<String> ids = ConcurrentCollections.newConcurrentSet();
+    private final Set<String> ids = Sets.newConcurrentHashSet();
     private volatile Consumer<Exception> failureAssertion = null;
     final String table;
 
