@@ -1165,4 +1165,35 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             assertThat(response.rows()[0][1]).isEqualTo(created);
         }
     }
+
+    @Test
+    public void test_copy_from_can_import_json_with_same_columns_in_different_order() throws Exception {
+        execute("""
+            create table t (
+                 id long,
+                 first_column long,
+                 second_column string,
+                 third_column long,
+                 primary key (id)
+            )
+            """
+        );
+
+        var lines = List.of(
+            """
+                {"id":1,"first_column":38392,"second_column":"apple safari","third_column":151155}
+                {"id":2,"second_column":"apple safari","third_column":23073,"first_column":31123}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows(
+            "1| 38392| apple safari| 151155",
+            "2| 31123| apple safari| 23073"
+        );
+    }
 }
