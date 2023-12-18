@@ -23,6 +23,8 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
@@ -36,7 +38,9 @@ public class BooleanEqQueryTest extends LuceneQueryBuilderTest {
         return """
                 create table m (
                 a1 boolean,
-                a2 boolean index off
+                a2 boolean index off,
+                arr1 boolean[],
+                arr2 boolean[] index off
             )
             """;
     }
@@ -86,5 +90,21 @@ public class BooleanEqQueryTest extends LuceneQueryBuilderTest {
         // SortedNumericDocValuesRangeQuery.class is not public
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesRangeQuery");
         assertThat(query).hasToString("a2:[0 TO 0]");
+    }
+
+    @Test
+    public void test_BooleanEqQuery_TermsQuery() {
+        Query query = convert("arr1 = [true, false, null]");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        assertThat(query).hasToString("arr1:(F T)");
+
+        query = convert("arr2 = [true, false, null]");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        clause = ((BooleanQuery) query).clauses().get(0);
+        query = clause.getQuery();
+        assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
+        assertThat(query).hasToString("arr2: [0, 1]");
     }
 }
