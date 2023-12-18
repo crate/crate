@@ -10,6 +10,25 @@
   <build>
     <plugins>
       <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${versions.plugin.enforcer}</version>
+        <executions>
+          <execution>
+            <id>enforce-maven</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>${versions.min_maven}</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-clean-plugin</artifactId>
         <version>${versions.plugin.clean}</version>
       </plugin>
@@ -253,7 +272,9 @@
 
     <versions.jmh>1.37</versions.jmh>
 
+    <versions.min_maven>3.2.5</versions.min_maven>
     <!-- Maven Plugins -->
+    <versions.plugin.enforcer>3.4.1</versions.plugin.enforcer>
     <versions.plugin.clean>3.3.2</versions.plugin.clean>
     <versions.plugin.resources>3.3.1</versions.plugin.resources>
     <versions.plugin.install>3.1.1</versions.plugin.install>
