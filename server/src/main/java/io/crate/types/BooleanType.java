@@ -30,10 +30,11 @@ import java.util.function.Function;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -79,17 +80,53 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                 boolean includeUpper,
                                 boolean hasDocValues,
                                 boolean isIndexed) {
-            upperTerm = upperTerm == null || upperTerm;
-            lowerTerm = lowerTerm != null && lowerTerm;
-            if (isIndexed) {
-                return new TermRangeQuery(
-                    field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
+            assert isIndexed || hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+
+            if (upperTerm == null) {
+                includeUpper = true;
+                upperTerm = true;
+            }
+            if (lowerTerm == null) {
+                includeLower = true;
+                lowerTerm = false;
+            }
+
+            boolean matchTrue = true;
+            boolean matchFalse = true;
+
+            if (includeLower) {
+                if (lowerTerm) {
+                    matchFalse = false;
+                }
             } else {
-                assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
-                return SortedNumericDocValuesField.newSlowRangeQuery(
-                    field,
-                    lowerTerm ? 1 : 0,
-                    upperTerm ? 1 : 0);
+                if (lowerTerm) {
+                    matchFalse = false;
+                    matchTrue = false;
+                } else {
+                    matchFalse = false;
+                }
+            }
+            if (includeUpper) {
+                if (!upperTerm) {
+                    matchTrue = false;
+                }
+            } else {
+                if (!upperTerm) {
+                    matchTrue = false;
+                    matchFalse = false;
+                } else {
+                    matchTrue = false;
+                }
+            }
+
+            if (matchTrue && matchFalse) {
+                return new FieldExistsQuery(field);
+            } else if (matchTrue) {
+                return termQuery(field, Boolean.TRUE, hasDocValues, isIndexed);
+            } else if (matchFalse) {
+                return termQuery(field, Boolean.FALSE, hasDocValues, isIndexed);
+            } else {
+                return new MatchNoDocsQuery();
             }
         }
 
