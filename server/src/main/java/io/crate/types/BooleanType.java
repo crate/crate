@@ -28,9 +28,10 @@ import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -67,9 +68,74 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                 Boolean upperTerm,
                                 boolean includeLower,
                                 boolean includeUpper,
+<<<<<<< HEAD
                                 boolean hasDocValues) {
             return new TermRangeQuery(
                 field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
+=======
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            assert isIndexed || hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+
+            if (upperTerm == null) {
+                includeUpper = true;
+                upperTerm = true;
+            }
+            if (lowerTerm == null) {
+                includeLower = true;
+                lowerTerm = false;
+            }
+
+            boolean matchTrue = true;
+            boolean matchFalse = true;
+
+            if (includeLower) {
+                if (lowerTerm) {
+                    matchFalse = false;
+                }
+            } else {
+                if (lowerTerm) {
+                    matchFalse = false;
+                    matchTrue = false;
+                } else {
+                    matchFalse = false;
+                }
+            }
+            if (includeUpper) {
+                if (!upperTerm) {
+                    matchTrue = false;
+                }
+            } else {
+                if (!upperTerm) {
+                    matchTrue = false;
+                    matchFalse = false;
+                } else {
+                    matchTrue = false;
+                }
+            }
+
+            if (matchTrue && matchFalse) {
+                return new FieldExistsQuery(field);
+            } else if (matchTrue) {
+                return termQuery(field, Boolean.TRUE, hasDocValues, isIndexed);
+            } else if (matchFalse) {
+                return termQuery(field, Boolean.FALSE, hasDocValues, isIndexed);
+            } else {
+                return new MatchNoDocsQuery();
+            }
+        }
+
+        @Override
+        public Query termsQuery(String field, List<Boolean> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                return new TermInSetQuery(field, nonNullValues.stream().map(v -> indexedValue(v)).toArray(BytesRef[]::new));
+            } else {
+                assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+                return SortedNumericDocValuesField.newSlowSetQuery(
+                    field,
+                    nonNullValues.stream().mapToLong(v -> v ? 1 : 0).toArray());
+            }
+>>>>>>> 4bac31b14b (Fix boolean type's range query bounds)
         }
     };
 
