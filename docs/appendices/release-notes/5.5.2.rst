@@ -98,6 +98,9 @@ Fixes
   :ref:`C-style escaped strings <sql_escape_string_literals>`.
   ``SELECT E'\%'`` used to return ``\%`` instead of ``%``.
 
+- Fixed an issue which led to ``SQLParseException`` when using an escaped quote
+  ``\'`` at the end of :ref:`C-style string <sql_escape_string_literals>`.
+
 - Fixed an issue that caused ``ALTER TABLE DROP COLUMN`` to falsely report
   success on dropping :ref:`system columns <sql_administration_system_columns>`
   despite any follow up queries on the dropped columns work as expected. Now
