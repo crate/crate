@@ -24,6 +24,8 @@ package io.crate.role;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -83,6 +85,11 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     protected void masterOperation(PrivilegesRequest request,
                                    ClusterState state,
                                    ActionListener<PrivilegesResponse> listener) throws Exception {
+
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0) == false) {
+            throw new IllegalStateException("Cannot grant/deny/revoke privileges until all nodes are upgraded to 5.6");
+        }
+
         clusterService.submitStateUpdateTask("grant_privileges",
             new AckedClusterStateUpdateTask<PrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
 

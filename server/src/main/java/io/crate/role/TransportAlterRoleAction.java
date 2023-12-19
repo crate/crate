@@ -74,7 +74,7 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
                                    ClusterState state,
                                    ActionListener<WriteRoleResponse> listener) {
         if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0) == false) {
-            throw new IllegalStateException("Cannot create new users/roles until all nodes are upgraded to 5.6");
+            throw new IllegalStateException("Cannot alter users/roles until all nodes are upgraded to 5.6");
         }
 
         clusterService.submitStateUpdateTask("alter_role [" + request.roleName() + "]",

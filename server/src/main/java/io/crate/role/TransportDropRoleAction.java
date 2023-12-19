@@ -80,7 +80,7 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
                                    ActionListener<WriteRoleResponse> listener) throws Exception {
 
         if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0) == false) {
-            throw new IllegalStateException("Cannot create new users/roles until all nodes are upgraded to 5.6");
+            throw new IllegalStateException("Cannot drop users/roles until all nodes are upgraded to 5.6");
         }
 
         String errorMsg = "User '%s' cannot be dropped. %s '%s' needs to be dropped first.";
