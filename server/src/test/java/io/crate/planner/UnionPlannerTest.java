@@ -93,8 +93,8 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(unionExecutionPlan.mergePhase().orderByPositions()).isExactlyInstanceOf(PositionalOrderBy.class);
         assertThat(unionExecutionPlan.mergePhase().projections())
             .satisfiesExactly(p -> assertThat(p).isExactlyInstanceOf(LimitAndOffsetProjection.class));
-        assertThat(unionExecutionPlan.left()).isExactlyInstanceOf(Collect.class);
-        assertThat(unionExecutionPlan.right()).isExactlyInstanceOf(Collect.class);
+        assertThat(unionExecutionPlan.left()).isExactlyInstanceOf(Merge.class);
+        assertThat(unionExecutionPlan.right()).isExactlyInstanceOf(Merge.class);
     }
 
     @Test
@@ -120,7 +120,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(unionExecutionPlan.left()).isExactlyInstanceOf(Merge.class);
         Merge merge = (Merge) unionExecutionPlan.left();
         assertThat(merge.subPlan()).isExactlyInstanceOf(Collect.class);
-        assertThat(unionExecutionPlan.right()).isExactlyInstanceOf(Collect.class);
+        assertThat(unionExecutionPlan.right()).isExactlyInstanceOf(Merge.class);
     }
 
     @Test

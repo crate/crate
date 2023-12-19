@@ -100,29 +100,31 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "select y from t2 " +
                                             "order by 1 " +
                                             "limit 10");
+
         assertThat(map.toString(),
             is("{UnionExecutionPlan={" +
-               "left={Collect={" +
-                    "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
-                    "executionNodes=[n1], id=0, orderBy=x ASC, " +
-                    "routing={n1={t1=[0, 1, 2, 3]}}, " +
-                    "toCollect=[x], " +
-                    "type=executionPhase, " +
-                    "where=true}}, " +
-                    "type=executionPlan}}, " +
-               "mergePhase={MERGE={" +
-                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
-                    "executionNodes=[n1], id=2, " +
-                    "projections=[{outputs=INPUT(0), offset=0, limit=10, type=LimitAndOffset}], " +
-                    "type=executionPhase}}, " +
-               "right={Collect={" +
-                    "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
-                    "executionNodes=[n1], id=1, orderBy=y ASC, " +
-                    "routing={n1={t2=[0, 1, 2, 3]}}, " +
-                    "toCollect=[y], " +
-                    "type=executionPhase, where=true}}, " +
-                    "type=executionPlan}}, " +
-               "type=executionPlan}}"));
+                "left={Collect={" +
+                "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
+                "executionNodes=[n1], " +
+                "id=0, orderBy=x ASC, " +
+                "projections=[{outputs=INPUT(0), " +
+                "offset=0, " +
+                "limit=10, " +
+                "type=LimitAndOffset}], " +
+                "routing={n1={t1=[0, 1, 2, 3]}}, " +
+                "toCollect=[x], " +
+                "type=executionPhase, " +
+                "where=true}}, " +
+                "type=executionPlan}}, " +
+                "mergePhase={MERGE={distribution={distributedByColumn=0, type=BROADCAST}, " +
+                "executionNodes=[n1], id=2, projections=[{outputs=INPUT(0), offset=0, limit=10, type=LimitAndOffset}], " +
+                "type=executionPhase}}, " +
+                "right={Collect={collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
+                "executionNodes=[n1], id=1, orderBy=y ASC, projections=[{outputs=INPUT(0), " +
+                "offset=0, limit=10, type=LimitAndOffset}], routing={n1={t2=[0, 1, 2, 3]}}, " +
+                "toCollect=[y], type=executionPhase, where=true}}," +
+                " type=executionPlan}}, " +
+                "type=executionPlan}}"));
     }
 
     @Test
