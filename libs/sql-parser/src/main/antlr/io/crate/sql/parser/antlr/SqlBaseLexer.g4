@@ -367,8 +367,12 @@ STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
     ;
 
+// Description of rules, in the order of the appearence in |:
+// 1. Restrict single matches of \ or ' inside E'' (to be able to match specific combinations)
+// 2. Allow matching double single quote '' since quote can be escaped by  a quote
+// 3. Allow matching one or many backslashes followed by a non-slash character
 ESCAPED_STRING
-    : 'E' '\'' ( ~'\'' | '\'\'' | '\\\'' )* '\''
+    : 'E' '\'' ( ~('\'' | '\\') | '\'\'' | ('\\'+  ~'\\') )* '\''
     ;
 
 BIT_STRING

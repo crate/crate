@@ -3006,4 +3006,22 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             output -> assertThat(output.valueType()).isEqualTo(new ArrayType<>(DataTypes.INTEGER))
         );
     }
+
+    @Test
+    public void test_quote_escaped_by_backslash_at_the_end_of_c_style_string() {
+        var executor = SQLExecutor.builder(clusterService).build();
+
+        QueriedSelectRelation relation = executor.analyze("SELECT concat(E'foo\\'', 'bar')");
+        assertThat(relation.outputs().size()).isEqualTo(1);
+        assertThat(relation.outputs().get(0)).isLiteral("foo'bar");
+
+        relation = executor.analyze("SELECT string_agg(a, e'\\'') FROM (VALUES ('1'),('2')) a(a)");
+        assertThat(relation.outputs().size()).isEqualTo(1);
+        assertThat(relation.outputs().get(0)).isFunction(
+            "string_agg",
+            x -> assertThat(x).isScopedSymbol("a"),
+            x -> assertThat(x).isLiteral("'")
+        );
+
+    }
 }
