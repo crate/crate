@@ -35,7 +35,7 @@ import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.types.DataTypes;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
@@ -164,7 +164,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
     protected HasSchemaPrivilegeFunction(Signature signature,
                                          BoundSignature boundSignature,
-                                         BiFunction<RoleLookup, Object, Role> getUser,
+                                         BiFunction<Roles, Object, Role> getUser,
                                          TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }

@@ -216,8 +216,8 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.types.DataTypes;
-import io.crate.role.RoleLookup;
-import io.crate.role.RoleLookupService;
+import io.crate.role.Roles;
+import io.crate.role.RolesService;
 import io.crate.role.RoleManagementModule;
 
 /**
@@ -538,10 +538,10 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
-            RoleLookup userLookup = new RoleLookupService(clusterService);
+            Roles roles = new RolesService(clusterService);
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
-                ? new HostBasedAuthentication(settings, userLookup, SystemDefaultDnsResolver.INSTANCE)
-                : new AlwaysOKAuthentication(userLookup);
+                ? new HostBasedAuthentication(settings, roles, SystemDefaultDnsResolver.INSTANCE)
+                : new AlwaysOKAuthentication(roles);
 
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);
             final NettyBootstrap nettyBootstrap = new NettyBootstrap(settings);
@@ -775,7 +775,7 @@ public class Node implements Closeable {
                     b.bind(NettyBootstrap.class).toInstance(nettyBootstrap);
                     b.bind(SslContextProvider.class).toInstance(sslContextProvider);
                     b.bind(RerouteService.class).toInstance(rerouteService);
-                    b.bind(RoleLookup.class).toInstance(userLookup);
+                    b.bind(Roles.class).toInstance(roles);
                     b.bind(Authentication.class).toInstance(authentication);
                     b.bind(LogicalReplicationService.class).toInstance(logicalReplicationService);
                     b.bind(LogicalReplicationSettings.class).toInstance(logicalReplicationSettings);

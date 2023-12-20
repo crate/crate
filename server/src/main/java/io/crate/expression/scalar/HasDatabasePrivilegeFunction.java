@@ -35,7 +35,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
@@ -193,7 +193,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     protected HasDatabasePrivilegeFunction(Signature signature,
                                            BoundSignature boundSignature,
-                                           BiFunction<RoleLookup, Object, Role> getUser,
+                                           BiFunction<Roles, Object, Role> getUser,
                                            TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }

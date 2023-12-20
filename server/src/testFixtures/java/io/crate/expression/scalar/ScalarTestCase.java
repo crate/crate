@@ -60,7 +60,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
@@ -272,7 +272,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void assertCompile(String functionExpression,
                               Role sessionUser,
-                              RoleLookup userLookup,
+                              Roles roles,
                               java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
@@ -285,7 +285,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             .as("Function implementation not found using full qualified lookup")
             .isNotNull();
 
-        Scalar compiled = scalar.compile(function.arguments(), sessionUser.name(), userLookup);
+        Scalar compiled = scalar.compile(function.arguments(), sessionUser.name(), roles);
         assertThat(compiled).satisfies(matcher.apply(scalar));
     }
 

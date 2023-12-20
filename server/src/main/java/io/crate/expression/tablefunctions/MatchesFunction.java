@@ -49,7 +49,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public final class MatchesFunction extends TableFunctionImplementation<List<Object>> {
 
@@ -121,7 +121,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     }
 
     @Override
-    public Scalar<Iterable<Row>, List<Object>> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
+    public Scalar<Iterable<Row>, List<Object>> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         assert arguments.size() > 1 : "number of arguments must be > 1";
         String pattern = null;
         if (arguments.get(1).symbolType() == SymbolType.LITERAL) {

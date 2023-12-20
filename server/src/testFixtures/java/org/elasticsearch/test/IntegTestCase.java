@@ -220,7 +220,7 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 /**
  * {@link IntegTestCase} is an abstract base class to run integration
@@ -1682,14 +1682,14 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
-        RoleLookup userLookup;
+        Roles roles;
         try {
-            userLookup = cluster().getInstance(RoleLookup.class, node);
+            roles = cluster().getInstance(Roles.class, node);
         } catch (ConfigurationException ignored) {
-            // If enterprise is not enabled there is no UserLookup instance bound in guice
-            userLookup = () -> List.of(Role.CRATE_USER);
+            // If enterprise is not enabled there is no Roles instance bound in guice
+            roles = () -> List.of(Role.CRATE_USER);
         }
-        try (Session session = sqlOperations.newSession(schema, userLookup.findUser("crate"))) {
+        try (Session session = sqlOperations.newSession(schema, roles.findUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
         }
         return response;

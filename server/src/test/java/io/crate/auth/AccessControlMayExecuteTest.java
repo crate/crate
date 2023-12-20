@@ -69,7 +69,7 @@ import io.crate.types.DataTypes;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
-import io.crate.role.RoleLookupService;
+import io.crate.role.RolesService;
 import io.crate.role.RoleManagerService;
 
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
@@ -118,7 +118,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 return true;
             }
         };
-        RoleLookupService roleLookupService = new RoleLookupService(clusterService) {
+        RolesService rolesService = new RolesService(clusterService) {
 
             @Nullable
             @Override
@@ -135,7 +135,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             null,
             null,
             mock(SysTableRegistry.class),
-            roleLookupService,
+            rolesService,
             new DDLClusterStateService());
 
         e = SQLExecutor.builder(clusterService)

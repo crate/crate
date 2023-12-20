@@ -112,13 +112,13 @@ import io.crate.sql.tree.SetStatement;
 import io.crate.role.Privilege;
 import io.crate.role.Privileges;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public final class AccessControlImpl implements AccessControl {
 
     private final Role sessionUser;
     private final Role authenticatedUser;
-    private final RoleLookup userLookup;
+    private final Roles roles;
 
     /**
      * @param sessionSettings for user and defaultSchema information.
@@ -126,8 +126,8 @@ public final class AccessControlImpl implements AccessControl {
      *                       observe updates to the default schema.
      *                       (Which can change at runtime within the life-time of a session)
      */
-    public AccessControlImpl(RoleLookup userLookup, CoordinatorSessionSettings sessionSettings) {
-        this.userLookup = userLookup;
+    public AccessControlImpl(Roles roles, CoordinatorSessionSettings sessionSettings) {
+        this.roles = roles;
         this.sessionUser = sessionSettings.sessionUser();
         this.authenticatedUser = sessionSettings.authenticatedUser();
     }
@@ -137,7 +137,7 @@ public final class AccessControlImpl implements AccessControl {
         if (!sessionUser.isSuperUser()) {
             statement.accept(
                 new StatementVisitor(
-                    userLookup,
+                    roles,
                     authenticatedUser
                 ),
                 sessionUser
@@ -171,10 +171,10 @@ public final class AccessControlImpl implements AccessControl {
 
     private static final class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
 
-        private final RoleLookup userLookup;
+        private final Roles roles;
 
-        public RelationVisitor(RoleLookup userLookup) {
-            this.userLookup = userLookup;
+        public RelationVisitor(Roles roles) {
+            this.roles = roles;
         }
 
         @Override
@@ -246,7 +246,7 @@ public final class AccessControlImpl implements AccessControl {
                 analyzedView.name().toString(),
                 context.user
             );
-            Role owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());
+            Role owner = analyzedView.owner() == null ? null : roles.findUser(analyzedView.owner());
             if (owner == null) {
                 throw new UnauthorizedException(
                     "Owner \"" + analyzedView.owner() + "\" of the view \"" + analyzedView.name().fqn() + "\" not found");
@@ -264,9 +264,9 @@ public final class AccessControlImpl implements AccessControl {
         private final RelationVisitor relationVisitor;
         private final Role authenticatedUser;
 
-        public StatementVisitor(RoleLookup userLookup, Role authenticatedUser) {
+        public StatementVisitor(Roles roles, Role authenticatedUser) {
             this.authenticatedUser = authenticatedUser;
-            this.relationVisitor = new RelationVisitor(userLookup);
+            this.relationVisitor = new RelationVisitor(roles);
         }
 
         private void visitRelation(AnalyzedRelation relation, Role user, Privilege.Type type) {

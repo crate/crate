@@ -50,7 +50,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -118,9 +118,9 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        RoleLookup userLookup = mock(RoleLookup.class);
-        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
-        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
+        Roles roles = mock(Roles.class);
+        when(roles.findUser("publisher")).thenReturn(publicationOwner);
+        when(roles.findUser("subscriber")).thenReturn(subscriber);
 
         SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
@@ -155,9 +155,9 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        RoleLookup userLookup = mock(RoleLookup.class);
-        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
-        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
+        Roles roles = mock(Roles.class);
+        when(roles.findUser("publisher")).thenReturn(publicationOwner);
+        when(roles.findUser("subscriber")).thenReturn(subscriber);
 
         SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
@@ -186,9 +186,9 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        RoleLookup userLookup = mock(RoleLookup.class);
-        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
-        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
+        Roles roles = mock(Roles.class);
+        when(roles.findUser("publisher")).thenReturn(publicationOwner);
+        when(roles.findUser("subscriber")).thenReturn(subscriber);
 
         SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")

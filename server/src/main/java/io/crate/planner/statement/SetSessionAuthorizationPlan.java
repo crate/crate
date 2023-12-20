@@ -32,17 +32,17 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class SetSessionAuthorizationPlan implements Plan {
 
     private final AnalyzedSetSessionAuthorizationStatement setSessionAuthorization;
-    private final RoleLookup userLookup;
+    private final Roles roles;
 
     public SetSessionAuthorizationPlan(AnalyzedSetSessionAuthorizationStatement setSessionAuthorization,
-                                       RoleLookup userLookup) {
+                                       Roles roles) {
         this.setSessionAuthorization = setSessionAuthorization;
-        this.userLookup = userLookup;
+        this.roles = roles;
     }
 
     @Override
@@ -60,7 +60,7 @@ public class SetSessionAuthorizationPlan implements Plan {
         String userName = setSessionAuthorization.user();
         Role user;
         if (userName != null) {
-            user = userLookup.findUser(userName);
+            user = roles.findUser(userName);
             if (user == null) {
                 throw new IllegalArgumentException("User '" + userName + "' does not exist.");
             }

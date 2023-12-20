@@ -40,7 +40,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class LikeOperator extends Operator<String> {
 
@@ -92,7 +92,7 @@ public class LikeOperator extends Operator<String> {
     }
 
     @Override
-    public Scalar<Boolean, String> compile(List<Symbol> arguments, String userName, RoleLookup userLookup) {
+    public Scalar<Boolean, String> compile(List<Symbol> arguments, String userName, Roles roles) {
         Symbol pattern = arguments.get(1);
         if (pattern instanceof Input) {
             Object value = ((Input<?>) pattern).value();
@@ -102,7 +102,7 @@ public class LikeOperator extends Operator<String> {
             Character escapeChar = escapeFromSymbols.apply(arguments);
             return new CompiledLike(signature, boundSignature, (String) value, escapeChar, caseSensitivity);
         }
-        return super.compile(arguments, userName, userLookup);
+        return super.compile(arguments, userName, roles);
     }
 
     @Override

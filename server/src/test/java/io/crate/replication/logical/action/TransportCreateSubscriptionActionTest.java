@@ -56,12 +56,12 @@ import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class TransportCreateSubscriptionActionTest {
 
     private final LogicalReplicationService logicalReplicationService = mock(LogicalReplicationService.class);
-    private final RoleLookup userLookup = mock(RoleLookup.class);
+    private final Roles roles = mock(Roles.class);
     private final ClusterService clusterService = mock(ClusterService.class);
     private TransportCreateSubscriptionAction transportCreateSubscriptionAction;
 
@@ -92,10 +92,10 @@ public class TransportCreateSubscriptionActionTest {
             clusterService,
             logicalReplicationService,
             mock(ThreadPool.class),
-            userLookup
+            roles
         );
 
-        when(userLookup.findUser(anyString())).thenReturn(Role.CRATE_USER);
+        when(roles.findUser(anyString())).thenReturn(Role.CRATE_USER);
 
         final DiscoveryNode dataNode = new DiscoveryNode(
             "node",

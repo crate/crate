@@ -30,15 +30,15 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class ClientCertAuth implements AuthenticationMethod {
 
     static final String NAME = "cert";
-    private final RoleLookup userLookup;
+    private final Roles roles;
 
-    ClientCertAuth(RoleLookup userLookup) {
-        this.userLookup = userLookup;
+    ClientCertAuth(Roles roles) {
+        this.roles = roles;
     }
 
     @Nullable
@@ -48,7 +48,7 @@ public class ClientCertAuth implements AuthenticationMethod {
         if (clientCert != null) {
             String commonName = SSL.extractCN(clientCert);
             if (Objects.equals(userName, commonName) || connProperties.protocol() == Protocol.TRANSPORT) {
-                Role user = userLookup.findUser(userName);
+                Role user = roles.findUser(userName);
                 if (user != null) {
                     return user;
                 }
