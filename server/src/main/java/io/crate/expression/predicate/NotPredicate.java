@@ -99,8 +99,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     private static class NullabilityContext {
         private final HashSet<Reference> references = new HashSet<>();
-        private boolean removeNullValues = false;
-        private boolean useNotQuery = false;
+        private boolean isNullable = false;
         private boolean enforceThreeValuedLogic = false;
 
         void add(Reference symbol) {
@@ -112,11 +111,11 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         }
 
         boolean useNotQuery() {
-            return useNotQuery && !enforceThreeValuedLogic;
+            return !isNullable && !enforceThreeValuedLogic;
         }
 
         boolean useFieldExistQuery() {
-            return removeNullValues && !useNotQuery && !enforceThreeValuedLogic;
+            return isNullable && !enforceThreeValuedLogic;
         }
     }
 
@@ -141,23 +140,22 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 var b = function.arguments().get(1);
                 if (a instanceof Reference ref && b instanceof Literal<?>) {
                     if (ref.valueType().id() == DataTypes.UNTYPED_OBJECT.id()) {
-                        context.removeNullValues = true;
+                        context.isNullable = true;
                         return null;
                     }
                 }
             } else if (Ignore3vlFunction.NAME.equals(functionName)) {
-                context.useNotQuery = true;
                 return null;
             } else {
                 var signature = function.signature();
                 if (signature.hasFeature(Feature.NULLABLE)) {
-                    context.removeNullValues = true;
-                } else if (signature.hasFeature(Feature.NON_NULLABLE)) {
-                    context.useNotQuery = true;
+                    context.isNullable = true;
                 } else {
-                    // default case
-                    context.enforceThreeValuedLogic = true;
-                    return null;
+                    if (!signature.hasFeature(Feature.NON_NULLABLE)) {
+                        // default case
+                        context.enforceThreeValuedLogic = true;
+                        return null;
+                    }
                 }
             }
             for (Symbol arg : function.arguments()) {
