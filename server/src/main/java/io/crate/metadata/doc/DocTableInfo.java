@@ -674,12 +674,42 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
     }
 
+    /**
+     * Propagates the changes occurred to child columns to the parent columns inner types, e.g.::
+     *   ALTER TABLE ADD COLUMN o['o2']['o3']['x'] INT;
+     *   ==> after adding the column `x`, column `o`, `o['o2']`, and `o['o2']['o3']` also need to append `x` to its inner types.
+     * @param column the column changed
+     * @param type the type that the column changed to (null if dropped)
+     * @param newReferences all references of the current table including the changed references
+     */
+    private void updateParentsInnerTypes(ColumnIdent column,
+                                         @Nullable DataType<?> type,
+                                         Map<ColumnIdent, Reference> newReferences) {
+        ColumnIdent[] child = new ColumnIdent[]{column};
+        DataType<?>[] childType = new DataType[]{type};
+        for (var parent : column.parents()) {
+            Reference parentRef = newReferences.get(parent);
+            if (parentRef == null) {
+                throw new ColumnUnknownException(column, ident);
+            }
+            DataType<?> newParentType = ArrayType.updateLeaf(
+                parentRef.valueType(),
+                leaf -> childType[0] == null ?
+                    ((ObjectType) leaf).withoutChild(child[0].leafName()) :
+                    ((ObjectType) leaf).withChild(child[0].leafName(), childType[0])
+            );
+            Reference updatedParent = parentRef.withValueType(newParentType);
+            newReferences.replace(parent, updatedParent);
+            child[0] = updatedParent.column();
+            childType[0] = updatedParent.valueType();
+        }
+    }
+
     public DocTableInfo dropColumns(List<DropColumn> columns) {
         validateDropColumns(columns);
         HashSet<Reference> toDrop = HashSet.newHashSet(columns.size());
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
         droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
-        HashMap<Reference, Reference> changedReferences = new HashMap<>();
         for (var column : columns) {
             ColumnIdent columnIdent = column.ref().column();
             Reference reference = references.get(columnIdent);
@@ -692,16 +722,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
                 continue;
             }
-            ColumnIdent parent = columnIdent.getParent();
-            if (parent != null) {
-                Reference parentRef = references.get(parent);
-                DataType<?> newParentType = ArrayType.updateLeaf(
-                    parentRef.valueType(),
-                    leaf -> ((ObjectType) leaf).withoutChild(columnIdent.leafName())
-                );
-                Reference updatedParent = parentRef.withValueType(newParentType);
-                newReferences.replace(parent, updatedParent);
-                changedReferences.put(parentRef, updatedParent);
+            if (columns.stream().noneMatch(c -> column.ref().column().isChildOf(c.ref().column()))) {
+                // if a parent and its child are dropped together,
+                // fixing the inner types of the ancestors will be handled by the parent.
+                updateParentsInnerTypes(columnIdent, null, newReferences);
             }
             toDrop.add(reference.withDropped(true));
             newReferences.replace(columnIdent, reference.withDropped(true));
@@ -715,7 +739,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (toDrop.isEmpty()) {
             return this;
         }
-        Function<Symbol, Symbol> updateRef = symbol -> RefReplacer.replaceRefs(symbol, ref -> changedReferences.getOrDefault(ref, ref));
+        Function<Symbol, Symbol> updateRef = symbol -> RefReplacer.replaceRefs(symbol, ref -> newReferences.getOrDefault(ref.column(), ref));
         ArrayList<CheckConstraint<Symbol>> newCheckConstraints = new ArrayList<>(checkConstraints.size());
         for (var constraint : checkConstraints) {
             boolean drop = false;
@@ -787,6 +811,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 oldNameToRenamedRefs.put(column, ref);
             }
         }
+
+        // remove oldNames from the inner types of the ancestors
+        updateParentsInnerTypes(oldName, null, oldNameToRenamedRefs);
+        // add newNames to the inner types of the ancestors
+        updateParentsInnerTypes(newName, refToRename.valueType(), oldNameToRenamedRefs);
 
         Function<Reference, Reference> renameGeneratedRefs = ref -> {
             if (ref instanceof GeneratedReference genRef) {
@@ -990,19 +1019,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return this;
         }
         for (Reference newRef : newColumns) {
-            ColumnIdent newColumn = newRef.column();
-            ColumnIdent parent = newColumn.getParent();
-            if (parent == null || Reference.indexOf(newColumns, parent) >= 0) {
-                continue;
+            if (newColumns.stream().noneMatch(r -> r.column().isChildOf(newRef.column()))) {
+                // if a child and its parent is added together,
+                // fixing the inner types of the ancestors will be handled by the child
+                updateParentsInnerTypes(newRef.column(), newRef.valueType(), newReferences);
             }
-            Reference parentRef = newReferences.get(parent);
-            assert parentRef != null : "Parent reference must exist for:" + newColumn;
-            DataType<?> newParentType = ArrayType.updateLeaf(
-                parentRef.valueType(),
-                leaf -> ((ObjectType) leaf).withChild(newColumn.leafName(), newRef.valueType())
-            );
-            Reference updatedParentRef = parentRef.withValueType(newParentType);
-            newReferences.replace(parent, updatedParentRef);
         }
         List<ColumnIdent> newPrimaryKeys;
         if (pKeyIndices.isEmpty()) {

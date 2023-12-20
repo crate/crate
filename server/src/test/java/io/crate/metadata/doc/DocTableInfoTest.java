@@ -479,4 +479,130 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         ).isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot create parents of new column implicitly. `o` is undefined");
     }
+
+    @Test
+    public void test_add_column_fixes_inner_types_of_all_its_parents() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (o object as (b1 int), a1 int))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        SimpleReference newReference1 = new SimpleReference(
+            new ReferenceIdent(table.ident(), new ColumnIdent("o", List.of("o", "o", "c1"))),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            -1,
+            null
+        );
+        SimpleReference newReference2 = new SimpleReference(
+            new ReferenceIdent(table.ident(), new ColumnIdent("o", List.of("o", "o"))),
+            RowGranularity.DOC,
+            DataTypes.UNTYPED_OBJECT,
+            -1,
+            null
+        );
+        SimpleReference newReference3 = new SimpleReference(
+            new ReferenceIdent(table.ident(), new ColumnIdent("o", List.of("o", "b2"))),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            -1,
+            null
+        );
+        DocTableInfo newTable = table.addColumns(
+            e.nodeCtx,
+            () -> 10, // any oid
+            List.of(newReference1, newReference2, newReference3),
+            new IntArrayList(),
+            Map.of()
+        );
+
+        var oooType = ObjectType.builder()
+            .setInnerType("c1", DataTypes.INTEGER).build();
+        var ooType = ObjectType.builder()
+            .setInnerType("o", oooType)
+            .setInnerType("b1", DataTypes.INTEGER)
+            .setInnerType("b2", DataTypes.INTEGER).build();
+        var oType = ObjectType.builder()
+            .setInnerType("o", ooType)
+            .setInnerType("a1", DataTypes.INTEGER).build();
+
+        assertThat(newTable.getReference(new ColumnIdent("o", List.of("o", "o"))))
+            .isReference()
+            .hasName("o['o']['o']")
+            .hasType(oooType);
+        assertThat(newTable.getReference(new ColumnIdent("o", List.of("o"))))
+            .isReference()
+            .hasName("o['o']")
+            .hasType(ooType);
+        assertThat(newTable.getReference(new ColumnIdent("o")))
+            .isReference()
+            .hasName("o")
+            .hasType(oType);
+    }
+
+    @Test
+    public void test_drop_column_fixes_inner_types_of_all_its_parents() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (o object as (o object as (c1 int), b1 int), a1 int))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        ColumnIdent dropCol1 = new ColumnIdent("o", List.of("o", "o"));
+        ColumnIdent dropCol2 = new ColumnIdent("o", List.of("o", "o", "c1"));
+        ColumnIdent dropCol3 = new ColumnIdent("o", List.of("o", "b1"));
+        DocTableInfo newTable = table.dropColumns(
+            List.of(
+                new DropColumn(table.getReference(dropCol1), false),
+                new DropColumn(table.getReference(dropCol2), false),
+                new DropColumn(table.getReference(dropCol3), false)
+            )
+        );
+
+        var ooType = ObjectType.builder().build();
+        var oType = ObjectType.builder()
+            .setInnerType("o", ooType)
+            .setInnerType("a1", DataTypes.INTEGER).build();
+
+        assertThat(newTable.getReference(dropCol1)).isNull();
+        assertThat(newTable.getReference(dropCol2)).isNull();
+        assertThat(newTable.getReference(dropCol3)).isNull();
+        assertThat(newTable.getReference(new ColumnIdent("o", List.of("o"))))
+            .isReference()
+            .hasName("o['o']")
+            .hasType(ooType);
+        assertThat(newTable.getReference(new ColumnIdent("o")))
+            .isReference()
+            .hasName("o")
+            .hasType(oType);
+    }
+
+    @Test
+    public void test_rename_column_fixes_inner_types_of_all_its_parents() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (o object as (o object as (c1 int), b1 int), a1 int))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        ColumnIdent ooo = new ColumnIdent("o", List.of("o", "o"));
+        ColumnIdent ooo2 = new ColumnIdent("o", List.of("o", "o2"));
+        table = table.renameColumn(table.getReference(ooo), ooo2);
+
+        var ooo2Type = ObjectType.builder()
+            .setInnerType("c1", DataTypes.INTEGER).build();
+        var ooType = ObjectType.builder()
+            .setInnerType("o2", ooo2Type)
+            .setInnerType("b1", DataTypes.INTEGER).build();
+        var oType = ObjectType.builder()
+            .setInnerType("o", ooType)
+            .setInnerType("a1", DataTypes.INTEGER).build();
+
+        ColumnIdent oo = new ColumnIdent("o", List.of("o"));
+        ColumnIdent o = new ColumnIdent("o");
+
+        assertThat(table.getReference(ooo)).isNull();
+        assertThat(table.getReference(ooo2))
+            .isReference()
+            .hasName("o['o']['o2']")
+            .hasType(ooo2Type);
+        assertThat(table.getReference(oo)).isReference().hasName("o['o']")
+            .hasType(ooType);
+        assertThat(table.getReference(o)).isReference().hasName("o").hasType(oType);
+    }
 }
