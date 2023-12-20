@@ -74,7 +74,7 @@ public class MoveLimitBeneathUnionTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_move_filter_beneath_union() {
         var union = new Union(t1, t2, Lists2.concat(t1.outputs(), t2.outputs()));
-        var filter = new Limit(union, sqlExpressions.asSymbol("10"), sqlExpressions.asSymbol("0"), false);
+        var filter = new Limit(union, sqlExpressions.asSymbol("10"), sqlExpressions.asSymbol("0"), false, false);
 
         assertThat(filter).hasOperators(
             "Limit[10;0]",
@@ -113,7 +113,7 @@ public class MoveLimitBeneathUnionTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_move_filter_beneath_union_offset_normalization() {
         var union = new Union(t1, t2, Lists2.concat(t1.outputs(), t2.outputs()));
-        var filter = new Limit(union, sqlExpressions.asSymbol("10"), sqlExpressions.asSymbol("5"), false);
+        var filter = new Limit(union, sqlExpressions.asSymbol("10"), sqlExpressions.asSymbol("5"), false, false);
 
         assertThat(filter).hasOperators(
             "Limit[10;5]",
