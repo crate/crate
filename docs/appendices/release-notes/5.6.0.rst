@@ -102,6 +102,11 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Added an optimizer rule ``optimizer_move_limit_beneath_join`` which
+  reduces the number of intermediate rows created when a ``LIMIT`` clause is
+  used in combination with a left/right/cross ``JOIN`` operator, by moving
+  the limit beneath the join.
+
 - Added an optimizer rule ``optimizer_move_limit_beneath_union`` which
   reduces the number of intermediate rows created when a ``LIMIT`` clause is
   used in combination with a ``UNION`` operator, by moving the limit beneath

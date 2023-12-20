@@ -121,7 +121,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of())));
 
-        var limit = new Limit(source, Literal.of(5), Literal.of(0), false);
+        var limit = new Limit(source, Literal.of(5), Literal.of(0), false, false);
 
         var memo = new Memo(limit);
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
