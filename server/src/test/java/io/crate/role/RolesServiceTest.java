@@ -22,7 +22,7 @@
 package io.crate.role;
 
 import static io.crate.role.Role.CRATE_USER;
-import static io.crate.role.metadata.RolesDefinitions.DUMMY_USERS_AND_ROLES;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
@@ -31,7 +31,7 @@ import java.util.Set;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.role.metadata.RolesDefinitions;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -52,13 +52,13 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testUsersAndRoles() {
         Set<Role> roles = RolesService.getRoles(
             null,
-            new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES),
+            new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES),
             new UsersPrivilegesMetadata());
 
         assertThat(roles).containsExactlyInAnyOrder(
             DUMMY_USERS_AND_ROLES.get("Ford"),
             DUMMY_USERS_AND_ROLES.get("John"),
-            Role.roleOf("DummyRole"),
+            RolesHelper.roleOf("DummyRole"),
             CRATE_USER);
     }
 
@@ -66,11 +66,11 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
     public void test_old_users_metadata_is_preferred_over_roles_metadata() {
         Set<Role> roles = RolesService.getRoles(
             new UsersMetadata(Collections.singletonMap("Arthur", null)),
-            new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES),
+            new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES),
             new UsersPrivilegesMetadata());
 
         assertThat(roles).containsExactlyInAnyOrder(
-            Role.userOf("Arthur"),
+            RolesHelper.userOf("Arthur"),
             CRATE_USER);
     }
 }

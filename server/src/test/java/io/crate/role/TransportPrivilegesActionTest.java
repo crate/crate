@@ -36,7 +36,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.RolesDefinitions;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportPrivilegesActionTest extends ESTestCase {
@@ -79,7 +79,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
     @Test
     public void testValidateUserNamesMissingUser() throws Exception {
         Metadata metadata = Metadata.builder()
-            .putCustom(RolesMetadata.TYPE, new RolesMetadata(RolesDefinitions.SINGLE_USER_ONLY))
+            .putCustom(RolesMetadata.TYPE, new RolesMetadata(RolesHelper.SINGLE_USER_ONLY))
             .build();
         List<String> userNames = List.of("Ford", "Arthur");
         List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, userNames);
@@ -89,7 +89,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
     @Test
     public void testValidateUserNamesAllExists() throws Exception {
         Metadata metadata = Metadata.builder()
-            .putCustom(RolesMetadata.TYPE, new RolesMetadata(RolesDefinitions.DUMMY_USERS))
+            .putCustom(RolesMetadata.TYPE, new RolesMetadata(RolesHelper.DUMMY_USERS))
             .build();
         List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, List.of("Ford", "Arthur"));
         assertThat(unknownUserNames).isEmpty();

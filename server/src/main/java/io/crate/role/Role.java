@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.pgcatalog.OidHash;
 
 public class Role {
@@ -49,12 +48,11 @@ public class Role {
     private final SecureHash password;
     private final Set<UserRole> userRoles;
 
-    @VisibleForTesting
-    protected Role(String name,
-                   boolean isUser,
-                   Set<Privilege> privileges,
-                   @Nullable SecureHash password,
-                   Set<UserRole> userRoles) {
+    public Role(String name,
+                boolean isUser,
+                Set<Privilege> privileges,
+                @Nullable SecureHash password,
+                Set<UserRole> userRoles) {
         if (isUser == false) {
             assert password == null : "Cannot create a Role with password";
             assert userRoles.isEmpty() : "Cannot create a Role with UserRoles";
@@ -65,35 +63,6 @@ public class Role {
         this.privileges = new RolePrivileges(privileges);
         this.password = password;
         this.userRoles = userRoles;
-    }
-
-    public static Role of(String name,
-                 boolean isUser,
-                 Set<Privilege> privileges,
-                 @Nullable SecureHash password) {
-        return new Role(name, isUser, privileges == null ? Set.of() : privileges, password, Set.of());
-    }
-
-    public static Role roleOf(String name) {
-        return new Role(name, false, Set.of(), null, Set.of());
-    }
-
-
-    public static Role userOf(String name) {
-        return new Role(name, true, Set.of(), null, Set.of());
-    }
-
-    public static Role userOf(String name, SecureHash password) {
-        return new Role(name, true, Set.of(), password, Set.of());
-    }
-
-    public static Role userOf(String name, @Nullable Set<Privilege> privileges, SecureHash password) {
-        return new Role(name, true, privileges == null ? Set.of() : privileges, password, Set.of());
-    }
-
-    @VisibleForTesting
-    public static Role userOf(String name, EnumSet<UserRole> userRoles) {
-        return new Role(name, true, Set.of(), null, userRoles);
     }
 
     public String name() {

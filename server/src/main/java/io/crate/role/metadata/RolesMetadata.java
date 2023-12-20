@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
@@ -75,11 +76,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     }
 
     public void put(String name, boolean isUser, SecureHash password) {
-        if (isUser) {
-            this.roles.put(name, Role.userOf(name, password));
-        } else {
-            this.roles.put(name, Role.roleOf(name));
-        }
+        roles.put(name, new Role(name, isUser, Set.of(), password, Set.of()));
     }
 
     public boolean contains(String name) {
@@ -178,11 +175,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
                                         parser.currentToken());
                             }
                         }
-                        if (isUser) {
-                            roles.put(roleName, Role.userOf(roleName, secureHash));
-                        } else {
-                            roles.put(roleName, Role.roleOf(roleName));
-                        }
+                        roles.put(roleName, new Role(roleName, isUser, Set.of(), secureHash, Set.of()));
                     } else {
                         // each custom metadata is packed inside an object.
                         throw new ElasticsearchParseException("failed to parse roles, expected an object token at start");

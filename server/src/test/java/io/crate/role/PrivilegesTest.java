@@ -27,10 +27,11 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.role.metadata.RolesHelper;
 
 public class PrivilegesTest extends ESTestCase {
 
-    private static final Role USER = Role.userOf("ford");
+    private static final Role USER = RolesHelper.userOf("ford");
 
     @Test
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {

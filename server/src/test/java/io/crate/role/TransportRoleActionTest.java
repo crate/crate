@@ -21,12 +21,12 @@
 
 package io.crate.role;
 
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES;
+import static io.crate.role.metadata.RolesHelper.SINGLE_USER_ONLY;
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.role.metadata.RolesDefinitions.DUMMY_USERS;
-import static io.crate.role.metadata.RolesDefinitions.DUMMY_USERS_AND_ROLES;
-import static io.crate.role.metadata.RolesDefinitions.SINGLE_USER_ONLY;
-import static io.crate.role.metadata.RolesDefinitions.getSecureHash;
-import static io.crate.role.metadata.RolesDefinitions.usersMetadataOf;
 
 import java.util.Map;
 
@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.role.metadata.RolesHelper;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -84,7 +85,7 @@ public class TransportRoleActionTest extends ESTestCase {
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
             Map.of("Arthur", DUMMY_USERS.get("Arthur"),
                 "Ford", DUMMY_USERS.get("Ford"),
-                "RoleFoo", Role.roleOf("RoleFoo")));
+                "RoleFoo", RolesHelper.roleOf("RoleFoo")));
     }
 
     @Test
@@ -98,7 +99,7 @@ public class TransportRoleActionTest extends ESTestCase {
         boolean res = TransportAlterRoleAction.alterRole(mdBuilder, "Arthur", newPasswd);
         assertThat(res).isTrue();
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", Role.userOf("Arthur", newPasswd),
+            Map.of("Arthur", RolesHelper.userOf("Arthur", newPasswd),
                 "Ford", DUMMY_USERS.get("Ford")));
     }
 

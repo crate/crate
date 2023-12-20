@@ -81,29 +81,31 @@ public class RolesService implements Roles, ClusterStateListener {
             for (Map.Entry<String, SecureHash> user: usersMetadata.users().entrySet()) {
                 String userName = user.getKey();
                 SecureHash password = user.getValue();
-                Set<Privilege> privileges = null;
+                Set<Privilege> privileges = Set.of();
                 if (privilegesMetadata != null) {
                     privileges = privilegesMetadata.getUserPrivileges(userName);
                     if (privileges == null) {
                         // create empty set
-                        privilegesMetadata.createPrivileges(userName, Set.of());
+                        privileges = Set.of();
+                        privilegesMetadata.createPrivileges(userName, privileges);
                     }
                 }
-                roles.put(userName, Role.userOf(userName, privileges, password));
+                roles.put(userName, new Role(userName, true, privileges, password, Set.of()));
             }
         } else if (rolesMetadata != null) {
             for (Map.Entry<String, Role> role: rolesMetadata.roles().entrySet()) {
                 String userName = role.getKey();
                 SecureHash password = role.getValue().password();
-                Set<Privilege> privileges = null;
+                Set<Privilege> privileges = Set.of();
                 if (privilegesMetadata != null) {
                     privileges = privilegesMetadata.getUserPrivileges(userName);
                     if (privileges == null) {
                         // create empty set
-                        privilegesMetadata.createPrivileges(userName, Set.of());
+                        privileges = Set.of();
+                        privilegesMetadata.createPrivileges(userName, privileges);
                     }
                 }
-                roles.put(userName, Role.of(userName, role.getValue().isUser(), privileges, password));
+                roles.put(userName, new Role(userName, role.getValue().isUser(), privileges, password, Set.of()));
             }
         }
         return Collections.unmodifiableSet(new HashSet<>(roles.values()));
