@@ -21,6 +21,7 @@
 
 package io.crate.protocols.postgres;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
@@ -60,9 +61,9 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.role.Role;
 import io.crate.role.StubRoleManager;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
@@ -97,7 +98,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         var networkService = new NetworkService(List.of());
         var namedWriteableRegistry = new NamedWriteableRegistry(List.of());
         var circuitBreakerService = new NoneCircuitBreakerService();
-        Authentication authentication = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
+        Authentication authentication = new AlwaysOKAuthentication(() -> DEFAULT_USERS);
         var sslContextProvider = new SslContextProvider(serverNodeSettings);
         var serverTransport = new Netty4Transport(
             serverNodeSettings,

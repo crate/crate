@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -54,7 +55,6 @@ import org.junit.Test;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.role.Role;
 
 public class TransportServiceHandshakeTests extends ESTestCase {
 
@@ -93,7 +93,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             new NamedWriteableRegistry(Collections.emptyList()),
             new NoneCircuitBreakerService(),
             nettyBootstrap,
-            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+            new AlwaysOKAuthentication(() -> DEFAULT_USERS),
             new SslContextProvider(settings)
         );
         TransportService transportService = new MockTransportService(

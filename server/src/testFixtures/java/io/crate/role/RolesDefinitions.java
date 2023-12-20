@@ -35,6 +35,8 @@ import io.crate.role.metadata.UsersMetadata;
 
 public final class RolesDefinitions {
 
+    public static final Map<String, Role> DEFAULT_USERS = Map.of(Role.CRATE_USER.name(), Role.CRATE_USER);
+
     public static final Map<String, Role> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", Role.userOf("Arthur"));
 
     public static final Map<String, Role> DUMMY_USERS = Map.of(

@@ -21,6 +21,7 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -30,7 +31,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.test.ESTestCase;
@@ -56,7 +56,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 
 public abstract class AbstractTableFunctionsTest extends ESTestCase {
 
@@ -110,7 +109,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         Function function = (Function) functionSymbol;
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
-        Scalar compiled = scalar.compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER));
+        Scalar compiled = scalar.compile(function.arguments(), "dummy", () -> DEFAULT_USERS);
         assertThat(compiled, matcher.apply(scalar));
     }
 

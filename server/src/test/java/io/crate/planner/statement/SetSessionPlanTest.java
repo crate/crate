@@ -65,7 +65,7 @@ public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
         Assignment<Symbol> assignment = new Assignment<Symbol>(Literal.of("statement_timeout"), Literal.of(10));
         SetSessionPlan setSessionPlan = new SetSessionPlan(List.of(assignment), new SessionSettingRegistry(Set.of()));
         TestingRowConsumer consumer = new TestingRowConsumer();
-        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), () -> List.of());
+        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), Map::of);
         setSessionPlan.execute(
             mock(DependencyCarrier.class),
             new PlannerContext(

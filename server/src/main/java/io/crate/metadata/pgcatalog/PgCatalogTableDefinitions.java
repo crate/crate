@@ -147,7 +147,7 @@ public final class PgCatalogTableDefinitions {
             false
         ));
         tableDefinitions.put(PgRolesTable.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(roleManagerService.roles()),
+            () -> completedFuture(roleManagerService.roles().values()),
             PgRolesTable.create().expressions(),
             false
         ));

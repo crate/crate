@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isNull;
 
@@ -55,12 +56,12 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
-import io.crate.role.Role;
-import io.crate.role.Roles;
 
 public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
@@ -157,7 +158,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             assertThat(((Scalar) impl).evaluate(txnCtx, null, inputs))
                 .isEqualTo(expectedValue);
             assertThat(((Scalar) impl)
-                           .compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER))
+                           .compile(function.arguments(), "dummy", () -> DEFAULT_USERS)
                            .evaluate(txnCtx, sqlExpressions.nodeCtx, inputs))
                 .isEqualTo(expectedValue);
         }
@@ -244,7 +245,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             Input<?> input = ctx.add(arg);
             arguments[i] = new AssertMax1ValueCallInput(input);
         }
-        Object actualValue = scalar.compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER))
+        Object actualValue = scalar.compile(function.arguments(), "dummy", () -> DEFAULT_USERS)
             .evaluate(txnCtx, sqlExpressions.nodeCtx, arguments);
         assertThat((T) actualValue).satisfies(expectedValue);
 
@@ -260,13 +261,16 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings("rawtypes")
     public void assertCompile(String functionExpression,
                               java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
-        assertCompile(functionExpression, Role.userOf("dummy"), () -> List.of(Role.userOf("dummy")), matcher);
+        assertCompile(
+            functionExpression,
+            Role.userOf("dummy"),
+            () -> Map.of("dummy", Role.userOf("dummy")), matcher);
     }
 
     @SuppressWarnings("rawtypes")
     public void assertCompileAsSuperUser(String functionExpression,
                                          java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
-        assertCompile(functionExpression, Role.CRATE_USER, () -> List.of(Role.CRATE_USER), matcher);
+        assertCompile(functionExpression, Role.CRATE_USER, () -> DEFAULT_USERS, matcher);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

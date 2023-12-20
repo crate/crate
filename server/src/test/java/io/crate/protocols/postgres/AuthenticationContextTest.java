@@ -21,11 +21,11 @@
 
 package io.crate.protocols.postgres;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import java.net.InetAddress;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.test.ESTestCase;
@@ -40,7 +40,7 @@ import io.crate.role.Role;
 
 public class AuthenticationContextTest extends ESTestCase {
 
-    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
+    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(() -> DEFAULT_USERS);
 
     @Test
     public void testAuthenticationContextCycle() throws Exception {

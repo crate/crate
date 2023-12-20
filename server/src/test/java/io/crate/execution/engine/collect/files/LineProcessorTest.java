@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URI;
@@ -42,14 +43,13 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.role.Roles;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
-import io.crate.role.Roles;
 
 public class LineProcessorTest {
 
-    Roles roles = () -> List.of(Role.CRATE_USER);
+    Roles roles = () -> DEFAULT_USERS;
     NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), roles);
     InputFactory inputFactory = new InputFactory(nodeCtx);
 

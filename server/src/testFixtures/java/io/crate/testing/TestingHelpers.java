@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
@@ -186,10 +187,10 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(AbstractModule... additionalModules) {
-        return createNodeContext(List.of(Role.CRATE_USER), additionalModules);
+        return createNodeContext(DEFAULT_USERS, additionalModules);
     }
 
-    public static NodeContext createNodeContext(List<Role> roles, AbstractModule... additionalModules) {
+    public static NodeContext createNodeContext(Map<String, Role> roles, AbstractModule... additionalModules) {
         return new NodeContext(
             prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class),
             () -> roles

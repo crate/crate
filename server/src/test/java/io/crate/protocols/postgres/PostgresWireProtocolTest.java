@@ -21,6 +21,7 @@
 
 package io.crate.protocols.postgres;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -70,10 +71,10 @@ import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.Role;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -124,7 +125,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of()),
+                new AlwaysOKAuthentication(() -> Map.of()),
                 null
             );
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -169,7 +170,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null);
         AtomicBoolean flushed = new AtomicBoolean(false);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler) {
@@ -213,7 +214,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -240,7 +241,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -300,7 +301,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -364,7 +365,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -422,7 +423,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of()),
+                new AlwaysOKAuthentication(() -> Map.of()),
                 () -> null);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -453,7 +454,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new SessionSettingRegistry(Set.of()),
             sessionSettings -> AccessControl.DISABLED,
             chPipeline -> {},
-            new AlwaysOKAuthentication(() -> List.of()),
+            new AlwaysOKAuthentication(() -> Map.of()),
             () -> {
                 try {
                     var cert = new SelfSignedCertificate();
@@ -492,7 +493,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new SessionSettingRegistry(Set.of()),
             sessionSettings -> AccessControl.DISABLED,
             chPipeline -> {},
-            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+            new AlwaysOKAuthentication(() -> DEFAULT_USERS),
             null
         );
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -584,7 +585,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null
             );
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -640,7 +641,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null
             );
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -661,7 +662,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 context -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null
             );
         PostgresWireProtocol pg2 =
@@ -670,7 +671,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 context -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null
             );
 
@@ -734,7 +735,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionCtx -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                new AlwaysOKAuthentication(() -> DEFAULT_USERS),
                 null
             );
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);

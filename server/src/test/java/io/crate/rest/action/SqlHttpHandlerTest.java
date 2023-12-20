@@ -21,6 +21,7 @@
 
 package io.crate.rest.action;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -31,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
@@ -55,7 +56,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.CRATE_USER),
+            () -> DEFAULT_USERS,
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -73,7 +74,7 @@ public class SqlHttpHandlerTest {
             settings,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.userOf("trillian")),
+            () -> Map.of("trillian", Role.userOf("trillian")),
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -88,7 +89,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.userOf("Aladdin")),
+            () -> Map.of("Aladdin", Role.userOf("Aladdin")),
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -115,7 +116,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mockedSqlOperations,
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(dummyUser),
+            () -> Map.of(dummyUser.name(), dummyUser),
             settings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );

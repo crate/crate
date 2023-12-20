@@ -35,7 +35,7 @@ public class NodeContext {
     @Inject
     public NodeContext(Functions functions, Roles roles) {
         this.functions = functions;
-        this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();;
+        this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();
         this.roles = roles;
     }
 

@@ -21,8 +21,10 @@
 
 package io.crate.role;
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
+
 import java.util.Collection;
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.jetbrains.annotations.Nullable;
@@ -33,7 +35,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubRoleManager implements RoleManager {
 
-    private final List<Role> roles = List.of(Role.CRATE_USER);
+    private final Map<String, Role> roles = DEFAULT_USERS;
 
     @Override
     public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
@@ -66,7 +68,7 @@ public class StubRoleManager implements RoleManager {
     }
 
     @Override
-    public Collection<Role> roles() {
+    public Map<String, Role> roles() {
         return roles;
     }
 

@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.isNotSameInstance;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
@@ -113,7 +114,10 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
         assertThatThrownBy(
             () -> assertCompile("has_database_privilege('testUserWithClusterAL', name, 'CREATE')",
-                                TEST_USER, () -> List.of(TEST_USER, TEST_USER_WITH_AL_ON_CLUSTER),
+                                TEST_USER,
+                                () -> Map.of(
+                                    TEST_USER.name(), TEST_USER,
+                                    TEST_USER_WITH_AL_ON_CLUSTER.name(), TEST_USER_WITH_AL_ON_CLUSTER),
                                 s -> s1 -> Asserts.fail("should fail with MissingPrivilegeException")))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
             .hasMessage("Missing privilege for user 'test'");

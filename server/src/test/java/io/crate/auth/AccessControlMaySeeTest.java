@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.util.CollectionUtils;
@@ -61,7 +62,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(() -> List.of(user), new CoordinatorSessionSettings(user));
+        accessControl = new AccessControlImpl(() -> Map.of(user.name(), user), new CoordinatorSessionSettings(user));
     }
 
     private void assertAskedAnyForCluster() {

@@ -22,6 +22,7 @@
 package io.crate.planner.selectivity;
 
 
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
@@ -50,7 +51,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 
 public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -58,7 +58,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         new ModulesBuilder()
             .add(new OperatorModule())
             .createInjector().getInstance(Functions.class),
-        () -> List.of(Role.CRATE_USER)
+        () -> DEFAULT_USERS
     );
     TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 

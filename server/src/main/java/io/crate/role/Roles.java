@@ -21,7 +21,7 @@
 
 package io.crate.role;
 
-import java.util.Collection;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -35,10 +35,9 @@ public interface Roles {
      */
     @Nullable
     default Role findUser(String userName) {
-        for (var role : roles()) {
-            if (role.isUser() && role.name().equals(userName)) {
-                return role;
-            }
+        Role role = roles().get(userName);
+        if (role != null && role.isUser()) {
+            return role;
         }
         return null;
     }
@@ -48,7 +47,7 @@ public interface Roles {
      */
     @Nullable
     default Role findUser(int userOid) {
-        for (var role : roles()) {
+        for (var role : roles().values()) {
             if (role.isUser() && userOid == OidHash.userOid(role.name())) {
                 return role;
             }
@@ -56,5 +55,5 @@ public interface Roles {
         return null;
     }
 
-    Collection<Role> roles();
+    Map<String, Role> roles();
 }

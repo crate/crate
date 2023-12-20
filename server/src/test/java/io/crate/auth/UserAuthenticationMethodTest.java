@@ -26,9 +26,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.test.ESTestCase;
@@ -43,14 +42,14 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     private static class CrateOrNullRoles implements Roles {
 
         @Override
-        public Collection<Role> roles() {
+        public Map<String, Role> roles() {
             SecureHash pwHash;
             try {
                 pwHash = SecureHash.of(new SecureString("pw".toCharArray()));
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 throw new RuntimeException(e);
             }
-            return List.of(Role.userOf("crate", Collections.emptySet(), pwHash));
+            return Map.of("crate", Role.userOf("crate", Collections.emptySet(), pwHash));
         }
     }
 

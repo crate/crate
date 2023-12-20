@@ -23,6 +23,7 @@ package io.crate.role;
 
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -84,7 +85,7 @@ public class RoleManagerService implements RoleManager {
         sysTableRegistry.registerSysTable(
             userTable,
             () -> CompletableFuture.completedFuture(
-                roles.roles().stream().filter(Role::isUser).toList()),
+                roles.roles().values().stream().filter(Role::isUser).toList()),
             userTable.expressions(),
             false
         );
@@ -92,7 +93,7 @@ public class RoleManagerService implements RoleManager {
         sysTableRegistry.registerSysTable(
             rolesTable,
             () -> CompletableFuture.completedFuture(
-                roles.roles().stream().filter(r -> r.isUser() == false).toList()),
+                roles.roles().values().stream().filter(r -> r.isUser() == false).toList()),
                 rolesTable.expressions(),
             false
         );
@@ -100,7 +101,7 @@ public class RoleManagerService implements RoleManager {
         var privilegesTable = SysPrivilegesTableInfo.create();
         sysTableRegistry.registerSysTable(
             privilegesTable,
-            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles())),
+            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles().values())),
             privilegesTable.expressions(),
             false
         );
@@ -160,7 +161,8 @@ public class RoleManagerService implements RoleManager {
         return new AccessControlImpl(roles, sessionSettings);
     }
 
-    public Collection<Role> roles() {
+    @Override
+    public Map<String, Role> roles() {
         return roles.roles();
     }
 }

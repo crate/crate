@@ -22,6 +22,7 @@
 package io.crate.protocols.postgres;
 
 import static io.crate.protocols.postgres.PostgresNetty.resolvePublishPort;
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
@@ -32,7 +33,6 @@ import static org.mockito.Mockito.mock;
 
 import java.net.UnknownHostException;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import org.elasticsearch.common.network.NetworkService;
@@ -52,7 +52,6 @@ import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.role.Role;
 import io.crate.role.StubRoleManager;
 
 public class PostgresNettyPublishPortTest extends ESTestCase {
@@ -192,7 +191,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             userManager,
             networkService,
             null,
-            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+            new AlwaysOKAuthentication(() -> DEFAULT_USERS),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,

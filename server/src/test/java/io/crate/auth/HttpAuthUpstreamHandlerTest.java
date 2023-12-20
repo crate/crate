@@ -22,6 +22,7 @@
 package io.crate.auth;
 
 import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
+import static io.crate.role.RolesDefinitions.DEFAULT_USERS;
 import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,8 +30,8 @@ import static org.mockito.Mockito.when;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.net.ssl.SSLSession;
 
@@ -62,7 +63,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         .build();
 
     // Roles always returns null, so there are no users (even no default crate superuser)
-    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, List::of, SystemDefaultDnsResolver.INSTANCE);
+    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, Map::of, SystemDefaultDnsResolver.INSTANCE);
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
@@ -123,7 +124,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testAuthorized() throws Exception {
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(
-            Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)));
+            Settings.EMPTY, new AlwaysOKAuthentication(() -> DEFAULT_USERS));
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -180,7 +181,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
         Role crateUser = Role.userOf("crate", EnumSet.of(Role.UserRole.SUPERUSER));
-        Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of(crateUser));
+        Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> Map.of("crate", crateUser));
 
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
         EmbeddedChannel ch = new EmbeddedChannel(handler);
@@ -195,7 +196,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testUnauthorizedUserWithDisabledHBA() throws Exception {
-        Authentication authServiceNoHBA = new AlwaysOKAuthentication(List::of);
+        Authentication authServiceNoHBA = new AlwaysOKAuthentication(Map::of);
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
