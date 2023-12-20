@@ -26,47 +26,49 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
-import org.elasticsearch.common.TriFunction;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.FourFunction;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
-import io.crate.types.DataTypes;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.types.DataTypes;
 
 public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
     public static final String NAME = "has_schema_privilege";
 
-    private static final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_NAME = (user, schema, privileges) -> {
-        String schemaName = (String) schema;
-        boolean result = false;
-        for (Privilege.Type type: privileges) {
-            // USAGE is allowed for public schemas
-            if (type == Privilege.Type.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaName)) {
-                return true;
+    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_NAME =
+        (roles, user, schema, privileges) -> {
+            String schemaName = (String) schema;
+            boolean result = false;
+            for (Privilege.Type type: privileges) {
+                // USAGE is allowed for public schemas
+                if (type == Privilege.Type.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaName)) {
+                    return true;
+                }
+                // Last argument is null as it's not used for Privilege.Clazz.SCHEMA
+                result |= roles.hasPrivilege(user, type, Privilege.Clazz.SCHEMA, schemaName);
             }
-            // Last argument is null as it's not used for Privilege.Clazz.SCHEMA
-            result |= user.hasPrivilege(type, Privilege.Clazz.SCHEMA, schemaName);
-        }
-        return result;
-    };
+            return result;
+        };
 
-    private static final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_OID = (user, schema, privileges) -> {
-        Integer schemaOid = (Integer) schema;
-        boolean result = false;
-        for (Privilege.Type type: privileges) {
-            // USAGE is allowed for public schemas
-            if (type == Privilege.Type.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaOid)) {
-                return true;
+    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_OID =
+        (roles, user, schema, privileges) -> {
+            Integer schemaOid = (Integer) schema;
+            boolean result = false;
+            for (Privilege.Type type: privileges) {
+                // USAGE is allowed for public schemas
+                if (type == Privilege.Type.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaOid)) {
+                    return true;
+                }
+                result |= roles.hasSchemaPrivilege(user, type, schemaOid); // Returns true if has any privilege out of 2 possible
             }
-            result |= user.hasSchemaPrivilege(type, schemaOid); // Returns true if has any privilege out of 2 possible
-        }
-        return result;
-    };
+            return result;
+        };
 
     /**
      * @param privilege is a comma separated list.
@@ -165,7 +167,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
     protected HasSchemaPrivilegeFunction(Signature signature,
                                          BoundSignature boundSignature,
                                          BiFunction<Roles, Object, Role> getUser,
-                                         TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                         FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

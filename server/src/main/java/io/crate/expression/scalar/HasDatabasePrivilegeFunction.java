@@ -26,23 +26,23 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
-import org.elasticsearch.common.TriFunction;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
+import io.crate.common.FourFunction;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.types.DataTypes;
 
 public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     public static final String NAME = "has_database_privilege";
 
-    private static final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_NAME =
-        (user, db, privileges) -> {
+    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_NAME =
+        (roles, user, db, privileges) -> {
             if (Constants.DB_NAME.equals(db) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "database \"%s\" does not exist",
@@ -51,8 +51,8 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return checkPrivileges(user, privileges);
         };
 
-    private static final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_OID =
-        (user, db, privileges) -> {
+    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_OID =
+        (roles, user, db, privileges) -> {
             if (Constants.DB_OID != (Integer) db) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "database with OID \"%d\" does not exist",
@@ -194,7 +194,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
     protected HasDatabasePrivilegeFunction(Signature signature,
                                            BoundSignature boundSignature,
                                            BiFunction<Roles, Object, Role> getUser,
-                                           TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                           FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
@@ -68,9 +67,10 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.sql.tree.QualifiedName;
 
 
 @Singleton
@@ -96,15 +96,18 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     private final ClusterService clusterService;
     private final DocSchemaInfoFactory docSchemaInfoFactory;
+    private final Roles roles;
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
 
     @Inject
     public Schemas(Map<String, SchemaInfo> builtInSchemas,
                    ClusterService clusterService,
-                   DocSchemaInfoFactory docSchemaInfoFactory) {
+                   DocSchemaInfoFactory docSchemaInfoFactory,
+                   Roles roles) {
         this.clusterService = clusterService;
         this.docSchemaInfoFactory = docSchemaInfoFactory;
+        this.roles = roles;
         schemas.putAll(builtInSchemas);
         this.builtInSchemas = builtInSchemas;
     }
@@ -130,7 +133,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 if (currentSchema == null) {
                     throw new RelationUnknown(tableName);
                 } else {
-                    throw RelationUnknown.of(tableName, getSimilarTables(user, tableName, currentSchema.getTables()));
+                    throw RelationUnknown.of(
+                        tableName,
+                        getSimilarTables(user, tableName, currentSchema.getTables()));
                 }
             }
         } else {
@@ -149,11 +154,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return tableInfo;
     }
 
-    private static List<String> getSimilarTables(Role user, String tableName, Iterable<TableInfo> tables) {
+    private List<String> getSimilarTables(Role user, String tableName, Iterable<TableInfo> tables) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
         for (TableInfo table : tables) {
-            if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, table.ident().fqn())) {
+            if (roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, table.ident().fqn())) {
                 String candidate = table.ident().name();
                 float score = levenshteinDistance.getDistance(tableName.toLowerCase(Locale.ENGLISH), candidate.toLowerCase(Locale.ENGLISH));
                 if (score > 0.7f) {
@@ -165,14 +170,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return candidates.stream()
             .limit(5)
             .map(x -> x.name)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     private List<String> getSimilarSchemas(Role user, String schema) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
         for (String availableSchema : schemas.keySet()) {
-            if (user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, availableSchema)) {
+            if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, availableSchema)) {
                 float score = levenshteinDistance.getDistance(schema.toLowerCase(Locale.ENGLISH), availableSchema.toLowerCase(Locale.ENGLISH));
                 if (score > 0.7f) {
                     candidates.add(new Candidate(score, availableSchema));
@@ -183,7 +188,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return candidates.stream()
             .limit(5)
             .map(x -> x.name)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     static class Candidate {

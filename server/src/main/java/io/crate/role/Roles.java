@@ -55,5 +55,55 @@ public interface Roles {
         return null;
     }
 
+    /**
+     * Checks if the user has a privilege that matches the given class, type, ident and
+     * default schema. Currently only the type is checked since Class is always
+     * CLUSTER and ident null.
+     * @param user           user
+     * @param type           privilege type
+     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
+     * @param ident          ident of the object
+     */
+    default boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+        return user.isSuperUser() || user.privileges().matchPrivilege(type, clazz, ident);
+    }
+
+    /**
+     * Checks if the user has a schema privilege that matches the given type and ident OID.
+     * @param user           user
+     * @param type           privilege type
+     * @param schemaOid      OID of the schema
+     */
+    default boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
+        if (user.isSuperUser()) {
+            return true;
+        }
+        for (Privilege privilege : user.privileges()) {
+            if (privilege.state() == PrivilegeState.GRANT && privilege.ident().type() == type) {
+                if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
+                    return true;
+                }
+                if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA &&
+                    OidHash.schemaOid(privilege.ident().ident()) == schemaOid) {
+                    return true;
+                }
+            }
+        }
+        return false;
+
+    }
+
+    /**
+     * Checks if the user has any privilege that matches the given class, type and ident
+     * currently we check for any privilege, since Class is always CLUSTER and ident null.
+     *
+     * @param user  user
+     * @param clazz     privilege class (ie. CLUSTER, TABLE, etc)
+     * @param ident     ident of the object
+     */
+    default boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
+        return user.isSuperUser() || user.privileges().matchPrivilegeOfAnyType(clazz, ident);
+    }
+
     Collection<Role> roles();
 }

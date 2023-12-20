@@ -32,8 +32,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.pgcatalog.OidHash;
-
 public class Role implements ToXContent {
 
     public static final Role CRATE_USER = new Role("crate",
@@ -87,55 +85,8 @@ public class Role implements ToXContent {
         return userRoles.contains(UserRole.SUPERUSER);
     }
 
-    public Iterable<Privilege> privileges() {
+    public RolePrivileges privileges() {
         return privileges;
-    }
-
-    /**
-     * Checks if the user has a privilege that matches the given class, type, ident and
-     * default schema. Currently only the type is checked since Class is always
-     * CLUSTER and ident null.
-     * @param type           privilege type
-     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
-     * @param ident          ident of the object
-     */
-    public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        return isSuperUser() || privileges.matchPrivilege(type, clazz, ident);
-    }
-
-    /**
-     * Checks if the user has a schema privilege that matches the given type and ident OID.
-     * @param type           privilege type
-     * @param schemaOid      OID of the schema
-     */
-    public boolean hasSchemaPrivilege(Privilege.Type type, Integer schemaOid) {
-        if (isSuperUser()) {
-            return true;
-        }
-        for (Privilege privilege : privileges) {
-            if (privilege.state() == PrivilegeState.GRANT && privilege.ident().type() == type) {
-                if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
-                    return true;
-                }
-                if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA &&
-                    OidHash.schemaOid(privilege.ident().ident()) == schemaOid) {
-                    return true;
-                }
-            }
-        }
-        return false;
-
-    }
-
-    /**
-     * Checks if the user has any privilege that matches the given class, type and ident
-     * currently we check for any privilege, since Class is always CLUSTER and ident null.
-     *
-     * @param clazz privilege class (ie. CLUSTER, TABLE, etc)
-     * @param ident ident of the object
-     */
-    public boolean hasAnyPrivilege(Privilege.Clazz clazz, @Nullable String ident) {
-        return isSuperUser() || privileges.matchPrivilegeOfAnyType(clazz, ident);
     }
 
     @Override

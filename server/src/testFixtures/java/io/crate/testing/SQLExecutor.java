@@ -173,6 +173,9 @@ import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.role.Role;
+import io.crate.role.RoleManager;
+import io.crate.role.StubRoleManager;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
@@ -180,9 +183,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
-import io.crate.role.Role;
-import io.crate.role.RoleManager;
-import io.crate.role.StubRoleManager;
 
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.
@@ -282,9 +282,9 @@ public class SQLExecutor {
                 homeDir.resolve("config")
             );
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
-            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
+            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, nodeCtx.roles()));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
-            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats));
+            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats, nodeCtx.roles()));
             schemaInfoByName.put(
                 BlobSchemaInfo.NAME,
                 new BlobSchemaInfo(
@@ -304,7 +304,8 @@ public class SQLExecutor {
             schemas = new Schemas(
                 schemaInfoByName,
                 clusterService,
-                new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeCtx, udfService)
+                new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeCtx, udfService),
+                nodeCtx.roles()
             );
             schemas.start();  // start listen to cluster state changes
             try {
@@ -804,7 +805,6 @@ public class SQLExecutor {
             clusterService.getSettings(),
             clusterService,
             tableStats
-
         );
         this.analyzer = analyzer;
         this.planner = planner;
