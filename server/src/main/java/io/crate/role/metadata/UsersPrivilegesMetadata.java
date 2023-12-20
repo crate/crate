@@ -21,21 +21,6 @@
 
 package io.crate.role.metadata;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.role.Privilege;
-import io.crate.role.Privilege.State;
-import io.crate.metadata.RelationName;
-import io.crate.role.PrivilegeIdent;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractNamedDiffable;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -45,6 +30,22 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.AbstractNamedDiffable;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.RelationName;
+import io.crate.role.Privilege;
+import io.crate.role.Privilege.State;
+import io.crate.role.PrivilegeIdent;
 
 public class UsersPrivilegesMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 

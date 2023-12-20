@@ -47,7 +47,7 @@ public class UsersMetadataTest extends ESTestCase {
 
     @Test
     public void testUsersMetadataStreaming() throws IOException {
-        UsersMetadata users = of(RolesDefinitions.SINGLE_USER_ONLY);
+        UsersMetadata users = of(RolesHelper.SINGLE_USER_ONLY);
         BytesStreamOutput out = new BytesStreamOutput();
         users.writeTo(out);
 
@@ -63,7 +63,7 @@ public class UsersMetadataTest extends ESTestCase {
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
 
-        UsersMetadata users = of(RolesDefinitions.DUMMY_USERS_WITHOUT_PASSWORD);
+        UsersMetadata users = of(RolesHelper.DUMMY_USERS_WITHOUT_PASSWORD);
         users.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
@@ -86,7 +86,7 @@ public class UsersMetadataTest extends ESTestCase {
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
 
-        UsersMetadata users = of(RolesDefinitions.SINGLE_USER_ONLY);
+        UsersMetadata users = of(RolesHelper.SINGLE_USER_ONLY);
         users.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
@@ -104,7 +104,7 @@ public class UsersMetadataTest extends ESTestCase {
 
     @Test
     public void testUserMetadataWithAttributesStreaming() throws Exception {
-        UsersMetadata writeUserMeta = of(RolesDefinitions.DUMMY_USERS);
+        UsersMetadata writeUserMeta = of(RolesHelper.DUMMY_USERS);
         BytesStreamOutput out = new BytesStreamOutput();
         writeUserMeta.writeTo(out);
 

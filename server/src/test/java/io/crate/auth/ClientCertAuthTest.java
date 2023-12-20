@@ -41,13 +41,14 @@ import org.junit.Test;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class ClientCertAuthTest extends ESTestCase {
 
     private ConnectionProperties sslConnWithCert;
     // "example.com" is the CN used in SelfSignedCertificate
-    private Role exampleUser = Role.userOf("example.com");
+    private Role exampleUser = RolesHelper.userOf("example.com");
     private SSLSession sslSession;
 
     @BeforeClass
@@ -82,7 +83,7 @@ public class ClientCertAuthTest extends ESTestCase {
 
     @Test
     public void testLookupValidUserWithCertWithDifferentCN() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(Role.userOf("arthur")));
+        ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(RolesHelper.userOf("arthur")));
         assertThatThrownBy(() -> clientCertAuth.authenticate("arthur", null, sslConnWithCert))
             .hasMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
     }

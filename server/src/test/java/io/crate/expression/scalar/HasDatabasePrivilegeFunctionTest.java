@@ -33,24 +33,25 @@ import org.junit.Test;
 import io.crate.Constants;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.pgcatalog.OidHash;
-import io.crate.testing.Asserts;
-import io.crate.testing.SqlExpressions;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
+import io.crate.testing.Asserts;
+import io.crate.testing.SqlExpressions;
 
 public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
 
-    private static final Role TEST_USER = Role.userOf("test");
+    private static final Role TEST_USER = RolesHelper.userOf("test");
     private static final Role TEST_USER_WITH_CREATE =
-        Role.userOf("testWithCreate",
+        RolesHelper.userOf("testWithCreate",
                 Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc", Role.CRATE_USER.name())),
                 null);
     private static final Role TEST_USER_WITH_AL_ON_CLUSTER =
-        Role.userOf("testUserWithClusterAL",
+        RolesHelper.userOf("testUserWithClusterAL",
                 Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", Role.CRATE_USER.name())),
                 null);
     private static final Role TEST_USER_WITH_DQL_ON_SYS =
-        Role.userOf("testUserWithSysDQL",
+        RolesHelper.userOf("testUserWithSysDQL",
                 Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", Role.CRATE_USER.name())),
                 null);
 

@@ -55,12 +55,13 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
-import io.crate.role.Role;
-import io.crate.role.Roles;
 
 public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
@@ -260,7 +261,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings("rawtypes")
     public void assertCompile(String functionExpression,
                               java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
-        assertCompile(functionExpression, Role.userOf("dummy"), () -> List.of(Role.userOf("dummy")), matcher);
+        assertCompile(functionExpression, RolesHelper.userOf("dummy"), () -> List.of(RolesHelper.userOf("dummy")), matcher);
     }
 
     @SuppressWarnings("rawtypes")

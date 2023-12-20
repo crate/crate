@@ -40,7 +40,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 
 public class OptimizerRuleSessionSettingProviderTest {
 
@@ -63,8 +63,8 @@ public class OptimizerRuleSessionSettingProviderTest {
 
         SearchPath searchPath = SearchPath.createSearchPathFrom("dummySchema");
         var mergefilterSettings = new CoordinatorSessionSettings(
-            Role.userOf("user"),
-            Role.userOf("user"),
+            RolesHelper.userOf("user"),
+            RolesHelper.userOf("user"),
             searchPath,
             true,
             Set.of(MergeFilters.class),
@@ -74,7 +74,7 @@ public class OptimizerRuleSessionSettingProviderTest {
 
         assertThat(sessionSetting.getValue(mergefilterSettings), is("false"));
 
-        var sessionSettings = new CoordinatorSessionSettings(Role.userOf("user"));
+        var sessionSettings = new CoordinatorSessionSettings(RolesHelper.userOf("user"));
 
         // Disable MergeFilters 'SET SESSION optimizer_merge_filters = false'
         sessionSetting.apply(sessionSettings, List.of(Literal.of(false)), eval);

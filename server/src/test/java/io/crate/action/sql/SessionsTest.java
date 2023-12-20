@@ -49,6 +49,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -92,10 +93,10 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
         Roles roles = () -> List.of(Role.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, roles);
         Sessions sessions = newSessions(nodeCtx);
-        Session session1 = sessions.newSession("doc", Role.userOf("Arthur"));
+        Session session1 = sessions.newSession("doc", RolesHelper.userOf("Arthur"));
         session1.cursors.add("c1", newCursor());
 
-        Session session2 = sessions.newSession("doc", Role.userOf("Trillian"));
+        Session session2 = sessions.newSession("doc", RolesHelper.userOf("Trillian"));
         session2.cursors.add("c2", newCursor());
 
         assertThat(sessions.getCursors(Role.CRATE_USER)).hasSize(2);
@@ -107,7 +108,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             null,
             "crate"
         );
-        Role admin = Role.userOf("admin", Set.of(ALprivilege), null);
+        Role admin = new Role("admin", true, Set.of(ALprivilege), null, Set.of());
         assertThat(sessions.getCursors(admin)).hasSize(2);
     }
 
@@ -118,11 +119,11 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
         NodeContext nodeCtx = new NodeContext(functions, roles);
         Sessions sessions = newSessions(nodeCtx);
 
-        Role arthur = Role.userOf("Arthur");
+        Role arthur = RolesHelper.userOf("Arthur");
         Session session1 = sessions.newSession("doc", arthur);
         session1.cursors.add("c1", newCursor());
 
-        Role trillian = Role.userOf("Trillian");
+        Role trillian = RolesHelper.userOf("Trillian");
         Session session2 = sessions.newSession("doc", trillian);
         session2.cursors.add("c2", newCursor());
 
