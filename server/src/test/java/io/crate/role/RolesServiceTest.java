@@ -22,7 +22,7 @@
 package io.crate.role;
 
 import static io.crate.role.Role.CRATE_USER;
-import static io.crate.role.metadata.RolesDefinitions.DUMMY_USERS_AND_ROLES;
+import static io.crate.role.RolesDefinitions.DUMMY_USERS_AND_ROLES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
@@ -30,11 +30,10 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.role.metadata.RolesDefinitions;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
 

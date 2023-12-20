@@ -21,8 +21,8 @@
 
 package io.crate.role.metadata;
 
+import static io.crate.role.RolesDefinitions.usersMetadataOf;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.role.metadata.RolesDefinitions.usersMetadataOf;
 
 import java.io.IOException;
 import java.util.Map;
@@ -38,6 +38,8 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import io.crate.role.RolesDefinitions;
 
 public class RolesMetadataTest extends ESTestCase {
 

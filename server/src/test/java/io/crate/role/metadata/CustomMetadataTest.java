@@ -39,6 +39,7 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadataTest;
 import io.crate.metadata.MetadataModule;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.metadata.view.ViewsMetadataTest;
+import io.crate.role.RolesDefinitions;
 
 public class CustomMetadataTest {
 

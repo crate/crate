@@ -36,7 +36,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.RolesDefinitions;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportPrivilegesActionTest extends ESTestCase {
