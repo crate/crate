@@ -27,7 +27,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.pgcatalog.OidHash;
 
-@FunctionalInterface
 public interface Roles {
 
     /**
