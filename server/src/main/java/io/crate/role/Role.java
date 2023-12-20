@@ -21,15 +21,20 @@
 
 package io.crate.role;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.pgcatalog.OidHash;
 
-public class Role {
+public class Role implements ToXContent {
 
     public static final Role CRATE_USER = new Role("crate",
         true,
@@ -152,5 +157,52 @@ public class Role {
     @Override
     public String toString() {
         return (isUser ? "User{" : "Role{") + name + ", " + (password() == null ? "null" : "*****") + '}';
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject(name);
+        builder.field("is_user", isUser);
+        if (password != null) {
+            password.toXContent(builder, params);
+        }
+        builder.endObject();
+        return builder;
+    }
+
+    public static Role fromXContent(XContentParser parser) throws IOException {
+        if (parser.currentToken() != XContentParser.Token.FIELD_NAME) {
+            throw new ElasticsearchParseException(
+                "failed to parse a role, expecting the current token to be a field name, got " + parser.currentToken()
+            );
+        }
+
+        String roleName = parser.currentName();
+        boolean isUser = false;
+        SecureHash secureHash = null;
+
+        if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
+            while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
+                switch (parser.currentName()) {
+                    case "is_user":
+                        parser.nextToken();
+                        isUser = parser.booleanValue();
+                        break;
+                    case "secure_hash":
+                        secureHash = SecureHash.fromXContent(parser);
+                        break;
+                    default:
+                        throw new ElasticsearchParseException(
+                            "failed to parse a role, unexpected field name: " + parser.currentName()
+                        );
+                }
+            }
+            if (parser.currentToken() != XContentParser.Token.END_OBJECT) {
+                throw new ElasticsearchParseException(
+                    "failed to parse a role, expected an object token at the end, got: " + parser.currentToken()
+                );
+            }
+        }
+        return new Role(roleName, isUser, Set.of(), secureHash, Set.of());
     }
 }
