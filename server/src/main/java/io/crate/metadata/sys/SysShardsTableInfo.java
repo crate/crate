@@ -53,15 +53,15 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.types.DataTypes;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.types.DataTypes;
 
 public class SysShardsTableInfo {
 
@@ -125,7 +125,7 @@ public class SysShardsTableInfo {
         );
     }
 
-    public static SystemTable<ShardRowContext> create() {
+    public static SystemTable<ShardRowContext> create(Roles roles) {
         return SystemTable.<ShardRowContext>builder(IDENT, RowGranularity.SHARD)
             .add("schema_name", STRING, r -> r.indexParts().getSchema())
             .add("table_name", STRING, r -> r.indexParts().getTable())
@@ -200,7 +200,8 @@ public class SysShardsTableInfo {
                 Columns.ID,
                 Columns.PARTITION_IDENT
             )
-            .withRouting(SysShardsTableInfo::getRouting)
+            .withRouting((state, routingProvider, sessionSettings) ->
+                getRouting(state, sessionSettings, roles))
             .build();
     }
 
@@ -235,7 +236,9 @@ public class SysShardsTableInfo {
      * This routing contains ALL shards of ALL indices.
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
-    public static Routing getRouting(ClusterState clusterState, RoutingProvider routingProvider, CoordinatorSessionSettings sessionSettings) {
+    public static Routing getRouting(ClusterState clusterState,
+                                     CoordinatorSessionSettings sessionSettings,
+                                     Roles roles) {
         String[] concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllIndices())
             .filter(index -> !IndexParts.isDangling(index))
             .toArray(String[]::new);
@@ -244,7 +247,7 @@ public class SysShardsTableInfo {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
             for (String indexName : concreteIndices) {
                 String tableName = RelationName.fqnFromIndexName(indexName);
-                if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableName)) {
+                if (roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, tableName)) {
                     accessibleTables.add(indexName);
                 }
             }

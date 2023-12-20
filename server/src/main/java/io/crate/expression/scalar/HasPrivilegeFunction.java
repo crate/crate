@@ -27,9 +27,9 @@ import java.util.Locale;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.elasticsearch.common.TriFunction;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.FourFunction;
 import io.crate.data.Input;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.expression.symbol.Symbol;
@@ -46,7 +46,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
     private final BiFunction<Roles, Object, Role> getUser;
 
-    private final TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege;
+    private final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege;
 
     protected static final BiFunction<Roles, Object, Role> USER_BY_NAME = (roles, userName) -> {
         var user = roles.findUser((String) userName);
@@ -79,7 +79,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     protected HasPrivilegeFunction(Signature signature,
                                    BoundSignature boundSignature,
                                    BiFunction<Roles, Object, Role> getUser,
-                                   TriFunction<Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                   FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         super(signature, boundSignature);
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
@@ -119,8 +119,8 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         // does null check and parses privileges string.
         var sessionUser = USER_BY_NAME.apply(roles, currentUser);
         Role user = getUser.apply(roles, userValue);
-        validateCallPrivileges(sessionUser, user);
-        return new CompiledHasPrivilege(signature, boundSignature, sessionUser, user, compiledPrivileges);
+        validateCallPrivileges(roles, sessionUser, user);
+        return new CompiledHasPrivilege(roles, signature, boundSignature, sessionUser, user, compiledPrivileges);
     }
 
 
@@ -142,6 +142,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     @Override
     public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         Object userNameOrOid, schemaNameOrOid, privileges;
+        Roles roles = nodeCtx.roles();
 
         var sessionUser = USER_BY_NAME.apply(nodeCtx.roles(), txnCtx.sessionSettings().userName());
         Role user;
@@ -154,8 +155,8 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             if (userNameOrOid == null) {
                 return null;
             }
-            user = getUser.apply(nodeCtx.roles(), userNameOrOid);
-            validateCallPrivileges(sessionUser, user);
+            user = getUser.apply(roles, userNameOrOid);
+            validateCallPrivileges(roles, sessionUser, user);
             schemaNameOrOid = args[1].value();
             privileges = args[2].value();
         }
@@ -163,11 +164,12 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         if (schemaNameOrOid == null || privileges == null) {
             return null;
         }
-        return checkPrivilege.apply(user, schemaNameOrOid, parsePrivileges((String) privileges));
+        return checkPrivilege.apply(roles, user, schemaNameOrOid, parsePrivileges((String) privileges));
     }
 
     private class CompiledHasPrivilege extends Scalar<Boolean, Object> {
 
+        private final Roles roles;
         private final Role sessionUser;
         private final Role user;
 
@@ -175,12 +177,14 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         // when function provides pre-computed results
         private final Function<Object, Collection<Privilege.Type>> getPrivileges;
 
-        private CompiledHasPrivilege(Signature signature,
+        private CompiledHasPrivilege(Roles roles,
+                                     Signature signature,
                                      BoundSignature boundSignature,
                                      Role sessionUser,
                                      Role user,
                                      @Nullable Collection<Privilege.Type> compiledPrivileges) {
             super(signature, boundSignature);
+            this.roles = roles;
             this.sessionUser = sessionUser;
             this.user = user;
             if (compiledPrivileges != null) {
@@ -200,22 +204,22 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
                 privilege = args[1].value();
             } else {
                 // args[0] is resolved to a user
-                validateCallPrivileges(sessionUser, user);
+                validateCallPrivileges(roles, sessionUser, user);
                 schema = args[1].value();
                 privilege = args[2].value();
             }
             if (schema == null || privilege == null) {
                 return null;
             }
-            return checkPrivilege.apply(user, schema, getPrivileges.apply(privilege));
+            return checkPrivilege.apply(roles, user, schema, getPrivileges.apply(privilege));
         }
     }
 
-    protected static void validateCallPrivileges(Role sessionUser, Role user) {
+    protected static void validateCallPrivileges(Roles roles, Role sessionUser, Role user) {
         // Only superusers can call this function for other users
         if (user.name().equals(sessionUser.name()) == false
-            && sessionUser.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges") == false
-            && sessionUser.hasPrivilege(Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate") == false) {
+            && roles.hasPrivilege(sessionUser, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges") == false
+            && roles.hasPrivilege(sessionUser, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate") == false) {
             throw new MissingPrivilegeException(sessionUser.name());
         }
     }

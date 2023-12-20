@@ -140,7 +140,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
-        return new Schemas(builtInSchema, clusterService, mock(DocSchemaInfoFactory.class));
+        return new Schemas(builtInSchema, clusterService, mock(DocSchemaInfoFactory.class), List::of);
     }
 
     @Test

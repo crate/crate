@@ -39,10 +39,12 @@ public final class Privileges {
     /**
      * Checks if the user the concrete privilege for the given class, ident and default schema, if not raise exception.
      */
-    public static void ensureUserHasPrivilege(Privilege.Type type,
+    public static void ensureUserHasPrivilege(Roles roles,
+                                              Role user,
+                                              Privilege.Type type,
                                               Privilege.Clazz clazz,
-                                              @Nullable String ident,
-                                              Role user) throws MissingPrivilegeException {
+                                              @Nullable String ident) throws MissingPrivilegeException {
+        assert roles != null : "Roles must not be null when trying to validate privileges";
         assert user != null : "User must not be null when trying to validate privileges";
         assert type != null : "Privilege type must not be null";
 
@@ -51,8 +53,8 @@ public final class Privileges {
             return;
         }
         //noinspection PointlessBooleanExpression
-        if (user.hasPrivilege(type, clazz, ident) == false) {
-            boolean objectIsVisibleToUser = user.hasAnyPrivilege(clazz, ident);
+        if (roles.hasPrivilege(user, type, clazz, ident) == false) {
+            boolean objectIsVisibleToUser = roles.hasAnyPrivilege(user, clazz, ident);
             if (objectIsVisibleToUser) {
                 throw new MissingPrivilegeException(user.name(), type);
             } else {
@@ -64,7 +66,7 @@ public final class Privileges {
                     case TABLE:
                     case VIEW:
                         RelationName relationName = RelationName.fromIndexName(ident);
-                        if (user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, relationName.schema())) {
+                        if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, relationName.schema())) {
                             throw new RelationUnknown(relationName);
                         } else {
                             throw new SchemaUnknownException(relationName.schema());
@@ -81,9 +83,11 @@ public final class Privileges {
      * Checks if the user has ANY privilege for the given class and ident, if not raise exception.
      */
     @VisibleForTesting
-    public static void ensureUserHasPrivilege(Privilege.Clazz clazz,
-                                              @Nullable String ident,
-                                              Role user) throws MissingPrivilegeException {
+    public static void ensureUserHasPrivilege(Roles roles,
+                                              Role user,
+                                              Privilege.Clazz clazz,
+                                              @Nullable String ident) throws MissingPrivilegeException {
+        assert roles != null : "Roles must not be null when trying to validate privileges";
         assert user != null : "User must not be null when trying to validate privileges";
 
         // information_schema and pg_catalog should not be protected
@@ -91,7 +95,7 @@ public final class Privileges {
             return;
         }
         //noinspection PointlessBooleanExpression
-        if (user.hasAnyPrivilege(clazz, ident) == false) {
+        if (roles.hasAnyPrivilege(user, clazz, ident) == false) {
             switch (clazz) {
                 case CLUSTER:
                     throw new MissingPrivilegeException(user.name());
@@ -102,7 +106,7 @@ public final class Privileges {
                 case TABLE:
                 case VIEW:
                     RelationName relationName = RelationName.fromIndexName(ident);
-                    if (user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, relationName.schema())) {
+                    if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, relationName.schema())) {
                         throw new RelationUnknown(relationName);
                     } else {
                         throw new SchemaUnknownException(relationName.schema());

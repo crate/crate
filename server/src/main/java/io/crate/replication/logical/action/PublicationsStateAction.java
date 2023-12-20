@@ -139,7 +139,8 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 // Publication owner cannot be null as we ensure that users who owns publication cannot be dropped.
                 // Also, before creating publication or subscription we check that owner was not dropped right before creation.
                 Role publicationOwner = roles.findUser(publication.owner());
-                allRelationsInPublications.putAll(publication.resolveCurrentRelations(state, publicationOwner, subscriber, publicationName));
+                allRelationsInPublications.putAll(
+                    publication.resolveCurrentRelations(state, roles, publicationOwner, subscriber, publicationName));
             }
             listener.onResponse(new Response(allRelationsInPublications, unknownPublications));
         }

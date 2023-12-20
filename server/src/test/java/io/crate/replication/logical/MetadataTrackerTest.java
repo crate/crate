@@ -22,6 +22,7 @@
 package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+import static io.crate.role.Role.CRATE_USER;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
@@ -67,7 +68,6 @@ import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.role.Role;
 
 public class MetadataTrackerTest extends ESTestCase {
 
@@ -525,7 +525,8 @@ public class MetadataTrackerTest extends ESTestCase {
         PublicationsMetadata publicationsMetadata = publisherState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get("pub1");
         var publisherStateResponse = new Response(
-                publication.resolveCurrentRelations(publisherState, Role.CRATE_USER, Role.CRATE_USER, "dummy"), List.of());
+                publication.resolveCurrentRelations(
+                    publisherState, () -> List.of(CRATE_USER), CRATE_USER, CRATE_USER, "dummy"), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
             SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
@@ -555,7 +556,8 @@ public class MetadataTrackerTest extends ESTestCase {
         PublicationsMetadata publicationsMetadata = publisherClusterState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get("pub1");
         var publisherStateResponse = new Response(
-                publication.resolveCurrentRelations(publisherClusterState, Role.CRATE_USER, Role.CRATE_USER, "dummy"), List.of());
+                publication.resolveCurrentRelations(
+                    publisherClusterState, () -> List.of(CRATE_USER), CRATE_USER, CRATE_USER, "dummy"), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
             SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),

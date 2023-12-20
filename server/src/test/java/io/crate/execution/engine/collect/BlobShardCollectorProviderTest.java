@@ -112,7 +112,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 String indexUUID = metadata.index(".blob_b1").getIndexUUID();
                 BlobIndicesService blobIndicesService = cluster().getDataNodeInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
-                Schemas schemas = new Schemas(Collections.emptyMap(), clusterService, null);
+                Schemas schemas = new Schemas(Collections.emptyMap(), clusterService, null, List::of);
                 assertNotNull(blobShard);
                 collectorProvider = new BlobShardCollectorProvider(
                     blobShard,
