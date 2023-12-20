@@ -24,7 +24,6 @@ package io.crate.role;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,7 +40,7 @@ import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class RolesService implements Roles, ClusterStateListener {
 
-    private volatile Set<Role> roles = Set.of(Role.CRATE_USER);
+    private volatile Map<String, Role> roles = Map.of(Role.CRATE_USER.name(), Role.CRATE_USER);
 
     @Inject
     public RolesService(ClusterService clusterService) {
@@ -50,7 +49,17 @@ public class RolesService implements Roles, ClusterStateListener {
 
     @Override
     public Collection<Role> roles() {
-        return roles;
+        return roles.values();
+    }
+
+    @Nullable
+    @Override
+    public Role findUser(String userName) {
+        Role role = roles.get(userName);
+        if (role != null && role.isUser()) {
+            return role;
+        }
+        return null;
     }
 
     @Override
@@ -72,9 +81,9 @@ public class RolesService implements Roles, ClusterStateListener {
     }
 
 
-    static Set<Role> getRoles(@Nullable UsersMetadata usersMetadata,
-                              @Nullable RolesMetadata rolesMetadata,
-                              @Nullable UsersPrivilegesMetadata privilegesMetadata) {
+    static Map<String, Role> getRoles(@Nullable UsersMetadata usersMetadata,
+                                      @Nullable RolesMetadata rolesMetadata,
+                                      @Nullable UsersPrivilegesMetadata privilegesMetadata) {
         Map<String, Role> roles = new HashMap<>();
         roles.put(Role.CRATE_USER.name(), Role.CRATE_USER);
         if (usersMetadata != null) {
@@ -108,6 +117,6 @@ public class RolesService implements Roles, ClusterStateListener {
                 roles.put(userName, new Role(userName, role.getValue().isUser(), privileges, password, Set.of()));
             }
         }
-        return Collections.unmodifiableSet(new HashSet<>(roles.values()));
+        return Collections.unmodifiableMap(roles);
     }
 }
