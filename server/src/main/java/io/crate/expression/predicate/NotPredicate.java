@@ -117,7 +117,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         }
 
         boolean useFieldExistQuery() {
-            return removeNullValues && !useNotQuery && !enforceThreeValuedLogic;
+            return removeNullValues && !enforceThreeValuedLogic;
         }
     }
 
