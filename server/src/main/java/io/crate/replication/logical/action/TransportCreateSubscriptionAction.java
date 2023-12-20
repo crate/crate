@@ -51,7 +51,7 @@ import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsExceptio
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
 
@@ -59,21 +59,21 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
 
     private final String source;
     private final LogicalReplicationService logicalReplicationService;
-    private final RoleLookup userLookup;
+    private final Roles roles;
 
     @Inject
     public TransportCreateSubscriptionAction(TransportService transportService,
                                              ClusterService clusterService,
                                              LogicalReplicationService logicalReplicationService,
                                              ThreadPool threadPool,
-                                             RoleLookup userLookup) {
+                                             Roles roles) {
         super(ACTION_NAME,
               transportService,
               clusterService,
               threadPool,
               CreateSubscriptionRequest::new);
         this.logicalReplicationService = logicalReplicationService;
-        this.userLookup = userLookup;
+        this.roles = roles;
         this.source = "create-subscription";
     }
 
@@ -93,7 +93,7 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
 
         // Ensure subscription owner exists
-        if (userLookup.findUser(request.owner()) == null) {
+        if (roles.findUser(request.owner()) == null) {
             throw new IllegalStateException(
                 String.format(
                     Locale.ENGLISH, "Subscription '%s' cannot be created as the user '%s' owning the subscription has been dropped.",

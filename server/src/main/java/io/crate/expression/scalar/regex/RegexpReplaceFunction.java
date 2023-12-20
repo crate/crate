@@ -40,7 +40,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public final class RegexpReplaceFunction extends Scalar<String, String> {
 
@@ -88,7 +88,7 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
+    public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         assert arguments.size() >= 3 : "number of arguments muts be >= 3";
         Symbol patternSymbol = arguments.get(1);
         if (patternSymbol instanceof Input) {

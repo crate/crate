@@ -25,21 +25,21 @@ import org.elasticsearch.common.settings.SecureString;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 
 public class TrustAuthenticationMethod implements AuthenticationMethod {
 
     static final String NAME = "trust";
-    private final RoleLookup userLookup;
+    private final Roles roles;
 
-    public TrustAuthenticationMethod(RoleLookup userLookup) {
-        this.userLookup = userLookup;
+    public TrustAuthenticationMethod(Roles roles) {
+        this.roles = roles;
     }
 
     @Override
     public Role authenticate(String userName, SecureString passwd, ConnectionProperties connectionProperties) {
-        Role user = userLookup.findUser(userName);
+        Role user = roles.findUser(userName);
         if (user == null) {
             throw new RuntimeException("trust authentication failed for user \"" + userName + "\"");
         }

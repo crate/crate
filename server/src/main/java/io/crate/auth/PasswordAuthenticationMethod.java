@@ -26,22 +26,22 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 import io.crate.role.SecureHash;
 
 public class PasswordAuthenticationMethod implements AuthenticationMethod {
 
     public static final String NAME = "password";
-    private final RoleLookup userLookup;
+    private final Roles roles;
 
-    PasswordAuthenticationMethod(RoleLookup userLookup) {
-        this.userLookup = userLookup;
+    PasswordAuthenticationMethod(Roles roles) {
+        this.roles = roles;
     }
 
     @Nullable
     @Override
     public Role authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
-        Role user = userLookup.findUser(userName);
+        Role user = roles.findUser(userName);
         if (user != null && passwd != null && passwd.length() > 0) {
             SecureHash secureHash = user.password();
             if (secureHash != null && secureHash.verifyHash(passwd)) {

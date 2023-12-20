@@ -59,8 +59,7 @@ import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
-import io.crate.role.RoleManager;
+import io.crate.role.Roles;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -73,7 +72,7 @@ public class SystemCollectSource implements CollectSource {
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
 
-    private final RoleLookup roleLookup;
+    private final Roles roles;
     private final InformationSchemaTableDefinitions informationSchemaTables;
     private final SysTableDefinitions sysTables;
     private final PgCatalogTableDefinitions pgCatalogTables;
@@ -81,14 +80,14 @@ public class SystemCollectSource implements CollectSource {
     @Inject
     public SystemCollectSource(ClusterService clusterService,
                                NodeContext nodeCtx,
-                               RoleManager roleManager,
+                               Roles roles,
                                InformationSchemaTableDefinitions informationSchemaTables,
                                SysTableDefinitions sysTableDefinitions,
                                SysNodeChecks sysNodeChecks,
                                PgCatalogTableDefinitions pgCatalogTables) {
         this.clusterService = clusterService;
         inputFactory = new InputFactory(nodeCtx);
-        this.roleLookup = roleManager;
+        this.roles = roles;
         this.informationSchemaTables = informationSchemaTables;
         this.sysTables = sysTableDefinitions;
         this.pgCatalogTables = pgCatalogTables;
@@ -134,7 +133,7 @@ public class SystemCollectSource implements CollectSource {
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         RelationName relationName = RelationName.fromIndexName(table);
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
-        Role user = requireNonNull(roleLookup.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
+        Role user = requireNonNull(roles.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
 
         return CompletableFuture.completedFuture(CollectingBatchIterator.newInstance(
             () -> {},

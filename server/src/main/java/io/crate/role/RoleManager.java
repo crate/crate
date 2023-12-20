@@ -32,7 +32,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 /**
  * responsible for creating and deleting roles (and users)
  */
-public interface RoleManager extends RoleLookup {
+public interface RoleManager extends Roles {
 
     /**
      * Create a role.

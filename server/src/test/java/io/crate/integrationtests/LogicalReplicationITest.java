@@ -49,7 +49,7 @@ import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 
 @UseRandomizedSchema(random = false)
@@ -63,8 +63,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("CREATE USER " + publicationOwner);
         executeOnPublisher("GRANT AL TO " + publicationOwner);
         executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
-        RoleLookup userLookup = publisherCluster.getInstance(RoleLookup.class);
-        Role user = Objects.requireNonNull(userLookup.findUser(publicationOwner), "User " + publicationOwner + " must exist");
+        Roles roles = publisherCluster.getInstance(Roles.class);
+        Role user = Objects.requireNonNull(roles.findUser(publicationOwner), "User " + publicationOwner + " must exist");
 
         executeOnPublisher("DROP USER " + publicationOwner);
         assertThatThrownBy(() -> executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user))
@@ -83,8 +83,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("CREATE USER " + subscriptionOwner);
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
-        RoleLookup userLookup = subscriberCluster.getInstance(RoleLookup.class);
-        Role user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Roles roles = subscriberCluster.getInstance(Roles.class);
+        Role user = Objects.requireNonNull(roles.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
 
         executeOnSubscriber("DROP USER " + subscriptionOwner);
         assertThatThrownBy(() -> createSubscriptionAsUser("sub1", "pub1", user))
@@ -102,8 +102,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("GRANT AL TO " + publicationOwner);
         executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
 
-        RoleLookup userLookup = publisherCluster.getInstance(RoleLookup.class);
-        Role user = Objects.requireNonNull(userLookup.findUser(publicationOwner), "User " + publicationOwner + " must exist");
+        Roles roles = publisherCluster.getInstance(Roles.class);
+        Role user = Objects.requireNonNull(roles.findUser(publicationOwner), "User " + publicationOwner + " must exist");
         executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user);
 
         assertThatThrownBy(() -> executeOnPublisher("DROP USER " + publicationOwner))
@@ -121,8 +121,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("CREATE USER " + subscriptionOwner);
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
-        RoleLookup userLookup = subscriberCluster.getInstance(RoleLookup.class);
-        Role user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Roles roles = subscriberCluster.getInstance(Roles.class);
+        Role user = Objects.requireNonNull(roles.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
         createSubscriptionAsUser("sub1", "pub1", user);
 
         assertThatThrownBy(() -> executeOnSubscriber("DROP USER " + subscriptionOwner))
@@ -140,8 +140,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("CREATE USER " + subscriptionOwner);
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
-        RoleLookup userLookup = subscriberCluster.getInstance(RoleLookup.class);
-        Role user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Roles roles = subscriberCluster.getInstance(Roles.class);
+        Role user = Objects.requireNonNull(roles.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
         var stmt = String.format(Locale.ENGLISH, "CREATE SUBSCRIPTION sub1 CONNECTION 'crate://localhost:12345/mydb?user=%s&mode=pg_tunnel'" +
                                                  " publication pub1", user.name());
         assertThatThrownBy(() -> subscriberSqlExecutor.executeAs(stmt, user))

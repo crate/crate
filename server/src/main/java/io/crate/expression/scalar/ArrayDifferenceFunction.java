@@ -43,7 +43,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 
@@ -78,7 +78,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     @Override
-    public Scalar<List<Object>, List<Object>> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
+    public Scalar<List<Object>, List<Object>> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         Symbol symbol = arguments.get(1);
 
         if (!symbol.symbolType().isValueSymbol()) {

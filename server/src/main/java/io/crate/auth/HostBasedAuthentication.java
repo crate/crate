@@ -22,7 +22,7 @@
 package io.crate.auth;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.apache.http.conn.DnsResolver;
 import org.apache.logging.log4j.LogManager;
@@ -93,13 +93,13 @@ public class HostBasedAuthentication implements Authentication {
      }
      */
     private SortedMap<String, Map<String, String>> hbaConf;
-    private final RoleLookup userLookup;
+    private final Roles roles;
     private final DnsResolver dnsResolver;
 
     @Inject
-    public HostBasedAuthentication(Settings settings, RoleLookup userLookup, DnsResolver dnsResolver) {
+    public HostBasedAuthentication(Settings settings, Roles roles, DnsResolver dnsResolver) {
         hbaConf = convertHbaSettingsToHbaConf(settings);
-        this.userLookup = userLookup;
+        this.roles = roles;
         this.dnsResolver = dnsResolver;
     }
 
@@ -122,11 +122,11 @@ public class HostBasedAuthentication implements Authentication {
     private AuthenticationMethod methodForName(String method) {
         switch (method) {
             case (TrustAuthenticationMethod.NAME):
-                return new TrustAuthenticationMethod(userLookup);
+                return new TrustAuthenticationMethod(roles);
             case (ClientCertAuth.NAME):
-                return new ClientCertAuth(userLookup);
+                return new ClientCertAuth(roles);
             case (PasswordAuthenticationMethod.NAME):
-                return new PasswordAuthenticationMethod(userLookup);
+                return new PasswordAuthenticationMethod(roles);
             default:
                 return null;
         }

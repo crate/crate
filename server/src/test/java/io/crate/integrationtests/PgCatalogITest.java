@@ -44,7 +44,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class PgCatalogITest extends IntegTestCase {
 
@@ -119,9 +119,9 @@ public class PgCatalogITest extends IntegTestCase {
         execute("create user hoschi");
         execute("grant dql on table doc.t1 to hoschi");
 
-        RoleLookup userLookup = cluster().getInstance(RoleLookup.class);
+        Roles roles = cluster().getInstance(Roles.class);
         Sessions sessions = cluster().getInstance(Sessions.class);
-        try (var session = sessions.newSession("doc", userLookup.findUser("hoschi"))) {
+        try (var session = sessions.newSession("doc", roles.findUser("hoschi"))) {
             execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
             // shows doc due to table permission, but not vip
             assertThat(response).hasRows(
@@ -133,7 +133,7 @@ public class PgCatalogITest extends IntegTestCase {
 
         execute("create view vip.v1 as select 1");
         execute("grant dql on view vip.v1 to hoschi");
-        try (var session = sessions.newSession("doc", userLookup.findUser("hoschi"))) {
+        try (var session = sessions.newSession("doc", roles.findUser("hoschi"))) {
             execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
             assertThat(response).hasRows(
                 "doc",

@@ -39,7 +39,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
@@ -51,7 +51,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Scalar<Object, Object> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
+    public Scalar<Object, Object> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         try {
             return new CompiledFunction(
                 signature,

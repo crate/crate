@@ -33,7 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.FunctionToQuery;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 /**
  * Base class for Scalar functions in crate.
@@ -49,7 +49,7 @@ import io.crate.role.RoleLookup;
  *
  *     Functions also MUST NOT have any internal state that influences the result of future calls.
  *     Functions are used as singletons.
- *     An exception is if {@link #compile(List, String, RoleLookup)} returns a NEW instance.
+ *     An exception is if {@link #compile(List, String, Roles)} returns a NEW instance.
  * </p>
  *
  * To implement scalar functions, you may want to use one of the following abstractions:
@@ -103,7 +103,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      *                  {@link #evaluate(TransactionContext, NodeContext, Input[])} will have the same
      *                  value as those literals. (Within the scope of a single operation)
      */
-    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
+    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         return this;
     }
 

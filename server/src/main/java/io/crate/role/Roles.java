@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.metadata.pgcatalog.OidHash;
 
 @FunctionalInterface
-public interface RoleLookup {
+public interface Roles {
 
     /**
      * finds a user by username
