@@ -732,4 +732,21 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("x is not null");
         assertThat(query).isExactlyInstanceOf(MatchAllDocsQuery.class);
     }
+
+    // tracks a bug: https://github.com/crate/crate/issues/15202
+    @Test
+    public void test_neq_operator_on_nullable_and_not_nullable_args_filters_nulls() throws Exception {
+        final long oid = 123;
+        try (QueryTester tester = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int)",
+            () -> oid
+        ).indexValues("a", new Object[]{1, null, 2}).build()) {
+            Query query = tester.toQuery("a != a||1"); // where a is nullable and a||1 is not null
+            assertThat(query).hasToString(String.format("+(+*:* -(a = concat(a, '1'))) +FieldExistsQuery [field=%s]", oid));
+            assertThat(tester.runQuery("a", "a != a||1")).containsExactly(1, 2);
+        }
+    }
 }
