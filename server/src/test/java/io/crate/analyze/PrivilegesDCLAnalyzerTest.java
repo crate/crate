@@ -44,18 +44,19 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.sql.parser.SqlParser;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import io.crate.testing.T3;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.StubRoleManager;
+import io.crate.role.metadata.RolesHelper;
+import io.crate.sql.parser.SqlParser;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 
 public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final Role GRANTOR_TEST_USER = Role.userOf("test");
+    private static final Role GRANTOR_TEST_USER = RolesHelper.userOf("test");
 
     private static final RoleManager USER_MANAGER = new StubRoleManager();
 

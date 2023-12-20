@@ -21,6 +21,16 @@
 
 package io.crate.role;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
+import java.util.Objects;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -29,15 +39,6 @@ import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * Secure Password Hashing that uses the PBKDF2 Algorithm
@@ -192,7 +193,7 @@ public final class SecureHash implements Writeable, ToXContent {
                 }
             }
         }
-        if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+        if (parser.currentToken() != XContentParser.Token.END_OBJECT) {
             throw new ElasticsearchParseException("failed to parse secure_hash, expected an object token at the end");
         }
 

@@ -44,6 +44,7 @@ import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
 
@@ -73,7 +74,7 @@ public class SqlHttpHandlerTest {
             settings,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.userOf("trillian")),
+            () -> List.of(RolesHelper.userOf("trillian")),
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -88,7 +89,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.userOf("Aladdin")),
+            () -> List.of(RolesHelper.userOf("Aladdin")),
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -99,7 +100,7 @@ public class SqlHttpHandlerTest {
 
     @Test
     public void testSessionSettingsArePreservedAcrossRequests() {
-        Role dummyUser = Role.userOf("crate");
+        Role dummyUser = RolesHelper.userOf("crate");
         var sessionSettings = new CoordinatorSessionSettings(dummyUser);
 
         var mockedSession = mock(Session.class);

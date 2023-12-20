@@ -34,15 +34,15 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathJoin;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
-import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 
 public class OptimizerTest {
 
     @Test
     public void test_rule_filtering() {
         var sessionSettings = new CoordinatorSessionSettings(
-            Role.userOf("User"),
-            Role.userOf("User"),
+            RolesHelper.userOf("User"),
+            RolesHelper.userOf("User"),
             SearchPath.pathWithPGCatalogAndDoc(),
             true,
             Set.of(MergeFilters.class),
@@ -60,8 +60,8 @@ public class OptimizerTest {
     @Test
     public void test_non_removable_rules_are_not_filtered() {
         var sessionSettings = new CoordinatorSessionSettings(
-            Role.userOf("User"),
-            Role.userOf("User"),
+            RolesHelper.userOf("User"),
+            RolesHelper.userOf("User"),
             SearchPath.pathWithPGCatalogAndDoc(),
             true,
             Set.of(RewriteJoinPlan.class), // this rule can not be removed

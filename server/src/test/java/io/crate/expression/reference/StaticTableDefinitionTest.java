@@ -38,13 +38,14 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 
 public class StaticTableDefinitionTest {
 
     private final TransactionContext dummyTxnCtx = TransactionContext.of(
         new SessionSettings("", SearchPath.createSearchPathFrom("")));
 
-    private final Role dummyUser = Role.userOf("dummy");
+    private final Role dummyUser = RolesHelper.userOf("dummy");
 
     @Test
     public void testTableDefinitionWithPredicate() throws ExecutionException, InterruptedException {

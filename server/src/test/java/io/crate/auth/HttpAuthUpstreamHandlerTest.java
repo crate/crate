@@ -31,6 +31,7 @@ import java.security.cert.Certificate;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import javax.net.ssl.SSLSession;
 
@@ -179,7 +180,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
-        Role crateUser = Role.userOf("crate", EnumSet.of(Role.UserRole.SUPERUSER));
+        Role crateUser = new Role("crate", true, Set.of(), null, EnumSet.of(Role.UserRole.SUPERUSER));
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of(crateUser));
 
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);

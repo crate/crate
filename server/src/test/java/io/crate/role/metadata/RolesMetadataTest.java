@@ -22,7 +22,7 @@
 package io.crate.role.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.role.metadata.RolesDefinitions.usersMetadataOf;
+import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
 
 import java.io.IOException;
 import java.util.Map;
@@ -43,7 +43,7 @@ public class RolesMetadataTest extends ESTestCase {
 
     @Test
     public void test_roles_metadata_streaming() throws IOException {
-        RolesMetadata roles = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES);
+        RolesMetadata roles = new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES);
         BytesStreamOutput out = new BytesStreamOutput();
         roles.writeTo(out);
 
@@ -59,7 +59,7 @@ public class RolesMetadataTest extends ESTestCase {
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
 
-        RolesMetadata roles = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES);
+        RolesMetadata roles = new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES);
         roles.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
@@ -82,7 +82,7 @@ public class RolesMetadataTest extends ESTestCase {
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
 
-        RolesMetadata roles = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
+        RolesMetadata roles = new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
         roles.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
@@ -100,7 +100,7 @@ public class RolesMetadataTest extends ESTestCase {
 
     @Test
     public void test_roles_metadata_with_attributes_streaming() throws Exception {
-        RolesMetadata writeRolesMeta = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES);
+        RolesMetadata writeRolesMeta = new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES);
         BytesStreamOutput out = new BytesStreamOutput();
         writeRolesMeta.writeTo(out);
 
@@ -112,22 +112,22 @@ public class RolesMetadataTest extends ESTestCase {
 
     @Test
     public void test_add_old_users_metadata_to_roles_metadata() {
-        RolesMetadata rolesMetadata = RolesMetadata.ofOldUsersMetadata(usersMetadataOf(RolesDefinitions.DUMMY_USERS));
+        RolesMetadata rolesMetadata = RolesMetadata.ofOldUsersMetadata(usersMetadataOf(RolesHelper.DUMMY_USERS));
         assertThat(rolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", RolesDefinitions.DUMMY_USERS.get("Arthur"),
-                "Ford", RolesDefinitions.DUMMY_USERS.get("Ford")));
+            Map.of("Arthur", RolesHelper.DUMMY_USERS.get("Arthur"),
+                "Ford", RolesHelper.DUMMY_USERS.get("Ford")));
     }
 
     @Test
     public void test_roles_metadata_from_cluster_state() {
-        var oldUsersMetadata = usersMetadataOf(RolesDefinitions.DUMMY_USERS);
-        var oldRolesMetadata = new RolesMetadata(RolesDefinitions.DUMMY_USERS_AND_ROLES);
+        var oldUsersMetadata = usersMetadataOf(RolesHelper.DUMMY_USERS);
+        var oldRolesMetadata = new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES);
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newRolesMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
         assertThat(newRolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", RolesDefinitions.DUMMY_USERS.get("Arthur"),
-                "Ford", RolesDefinitions.DUMMY_USERS.get("Ford")));
+            Map.of("Arthur", RolesHelper.DUMMY_USERS.get("Arthur"),
+                "Ford", RolesHelper.DUMMY_USERS.get("Ford")));
     }
 }

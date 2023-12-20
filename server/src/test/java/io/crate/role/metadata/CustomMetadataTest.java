@@ -46,7 +46,7 @@ public class CustomMetadataTest {
     public void testAllMetadataXContentRoundtrip() throws IOException {
         Metadata metadata = Metadata.builder()
             .putCustom(RolesMetadata.TYPE,
-                new RolesMetadata(RolesDefinitions.DUMMY_USERS))
+                new RolesMetadata(RolesHelper.DUMMY_USERS))
             .putCustom(UserDefinedFunctionsMetadata.TYPE,
                 UserDefinedFunctionsMetadataTest.DUMMY_UDF_METADATA)
             .putCustom(UsersPrivilegesMetadata.TYPE,

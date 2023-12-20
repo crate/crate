@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
@@ -75,11 +76,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     }
 
     public void put(String name, boolean isUser, SecureHash password) {
-        if (isUser) {
-            this.roles.put(name, Role.userOf(name, password));
-        } else {
-            this.roles.put(name, Role.roleOf(name));
-        }
+        roles.put(name, new Role(name, isUser, Set.of(), password, Set.of()));
     }
 
     public boolean contains(String name) {
@@ -122,13 +119,8 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(TYPE);
-        for (Map.Entry<String, Role> entry : roles.entrySet()) {
-            builder.startObject(entry.getKey());
-            builder.field("is_user", entry.getValue().isUser());
-            if (entry.getValue().password() != null) {
-                entry.getValue().password().toXContent(builder, params);
-            }
-            builder.endObject();
+        for (var role : roles.values()) {
+            role.toXContent(builder, params);
         }
         builder.endObject();
         return builder;
@@ -158,39 +150,12 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
         if (token == XContentParser.Token.FIELD_NAME && parser.currentName().equals(TYPE)) {
             token = parser.nextToken();
-            if (token == XContentParser.Token.START_OBJECT) {
-                while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
-                    String roleName = parser.currentName();
-                    boolean isUser = false;
-                    SecureHash secureHash = null;
-                    if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
-                        while (secureHash == null && parser.nextToken() == XContentParser.Token.FIELD_NAME) {
-                            switch (parser.currentName()) {
-                                case "is_user":
-                                    parser.nextToken();
-                                    isUser = parser.booleanValue();
-                                    break;
-                                case "secure_hash":
-                                    secureHash = SecureHash.fromXContent(parser);
-                                    break;
-                                default:
-                                    throw new ElasticsearchParseException("failed to parse roles, unexpected token: " +
-                                        parser.currentToken());
-                            }
-                        }
-                        if (isUser) {
-                            roles.put(roleName, Role.userOf(roleName, secureHash));
-                        } else {
-                            roles.put(roleName, Role.roleOf(roleName));
-                        }
-                    } else {
-                        // each custom metadata is packed inside an object.
-                        throw new ElasticsearchParseException("failed to parse roles, expected an object token at start");
-                    }
-                }
-            } else {
-                // each custom metadata is packed inside an object.
-                throw new ElasticsearchParseException("failed to parse roles, expected an object token at start");
+            if (token != XContentParser.Token.START_OBJECT) {
+                throw new ElasticsearchParseException("failed to parse roles, expected an object token but got {}", token);
+            }
+            while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
+                var role = Role.fromXContent(parser);
+                roles.put(role.name(), role);
             }
             if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                 // each custom metadata is packed inside an object.

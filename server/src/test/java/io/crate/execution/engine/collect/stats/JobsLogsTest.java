@@ -64,8 +64,9 @@ import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier.Classification;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -365,7 +366,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExecutionStart() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        Role user = Role.userOf("arthur");
+        Role user = RolesHelper.userOf("arthur");
 
         Classification classification =
             new Classification(SELECT, Collections.singleton("Collect"));
@@ -384,7 +385,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExecutionFailure() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        Role user = Role.userOf("arthur");
+        Role user = RolesHelper.userOf("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
@@ -402,7 +403,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExecutionFailureIsRecordedInMetrics() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        Role user = Role.userOf("arthur");
+        Role user = RolesHelper.userOf("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
