@@ -44,28 +44,62 @@ public class Role implements ToXContent {
         SUPERUSER
     }
 
+    public record Properties(boolean login, @Nullable SecureHash password) implements ToXContent {
+
+        public static Properties fromXContent(XContentParser parser) throws IOException {
+            boolean login = false;
+            SecureHash secureHash = null;
+            while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
+                switch (parser.currentName()) {
+                    case "login":
+                        parser.nextToken();
+                        login = parser.booleanValue();
+                        break;
+                    case "secure_hash":
+                        secureHash = SecureHash.fromXContent(parser);
+                        break;
+                    default:
+                        throw new ElasticsearchParseException(
+                            "failed to parse role properties, unexpected field name: " + parser.currentName()
+                        );
+                }
+            }
+            return new Properties(login, secureHash);
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.field("login", login);
+            if (password != null) {
+                password.toXContent(builder, params);
+            }
+            return builder;
+        }
+    }
+
     private final String name;
-    private final boolean isUser;
     private final RolePrivileges privileges;
-    @Nullable
-    private final SecureHash password;
     private final Set<UserRole> userRoles;
 
+    private final Properties properties;
+
     public Role(String name,
-                boolean isUser,
+                boolean login,
                 Set<Privilege> privileges,
                 @Nullable SecureHash password,
                 Set<UserRole> userRoles) {
-        if (isUser == false) {
-            assert password == null : "Cannot create a Role with password";
+        this(name, privileges, userRoles, new Properties(login, password));
+    }
+
+    public Role(String name, Set<Privilege> privileges, Set<UserRole> userRoles, Properties properties) {
+        if (properties.login == false) {
+            assert properties.password == null : "Cannot create a Role with password";
             assert userRoles.isEmpty() : "Cannot create a Role with UserRoles";
         }
-
         this.name = name;
-        this.isUser = isUser;
         this.privileges = new RolePrivileges(privileges);
-        this.password = password;
         this.userRoles = userRoles;
+        this.properties = properties;
     }
 
     public String name() {
@@ -74,11 +108,11 @@ public class Role implements ToXContent {
 
     @Nullable
     public SecureHash password() {
-        return password;
+        return properties.password();
     }
 
     public boolean isUser() {
-        return isUser;
+        return properties.login();
     }
 
     public boolean isSuperUser() {
@@ -96,31 +130,44 @@ public class Role implements ToXContent {
         Role that = (Role) o;
         return Objects.equals(name, that.name) &&
                Objects.equals(privileges, that.privileges) &&
-               Objects.equals(password, that.password) &&
-               Objects.equals(userRoles, that.userRoles);
+               Objects.equals(userRoles, that.userRoles) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, privileges, password, userRoles);
+        return Objects.hash(name, privileges, properties, userRoles);
     }
 
     @Override
     public String toString() {
-        return (isUser ? "User{" : "Role{") + name + ", " + (password() == null ? "null" : "*****") + '}';
+        return (isUser() ? "User{" : "Role{") + name + ", " + (password() == null ? "null" : "*****") + '}';
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(name);
-        builder.field("is_user", isUser);
-        if (password != null) {
-            password.toXContent(builder, params);
-        }
+        builder.startObject("properties");
+        properties.toXContent(builder, params);
+        builder.endObject();
         builder.endObject();
         return builder;
     }
 
+    /**
+     * A role is stored in the form of:
+     * <p>
+     *   "role1": {
+     *     "properties" {
+     *       "login" : true,
+     *       "secure_hash": {
+     *         "iterations": INT,
+     *         "hash": BYTE[],
+     *         "salt": BYTE[]
+     *       }
+     *     }
+     *   }
+     */
     public static Role fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() != XContentParser.Token.FIELD_NAME) {
             throw new ElasticsearchParseException(
@@ -129,23 +176,26 @@ public class Role implements ToXContent {
         }
 
         String roleName = parser.currentName();
-        boolean isUser = false;
-        SecureHash secureHash = null;
+        Properties properties = null;
 
         if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
             while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
-                switch (parser.currentName()) {
-                    case "is_user":
-                        parser.nextToken();
-                        isUser = parser.booleanValue();
-                        break;
-                    case "secure_hash":
-                        secureHash = SecureHash.fromXContent(parser);
-                        break;
-                    default:
+                if (parser.currentName().equals("properties")) {
+                    if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
                         throw new ElasticsearchParseException(
-                            "failed to parse a role, unexpected field name: " + parser.currentName()
+                            "failed to parse a role, expected an start object token but got " + parser.currentToken()
                         );
+                    }
+                    properties = Properties.fromXContent(parser);
+                    if (parser.currentToken() != XContentParser.Token.END_OBJECT) {
+                        throw new ElasticsearchParseException(
+                            "failed to parse a role, expected an end object token but got " + parser.currentToken()
+                        );
+                    }
+                } else {
+                    throw new ElasticsearchParseException(
+                            "failed to parse a Role, unexpected field name: " + parser.currentName()
+                    );
                 }
             }
             if (parser.currentToken() != XContentParser.Token.END_OBJECT) {
@@ -154,6 +204,9 @@ public class Role implements ToXContent {
                 );
             }
         }
-        return new Role(roleName, isUser, Set.of(), secureHash, Set.of());
+        if (properties == null) {
+            throw new ElasticsearchParseException("failed to parse role properties, not found");
+        }
+        return new Role(roleName, Set.of(), Set.of(), properties);
     }
 }

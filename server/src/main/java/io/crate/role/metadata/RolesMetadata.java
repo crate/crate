@@ -131,15 +131,17 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
      *
      * roles: {
      *   "role1": {
-     *     "is_user" : true,
-     *     "secure_hash": {
-     *       "iterations": INT,
-     *       "hash": BYTE[],
-     *       "salt": BYTE[]
+     *     "properties" {
+     *       "login" : true,
+     *       "secure_hash": {
+     *         "iterations": INT,
+     *         "hash": BYTE[],
+     *         "salt": BYTE[]
+     *       }
      *     }
      *   },
      *   "role2": {
-     *     "is_user" : false,
+     *     "properties" : {...},
      *   },
      *   ...
      * }
