@@ -21,13 +21,13 @@
 
 package io.crate.auth;
 
-import io.crate.types.DataTypes;
-import io.netty.handler.ssl.ClientAuth;
+import java.util.function.Function;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.function.Function;
+import io.crate.types.DataTypes;
+import io.netty.handler.ssl.ClientAuth;
 
 public final class AuthSettings {
 
@@ -54,6 +54,11 @@ public final class AuthSettings {
     );
 
     public static final String HTTP_HEADER_REAL_IP = "X-Real-Ip";
+    public static final Setting<Boolean> AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP = Setting.boolSetting(
+        "auth.trust.http_support_x_real_ip",
+        false,
+        Setting.Property.NodeScope
+    );
 
     public static ClientAuth resolveClientAuth(Settings settings, Protocol protocol) {
         Settings hbaSettings = AUTH_HOST_BASED_CONFIG_SETTING.get(settings);

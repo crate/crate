@@ -21,7 +21,28 @@
 
 package io.crate.auth;
 
+import static io.crate.protocols.SSL.getSession;
+import static io.netty.buffer.Unpooled.copiedBuffer;
+
+import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.Certificate;
+import java.util.List;
+import java.util.Locale;
+
+import javax.annotation.Nullable;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Tuple;
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -38,33 +59,17 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
-import java.security.cert.Certificate;
-import java.util.Locale;
-
-import static io.crate.protocols.SSL.getSession;
-import static io.netty.buffer.Unpooled.copiedBuffer;
 
 
 public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object> {
 
     private static final Logger LOGGER = LogManager.getLogger(HttpAuthUpstreamHandler.class);
     @VisibleForTesting
-
     // realm-value should not contain any special characters
     static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
+
+    private static final List<String> REAL_IP_HEADER_BLACKLIST = List.of("127.0.0.1", "::1");
+
     private final Authentication authService;
     private final Settings settings;
     private String authorizedUser = null;
@@ -185,8 +190,10 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {
-        if (request.headers().contains(AuthSettings.HTTP_HEADER_REAL_IP)) {
-            return InetAddresses.forString(request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP));
+        boolean supportXRealIp = AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.get(settings);
+        var realIP = request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP);
+        if (supportXRealIp && realIP != null && !REAL_IP_HEADER_BLACKLIST.contains(realIP)) {
+            return InetAddresses.forString(realIP);
         } else {
             return Netty4HttpServerTransport.getRemoteAddress(channel);
         }

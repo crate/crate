@@ -1,0 +1,60 @@
+.. _version_5.3.8:
+
+==========================
+Version 5.3.8 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+
+.. NOTE::
+
+    In development. 5.3.8 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.3.8.
+
+    We recommend that you upgrade to the latest 5.3 release before moving to
+    5.3.8.
+
+    A rolling upgrade from 5.2.x to 5.3.8 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.3.0` release notes for a full list of changes in the
+5.3 series.
+
+Security Fixes
+==============
+
+- The HTTP transport will not trust any ``X-Real-IP`` header by default anymore.
+  This prevents a client from spoofing its IP address by setting these headers
+  and thus bypassing IP based authentication with is enabled by default for the
+  ``crate`` superuser.
+  To keep allowing the ``X-Real-IP`` header to be trusted, you have to
+  explicitly enable it via the :ref:`auth.trust.http_support_x_real_ip` node
+  setting.
+
+Fixes
+=====
+
+None
