@@ -517,6 +517,24 @@ Trust authentication
   to CrateDB via HTTP protocol and they do not specify a user via the
   ``Authorization`` request header.
 
+.. _auth.trust.http_support_x_real_ip:
+
+**auth.trust.http_support_x_real_ip**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  If enabled, the HTTP transport will trust the ``X-Real-IP`` header sent by
+  the client to determine the client's IP address. This is useful when CrateDB
+  is running behind a reverse proxy or load-balancer. For improved security,
+  any ``_local_`` IP address (``127.0.0.1`` and ``::1``) defined in this header
+  will be ignored.
+
+.. warning::
+
+    Enabling this setting can be a security risk, as it allows clients to
+    impersonate other clients by sending a fake ``X-Real-IP`` header.
+
+
 Host-based authentication
 -------------------------
 
