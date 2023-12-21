@@ -726,4 +726,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         query = convert("12.34 != any(d_array_index_off_no_docvalues)");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
+
+    @Test
+    public void test_is_not_null_on_not_null_ref() {
+        Query query = convert("x is not null");
+        assertThat(query).isExactlyInstanceOf(MatchAllDocsQuery.class);
+    }
 }
