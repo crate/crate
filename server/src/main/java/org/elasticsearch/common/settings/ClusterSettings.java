@@ -436,6 +436,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING,
         AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING,
         AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER,
+        AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP,
         SslSettings.SSL_TRANSPORT_MODE,
         SslSettings.SSL_HTTP_ENABLED,
         SslSettings.SSL_PSQL_ENABLED,
