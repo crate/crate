@@ -46,6 +46,17 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 5.5 series.
 
 
+Security Fixes
+==============
+
+- The HTTP transport will not trust any ``X-Real-IP`` header by default anymore.
+  This prevents a client from spoofing its IP address by setting these headers
+  and thus bypassing IP based authentication with is enabled by default for the
+  ``crate`` superuser.
+  To keep allowing the ``X-Real-IP`` header to be trusted, you have to
+  explicitly enable it via the :ref:`auth.trust.http_support_x_real_ip` node
+  setting.
+
 Packaging Changes
 =================
 
