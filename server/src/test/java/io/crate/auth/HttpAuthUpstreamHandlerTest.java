@@ -139,7 +139,51 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
-        request.headers().add("X-Real-Ip", "10.1.0.100");
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+        assertThat(handler.authorized()).isFalse();
+
+        assertUnauthorized(
+            ch.readOutbound(),
+            "No valid auth.host_based.config entry found for host \"127.0.0.1\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
+    }
+
+    /**
+     * Ensure that the {@code X-Real-IP} header is ignored by default as this allows to by-pass HBA rules.
+     * See https://github.com/crate/crate/issues/15231.
+     */
+    @Test
+    public void test_real_ip_header_is_ignored_by_default() {
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+
+        request.headers().add("X-Real-IP", "10.1.0.100");
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+        assertThat(handler.authorized()).isFalse();
+
+        assertUnauthorized(
+            ch.readOutbound(),
+            "No valid auth.host_based.config entry found for host \"127.0.0.1\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
+    }
+
+    @Test
+    public void test_real_ip_header_is_used_if_enabled() {
+        var settings = Settings.builder()
+            .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
+            .build();
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+
+        request.headers().add("X-Real-IP", "10.1.0.100");
 
         ch.writeInbound(request);
         ch.releaseInbound();
@@ -148,6 +192,28 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         assertUnauthorized(
             ch.readOutbound(),
             "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
+    }
+
+    @Test
+    public void test_real_ip_header_blacklist() {
+        var settings = Settings.builder()
+            .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
+            .build();
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+
+        request.headers().add("X-Real-IP", "::1");
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+        assertThat(handler.authorized()).isFalse();
+
+        assertUnauthorized(
+            ch.readOutbound(),
+            "No valid auth.host_based.config entry found for host \"127.0.0.1\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
     }
 
     @Test

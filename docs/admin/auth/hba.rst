@@ -49,8 +49,11 @@ username, IP address,  protocol and connection scheme against these entries
 to determine which authentication method is required. If no entry matches, the
 client authentication request will be denied.
 
-For HTTP connections the ``X-REAL-IP`` request header has priority over the
-actual client IP address in order to allow proxied clients to authenticate.
+To support proxied clients to authenticate, the ``X-REAL-IP`` request header
+can be used. For security reasons, this is disabled by default as it allows
+clients to impersonate other clients. To enable this feature,
+set :ref:`auth.trust.http_support_x_real_ip` to ``true``. If enabled, the
+``X-REAL-IP`` request header has priority over the actual client IP address.
 
 If ``auth.host_based`` is not set, the host based authentication is disabled.
 In this case CrateDB **trusts all connections** and accepts the user provided by
