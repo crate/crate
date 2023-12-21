@@ -19,7 +19,14 @@
 
 package org.elasticsearch;
 
-import io.crate.common.SuppressForbidden;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
@@ -31,13 +38,7 @@ import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import io.crate.common.SuppressForbidden;
 
 public class Version implements Comparable<Version>, ToXContentFragment {
     /*
@@ -160,7 +161,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final Version V_5_2_8 = new Version(8_02_08_99, false, org.apache.lucene.util.Version.LUCENE_9_4_2);
     public static final Version V_5_2_9 = new Version(8_02_09_99, false, org.apache.lucene.util.Version.LUCENE_9_4_2);
     public static final Version V_5_2_10 = new Version(8_02_10_99, false, org.apache.lucene.util.Version.LUCENE_9_4_2);
-    public static final Version V_5_2_11 = new Version(8_02_11_99, true, org.apache.lucene.util.Version.LUCENE_9_4_2);
+    public static final Version V_5_2_11 = new Version(8_02_11_99, false, org.apache.lucene.util.Version.LUCENE_9_4_2);
 
     public static final Version CURRENT = V_5_2_11;
 

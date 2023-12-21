@@ -1,17 +1,10 @@
 .. _version_5.2.11:
 
-===========================
-Version 5.2.11 - Unreleased
-===========================
+==============
+Version 5.2.11
+==============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-
-.. NOTE::
-
-    In development. 5.2.11 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2023-12-21.
 
 .. NOTE::
 
@@ -56,8 +49,3 @@ Security Fixes
   explicitly enable it via the
   :ref:`auth.trust.http_support_x_real_ip <auth.trust.http_support_x_real_ip>`
   node setting.
-
-Fixes
-=====
-
-None
