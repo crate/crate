@@ -749,4 +749,11 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(tester.runQuery("a", "a != a||1")).containsExactly(1, 2);
         }
     }
+
+    // tracks a bug: https://github.com/crate/crate/issues/15232
+    @Test
+    public void test_cannot_use_field_exists_query_on_args_of_coalesce_function() {
+        Query query = convert("coalesce(x, y) <> 0");
+        assertThat(query).hasToString("+(+*:* -(coalesce(x, y) = 0)) #(NOT (coalesce(x, y) = 0))");
+    }
 }

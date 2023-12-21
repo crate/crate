@@ -34,6 +34,8 @@ import io.crate.types.TypeSignature;
 
 public class CoalesceFunction extends Scalar<Object, Object> {
 
+    // Feature.NULLABLE was removed in order to prevent any invalid FieldExistsQuery attached to the arguments
+    // which fixes a bug : https://github.com/crate/crate/issues/15232
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature
@@ -42,8 +44,7 @@ public class CoalesceFunction extends Scalar<Object, Object> {
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"))
                 .withVariableArity()
-                .withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.NULLABLE),
+                .withTypeVariableConstraints(typeVariable("E")),
             CoalesceFunction::new
         );
     }
