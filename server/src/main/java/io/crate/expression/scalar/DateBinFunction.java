@@ -34,7 +34,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class DateBinFunction extends Scalar<Long, Object> {
 
@@ -67,7 +67,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public Scalar<Long, Object> compile(List<Symbol> arguments, String currentUser, RoleLookup userLookup) {
+    public Scalar<Long, Object> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         assert arguments.size() == 3 : "Invalid number of arguments";
 
         if (arguments.get(0) instanceof Input<?> input) {

@@ -170,7 +170,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                               ShardCollectorProviderFactory shardCollectorProviderFactory) {
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
             SysShardsTableInfo.unassignedShardsExpressions());
-        this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.create().expressions());
+        this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.create(nodeCtx.roles()).expressions());
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.remoteCollectorFactory = remoteCollectorFactory;

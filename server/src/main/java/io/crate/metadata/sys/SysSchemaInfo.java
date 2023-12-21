@@ -35,6 +35,7 @@ import org.elasticsearch.common.inject.Singleton;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
+import io.crate.role.Roles;
 
 @Singleton
 public class SysSchemaInfo implements SchemaInfo {
@@ -43,11 +44,11 @@ public class SysSchemaInfo implements SchemaInfo {
     private final Map<String, TableInfo> tableInfos;
 
     @Inject
-    public SysSchemaInfo(ClusterService clusterService) {
+    public SysSchemaInfo(ClusterService clusterService, Roles roles) {
         tableInfos = new HashMap<>();
         tableInfos.put(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService));
         tableInfos.put(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.create());
-        tableInfos.put(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create());
+        tableInfos.put(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create(roles));
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         tableInfos.put(SysJobsTableInfo.IDENT.name(), SysJobsTableInfo.create(localNode));
         tableInfos.put(SysJobsLogTableInfo.IDENT.name(), SysJobsLogTableInfo.create(localNode));

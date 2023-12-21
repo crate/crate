@@ -29,9 +29,10 @@ import org.junit.Before;
 
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
-import io.crate.testing.SQLResponse;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
+import io.crate.role.metadata.RolesHelper;
+import io.crate.testing.SQLResponse;
 
 public abstract class BaseRolesIntegrationTest extends IntegTestCase {
 
@@ -45,7 +46,7 @@ public abstract class BaseRolesIntegrationTest extends IntegTestCase {
 
     private Session createUserSession() {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.newSession(null, Role.userOf("normal"));
+        return sqlOperations.newSession(null, RolesHelper.userOf("normal"));
     }
 
     @Before
@@ -74,8 +75,8 @@ public abstract class BaseRolesIntegrationTest extends IntegTestCase {
 
     public SQLResponse executeAs(String stmt, String userName) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        RoleLookup userLookup = cluster().getInstance(RoleLookup.class);
-        Role user = Objects.requireNonNull(userLookup.findUser(userName), "User " + userName + " must exist");
+        Roles roles = cluster().getInstance(Roles.class);
+        Role user = Objects.requireNonNull(roles.findUser(userName), "User " + userName + " must exist");
         try (Session session = sqlOperations.newSession(null, user)) {
             return execute(stmt, null, session);
         }

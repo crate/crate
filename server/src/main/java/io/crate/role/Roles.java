@@ -1,0 +1,109 @@
+/*
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.role;
+
+import java.util.Collection;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.metadata.pgcatalog.OidHash;
+
+public interface Roles {
+
+    /**
+     * finds a user by username
+     */
+    @Nullable
+    default Role findUser(String userName) {
+        for (var role : roles()) {
+            if (role.isUser() && role.name().equals(userName)) {
+                return role;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * finds a user by OID
+     */
+    @Nullable
+    default Role findUser(int userOid) {
+        for (var role : roles()) {
+            if (role.isUser() && userOid == OidHash.userOid(role.name())) {
+                return role;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if the user has a privilege that matches the given class, type, ident and
+     * default schema. Currently only the type is checked since Class is always
+     * CLUSTER and ident null.
+     * @param user           user
+     * @param type           privilege type
+     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
+     * @param ident          ident of the object
+     */
+    default boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+        return user.isSuperUser() || user.privileges().matchPrivilege(type, clazz, ident);
+    }
+
+    /**
+     * Checks if the user has a schema privilege that matches the given type and ident OID.
+     * @param user           user
+     * @param type           privilege type
+     * @param schemaOid      OID of the schema
+     */
+    default boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
+        if (user.isSuperUser()) {
+            return true;
+        }
+        for (Privilege privilege : user.privileges()) {
+            if (privilege.state() == PrivilegeState.GRANT && privilege.ident().type() == type) {
+                if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
+                    return true;
+                }
+                if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA &&
+                    OidHash.schemaOid(privilege.ident().ident()) == schemaOid) {
+                    return true;
+                }
+            }
+        }
+        return false;
+
+    }
+
+    /**
+     * Checks if the user has any privilege that matches the given class, type and ident
+     * currently we check for any privilege, since Class is always CLUSTER and ident null.
+     *
+     * @param user  user
+     * @param clazz     privilege class (ie. CLUSTER, TABLE, etc)
+     * @param ident     ident of the object
+     */
+    default boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
+        return user.isSuperUser() || user.privileges().matchPrivilegeOfAnyType(clazz, ident);
+    }
+
+    Collection<Role> roles();
+}

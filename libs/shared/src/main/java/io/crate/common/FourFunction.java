@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,42 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.role;
+package io.crate.common;
 
-import java.util.Collection;
-
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.metadata.pgcatalog.OidHash;
-
+/**
+ * Represents a function that accepts three arguments and produces a result.
+ *
+ * @param <A> the type of the first argument
+ * @param <B> the type of the second argument
+ * @param <C> the type of the third argument
+ * @param <D> the type of the fourth argument
+ * @param <R> the return type
+ */
 @FunctionalInterface
-public interface RoleLookup {
-
+public interface FourFunction<A, B, C, D, R> {
     /**
-     * finds a user by username
+     * Applies this function to the given arguments.
+     *
+     * @param a the first function argument
+     * @param b the second function argument
+     * @param c the third function argument
+     * @param d the fourth function argument
+     * @return the result
      */
-    @Nullable
-    default Role findUser(String userName) {
-        for (var role : roles()) {
-            if (role.isUser() && role.name().equals(userName)) {
-                return role;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * finds a user by OID
-     */
-    @Nullable
-    default Role findUser(int userOid) {
-        for (var role : roles()) {
-            if (role.isUser() && userOid == OidHash.userOid(role.name())) {
-                return role;
-            }
-        }
-        return null;
-    }
-
-    Collection<Role> roles();
+    R apply(A a, B b, C c, D d);
 }

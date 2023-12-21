@@ -21,14 +21,13 @@
 
 package io.crate.replication.logical.action;
 
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.Level;
 import org.elasticsearch.Version;
@@ -36,6 +35,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.test.MockLogAppender;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,12 +45,12 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.RelationMetadata;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.role.Privilege;
-import io.crate.role.Role;
-import io.crate.role.RoleLookup;
 
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -72,12 +72,19 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_resolve_relation_names_for_all_tables_ignores_table_with_soft_delete_disabled() throws Exception {
-        var user = new Role("dummy", true, Set.of(), null, Set.of()) {
+        var user = userOf("dummy");
+        var roles = new Roles() {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
+
         // Soft-deletes are mandatory from 5.0, so let's use 4.8 to create a table with soft-deletes disabled
         clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(),
                                                   Metadata.EMPTY_METADATA,
@@ -98,29 +105,31 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             expectedLogMessage
         ));
 
-        Map<RelationName, RelationMetadata> resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), user, user, "dummy");
+        Map<RelationName, RelationMetadata> resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), roles, user, user, "dummy");
         assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
         appender.assertAllExpectationsMatched();
     }
 
     @Test
     public void test_resolve_relation_names_for_all_tables_ignores_table_when_pub_owner_doesnt_have_read_write_define_permissions() throws Exception {
-        var publicationOwner = new Role("publisher", true, Set.of(), null, Set.of()) {
-            @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-                return ident.equals("doc.t1");
-            }
-        };
-        var subscriber = new Role("subscriber", true, Set.of(), null, Set.of()) {
-            @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-                return true;
-            }
-        };
+        var publicationOwner = userOf("publisher");
+        var subscriber = userOf("subscriber");
 
-        RoleLookup userLookup = mock(RoleLookup.class);
-        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
-        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
+        Roles roles = new Roles() {
+            @Override
+            public Collection<Role> roles() {
+                return List.of(publicationOwner, subscriber);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+                if (user.name().equals("publisher")) {
+                    return "doc.t1".equals(ident);
+                } else {
+                    return true;
+                }
+            }
+        };
 
         SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
@@ -131,6 +140,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
+            roles,
             publicationOwner,
             subscriber,
             "dummy"
@@ -141,23 +151,25 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_resolve_relation_names_for_all_tables_ignores_table_when_subscriber_doesnt_have_read_permissions() throws Exception {
-        var publicationOwner = new Role("publisher", true, Set.of(), null, Set.of()) {
-            @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-                return true;
-            }
-        };
+        var publicationOwner = userOf("publisher");
+        var subscriber = userOf("subscriber");
 
-        var subscriber = new Role("subscriber", true, Set.of(), null, Set.of()) {
+        Roles roles = new Roles() {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-                return ident.equals("doc.t1");
+            public Collection<Role> roles() {
+                return List.of(publicationOwner, subscriber);
             }
-        };
 
-        RoleLookup userLookup = mock(RoleLookup.class);
-        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
-        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+                if (user.name().equals("subscriber")) {
+                    return "doc.t1".equals(ident);
+                } else {
+                    return true;
+                }
+            }
+
+        };
 
         SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
@@ -166,29 +178,30 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .build();
         var publication = new Publication("publisher", true, List.of());
 
-        var resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), publicationOwner, subscriber, "dummy");
+        var resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), roles, publicationOwner, subscriber, "dummy");
         assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
     }
 
     @Test
     public void test_resolve_relation_names_for_fixed_tables_ignores_table_when_subscriber_doesnt_have_read_permissions() throws Exception {
-        var publicationOwner = new Role("publisher", true, Set.of(), null, Set.of()) {
+        var publicationOwner = userOf("publisher");
+        var subscriber = userOf("subscriber");
+
+        Roles roles = new Roles() {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-                return true;
+            public Collection<Role> roles() {
+                return List.of(publicationOwner, subscriber);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+                if (user.name().equals("subscriber")) {
+                    return "doc.t1".equals(ident);
+                } else {
+                    return true;
+                }
             }
         };
-
-        var subscriber = new Role("subscriber", true, Set.of(), null, Set.of()) {
-            @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-                return ident.equals("doc.t1");
-            }
-        };
-
-        RoleLookup userLookup = mock(RoleLookup.class);
-        when(userLookup.findUser("publisher")).thenReturn(publicationOwner);
-        when(userLookup.findUser("subscriber")).thenReturn(subscriber);
 
         SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
@@ -204,6 +217,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
+            roles,
             publicationOwner,
             subscriber,
             "dummy"
@@ -213,9 +227,15 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_resolve_relation_names_for_all_tables_ignores_table_with_non_active_primary_shards() throws Exception {
-        var user = new Role("dummy", true, Set.of(), null, Set.of()) {
+        var user = userOf("dummy");
+        Roles roles = new Roles() {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -229,6 +249,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
+            roles,
             user,
             user,
             "dummy"
@@ -239,9 +260,15 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_resolve_relation_names_for_concrete_tables_ignores_table_with_non_active_primary_shards() throws Exception {
-        var user = new Role("dummy", true, Set.of(), null, Set.of()) {
+        var user = userOf("dummy");
+        Roles roles = new Roles() {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -259,6 +286,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
+            roles,
             user,
             user,
             "dummy"
@@ -269,9 +297,15 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_resolve_relation_names_for_all_tables_ignores_partition_with_non_active_primary_shards() throws Exception {
-        var user = new Role("dummy", true, Set.of(), null, Set.of()) {
+        var user = userOf("dummy");
+        Roles roles = new Roles() {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -286,6 +320,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
+            roles,
             user,
             user,
             "dummy"
@@ -296,9 +331,15 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_resolve_relation_names_for_concrete_tables_ignores_partition_with_non_active_primary_shards() throws Exception {
-        var user = new Role("dummy", true, Set.of(), null, Set.of()) {
+        var user = userOf("dummy");
+        Roles roles = new Roles() {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -317,6 +358,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         var resolvedRelations = publication.resolveCurrentRelations(
             clusterService.state(),
+            roles,
             user,
             user,
             "dummy"

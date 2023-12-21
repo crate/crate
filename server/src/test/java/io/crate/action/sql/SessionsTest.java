@@ -49,21 +49,22 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
+import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.role.Privilege;
-import io.crate.role.Privilege.State;
-import io.crate.role.Role;
-import io.crate.role.RoleLookup;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
         Functions functions = new Functions(Map.of());
-        RoleLookup userLookup = () -> List.of(Role.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        Roles roles = () -> List.of(Role.CRATE_USER);
+        NodeContext nodeCtx = new NodeContext(functions, roles);
         DependencyCarrier dependencies = mock(DependencyCarrier.class);
         ElasticsearchClient client = mock(ElasticsearchClient.class, Answers.RETURNS_MOCKS);
         when(dependencies.client()).thenReturn(client);
@@ -89,40 +90,40 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_super_user_and_al_privileges_can_view_all_cursors() throws Exception {
         Functions functions = new Functions(Map.of());
-        RoleLookup userLookup = () -> List.of(Role.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        Roles roles = () -> List.of(Role.CRATE_USER);
+        NodeContext nodeCtx = new NodeContext(functions, roles);
         Sessions sessions = newSessions(nodeCtx);
-        Session session1 = sessions.newSession("doc", Role.userOf("Arthur"));
+        Session session1 = sessions.newSession("doc", RolesHelper.userOf("Arthur"));
         session1.cursors.add("c1", newCursor());
 
-        Session session2 = sessions.newSession("doc", Role.userOf("Trillian"));
+        Session session2 = sessions.newSession("doc", RolesHelper.userOf("Trillian"));
         session2.cursors.add("c2", newCursor());
 
         assertThat(sessions.getCursors(Role.CRATE_USER)).hasSize(2);
 
         var ALprivilege = new Privilege(
-            State.GRANT,
+            PrivilegeState.GRANT,
             Privilege.Type.AL,
             Privilege.Clazz.CLUSTER,
             null,
             "crate"
         );
-        Role admin = Role.userOf("admin", Set.of(ALprivilege), null);
+        Role admin = new Role("admin", true, Set.of(ALprivilege), null, Set.of());
         assertThat(sessions.getCursors(admin)).hasSize(2);
     }
 
     @Test
     public void test_user_can_only_view_their_own_cursors() throws Exception {
         Functions functions = new Functions(Map.of());
-        RoleLookup userLookup = () -> List.of(Role.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        Roles roles = () -> List.of(Role.CRATE_USER);
+        NodeContext nodeCtx = new NodeContext(functions, roles);
         Sessions sessions = newSessions(nodeCtx);
 
-        Role arthur = Role.userOf("Arthur");
+        Role arthur = RolesHelper.userOf("Arthur");
         Session session1 = sessions.newSession("doc", arthur);
         session1.cursors.add("c1", newCursor());
 
-        Role trillian = Role.userOf("Trillian");
+        Role trillian = RolesHelper.userOf("Trillian");
         Session session2 = sessions.newSession("doc", trillian);
         session2.cursors.add("c2", newCursor());
 
@@ -133,8 +134,8 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_uses_global_statement_timeout_as_default_for() throws Exception {
         Functions functions = new Functions(Map.of());
-        RoleLookup userLookup = () -> List.of(Role.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        Roles roles = () -> List.of(Role.CRATE_USER);
+        NodeContext nodeCtx = new NodeContext(functions, roles);
         Sessions sessions = new Sessions(
             nodeCtx,
             mock(Analyzer.class),

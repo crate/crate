@@ -43,6 +43,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 
 public class Publication implements Writeable {
 
@@ -113,7 +114,11 @@ public class Publication implements Writeable {
     }
 
 
-    public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state, Role publicationOwner, Role subscriber, String publicationName) {
+    public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state,
+                                                                       Roles roles,
+                                                                       Role publicationOwner,
+                                                                       Role subscriber,
+                                                                       String publicationName) {
         // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
         Predicate<String> indexFilter = indexName -> {
             var indexMetadata = state.metadata().index(indexName);
@@ -163,15 +168,15 @@ public class Publication implements Writeable {
 
         return relations.stream()
             .filter(relationName -> indexFilter.test(relationName.indexNameOrAlias()))
-            .filter(relationName -> userCanPublish(relationName, publicationOwner, publicationName))
-            .filter(relationName -> subscriberCanRead(relationName, subscriber, publicationName))
+            .filter(relationName -> userCanPublish(roles, relationName, publicationOwner, publicationName))
+            .filter(relationName -> subscriberCanRead(roles, relationName, subscriber, publicationName))
             .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), indexFilter))
             .collect(Collectors.toMap(RelationMetadata::name, x -> x));
 
     }
 
-    private static boolean subscriberCanRead(RelationName relationName, Role subscriber, String publicationName) {
-        boolean canRead = subscriber.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, relationName.fqn());
+    private static boolean subscriberCanRead(Roles roles, RelationName relationName, Role subscriber, String publicationName) {
+        boolean canRead = roles.hasPrivilege(subscriber, Privilege.Type.DQL, Privilege.Clazz.TABLE, relationName.fqn());
         if (canRead == false) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("User {} subscribed to the publication {} doesn't have DQL privilege on the table {}, this table will not be replicated.",
@@ -181,13 +186,13 @@ public class Publication implements Writeable {
         return canRead;
     }
 
-    private static boolean userCanPublish(RelationName relationName, Role publicationOwner, String publicationName) {
+    private static boolean userCanPublish(Roles roles, RelationName relationName, Role publicationOwner, String publicationName) {
         for (Privilege.Type type: Privilege.Type.READ_WRITE_DEFINE) {
             // This check is triggered only on ALL TABLES case.
             // Required privileges correspond to those we check for the pre-defined tables case in AccessControlImpl.visitCreatePublication.
 
             // Schemas.DOC_SCHEMA_NAME is a dummy parameter since we are passing fqn as ident.
-            if (!publicationOwner.hasPrivilege(type, Privilege.Clazz.TABLE, relationName.fqn())) {
+            if (!roles.hasPrivilege(publicationOwner, type, Privilege.Clazz.TABLE, relationName.fqn())) {
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info("User {} owning publication {} doesn't have {} privilege on the table {}, this table will not be replicated.",
                         publicationOwner.name(), publicationName, type.name(), relationName.fqn());

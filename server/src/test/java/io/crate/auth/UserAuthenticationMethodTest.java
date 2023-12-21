@@ -27,7 +27,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.common.settings.SecureString;
@@ -35,12 +34,13 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 import io.crate.role.SecureHash;
+import io.crate.role.metadata.RolesHelper;
 
 public class UserAuthenticationMethodTest extends ESTestCase {
 
-    private static class CrateOrNullUserLookup implements RoleLookup {
+    private static class CrateOrNullRoles implements Roles {
 
         @Override
         public Collection<Role> roles() {
@@ -50,13 +50,13 @@ public class UserAuthenticationMethodTest extends ESTestCase {
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 throw new RuntimeException(e);
             }
-            return List.of(Role.userOf("crate", Collections.emptySet(), pwHash));
+            return List.of(RolesHelper.userOf("crate", pwHash));
         }
     }
 
     @Test
     public void testTrustAuthentication() throws Exception {
-        TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(new CrateOrNullUserLookup());
+        TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(new CrateOrNullRoles());
         assertThat(trustAuth.name()).isEqualTo("trust");
         assertThat(trustAuth.authenticate("crate", null, null).name()).isEqualTo("crate");
 
@@ -66,7 +66,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
     @Test
     public void testAlwaysOKAuthentication() throws Exception {
-        AlwaysOKAuthentication alwaysOkAuth = new AlwaysOKAuthentication(new CrateOrNullUserLookup());
+        AlwaysOKAuthentication alwaysOkAuth = new AlwaysOKAuthentication(new CrateOrNullRoles());
         AuthenticationMethod alwaysOkAuthMethod = alwaysOkAuth.resolveAuthenticationType("crate", null);
 
         assertThat(alwaysOkAuthMethod.name()).isEqualTo("trust");
@@ -77,7 +77,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     }
 
     public void testPasswordAuthentication() throws Exception {
-        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullRoles());
         assertThat(pwAuth.name()).isEqualTo("password");
 
         assertThat(pwAuth.authenticate("crate", new SecureString("pw".toCharArray()), null).name()).isEqualTo("crate");
@@ -85,7 +85,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
     @Test
     public void testPasswordAuthenticationWrongPassword() throws Exception {
-        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullRoles());
         assertThat(pwAuth.name()).isEqualTo("password");
 
         assertThatThrownBy(() -> pwAuth.authenticate("crate", new SecureString("wrong".toCharArray()), null))
@@ -95,7 +95,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
     @Test
     public void testPasswordAuthenticationForNonExistingUser() throws Exception {
-        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullRoles());
         assertThatThrownBy(() -> pwAuth.authenticate("cr8", new SecureString("pw".toCharArray()), null))
             .hasMessage("password authentication failed for user \"cr8\"");
     }

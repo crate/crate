@@ -21,14 +21,16 @@
 
 package io.crate.auth;
 
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ESTestCase;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,6 +45,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 
 public class AccessControlMaySeeTest extends ESTestCase {
 
@@ -53,15 +56,20 @@ public class AccessControlMaySeeTest extends ESTestCase {
     @Before
     public void setUpUserAndValidator() {
         validationCallArguments = new ArrayList<>();
-        user = new Role("normal", true, Set.of(), null, Set.of()) {
+        user = userOf("normal");
+        Roles roles = new Roles() {
+            @Override
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
 
             @Override
-            public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {
+            public boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(clazz, ident, user.name()));
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(() -> List.of(user), new CoordinatorSessionSettings(user));
+        accessControl = new AccessControlImpl(roles, new CoordinatorSessionSettings(user));
     }
 
     private void assertAskedAnyForCluster() {

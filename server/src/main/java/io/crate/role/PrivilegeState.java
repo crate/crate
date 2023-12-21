@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,35 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.auth;
+package io.crate.role;
 
-import org.elasticsearch.common.settings.SecureString;
+import java.util.List;
 
-import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.role.Role;
-import io.crate.role.Roles;
+public enum PrivilegeState {
+    // Order of the enum values is important because the ordinal is used for serialization!
+    GRANT,
+    DENY,
+    REVOKE;
 
-
-public class TrustAuthenticationMethod implements AuthenticationMethod {
-
-    static final String NAME = "trust";
-    private final Roles roles;
-
-    public TrustAuthenticationMethod(Roles roles) {
-        this.roles = roles;
-    }
-
-    @Override
-    public Role authenticate(String userName, SecureString passwd, ConnectionProperties connectionProperties) {
-        Role user = roles.findUser(userName);
-        if (user == null) {
-            throw new RuntimeException("trust authentication failed for user \"" + userName + "\"");
-        }
-        return user;
-    }
-
-    @Override
-    public String name() {
-        return NAME;
-    }
+    public static final List<PrivilegeState> VALUES = List.of(values());
 }

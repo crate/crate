@@ -24,13 +24,13 @@ package io.crate.auth;
 import static io.crate.expression.udf.UdfUnitTest.DUMMY_LANG;
 import static io.crate.role.Privilege.Type.READ_WRITE_DEFINE;
 import static io.crate.role.Role.CRATE_USER;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -61,24 +61,26 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
+import io.crate.role.Role;
+import io.crate.role.RoleManager;
+import io.crate.role.RoleManagerService;
+import io.crate.role.RolesService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.role.Privilege;
-import io.crate.role.Role;
-import io.crate.role.RoleManager;
-import io.crate.role.RoleLookupService;
-import io.crate.role.RoleManagerService;
 
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
 
     private List<List<Object>> validationCallArguments;
-    private Role user;
+    private Role normalUser;
+    private Role ddlOnlyUser;
     private SQLExecutor e;
     private RoleManager roleManager;
-    private Role superUser;
+    private Role superUser = Role.CRATE_USER;
 
     @Before
     public void setUpSQLExecutor() throws Exception {
@@ -96,29 +98,17 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
 
-        user = new Role("normal",
-                        true,
-                        Set.of(new Privilege(Privilege.State.GRANT,
-                                             Privilege.Type.DQL,
-                                             Privilege.Clazz.SCHEMA,
-                                             "custom_schema",
-                                             "crate")),
-                        null,
-            Set.of()) {
-            @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
-                return true;
-            }
-        };
-        superUser = new Role("crate", true, Set.of(), null, EnumSet.of(Role.UserRole.SUPERUSER)) {
-            @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, superUser.name()));
-                return true;
-            }
-        };
-        RoleLookupService roleLookupService = new RoleLookupService(clusterService) {
+        normalUser = userOf(
+                       "normal",
+                       Set.of(new Privilege(PrivilegeState.GRANT,
+                                            Privilege.Type.DQL,
+                                            Privilege.Clazz.SCHEMA,
+                                            "custom_schema",
+                                            "crate")),
+                       null);
+        ddlOnlyUser = userOf("ddlOnly");
+
+        RolesService rolesService = new RolesService(clusterService) {
 
             @Nullable
             @Override
@@ -128,6 +118,15 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 }
                 return super.findUser(userName);
             }
+
+            @Override
+            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
+                if ("ddlOnly".equals(user.name())) {
+                    return Privilege.Type.DDL == type;
+                }
+                return true;
+            }
         };
         roleManager = new RoleManagerService(
             null,
@@ -135,7 +134,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             null,
             null,
             mock(SysTableRegistry.class),
-            roleLookupService,
+            rolesService,
             new DDLClusterStateService());
 
         e = SQLExecutor.builder(clusterService)
@@ -173,7 +172,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     private void analyze(String stmt) {
-        analyze(stmt, user);
+        analyze(stmt, normalUser);
     }
 
     private void analyzeAsSuperUser(String stmt) {
@@ -186,17 +185,21 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     private void assertAskedForCluster(Privilege.Type type) {
+        assertAskedForCluster(type, normalUser);
+    }
+
+    private void assertAskedForCluster(Privilege.Type type, Role user) {
         assertThat(validationCallArguments).anySatisfy(
             s -> assertThat(s).containsExactly(type, Privilege.Clazz.CLUSTER, null, user.name()));
     }
 
     private void assertAskedForSchema(Privilege.Type type, String ident) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Privilege.Clazz.SCHEMA, ident, user.name()));
+            s -> assertThat(s).containsExactly(type, Privilege.Clazz.SCHEMA, ident, normalUser.name()));
     }
 
     private void assertAskedForTable(Privilege.Type type, String ident) {
-        assertAskedForTable(type, ident, user);
+        assertAskedForTable(type, ident, normalUser);
     }
 
     private void assertAskedForTable(Privilege.Type type, String ident, Role user) {
@@ -206,7 +209,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     private void assertAskedForView(Privilege.Type type, String ident) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Privilege.Clazz.VIEW, ident, user.name()));
+            s -> assertThat(s).containsExactly(type, Privilege.Clazz.VIEW, ident, normalUser.name()));
     }
 
     @Test
@@ -564,37 +567,29 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_alter_cluster_reroute_retry_works_for_normal_user_with_AL_privileges() {
-        analyze("alter cluster reroute retry failed", user);
+        analyze("alter cluster reroute retry failed", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test
     public void test_alter_cluster_gc_dangling_artifacts_works_for_normal_user_with_AL_privileges() {
-        analyze("alter cluster gc dangling artifacts", user);
+        analyze("alter cluster gc dangling artifacts", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test
     public void test_alter_cluster_swap_table_works_for_normal_user_with_AL_privileges() {
         // pre-configured user has all privileges
-        analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", user);
+        analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test
     public void test_alter_cluster_swap_table_works_for_normal_user_with_no_AI_with_DDL_on_both_tables() {
-        // custom user has only DML privileges
-        var customUser = new Role("normal", true, Set.of(), null, Set.of()) {
-            @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
-                return Privilege.Type.DDL == type;
-            }
-        };
-        analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", customUser);
-        assertAskedForCluster(Privilege.Type.AL); // first checks AL and if user doesn't have it, checks both DDL-s
-        assertAskedForTable(Privilege.Type.DDL, "doc.t2", customUser);
-        assertAskedForTable(Privilege.Type.DDL, "doc.t1", customUser);
+        analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", ddlOnlyUser);
+        assertAskedForCluster(Privilege.Type.AL, ddlOnlyUser); // first checks AL and if user doesn't have it, checks both DDL-s
+        assertAskedForTable(Privilege.Type.DDL, "doc.t2", ddlOnlyUser);
+        assertAskedForTable(Privilege.Type.DDL, "doc.t1", ddlOnlyUser);
     }
 
     @Test
@@ -636,13 +631,13 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_set_session_user_from_superuser_to_normal_user_succeeds() {
-        analyze("SET SESSION AUTHORIZATION " + user.name(), superUser);
+        analyze("SET SESSION AUTHORIZATION " + normalUser.name(), superUser);
         assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
     public void test_set_session_user_from_normal_user_fails() {
-        assertThatThrownBy(() -> analyze("SET SESSION AUTHORIZATION 'someuser'", user))
+        assertThatThrownBy(() -> analyze("SET SESSION AUTHORIZATION 'someuser'", normalUser))
             .isExactlyInstanceOf(UnauthorizedException.class)
             .hasMessage("User \"normal\" is not authorized to execute the statement. " +
                         "Superuser permissions are required or you can set the session " +
@@ -652,7 +647,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_set_session_user_from_normal_user_to_superuser_fails() {
         String stmt = "SET SESSION AUTHORIZATION " + superUser.name();
-        assertThatThrownBy(() -> analyze(stmt, user))
+        assertThatThrownBy(() -> analyze(stmt, normalUser))
             .isExactlyInstanceOf(UnauthorizedException.class)
             .hasMessage("User \"normal\" is not authorized to execute the statement. " +
                         "Superuser permissions are required or you can set the session " +
@@ -663,7 +658,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_set_session_user_from_normal_to_originally_authenticated_user_succeeds() {
         e.analyzer.analyze(
             SqlParser.createStatement("SET SESSION AUTHORIZATION " + superUser.name()),
-            new CoordinatorSessionSettings(superUser, user),
+            new CoordinatorSessionSettings(superUser, normalUser),
             ParamTypeHints.EMPTY,
             e.cursors
         );
@@ -674,7 +669,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_set_session_user_from_normal_user_to_default_succeeds() {
         e.analyzer.analyze(
             SqlParser.createStatement("SET SESSION AUTHORIZATION DEFAULT"),
-            new CoordinatorSessionSettings(superUser, user),
+            new CoordinatorSessionSettings(superUser, normalUser),
             ParamTypeHints.EMPTY,
             e.cursors);
         assertThat(validationCallArguments).isEmpty();
@@ -684,7 +679,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_reset_session_authorization_from_normal_user_succeeds() {
         e.analyzer.analyze(
             SqlParser.createStatement("RESET SESSION AUTHORIZATION"),
-            new CoordinatorSessionSettings(superUser, user),
+            new CoordinatorSessionSettings(superUser, normalUser),
             ParamTypeHints.EMPTY,
             e.cursors
         );
@@ -712,7 +707,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_create_publication_asks_cluster_AL_and_all_for_each_table() {
-        analyze("create publication pub1 FOR TABLE t1, t2", user);
+        analyze("create publication pub1 FOR TABLE t1, t2", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
         for (Privilege.Type type: READ_WRITE_DEFINE) {
             assertAskedForTable(type, "doc.t1");
@@ -723,22 +718,22 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_drop_publication_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
-            .setUser(user)
+            .setUser(normalUser)
             .addPublication("pub1", true)
             .setUserManager(roleManager)
             .build();
-        analyze("DROP PUBLICATION pub1", user);
+        analyze("DROP PUBLICATION pub1", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test
     public void test_alter_publication_asks_cluster_AL() throws Exception {
         e = SQLExecutor.builder(clusterService)
-            .setUser(user)
+            .setUser(normalUser)
             .addPublication("pub1", false, new RelationName("doc", "t1"))
             .setUserManager(roleManager)
             .build();
-        analyze("ALTER PUBLICATION pub1 ADD TABLE t2", user);
+        analyze("ALTER PUBLICATION pub1 ADD TABLE t2", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
         for (Privilege.Type type: READ_WRITE_DEFINE) {
             assertAskedForTable(type, "doc.t2");
@@ -747,41 +742,41 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_create_subscription_asks_cluster_AL() {
-        analyze("create subscription sub1 CONNECTION 'postgresql://user@localhost/crate:5432' PUBLICATION pub1", user);
+        analyze("create subscription sub1 CONNECTION 'postgresql://user@localhost/crate:5432' PUBLICATION pub1", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test
     public void test_drop_subscription_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
-            .setUser(user)
+            .setUser(normalUser)
             .addSubscription("sub1", "pub1")
             .setUserManager(roleManager)
             .build();
-        analyze("DROP SUBSCRIPTION sub1", user);
+        analyze("DROP SUBSCRIPTION sub1", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test
     public void test_alter_subscription_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
-            .setUser(user)
+            .setUser(normalUser)
             .addSubscription("sub1", "pub1")
             .setUserManager(roleManager)
             .build();
-        analyze("ALTER SUBSCRIPTION sub1 DISABLE", user);
+        analyze("ALTER SUBSCRIPTION sub1 DISABLE", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test
     public void test_anaylze_works_for_normal_user_with_AL_privileges() {
-        analyze("ANALYZE", user);
+        analyze("ANALYZE", normalUser);
         assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test
     public void test_declare_cursor_for_non_super_users() {
-        analyze("DECLARE this_cursor NO SCROLL CURSOR FOR SELECT * FROM sys.summits;", user);
+        analyze("DECLARE this_cursor NO SCROLL CURSOR FOR SELECT * FROM sys.summits;", normalUser);
         assertAskedForTable(Privilege.Type.DQL, "sys.summits");
     }
 

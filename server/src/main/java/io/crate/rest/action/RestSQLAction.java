@@ -28,7 +28,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import io.crate.action.sql.Sessions;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 import io.crate.role.RoleManager;
 import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -40,7 +40,7 @@ public class RestSQLAction {
     public RestSQLAction(Settings settings,
                          Sessions sqlOperations,
                          PipelineRegistry pipelineRegistry,
-                         RoleLookup userLookup,
+                         Roles roles,
                          Provider<RoleManager> userManagerProvider,
                          CircuitBreakerService breakerService,
                          SslContextProvider sslContextProvider) {
@@ -52,7 +52,7 @@ public class RestSQLAction {
                 settings,
                 sqlOperations,
                 breakerService::getBreaker,
-                userLookup,
+                roles,
                 roleManager::getAccessControl,
                 corsConfig
             )

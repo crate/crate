@@ -27,40 +27,43 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.common.settings.SecureString;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.SecureHash;
 
-public final class RolesDefinitions {
+public final class RolesHelper {
 
-    public static final Map<String, Role> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", Role.userOf("Arthur"));
+    public static final Map<String, Role> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", userOf("Arthur"));
 
     public static final Map<String, Role> DUMMY_USERS = Map.of(
-        "Ford", Role.userOf("Ford", getSecureHash("fords-password")),
-        "Arthur", Role.userOf("Arthur", getSecureHash("arthurs-password"))
+        "Ford", userOf("Ford", getSecureHash("fords-password")),
+        "Arthur", userOf("Arthur", getSecureHash("arthurs-password"))
     );
 
     public static final Map<String, Role> DUMMY_USERS_WITHOUT_PASSWORD = Map.of(
-        "Ford", Role.userOf("Ford"),
-        "Arthur", Role.userOf("Arthur")
+        "Ford", userOf("Ford"),
+        "Arthur", userOf("Arthur")
     );
 
     public static final Map<String, Role> DUMMY_USERS_AND_ROLES = new HashMap<>();
 
     static {
-        DUMMY_USERS_AND_ROLES.put("Ford", Role.userOf("Ford", getSecureHash("fords-pwd")));
-        DUMMY_USERS_AND_ROLES.put("John", Role.userOf("John", getSecureHash("johns-pwd")));
-        DUMMY_USERS_AND_ROLES.put("DummyRole", Role.roleOf("DummyRole"));
+        DUMMY_USERS_AND_ROLES.put("Ford", userOf("Ford", getSecureHash("fords-pwd")));
+        DUMMY_USERS_AND_ROLES.put("John", userOf("John", getSecureHash("johns-pwd")));
+        DUMMY_USERS_AND_ROLES.put("DummyRole", roleOf("DummyRole"));
     }
 
     public static final Map<String, Role> DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD = new HashMap<>();
 
     static {
-        DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("Ford", Role.userOf("Ford"));
-        DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("John", Role.userOf("John"));
-        DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("DummyRole", Role.roleOf("DummyRole"));
+        DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("Ford", userOf("Ford"));
+        DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("John", userOf("John"));
+        DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("DummyRole", roleOf("DummyRole"));
     }
 
     public static UsersMetadata usersMetadataOf(Map<String, Role> users) {
@@ -81,5 +84,21 @@ public final class RolesDefinitions {
         }
         assertThat(hash).isNotNull();
         return hash;
+    }
+
+    public static Role userOf(String name) {
+        return userOf(name, null);
+    }
+
+    public static Role userOf(String name, @Nullable SecureHash password) {
+        return userOf(name, Set.of(), password);
+    }
+
+    public static Role userOf(String name, Set<Privilege> privileges, @Nullable SecureHash password) {
+        return new Role(name, true, privileges, password, Set.of());
+    }
+
+    public static Role roleOf(String name) {
+        return new Role(name, false, Set.of(), null, Set.of());
     }
 }

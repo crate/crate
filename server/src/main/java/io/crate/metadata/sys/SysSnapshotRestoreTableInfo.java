@@ -27,9 +27,8 @@ import static io.crate.types.DataTypes.STRING;
 import java.util.Collections;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.RestoreInProgress;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.reference.sys.snapshot.SysSnapshotRestoreInProgress;
 import io.crate.metadata.ColumnIdent;

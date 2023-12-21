@@ -64,7 +64,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.http.Headers;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -85,7 +85,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Settings settings;
     private final Sessions sqlOperations;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
-    private final RoleLookup userLookup;
+    private final Roles roles;
     private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Netty4CorsConfig corsConfig;
 
@@ -94,14 +94,14 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     SqlHttpHandler(Settings settings,
                    Sessions sqlOperations,
                    Function<String, CircuitBreaker> circuitBreakerProvider,
-                   RoleLookup userLookup,
+                   Roles roles,
                    Function<CoordinatorSessionSettings, AccessControl> getAccessControl,
                    Netty4CorsConfig corsConfig) {
         super(false);
         this.settings = settings;
         this.sqlOperations = sqlOperations;
         this.circuitBreakerProvider = circuitBreakerProvider;
-        this.userLookup = userLookup;
+        this.roles = roles;
         this.getAccessControl = getAccessControl;
         this.corsConfig = corsConfig;
     }
@@ -299,7 +299,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (username == null || username.isEmpty()) {
             username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
         }
-        return userLookup.findUser(username);
+        return roles.findUser(username);
     }
 
     private static boolean bothProvided(@Nullable List<Object> args, @Nullable List<List<Object>> bulkArgs) {

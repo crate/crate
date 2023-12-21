@@ -24,7 +24,6 @@ package io.crate.role;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,18 +38,28 @@ import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
-public class RoleLookupService implements RoleLookup, ClusterStateListener {
+public class RolesService implements Roles, ClusterStateListener {
 
-    private volatile Set<Role> roles = Set.of(Role.CRATE_USER);
+    private volatile Map<String, Role> roles = Map.of(Role.CRATE_USER.name(), Role.CRATE_USER);
 
     @Inject
-    public RoleLookupService(ClusterService clusterService) {
+    public RolesService(ClusterService clusterService) {
         clusterService.addListener(this);
     }
 
     @Override
     public Collection<Role> roles() {
-        return roles;
+        return roles.values();
+    }
+
+    @Nullable
+    @Override
+    public Role findUser(String userName) {
+        Role role = roles.get(userName);
+        if (role != null && role.isUser()) {
+            return role;
+        }
+        return null;
     }
 
     @Override
@@ -72,40 +81,42 @@ public class RoleLookupService implements RoleLookup, ClusterStateListener {
     }
 
 
-    static Set<Role> getRoles(@Nullable UsersMetadata usersMetadata,
-                              @Nullable RolesMetadata rolesMetadata,
-                              @Nullable UsersPrivilegesMetadata privilegesMetadata) {
+    static Map<String, Role> getRoles(@Nullable UsersMetadata usersMetadata,
+                                      @Nullable RolesMetadata rolesMetadata,
+                                      @Nullable UsersPrivilegesMetadata privilegesMetadata) {
         Map<String, Role> roles = new HashMap<>();
         roles.put(Role.CRATE_USER.name(), Role.CRATE_USER);
         if (usersMetadata != null) {
             for (Map.Entry<String, SecureHash> user: usersMetadata.users().entrySet()) {
                 String userName = user.getKey();
                 SecureHash password = user.getValue();
-                Set<Privilege> privileges = null;
+                Set<Privilege> privileges = Set.of();
                 if (privilegesMetadata != null) {
                     privileges = privilegesMetadata.getUserPrivileges(userName);
                     if (privileges == null) {
                         // create empty set
-                        privilegesMetadata.createPrivileges(userName, Set.of());
+                        privileges = Set.of();
+                        privilegesMetadata.createPrivileges(userName, privileges);
                     }
                 }
-                roles.put(userName, Role.userOf(userName, privileges, password));
+                roles.put(userName, new Role(userName, true, privileges, password, Set.of()));
             }
         } else if (rolesMetadata != null) {
             for (Map.Entry<String, Role> role: rolesMetadata.roles().entrySet()) {
                 String userName = role.getKey();
                 SecureHash password = role.getValue().password();
-                Set<Privilege> privileges = null;
+                Set<Privilege> privileges = Set.of();
                 if (privilegesMetadata != null) {
                     privileges = privilegesMetadata.getUserPrivileges(userName);
                     if (privileges == null) {
                         // create empty set
-                        privilegesMetadata.createPrivileges(userName, Set.of());
+                        privileges = Set.of();
+                        privilegesMetadata.createPrivileges(userName, privileges);
                     }
                 }
-                roles.put(userName, Role.of(userName, role.getValue().isUser(), privileges, password));
+                roles.put(userName, new Role(userName, role.getValue().isUser(), privileges, password, Set.of()));
             }
         }
-        return Collections.unmodifiableSet(new HashSet<>(roles.values()));
+        return Collections.unmodifiableMap(roles);
     }
 }

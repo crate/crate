@@ -21,26 +21,16 @@
 
 package io.crate.role;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
+
 public class Privilege implements Writeable {
-
-    // Order of the enum values is important because the ordinal is used for serialization!
-
-    public enum State {
-        GRANT,
-        DENY,
-        REVOKE;
-
-        public static final List<State> VALUES = List.of(values());
-    }
 
     public enum Type {
         DQL,
@@ -66,23 +56,23 @@ public class Privilege implements Writeable {
     }
 
 
-    private final State state;
+    private final PrivilegeState state;
     private final PrivilegeIdent ident;
     private final String grantor;
 
-    public Privilege(State state, Type type, Clazz clazz, @Nullable String ident, String grantor) {
+    public Privilege(PrivilegeState state, Type type, Clazz clazz, @Nullable String ident, String grantor) {
         this.state = state;
         this.ident = new PrivilegeIdent(type, clazz, ident);
         this.grantor = grantor;
     }
 
     public Privilege(StreamInput in) throws IOException {
-        state = State.VALUES.get(in.readInt());
+        state = PrivilegeState.VALUES.get(in.readInt());
         ident = new PrivilegeIdent(in);
         grantor = in.readString();
     }
 
-    public State state() {
+    public PrivilegeState state() {
         return state;
     }
 

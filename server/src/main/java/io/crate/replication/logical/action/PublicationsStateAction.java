@@ -55,7 +55,7 @@ import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.role.Role;
-import io.crate.role.RoleLookup;
+import io.crate.role.Roles;
 
 public class PublicationsStateAction extends ActionType<PublicationsStateAction.Response> {
 
@@ -76,13 +76,13 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
     @Singleton
     public static class TransportAction extends TransportMasterNodeReadAction<Request, Response> {
 
-        private final RoleLookup userLookup;
+        private final Roles roles;
 
         @Inject
         public TransportAction(TransportService transportService,
                                ClusterService clusterService,
                                ThreadPool threadPool,
-                               RoleLookup userLookup) {
+                               Roles roles) {
             super(Settings.EMPTY,
                   NAME,
                   false,
@@ -90,7 +90,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                   clusterService,
                   threadPool,
                   Request::new);
-            this.userLookup = userLookup;
+            this.roles = roles;
 
             TransportActionProxy.registerProxyAction(transportService, NAME, Response::new);
         }
@@ -111,7 +111,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                                        ActionListener<Response> listener) throws Exception {
             // Ensure subscribing user was not dropped after remote connection was established on another side.
             // Subscribing users must be checked on a publisher side as they belong to the publishing cluster.
-            Role subscriber = userLookup.findUser(request.subscribingUserName());
+            Role subscriber = roles.findUser(request.subscribingUserName());
             if (subscriber == null) {
                 throw new IllegalStateException(
                     String.format(
@@ -138,8 +138,9 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
                 // Publication owner cannot be null as we ensure that users who owns publication cannot be dropped.
                 // Also, before creating publication or subscription we check that owner was not dropped right before creation.
-                Role publicationOwner = userLookup.findUser(publication.owner());
-                allRelationsInPublications.putAll(publication.resolveCurrentRelations(state, publicationOwner, subscriber, publicationName));
+                Role publicationOwner = roles.findUser(publication.owner());
+                allRelationsInPublications.putAll(
+                    publication.resolveCurrentRelations(state, roles, publicationOwner, subscriber, publicationName));
             }
             listener.onResponse(new Response(allRelationsInPublications, unknownPublications));
         }

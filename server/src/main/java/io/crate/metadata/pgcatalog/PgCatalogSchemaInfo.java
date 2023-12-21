@@ -41,6 +41,7 @@ import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
+import io.crate.role.Roles;
 import io.crate.statistics.TableStats;
 
 @Singleton
@@ -52,7 +53,7 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
     private final SystemTable<PgClassTable.Entry> pgClassTable;
 
     @Inject
-    public PgCatalogSchemaInfo(UserDefinedFunctionService udfService, TableStats tableStats) {
+    public PgCatalogSchemaInfo(UserDefinedFunctionService udfService, TableStats tableStats, Roles roles) {
         this.udfService = udfService;
         this.pgClassTable = PgClassTable.create(tableStats);
         tableInfoMap = Map.<String, TableInfo>ofEntries(
@@ -70,7 +71,7 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
             Map.entry(PgProcTable.IDENT.name(), PgProcTable.create()),
             Map.entry(PgRangeTable.IDENT.name(), PgRangeTable.create()),
             Map.entry(PgEnumTable.IDENT.name(), PgEnumTable.create()),
-            Map.entry(PgRolesTable.IDENT.name(), PgRolesTable.create()),
+            Map.entry(PgRolesTable.IDENT.name(), PgRolesTable.create(roles)),
             Map.entry(PgAmTable.IDENT.name(), PgAmTable.create()),
             Map.entry(PgTablespaceTable.IDENT.name(), PgTablespaceTable.create()),
             Map.entry(PgIndexesTable.IDENT.name(), PgIndexesTable.create()),

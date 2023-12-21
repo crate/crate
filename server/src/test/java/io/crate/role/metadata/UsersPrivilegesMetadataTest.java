@@ -46,31 +46,32 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
 
 public class UsersPrivilegesMetadataTest extends ESTestCase {
 
     private static final Privilege GRANT_DQL =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege GRANT_DML =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege REVOKE_DQL =
-        new Privilege(Privilege.State.REVOKE, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.REVOKE, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege REVOKE_DML =
-        new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege DENY_DQL =
-        new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege GRANT_TABLE_DQL =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "testSchema.test", "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "testSchema.test", "crate");
     private static final Privilege GRANT_TABLE_DDL =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, "testSchema.test2", "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, "testSchema.test2", "crate");
     private static final Privilege GRANT_VIEW_DQL =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.VIEW, "testSchema.view1", "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.VIEW, "testSchema.view1", "crate");
     private static final Privilege GRANT_VIEW_DDL =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.VIEW, "testSchema.view2", "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Privilege.Clazz.VIEW, "testSchema.view2", "crate");
     private static final Privilege GRANT_VIEW_DML =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, "view3", "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, "view3", "crate");
     private static final Privilege GRANT_SCHEMA_DML =
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "testSchema", "crate");
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "testSchema", "crate");
 
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
     private static final List<String> USERNAMES = Arrays.asList("Ford", "Arthur");
@@ -162,7 +163,7 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
     public void testRevokeWithGrantOfDifferentGrantor() throws Exception {
         long rowCount = usersPrivilegesMetadata.applyPrivileges(
             Collections.singletonList("Arthur"),
-            Collections.singletonList(new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "hoschi"))
+            Collections.singletonList(new Privilege(PrivilegeState.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "hoschi"))
         );
 
         assertThat(rowCount).isEqualTo(1L);

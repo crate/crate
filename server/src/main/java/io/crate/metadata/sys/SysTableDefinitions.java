@@ -50,14 +50,16 @@ import io.crate.metadata.SystemTable;
 import io.crate.role.Privilege;
 import io.crate.role.Privilege.Clazz;
 import io.crate.role.Privilege.Type;
+import io.crate.role.Roles;
 
 public class SysTableDefinitions {
 
     private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions = new HashMap<>();
 
     @Inject
-    public SysTableDefinitions(JobsLogs jobsLogs,
-                               ClusterService clusterService,
+    public SysTableDefinitions(ClusterService clusterService,
+                               Roles roles,
+                               JobsLogs jobsLogs,
                                SysSchemaInfo sysSchemaInfo,
                                Set<SysCheck> sysChecks,
                                SysNodeChecks sysNodeChecks,
@@ -80,7 +82,7 @@ public class SysTableDefinitions {
                     .filter(x ->
                         user.isSuperUser()
                         || user.name().equals(x.username())
-                        || user.hasPrivilege(Type.AL, Clazz.CLUSTER, null))
+                        || roles.hasPrivilege(user, Type.AL, Clazz.CLUSTER, null))
                     .iterator()
             ),
             sysJobsTable.expressions(),
@@ -92,7 +94,7 @@ public class SysTableDefinitions {
                     .filter(x ->
                         user.isSuperUser()
                         || user.name().equals(x.username())
-                        || user.hasPrivilege(Type.AL, Clazz.CLUSTER, null))
+                        || roles.hasPrivilege(user, Type.AL, Clazz.CLUSTER, null))
                     .iterator()
             ),
             sysJobsLogTable.expressions(),
@@ -133,7 +135,7 @@ public class SysTableDefinitions {
 
         tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> sysAllocations,
-            (user, allocation) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, allocation.fqn()),
+            (user, allocation) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, allocation.fqn()),
             SysAllocationsTableInfo.create().expressions()
         ));
 
@@ -147,7 +149,7 @@ public class SysTableDefinitions {
         tableDefinitions.put(SysHealth.IDENT, new StaticTableDefinition<>(
             () -> TableHealth.compute(clusterService.state()),
             sysHealth.expressions(),
-            (user, tableHealth) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableHealth.fqn()),
+            (user, tableHealth) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, tableHealth.fqn()),
             true)
         );
         tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(

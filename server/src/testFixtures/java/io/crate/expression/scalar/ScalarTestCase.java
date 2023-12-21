@@ -55,12 +55,13 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
-import io.crate.role.Role;
-import io.crate.role.RoleLookup;
 
 public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
@@ -260,7 +261,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings("rawtypes")
     public void assertCompile(String functionExpression,
                               java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
-        assertCompile(functionExpression, Role.userOf("dummy"), () -> List.of(Role.userOf("dummy")), matcher);
+        assertCompile(functionExpression, RolesHelper.userOf("dummy"), () -> List.of(RolesHelper.userOf("dummy")), matcher);
     }
 
     @SuppressWarnings("rawtypes")
@@ -272,7 +273,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void assertCompile(String functionExpression,
                               Role sessionUser,
-                              RoleLookup userLookup,
+                              Roles roles,
                               java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
@@ -285,7 +286,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             .as("Function implementation not found using full qualified lookup")
             .isNotNull();
 
-        Scalar compiled = scalar.compile(function.arguments(), sessionUser.name(), userLookup);
+        Scalar compiled = scalar.compile(function.arguments(), sessionUser.name(), roles);
         assertThat(compiled).satisfies(matcher.apply(scalar));
     }
 

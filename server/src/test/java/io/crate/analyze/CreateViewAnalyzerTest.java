@@ -36,13 +36,14 @@ import org.junit.Test;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.role.Role;
 
 public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final Role TEST_USER = Role.userOf("test_user");
+    private static final Role TEST_USER = RolesHelper.userOf("test_user");
     private SQLExecutor e;
 
     @Before

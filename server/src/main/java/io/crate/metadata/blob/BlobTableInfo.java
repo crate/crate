@@ -30,11 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;

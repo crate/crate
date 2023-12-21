@@ -108,7 +108,6 @@ import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.ConfigurationException;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
@@ -206,6 +205,8 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.statistics.TableStats;
@@ -219,8 +220,6 @@ import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
-import io.crate.role.Role;
-import io.crate.role.RoleLookup;
 
 /**
  * {@link IntegTestCase} is an abstract base class to run integration
@@ -1682,14 +1681,8 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
-        RoleLookup userLookup;
-        try {
-            userLookup = cluster().getInstance(RoleLookup.class, node);
-        } catch (ConfigurationException ignored) {
-            // If enterprise is not enabled there is no UserLookup instance bound in guice
-            userLookup = () -> List.of(Role.CRATE_USER);
-        }
-        try (Session session = sqlOperations.newSession(schema, userLookup.findUser("crate"))) {
+        Roles roles = cluster().getInstance(Roles.class, node);
+        try (Session session = sqlOperations.newSession(schema, roles.findUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
         }
         return response;

@@ -70,6 +70,7 @@ import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -537,7 +538,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 (user, connectionProperties) -> new AuthenticationMethod() {
                     @Override
                     public Role authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties) {
-                        return Role.userOf("dummy");
+                        return RolesHelper.userOf("dummy");
                     }
 
                     @Override

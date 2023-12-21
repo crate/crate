@@ -65,7 +65,7 @@ public class RoleManagerService implements RoleManager {
     private final TransportAlterRoleAction transportAlterRoleAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
 
-    private final RoleLookup roleLookup;
+    private final Roles roles;
 
     @Inject
     public RoleManagerService(TransportCreateRoleAction transportCreateRoleAction,
@@ -73,18 +73,18 @@ public class RoleManagerService implements RoleManager {
                               TransportAlterRoleAction transportAlterRoleAction,
                               TransportPrivilegesAction transportPrivilegesAction,
                               SysTableRegistry sysTableRegistry,
-                              RoleLookup roleLookup,
+                              Roles roles,
                               DDLClusterStateService ddlClusterStateService) {
         this.transportCreateRoleAction = transportCreateRoleAction;
         this.transportDropRoleAction = transportDropRoleAction;
         this.transportAlterRoleAction = transportAlterRoleAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
-        this.roleLookup = roleLookup;
+        this.roles = roles;
         var userTable = SysUsersTableInfo.create();
         sysTableRegistry.registerSysTable(
             userTable,
             () -> CompletableFuture.completedFuture(
-                roleLookup.roles().stream().filter(Role::isUser).toList()),
+                roles.roles().stream().filter(Role::isUser).toList()),
             userTable.expressions(),
             false
         );
@@ -92,7 +92,7 @@ public class RoleManagerService implements RoleManager {
         sysTableRegistry.registerSysTable(
             rolesTable,
             () -> CompletableFuture.completedFuture(
-                roleLookup.roles().stream().filter(r -> r.isUser() == false).toList()),
+                roles.roles().stream().filter(r -> r.isUser() == false).toList()),
                 rolesTable.expressions(),
             false
         );
@@ -100,7 +100,7 @@ public class RoleManagerService implements RoleManager {
         var privilegesTable = SysPrivilegesTableInfo.create();
         sysTableRegistry.registerSysTable(
             privilegesTable,
-            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roleLookup.roles())),
+            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles())),
             privilegesTable.expressions(),
             false
         );
@@ -121,7 +121,7 @@ public class RoleManagerService implements RoleManager {
 
     @Override
     public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
-        ENSURE_DROP_ROLE_NOT_SUPERUSER.accept(roleLookup.findUser(roleName));
+        ENSURE_DROP_ROLE_NOT_SUPERUSER.accept(roles.findUser(roleName));
         return transportDropRoleAction.execute(new DropRoleRequest(roleName, suppressNotFoundError), r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
@@ -145,7 +145,7 @@ public class RoleManagerService implements RoleManager {
 
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames, Collection<Privilege> privileges) {
-        roleNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(roleLookup.findUser(s)));
+        roleNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(roles.findUser(s)));
         return transportPrivilegesAction.execute(new PrivilegesRequest(roleNames, privileges), r -> {
             if (!r.unknownUserNames().isEmpty()) {
                 throw new RoleUnknownException(r.unknownUserNames());
@@ -157,10 +157,10 @@ public class RoleManagerService implements RoleManager {
 
     @Override
     public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
-        return new AccessControlImpl(roleLookup, sessionSettings);
+        return new AccessControlImpl(roles, sessionSettings);
     }
 
     public Collection<Role> roles() {
-        return roleLookup.roles();
+        return roles.roles();
     }
 }

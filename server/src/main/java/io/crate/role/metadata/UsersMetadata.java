@@ -141,13 +141,24 @@ public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
             if (token == XContentParser.Token.START_OBJECT) {
                 while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
                     String userName = parser.currentName();
+                    SecureHash secureHash = null;
                     if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
-                        if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-                            users.put(userName, SecureHash.fromXContent(parser));
-                        } else {
-                            users.put(userName, null);
+                        while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
+                            if (parser.currentName().equals("secure_hash")) {
+                                secureHash = SecureHash.fromXContent(parser);
+                            } else {
+                                throw new ElasticsearchParseException(
+                                        "failed to parse users, unexpected field name: " + parser.currentName()
+                                );
+                            }
+                        }
+                        if (parser.currentToken() != XContentParser.Token.END_OBJECT) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse users, expected an object token at the end, got: " + parser.currentToken()
+                            );
                         }
                     }
+                    users.put(userName, secureHash);
                 }
             } else {
                 // each custom metadata is packed inside an object.

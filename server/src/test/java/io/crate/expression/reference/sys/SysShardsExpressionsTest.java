@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.store.AlreadyClosedException;
@@ -99,14 +100,15 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             nodeCtx
         );
         schemas = new Schemas(
-            Map.of("sys", new SysSchemaInfo(this.clusterService)),
+            Map.of("sys", new SysSchemaInfo(this.clusterService, List::of)),
             clusterService,
             new DocSchemaInfoFactory(
                 new DocTableInfoFactory(nodeCtx),
                 new ViewInfoFactory(() -> new RelationAnalyzer(nodeCtx, schemas)),
                 nodeCtx,
                 udfService
-            )
+            ),
+            List::of
         );
         resolver = new ShardReferenceResolver(schemas, new ShardRowContext(indexShard, clusterService));
         sysShards = schemas.getTableInfo(SysShardsTableInfo.IDENT);

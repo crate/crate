@@ -47,7 +47,7 @@ public class RolePrivileges implements Iterable<Privilege> {
         for (Privilege privilege : privileges) {
             PrivilegeIdent privilegeIdent = privilege.ident();
             privilegeByIdent.put(privilegeIdent, privilege);
-            if (privilege.state() != Privilege.State.DENY) {
+            if (privilege.state() != PrivilegeState.DENY) {
                 switch (privilegeIdent.clazz()) {
                     case CLUSTER:
                         anyClusterPrivilege = true;
@@ -113,7 +113,7 @@ public class RolePrivileges implements Iterable<Privilege> {
     /**
      * Try to match a privilege at the given collection.
      * If none is found for the current {@link Privilege.Clazz}, try to find one on the upper class.
-     * If a privilege with a {@link Privilege.State#DENY} state is found, false is returned.
+     * If a privilege with a {@link PrivilegeState#DENY} state is found, false is returned.
      */
     public boolean matchPrivilege(@Nullable Privilege.Type type,
                                   Privilege.Clazz clazz,

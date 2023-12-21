@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,8 +55,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 public final class SystemTable<T> implements TableInfo {
 
