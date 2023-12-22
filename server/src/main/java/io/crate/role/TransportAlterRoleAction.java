@@ -43,6 +43,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRoleRequest, WriteRoleResponse> {
 
@@ -109,14 +110,15 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
             return false;
         }
 
-        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
+        UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         boolean exists = false;
         var role = newMetadata.roles().get(roleName);
         if (role != null) {
             if (role.isUser() == false && secureHash != null) {
                 throw new UnsupportedFeatureException("Setting a password to a ROLE is not allowed");
             }
-            newMetadata.put(roleName, true, secureHash);
+            newMetadata.roles().put(roleName, role.with(secureHash));
             exists = true;
         }
         if (newMetadata.equals(oldRolesMetadata)) {

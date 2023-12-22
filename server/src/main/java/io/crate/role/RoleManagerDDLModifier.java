@@ -21,13 +21,16 @@
 
 package io.crate.role;
 
-import io.crate.metadata.RelationName;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
-import io.crate.metadata.cluster.DDLClusterStateModifier;
+import java.util.List;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 
-import java.util.List;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateModifier;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class RoleManagerDDLModifier implements DDLClusterStateModifier {
 
@@ -60,14 +63,21 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
     @Override
     public ClusterState onSwapRelations(ClusterState currentState, RelationName source, RelationName target) {
         Metadata currentMetadata = currentState.metadata();
-        UsersPrivilegesMetadata userPrivileges = currentMetadata.custom(UsersPrivilegesMetadata.TYPE);
-        if (userPrivileges == null) {
+        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+
+        UsersPrivilegesMetadata oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
+        if (oldPrivilegesMetadata == null && oldRolesMetadata == null) {
             return currentState;
         }
-        UsersPrivilegesMetadata updatedPrivileges = UsersPrivilegesMetadata.swapPrivileges(userPrivileges, source, target);
+
+        var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
+
+        newMetadata = PrivilegesModifier.swapPrivileges(newMetadata, source, target);
         return ClusterState.builder(currentState)
             .metadata(Metadata.builder(currentMetadata)
-                .putCustom(UsersPrivilegesMetadata.TYPE, updatedPrivileges)
+                .putCustom(RolesMetadata.TYPE, newMetadata)
                 .build())
             .build();
     }
@@ -85,29 +95,36 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
     }
 
     private static boolean dropPrivileges(Metadata.Builder mdBuilder, RelationName relationName) {
-        // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersPrivilegesMetadata newMetadata = UsersPrivilegesMetadata.copyOf(
-            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
+        UsersPrivilegesMetadata oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
+        if (oldPrivilegesMetadata == null && oldRolesMetadata == null) {
+            return false;
+        }
 
-        long affectedRows = newMetadata.dropTableOrViewPrivileges(relationName.fqn());
-        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, newMetadata);
+        var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
+
+        long affectedRows = PrivilegesModifier.dropTableOrViewPrivileges(mdBuilder, newMetadata, relationName.fqn());
         return affectedRows > 0L;
     }
 
     private static boolean transferTablePrivileges(Metadata.Builder mdBuilder,
                                                    RelationName sourceRelationName,
                                                    RelationName targetRelationName) {
-        UsersPrivilegesMetadata oldMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        if (oldMetadata == null) {
+        UsersPrivilegesMetadata oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
+        if (oldPrivilegesMetadata == null && oldRolesMetadata == null) {
             return false;
         }
 
-        // create a new instance of the metadata if privileges were changed, to guarantee the cluster changed action.
-        UsersPrivilegesMetadata newMetadata = UsersPrivilegesMetadata.maybeCopyAndReplaceTableIdents(
-            oldMetadata, sourceRelationName.fqn(), targetRelationName.fqn());
+        var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        RolesMetadata migratedMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
 
-        if (newMetadata != null) {
-            mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, newMetadata);
+        // create a new instance of the metadata if privileges were changed, to guarantee the cluster changed action.
+        RolesMetadata newMetadata = PrivilegesModifier.maybeCopyAndReplaceTableIdents(migratedMetadata, sourceRelationName.fqn(), targetRelationName.fqn());
+
+        if (newMetadata != null || oldRolesMetadata.equals(migratedMetadata) == false) {
+            mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
             return true;
         }
         return false;

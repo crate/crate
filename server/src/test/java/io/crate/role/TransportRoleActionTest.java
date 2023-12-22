@@ -37,7 +37,6 @@ import org.junit.Test;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportRoleActionTest extends ESTestCase {
 
@@ -47,14 +46,6 @@ public class TransportRoleActionTest extends ESTestCase {
         TransportCreateRoleAction.putRole(mdBuilder, "root", true, null);
         RolesMetadata metadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         assertThat(metadata.roleNames()).containsExactly("root");
-    }
-
-    @Test
-    public void testEmptyPrivilegesAreCreatedForNewUsers() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder();
-        TransportCreateRoleAction.putRole(mdBuilder, "root", true, null);
-        UsersPrivilegesMetadata metadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        assertThat(metadata.getUserPrivileges("root")).isEmpty();
     }
 
     @Test
