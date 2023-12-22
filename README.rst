@@ -104,6 +104,17 @@ contributions!
 See the `developer docs`_ and the `contribution docs`_ for more information.
 
 
+Security
+========
+
+The CrateDB team and community take security bugs seriously. We appreciate your
+efforts to `responsibly disclose`_ your findings, and will make every effort to
+acknowledge your contributions.
+
+If you think you discovered a security flaw, please follow the guidelines at
+`SECURITY.md`_.
+
+
 Help
 ====
 
@@ -150,7 +161,9 @@ Looking for more help?
 .. _queryable objects: https://cratedb.com/docs/crate/reference/en/master/general/dql/selects.html#container-data-types
 .. _reference manual: https://cratedb.com/docs/crate/reference/
 .. _relational: https://en.wikipedia.org/wiki/Relational_model
+.. _responsibly disclose: https://en.wikipedia.org/wiki/Coordinated_vulnerability_disclosure
 .. _scaled horizontally: https://stackoverflow.com/questions/11707879/difference-between-scaling-horizontally-and-vertically-for-databases
+.. _SECURITY.md: https://github.com/crate/crate/blob/master/SECURITY.md
 .. _sql console: https://cratedb.com/docs/crate/admin-ui/en/latest/console.html#sql-console
 .. _standard SQL: https://cratedb.com/docs/crate/reference/en/latest/sql/index.html
 .. _support channels: https://cratedb.com/support
