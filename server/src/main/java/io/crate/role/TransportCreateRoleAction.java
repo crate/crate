@@ -112,13 +112,16 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
     static boolean putRole(Metadata.Builder mdBuilder, String roleName, boolean isUser, @Nullable SecureHash secureHash) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        if ((oldUsersMetadata != null && oldUsersMetadata.contains(roleName)) ||
-            (oldRolesMetadata != null && oldRolesMetadata.contains(roleName))) {
-            return true;
-        }
 
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
-        newMetadata.put(roleName, isUser, secureHash);
+        boolean exists = true;
+        if (newMetadata.contains(roleName) == false) {
+            newMetadata.put(roleName, isUser, secureHash);
+            exists = false;
+        } else if (newMetadata.equals(oldRolesMetadata)) {
+            // nothing changed, no need to update the cluster state
+            return exists;
+        }
 
         assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
@@ -128,6 +131,6 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
             (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
         privilegesMetadata.createPrivileges(roleName, Collections.emptySet());
         mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, privilegesMetadata);
-        return false;
+        return exists;
     }
 }

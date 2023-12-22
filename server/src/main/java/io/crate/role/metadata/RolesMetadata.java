@@ -83,8 +83,8 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         return roles.containsKey(name);
     }
 
-    public void remove(String name) {
-        roles.remove(name);
+    public Role remove(String name) {
+        return roles.remove(name);
     }
 
     public List<String> roleNames() {

@@ -105,21 +105,28 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
     static boolean alterRole(Metadata.Builder mdBuilder, String roleName, @Nullable SecureHash secureHash) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        if ((oldUsersMetadata == null || !oldUsersMetadata.contains(roleName)) &&
-            (oldRolesMetadata == null || !oldRolesMetadata.contains(roleName))) {
+        if (oldUsersMetadata == null && oldRolesMetadata == null) {
             return false;
         }
 
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
-        if (newMetadata.roles().get(roleName).isUser() == false && secureHash != null) {
-            throw new UnsupportedFeatureException("Setting a password to a ROLE is not allowed");
+        boolean exists = false;
+        var role = newMetadata.roles().get(roleName);
+        if (role != null) {
+            if (role.isUser() == false && secureHash != null) {
+                throw new UnsupportedFeatureException("Setting a password to a ROLE is not allowed");
+            }
+            newMetadata.put(roleName, true, secureHash);
+            exists = true;
         }
-        newMetadata.put(roleName, true, secureHash);
+        if (newMetadata.equals(oldRolesMetadata)) {
+            return exists;
+        }
 
         assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
 
-        return true;
+        return exists;
     }
 
     @Override
