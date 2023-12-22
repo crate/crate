@@ -143,7 +143,8 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
             return false;
         }
 
-        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
+        UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         var role = newMetadata.remove(roleName);
         if (role == null && newMetadata.equals(oldRolesMetadata)) {
             return false;
@@ -151,12 +152,6 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
 
         assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
-
-        // removes all privileges for this user/role
-        UsersPrivilegesMetadata privilegesMetadata = UsersPrivilegesMetadata.copyOf(
-            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
-        privilegesMetadata.dropPrivileges(roleName);
-        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, privilegesMetadata);
 
         return role != null;
     }

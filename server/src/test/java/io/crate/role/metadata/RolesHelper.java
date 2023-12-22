@@ -33,6 +33,7 @@ import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
 import io.crate.role.SecureHash;
 
@@ -65,6 +66,15 @@ public final class RolesHelper {
         DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("John", userOf("John"));
         DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("DummyRole", roleOf("DummyRole"));
     }
+
+    public static final Map<String, Set<Privilege>> OLD_DUMMY_USERS_PRIVILEGES = Map.of(
+        "Ford", Set.of(
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "doc", "crate")
+        ),
+        "Arthur", Set.of(
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "doc", "crate")
+        ));
 
     public static UsersMetadata usersMetadataOf(Map<String, Role> users) {
         Map<String, SecureHash> map = new HashMap<>(users.size());

@@ -21,9 +21,11 @@
 
 package io.crate.role;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -41,11 +43,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 @Singleton
 public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
@@ -140,12 +141,19 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     @VisibleForTesting
     static long applyPrivileges(Metadata.Builder mdBuilder,
                                 PrivilegesRequest request) {
-        // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersPrivilegesMetadata newMetadata = UsersPrivilegesMetadata.copyOf(
-            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
+        var oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        var oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
 
-        long affectedRows = newMetadata.applyPrivileges(request.userNames(), request.privileges());
-        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, newMetadata);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
+
+        long affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.userNames(), request.privileges());
+
+        if (newMetadata.equals(oldRolesMetadata) == false) {
+            mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
+        }
+
         return affectedRows;
     }
+
 }

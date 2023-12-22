@@ -41,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.SecureHash;
 
+@Deprecated(since = "5.6.0")
 public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
     public static final String TYPE = "users";

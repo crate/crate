@@ -92,30 +92,15 @@ public class RolesService implements Roles, ClusterStateListener {
                 SecureHash password = user.getValue();
                 Set<Privilege> privileges = Set.of();
                 if (privilegesMetadata != null) {
-                    privileges = privilegesMetadata.getUserPrivileges(userName);
-                    if (privileges == null) {
-                        // create empty set
-                        privileges = Set.of();
-                        privilegesMetadata.createPrivileges(userName, privileges);
+                    var oldPrivileges = privilegesMetadata.getUserPrivileges(userName);
+                    if (oldPrivileges != null) {
+                        privileges = oldPrivileges;
                     }
                 }
                 roles.put(userName, new Role(userName, true, privileges, password, Set.of()));
             }
         } else if (rolesMetadata != null) {
-            for (Map.Entry<String, Role> role: rolesMetadata.roles().entrySet()) {
-                String userName = role.getKey();
-                SecureHash password = role.getValue().password();
-                Set<Privilege> privileges = Set.of();
-                if (privilegesMetadata != null) {
-                    privileges = privilegesMetadata.getUserPrivileges(userName);
-                    if (privileges == null) {
-                        // create empty set
-                        privileges = Set.of();
-                        privilegesMetadata.createPrivileges(userName, privileges);
-                    }
-                }
-                roles.put(userName, new Role(userName, role.getValue().isUser(), privileges, password, Set.of()));
-            }
+            roles.putAll(rolesMetadata.roles());
         }
         return Collections.unmodifiableMap(roles);
     }
