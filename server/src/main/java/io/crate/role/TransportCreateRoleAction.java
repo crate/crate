@@ -22,7 +22,7 @@
 package io.crate.role;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -112,22 +112,20 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
     static boolean putRole(Metadata.Builder mdBuilder, String roleName, boolean isUser, @Nullable SecureHash secureHash) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        if ((oldUsersMetadata != null && oldUsersMetadata.contains(roleName)) ||
-            (oldRolesMetadata != null && oldRolesMetadata.contains(roleName))) {
-            return true;
-        }
 
-        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
-        newMetadata.put(roleName, isUser, secureHash);
+        UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
+        boolean exists = true;
+        if (newMetadata.contains(roleName) == false) {
+            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), secureHash, Set.of()));
+            exists = false;
+        } else if (newMetadata.equals(oldRolesMetadata)) {
+            // nothing changed, no need to update the cluster state
+            return exists;
+        }
 
         assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
-
-        // create empty privileges for this user
-        UsersPrivilegesMetadata privilegesMetadata = UsersPrivilegesMetadata.copyOf(
-            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
-        privilegesMetadata.createPrivileges(roleName, Collections.emptySet());
-        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, privilegesMetadata);
-        return false;
+        return exists;
     }
 }

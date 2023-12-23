@@ -21,6 +21,7 @@
 
 package io.crate.role;
 
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
@@ -37,7 +38,6 @@ import org.junit.Test;
 
 import io.crate.role.metadata.RolesHelper;
 import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportPrivilegesActionTest extends ESTestCase {
 
@@ -53,10 +53,11 @@ public class TransportPrivilegesActionTest extends ESTestCase {
     public void testApplyPrivilegesCreatesNewPrivilegesInstance() {
         // given
         Metadata.Builder mdBuilder = Metadata.builder();
-        Map<String, Set<Privilege>> usersPrivileges = new HashMap<>();
-        usersPrivileges.put("Ford", new HashSet<>(PRIVILEGES));
-        UsersPrivilegesMetadata initialPrivilegesMetadata = new UsersPrivilegesMetadata(usersPrivileges);
-        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, initialPrivilegesMetadata);
+        Map<String, Role> roles = new HashMap<>();
+        roles.put("Ford", userOf("Ford", new HashSet<>(PRIVILEGES), null));
+
+        RolesMetadata initialRolesMetadata = new RolesMetadata(roles);
+        mdBuilder.putCustom(RolesMetadata.TYPE, initialRolesMetadata);
         PrivilegesRequest denyPrivilegeRequest =
             new PrivilegesRequest(Collections.singletonList("Ford"), Collections.singletonList(DENY_DQL));
 
@@ -64,34 +65,30 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         TransportPrivilegesAction.applyPrivileges(mdBuilder, denyPrivilegeRequest);
 
         // then
-        UsersPrivilegesMetadata newPrivilegesMetadata =
-            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        assertThat(newPrivilegesMetadata).isNotSameAs(initialPrivilegesMetadata);
+        RolesMetadata newRolesMetadata =
+            (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
+        assertThat(newRolesMetadata).isNotSameAs(initialRolesMetadata);
     }
 
     @Test
     public void testValidateUserNamesEmptyUsers() throws Exception {
-        List<String> userNames = List.of("ford", "arthur");
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(Metadata.EMPTY_METADATA, userNames);
-        assertThat(unknownUserNames).isEqualTo(userNames);
+        List<String> roleNames = List.of("ford", "arthur");
+        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(new RolesMetadata(), roleNames);
+        assertThat(unknownRoleNames).isEqualTo(roleNames);
     }
 
     @Test
     public void testValidateUserNamesMissingUser() throws Exception {
-        Metadata metadata = Metadata.builder()
-            .putCustom(RolesMetadata.TYPE, new RolesMetadata(RolesHelper.SINGLE_USER_ONLY))
-            .build();
-        List<String> userNames = List.of("Ford", "Arthur");
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, userNames);
-        assertThat(unknownUserNames).containsExactly("Ford");
+        List<String> roleNames = List.of("Ford", "Arthur");
+        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(
+            new RolesMetadata(RolesHelper.SINGLE_USER_ONLY), roleNames);
+        assertThat(unknownRoleNames).containsExactly("Ford");
     }
 
     @Test
     public void testValidateUserNamesAllExists() throws Exception {
-        Metadata metadata = Metadata.builder()
-            .putCustom(RolesMetadata.TYPE, new RolesMetadata(RolesHelper.DUMMY_USERS))
-            .build();
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, List.of("Ford", "Arthur"));
-        assertThat(unknownUserNames).isEmpty();
+        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(
+                new RolesMetadata(RolesHelper.DUMMY_USERS), List.of("Ford", "Arthur"));
+        assertThat(unknownRoleNames).isEmpty();
     }
 }

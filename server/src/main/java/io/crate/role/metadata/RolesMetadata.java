@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
@@ -40,6 +41,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.SecureHash;
 
@@ -64,13 +66,20 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         return new RolesMetadata(new HashMap<>(instance.roles));
     }
 
-    public static RolesMetadata ofOldUsersMetadata(@Nullable UsersMetadata usersMetadata) {
+    public static RolesMetadata ofOldUsersMetadata(@Nullable UsersMetadata usersMetadata,
+                                                   @Nullable UsersPrivilegesMetadata usersPrivilegesMetadata) {
         if (usersMetadata == null) {
             return null;
         }
+        Function<String, Set<Privilege>> getPrivileges = username -> Set.of();
+        if (usersPrivilegesMetadata != null) {
+            getPrivileges = usersPrivilegesMetadata::getUserPrivileges;
+        }
         RolesMetadata rolesMetadata = new RolesMetadata();
         for (var user : usersMetadata.users().entrySet()) {
-            rolesMetadata.put(user.getKey(), true, user.getValue());
+            var userName = user.getKey();
+            var role = new Role(userName, true, getPrivileges.apply(userName), user.getValue(), Set.of());
+            rolesMetadata.roles().put(userName, role);
         }
         return rolesMetadata;
     }
@@ -83,8 +92,8 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         return roles.containsKey(name);
     }
 
-    public void remove(String name) {
-        roles.remove(name);
+    public Role remove(String name) {
+        return roles.remove(name);
     }
 
     public List<String> roleNames() {
@@ -97,22 +106,18 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
     public RolesMetadata(StreamInput in) throws IOException {
         int numRoles = in.readVInt();
-        roles = new HashMap<>(numRoles);
+        roles = HashMap.newHashMap(numRoles);
         for (int i = 0; i < numRoles; i++) {
-            String roleName = in.readString();
-            boolean isUser = in.readBoolean();
-            SecureHash secureHash = in.readOptionalWriteable(SecureHash::readFrom);
-            put(roleName, isUser, secureHash);
+            var role = new Role(in);
+            roles.put(role.name(), role);
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(roles.size());
-        for (Map.Entry<String, Role> role : roles.entrySet()) {
-            out.writeString(role.getKey());
-            out.writeBoolean(role.getValue().isUser());
-            out.writeOptionalWriteable(role.getValue().password());
+        for (var role : roles.values()) {
+            role.writeTo(out);
         }
     }
 
@@ -131,15 +136,17 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
      *
      * roles: {
      *   "role1": {
-     *     "is_user" : true,
-     *     "secure_hash": {
-     *       "iterations": INT,
-     *       "hash": BYTE[],
-     *       "salt": BYTE[]
+     *     "properties" {
+     *       "login" : true,
+     *       "secure_hash": {
+     *         "iterations": INT,
+     *         "hash": BYTE[],
+     *         "salt": BYTE[]
+     *       }
      *     }
      *   },
      *   "role2": {
-     *     "is_user" : false,
+     *     "properties" : {...},
      *   },
      *   ...
      * }
@@ -167,16 +174,18 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     }
 
     public static RolesMetadata of(Metadata.Builder mdBuilder,
-                                   UsersMetadata oldUsersMetadata,
+                                   @Nullable UsersMetadata oldUsersMetadata,
+                                   @Nullable UsersPrivilegesMetadata oldUserPrivilegesMetadata,
                                    RolesMetadata oldRolesMetadata) {
         RolesMetadata newMetadata;
         // create a new instance of the metadata, to guarantee the cluster changed action
-        // and use old UsersMetadata if exists
+        // and use old UsersMetadata/UsersPrivilegesMetadata if exists
         if (oldUsersMetadata != null) {
             // could be after upgrade or when users have been restored from old snapshot,
             // and we want to override all existing users & roles
-            newMetadata = RolesMetadata.ofOldUsersMetadata(oldUsersMetadata);
+            newMetadata = RolesMetadata.ofOldUsersMetadata(oldUsersMetadata, oldUserPrivilegesMetadata);
             mdBuilder.removeCustom(UsersMetadata.TYPE);
+            mdBuilder.removeCustom(UsersPrivilegesMetadata.TYPE);
         } else {
             newMetadata = RolesMetadata.newInstance(oldRolesMetadata);
         }

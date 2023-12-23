@@ -21,9 +21,11 @@
 
 package io.crate.role;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -41,11 +43,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 @Singleton
 public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
@@ -91,33 +92,29 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         }
 
         clusterService.submitStateUpdateTask("grant_privileges",
-            new AckedClusterStateUpdateTask<PrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
+                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
 
-                long affectedRows = -1;
-                List<String> unknownUserNames = null;
+                    ApplyPrivsResult result = null;
 
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                    unknownUserNames = validateUserNames(currentMetadata, request.userNames());
-                    if (unknownUserNames.isEmpty()) {
-                        affectedRows = applyPrivileges(mdBuilder, request);
+                    @Override
+                    public ClusterState execute(ClusterState currentState) throws Exception {
+                        Metadata currentMetadata = currentState.metadata();
+                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+
+                        result = applyPrivileges(mdBuilder, request);
+                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                }
 
-                @Override
-                protected PrivilegesResponse newResponse(boolean acknowledged) {
-                    return new PrivilegesResponse(acknowledged, affectedRows, unknownUserNames);
-                }
-            });
+                    @Override
+                    protected PrivilegesResponse newResponse(boolean acknowledged) {
+                        return new PrivilegesResponse(acknowledged, result.affectedRows, result.unknownRoleNames);
+                    }
+                });
 
     }
 
     @VisibleForTesting
-    static List<String> validateUserNames(Metadata metadata, Collection<String> userNames) {
-        RolesMetadata rolesMetadata = metadata.custom(RolesMetadata.TYPE);
+    static List<String> validateRoleNames(RolesMetadata rolesMetadata, Collection<String> userNames) {
         if (rolesMetadata == null) {
             return new ArrayList<>(userNames);
         }
@@ -138,14 +135,26 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @VisibleForTesting
-    static long applyPrivileges(Metadata.Builder mdBuilder,
-                                PrivilegesRequest request) {
-        // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersPrivilegesMetadata newMetadata = UsersPrivilegesMetadata.copyOf(
-            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
+    static ApplyPrivsResult applyPrivileges(Metadata.Builder mdBuilder, PrivilegesRequest request) {
+        var oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        var oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
 
-        long affectedRows = newMetadata.applyPrivileges(request.userNames(), request.privileges());
-        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, newMetadata);
-        return affectedRows;
+        RolesMetadata newMetadata = RolesMetadata.of(
+            mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
+
+        List<String> unknownRoleNames = validateRoleNames(newMetadata, request.userNames());
+        long affectedRows = -1;
+        if (unknownRoleNames.isEmpty()) {
+            affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.userNames(), request.privileges());
+        }
+
+        if (newMetadata.equals(oldRolesMetadata) == false) {
+            mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
+        }
+
+        return new ApplyPrivsResult(affectedRows, unknownRoleNames);
     }
+
+    record ApplyPrivsResult(long affectedRows, List<String> unknownRoleNames) {}
 }

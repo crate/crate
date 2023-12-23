@@ -21,6 +21,7 @@
 
 package io.crate.role.metadata;
 
+import static io.crate.role.metadata.RolesHelper.OLD_DUMMY_USERS_PRIVILEGES;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
 
@@ -112,22 +113,26 @@ public class RolesMetadataTest extends ESTestCase {
 
     @Test
     public void test_add_old_users_metadata_to_roles_metadata() {
-        RolesMetadata rolesMetadata = RolesMetadata.ofOldUsersMetadata(usersMetadataOf(RolesHelper.DUMMY_USERS));
+        RolesMetadata rolesMetadata = RolesMetadata.ofOldUsersMetadata(
+            usersMetadataOf(RolesHelper.DUMMY_USERS),
+            new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES)
+        );
         assertThat(rolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", RolesHelper.DUMMY_USERS.get("Arthur"),
-                "Ford", RolesHelper.DUMMY_USERS.get("Ford")));
+            Map.of("Arthur", RolesHelper.DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
+                "Ford", RolesHelper.DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
     }
 
     @Test
     public void test_roles_metadata_from_cluster_state() {
         var oldUsersMetadata = usersMetadataOf(RolesHelper.DUMMY_USERS);
+        var oldUserPrivilegesMetadata = new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES);
         var oldRolesMetadata = new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES);
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        var newRolesMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
+        var newRolesMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         assertThat(newRolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", RolesHelper.DUMMY_USERS.get("Arthur"),
-                "Ford", RolesHelper.DUMMY_USERS.get("Ford")));
+            Map.of("Arthur", RolesHelper.DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
+                "Ford", RolesHelper.DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
     }
 }
