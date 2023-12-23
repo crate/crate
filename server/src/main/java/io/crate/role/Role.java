@@ -24,7 +24,6 @@ package io.crate.role;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -40,16 +39,12 @@ import org.jetbrains.annotations.Nullable;
 
 public class Role implements Writeable, ToXContent {
 
-    public static final Role CRATE_USER = new Role("crate",
-        true,
+    public static final Role CRATE_USER = new Role(
+        "crate",
+        new RolePrivileges(Set.of()),
         Set.of(),
-        Set.of(),
-        null,
-        EnumSet.of(UserRole.SUPERUSER));
-
-    public enum UserRole {
-        SUPERUSER
-    }
+        new Properties(true, null),
+        true);
 
     public record Properties(boolean login, @Nullable SecureHash password) implements Writeable, ToXContent {
 
@@ -97,7 +92,7 @@ public class Role implements Writeable, ToXContent {
     private final String name;
     private final RolePrivileges privileges;
     private final Set<GrantedRole> grantedRoles;
-    private final Set<UserRole> userRoles;
+    private final boolean isSuperUser;
 
     private final Properties properties;
 
@@ -105,32 +100,23 @@ public class Role implements Writeable, ToXContent {
                 boolean login,
                 Set<Privilege> privileges,
                 Set<GrantedRole> grantedRoles,
-                @Nullable SecureHash password,
-                Set<UserRole> userRoles) {
-        this(name, privileges, grantedRoles, userRoles, new Properties(login, password));
+                @Nullable SecureHash password) {
+        this(name, new RolePrivileges(privileges), grantedRoles, new Properties(login, password), false);
     }
 
-    public Role(String name,
-                Set<Privilege> privileges,
-                Set<GrantedRole> grantedRoles,
-                Set<UserRole> userRoles,
-                Properties properties) {
-        this(name, new RolePrivileges(privileges), grantedRoles, userRoles, properties);
-    }
-
-    public Role(String name,
-                RolePrivileges privileges,
-                Set<GrantedRole> grantedRoles,
-                Set<UserRole> userRoles,
-                Properties properties) {
+    private Role(String name,
+                 RolePrivileges privileges,
+                 Set<GrantedRole> grantedRoles,
+                 Properties properties,
+                 boolean isSuperUser) {
         if (properties.login == false) {
             assert properties.password == null : "Cannot create a Role with password";
-            assert userRoles.isEmpty() : "Cannot create a Role with UserRoles";
+            assert isSuperUser == false : "Cannot create a Role which is superUser";
         }
         this.name = name;
         this.privileges = privileges;
         this.grantedRoles = Collections.unmodifiableSet(grantedRoles);
-        this.userRoles = userRoles;
+        this.isSuperUser = isSuperUser;
         this.properties = properties;
     }
 
@@ -148,17 +134,17 @@ public class Role implements Writeable, ToXContent {
             grantedRoleSet.add(new GrantedRole(in));
         }
         grantedRoles = Collections.unmodifiableSet(grantedRoleSet);
-        userRoles = Set.of();
+        isSuperUser = false;
         properties = new Properties(in);
 
     }
 
     public Role with(Set<Privilege> privileges) {
-        return new Role(name, privileges, grantedRoles, userRoles, properties);
+        return new Role(name, new RolePrivileges(privileges), grantedRoles, properties, false);
     }
 
     public Role with(SecureHash password) {
-        return new Role(name, privileges, grantedRoles, userRoles, new Properties(properties.login, password));
+        return new Role(name, privileges, grantedRoles, new Properties(properties.login, password), false);
     }
 
 
@@ -176,7 +162,7 @@ public class Role implements Writeable, ToXContent {
     }
 
     public boolean isSuperUser() {
-        return userRoles.contains(UserRole.SUPERUSER);
+        return isSuperUser;
     }
 
     public RolePrivileges privileges() {
@@ -203,13 +189,13 @@ public class Role implements Writeable, ToXContent {
         return Objects.equals(name, that.name) &&
                Objects.equals(privileges, that.privileges) &&
                Objects.equals(grantedRoles, that.grantedRoles) &&
-               Objects.equals(userRoles, that.userRoles) &&
+               Objects.equals(isSuperUser, that.isSuperUser) &&
                Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, privileges, grantedRoles, properties, userRoles);
+        return Objects.hash(name, privileges, grantedRoles, properties, isSuperUser);
     }
 
     @Override
@@ -336,9 +322,9 @@ public class Role implements Writeable, ToXContent {
         }
         return new Role(
             roleName,
-            privileges,
+            new RolePrivileges(privileges),
             grantedRoles,
-            Set.of(),
-            properties);
+            properties,
+            false);
     }
 }

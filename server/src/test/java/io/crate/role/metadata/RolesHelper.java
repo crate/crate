@@ -109,27 +109,27 @@ public final class RolesHelper {
     }
 
     public static Role userOf(String name, Set<Privilege> privileges, @Nullable SecureHash password) {
-        return new Role(name, true, privileges, Set.of(), password, Set.of());
+        return new Role(name, true, privileges, Set.of(), password);
     }
 
     public static Role userOf(String name, Set<Privilege> privileges, Set<GrantedRole> grantedRoles, @Nullable SecureHash password) {
-        return new Role(name, true, privileges, grantedRoles, password, Set.of());
+        return new Role(name, true, privileges, grantedRoles, password);
     }
 
     public static Role roleOf(String name) {
-        return new Role(name, false, Set.of(), Set.of(), null, Set.of());
+        return new Role(name, false, Set.of(), Set.of(), null);
     }
 
     public static Role roleOf(String name, Set<Privilege> privileges, List<String> grantedRoles) {
-        return new Role(name, false, privileges, buildGrantedRoles(grantedRoles), null, Set.of());
+        return new Role(name, false, privileges, buildGrantedRoles(grantedRoles), null);
     }
 
     public static Role roleOf(String name, Set<Privilege> privileges) {
-        return new Role(name, false, privileges, Set.of(), null, Set.of());
+        return new Role(name, false, privileges, Set.of(), null);
     }
 
     public static Role roleOf(String name, List<String> grantedRoles) {
-        return new Role(name, false, Set.of(), buildGrantedRoles(grantedRoles), null, Set.of());
+        return new Role(name, false, Set.of(), buildGrantedRoles(grantedRoles), null);
     }
 
     @NotNull

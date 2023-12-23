@@ -82,7 +82,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         RolesMetadata rolesMetadata = new RolesMetadata();
         for (var user : usersMetadata.users().entrySet()) {
             var userName = user.getKey();
-            var role = new Role(userName, true, getPrivileges.apply(userName), Set.of(), user.getValue(), Set.of());
+            var role = new Role(userName, true, getPrivileges.apply(userName), Set.of(), user.getValue());
             rolesMetadata.roles().put(userName, role);
         }
         return rolesMetadata;
@@ -215,13 +215,13 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
             if (newRolePrivilegeToApply.state() == PrivilegeState.GRANT) {
                 if (grantedRoles.add(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
                     roles.put(role.name(), new Role(
-                        role.name(), role.isUser(), Set.of(), grantedRoles, role.password(), Set.of()));
+                        role.name(), role.isUser(), Set.of(), grantedRoles, role.password()));
                     affectedCount++;
                 }
             } else if (newRolePrivilegeToApply.state() == PrivilegeState.REVOKE) {
                 if (grantedRoles.remove(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
                     roles.put(role.name(), new Role(
-                        role.name(), role.isUser(), Set.of(), grantedRoles, role.password(), Set.of()));
+                        role.name(), role.isUser(), Set.of(), grantedRoles, role.password()));
                     affectedCount++;
                 }
             }
