@@ -27,6 +27,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.role.GrantedRole;
 import io.crate.role.Role;
 
 public class SysRolesTableInfo {
@@ -38,6 +39,10 @@ public class SysRolesTableInfo {
     public static SystemTable<Role> create() {
         return SystemTable.<Role>builder(IDENT)
             .add("name", STRING, Role::name)
+            .startObjectArray("parents", r -> r.grantedRoles().stream().sorted().toList())
+                .add("role", STRING, GrantedRole::roleName)
+                .add("grantor", STRING, GrantedRole::grantor)
+            .endObjectArray()
             .setPrimaryKeys(new ColumnIdent("name"))
             .build();
     }

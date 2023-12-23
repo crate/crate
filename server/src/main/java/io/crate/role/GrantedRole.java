@@ -31,8 +31,9 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.jetbrains.annotations.NotNull;
 
-public record GrantedRole(String roleName, String grantor) implements ToXContent, Writeable {
+public record GrantedRole(String roleName, String grantor) implements ToXContent, Writeable, Comparable<GrantedRole> {
 
     public GrantedRole(StreamInput in) throws IOException {
         this(in.readString(), in.readString());
@@ -108,5 +109,14 @@ public record GrantedRole(String roleName, String grantor) implements ToXContent
     @Override
     public String toString() {
         return "GrantedRole{" + roleName + ", grantor: " + grantor + '}';
+    }
+
+    @Override
+    public int compareTo(@NotNull GrantedRole o) {
+        int cmp = this.roleName.compareTo(o.roleName);
+        if (cmp != 0) {
+            return cmp;
+        }
+        return this.grantor.compareTo(o.grantor);
     }
 }
