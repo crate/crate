@@ -98,7 +98,6 @@ public class RolesService implements Roles, ClusterStateListener {
         if (usersMetadata != null) {
             for (Map.Entry<String, SecureHash> user: usersMetadata.users().entrySet()) {
                 String userName = user.getKey();
-                SecureHash password = user.getValue();
                 Set<Privilege> privileges = Set.of();
                 if (privilegesMetadata != null) {
                     var oldPrivileges = privilegesMetadata.getUserPrivileges(userName);
@@ -106,7 +105,7 @@ public class RolesService implements Roles, ClusterStateListener {
                         privileges = oldPrivileges;
                     }
                 }
-                roles.put(userName, new Role(userName, true, privileges, Set.of(), password, Set.of()));
+                roles.put(userName, new Role(userName, true, privileges, Set.of(), user.getValue()));
             }
         } else if (rolesMetadata != null) {
             roles.putAll(rolesMetadata.roles());

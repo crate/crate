@@ -117,7 +117,7 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         boolean exists = true;
         if (newMetadata.contains(roleName) == false) {
-            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash, Set.of()));
+            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash));
             exists = false;
         } else if (newMetadata.equals(oldRolesMetadata)) {
             // nothing changed, no need to update the cluster state
