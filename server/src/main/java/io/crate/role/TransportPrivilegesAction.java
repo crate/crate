@@ -92,33 +92,29 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         }
 
         clusterService.submitStateUpdateTask("grant_privileges",
-            new AckedClusterStateUpdateTask<PrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
+                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
 
-                long affectedRows = -1;
-                List<String> unknownUserNames = null;
+                    ApplyPrivsResult result = null;
 
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                    unknownUserNames = validateUserNames(currentMetadata, request.userNames());
-                    if (unknownUserNames.isEmpty()) {
-                        affectedRows = applyPrivileges(mdBuilder, request);
+                    @Override
+                    public ClusterState execute(ClusterState currentState) throws Exception {
+                        Metadata currentMetadata = currentState.metadata();
+                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+
+                        result = applyPrivileges(mdBuilder, request);
+                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                }
 
-                @Override
-                protected PrivilegesResponse newResponse(boolean acknowledged) {
-                    return new PrivilegesResponse(acknowledged, affectedRows, unknownUserNames);
-                }
-            });
+                    @Override
+                    protected PrivilegesResponse newResponse(boolean acknowledged) {
+                        return new PrivilegesResponse(acknowledged, result.affectedRows, result.unknownRoleNames);
+                    }
+                });
 
     }
 
     @VisibleForTesting
-    static List<String> validateUserNames(Metadata metadata, Collection<String> userNames) {
-        RolesMetadata rolesMetadata = metadata.custom(RolesMetadata.TYPE);
+    static List<String> validateRoleNames(RolesMetadata rolesMetadata, Collection<String> userNames) {
         if (rolesMetadata == null) {
             return new ArrayList<>(userNames);
         }
@@ -139,21 +135,26 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @VisibleForTesting
-    static long applyPrivileges(Metadata.Builder mdBuilder,
-                                PrivilegesRequest request) {
+    static ApplyPrivsResult applyPrivileges(Metadata.Builder mdBuilder, PrivilegesRequest request) {
         var oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         var oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
 
-        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
+        RolesMetadata newMetadata = RolesMetadata.of(
+            mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
 
-        long affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.userNames(), request.privileges());
+        List<String> unknownRoleNames = validateRoleNames(newMetadata, request.userNames());
+        long affectedRows = -1;
+        if (unknownRoleNames.isEmpty()) {
+            affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.userNames(), request.privileges());
+        }
 
         if (newMetadata.equals(oldRolesMetadata) == false) {
             mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
         }
 
-        return affectedRows;
+        return new ApplyPrivsResult(affectedRows, unknownRoleNames);
     }
 
+    record ApplyPrivsResult(long affectedRows, List<String> unknownRoleNames) {}
 }
