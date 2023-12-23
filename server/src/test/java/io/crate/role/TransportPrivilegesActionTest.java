@@ -72,27 +72,23 @@ public class TransportPrivilegesActionTest extends ESTestCase {
 
     @Test
     public void testValidateUserNamesEmptyUsers() throws Exception {
-        List<String> userNames = List.of("ford", "arthur");
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(Metadata.EMPTY_METADATA, userNames);
-        assertThat(unknownUserNames).isEqualTo(userNames);
+        List<String> roleNames = List.of("ford", "arthur");
+        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(new RolesMetadata(), roleNames);
+        assertThat(unknownRoleNames).isEqualTo(roleNames);
     }
 
     @Test
     public void testValidateUserNamesMissingUser() throws Exception {
-        Metadata metadata = Metadata.builder()
-            .putCustom(RolesMetadata.TYPE, new RolesMetadata(RolesHelper.SINGLE_USER_ONLY))
-            .build();
-        List<String> userNames = List.of("Ford", "Arthur");
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, userNames);
-        assertThat(unknownUserNames).containsExactly("Ford");
+        List<String> roleNames = List.of("Ford", "Arthur");
+        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(
+            new RolesMetadata(RolesHelper.SINGLE_USER_ONLY), roleNames);
+        assertThat(unknownRoleNames).containsExactly("Ford");
     }
 
     @Test
     public void testValidateUserNamesAllExists() throws Exception {
-        Metadata metadata = Metadata.builder()
-            .putCustom(RolesMetadata.TYPE, new RolesMetadata(RolesHelper.DUMMY_USERS))
-            .build();
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metadata, List.of("Ford", "Arthur"));
-        assertThat(unknownUserNames).isEmpty();
+        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(
+                new RolesMetadata(RolesHelper.DUMMY_USERS), List.of("Ford", "Arthur"));
+        assertThat(unknownRoleNames).isEmpty();
     }
 }
