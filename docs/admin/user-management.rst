@@ -121,6 +121,15 @@ statement returns an error::
 List users
 ==========
 
+.. hide:
+
+    cr> CREATE ROLE role_a;
+    CREATE OK, 1 row affected (... sec)
+    cr> CREATE ROLE role_b;
+    CREATE OK, 1 row affected (... sec)
+    cr> GRANT role_a, role_b TO user_a;
+    GRANT OK, 2 rows affected (... sec)
+
 CrateDB exposes database users via the read-only :ref:`sys-users` system table.
 The ``sys.users`` table shows all users in the cluster which can be used for
 authentication. The initial superuser ``crate`` which is available for all
@@ -129,18 +138,16 @@ CrateDB clusters is also part of that list.
 To list all existing users query the table::
 
     cr> SELECT * FROM sys.users order by name;
-    +-------------+----------+-----------+
-    | name        | password | superuser |
-    +-------------+----------+-----------+
-    | Custom User |     NULL | FALSE     |
-    | crate       |     NULL | TRUE      |
-    | user_a      |     NULL | FALSE     |
-    | user_b      | ******** | FALSE     |
-    +-------------+----------+-----------+
+    +-------------+----------------------------------------------------------------------------------+----------+-----------+
+    | name        | parents                                                                          | password | superuser |
+    +-------------+----------------------------------------------------------------------------------+----------+-----------+
+    | Custom User | []                                                                               | NULL     | FALSE     |
+    | crate       | []                                                                               | NULL     | TRUE      |
+    | user_a      | [{"grantor": "crate", "role": "role_a"}, {"grantor": "crate", "role": "role_b"}] | NULL     | FALSE     |
+    | user_b      | []                                                                               | ******** | FALSE     |
+    +-------------+----------------------------------------------------------------------------------+----------+-----------+
     SELECT 4 rows in set (... sec)
 
-The column ``name`` shows the unique name of the user, the column ``superuser``
-shows whether the user has superuser privileges or not.
 
 .. NOTE::
 
@@ -154,10 +161,11 @@ List roles
 
 .. hide:
 
-    cr> CREATE ROLE role_a;
+    cr> CREATE ROLE role_c;
     CREATE OK, 1 row affected (... sec)
-    cr> CREATE ROLE role_b;
-    CREATE OK, 1 row affected (... sec)
+    cr> GRANT role_c TO role_b;
+    GRANT OK, 1 row affected (... sec)
+
 
 CrateDB exposes database roles via the read-only :ref:`sys-roles` system table.
 The ``sys.roles`` table shows all roles in the cluster which can be used to
@@ -166,15 +174,15 @@ group privileges.
 To list all existing roles query the table::
 
     cr> SELECT * FROM sys.roles order by name;
-    +--------+
-    | name   |
-    +--------+
-    | role_a |
-    | role_b |
-    +--------+
-    SELECT 2 rows in set (... sec)
+    +--------+------------------------------------------+
+    | name   | parents                                  |
+    +--------+------------------------------------------+
+    | role_a | []                                       |
+    | role_b | [{"grantor": "crate", "role": "role_c"}] |
+    | role_c | []                                       |
+    +--------+------------------------------------------+
+    SELECT 3 rows in set (... sec)
 
-The column ``name`` shows the unique name of the role.
 
 .. vale off
 .. Drop Users & Roles
@@ -189,4 +197,6 @@ The column ``name`` shows the unique name of the role.
     cr> DROP ROLE role_a;
     DROP OK, 1 row affected (... sec)
     cr> DROP ROLE role_b;
+    DROP OK, 1 row affected (... sec)
+    cr> DROP ROLE role_c;
     DROP OK, 1 row affected (... sec)

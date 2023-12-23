@@ -141,3 +141,6 @@ Administration and Operations
 
 - Added :ref:`sys.roles<sys-roles>` table which contains all database roles
   defined in the cluster.
+
+- Added ``parents`` column to :ref:`sys.users<sys-users>` table which lists the
+  roles granted to a user, together with the user that granted each role.

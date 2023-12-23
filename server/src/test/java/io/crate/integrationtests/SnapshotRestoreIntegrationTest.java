@@ -1000,12 +1000,12 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("CREATE ROLE \"DummyRole\"");
         execute("SELECT * FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
-            "Arthur| NULL| false",
-            "John| ********| false",
-            "crate| NULL| true");
+            "Arthur| []| NULL| false",
+            "John| []| ********| false",
+            "crate| []| NULL| true");
 
         execute("SELECT * FROM sys.roles ORDER BY name");
-        assertThat(response).hasRows("DummyRole");
+        assertThat(response).hasRows("DummyRole| []");
 
         execute("GRANT AL TO \"DummyRole\"");
         execute("GRANT DML ON SCHEMA \"doc\" TO \"Arthur\"");
@@ -1024,10 +1024,10 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         execute("SELECT * FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
-            "Arthur| ********| false",
-            "Ford| ********| false",
-            "John| NULL| false",
-            "crate| NULL| true");
+            "Arthur| []| ********| false",
+            "Ford| []| ********| false",
+            "John| []| NULL| false",
+            "crate| []| NULL| true");
         execute("SELECT count(*) FROM sys.roles");
         assertThat(response).hasRows("0");
 
@@ -1061,10 +1061,10 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("ALTER USER \"John\" SET (password='johns-new-password')");
         execute("SELECT * FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
-            "Arthur| ********| false",
-            "Ford| ********| false",
-            "John| ********| false",
-            "crate| NULL| true");
+            "Arthur| []| ********| false",
+            "Ford| []| ********| false",
+            "John| []| ********| false",
+            "crate| []| NULL| true");
         execute("SELECT count(*) FROM sys.roles");
         assertThat(response).hasRows("0");
 
