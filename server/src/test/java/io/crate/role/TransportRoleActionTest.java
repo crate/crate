@@ -23,6 +23,9 @@ package io.crate.role;
 
 import static io.crate.role.metadata.RolesHelper.DUMMY_USERS;
 import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_WITHOUT_PASSWORD;
+import static io.crate.role.metadata.RolesHelper.OLD_DUMMY_USERS_PRIVILEGES;
 import static io.crate.role.metadata.RolesHelper.SINGLE_USER_ONLY;
 import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
@@ -39,6 +42,7 @@ import org.junit.Test;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportRoleActionTest extends ESTestCase {
 
@@ -83,17 +87,25 @@ public class TransportRoleActionTest extends ESTestCase {
 
     @Test
     public void test_alter_user_with_old_users_metadata() throws Exception {
-        var oldUsersMetadata = usersMetadataOf(DUMMY_USERS);
-        var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
+        var oldUsersMetadata = usersMetadataOf(DUMMY_USERS_WITHOUT_PASSWORD);
+        var oldUsersPrivilegesMetadata = new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES);
+        var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
+            .putCustom(UsersPrivilegesMetadata.TYPE, oldUsersPrivilegesMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newPasswd = getSecureHash("arthurs-new-passwd");
         boolean res = TransportAlterRoleAction.alterRole(mdBuilder, "Arthur", newPasswd);
         assertThat(res).isTrue();
+
+        var newFordUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Ford")
+                .with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"));
+        var newArthurUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Arthur")
+                .with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))
+                .with(newPasswd);
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", RolesHelper.userOf("Arthur", newPasswd),
-                "Ford", DUMMY_USERS.get("Ford")));
+            Map.of("Arthur", newArthurUser,
+                "Ford", newFordUser));
     }
 
     @Test
