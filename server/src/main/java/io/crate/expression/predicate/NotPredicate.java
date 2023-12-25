@@ -182,16 +182,20 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         Symbol arg = input.arguments().get(0);
 
         // Optimize `NOT (<ref> IS NULL)`
-        if (arg instanceof Function innerFunction && innerFunction.name().equals(IsNullPredicate.NAME)) {
-            if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference ref) {
-                // Ignored objects have no field names in the index, need function filter fallback
-                if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
-                    return null;
+        if (arg instanceof Function innerFunction) {
+            if (innerFunction.name().equals(NotPredicate.NAME)) {
+                return innerFunction.arguments().get(0).accept(context.visitor(), context);
+            } else if (innerFunction.name().equals(IsNullPredicate.NAME)) {
+                if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference ref) {
+                    // Ignored objects have no field names in the index, need function filter fallback
+                    if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                        return null;
+                    }
+                    if (!ref.isNullable()) {
+                        return new MatchAllDocsQuery();
+                    }
+                    return IsNullPredicate.refExistsQuery(ref, context, true);
                 }
-                if (!ref.isNullable()) {
-                    return new MatchAllDocsQuery();
-                }
-                return IsNullPredicate.refExistsQuery(ref, context, true);
             }
         }
 
