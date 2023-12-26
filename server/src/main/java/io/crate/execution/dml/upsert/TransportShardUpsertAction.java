@@ -174,6 +174,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             assert request.insertColumns() == null || insertColumns.subList(0, request.insertColumns().length).equals(Arrays.asList(request.insertColumns()))
                 : "updateToInsert.columns() must be a superset of insertColumns where the start is an exact overlap. It may only add new columns at the end";
         }
+
+        boolean addedUndeterministicColumns = updateToInsert == null ? false : updateToInsert.addedUndeterministicColumns();
+
         Indexer indexer = new Indexer(
             indexName,
             tableInfo,
@@ -183,7 +186,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             insertColumns,
             request.returnValues()
         );
-        if (indexer.hasUndeterministicSynthetics()) {
+        if (indexer.hasUndeterministicSynthetics() && addedUndeterministicColumns == false) {
             // This change also applies for RawIndexer if it's used.
             // RawIndexer adds non-deterministic generated columns in addition to _raw and uses same request.
             request.insertColumns(indexer.insertColumns(insertColumns));

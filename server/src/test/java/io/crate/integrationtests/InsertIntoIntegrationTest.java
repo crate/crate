@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -1992,5 +1991,40 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "2030| 99998.0"
         );
+    }
+
+    @Test
+    public void test_insert_on_conflict_with_non_deterministic_column() throws Exception {
+        execute("""
+            CREATE TABLE IF NOT EXISTS "tbl" (
+               "real_id" BIGINT NOT NULL,
+               "date" TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+               "value" DOUBLE PRECISION,
+               "value_text" TEXT,
+               "modification_date" TIMESTAMP WITHOUT TIME ZONE GENERATED ALWAYS AS current_timestamp,
+               "year" INTEGER GENERATED ALWAYS AS EXTRACT(YEAR FROM "date") NOT NULL,
+               PRIMARY KEY ("real_id", "date", "year")
+            )
+            CLUSTERED INTO 4 SHARDS
+            WITH (
+               column_policy = 'dynamic'
+            );
+            """);
+        ensureGreen();
+        execute("INSERT INTO tbl (real_id, date, value) " +
+            "VALUES (" + 1 + ", '2030-11-15 12:13:13', 99999) " +
+            "ON CONFLICT (real_id, date, year) DO UPDATE SET value = excluded.value");
+        execute("refresh table tbl");
+
+        execute("select underreplicated_shards from sys.health where table_name = 'tbl'");
+        assertThat(response).hasRows("0"); // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
+
+        execute("select modification_date from tbl");
+        long modificationDate = (long) response.rows()[0][0];
+
+        // some iterations to ensure it hits both primary and replica
+        for (int i = 0; i < 30; i++) {
+            assertThat(execute("select modification_date from tbl").rows()[0][0]).isEqualTo(modificationDate);
+        }
     }
 }

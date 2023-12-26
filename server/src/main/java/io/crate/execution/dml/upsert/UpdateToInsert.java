@@ -21,6 +21,8 @@
 
 package io.crate.execution.dml.upsert;
 
+import static io.crate.execution.dml.Indexer.maybeAddUndeterministicColumn;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,6 +46,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
@@ -117,6 +120,7 @@ public final class UpdateToInsert {
     private final Evaluator eval;
     private final List<Reference> updateColumns;
     private final ArrayList<Reference> columns;
+    private final boolean addedUndeterministicColumns;
 
 
     record Values(Doc doc, Object[] excludedValues) {
@@ -161,10 +165,29 @@ public final class UpdateToInsert {
             this.columns.addAll(insertColumns);
         }
         List<String> updateColumnList = Arrays.asList(updateColumns);
+
+        // It's important to add non-deterministic columns before adding any other targets.
+        // It's needed in order to sync with values expansion logic
+        // where we add computed non-deterministic values right after user provided values.
+
+        // No checks of updateColumnList since we anyway have to add it to targets in any case:
+        // 1. value provided: validate it
+        // 2. value not provided: generate value for replica
+        int prevSize = columns.size();
+        for (var ref : table.columns()) {
+            if (ref instanceof GeneratedReference genRef && Symbols.isDeterministic(genRef.generatedExpression()) == false) {
+                maybeAddUndeterministicColumn(ref, columns);
+            }
+        }
+        addedUndeterministicColumns = columns.size() > prevSize;
+
         for (var ref : table.columns()) {
             // The Indexer later on injects the generated column values
             // We only include them here if they are provided in the `updateColumns` to validate
             // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
+
+            // Only deterministic generated columns can be added here.
+            // Non-deterministic columns are handled earlier and will be skipped here because of contains check anyway.
             if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                 continue;
             }
@@ -248,5 +271,9 @@ public final class UpdateToInsert {
 
     public List<Reference> columns() {
         return columns;
+    }
+
+    public boolean addedUndeterministicColumns() {
+        return addedUndeterministicColumns;
     }
 }

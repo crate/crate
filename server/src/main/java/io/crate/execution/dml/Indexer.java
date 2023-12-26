@@ -928,11 +928,15 @@ public class Indexer {
         }
         List<Reference> newColumns = new ArrayList<>(columns);
         for (var synthetic : undeterministic) {
-            if (synthetic.ref.column().isRoot() && !newColumns.contains(synthetic.ref)) {
-                newColumns.add(synthetic.ref);
-            }
+            maybeAddUndeterministicColumn(synthetic.ref, newColumns);
         }
         return newColumns;
+    }
+
+    public static void maybeAddUndeterministicColumn(Reference reference, List<Reference> newColumns) {
+        if (reference.column().isRoot() && !newColumns.contains(reference)) {
+            newColumns.add(reference);
+        }
     }
 
     @SuppressWarnings("unchecked")
