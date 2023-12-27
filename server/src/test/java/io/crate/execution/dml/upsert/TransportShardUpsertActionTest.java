@@ -139,7 +139,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                            IndexShard indexShard,
                                            boolean isRetry,
                                            @Nullable RawIndexer rawIndexer,
-                                           long version) throws Exception {
+                                           long version,
+                                           boolean updateHasUndeterministicSynthetics) throws Exception {
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),

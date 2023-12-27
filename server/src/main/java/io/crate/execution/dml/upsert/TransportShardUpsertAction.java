@@ -175,7 +175,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 : "updateToInsert.columns() must be a superset of insertColumns where the start is an exact overlap. It may only add new columns at the end";
         }
 
-        boolean addedUndeterministicColumns = updateToInsert == null ? false : updateToInsert.addedUndeterministicColumns();
+        boolean updateHasUndeterministicSynthetics = updateToInsert != null && updateToInsert.addedUndeterministicColumns();
 
         Indexer indexer = new Indexer(
             indexName,
@@ -186,9 +186,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             insertColumns,
             request.returnValues()
         );
-        if (indexer.hasUndeterministicSynthetics() && addedUndeterministicColumns == false) {
+        if (indexer.hasUndeterministicSynthetics()) {
             // This change also applies for RawIndexer if it's used.
             // RawIndexer adds non-deterministic generated columns in addition to _raw and uses same request.
+
+            // If UpdateToInsert adds non-deterministic columns, Indexer.underterministic structure will be empty.
+            // Indexer's target columns, which already contain non-deterministic columns, will be returned in this case.
             request.insertColumns(indexer.insertColumns(insertColumns));
         }
         RawIndexer rawIndexer = null;
@@ -222,7 +225,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     indexShard,
                     tableInfo,
                     updateToInsert,
-                    rawIndexer
+                    rawIndexer,
+                    updateHasUndeterministicSynthetics
                 );
                 if (indexItemResponse != null) {
                     if (indexItemResponse.translog != null) {
@@ -449,7 +453,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                         IndexShard indexShard,
                                         DocTableInfo tableInfo,
                                         @Nullable UpdateToInsert updateToInsert,
-                                        @Nullable RawIndexer rawIndexer) throws Exception {
+                                        @Nullable RawIndexer rawIndexer,
+                                        boolean updateHasUndeterministicSynthetics) throws Exception {
         VersionConflictEngineException lastException = null;
         Object[] insertValues = item.insertValues();
         boolean tryInsertFirst = insertValues != null;
@@ -496,7 +501,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     indexShard,
                     isRetry,
                     rawIndexer,
-                    version
+                    version,
+                    updateHasUndeterministicSynthetics
                 );
             } catch (VersionConflictEngineException e) {
                 lastException = e;
@@ -547,7 +553,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        IndexShard indexShard,
                                        boolean isRetry,
                                        @Nullable RawIndexer rawIndexer,
-                                       long version) throws Exception {
+                                       long version,
+                                       boolean updateHasUndeterministicSynthetics) throws Exception {
         final long startTime = System.nanoTime();
 
         List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
@@ -574,7 +581,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         // Replica must use the same values for undeterministic defaults/generated columns
         // This check must be done after index() call to let values/indexers size check compare original array sizes.
-        if (rawIndexer == null && indexer.hasUndeterministicSynthetics()) {
+        if (rawIndexer == null && (indexer.hasUndeterministicSynthetics() || updateHasUndeterministicSynthetics)) {
             item.insertValues(indexer.addGeneratedValues(item));
         } else if (rawIndexer != null && rawIndexer.hasUndeterministicSynthetics()) {
             item.insertValues(rawIndexer.addGeneratedValues(item));
