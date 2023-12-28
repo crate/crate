@@ -479,32 +479,7 @@ public class Indexer {
             }
             ColumnIdent column = ref.column();
 
-            // To ensure default expressions of object children are evaluated it's necessary
-            // to ensure the parent has values (or is present in the insert)
-            // This is because of how the index routine works:
-            // Processing objects is recursive, it skips null values -> it needs root synthetics as entry points
-            for (ColumnIdent parent : column.parents()) {
-                if (synthetics.containsKey(parent) || Symbols.containsColumn(targetColumns, parent)) {
-                    continue;
-                }
-                Reference parentRef = table.getReference(parent);
-                assert parentRef != null
-                    : "Must be able to retrieve Reference for parent of a `defaultExpressionColumn`";
-
-                int dimensions = ArrayType.dimensions(parentRef.valueType());
-                if (dimensions > 0) {
-                    break;
-                }
-                Input<?> input = HashMap::new;
-                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) parentRef.valueType().valueIndexer(
-                    table.ident(),
-                    parentRef,
-                    getFieldType,
-                    getRef
-                );
-                Synthetic synthetic = new Synthetic(parentRef, input, valueIndexer);
-                this.synthetics.put(parent, synthetic);
-            }
+            createParentSynthetics(table, targetColumns, column, getRef);
 
             Input<?> input = table.primaryKey().contains(column)
                 ? ctxForRefs.add(ref)
@@ -529,6 +504,9 @@ public class Indexer {
             if (targetColumns.contains(ref)) {
                 continue;
             }
+
+            createParentSynthetics(table, targetColumns, ref.column(), getRef);
+
             Input<?> input = ctxForRefs.add(ref.generatedExpression());
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
                 table.ident(),
@@ -581,6 +559,41 @@ public class Indexer {
             }
         }
         this.expressions = ctxForRefs.expressions();
+    }
+
+    /**
+     * To ensure default or generated expressions of object children are evaluated
+     * it's necessary to ensure the parent has values (or is present in the insert)
+     * This is because of how the index routine works:
+     * Processing objects is recursive, it skips null values -> it needs root synthetics as entry points
+     */
+    @SuppressWarnings("unchecked")
+    private void createParentSynthetics(DocTableInfo table,
+                                        List<Reference> targetColumns,
+                                        ColumnIdent column,
+                                        Function<ColumnIdent, Reference> getRef) {
+        for (ColumnIdent parent : column.parents()) {
+            if (synthetics.containsKey(parent) || Symbols.containsColumn(targetColumns, parent)) {
+                continue;
+            }
+            Reference parentRef = table.getReference(parent);
+            assert parentRef != null
+                : "Must be able to retrieve Reference for parent of a `defaultExpressionColumn`";
+
+            int dimensions = ArrayType.dimensions(parentRef.valueType());
+            if (dimensions > 0) {
+                break;
+            }
+            Input<?> input = HashMap::new;
+            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) parentRef.valueType().valueIndexer(
+                table.ident(),
+                parentRef,
+                getFieldType,
+                getRef
+            );
+            Synthetic synthetic = new Synthetic(parentRef, input, valueIndexer);
+            this.synthetics.put(parent, synthetic);
+        }
     }
 
     /**
