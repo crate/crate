@@ -49,4 +49,7 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a regression introduced in 5.3.0 that caused storing an object as
+  ``NULL`` if object had generated sub-columns and the object column wasn't
+  part of the ``INSERT`` targets. An object with generated sub-columns is
+  stored now.
