@@ -21,7 +21,12 @@
 
 package io.crate.role.metadata;
 
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES;
 import static io.crate.role.metadata.RolesHelper.OLD_DUMMY_USERS_PRIVILEGES;
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.roleOf;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -61,19 +66,19 @@ public class RolesMetadataTest extends ESTestCase {
 
     @Before
     public void setupUsersAndRoles() {
-        DummyUsersAndRolesWithParentRoles.put("Ford", RolesHelper.userOf(
+        DummyUsersAndRolesWithParentRoles.put("Ford", userOf(
             "Ford",
             Set.of(),
             DummyParentRoles,
-            RolesHelper.getSecureHash("fords-pwd")));
-        DummyUsersAndRolesWithParentRoles.put("John", RolesHelper.userOf(
+            getSecureHash("fords-pwd")));
+        DummyUsersAndRolesWithParentRoles.put("John", userOf(
             "John",
             Set.of(),
             new HashSet<>(),
-            RolesHelper.getSecureHash("johns-pwd")));
-        DummyUsersAndRolesWithParentRoles.put("role1", RolesHelper.roleOf("role1"));
-        DummyUsersAndRolesWithParentRoles.put("role2", RolesHelper.roleOf("role2"));
-        DummyUsersAndRolesWithParentRoles.put("role3", RolesHelper.roleOf("role3"));
+            getSecureHash("johns-pwd")));
+        DummyUsersAndRolesWithParentRoles.put("role1", roleOf("role1"));
+        DummyUsersAndRolesWithParentRoles.put("role2", roleOf("role2"));
+        DummyUsersAndRolesWithParentRoles.put("role3", roleOf("role3"));
     }
 
     @Test
@@ -148,33 +153,33 @@ public class RolesMetadataTest extends ESTestCase {
     @Test
     public void test_add_old_users_metadata_to_roles_metadata() {
         RolesMetadata rolesMetadata = RolesMetadata.ofOldUsersMetadata(
-            usersMetadataOf(RolesHelper.DUMMY_USERS),
+            usersMetadataOf(DUMMY_USERS),
             new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES)
         );
         assertThat(rolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", RolesHelper.DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
-                "Ford", RolesHelper.DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
+            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
+                "Ford", DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
     }
 
     @Test
     public void test_roles_metadata_from_cluster_state() {
-        var oldUsersMetadata = usersMetadataOf(RolesHelper.DUMMY_USERS);
+        var oldUsersMetadata = usersMetadataOf(DUMMY_USERS);
         var oldUserPrivilegesMetadata = new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES);
-        var oldRolesMetadata = new RolesMetadata(RolesHelper.DUMMY_USERS_AND_ROLES);
+        var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newRolesMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         assertThat(newRolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", RolesHelper.DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
-                "Ford", RolesHelper.DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
+            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
+                "Ford", DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
     }
 
     @Test
     public void test_grant_revoke_user_to_another_user_is_not_allowed() {
         var rolesMetadata = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
         for (PrivilegeState state : List.of(PrivilegeState.GRANT, PrivilegeState.REVOKE)) {
-            assertThatThrownBy(() -> rolesMetadata.applyPrivileges(
+            assertThatThrownBy(() -> rolesMetadata.applyRolePrivileges(
                 List.of("Ford"), new RolePrivilegeToApply(state, Set.of("John"), null)))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Cannot " + state + " a USER to a ROLE");
@@ -184,7 +189,7 @@ public class RolesMetadataTest extends ESTestCase {
     @Test
     public void test_grant_roles_to_user() {
         var rolesMetadata = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        var affectedRolePrivileges = rolesMetadata.applyPrivileges(List.of("Ford", "John"), new RolePrivilegeToApply(
+        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford", "John"), new RolePrivilegeToApply(
             PrivilegeState.GRANT,
             Set.of("role1", "role3"),
             "theGrantor"));
@@ -201,7 +206,7 @@ public class RolesMetadataTest extends ESTestCase {
     @Test
     public void test_revoke_roles_from_user() {
         var rolesMetadata = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        var affectedRolePrivileges = rolesMetadata.applyPrivileges(List.of("Ford", "John"), new RolePrivilegeToApply(
+        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford", "John"), new RolePrivilegeToApply(
             PrivilegeState.REVOKE,
             Set.of("role1", "role3"),
             "theGrantor"));

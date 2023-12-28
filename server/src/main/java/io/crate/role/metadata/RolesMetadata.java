@@ -193,7 +193,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
      * @return the number of affected role privileges
      *         (doesn't count no-ops e.g.: granting a role to a user which already has)
      */
-    public long applyPrivileges(Collection<String> userNames, RolePrivilegeToApply newRolePrivilegeToApply) {
+    public long applyRolePrivileges(Collection<String> userNames, RolePrivilegeToApply newRolePrivilegeToApply) {
         long affectedPrivileges = 0L;
         for (String userName : userNames) {
             affectedPrivileges += applyRolePrivilegesToUser(userName, newRolePrivilegeToApply);
@@ -214,17 +214,16 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
             }
             if (newRolePrivilegeToApply.state() == PrivilegeState.GRANT) {
                 if (grantedRoles.add(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
-                    roles.put(role.name(), new Role(
-                        role.name(), role.isUser(), Set.of(), grantedRoles, role.password()));
                     affectedCount++;
                 }
             } else if (newRolePrivilegeToApply.state() == PrivilegeState.REVOKE) {
                 if (grantedRoles.remove(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
-                    roles.put(role.name(), new Role(
-                        role.name(), role.isUser(), Set.of(), grantedRoles, role.password()));
                     affectedCount++;
                 }
             }
+        }
+        if (affectedCount > 0) {
+            roles.put(role.name(), new Role(role.name(), role.isUser(), Set.of(), grantedRoles, role.password()));
         }
         return affectedCount;
     }

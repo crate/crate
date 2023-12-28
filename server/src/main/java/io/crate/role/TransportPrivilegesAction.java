@@ -149,7 +149,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
             if (request.privileges().isEmpty() == false) {
                 affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.roleNames(), request.privileges());
             } else {
-                affectedRows = newMetadata.applyPrivileges(request.roleNames(), request.rolePrivilege());
+                affectedRows = newMetadata.applyRolePrivileges(request.roleNames(), request.rolePrivilege());
                 mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
             }
         }
