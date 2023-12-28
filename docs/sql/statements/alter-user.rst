@@ -17,40 +17,9 @@ Synopsis
 
 ::
 
-    ALTER USER username
+    ALTER USER | ROLE username
       SET ( user_parameter = value [, ...] )
 
 
-Description
-===========
-
-``ALTER USER`` applies a change to existing database users. Only existing
-superusers or the user itself have the privilege to alter an existing database
-user.
-
-
-Arguments
-=========
-
-``USERNAME``
-------------
-
-The name by which the user is identified inside the database.
-
-``SET``
--------
-
-Changes a user parameter to a different value. The following ``user_parameter``
-are supported to alter an existing user account:
-
-:password:
-  The password as cleartext entered as string literal.
-
-  ``NULL`` removes the password from the user.
-
-.. CAUTION::
-
-    Passwords cannot be set for the ``crate`` superuser.
-
-    For security reasons it is recommended to authenticate as ``crate`` using a
-    client certificate.
+For details, see :ref:`ALTER ROLE<ref-alter-role>` as the two statements are
+identical.

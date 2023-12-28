@@ -1,3 +1,4 @@
+.. highlight:: psql
 .. _ref-create-user:
 
 ===============
@@ -24,14 +25,25 @@ Description
 ===========
 
 ``CREATE USER`` is a management statement to create a new database user in the
-CrateDB cluster. The newly created user does not have any special privileges.
+CrateDB cluster. The newly created user does not have any special privileges,
+and those must be assigned afterwards, for details see the
+:ref:`privileges documentation<administration-privileges>`.
 The created user can be used to authenticate against CrateDB, see
 :ref:`admin_hba`.
 
 The statement allows to specify a password for this account. This is not
 necessary if password authentication is disabled.
 
-For usage of the ``CREATE USER`` statement see
+.. NOTE::
+
+    ``USER`` is essentially the same as ``ROLE`` with the difference that a
+    ``USER`` **can** login to the database and **can** also be assigned a
+    password, but **cannot** be granted to another ``USER`` or ``ROLE``. On the
+    contrary, a ``ROLE`` **cannot** login to the database, and therefore
+    **cannot** be assigned a password, but it **can** be
+    :ref:`granted <granting_roles>` to another ``USER`` or ``ROLE``.
+
+For usages of the ``CREATE USER`` statement see
 :ref:`administration_user_management`.
 
 Parameters

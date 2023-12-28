@@ -78,6 +78,14 @@ SQL Statements
 - Added support for
   :ref:`ALTER TABLE RENAME COLUMN <sql-alter-table-rename-column>` statement.
 
+- Added support for :ref:`CREATE ROLE<ref-create-role>` statement.
+
+- Added support for :ref:`ALTER ROLE<ref-alter-role>` statement, which is
+  identical to :ref:`ALTER USER<ref-alter-user>` statement.
+
+- Added support for :ref:`DROP ROLE<ref-drop-role>` statement, which is
+  identical to :ref:`DROP USER<ref-drop-user>` statement.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
