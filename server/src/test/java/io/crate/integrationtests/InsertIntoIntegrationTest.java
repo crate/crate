@@ -31,10 +31,10 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +48,8 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
+import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
@@ -1993,4 +1995,36 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             "2030| 99998.0"
         );
     }
+
+    @Test
+    public void test_non_deterministic_sub_column_not_included_in_target_cols() {
+        execute("""
+            CREATE TABLE tbl (
+                a int PRIMARY KEY,
+                o1 object as (
+                    sub int as round((random() + 1) * 100)
+                )
+            )
+            """
+        );
+
+        execute("INSERT INTO tbl(a) VALUES (1)");
+        refresh();
+
+        // Ensure that the same value is stored on primary and replica.
+        List<Integer> results = new ArrayList<>();
+        for (Sessions sqlOperations : cluster().getDataNodeInstances(Sessions.class)) {
+            try (Session session = sqlOperations.newSystemSession()) {
+                execute("SELECT o1['sub'] FROM tbl WHERE a = 1");
+                int generated = (int) response.rows()[0][0];
+                assertThat(generated).isGreaterThan(0);
+                results.add(generated);
+            }
+        }
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0)).isEqualTo(results.get(1));
+
+
+    }
+
 }
