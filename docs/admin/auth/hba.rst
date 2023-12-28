@@ -147,7 +147,7 @@ superuser) can authenticate to CrateDB from any IP address using the
 
 .. NOTE::
 
-   For general help managing users, see :ref:`administration_user_management`.
+   For general help managing users and roles, see :ref:`administration_user_management`.
 
 
 .. _admin_hba_user:

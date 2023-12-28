@@ -12,6 +12,7 @@ SQL Statements
     alter-cluster
     alter-publication
     alter-table
+    alter-role
     alter-user
     analyze
     begin
@@ -28,6 +29,7 @@ SQL Statements
     create-subscription
     create-table
     create-table-as
+    create-role
     create-user
     create-view
     deallocate
@@ -42,6 +44,7 @@ SQL Statements
     drop-snapshot
     drop-subscription
     drop-table
+    drop-role
     drop-user
     drop-view
     end
