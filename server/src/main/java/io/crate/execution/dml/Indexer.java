@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -127,6 +128,7 @@ public class Indexer {
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final BytesStreamOutput stream;
     private final boolean writeOids;
+    private final Function<ColumnIdent, Reference> getRef;
 
     /**
      * Function to resolve a field type based on the columns {@link Reference#storageIdent()}.
@@ -424,6 +426,7 @@ public class Indexer {
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
         this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
+        this.getRef = columnIdent -> table.getReference(columnIdent);
         this.getFieldType = getFieldType;
         Function<ColumnIdent, Reference> getRef = table::getReference;
         PartitionName partitionName = table.isPartitioned()
@@ -944,8 +947,21 @@ public class Indexer {
         }
         List<Reference> newColumns = new ArrayList<>(columns);
         for (var synthetic : undeterministic) {
-            if (synthetic.ref.column().isRoot() && !newColumns.contains(synthetic.ref)) {
-                newColumns.add(synthetic.ref);
+            if (synthetic.ref.column().isRoot()) {
+                if (newColumns.contains(synthetic.ref) == false) {
+                    newColumns.add(synthetic.ref);
+                }
+            } else {
+                var rootIdent = synthetic.ref.column().getRoot();
+                int rootIndex = Reference.indexOf(newColumns, rootIdent);
+                if (rootIndex == -1) {
+                    // Synthetic is a generated/default sub-column with root not listed in the insert/upsert targets.
+                    // We need to add the root to replica targets
+                    // since we will generate object value in addGeneratedValues().
+                    Reference rootRef = getRef.apply(rootIdent);
+                    assert rootRef != null : "Root must exist in the table";
+                    newColumns.add(rootRef);
+                }
             }
         }
         return newColumns;
@@ -954,33 +970,35 @@ public class Indexer {
     @SuppressWarnings("unchecked")
     public Object[] addGeneratedValues(IndexItem item) {
         Object[] insertValues = item.insertValues();
-        int numExtra = (int) undeterministic.stream()
-            .filter(x -> x.ref().column().isRoot())
-            .count();
-        Object[] result = new Object[insertValues.length + numExtra];
-        System.arraycopy(insertValues, 0, result, 0, insertValues.length);
+        //  We don't know in advance how many values we will add: we can have multiple generated sub-columns.
+        //  Some of them can have their root listed in the insert/upsert targets (and thus not causing array expansion) and some not.
+        List<Object> extendedValues = new ArrayList<>(insertValues.length);
+        Collections.addAll(extendedValues, insertValues);
 
-        int i = 0;
         for (var synthetic : undeterministic) {
             ColumnIdent column = synthetic.ref.column();
             if (column.isRoot()) {
-                result[insertValues.length + i] = synthetic.value();
-                i++;
+                extendedValues.add(synthetic.value());
             } else {
                 int valueIdx = Reference.indexOf(columns, column.getRoot());
-                assert valueIdx > -1 : "synthetic column must exist in columns";
-
+                Map<String, Object> root;
+                if (valueIdx == -1) {
+                    // Object column is unused in the insert statement and doesn't exist in targets.
+                    root = new HashMap<>();
+                    extendedValues.add(root);
+                } else {
+                    root = (Map<String, Object>) insertValues[valueIdx];
+                }
                 ColumnIdent child = column.shiftRight();
                 Object value = synthetic.value();
-                Object object = insertValues[valueIdx];
                 Maps.mergeInto(
-                    (Map<String, Object>) object,
+                    root,
                     child.name(),
                     child.path(),
                     value
                 );
             }
         }
-        return result;
+        return extendedValues.toArray();
     }
 }
