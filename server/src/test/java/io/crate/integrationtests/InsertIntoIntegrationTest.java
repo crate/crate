@@ -34,7 +34,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,8 +47,6 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
@@ -2007,24 +2004,18 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             )
             """
         );
-
+        ensureGreen();
         execute("INSERT INTO tbl(a) VALUES (1)");
         refresh();
 
-        // Ensure that the same value is stored on primary and replica.
-        List<Integer> results = new ArrayList<>();
-        for (Sessions sqlOperations : cluster().getDataNodeInstances(Sessions.class)) {
-            try (Session session = sqlOperations.newSystemSession()) {
-                execute("SELECT o1['sub'] FROM tbl WHERE a = 1");
-                int generated = (int) response.rows()[0][0];
-                assertThat(generated).isGreaterThan(0);
-                results.add(generated);
-            }
+        execute("SELECT o1['sub'] FROM tbl");
+        int generated = (int) response.rows()[0][0];
+        assertThat(generated).isGreaterThan(0);
+
+        // some iterations to ensure it hits both primary and replica
+        for (int i = 0; i < 10; i++) {
+            execute("SELECT o1['sub'] FROM tbl");
+            assertThat(response.rows()[0][0]).isEqualTo(generated);
         }
-        assertThat(results).hasSize(2);
-        assertThat(results.get(0)).isEqualTo(results.get(1));
-
-
     }
-
 }
