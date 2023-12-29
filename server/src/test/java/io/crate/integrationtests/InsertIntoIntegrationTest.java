@@ -2018,4 +2018,33 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             assertThat(response.rows()[0][0]).isEqualTo(generated);
         }
     }
+
+    @Test
+    public void test_insert_on_conflict_with_non_deterministic_column() {
+        execute("""
+            CREATE TABLE tbl (
+               id int PRIMARY KEY,
+               value DOUBLE PRECISION,
+               value_text TEXT,
+               modification_date TIMESTAMP WITHOUT TIME ZONE GENERATED ALWAYS AS current_timestamp
+            )""");
+
+        ensureGreen();
+        execute("INSERT INTO tbl (id, value) " +
+            "VALUES (1, 99999) " +
+            "ON CONFLICT (id) DO UPDATE SET value = excluded.value");
+        refresh();
+
+        execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
+        assertThat(response).hasRows("0"); // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
+
+        // Ensure that primary and replica has the same values for generated column.
+        execute("SELECT _raw FROM tbl");
+        String raw = (String) response.rows()[0][0];
+
+        for (int i = 0; i < 10; i++) {
+            execute("SELECT _raw FROM tbl");
+            assertThat(response.rows()[0][0]).isEqualTo(raw);
+        }
+    }
 }

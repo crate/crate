@@ -93,3 +93,8 @@ Fixes
 
 - Fixed a performance regression introduced in 5.5.0 for aggregations on columns
   with the column store disabled.
+
+- Fixed an issue that caused replication failure leading to an unstable cluster
+  when running ``INSERT... ON CONFLICT... UPDATE SET`` statements on a table
+  with non-deterministic column and one of table's column wasn't part of the
+  ``INSERT`` targets.

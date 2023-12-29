@@ -972,6 +972,32 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat((int) object.get("x")).isGreaterThan(0);
     }
 
+    public void test_adjusts_targets_values_size_before_adding_non_determinsitic_values() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    a int,
+                    b int,
+                    c int as round((random() + 1) * 100)
+                )
+                """)
+            .build();
+
+        // Imitating INSERT ON CONFLICT with missing column "b". It's added to targets by UpdateToInsert.
+        Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "a", "b");
+        IndexItem item = item(1);
+
+        // Targets/values sizes are not aligned before adding non-deterministic values.
+        assertThat(indexer.hasUndeterministicSynthetics()).isTrue();
+        assertThat(indexer.columns()).hasSize(2);
+        assertThat(item.insertValues()).hasSize(1);
+
+        // NULL is added to the second position
+        Object[] insertValues = indexer.addGeneratedValues(item);
+        assertThat(insertValues).hasSize(3);
+        assertThat(insertValues[1]).isNull();
+    }
+
     @Test
     public void test_fields_order_in_source_is_determinisitc() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)

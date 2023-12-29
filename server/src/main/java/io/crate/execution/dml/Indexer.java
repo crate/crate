@@ -972,6 +972,16 @@ public class Indexer {
         List<Object> extendedValues = new ArrayList<>(insertValues.length);
         Collections.addAll(extendedValues, insertValues);
 
+        // INSERT... ON CONFLICT... UPDATE SET statement might not contain some columns.
+        // Unused columns are anyway added to the targets by the UpdateToInsert since we need all columns to fetch conflicting values.
+        // However, insertValues contains only provided values.
+        // We explicitly add NULL-s for unused columns to avoid wrong binding of computed non-deterministic values to unused columns.
+        // Note, that those NULL-s won't be written to the source since Indexer ignores NULL-s.
+        int numOfUnusedColumns = columns.size() - extendedValues.size();
+        for (int i = 0; i < numOfUnusedColumns; i++) {
+            extendedValues.add(null);
+        }
+
         for (var synthetic : undeterministic) {
             ColumnIdent column = synthetic.ref.column();
             if (column.isRoot()) {
@@ -984,7 +994,8 @@ public class Indexer {
                     root = new HashMap<>();
                     extendedValues.add(root);
                 } else {
-                    root = (Map<String, Object>) insertValues[valueIdx];
+                    assert valueIdx < extendedValues.size() : "Number of values being sent to replica must match number of targets in replica request";
+                    root = (Map<String, Object>) extendedValues.get(valueIdx);
                 }
                 ColumnIdent child = column.shiftRight();
                 Object value = synthetic.value();
