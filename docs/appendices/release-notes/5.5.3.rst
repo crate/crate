@@ -59,3 +59,5 @@ Fixes
   non-deterministic generated or default sub-column and the object column
   wasn't part of the ``INSERT`` targets.
 
+- Fixed a performance regression introduced in 5.5.0 for aggregations on columns
+  with the column store disabled.
