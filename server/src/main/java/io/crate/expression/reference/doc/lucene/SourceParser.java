@@ -129,12 +129,12 @@ public final class SourceParser {
     }
 
     public Map<String, Object> parse(BytesReference bytes, boolean includeUnknownCols) {
-        try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes)) {
-            XContentParser parser = XContentType.JSON.xContent().createParser(
-                NamedXContentRegistry.EMPTY,
-                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                inputStream
-            );
+        try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes);
+             XContentParser parser = XContentType.JSON.xContent().createParser(
+                 NamedXContentRegistry.EMPTY,
+                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                 inputStream
+             )) {
             Token token = parser.currentToken();
             if (token == null) {
                 parser.nextToken();
