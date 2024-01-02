@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.FourFunction;
 import io.crate.role.metadata.RolesMetadata;
@@ -66,8 +65,9 @@ public class RolesService implements Roles, ClusterStateListener {
         return null;
     }
 
-    @VisibleForTesting
-    protected Role findRole(String roleName) {
+    @Override
+    @Nullable
+    public Role findRole(String roleName) {
         return roles.get(roleName);
     }
 

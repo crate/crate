@@ -53,14 +53,26 @@ public interface Roles {
         };
 
     /**
+     * finds a role by role name
+     */
+    @Nullable
+    default Role findRole(String roleName) {
+        for (var role : roles()) {
+            if (role.name().equals(roleName)) {
+                return role;
+            }
+        }
+        return null;
+    }
+
+    /**
      * finds a user by username
      */
     @Nullable
     default Role findUser(String userName) {
-        for (var role : roles()) {
-            if (role.isUser() && role.name().equals(userName)) {
-                return role;
-            }
+        Role role = findRole(userName);
+        if (role != null && role.isUser()) {
+            return role;
         }
         return null;
     }
