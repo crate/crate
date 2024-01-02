@@ -21,6 +21,8 @@
 
 package io.crate.role;
 
+import static io.crate.role.PrivilegeState.GRANT;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -124,16 +126,19 @@ public class RolesService implements Roles, ClusterStateListener {
 
     @Override
     public boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
-        return user.isSuperUser() || hasPrivilege(user, type, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION);
+        return hasPrivilege(user, type, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION);
     }
 
     private boolean hasPrivilege(Role role,
                                  Privilege.Type type,
                                  @Nullable Privilege.Clazz clazz,
                                  @Nullable Object object,
-                                 FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> function) {
-        boolean hasPriv = role.isSuperUser() || function.apply(role, type, clazz, object);
-        if (hasPriv) {
+                                 FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> function) {
+        if (role.isSuperUser()) {
+            return true;
+        }
+        PrivilegeState resolution = function.apply(role, type, clazz, object);
+        if (resolution == GRANT) {
             return true;
         }
 
@@ -161,11 +166,11 @@ public class RolesService implements Roles, ClusterStateListener {
         Privilege.Type type,
         @Nullable Privilege.Clazz clazz,
         @Nullable Object object,
-        FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> function) {
+        FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> function) {
 
         Role grantedRole = findRole(roleName);
         assert grantedRole != null : "grantedRole must exist";
-        boolean hasPriv = function.apply(grantedRole, type, clazz, object);
+        boolean hasPriv = function.apply(grantedRole, type, clazz, object) == PrivilegeState.GRANT;
         if (hasPriv) {
             return null;
         }
