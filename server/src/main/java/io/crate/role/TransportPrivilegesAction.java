@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -156,6 +158,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                 unknownRoleNames = validateRoleNames(newMetadata, request.rolePrivilege().roleNames());
                 if (unknownRoleNames.isEmpty()) {
                     validateIsNotUser(roles, request.rolePrivilege());
+                    detectCyclesInRolesHierarchy(roles, request);
                     affectedRows = newMetadata.applyRolePrivileges(request.roleNames(), request.rolePrivilege());
                 }
             }
@@ -172,6 +175,22 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         for (String roleNameToApply : rolePrivilegeToApply.roleNames()) {
             if (roles.findRole(roleNameToApply).isUser()) {
                 throw new IllegalArgumentException("Cannot " + rolePrivilegeToApply.state().name() + " a USER to a ROLE");
+            }
+        }
+    }
+
+    @VisibleForTesting
+    static void detectCyclesInRolesHierarchy(Roles roles, PrivilegesRequest request) {
+        if (request.rolePrivilege().state() == PrivilegeState.GRANT) {
+            for (var roleNameToGrant : request.rolePrivilege().roleNames()) {
+                Set<String> parentsOfRoleToGrant = roles.findAllParents(roleNameToGrant);
+                for (var grantee : request.roleNames()) {
+                    if (parentsOfRoleToGrant.contains(grantee)) {
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                            "Cannot grant role %s to %s, %s is a parent role of %s and a cycle will " +
+                                "be created", roleNameToGrant, grantee, grantee, roleNameToGrant));
+                    }
+                }
             }
         }
     }

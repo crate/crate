@@ -24,7 +24,6 @@ package io.crate.role;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -138,8 +137,6 @@ public class RolesService implements Roles, ClusterStateListener {
             return true;
         }
 
-        Set<String> rolesVisited = new HashSet<>();
-        rolesVisited.add(role.name());
         Set<String> rolesToVisit = new LinkedHashSet<>(role.grantedRoleNames());
 
         var iter = rolesToVisit.iterator();
@@ -149,9 +146,8 @@ public class RolesService implements Roles, ClusterStateListener {
             if (result == null) {
                 return true;
             }
-            rolesVisited.add(roleName);
-            result.removeAll(rolesVisited);
-            rolesToVisit = result;
+            iter.remove();
+            rolesToVisit.addAll(result);
             iter = rolesToVisit.iterator();
         }
         return false;

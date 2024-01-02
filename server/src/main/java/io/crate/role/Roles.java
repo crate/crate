@@ -22,6 +22,8 @@
 package io.crate.role;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -126,4 +128,21 @@ public interface Roles {
     }
 
     Collection<Role> roles();
+
+    default Set<String> findAllParents(String roleName) {
+        Set<String> allParents = new HashSet<>();
+        Role role = findRole(roleName);
+        assert role != null : "role must exist";
+        findParents(role, allParents);
+        return allParents;
+    }
+
+    private void findParents(Role role, Set<String> allParents) {
+        allParents.addAll(role.grantedRoleNames());
+        for (var grantedRoleName : role.grantedRoleNames()) {
+            var parentRole = findRole(grantedRoleName);
+            assert parentRole != null : "parent role must exist";
+            findParents(parentRole, allParents);
+        }
+    }
 }
