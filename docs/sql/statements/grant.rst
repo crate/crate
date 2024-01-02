@@ -35,9 +35,9 @@ be granted on the ``CLUSTER`` level.
 
 With the second one, ``GRANT`` can be used to grant one or more roles to one or
 many others or roles. Thus, the users (or roles) inherit the privileges of the
-roles which they are :ref:`granted<roles_inheritance>`.
+roles which they are :ref:`granted <roles_inheritance>`.
 
-For usage of the ``GRANT`` statement see :ref:`administration-privileges`.
+For usages of the ``GRANT`` statement see :ref:`administration-privileges`.
 
 Parameters
 ==========
