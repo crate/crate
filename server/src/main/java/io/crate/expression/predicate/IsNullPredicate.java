@@ -104,12 +104,15 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     public Query toQuery(Function function, Context context) {
         List<Symbol> arguments = function.arguments();
         assert arguments.size() == 1 : "`<expression> IS NULL` function must have one argument";
-        if (arguments.get(0) instanceof Reference ref) {
+        var arg = arguments.get(0);
+        if (arg instanceof Reference ref) {
             if (!ref.isNullable()) {
                 return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
             }
             Query refExistsQuery = refExistsQuery(ref, context, true);
             return refExistsQuery == null ? null : Queries.not(refExistsQuery);
+        } else if (arg instanceof Function innerFunction && innerFunction.name().equals(NAME)) {
+            return new MatchNoDocsQuery("Simplify IS NULL IS NULL to false");
         }
         return null;
     }
