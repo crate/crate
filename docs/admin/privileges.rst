@@ -421,9 +421,7 @@ Inheritance
 The inheritance can span multiple levels, so you can have ``role_a`` which is
 granted to ``role_b``, which in turn is granted to ``role_c``, and so on. Each
 role can be granted to multiple other roles and each role or user can be granted
-multiple other roles. Cycles can be created, which **does not** lead to infinite
-loops during privileges resolution, as there is a mechanism that avoids it. For
-example::
+multiple other roles. Cycles cannot be created, for example::
 
     cr> GRANT role_a TO role_b;
     GRANT OK, 1 row affected (... sec)
@@ -436,29 +434,7 @@ example::
 ::
 
     cr> GRANT role_c TO role_a;
-    GRANT OK, 1 row affected (... sec)
-
-In this situation, none of the 3 roles can be dropped::
-
-
-    cr> DROP ROLE role_a;
-    SQLParseException[Cannot drop ROLE: role_a as it is granted on role: role_b]
-
-::
-
-    cr> DROP ROLE role_b;
-    SQLParseException[Cannot drop ROLE: role_b as it is granted on role: role_c]
-
-::
-
-    cr> DROP ROLE role_c;
-    SQLParseException[Cannot drop ROLE: role_c as it is granted on role: role_a]
-
-In order to break the loop you can simple revoke the granted roles which causes
-it::
-
-    cr> REVOKE role_c FROM role_a;
-    REVOKE OK, 1 row affected (... sec)
+    SQLParseException[Cannot grant role role_c to role_a, role_a is a parent role of role_c and a cycle will be created]
 
 
 .. hide:

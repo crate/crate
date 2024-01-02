@@ -75,9 +75,9 @@ class PrivilegesAnalyzer {
     private AnalyzedPrivileges getAnalyzedPrivileges(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
         PrivilegeState state;
         switch (node) {
-            case GrantPrivilege p -> state = PrivilegeState.GRANT;
-            case RevokePrivilege p -> state = PrivilegeState.REVOKE;
-            case DenyPrivilege p -> state = PrivilegeState.DENY;
+            case GrantPrivilege ignored -> state = PrivilegeState.GRANT;
+            case RevokePrivilege ignored -> state = PrivilegeState.REVOKE;
+            case DenyPrivilege ignored -> state = PrivilegeState.DENY;
         }
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(
@@ -106,6 +106,14 @@ class PrivilegesAnalyzer {
             }
             if (state == PrivilegeState.DENY) {
                 throw new IllegalArgumentException("Cannot DENY a role");
+            }
+            for (var grantee : node.userNames()) {
+                for (var roleNameToGrant : node.privileges()) {
+                    if (roleNameToGrant.equals(grantee)) {
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                            "Cannot grant role %s to itself as a cycle will be created", grantee));
+                    }
+                }
             }
             return AnalyzedPrivileges.ofRolePrivileges(
                 node.userNames(),

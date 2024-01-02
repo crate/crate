@@ -355,6 +355,13 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_cannot_grant_role_to_same_role() {
+        assertThatThrownBy(() -> analyzePrivilegesStatement("GRANT role3, role2 TO role1, role2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot grant role role2 to itself as a cycle will be created");
+    }
+
+    @Test
     public void test_grant_role_to_user() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT role1, role2, role1 TO user1, user2");
         assertThat(analysis.userNames()).containsExactly("user1", "user2");

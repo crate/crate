@@ -131,4 +131,75 @@ public class TransportPrivilegesActionTest extends ESTestCase {
                 .hasMessage("Cannot " + state + " a USER to a ROLE");
         }
     }
+
+    @Test
+    public void test_grant_role_which_creates_cycle_is_not_allowed() {
+        /* Given:
+
+                   role1
+                     |
+                   role2
+                 /    |
+             role3    |
+               |  \   |
+               |  role4
+               |   |
+               role5
+         */
+
+        var role1 = RolesHelper.roleOf("role1");
+        var role2 = RolesHelper.roleOf("role2", List.of("role1"));
+        var role3 = RolesHelper.roleOf("role3", List.of("role2"));
+        var role4 = RolesHelper.roleOf("role4", List.of("role3", "role2"));
+        var role5 = RolesHelper.roleOf("role5", List.of("role3", "role4"));
+        var roles = Map.of(
+            "role1", role1,
+            "role2", role2,
+            "role3", role3,
+            "role4", role4,
+            "role5", role5
+        );
+
+
+        /* Try to create:
+
+                   role1-----+
+                     |       |
+                   role2     |
+                 /    |      |
+             role3    |      |
+               |  \   |      |
+               |  role4 <----+
+               |   |
+               role5
+         */
+        var privilegeReq1 = new PrivilegesRequest(
+            List.of("role1"), Set.of(), new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("role4"), null));
+        assertThatThrownBy(() ->
+            TransportPrivilegesAction.detectCyclesInRolesHierarchy(roles::values, privilegeReq1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot grant role role4 to role1, role1 is a parent role of role4 and a cycle will " +
+                "be created");
+
+
+        /* Try to create:
+
+                   role1
+                     |
+                   role2 ----+
+                 /    |      |
+             role3    |      |
+               |  \   |      |
+               |  role4      |
+               |   |         |
+               role5 <-------+
+         */
+        var privilegeReq2 = new PrivilegesRequest(
+            List.of("role2"), Set.of(), new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("role5"), null));
+        assertThatThrownBy(() ->
+            TransportPrivilegesAction.detectCyclesInRolesHierarchy(roles::values, privilegeReq2))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot grant role role5 to role2, role2 is a parent role of role5 and a cycle will " +
+                "be created");
+    }
 }
