@@ -32,26 +32,31 @@ import io.crate.metadata.pgcatalog.OidHash;
 
 public interface Roles {
 
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> HAS_PRIVILEGE_FUNCTION = (r, t, c, o) ->
-        r.privileges().matchPrivilege(t, c, (String) o);
+    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_PRIVILEGE_FUNCTION =
+        (r, t, c, o) -> r.privileges().matchPrivilege(t, c, (String) o);
 
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> HAS_ANY_PRIVILEGE_FUNCTION = (r, t, c, o) ->
-        r.privileges().matchPrivilegeOfAnyType(c, (String) o);
+    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_ANY_PRIVILEGE_FUNCTION =
+        (r, t, c, o) -> r.privileges().matchPrivilegeOfAnyType(c, (String) o);
 
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> HAS_SCHEMA_PRIVILEGE_FUNCTION =
+    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_SCHEMA_PRIVILEGE_FUNCTION =
         (r, t, c, o) -> {
+            PrivilegeState result = PrivilegeState.REVOKE;
             for (Privilege privilege : r.privileges()) {
-                if (privilege.state() == PrivilegeState.GRANT && privilege.ident().type() == t) {
-                    if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
-                        return true;
-                    }
-                    if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA &&
-                        OidHash.schemaOid(privilege.ident().ident()) == (Integer) o) {
-                        return true;
+                if (privilege.ident().type() == t) {
+                    if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA
+                        && OidHash.schemaOid(privilege.ident().ident()) == (Integer) o) {
+
+                        if (privilege.state() == PrivilegeState.DENY || privilege.state() == PrivilegeState.GRANT) {
+                            return privilege.state();
+                        }
+                    } else if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
+                        if (result == PrivilegeState.REVOKE) {
+                            result = privilege.state();
+                        }
                     }
                 }
             }
-            return false;
+            return result;
         };
 
     /**
@@ -102,7 +107,7 @@ public interface Roles {
      * @param ident          ident of the object
      */
     default boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        return user.isSuperUser() || HAS_PRIVILEGE_FUNCTION.apply(user, type, clazz, ident);
+        return user.isSuperUser() || HAS_PRIVILEGE_FUNCTION.apply(user, type, clazz, ident) == PrivilegeState.GRANT;
     }
 
     /**
@@ -112,7 +117,7 @@ public interface Roles {
      * @param schemaOid      OID of the schema
      */
     default boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
-        return user.isSuperUser() || HAS_SCHEMA_PRIVILEGE_FUNCTION.apply(user, type, null, schemaOid);
+        return user.isSuperUser() || HAS_SCHEMA_PRIVILEGE_FUNCTION.apply(user, type, null, schemaOid) == PrivilegeState.GRANT;
     }
 
     /**
@@ -124,7 +129,7 @@ public interface Roles {
      * @param ident     ident of the object
      */
     default boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
-        return user.isSuperUser() || HAS_ANY_PRIVILEGE_FUNCTION.apply(user, null, clazz, ident);
+        return user.isSuperUser() || HAS_ANY_PRIVILEGE_FUNCTION.apply(user, null, clazz, ident) == PrivilegeState.GRANT;
     }
 
     Collection<Role> roles();

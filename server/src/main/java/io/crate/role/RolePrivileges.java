@@ -23,10 +23,8 @@ package io.crate.role;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,78 +34,84 @@ import io.crate.metadata.IndexParts;
 public class RolePrivileges implements Iterable<Privilege> {
 
     private final Map<PrivilegeIdent, Privilege> privilegeByIdent;
-    private final boolean anyClusterPrivilege;
-    private final Set<String> anySchemaPrivilege = new HashSet<>();
-    private final Set<String> anyTablePrivilege = new HashSet<>();
-    private final Set<String> anyViewPrivilege = new HashSet<>();
+    private final PrivilegeState anyClusterPrivilege;
+    private final Map<String, PrivilegeState> schemaPrivileges = new HashMap<>();
+    private final Map<String, PrivilegeState> tablePrivileges = new HashMap<>();
+    private final Map<String, PrivilegeState> viewPrivileges = new HashMap<>();
 
     public RolePrivileges(Collection<Privilege> privileges) {
-        privilegeByIdent = new HashMap<>(privileges.size());
-        boolean anyClusterPrivilege = false;
+        privilegeByIdent = HashMap.newHashMap(privileges.size());
+        PrivilegeState anyClusterPriv = PrivilegeState.REVOKE;
         for (Privilege privilege : privileges) {
             PrivilegeIdent privilegeIdent = privilege.ident();
             privilegeByIdent.put(privilegeIdent, privilege);
-            if (privilege.state() != PrivilegeState.DENY) {
-                switch (privilegeIdent.clazz()) {
-                    case CLUSTER:
-                        anyClusterPrivilege = true;
-                        break;
-                    case SCHEMA:
-                        anySchemaPrivilege.add(privilegeIdent.ident());
-                        break;
-                    case TABLE:
-                        anyTablePrivilege.add(privilegeIdent.ident());
-                        break;
-                    case VIEW:
-                        anyViewPrivilege.add(privilegeIdent.ident());
-                        break;
-                    default:
-                        throw new IllegalStateException("Unsupported privilege class=" + privilegeIdent.clazz());
-                }
+            switch (privilegeIdent.clazz()) {
+                case CLUSTER:
+                    if (anyClusterPriv != PrivilegeState.DENY) {
+                        anyClusterPriv = privilege.state();
+                    }
+                    break;
+                case SCHEMA:
+                    if (schemaPrivileges.get(privilegeIdent.ident()) != PrivilegeState.DENY) {
+                        schemaPrivileges.put(privilegeIdent.ident(), privilege.state());
+                    }
+                    break;
+                case TABLE:
+                    if (tablePrivileges.get(privilegeIdent.ident()) != PrivilegeState.DENY) {
+                        tablePrivileges.put(privilegeIdent.ident(), privilege.state());
+                    }
+                    break;
+                case VIEW:
+                    if (viewPrivileges.get(privilegeIdent.ident()) != PrivilegeState.DENY) {
+                        viewPrivileges.put(privilegeIdent.ident(), privilege.state());
+                    }
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported privilege class=" + privilegeIdent.clazz());
             }
         }
-        this.anyClusterPrivilege = anyClusterPrivilege;
+        this.anyClusterPrivilege = anyClusterPriv;
     }
 
     /**
      * Try to match a privilege at the given collection ignoring the type.
      */
-    public boolean matchPrivilegeOfAnyType(Privilege.Clazz clazz, @Nullable String ident) {
-        boolean foundPrivilege;
+    public PrivilegeState matchPrivilegeOfAnyType(Privilege.Clazz clazz, @Nullable String ident) {
+        PrivilegeState resolution;
         switch (clazz) {
             case CLUSTER:
-                foundPrivilege = hasAnyClusterPrivilege();
+                resolution = hasAnyClusterPrivilege();
                 break;
             case SCHEMA:
-                foundPrivilege = hasAnySchemaPrivilege(ident);
-                if (foundPrivilege == false) {
-                    foundPrivilege = hasAnyClusterPrivilege();
+                resolution = hasAnySchemaPrivilege(ident);
+                if (resolution == PrivilegeState.REVOKE) {
+                    resolution = hasAnyClusterPrivilege();
                 }
                 break;
             case TABLE:
-                foundPrivilege = hasAnyTablePrivilege(ident);
-                if (foundPrivilege == false) {
+                resolution = hasAnyTablePrivilege(ident);
+                if (resolution == PrivilegeState.REVOKE) {
                     String schemaIdent = new IndexParts(ident).getSchema();
-                    foundPrivilege = hasAnySchemaPrivilege(schemaIdent);
-                    if (foundPrivilege == false) {
-                        foundPrivilege = hasAnyClusterPrivilege();
+                    resolution = hasAnySchemaPrivilege(schemaIdent);
+                    if (resolution == PrivilegeState.REVOKE) {
+                        resolution = hasAnyClusterPrivilege();
                     }
                 }
                 break;
             case VIEW:
-                foundPrivilege = hasAnyViewPrivilege(ident);
-                if (foundPrivilege == false) {
+                resolution = hasAnyViewPrivilege(ident);
+                if (resolution == PrivilegeState.REVOKE) {
                     String schemaIdent = new IndexParts(ident).getSchema();
-                    foundPrivilege = hasAnySchemaPrivilege(schemaIdent);
-                    if (foundPrivilege == false) {
-                        foundPrivilege = hasAnyClusterPrivilege();
+                    resolution = hasAnySchemaPrivilege(schemaIdent);
+                    if (resolution == PrivilegeState.REVOKE) {
+                        resolution = hasAnyClusterPrivilege();
                     }
                 }
                 break;
             default:
                 throw new IllegalStateException("Unsupported privilege class=" + clazz);
         }
-        return foundPrivilege;
+        return resolution;
     }
 
     /**
@@ -115,17 +119,14 @@ public class RolePrivileges implements Iterable<Privilege> {
      * If none is found for the current {@link Privilege.Clazz}, try to find one on the upper class.
      * If a privilege with a {@link PrivilegeState#DENY} state is found, false is returned.
      */
-    public boolean matchPrivilege(@Nullable Privilege.Type type,
-                                  Privilege.Clazz clazz,
-                                  @Nullable String ident) {
+    public PrivilegeState matchPrivilege(@Nullable Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
         Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, clazz, ident));
         if (foundPrivilege == null) {
             switch (clazz) {
                 case SCHEMA:
                     foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
                     break;
-                case TABLE:
-                case VIEW:
+                case TABLE, VIEW:
                     String schemaIdent = new IndexParts(ident).getSchema();
                     foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
@@ -137,15 +138,9 @@ public class RolePrivileges implements Iterable<Privilege> {
         }
 
         if (foundPrivilege == null) {
-            return false;
+            return PrivilegeState.REVOKE;
         }
-        switch (foundPrivilege.state()) {
-            case GRANT:
-                return true;
-            case DENY:
-            default:
-                return false;
-        }
+        return foundPrivilege.state();
     }
 
     @NotNull
@@ -154,20 +149,33 @@ public class RolePrivileges implements Iterable<Privilege> {
         return privilegeByIdent.values().iterator();
     }
 
-    private boolean hasAnyClusterPrivilege() {
+    private PrivilegeState hasAnyClusterPrivilege() {
         return anyClusterPrivilege;
     }
 
-    private boolean hasAnySchemaPrivilege(String ident) {
-        return anySchemaPrivilege.contains(ident);
+    private PrivilegeState hasAnySchemaPrivilege(String ident) {
+        var state = schemaPrivileges.get(ident);
+        if (state == null) {
+            return PrivilegeState.REVOKE;
+        }
+        return state;
     }
 
-    private boolean hasAnyTablePrivilege(String ident) {
-        return anyTablePrivilege.contains(ident);
+    private PrivilegeState hasAnyTablePrivilege(String ident) {
+        var state = tablePrivileges.get(ident);
+        if (state == null) {
+            return PrivilegeState.REVOKE;
+        }
+        return state;
+
     }
 
-    private boolean hasAnyViewPrivilege(String ident) {
-        return anyViewPrivilege.contains(ident);
+    private PrivilegeState hasAnyViewPrivilege(String ident) {
+        var state = viewPrivileges.get(ident);
+        if (state == null) {
+            return PrivilegeState.REVOKE;
+        }
+        return state;
     }
 
     @Override

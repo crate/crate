@@ -73,6 +73,46 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_has_schema_privilege() {
+        var sysOid = OidHash.schemaOid("sys");
+        var docOid = OidHash.schemaOid("doc");
+        var grantDDLCluster = new Privilege(
+            PrivilegeState.GRANT,
+            Privilege.Type.DDL,
+            Privilege.Clazz.CLUSTER,
+            null,
+            "crate"
+        );
+
+        var role1 = roleOf("role", Set.of(grantDDLCluster));
+        RolesService roleService = new RolesService(mock(ClusterService.class)) {
+            @Override
+            public Role findRole(String roleName) {
+                return role1;
+            }
+        };
+        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Type.DDL, sysOid)).isTrue();
+        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Type.DDL, docOid)).isTrue();
+
+        var denyDDLSys = new Privilege(
+            PrivilegeState.DENY,
+            Privilege.Type.DDL,
+            Privilege.Clazz.SCHEMA,
+            "sys",
+            "crate"
+        );
+        var role2 = roleOf("role", Set.of(grantDDLCluster, denyDDLSys));
+        roleService = new RolesService(mock(ClusterService.class)) {
+            @Override
+            public Role findRole(String roleName) {
+                return role2;
+            }
+        };
+        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Type.DDL, sysOid)).isFalse();
+        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Type.DDL, docOid)).isTrue();
+    }
+
+    @Test
     public void test_old_users_metadata_is_preferred_over_roles_metadata() {
         Map<String, Role> roles = RolesService.getRoles(
             new UsersMetadata(Collections.singletonMap("Arthur", null)),
