@@ -53,9 +53,12 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
 
     private static final String ACTION_NAME = "internal:crate:sql/privileges/grant";
 
+    private final Roles roles;
+
     @Inject
     public TransportPrivilegesAction(TransportService transportService,
                                      ClusterService clusterService,
+                                     Roles roles,
                                      ThreadPool threadPool) {
         super(
             ACTION_NAME,
@@ -64,6 +67,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
             threadPool,
             PrivilegesRequest::new
         );
+        this.roles = roles;
     }
 
     @Override
@@ -101,7 +105,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                         Metadata currentMetadata = currentState.metadata();
                         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
 
-                        result = applyPrivileges(mdBuilder, request);
+                        result = applyPrivileges(roles, mdBuilder, request);
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
 
@@ -135,7 +139,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @VisibleForTesting
-    static ApplyPrivsResult applyPrivileges(Metadata.Builder mdBuilder, PrivilegesRequest request) {
+    static ApplyPrivsResult applyPrivileges(Roles roles, Metadata.Builder mdBuilder, PrivilegesRequest request) {
         var oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         var oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
@@ -149,8 +153,11 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
             if (request.privileges().isEmpty() == false) {
                 affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.roleNames(), request.privileges());
             } else {
-                affectedRows = newMetadata.applyRolePrivileges(request.roleNames(), request.rolePrivilege());
-                mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
+                unknownRoleNames = validateRoleNames(newMetadata, request.rolePrivilege().roleNames());
+                if (unknownRoleNames.isEmpty()) {
+                    validateIsNotUser(roles, request.rolePrivilege());
+                    affectedRows = newMetadata.applyRolePrivileges(request.roleNames(), request.rolePrivilege());
+                }
             }
         }
 
@@ -159,6 +166,14 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         }
 
         return new ApplyPrivsResult(affectedRows, unknownRoleNames);
+    }
+
+    private static void validateIsNotUser(Roles roles, RolePrivilegeToApply rolePrivilegeToApply) {
+        for (String roleNameToApply : rolePrivilegeToApply.roleNames()) {
+            if (roles.findRole(roleNameToApply).isUser()) {
+                throw new IllegalArgumentException("Cannot " + rolePrivilegeToApply.state().name() + " a USER to a ROLE");
+            }
+        }
     }
 
     record ApplyPrivsResult(long affectedRows, List<String> unknownRoleNames) {}

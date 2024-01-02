@@ -209,9 +209,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         Set<GrantedRole> grantedRoles = new HashSet<>(role.grantedRoles());
         long affectedCount = 0L;
         for (var roleNameToApply : newRolePrivilegeToApply.roleNames()) {
-            if (roles.get(roleNameToApply).isUser()) {
-                throw new IllegalArgumentException("Cannot " + newRolePrivilegeToApply.state().name() + " a USER to a ROLE");
-            }
+
             if (newRolePrivilegeToApply.state() == PrivilegeState.GRANT) {
                 if (grantedRoles.add(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
                     affectedCount++;

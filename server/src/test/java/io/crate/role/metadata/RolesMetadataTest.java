@@ -29,7 +29,6 @@ import static io.crate.role.metadata.RolesHelper.roleOf;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -173,17 +172,6 @@ public class RolesMetadataTest extends ESTestCase {
         assertThat(newRolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
             Map.of("Arthur", DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
                 "Ford", DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
-    }
-
-    @Test
-    public void test_grant_revoke_user_to_another_user_is_not_allowed() {
-        var rolesMetadata = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        for (PrivilegeState state : List.of(PrivilegeState.GRANT, PrivilegeState.REVOKE)) {
-            assertThatThrownBy(() -> rolesMetadata.applyRolePrivileges(
-                List.of("Ford"), new RolePrivilegeToApply(state, Set.of("John"), null)))
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Cannot " + state + " a USER to a ROLE");
-        }
     }
 
     @Test

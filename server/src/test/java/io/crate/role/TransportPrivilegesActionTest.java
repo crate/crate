@@ -21,8 +21,10 @@
 
 package io.crate.role;
 
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,16 +55,16 @@ public class TransportPrivilegesActionTest extends ESTestCase {
     public void testApplyPrivilegesCreatesNewPrivilegesInstance() {
         // given
         Metadata.Builder mdBuilder = Metadata.builder();
-        Map<String, Role> roles = new HashMap<>();
-        roles.put("Ford", userOf("Ford", new HashSet<>(PRIVILEGES), null));
+        Map<String, Role> rolesMap = new HashMap<>();
+        rolesMap.put("Ford", userOf("Ford", new HashSet<>(PRIVILEGES), null));
 
-        RolesMetadata initialRolesMetadata = new RolesMetadata(roles);
+        RolesMetadata initialRolesMetadata = new RolesMetadata(rolesMap);
         mdBuilder.putCustom(RolesMetadata.TYPE, initialRolesMetadata);
         PrivilegesRequest denyPrivilegeRequest =
             new PrivilegesRequest(Collections.singletonList("Ford"), Collections.singletonList(DENY_DQL), null);
 
         //when
-        TransportPrivilegesAction.applyPrivileges(mdBuilder, denyPrivilegeRequest);
+        TransportPrivilegesAction.applyPrivileges(rolesMap::values, mdBuilder, denyPrivilegeRequest);
 
         // then
         RolesMetadata newRolesMetadata =
@@ -90,5 +92,43 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(
                 new RolesMetadata(RolesHelper.DUMMY_USERS), List.of("Ford", "Arthur"));
         assertThat(unknownRoleNames).isEmpty();
+    }
+
+    @Test
+    public void test_validate_response_when_roles_do_not_exist() {
+        Metadata.Builder mdBuilder = Metadata.builder();
+        var rolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
+        mdBuilder.putCustom(RolesMetadata.TYPE, rolesMetadata);
+
+        PrivilegesRequest privilegeReq = new PrivilegesRequest(
+            List.of("unknownUser"), Set.of(), new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("John"), null));
+
+        var result = TransportPrivilegesAction.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq);
+        assertThat(result.affectedRows()).isEqualTo(-1);
+        assertThat(result.unknownRoleNames()).containsExactly("unknownUser");
+
+        privilegeReq = new PrivilegesRequest(
+            List.of("John"), Set.of(), new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("unknownRole"), null));
+
+        result = TransportPrivilegesAction.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq);
+        assertThat(result.affectedRows()).isEqualTo(-1);
+        assertThat(result.unknownRoleNames()).containsExactly("unknownRole");
+    }
+
+    @Test
+    public void test_grant_revoke_user_to_another_user_is_not_allowed() {
+        var mdBuilder = Metadata.builder();
+        var rolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
+        mdBuilder.putCustom(RolesMetadata.TYPE, rolesMetadata);
+
+        for (var state : List.of(PrivilegeState.GRANT, PrivilegeState.REVOKE)) {
+            var privilegeReq = new PrivilegesRequest(
+                List.of("DummyRole"), Set.of(), new RolePrivilegeToApply(state, Set.of("John"), null));
+
+            assertThatThrownBy(() ->
+                TransportPrivilegesAction.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Cannot " + state + " a USER to a ROLE");
+        }
     }
 }
