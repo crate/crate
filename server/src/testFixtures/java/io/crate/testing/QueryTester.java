@@ -44,6 +44,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
@@ -145,6 +146,23 @@ public final class QueryTester implements AutoCloseable {
                 null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), new Object[] { value }, -1L, -1L);
+            ParsedDocument parsedDocument = indexer.index(item);
+            indexEnv.writer().addDocument(parsedDocument.doc());
+            return this;
+        }
+
+        public Builder indexValues(List<String> columns, Object ... values) throws IOException {
+            MapperService mapperService = indexEnv.mapperService();
+            Indexer indexer = new Indexer(
+                table.concreteIndices()[0],
+                table,
+                plannerContext.transactionContext(),
+                plannerContext.nodeContext(),
+                mapperService::getLuceneFieldType,
+                Lists2.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
+                null
+            );
+            var item = new IndexItem.StaticItem("dummy-id", List.of(), values, -1L, -1L);
             ParsedDocument parsedDocument = indexer.index(item);
             indexEnv.writer().addDocument(parsedDocument.doc());
             return this;
