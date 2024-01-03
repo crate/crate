@@ -750,10 +750,40 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         }
     }
 
+    // tracks a bug : https://github.com/crate/crate/pull/15280#issue-2064743724
+    @Test
+    public void test_neq_operator_on_nullable_and_not_nullable_args_does_not_filter_nulls_from_non_nullable_arg() throws Exception {
+        long[] oid = new long[] {123, 124};
+        int[] oidIdx = new int[]{0};
+        try (QueryTester tester = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int, b int)",
+            () -> oid[oidIdx[0]++]) // oid mapping: a: 123, b: 124
+            .indexValues(List.of("a", "b"), null, null)
+            .indexValues(List.of("a", "b"), null, 2)
+            .indexValues(List.of("a", "b"), 2, null)
+            .indexValues(List.of("a", "b"), 2, 2)
+            .build()) {
+            assertThat(oidIdx[0]).isEqualTo(2);
+            Query query = tester.toQuery("a != b||1"); // where a is nullable and b||1 is not null
+            assertThat(query).hasToString(String.format("+(+*:* -(a = concat(b, '1'))) +FieldExistsQuery [field=%s]", oid[0]));
+            assertThat(tester.runQuery("b", "a != b||1")).containsExactlyInAnyOrder(2, null);
+        }
+    }
+
     // tracks a bug: https://github.com/crate/crate/issues/15232
     @Test
     public void test_cannot_use_field_exists_query_on_args_of_coalesce_function() {
         Query query = convert("coalesce(x, y) <> 0");
         assertThat(query).hasToString("+(+*:* -(coalesce(x, y) = 0)) #(NOT (coalesce(x, y) = 0))");
+    }
+
+    // tracks a bug : https://github.com/crate/crate/issues/15265
+    @Test
+    public void test_nested_not_operators() {
+        Query query = convert("not (y is not null)");
+        assertThat(query).hasToString("+(+*:* -FieldExistsQuery [field=y])");
     }
 }

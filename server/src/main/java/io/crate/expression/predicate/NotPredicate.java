@@ -99,25 +99,20 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     private final NullabilityVisitor INNER_VISITOR = new NullabilityVisitor();
 
     private static class NullabilityContext {
-        private final HashSet<Reference> references = new HashSet<>();
-        private boolean removeNullValues = false;
-        private boolean useNotQuery = false;
+        private final HashSet<Reference> nullableReferences = new HashSet<>();
+        private boolean isNullable = true;
         private boolean enforceThreeValuedLogic = false;
 
-        void add(Reference symbol) {
-            references.add(symbol);
+        void collectNullableReferences(Reference symbol) {
+            nullableReferences.add(symbol);
         }
 
-        Set<Reference> references() {
-            return references;
+        Set<Reference> nullableReferences() {
+            return nullableReferences;
         }
 
-        boolean useNotQuery() {
-            return useNotQuery && !enforceThreeValuedLogic;
-        }
-
-        boolean useFieldExistQuery() {
-            return removeNullValues && !enforceThreeValuedLogic;
+        boolean enforceThreeValuedLogic() {
+            return enforceThreeValuedLogic;
         }
     }
 
@@ -127,7 +122,10 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
 
         @Override
         public Void visitReference(Reference symbol, NullabilityContext context) {
-            context.add(symbol);
+            // if ref is nullable and all its parents are nullable
+            if (symbol.isNullable() && context.isNullable) {
+                context.collectNullableReferences(symbol);
+            }
             return null;
         }
 
@@ -142,27 +140,28 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 var b = function.arguments().get(1);
                 if (a instanceof Reference ref && b instanceof Literal<?>) {
                     if (ref.valueType().id() == DataTypes.UNTYPED_OBJECT.id()) {
-                        context.removeNullValues = true;
                         return null;
                     }
                 }
             } else if (Ignore3vlFunction.NAME.equals(functionName)) {
-                context.useNotQuery = true;
+                context.isNullable = false;
                 return null;
             } else {
                 var signature = function.signature();
-                if (signature.hasFeature(Feature.NULLABLE)) {
-                    context.removeNullValues = true;
-                } else if (signature.hasFeature(Feature.NON_NULLABLE)) {
-                    context.useNotQuery = true;
-                } else {
+                if (signature.hasFeature(Feature.NON_NULLABLE)) {
+                    context.isNullable = false;
+                } else if (!signature.hasFeature(Feature.NULLABLE)) {
                     // default case
                     context.enforceThreeValuedLogic = true;
                     return null;
                 }
             }
+            // saves and restores isNullable of the current context
+            // such that any non-nullables observed from the left arg is not transferred to the right arg.
+            boolean isNullable = context.isNullable;
             for (Symbol arg : function.arguments()) {
                 arg.accept(this, context);
+                context.isNullable = isNullable;
             }
             return null;
         }
@@ -202,31 +201,25 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         NullabilityContext ctx = new NullabilityContext();
         arg.accept(INNER_VISITOR, ctx);
 
-        if (ctx.useFieldExistQuery()) {
-            // we can optimize with a field exist query and filter out all null values which will reduce the
-            // result set of the query
-            BooleanQuery.Builder builder = new BooleanQuery.Builder();
-            builder.add(notX, BooleanClause.Occur.MUST);
-            for (Reference reference : ctx.references()) {
-                if (reference.isNullable()) {
-                    var refExistsQuery = IsNullPredicate.refExistsQuery(reference, context, false);
-                    if (refExistsQuery != null) {
-                        builder.add(refExistsQuery, BooleanClause.Occur.MUST);
-                    }
-                }
-            }
-            return builder.build();
-        } else if (ctx.useNotQuery()) {
-            return new BooleanQuery.Builder()
-                .add(notX, Occur.MUST)
-                .build();
-        } else {
+        if (ctx.enforceThreeValuedLogic()) {
             // we require strict 3vl logic, therefore we need to add the function as generic function filter
             // which is less efficient
             return new BooleanQuery.Builder()
                 .add(notX, Occur.MUST)
                 .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
                 .build();
+        } else {
+            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+            builder.add(notX, BooleanClause.Occur.MUST);
+            for (Reference nullableRef : ctx.nullableReferences()) {
+                // we can optimize with a field exist query and filter out all null values which will reduce the
+                // result set of the query
+                var refExistsQuery = IsNullPredicate.refExistsQuery(nullableRef, context, false);
+                if (refExistsQuery != null) {
+                    builder.add(refExistsQuery, BooleanClause.Occur.MUST);
+                }
+            }
+            return builder.build();
         }
     }
 }
