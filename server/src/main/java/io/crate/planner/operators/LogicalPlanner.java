@@ -107,7 +107,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
-import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
+import io.crate.planner.optimizer.rule.RemoveRedundantEval;
 import io.crate.planner.optimizer.rule.ReorderHashJoin;
 import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
@@ -132,7 +132,7 @@ public class LogicalPlanner {
 
     // Be careful, the order of the rules matter
     public static final List<Rule<?>> ITERATIVE_OPTIMIZER_RULES = List.of(
-        new RemoveRedundantFetchOrEval(),
+        new RemoveRedundantEval(),
         new MergeAggregateAndCollectToCount(),
         new MergeAggregateRenameAndCollectToCount(),
         new MergeFilters(),
@@ -170,7 +170,7 @@ public class LogicalPlanner {
     );
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
-        new RemoveRedundantFetchOrEval(),
+        new RemoveRedundantEval(),
         new RewriteToQueryThenFetch()
     );
 
