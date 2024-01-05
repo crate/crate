@@ -25,6 +25,7 @@ import static io.crate.analyze.SymbolEvaluator.evaluate;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -160,6 +161,18 @@ public class Limit extends ForwardingLogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Limit(Lists2.getOnlyElement(sources), limit, offset, isPushedBeneathUnion, isPushedBeneathJoin);
+    }
+
+    @Override
+    public @Nullable FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        FetchRewrite fetchRewrite = source.rewriteToFetch(usedColumns);
+        if (fetchRewrite == null) {
+            return null;
+        }
+        return new FetchRewrite(
+            fetchRewrite.replacedOutputs(),
+            new Limit(fetchRewrite.newPlan(), this.limit, this.offset, this.isPushedBeneathUnion, this.isPushedBeneathJoin)
+        );
     }
 
     @Override
