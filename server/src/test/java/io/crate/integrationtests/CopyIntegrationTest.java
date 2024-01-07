@@ -1190,7 +1190,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
         execute("refresh table t");
-        execute("select * from t");
+        execute("select * from t order by id");
         assertThat(response).hasRows(
             "1| 38392| apple safari| 151155",
             "2| 31123| apple safari| 23073"
