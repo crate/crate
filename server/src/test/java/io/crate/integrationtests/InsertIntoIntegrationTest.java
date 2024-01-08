@@ -46,13 +46,16 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.common.collections.Maps;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -2017,5 +2020,24 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             execute("SELECT o1['sub'] FROM tbl");
             assertThat(response.rows()[0][0]).isEqualTo(generated);
         }
+    }
+
+    @Test
+    @UseNewCluster
+    @Repeat(iterations = 100)
+    @UseJdbc(value = 0)
+    public void test_select_non_determinsitic_column_source_value_not_equal_to_regular_select() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+               id int,
+               modification_date TIMESTAMP WITHOUT TIME ZONE GENERATED ALWAYS AS current_timestamp STORAGE WITH (columnstore = false)
+            ) WITH (number_of_replicas = 0)
+            """);
+        execute("INSERT INTO tbl (id) VALUES (1)");
+        refresh();
+
+        execute("SELECT modification_date, _raw FROM tbl");
+        var sourceValue = Maps.get(new ObjectMapper().readValue((String) response.rows()[0][1], HashMap.class), "2");
+        assertThat((long) response.rows()[0][0]).isEqualTo(sourceValue);
     }
 }
