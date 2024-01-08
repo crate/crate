@@ -408,7 +408,23 @@ public class SourceParserTest extends ESTestCase {
         sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
-                {"o": {"a":1, "b":2, "oo":[{"a": 11, "b":22, "c":33, "s":33, "t":44}], "s":3, "t":4}}
+            {
+              "o": {
+                "a": 1,
+                "b": 2,
+                "oo": [
+                  {
+                    "a": 11,
+                    "b": 22,
+                    "c": 33,
+                    "s": 33,
+                    "t": 44
+                  }
+                ],
+                "s": 3,
+                "t": 4
+              }
+            }
             """));
 
         assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
@@ -419,7 +435,6 @@ public class SourceParserTest extends ESTestCase {
         Map<String, Object> innerObj = (Map<String, Object>) ((List<?>) Maps.getByPath(result, "o.oo")).get(0);
         assertThat(innerObj).containsExactly(
             Map.entry("a", 11),
-            Map.entry("c", 33),
             Map.entry("s", 33));
     }
 
@@ -450,5 +465,34 @@ public class SourceParserTest extends ESTestCase {
         assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
         assertThat(Maps.getByPath(result, "o.oo")).isNull();
 
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_parse_long_from_object_array() throws Exception {
+        SourceParser sourceParser = new SourceParser(
+            Set.of(),
+            Function.identity()
+        );
+
+        var objType = new ObjectType.Builder()
+            .setInnerType("x", DataTypes.LONG)
+            .build();
+        var objArray = new ArrayType<>(objType);
+        sourceParser.register(new ColumnIdent("_doc", "os"), objArray);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+            {
+                "os": [
+                    {"x": 10},
+                    {"x": 20}
+                ]
+            }
+            """
+        ));
+        assertThat((List<Map<String, Object>>) result.get("os")).containsExactly(
+            Map.of("x", 10L),
+            Map.of("x", 20L)
+        );
     }
 }

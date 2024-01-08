@@ -49,6 +49,14 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a regression introduced in 5.5.0 which caused subscript expressions on
+  object arrays to fail in some cases. For example, the following case failed
+  with a ``ClassCastException``::
+
+    CREATE TABLE tbl (obj ARRAY(OBJECT(STRICT) AS (x BIGINT)));
+    INSERT INTO tbl VALUES ([{x = 1}]);
+    SELECT unnest(obj)['x'] FROM tbl;
+
 - Fixed an issue that caused ``UPDATE`` and ``DELETE`` statements to match
   records if the ``WHERE`` clause contained an equality condition on all primary
   keys, and it included an additional clause in an ``AND`` that should have
