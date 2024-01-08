@@ -425,7 +425,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_move_limit_beneath_join| true| Indicates if the optimizer rule MoveLimitBeneathJoin is activated.",
             "optimizer_move_limit_beneath_rename| true| Indicates if the optimizer rule MoveLimitBeneathRename is activated.",
             "optimizer_move_limit_beneath_union| true| Indicates if the optimizer rule MoveLimitBeneathUnion is activated.",
-            "optimizer_move_order_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveOrderBeneathFetchOrEval is activated.",
+            "optimizer_move_order_beneath_eval| true| Indicates if the optimizer rule MoveOrderBeneathEval is activated.",
             "optimizer_move_order_beneath_nested_loop| true| Indicates if the optimizer rule MoveOrderBeneathNestedLoop is activated.",
             "optimizer_move_order_beneath_rename| true| Indicates if the optimizer rule MoveOrderBeneathRename is activated.",
             "optimizer_move_order_beneath_union| true| Indicates if the optimizer rule MoveOrderBeneathUnion is activated.",
