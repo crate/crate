@@ -89,6 +89,10 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added a ``unknown`` type for serialization via the PostgreSQL wire protocol
+  and to the ``pg_catalog.pg_type`` table. This should resolve compatibility
+  issues with ``npgsql`` >= 8.0.
+
 - Added an empty ``pg_catalog.pg_depend`` table.
 
 - Changed ``pg_catalog.pg_roles`` table to be properly populated, as previously
