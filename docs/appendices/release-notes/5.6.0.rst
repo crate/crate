@@ -105,7 +105,12 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- Updated the ``tdigest`` library which results in the ``percentile``
+  aggregation function to behave differently in some cases. For example, the
+  following query used to return ``4.5`` but will now return ``5.0``::
+
+    SELECT percentile(x, 0.5) FROM generate_series(0, 9, 1) AS t (x) ;
+
 
 Performance and Resilience Improvements
 ---------------------------------------
