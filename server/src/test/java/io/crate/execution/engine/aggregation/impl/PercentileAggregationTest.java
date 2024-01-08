@@ -103,14 +103,14 @@ public class PercentileAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void testSignleFractionAllTypesReturnSameResult() throws Exception {
+    public void testSingleFractionAllTypesReturnSameResult() throws Exception {
         for (DataType<?> valueType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             List<Double> fractions = Arrays.asList(0.5, 0.8);
             Object[][] rowsWithSingleFraction = new Object[10][];
             for (int i = 0; i < rowsWithSingleFraction.length; i++) {
                 rowsWithSingleFraction[i] = new Object[]{ valueType.sanitizeValue(i), fractions.get(0) };
             }
-            assertThat(execSingleFractionPercentile(valueType, rowsWithSingleFraction)).isEqualTo(4.5);
+            assertThat(execSingleFractionPercentile(valueType, rowsWithSingleFraction)).isEqualTo(5.0);
         }
     }
 
@@ -123,7 +123,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 rowsWithFractionsArray[i] = new Object[]{ valueType.sanitizeValue(i), fractions };
             }
             assertThat(execArrayFractionPercentile(valueType, rowsWithFractionsArray))
-                .isEqualTo(List.of(4.5, 7.5));
+                .isEqualTo(List.of(5.0, 8.0));
         }
     }
 

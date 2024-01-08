@@ -253,7 +253,7 @@
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>
     <versions.jna>5.13.0</versions.jna>
-    <versions.tdigest>3.2</versions.tdigest>
+    <versions.tdigest>3.3</versions.tdigest>
     <versions.hdrhistogram>2.1.12</versions.hdrhistogram>
     <versions.caffeine>3.1.8</versions.caffeine>
     <versions.jodatime>2.12.5</versions.jodatime>
