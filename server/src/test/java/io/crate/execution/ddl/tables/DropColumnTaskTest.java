@@ -68,7 +68,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             initialState,
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
             Reference colToDrop = tbl.getReference(new ColumnIdent("y"));
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(initialState, request);
@@ -108,7 +109,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
             Reference colToDrop = tbl.getReference(new ColumnIdent("o", "oo"));
             var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
             ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
@@ -167,7 +169,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             state,
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "z");
             SimpleReference colToDrop = new SimpleReference(
                 refIdent,
@@ -195,7 +198,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             state,
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
             SimpleReference colToDrop = new SimpleReference(
                 refIdent,
@@ -227,7 +231,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             state,
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
             Reference ref = tbl.getReference(new ColumnIdent("y"));
 
             DropColumnRequest request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(ref, true)));
@@ -251,7 +256,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("oo", "a"));
             SimpleReference colToDrop = new SimpleReference(
                 refIdent,
@@ -282,7 +288,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             state,
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
             SimpleReference colToDrop = new SimpleReference(
                 refIdent,
@@ -311,11 +318,13 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName())
             .build();
         DocTableInfo tbl = e.resolveTableInfo("doc.parted");
-        var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> MapperTestUtils.newMapperService(
+        var dropColumnTask = new AlterTableTask<>(e.nodeCtx, imd -> MapperTestUtils.newMapperService(
             new NamedXContentRegistry(ClusterModule.getNamedXWriteables()),
             createTempDir(),
             Settings.EMPTY,
-            "doc.parted"));
+            "doc.parted"),
+            tbl.ident(),
+            TransportDropColumnAction.DROP_COLUMN_OPERATOR);
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
         SimpleReference colToDrop = new SimpleReference(
             refIdent,
@@ -346,7 +355,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("oo"));
             SimpleReference colToDrop = new SimpleReference(
                 refIdent,

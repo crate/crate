@@ -26,18 +26,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.Set;
 
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
@@ -73,13 +73,17 @@ public class EqualityExtractor {
         this.normalizer = normalizer;
     }
 
-    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext coordinatorTxnCtx) {
+    public record EqMatches(@Nullable List<List<Symbol>> matches, Set<Symbol> unknowns) {
+
+        public static final EqMatches NONE = new EqMatches(null, Set.of());
+    }
+
+    public EqMatches extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext coordinatorTxnCtx) {
         return extractMatches(columns, symbol, false, coordinatorTxnCtx);
     }
 
     /**
-     * @return Exact matches of the {@code columns} within {@code symbol}.
-     *         Null if there are no exact matches
+     * @return Matches of the {@code columns} within {@code symbol}.
      *
      * <pre>
      * Example for exact matches:
@@ -101,25 +105,25 @@ public class EqualityExtractor {
      *      x = 10 and match(z, ...) = 'foo'                -> null (MATCH predicate can only be applied on lucene)
      * </pre>
      */
-    @Nullable
-    public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns,
-                                                  Symbol symbol,
-                                                  @Nullable TransactionContext transactionContext) {
+    public EqMatches extractMatches(List<ColumnIdent> columns,
+                                    Symbol symbol,
+                                    @Nullable TransactionContext transactionContext) {
         return extractMatches(columns, symbol, true, transactionContext);
     }
 
-    @Nullable
-    private List<List<Symbol>> extractMatches(Collection<ColumnIdent> columns,
-                                              Symbol symbol,
-                                              boolean exact,
-                                              @Nullable TransactionContext transactionContext) {
-        EqualityExtractor.ProxyInjectingVisitor.Context context =
-            new EqualityExtractor.ProxyInjectingVisitor.Context(columns, exact);
+    private EqMatches extractMatches(Collection<ColumnIdent> columns,
+                                     Symbol symbol,
+                                     boolean shortCircuitOnMatchPredicateUnknown,
+                                     @Nullable TransactionContext transactionContext) {
+        var context = new ProxyInjectingVisitor.Context(columns);
         Symbol proxiedTree = symbol.accept(ProxyInjectingVisitor.INSTANCE, context);
 
-        // bail out if we have any unknown part in the tree
-        if (context.exact && context.seenUnknown) {
-            return null;
+        // Match cannot execute without Lucene
+        if (shortCircuitOnMatchPredicateUnknown && context.unknowns.size() == 1) {
+            Symbol unknown = context.unknowns.iterator().next();
+            if (unknown instanceof MatchPredicate || unknown instanceof Function fn && fn.name().equals(io.crate.expression.predicate.MatchPredicate.NAME)) {
+                return EqMatches.NONE;
+            }
         }
 
         List<List<EqProxy>> comparisons = context.comparisonValues();
@@ -138,7 +142,7 @@ public class EqualityExtractor {
             Symbol normalized = normalizer.normalize(proxiedTree, transactionContext);
             if (normalized == Literal.BOOLEAN_TRUE) {
                 if (anyNull) {
-                    return null;
+                    return EqMatches.NONE;
                 }
                 if (!proxies.isEmpty()) {
                     List<Symbol> row = new ArrayList<>(proxies.size());
@@ -154,8 +158,7 @@ public class EqualityExtractor {
                 }
             }
         }
-        return result.isEmpty() ? null : result;
-
+        return new EqMatches(result.isEmpty() ? null : result, context.unknowns);
     }
 
     /**
@@ -367,12 +370,9 @@ public class EqualityExtractor {
 
             private LinkedHashMap<ColumnIdent, Comparison> comparisons;
             private boolean proxyBelow;
-            private boolean seenUnknown = false;
-            private boolean ignoreUnknown = false;
-            private final boolean exact;
+            private final Set<Symbol> unknowns = new HashSet<>();
 
-            private Context(Collection<ColumnIdent> references, boolean exact) {
-                this.exact = exact;
+            private Context(Collection<ColumnIdent> references) {
                 comparisons = new LinkedHashMap<>(references.size());
                 for (ColumnIdent reference : references) {
                     comparisons.put(reference, new Comparison());
@@ -395,16 +395,16 @@ public class EqualityExtractor {
 
         @Override
         public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
-            context.seenUnknown = true;
+            context.unknowns.add(matchPredicate);
             return Literal.BOOLEAN_TRUE;
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, Context context) {
-            if (!context.comparisons.containsKey(symbol.column())) {
-                context.seenUnknown = true;
+        public Symbol visitReference(Reference ref, Context context) {
+            if (!context.comparisons.containsKey(ref.column())) {
+                context.unknowns.add(ref);
             }
-            return super.visitReference(symbol, context);
+            return super.visitReference(ref, context);
         }
 
         public Symbol visitFunction(Function function, Context context) {
@@ -435,7 +435,6 @@ public class EqualityExtractor {
             } else if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
                 boolean proxyBelowPre = context.proxyBelow;
                 boolean proxyBelowPost = proxyBelowPre;
-                context.ignoreUnknown = context.ignoreUnknown || functionName.equals(AndOperator.NAME);
                 ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
                 for (Symbol arg : arguments) {
                     context.proxyBelow = proxyBelowPre;
@@ -448,10 +447,8 @@ public class EqualityExtractor {
                 }
                 return new Function(function.signature(), newArgs, function.valueType());
             }
-            if (context.ignoreUnknown == false
-                || functionName.equals(io.crate.expression.predicate.MatchPredicate.NAME)) {
-                context.seenUnknown = true;
-            }
+
+            context.unknowns.add(function);
             return Literal.BOOLEAN_TRUE;
         }
     }
