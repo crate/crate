@@ -239,7 +239,7 @@
     <versions.jdk>21.0.1</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
     <versions.log4j>2.22.0</versions.log4j>
-    <versions.assertj>3.24.2</versions.assertj>
+    <versions.assertj>3.25.1</versions.assertj>
     <versions.junit5>5.10.1</versions.junit5>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
@@ -264,7 +264,7 @@
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>4.11.0</versions.mockito>
-    <versions.jdbc>42.7.0</versions.jdbc>
+    <versions.jdbc>42.7.1</versions.jdbc>
     <versions.jsonassert>1.5.1</versions.jsonassert>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
