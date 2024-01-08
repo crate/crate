@@ -70,7 +70,8 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
 import io.crate.execution.ddl.tables.AddColumnRequest;
-import io.crate.execution.ddl.tables.AddColumnTask;
+import io.crate.execution.ddl.tables.AlterTableTask;
+import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
@@ -130,7 +131,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 clusterService.state(),
                 Version.CURRENT
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), table.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
             AddColumnRequest request = new AddColumnRequest(
                     table.ident(),
                     newColumns,

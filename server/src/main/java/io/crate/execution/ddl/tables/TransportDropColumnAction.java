@@ -33,12 +33,16 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
 @Singleton
 public class TransportDropColumnAction extends AbstractDDLTransportAction<DropColumnRequest, AcknowledgedResponse> {
 
+    @VisibleForTesting
+    public static final AlterTableTask.AlterTableOperator<DropColumnRequest> DROP_COLUMN_OPERATOR =
+        (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.dropColumns(req.colsToDrop());
     private static final String ACTION_NAME = "internal:crate:sql/table/drop_column";
     private final NodeContext nodeContext;
     private final IndicesService indicesService;
@@ -63,7 +67,12 @@ public class TransportDropColumnAction extends AbstractDDLTransportAction<DropCo
 
     @Override
     public ClusterStateTaskExecutor<DropColumnRequest> clusterStateTaskExecutor(DropColumnRequest request) {
-        return new DropColumnTask(nodeContext, indicesService::createIndexMapperService);
+        return new AlterTableTask<>(
+            nodeContext,
+            indicesService::createIndexMapperService,
+            request.relationName(),
+            DROP_COLUMN_OPERATOR
+        );
     }
 
 

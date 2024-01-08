@@ -30,38 +30,48 @@ import org.elasticsearch.index.mapper.MapperService;
 
 import io.crate.common.CheckedFunction;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
-public class RenameColumnTask extends DDLClusterStateTaskExecutor<RenameColumnRequest> {
+public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
 
     private final NodeContext nodeContext;
     private final CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService;
+    private final RelationName relationName;
+    private final AlterTableOperator<T> alterTableOperator;
 
-    public RenameColumnTask(NodeContext nodeContext,
-                            CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService) {
+    public AlterTableTask(NodeContext nodeContext,
+                          CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService,
+                          RelationName relationName,
+                          AlterTableOperator<T> alterTableOperator) {
         this.nodeContext = nodeContext;
         this.createMapperService = createMapperService;
+        this.relationName = relationName;
+        this.alterTableOperator = alterTableOperator;
     }
 
     @Override
-    protected ClusterState execute(ClusterState currentState, RenameColumnRequest request) throws Exception {
-        var docTableInfoFactory = new DocTableInfoFactory(nodeContext);
+    public ClusterState execute(ClusterState currentState, T t) throws Exception {
+        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         Metadata metadata = currentState.metadata();
-        DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), metadata);
-        DocTableInfo changedTable = currentTable.renameColumn(request.refToRename(), request.newName());
-        if (changedTable == currentTable) {
+        DocTableInfo currentTable = docTableInfoFactory.create(relationName, metadata);
+        Metadata.Builder metadataBuilder = Metadata.builder(metadata);
+        DocTableInfo newTable = alterTableOperator.apply(t, currentTable, metadataBuilder, nodeContext);
+        if (newTable == currentTable) {
             return currentState;
         }
-        Metadata.Builder metadataBuilder = Metadata.builder(metadata);
-        Metadata newMetadata = changedTable
-            .writeTo(createMapperService, metadata, metadataBuilder)
-            .build();
-        // Ensure table can still be parsed
-        docTableInfoFactory.create(request.relationName(), newMetadata);
+        newTable.writeTo(createMapperService, metadata, metadataBuilder);
+        Metadata newMetadata = metadataBuilder.build();
+        // Ensure new table can still be parsed
+        docTableInfoFactory.create(relationName, newMetadata);
         return ClusterState.builder(currentState)
             .metadata(newMetadata)
             .build();
+    }
+
+    public interface AlterTableOperator<T> {
+        DocTableInfo apply(T request, DocTableInfo docTableInfo, Metadata.Builder metadataBuilder, NodeContext nodeContext);
     }
 }
