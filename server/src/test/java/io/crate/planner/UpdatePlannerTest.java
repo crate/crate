@@ -155,6 +155,16 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_update_with_subquery_and_pk_does_not_update_by_id() throws Exception {
+        Plan update = e.plan(
+            "update users set name = 'No!' where id = 1 and not exists (select 1 from users where id = 1)");
+        assertThat(update).isExactlyInstanceOf(MultiPhasePlan.class);
+
+        MultiPhasePlan multiPhasePlan = (MultiPhasePlan) update;
+        assertThat(multiPhasePlan.rootPlan).isExactlyInstanceOf(UpdatePlanner.Update.class);
+    }
+
+    @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValuesPartitioned() throws Exception {
         Plan update = e.plan("update parted_pks set name='Vogon lyric fan' where " +
                                      "(id=2 and date = 0) OR" +

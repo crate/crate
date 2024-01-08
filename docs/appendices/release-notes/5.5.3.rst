@@ -49,6 +49,11 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused ``UPDATE`` and ``DELETE`` statements to match
+  records if the ``WHERE`` clause contained an equality condition on all primary
+  keys, and it included an additional clause in an ``AND`` that should have
+  evaluated to ``FALSE``.
+
 - Fixed a regression introduced in 5.3.0 that caused storing an object as
   ``NULL`` if object had generated sub-columns and the object column wasn't
   part of the ``INSERT`` targets. An object with generated sub-columns is
