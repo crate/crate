@@ -33,12 +33,12 @@ import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.EqualityExtractor;
+import io.crate.analyze.where.EqualityExtractor.EqMatches;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
@@ -76,12 +76,13 @@ public final class WhereClauseOptimizer {
                       DocKeys docKeys,
                       List<List<Symbol>> partitionValues,
                       Set<Symbol> clusteredByValues,
-                      DocTableInfo table) {
+                      DocTableInfo table,
+                      boolean queryHasPkSymbolsOnly) {
             this.query = query;
             this.docKeys = docKeys;
             this.partitions = Objects.requireNonNullElse(partitionValues, Collections.emptyList());
             this.clusteredByValues = clusteredByValues;
-            this.queryHasPkSymbolsOnly = WhereClauseOptimizer.queryHasPkSymbolsOnly(query, table);
+            this.queryHasPkSymbolsOnly = queryHasPkSymbolsOnly;
         }
 
         public Optional<DocKeys> docKeys() {
@@ -164,19 +165,16 @@ public final class WhereClauseOptimizer {
         List<ColumnIdent> pkCols = pkColsInclVersioning(table, versionInQuery, sequenceVersioningInQuery);
 
         EqualityExtractor eqExtractor = new EqualityExtractor(normalizer);
-        List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, query, txnCtx);
 
-        List<List<Symbol>> partitionValues = null;
-        if (table.isPartitioned()) {
-            partitionValues = eqExtractor.extractExactMatches(table.partitionedBy(), query, txnCtx);
-        }
+        EqMatches pkMatches = eqExtractor.extractMatches(pkCols, query, txnCtx);
         Set<Symbol> clusteredBy = Collections.emptySet();
         if (table.clusteredBy() != null) {
-            List<List<Symbol>> clusteredByValues = eqExtractor.extractParentMatches(
+            EqualityExtractor.EqMatches clusteredByMatches = eqExtractor.extractParentMatches(
                 Collections.singletonList(table.clusteredBy()), query, txnCtx);
-            if (clusteredByValues != null) {
-                clusteredBy = new HashSet<>(clusteredByValues.size());
-                for (List<Symbol> s : clusteredByValues) {
+            List<List<Symbol>> clusteredBySymbols = clusteredByMatches.matches();
+            if (clusteredBySymbols != null) {
+                clusteredBy = new HashSet<>(clusteredBySymbols.size());
+                for (List<Symbol> s : clusteredBySymbols) {
                     clusteredBy.add(s.get(0));
                 }
             }
@@ -186,26 +184,37 @@ public final class WhereClauseOptimizer {
         final boolean shouldUseDocKeys = table.isPartitioned() == false && (
                 DocSysColumns.ID.equals(table.clusteredBy()) || (
                     table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().get(0))));
-        if (pkValues == null && shouldUseDocKeys) {
-            pkValues = eqExtractor.extractExactMatches(List.of(DocSysColumns.ID), query, txnCtx);
+
+        if (pkMatches.matches() == null && shouldUseDocKeys) {
+            pkMatches = eqExtractor.extractMatches(List.of(DocSysColumns.ID), query, txnCtx);
         }
 
-        if (pkValues == null) {
+        if (pkMatches.matches() == null) {
             docKeys = null;
         } else {
             List<Integer> partitionIndicesWithinPks = null;
             if (table.isPartitioned()) {
                 partitionIndicesWithinPks = getPartitionIndices(table.primaryKey(), table.partitionedBy());
             }
-            docKeys = new DocKeys(pkValues,
+            docKeys = new DocKeys(pkMatches.matches(),
                                   versionInQuery,
                                   sequenceVersioningInQuery,
                                   clusterIdxWithinPK,
                                   partitionIndicesWithinPks);
         }
+        EqMatches partitionMatches = table.isPartitioned()
+            ? eqExtractor.extractMatches(table.partitionedBy(), query, txnCtx)
+            : EqMatches.NONE;
 
         WhereClauseValidator.validate(query);
-        return new DetailedQuery(query, docKeys, partitionValues, clusteredBy, table);
+        return new DetailedQuery(
+            query,
+            docKeys,
+            partitionMatches.matches(),
+            clusteredBy,
+            table,
+            pkMatches.unknowns().isEmpty()
+        );
     }
 
     private static List<Integer> getPartitionIndices(List<ColumnIdent> pkCols, List<ColumnIdent> partitionCols) {
@@ -218,26 +227,6 @@ public final class WhereClauseOptimizer {
             }
         }
         return result;
-    }
-
-    private static boolean queryHasPkSymbolsOnly(Symbol query, DocTableInfo table) {
-        var docKeyColumns = new ArrayList<>(table.primaryKey());
-        docKeyColumns.addAll(table.partitionedBy());
-        docKeyColumns.add(table.clusteredBy());
-        docKeyColumns.add(DocSysColumns.VERSION);
-        docKeyColumns.add(DocSysColumns.SEQ_NO);
-        docKeyColumns.add(DocSysColumns.PRIMARY_TERM);
-
-        boolean[] hasPkSymbolsOnly = new boolean[]{true};
-        RefVisitor.visitRefs(
-            query,
-            ref -> {
-                if (docKeyColumns.contains(ref.column()) == false) {
-                    hasPkSymbolsOnly[0] = false;
-                }
-            }
-        );
-        return hasPkSymbolsOnly[0];
     }
 
     private static List<ColumnIdent> pkColsInclVersioning(DocTableInfo table,

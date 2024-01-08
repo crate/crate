@@ -21,8 +21,8 @@
 
 package io.crate.analyze.where;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -62,7 +62,7 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
-        return ee.extractParentMatches(List.of(x), query, coordinatorTxnCtx);
+        return ee.extractParentMatches(List.of(x), query, coordinatorTxnCtx).matches();
     }
 
     private List<List<Symbol>> analyzeExactX(Symbol query) {
@@ -74,7 +74,7 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private List<List<Symbol>> analyzeExact(Symbol query, List<ColumnIdent> primaryKeys) {
-        return ee.extractExactMatches(primaryKeys, query, coordinatorTxnCtx);
+        return ee.extractMatches(primaryKeys, query, coordinatorTxnCtx).matches();
     }
 
     private Symbol query(String expression) {
