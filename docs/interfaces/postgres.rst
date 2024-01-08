@@ -218,6 +218,7 @@ table available in CrateDB::
     |  600 | point        |     1017 |       0 |     16 | b       | G           |
     |  700 | float4       |     1021 |       0 |      4 | b       | N           |
     |  701 | float8       |     1022 |       0 |      8 | b       | N           |
+    |  705 | unknown      |        0 |       0 |     -2 | p       | X           |
     | 1000 | _bool        |        0 |      16 |     -1 | b       | A           |
     | 1002 | _char        |        0 |      18 |     -1 | b       | A           |
     | 1005 | _int2        |        0 |      21 |     -1 | b       | A           |
@@ -253,7 +254,7 @@ table available in CrateDB::
     | 2277 | anyarray     |        0 |    2276 |     -1 | p       | P           |
     | 2287 | _record      |        0 |    2249 |     -1 | p       | A           |
     +------+--------------+----------+---------+--------+---------+-------------+
-    SELECT 49 rows in set (... sec)
+    SELECT 50 rows in set (... sec)
 
 .. NOTE::
 

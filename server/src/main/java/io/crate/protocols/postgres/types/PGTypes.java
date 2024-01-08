@@ -62,7 +62,7 @@ public class PGTypes {
         .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
         .put(DataTypes.DATE, DateType.INSTANCE)
         .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation
-        .put(DataTypes.UNDEFINED, VarCharType.INSTANCE)
+        .put(DataTypes.UNDEFINED, UnknownType.INSTANCE)
         .put(DataTypes.GEO_SHAPE, JsonType.INSTANCE)
         .put(io.crate.types.JsonType.INSTANCE, JsonType.INSTANCE)
         .put(DataTypes.GEO_POINT, PointType.INSTANCE)
