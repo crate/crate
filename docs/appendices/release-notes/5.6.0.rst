@@ -120,13 +120,6 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
-- Added an optimizer rule ``optimizer_move_limit_beneath_union`` which
-  reduces the number of intermediate rows created when a ``LIMIT`` clause is
-  used in combination with a ``UNION`` operator, by moving the limit beneath
-  the union operator e.g.::
-
-    SELECT a FROM t1 UNION ALL SELECT b FROM t2 LIMIT 10;
-
 - Reduced the amount of disk reads necessary for ``ANALYZE`` operations.
 
 - Improved filter push-down for left/right outer joins when the joins are
