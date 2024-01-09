@@ -78,13 +78,14 @@ SQL Statements
 - Added support for
   :ref:`ALTER TABLE RENAME COLUMN <sql-alter-table-rename-column>` statement.
 
-- Added support for :ref:`CREATE ROLE<ref-create-role>` statement.
+- Added support for :ref:`CREATE ROLE <ref-create-role>` statement. For details
+  see `Administration and Operations`_.
 
-- Added support for :ref:`ALTER ROLE<ref-alter-role>` statement, which is
-  identical to :ref:`ALTER USER<ref-alter-user>` statement.
+- Added support for :ref:`ALTER ROLE <ref-alter-role>` statement, which is
+  identical to :ref:`ALTER USER <ref-alter-user>` statement.
 
-- Added support for :ref:`DROP ROLE<ref-drop-role>` statement, which is
-  identical to :ref:`DROP USER<ref-drop-user>` statement.
+- Added support for :ref:`DROP ROLE <ref-drop-role>` statement, which is
+  identical to :ref:`DROP USER <ref-drop-user>` statement.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
@@ -141,8 +142,13 @@ Performance and Resilience Improvements
       │  └ Collect[doc.b | [b] | (b > 1)] (rows=unknown)
       └ Collect[doc.c | [c] | true] (rows=unknown)
 
+
 Administration and Operations
 -----------------------------
+
+- Added database roles, which can be used to group privileges, and can be
+  granted to users or other roles, thus enabling
+  :ref:`privileges inheritance <roles_inheritance>`.
 
 - Allowed un-indexed columns or columns without doc-values to be queryable.
 
