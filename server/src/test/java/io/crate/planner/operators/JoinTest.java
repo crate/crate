@@ -532,15 +532,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             limit 10
             """);
 
-        assertThat(plan).hasOperators(
-            "Eval[name AS usr]",
-            "  └ Limit[10::bigint;0]",
-            "    └ NestedLoopJoin[CROSS]",
-            "      ├ Limit[10;0]",
-            "      │  └ OrderBy[name ASC]",
-            "      │    └ Collect[doc.users | [name] | true]",
-            "      └ Limit[10;0]",
-            "        └ Collect[doc.t1 | [] | true]"
+        assertThat(plan).isEqualTo(
+            """
+            Eval[name AS usr]
+              └ Limit[10::bigint;0]
+                └ NestedLoopJoin[CROSS]
+                  ├ OrderBy[name ASC]
+                  │  └ Collect[doc.users | [name] | true]
+                  └ Collect[doc.t1 | [] | true]
+            """
         );
     }
 
