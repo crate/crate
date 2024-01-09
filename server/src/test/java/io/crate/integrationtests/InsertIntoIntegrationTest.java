@@ -2025,7 +2025,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     @Test
     @UseNewCluster
     @Repeat(iterations = 100)
-    @UseJdbc(value = 0)
+    @UseJdbc(value = 1)
     public void test_select_non_determinsitic_column_source_value_not_equal_to_regular_select() throws Exception {
         execute("""
             CREATE TABLE tbl (
