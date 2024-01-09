@@ -22,7 +22,9 @@
 package io.crate.integrationtests;
 
 
+
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -284,6 +286,17 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
             }
         }
         waitUntilShardOperationsFinished();
+    }
+
+    @Test
+    public void test_unnest_with_single_nested_array() throws Exception {
+        execute("select x from unnest([[1, 2, 3], [4]]) as t (x)");
+        assertThat(response).hasRows(
+            "1",
+            "2",
+            "3",
+            "4"
+        );
     }
 
     @Override
