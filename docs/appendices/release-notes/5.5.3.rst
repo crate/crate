@@ -49,6 +49,12 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a regression introduced in 4.2.0 that caused queries with ``UNNEST``
+  with a single nested array as parameter to fail with a
+  ``ClassCastException``. For example::
+
+    SELECT x FROM unnest([[1, 2], [3]]) as t (x);
+
 - Fixed an issue that could cause subscript expressions to raise a
   ``ColumnUnknownException`` error despite the object having a defined schema.
   An example case where this happened is::
