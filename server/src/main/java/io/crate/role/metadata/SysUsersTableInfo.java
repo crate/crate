@@ -43,7 +43,7 @@ public class SysUsersTableInfo {
             .add("name", STRING, Role::name)
             .add("superuser", BOOLEAN, Role::isSuperUser)
             .add("password", STRING, x -> x.password() == null ? null : PASSWORD_PLACEHOLDER)
-            .startObjectArray("parents", r -> r.grantedRoles().stream().sorted().toList())
+            .startObjectArray("granted_roles", r -> r.grantedRoles().stream().sorted().toList())
                 .add("role", STRING, GrantedRole::roleName)
                 .add("grantor", STRING, GrantedRole::grantor)
             .endObjectArray()

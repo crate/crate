@@ -39,7 +39,7 @@ public class SysRolesTableInfo {
     public static SystemTable<Role> create() {
         return SystemTable.<Role>builder(IDENT)
             .add("name", STRING, Role::name)
-            .startObjectArray("parents", r -> r.grantedRoles().stream().sorted().toList())
+            .startObjectArray("granted_roles", r -> r.grantedRoles().stream().sorted().toList())
                 .add("role", STRING, GrantedRole::roleName)
                 .add("grantor", STRING, GrantedRole::grantor)
             .endObjectArray()
