@@ -56,8 +56,7 @@ public class Limit extends ForwardingLogicalPlan {
 
     final Symbol limit;
     final Symbol offset;
-    final boolean isPushedBeneathUnion;
-    final boolean isPushedBeneathJoin;
+    final boolean isPushedDown;
 
     static LogicalPlan create(LogicalPlan source, @Nullable Symbol limit, @Nullable Symbol offset) {
         if (limit == null && offset == null) {
@@ -67,17 +66,15 @@ public class Limit extends ForwardingLogicalPlan {
                 source,
                 Objects.requireNonNullElse(limit, Literal.of(-1L)),
                 Objects.requireNonNullElse(offset, Literal.of(0)),
-                false,
                 false);
         }
     }
 
-    public Limit(LogicalPlan source, Symbol limit, Symbol offset, boolean isPushedBeneathUnion, boolean isPushedBeneathJoin) {
+    public Limit(LogicalPlan source, Symbol limit, Symbol offset, boolean isPushedDown) {
         super(source);
         this.limit = limit;
         this.offset = offset;
-        this.isPushedBeneathUnion = isPushedBeneathUnion;
-        this.isPushedBeneathJoin = isPushedBeneathJoin;
+        this.isPushedDown = isPushedDown;
     }
 
     public Symbol limit() {
@@ -88,23 +85,8 @@ public class Limit extends ForwardingLogicalPlan {
         return offset;
     }
 
-    public Literal<Integer> limitAndOffset() {
-        return Literal.of(getAsInteger(offset) + getAsInteger(limit));
-    }
-
-    private Integer getAsInteger(Symbol s) {
-        if (s instanceof Literal<?> literal) {
-            return DataTypes.INTEGER.sanitizeValue(literal.value());
-        }
-        throw new IllegalArgumentException("Invalid value");
-    }
-
-    public boolean isPushedBeneathUnion() {
-        return isPushedBeneathUnion;
-    }
-
-    public boolean isPushedBeneathJoin() {
-        return isPushedBeneathJoin;
+    public boolean isPushedDown() {
+        return isPushedDown;
     }
 
     @Override
@@ -160,7 +142,7 @@ public class Limit extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Limit(Lists2.getOnlyElement(sources), limit, offset, isPushedBeneathUnion, isPushedBeneathJoin);
+        return new Limit(Lists2.getOnlyElement(sources), limit, offset, isPushedDown);
     }
 
     @Override
@@ -171,7 +153,7 @@ public class Limit extends ForwardingLogicalPlan {
         }
         return new FetchRewrite(
             fetchRewrite.replacedOutputs(),
-            new Limit(fetchRewrite.newPlan(), this.limit, this.offset, this.isPushedBeneathUnion, this.isPushedBeneathJoin)
+            new Limit(fetchRewrite.newPlan(), this.limit, this.offset, this.isPushedDown)
         );
     }
 

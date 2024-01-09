@@ -99,7 +99,6 @@ import io.crate.planner.optimizer.rule.MoveFilterBeneathRename;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathUnion;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathWindowAgg;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathEval;
-import io.crate.planner.optimizer.rule.MoveLimitBeneathJoin;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathRename;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathUnion;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathEval;
@@ -148,7 +147,6 @@ public class LogicalPlanner {
         new MoveLimitBeneathRename(),
         new MoveLimitBeneathEval(),
         new MoveLimitBeneathUnion(),
-        new MoveLimitBeneathJoin(),
         new MergeFilterAndCollect(),
         new RewriteFilterOnOuterJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
@@ -219,7 +217,7 @@ public class LogicalPlanner {
             case SINGLE_COLUMN_EXISTS:
                 // Exists only needs to know if there are any rows
                 fetchSize = 1;
-                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(1), Literal.of(0), false, false);
+                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(1), Literal.of(0), false);
                 break;
             case SINGLE_COLUMN_SINGLE_VALUE:
                 // SELECT (SELECT foo FROM t)
@@ -227,7 +225,7 @@ public class LogicalPlanner {
                 // The subquery must return at most 1 row, if more than 1 row is returned semantics require us to throw an error.
                 // So we limit the query to 2 if there is no limit to avoid retrieval of many rows while being able to validate max1row
                 fetchSize = 2;
-                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(2L), Literal.of(0L), false, false);
+                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(2L), Literal.of(0L), false);
                 break;
             case SINGLE_COLUMN_MULTIPLE_VALUES:
             default:
