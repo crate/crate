@@ -32,8 +32,8 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.ColumnUnknownException;
@@ -71,7 +71,7 @@ import io.crate.types.TypeSignature;
  *     <li>obj_array['x']</li>
  * </ul>
  **/
-public class SubscriptFunction extends Scalar<Object, Object[]> {
+public class SubscriptFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "subscript";
 
@@ -148,11 +148,15 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         );
     }
 
-    private final TriFunction<Object, Object, Boolean, Object> lookup;
+    private interface Lookup {
 
-    private SubscriptFunction(Signature signature,
-                              BoundSignature boundSignature,
-                              TriFunction<Object, Object, Boolean, Object> lookup) {
+        @Nullable
+        Object apply(List<DataType<?>> argTypes, Object element, Object index, boolean errorOnUnknownKey);
+    }
+
+    private final Lookup lookup;
+
+    private SubscriptFunction(Signature signature, BoundSignature boundSignature, Lookup lookup) {
         super(signature, boundSignature);
         this.lookup = lookup;
     }
@@ -170,18 +174,18 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
-    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 2 : "invalid number of arguments";
         Object element = args[0].value();
         Object index = args[1].value();
         if (element == null || index == null) {
             return null;
         }
-        return lookup.apply(element, index, txnCtx.sessionSettings().errorOnUnknownObjectKey());
+        return lookup.apply(boundSignature.argTypes(), element, index, txnCtx.sessionSettings().errorOnUnknownObjectKey());
     }
 
-    static Object lookupIntoListObjectsByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
+    static Object lookupIntoListObjectsByName(List<DataType<?>> argTypes, Object base, Object name, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         List<Object> result = new ArrayList<>(values.size());
         for (int i = 0; i < values.size(); i++) {
@@ -191,7 +195,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         return result;
     }
 
-    static Object lookupByNumericIndex(Object base, Object index, boolean errorOnUnknownObjectKey) {
+    static Object lookupByNumericIndex(List<DataType<?>> argTypes, Object base, Object index, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         int idx = ((Number) index).intValue();
         try {
@@ -201,11 +205,18 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         }
     }
 
-    static Object lookupByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
+    static Object lookupByName(List<DataType<?>> argTypes, Object base, Object name, boolean errorOnUnknownObjectKey) {
         if (!(base instanceof Map<?, ?> map)) {
             throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
         }
         if (errorOnUnknownObjectKey && !map.containsKey(name)) {
+            DataType<?> objectArgType = argTypes.get(0);
+            // Type could also be "undefined"
+            if (objectArgType instanceof ObjectType objType) {
+                if (objType.innerTypes().containsKey(name)) {
+                    return null;
+                }
+            }
             throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
         }
         return map.get(name);

@@ -122,7 +122,12 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             if (mapValue == null) {
                 return null;
             }
-            mapValue = SubscriptFunction.lookupByName(mapValue, args[i].value(), txnCtx.sessionSettings().errorOnUnknownObjectKey());
+            mapValue = SubscriptFunction.lookupByName(
+                boundSignature.argTypes(),
+                mapValue,
+                args[i].value(),
+                txnCtx.sessionSettings().errorOnUnknownObjectKey()
+            );
         }
         return mapValue;
     }
