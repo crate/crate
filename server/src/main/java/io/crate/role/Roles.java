@@ -45,14 +45,9 @@ public interface Roles {
                 if (privilege.ident().type() == t) {
                     if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA
                         && OidHash.schemaOid(privilege.ident().ident()) == (Integer) o) {
-
-                        if (privilege.state() == PrivilegeState.DENY || privilege.state() == PrivilegeState.GRANT) {
-                            return privilege.state();
-                        }
+                        return privilege.state();
                     } else if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
-                        if (result == PrivilegeState.REVOKE) {
-                            result = privilege.state();
-                        }
+                        result = privilege.state();
                     }
                 }
             }
