@@ -96,10 +96,10 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         // The sys.users table contains 3 columns, name, password and superuser flag
         executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
         assertThat(response).hasRows(
+            "granted_roles| object_array",
+            "granted_roles['grantor']| text_array",
+            "granted_roles['role']| text_array",
             "name| text",
-            "parents| object_array",
-            "parents['grantor']| text_array",
-            "parents['role']| text_array",
             "password| text",
             "superuser| boolean");
     }
@@ -107,7 +107,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     @Test
     public void testSysUsersTableDefaultUser() {
         // The sys.users table always contains the superuser crate
-        executeAsSuperuser("select * from sys.users where name = 'crate'");
+        executeAsSuperuser("SELECT name, granted_roles, password, superuser FROM sys.users WHERE name = 'crate'");
         assertThat(response).hasRows("crate| []| NULL| true");
     }
 
@@ -120,7 +120,9 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("CREATE ROLE a_role");
         assertRoleIsCreated("a_role");
         execute("GRANT a_role to arthur", null, grantorUserSession);
-        executeAsSuperuser("SELECT * FROM sys.users WHERE superuser = FALSE ORDER BY name");
+        executeAsSuperuser(
+            "SELECT name, granted_roles, password, superuser FROM sys.users " +
+            "WHERE superuser = FALSE ORDER BY name");
         // Every created user is not a superuser
         assertThat(response).hasRows(
             "arthur| [{role=a_role, grantor=the_grantor}]| NULL| false",
@@ -131,10 +133,10 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     public void testSysRolesTableColumns() {
         executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='roles' and table_schema='sys'");
         assertThat(response).hasRows(
-            "name| text",
-            "parents| object_array",
-            "parents['grantor']| text_array",
-            "parents['role']| text_array");
+            "granted_roles| object_array",
+            "granted_roles['grantor']| text_array",
+            "granted_roles['role']| text_array",
+            "name| text");
     }
 
     @Test
@@ -146,7 +148,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("CREATE ROLE role3");
         assertRoleIsCreated("role3");
         execute("GRANT role3, role2 TO role1", null, grantorUserSession);
-        executeAsSuperuser("SELECT * FROM sys.roles ORDER BY name");
+        executeAsSuperuser("SELECT name, granted_roles FROM sys.roles ORDER BY name");
         assertThat(response).hasRows(
             "role1| [{role=role2, grantor=the_grantor}, {role=role3, grantor=the_grantor}]",
             "role2| []",

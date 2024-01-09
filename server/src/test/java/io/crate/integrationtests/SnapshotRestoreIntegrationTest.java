@@ -998,13 +998,13 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("CREATE USER \"John\" WITH (password='johns-password')");
         execute("CREATE USER \"Arthur\"");
         execute("CREATE ROLE \"DummyRole\"");
-        execute("SELECT * FROM sys.users ORDER BY name");
+        execute("SELECT name, granted_roles, password, superuser FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
             "Arthur| []| NULL| false",
             "John| []| ********| false",
             "crate| []| NULL| true");
 
-        execute("SELECT * FROM sys.roles ORDER BY name");
+        execute("SELECT name, granted_roles FROM sys.roles ORDER BY name");
         assertThat(response).hasRows("DummyRole| []");
 
         execute("GRANT AL TO \"DummyRole\"");
@@ -1022,7 +1022,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         // GRANT AL TO "Ford";
         execute("RESTORE SNAPSHOT users_repo.usersnap USERS with (wait_for_completion=true)");
 
-        execute("SELECT * FROM sys.users ORDER BY name");
+        execute("SELECT name, granted_roles, password, superuser FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
             "Arthur| []| ********| false",
             "Ford| []| ********| false",
@@ -1059,7 +1059,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         );
 
         execute("ALTER USER \"John\" SET (password='johns-new-password')");
-        execute("SELECT * FROM sys.users ORDER BY name");
+        execute("SELECT name, granted_roles, password, superuser FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
             "Arthur| []| ********| false",
             "Ford| []| ********| false",

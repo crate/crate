@@ -2154,26 +2154,27 @@ Users
 
 The ``sys.users`` table contains all existing database users in the cluster.
 
-+-----------------------+-------------------------------------+-------------+
-| Column Name           | Description                         | Return Type |
-+=======================+=====================================+=============+
-| ``name``              | The name of the database user.      | ``TEXT``    |
-+-----------------------+-------------------------------------+-------------+
-| ``superuser``         | Flag to indicate whether the user   | ``BOOLEAN`` |
-|                       | is a superuser.                     |             |
-+-----------------------+-------------------------------------+-------------+
-| ``password``          | ``********`` if there is a password | ``TEXT``    |
-|                       | set or ``NULL`` if there is not.    |             |
-+-----------------------+-------------------------------------+-------------+
-| ``parents``           | A list of parent roles granted to   | ``ARRAY``   |
-|                       | the user                            |             |
-+-----------------------+-------------------------------------+-------------+
-| ``parents[role]``     | The name of the role granted to     | ``TEXT``    |
-|                       | the user                            |             |
-+-----------------------+-------------------------------------+-------------+
-| ``parents[grantor]``  | The name of user who granted the    | ``TEXT``    |
-|                       | role to the user                    |             |
-+-----------------------+-------------------------------------+-------------+
++----------------------------+----------------------------------+-------------+
+| Column Name                | Description                      | Return Type |
++============================+==================================+=============+
+| ``name``                   | The name of the database user.   | ``TEXT``    |
++----------------------------+----------------------------------+-------------+
+| ``superuser``              | Flag to indicate whether the     | ``BOOLEAN`` |
+|                            | user is a superuser.             |             |
++----------------------------+----------------------------------+-------------+
+| ``password``               | ``********`` if there is a       | ``TEXT``    |
+|                            | password set or ``NULL`` if      |             |
+|                            | there is not.                    |             |
++----------------------------+----------------------------------+-------------+
+| ``granted_roles``          | A list of parent roles granted   | ``ARRAY``   |
+|                            | to the user                      |             |
++----------------------------+----------------------------------+-------------+
+| ``granted_roles[role]``    | The name of the role granted to  | ``TEXT``    |
+|                            | the user                         |             |
++----------------------------+----------------------------------+-------------+
+| ``granted_roles[grantor]`` | The name of user who granted the | ``TEXT``    |
+|                            | role to the user                 |             |
++----------------------------+----------------------------------+-------------+
 
 .. _sys-roles:
 
@@ -2182,20 +2183,20 @@ Roles
 
 The ``sys.roles`` table contains all existing database roles in the cluster.
 
-+---------------+---------------------------------------------+-------------+
-| Column Name   | Description                                 | Return Type |
-+===============+=============================================+=============+
-| ``name``      | The name of the database user.              | ``TEXT``    |
-+---------------+---------------------------------------------+-------------+
-| ``parents``           | A list of parent roles granted to   | ``ARRAY``   |
-|                       | the user                            |             |
-+-----------------------+-------------------------------------+-------------+
-| ``parents[role]``     | The name of the role granted to     | ``TEXT``    |
-|                       | the user                            |             |
-+-----------------------+-------------------------------------+-------------+
-| ``parents[grantor]``  | The name of user who granted the    | ``TEXT``    |
-|                       | role to the user                    |             |
-+-----------------------+-------------------------------------+-------------+
++----------------------------+----------------------------------+-------------+
+| Column Name                | Description                      | Return Type |
++============================+==================================+=============+
+| ``name``                   | The name of the database user.   | ``TEXT``    |
++----------------------------+----------------------------------+-------------+
+| ``granted_roles``          | A list of parent roles granted   | ``ARRAY``   |
+|                            | to the user                      |             |
++----------------------------+----------------------------------+-------------+
+| ``granted_roles[role]``    | The name of the role granted to  | ``TEXT``    |
+|                            | the user                         |             |
++----------------------------+----------------------------------+-------------+
+| ``granted_roles[grantor]`` | The name of user who granted the | ``TEXT``    |
+|                            | role to the user                 |             |
++----------------------------+----------------------------------+-------------+
 
 .. _sys-allocations:
 

@@ -149,9 +149,9 @@ group privileges.
 
 To list all existing roles query the table::
 
-    cr> SELECT * FROM sys.roles order by name;
+    cr> SELECT name, granted_roles FROM sys.roles order by name;
     +--------+------------------------------------------+
-    | name   | parents                                  |
+    | name   | granted_roles                            |
     +--------+------------------------------------------+
     | role_a | []                                       |
     | role_b | [{"grantor": "crate", "role": "role_c"}] |
@@ -280,9 +280,9 @@ CrateDB clusters is also part of that list.
 
 To list all existing users query the table::
 
-    cr> SELECT * FROM sys.users order by name;
+    cr> SELECT name, granted_roles, password, superuser FROM sys.users order by name;
     +--------+----------------------------------------------------------------------------------+----------+-----------+
-    | name   | parents                                                                          | password | superuser |
+    | name   | granted_roles                                                                    | password | superuser |
     +--------+----------------------------------------------------------------------------------+----------+-----------+
     | crate  | []                                                                               | NULL     | TRUE      |
     | user_a | [{"grantor": "crate", "role": "role_a"}, {"grantor": "crate", "role": "role_b"}] | NULL     | FALSE     |
