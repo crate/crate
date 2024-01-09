@@ -23,7 +23,6 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
@@ -71,7 +70,8 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
 import io.crate.execution.ddl.tables.AddColumnRequest;
-import io.crate.execution.ddl.tables.AddColumnTask;
+import io.crate.execution.ddl.tables.AlterTableTask;
+import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
@@ -131,7 +131,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 clusterService.state(),
                 Version.CURRENT
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), table.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
             AddColumnRequest request = new AddColumnRequest(
                     table.ident(),
                     newColumns,
@@ -943,6 +944,32 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(insertValues).hasSize(2);
         assertThat((Map<String, ?>) insertValues[0]).containsKeys("x", "y");
         assertThat((long) insertValues[1]).isGreaterThanOrEqualTo(now);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_adds_non_deterministic_sub_columns_when_root_is_not_in_targets() throws Exception {
+        long now = System.currentTimeMillis();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    a int,
+                    o object as (
+                        x int as round((random() + 1) * 100)
+                    )
+                )
+                """)
+            .build();
+
+        // Object column "o" is not in the insert targets and value is not provided.
+        Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "a");
+        IndexItem item = item(1);
+
+        assertThat(indexer.hasUndeterministicSynthetics()).isTrue();
+        Object[] insertValues = indexer.addGeneratedValues(item);
+        assertThat(insertValues).hasSize(2);
+        Map<String, Object> object = (Map<String, Object>) insertValues[1];
+        assertThat((int) object.get("x")).isGreaterThan(0);
     }
 
     @Test

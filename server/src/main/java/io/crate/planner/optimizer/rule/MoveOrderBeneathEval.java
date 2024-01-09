@@ -41,15 +41,15 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.Util.transpose;
 
-public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
+public final class MoveOrderBeneathEval implements Rule<Order> {
 
-    private final Capture<Eval> fetchCapture;
+    private final Capture<Eval> evalCapture;
     private final Pattern<Order> pattern;
 
-    public MoveOrderBeneathFetchOrEval() {
-        this.fetchCapture = new Capture<>();
+    public MoveOrderBeneathEval() {
+        this.evalCapture = new Capture<>();
         this.pattern = typeOf(Order.class)
-            .with(source(), typeOf(Eval.class).capturedAs(fetchCapture));
+            .with(source(), typeOf(Eval.class).capturedAs(evalCapture));
     }
 
     @Override
@@ -64,11 +64,11 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        Eval eval = captures.get(fetchCapture);
-        List<Symbol> outputsOfSourceOfFetch = eval.source().outputs();
+        Eval eval = captures.get(evalCapture);
+        List<Symbol> outputsOfSourceOfEval = eval.source().outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();
-        if (outputsOfSourceOfFetch.containsAll(orderBySymbols)
-            || outputsOfSourceOfFetch.containsAll(extractColumns(orderBySymbols))) {
+        if (outputsOfSourceOfEval.containsAll(orderBySymbols)
+            || outputsOfSourceOfEval.containsAll(extractColumns(orderBySymbols))) {
             return transpose(plan, eval);
         }
         return null;

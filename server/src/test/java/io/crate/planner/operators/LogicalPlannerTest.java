@@ -429,14 +429,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_limit_on_join_is_rewritten_to_query_then_fetch() {
         LogicalPlan plan = plan("SELECT * FROM t1, t2 LIMIT 3");
-        assertThat(plan).isEqualTo(
-            """
-            Fetch[a, x, i, b, y, i]
-              └ Limit[3::bigint;0]
-                └ NestedLoopJoin[CROSS]
-                  ├ Collect[doc.t1 | [_fetchid] | true]
-                  └ Collect[doc.t2 | [_fetchid] | true]
-            """
+        assertThat(plan).hasOperators(
+            "Fetch[a, x, i, b, y, i]",
+            "  └ Limit[3::bigint;0]",
+            "    └ NestedLoopJoin[CROSS]",
+            "      ├ Limit[3;0]",
+            "      │  └ Collect[doc.t1 | [_fetchid] | true]",
+            "      └ Limit[3;0]",
+            "        └ Collect[doc.t2 | [_fetchid] | true]"
         );
     }
 
@@ -551,18 +551,18 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             LIMIT 10
             """
         );
-        assertThat(plan).isEqualTo(
-            """
-            Fetch[generate_series, i, aliased]
-              └ Limit[10::bigint;0]
-                └ NestedLoopJoin[CROSS]
-                  ├ TableFunction[generate_series | [generate_series] | true]
-                  └ Rename[v._fetchid, aliased] AS v
-                    └ Eval[_fetchid, y AS aliased]
-                      └ HashJoin[(x = y)]
-                        ├ Collect[doc.t1 | [_fetchid, x] | true]
-                        └ Collect[doc.t2 | [y] | true]
-            """
+        assertThat(plan).hasOperators(
+            "Fetch[generate_series, i, aliased]",
+            "  └ Limit[10::bigint;0]",
+            "    └ NestedLoopJoin[CROSS]",
+            "      ├ Limit[10;0]",
+            "      │  └ TableFunction[generate_series | [generate_series] | true]",
+            "      └ Rename[v._fetchid, aliased] AS v",
+            "        └ Eval[_fetchid, y AS aliased]",
+            "          └ Limit[10;0]",
+            "            └ HashJoin[(x = y)]",
+            "              ├ Collect[doc.t1 | [_fetchid, x] | true]",
+            "              └ Collect[doc.t2 | [y] | true]"
         );
     }
 

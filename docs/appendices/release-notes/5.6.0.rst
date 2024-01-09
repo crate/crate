@@ -78,8 +78,20 @@ SQL Statements
 - Added support for
   :ref:`ALTER TABLE RENAME COLUMN <sql-alter-table-rename-column>` statement.
 
+- Added support for :ref:`CREATE ROLE<ref-create-role>` statement.
+
+- Added support for :ref:`ALTER ROLE<ref-alter-role>` statement, which is
+  identical to :ref:`ALTER USER<ref-alter-user>` statement.
+
+- Added support for :ref:`DROP ROLE<ref-drop-role>` statement, which is
+  identical to :ref:`DROP USER<ref-drop-user>` statement.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
+
+- Added a ``unknown`` type for serialization via the PostgreSQL wire protocol
+  and to the ``pg_catalog.pg_type`` table. This should resolve compatibility
+  issues with ``npgsql`` >= 8.0.
 
 - Added an empty ``pg_catalog.pg_depend`` table.
 
@@ -97,10 +109,20 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- Updated the ``tdigest`` library which results in the ``percentile``
+  aggregation function to behave differently in some cases. For example, the
+  following query used to return ``4.5`` but will now return ``5.0``::
+
+    SELECT percentile(x, 0.5) FROM generate_series(0, 9, 1) AS t (x) ;
+
 
 Performance and Resilience Improvements
 ---------------------------------------
+
+- Added an optimizer rule ``optimizer_move_limit_beneath_join`` which
+  reduces the number of intermediate rows created when a ``LIMIT`` clause is
+  used in combination with a left/right/cross ``JOIN`` operator, by moving
+  the limit beneath the join.
 
 - Added an optimizer rule ``optimizer_move_limit_beneath_union`` which
   reduces the number of intermediate rows created when a ``LIMIT`` clause is
@@ -136,3 +158,6 @@ Administration and Operations
 
 - Added :ref:`sys.roles<sys-roles>` table which contains all database roles
   defined in the cluster.
+
+- Added ``parents`` column to :ref:`sys.users<sys-users>` table which lists the
+  roles granted to a user, together with the user that granted each role.

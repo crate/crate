@@ -99,14 +99,15 @@ import io.crate.planner.optimizer.rule.MoveFilterBeneathRename;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathUnion;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathWindowAgg;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathEval;
+import io.crate.planner.optimizer.rule.MoveLimitBeneathJoin;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathRename;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathUnion;
-import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
-import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
+import io.crate.planner.optimizer.rule.RemoveRedundantEval;
 import io.crate.planner.optimizer.rule.ReorderHashJoin;
 import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
@@ -131,7 +132,7 @@ public class LogicalPlanner {
 
     // Be careful, the order of the rules matter
     public static final List<Rule<?>> ITERATIVE_OPTIMIZER_RULES = List.of(
-        new RemoveRedundantFetchOrEval(),
+        new RemoveRedundantEval(),
         new MergeAggregateAndCollectToCount(),
         new MergeAggregateRenameAndCollectToCount(),
         new MergeFilters(),
@@ -147,11 +148,12 @@ public class LogicalPlanner {
         new MoveLimitBeneathRename(),
         new MoveLimitBeneathEval(),
         new MoveLimitBeneathUnion(),
+        new MoveLimitBeneathJoin(),
         new MergeFilterAndCollect(),
         new RewriteFilterOnOuterJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
         new MoveOrderBeneathNestedLoop(),
-        new MoveOrderBeneathFetchOrEval(),
+        new MoveOrderBeneathEval(),
         new MoveOrderBeneathRename(),
         new DeduplicateOrder(),
         new OptimizeCollectWhereClauseAccess(),
@@ -168,7 +170,7 @@ public class LogicalPlanner {
     );
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
-        new RemoveRedundantFetchOrEval(),
+        new RemoveRedundantEval(),
         new RewriteToQueryThenFetch()
     );
 
@@ -217,7 +219,7 @@ public class LogicalPlanner {
             case SINGLE_COLUMN_EXISTS:
                 // Exists only needs to know if there are any rows
                 fetchSize = 1;
-                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(1), Literal.of(0), false);
+                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(1), Literal.of(0), false, false);
                 break;
             case SINGLE_COLUMN_SINGLE_VALUE:
                 // SELECT (SELECT foo FROM t)
@@ -225,7 +227,7 @@ public class LogicalPlanner {
                 // The subquery must return at most 1 row, if more than 1 row is returned semantics require us to throw an error.
                 // So we limit the query to 2 if there is no limit to avoid retrieval of many rows while being able to validate max1row
                 fetchSize = 2;
-                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(2L), Literal.of(0L), false);
+                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(2L), Literal.of(0L), false, false);
                 break;
             case SINGLE_COLUMN_MULTIPLE_VALUES:
             default:

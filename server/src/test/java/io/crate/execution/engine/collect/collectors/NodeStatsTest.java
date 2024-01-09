@@ -23,8 +23,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -84,9 +83,7 @@ public class NodeStatsTest extends ESTestCase {
     @Before
     public void prepare() {
         nodeStatsAction = mock(TransportNodeStatsAction.class);
-        nodeStatesExecutor = req -> {
-            return nodeStatsAction.execute(req);
-        };
+        nodeStatesExecutor = req -> nodeStatsAction.execute(req);
 
         idRef = new SimpleReference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
@@ -174,6 +171,7 @@ public class NodeStatsTest extends ESTestCase {
 
         ArgumentCaptor<NodeStatsRequest> req = ArgumentCaptor.forClass(NodeStatsRequest.class);
         // Hostnames needs to be collected so requests need to be performed
+        //noinspection unchecked
         verify(nodeStatsAction, times(2)).doExecute(req.capture(), any(ActionListener.class));
         var capturedReq1 = req.getAllValues().get(0);
         var capturedReq2 = req.getAllValues().get(1);
@@ -181,9 +179,9 @@ public class NodeStatsTest extends ESTestCase {
         assertThat(req.getAllValues().stream()
                        .map(NodeStatsRequest::nodeId)
                        .sorted()
-                       .collect(Collectors.toList()), is(List.of("nodeOne", "nodeTwo")));
-        assertThat(capturedReq1.timeout(), is(TimeValue.timeValueMillis(3000L)));
-        assertThat(capturedReq2.timeout(), is(TimeValue.timeValueMillis(3000L)));
+                       .collect(Collectors.toList())).containsExactly("nodeOne", "nodeTwo");
+        assertThat(capturedReq1.timeout()).isEqualTo(TimeValue.timeValueMillis(3000L));
+        assertThat(capturedReq2.timeout()).isEqualTo(TimeValue.timeValueMillis(3000L));
 
         verifyNoMoreInteractions(nodeStatsAction);
     }

@@ -21,9 +21,13 @@
 
 package io.crate.role;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -41,20 +45,22 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 @Singleton
 public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
 
     private static final String ACTION_NAME = "internal:crate:sql/privileges/grant";
 
+    private final Roles roles;
+
     @Inject
     public TransportPrivilegesAction(TransportService transportService,
                                      ClusterService clusterService,
+                                     Roles roles,
                                      ThreadPool threadPool) {
         super(
             ACTION_NAME,
@@ -63,6 +69,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
             threadPool,
             PrivilegesRequest::new
         );
+        this.roles = roles;
     }
 
     @Override
@@ -91,61 +98,102 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         }
 
         clusterService.submitStateUpdateTask("grant_privileges",
-            new AckedClusterStateUpdateTask<PrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
+                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
 
-                long affectedRows = -1;
-                List<String> unknownUserNames = null;
+                    ApplyPrivsResult result = null;
 
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                    unknownUserNames = validateUserNames(currentMetadata, request.userNames());
-                    if (unknownUserNames.isEmpty()) {
-                        affectedRows = applyPrivileges(mdBuilder, request);
+                    @Override
+                    public ClusterState execute(ClusterState currentState) throws Exception {
+                        Metadata currentMetadata = currentState.metadata();
+                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
+
+                        result = applyPrivileges(roles, mdBuilder, request);
+                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                }
 
-                @Override
-                protected PrivilegesResponse newResponse(boolean acknowledged) {
-                    return new PrivilegesResponse(acknowledged, affectedRows, unknownUserNames);
-                }
-            });
+                    @Override
+                    protected PrivilegesResponse newResponse(boolean acknowledged) {
+                        return new PrivilegesResponse(acknowledged, result.affectedRows, result.unknownRoleNames);
+                    }
+                });
 
     }
 
     @VisibleForTesting
-    static List<String> validateUserNames(Metadata metadata, Collection<String> userNames) {
-        RolesMetadata rolesMetadata = metadata.custom(RolesMetadata.TYPE);
+    static List<String> validateRoleNames(RolesMetadata rolesMetadata, Collection<String> roleNames) {
         if (rolesMetadata == null) {
-            return new ArrayList<>(userNames);
+            return new ArrayList<>(roleNames);
         }
-        List<String> unknownUserNames = null;
-        for (String userName : userNames) {
+        List<String> unknownRoleNames = null;
+        for (String roleName : roleNames) {
             //noinspection PointlessBooleanExpression
-            if (rolesMetadata.roleNames().contains(userName) == false) {
-                if (unknownUserNames == null) {
-                    unknownUserNames = new ArrayList<>();
+            if (rolesMetadata.roleNames().contains(roleName) == false) {
+                if (unknownRoleNames == null) {
+                    unknownRoleNames = new ArrayList<>();
                 }
-                unknownUserNames.add(userName);
+                unknownRoleNames.add(roleName);
             }
         }
-        if (unknownUserNames == null) {
+        if (unknownRoleNames == null) {
             return Collections.emptyList();
         }
-        return unknownUserNames;
+        return unknownRoleNames;
     }
 
     @VisibleForTesting
-    static long applyPrivileges(Metadata.Builder mdBuilder,
-                                PrivilegesRequest request) {
-        // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersPrivilegesMetadata newMetadata = UsersPrivilegesMetadata.copyOf(
-            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
+    static ApplyPrivsResult applyPrivileges(Roles roles, Metadata.Builder mdBuilder, PrivilegesRequest request) {
+        var oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
+        var oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
 
-        long affectedRows = newMetadata.applyPrivileges(request.userNames(), request.privileges());
-        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, newMetadata);
-        return affectedRows;
+        RolesMetadata newMetadata = RolesMetadata.of(
+            mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
+
+        List<String> unknownRoleNames = validateRoleNames(newMetadata, request.roleNames());
+        long affectedRows = -1;
+        if (unknownRoleNames.isEmpty()) {
+            if (request.privileges().isEmpty() == false) {
+                affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.roleNames(), request.privileges());
+            } else {
+                unknownRoleNames = validateRoleNames(newMetadata, request.rolePrivilege().roleNames());
+                if (unknownRoleNames.isEmpty()) {
+                    validateIsNotUser(roles, request.rolePrivilege());
+                    detectCyclesInRolesHierarchy(roles, request);
+                    affectedRows = newMetadata.applyRolePrivileges(request.roleNames(), request.rolePrivilege());
+                }
+            }
+        }
+
+        if (newMetadata.equals(oldRolesMetadata) == false) {
+            mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
+        }
+
+        return new ApplyPrivsResult(affectedRows, unknownRoleNames);
     }
+
+    private static void validateIsNotUser(Roles roles, RolePrivilegeToApply rolePrivilegeToApply) {
+        for (String roleNameToApply : rolePrivilegeToApply.roleNames()) {
+            if (roles.findRole(roleNameToApply).isUser()) {
+                throw new IllegalArgumentException("Cannot " + rolePrivilegeToApply.state().name() + " a USER to a ROLE");
+            }
+        }
+    }
+
+    @VisibleForTesting
+    static void detectCyclesInRolesHierarchy(Roles roles, PrivilegesRequest request) {
+        if (request.rolePrivilege().state() == PrivilegeState.GRANT) {
+            for (var roleNameToGrant : request.rolePrivilege().roleNames()) {
+                Set<String> parentsOfRoleToGrant = roles.findAllParents(roleNameToGrant);
+                for (var grantee : request.roleNames()) {
+                    if (parentsOfRoleToGrant.contains(grantee)) {
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                            "Cannot grant role %s to %s, %s is a parent role of %s and a cycle will " +
+                                "be created", roleNameToGrant, grantee, grantee, roleNameToGrant));
+                    }
+                }
+            }
+        }
+    }
+
+    record ApplyPrivsResult(long affectedRows, List<String> unknownRoleNames) {}
 }

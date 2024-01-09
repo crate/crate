@@ -22,6 +22,7 @@
 package io.crate.role;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Locale;
 
 import org.elasticsearch.Version;
@@ -136,25 +137,33 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
     }
 
     @VisibleForTesting
-    static boolean dropRole(Metadata.Builder mdBuilder, String roleName) {
+    static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        if ((oldUsersMetadata == null || !oldUsersMetadata.contains(roleName)) &&
-            (oldRolesMetadata == null || !oldRolesMetadata.contains(roleName))) {
+        if (oldUsersMetadata == null && oldRolesMetadata == null) {
             return false;
         }
-        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldRolesMetadata);
-        newMetadata.remove(roleName);
+
+        UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
+        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
+        validateHasChildren(newMetadata.roles().values(), roleNameToDrop);
+        var role = newMetadata.remove(roleNameToDrop);
+        if (role == null && newMetadata.equals(oldRolesMetadata)) {
+            return false;
+        }
 
         assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
 
-        // removes all privileges for this user/role
-        UsersPrivilegesMetadata privilegesMetadata = UsersPrivilegesMetadata.copyOf(
-            (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE));
-        privilegesMetadata.dropPrivileges(roleName);
-        mdBuilder.putCustom(UsersPrivilegesMetadata.TYPE, privilegesMetadata);
+        return role != null;
+    }
 
-        return true;
+    private static void validateHasChildren(Collection<Role> roles, String roleNameToDrop) {
+        for (Role role : roles) {
+            if (role.grantedRoleNames().contains(roleNameToDrop)) {
+                throw new IllegalArgumentException(
+                    "Cannot drop ROLE: " + roleNameToDrop + " as it is granted on role: " + role.name());
+            }
+        }
     }
 }

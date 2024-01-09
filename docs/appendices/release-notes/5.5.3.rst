@@ -49,4 +49,28 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a regression introduced in 5.5.0 which caused subscript expressions on
+  object arrays to fail in some cases. For example, the following case failed
+  with a ``ClassCastException``::
+
+    CREATE TABLE tbl (obj ARRAY(OBJECT(STRICT) AS (x BIGINT)));
+    INSERT INTO tbl VALUES ([{x = 1}]);
+    SELECT unnest(obj)['x'] FROM tbl;
+
+- Fixed an issue that caused ``UPDATE`` and ``DELETE`` statements to match
+  records if the ``WHERE`` clause contained an equality condition on all primary
+  keys, and it included an additional clause in an ``AND`` that should have
+  evaluated to ``FALSE``.
+
+- Fixed a regression introduced in 5.3.0 that caused storing an object as
+  ``NULL`` if object had generated sub-columns and the object column wasn't
+  part of the ``INSERT`` targets. An object with generated sub-columns is
+  stored now.
+
+- Fixed a regression introduced in 5.3.0 that caused failure for ``INSERT``
+  statements if a target table had 1 or more replicas, an object column with
+  non-deterministic generated or default sub-column and the object column
+  wasn't part of the ``INSERT`` targets.
+
+- Fixed a performance regression introduced in 5.5.0 for aggregations on columns
+  with the column store disabled.

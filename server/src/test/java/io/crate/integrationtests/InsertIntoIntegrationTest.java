@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -1992,5 +1991,31 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "2030| 99998.0"
         );
+    }
+
+    @Test
+    public void test_non_deterministic_sub_column_not_included_in_target_cols() {
+        execute("""
+            CREATE TABLE tbl (
+                a int PRIMARY KEY,
+                o1 object as (
+                    sub int as round((random() + 1) * 100)
+                )
+            )
+            """
+        );
+        ensureGreen();
+        execute("INSERT INTO tbl(a) VALUES (1)");
+        refresh();
+
+        execute("SELECT o1['sub'] FROM tbl");
+        int generated = (int) response.rows()[0][0];
+        assertThat(generated).isGreaterThan(0);
+
+        // some iterations to ensure it hits both primary and replica
+        for (int i = 0; i < 10; i++) {
+            execute("SELECT o1['sub'] FROM tbl");
+            assertThat(response.rows()[0][0]).isEqualTo(generated);
+        }
     }
 }

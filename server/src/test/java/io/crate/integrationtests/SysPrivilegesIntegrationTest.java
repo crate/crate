@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,15 +51,8 @@ public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         }
 
         RoleManager roleManager = cluster().getInstance(RoleManager.class);
-        Long rowCount = roleManager.applyPrivileges(USERNAMES, PRIVILEGES).get(5, TimeUnit.SECONDS);
+        Long rowCount = roleManager.applyPrivileges(USERNAMES, PRIVILEGES, null).get(5, TimeUnit.SECONDS);
         assertThat(rowCount).isEqualTo(6);
-    }
-
-    @After
-    public void dropUsersAndPrivileges() {
-        for (String userName : USERNAMES) {
-            executeAsSuperuser("drop user " + userName);
-        }
     }
 
     @Test

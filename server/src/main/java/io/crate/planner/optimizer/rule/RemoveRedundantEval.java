@@ -37,13 +37,13 @@ import java.util.function.Function;
 /**
  * Eliminates any Eval nodes that have the same output as their source
  */
-public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
+public final class RemoveRedundantEval implements Rule<Eval> {
 
     private final Pattern<Eval> pattern;
 
-    public RemoveRedundantFetchOrEval() {
+    public RemoveRedundantEval() {
         this.pattern = typeOf(Eval.class)
-            .with(fetchOrEval -> fetchOrEval.outputs().equals(fetchOrEval.source().outputs()));
+            .with(eval -> eval.outputs().equals(eval.source().outputs()));
     }
 
     @Override

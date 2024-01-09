@@ -29,31 +29,45 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Set;
+
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.testing.Asserts;
-import io.crate.testing.SQLResponse;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
 
+    private Session grantorUserSession;
+
+    private Session createGrantorUserSession() {
+        Sessions sqlOperations = cluster().getInstance(Sessions.class);
+        var alPriv = new Privilege(
+            PrivilegeState.GRANT,
+            Privilege.Type.AL,
+            Privilege.Clazz.CLUSTER,
+            null,
+            "crate");
+        return sqlOperations.newSession(null, RolesHelper.userOf("the_grantor", Set.of(alPriv), null));
+    }
+
+    @Before
+    public void setUpAdditionalSessions() {
+        grantorUserSession = createGrantorUserSession();
+    }
+
     @After
-    public void dropAllUsersAndRoles() {
-        // clean all created users
-        executeAsSuperuser("SELECT name FROM sys.users WHERE superuser = FALSE");
-        for (Object[] objects : response.rows()) {
-            String user = (String) objects[0];
-            executeAsSuperuser("DROP USER " + user);
-        }
-        // clean all created roles
-        executeAsSuperuser("SELECT name FROM sys.roles");
-        for (Object[] objects : response.rows()) {
-            String role = (String) objects[0];
-            executeAsSuperuser("DROP ROLE " + role);
-        }
+    public void closeAdditionalSessions() {
+        grantorUserSession.close();
     }
 
     @Test
@@ -82,16 +96,19 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         // The sys.users table contains 3 columns, name, password and superuser flag
         executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
         assertThat(response).hasRows(
-                "name| text",
-                "password| text",
-                "superuser| boolean");
+            "name| text",
+            "parents| object_array",
+            "parents['grantor']| text_array",
+            "parents['role']| text_array",
+            "password| text",
+            "superuser| boolean");
     }
 
     @Test
     public void testSysUsersTableDefaultUser() {
         // The sys.users table always contains the superuser crate
-        executeAsSuperuser("select name, password, superuser from sys.users where name = 'crate'");
-        assertThat(response).hasRows("crate| NULL| true");
+        executeAsSuperuser("select * from sys.users where name = 'crate'");
+        assertThat(response).hasRows("crate| []| NULL| true");
     }
 
     @Test
@@ -100,18 +117,24 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         assertUserIsCreated("arthur");
         executeAsSuperuser("CREATE USER ford WITH (password = 'foo')");
         assertUserIsCreated("ford");
-        executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
+        executeAsSuperuser("CREATE ROLE a_role");
+        assertRoleIsCreated("a_role");
+        execute("GRANT a_role to arthur", null, grantorUserSession);
+        executeAsSuperuser("SELECT * FROM sys.users WHERE superuser = FALSE ORDER BY name");
         // Every created user is not a superuser
         assertThat(response).hasRows(
-                "arthur| NULL| false",
-                "ford| ********| false");
+            "arthur| [{role=a_role, grantor=the_grantor}]| NULL| false",
+            "ford| []| ********| false");
     }
 
     @Test
     public void testSysRolesTableColumns() {
-        // The sys.roles table contains one column
         executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='roles' and table_schema='sys'");
-        assertThat(response).hasRows("name| text");
+        assertThat(response).hasRows(
+            "name| text",
+            "parents| object_array",
+            "parents['grantor']| text_array",
+            "parents['role']| text_array");
     }
 
     @Test
@@ -120,10 +143,15 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         assertRoleIsCreated("role1");
         executeAsSuperuser("CREATE ROLE role2");
         assertRoleIsCreated("role2");
+        executeAsSuperuser("CREATE ROLE role3");
+        assertRoleIsCreated("role3");
+        execute("GRANT role3, role2 TO role1", null, grantorUserSession);
         executeAsSuperuser("SELECT * FROM sys.roles ORDER BY name");
         assertThat(response).hasRows(
-            "role1",
-            "role2");
+            "role1| [{role=role2, grantor=the_grantor}, {role=role3, grantor=the_grantor}]",
+            "role2| []",
+            "role3| []"
+        );
     }
 
     @Test
@@ -142,8 +170,8 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("ALTER USER ford SET (password = ?)", new Object[]{"pass"});
         executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
         assertThat(response).hasRows(
-                "arthur| ********| false",
-                "ford| ********| false");
+            "arthur| ********| false",
+            "ford| ********| false");
     }
 
     @Test
@@ -244,23 +272,5 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4004)
             .hasMessageContaining("Cannot drop a superuser 'crate'");
-    }
-
-    private void assertUserIsCreated(String userName) {
-        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
-            new Object[]{userName});
-        assertThat(response).hasRows("1");
-    }
-
-    private void assertRoleIsCreated(String roleName) {
-        SQLResponse response = executeAsSuperuser("select count(*) from sys.roles where name = ?",
-            new Object[]{roleName});
-        assertThat(response).hasRows("1");
-    }
-
-    private void assertUserDoesntExist(String userName) {
-        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
-            new Object[]{userName});
-        assertThat(response).hasRows("0");
     }
 }

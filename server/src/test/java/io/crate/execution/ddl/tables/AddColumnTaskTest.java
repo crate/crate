@@ -67,7 +67,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("x"));
             SimpleReference newColumn = new SimpleReference(
                 refIdent,
@@ -123,7 +124,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
             ReferenceIdent shapesIdent = new ReferenceIdent(tbl.ident(), "shapes");
 
             Reference geoShapeArrayRef = new GeoReference(
@@ -194,7 +196,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             state,
             Version.CURRENT
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
             SimpleReference newColumn = new SimpleReference(
                 refIdent,
@@ -228,7 +231,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             state,
             Version.CURRENT
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
             ReferenceIdent refIdent1 = new ReferenceIdent(tbl.ident(), "y");
             ReferenceIdent refIdent2 = new ReferenceIdent(tbl.ident(), "x");
             SimpleReference newColumn1 = new SimpleReference(
@@ -271,7 +275,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             state,
             Version.CURRENT
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
             SimpleReference newColumn1 = new SimpleReference(
                 new ReferenceIdent(tbl.ident(), "y"),
                 RowGranularity.DOC,
@@ -308,7 +313,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.V_5_4_0
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
 
             SimpleReference colToAdd = new SimpleReference(
                 new ReferenceIdent(tbl.ident(), "y"),
@@ -346,7 +352,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.V_5_4_0
         )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var addColumnTask = new AlterTableTask<>(
+                e.nodeCtx, imd -> indexEnv.mapperService(), tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
             SimpleReference colToAdd = new SimpleReference(
                 new ReferenceIdent(tbl.ident(), "i"),
                 RowGranularity.DOC,

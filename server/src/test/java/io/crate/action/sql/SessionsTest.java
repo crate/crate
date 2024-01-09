@@ -108,7 +108,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             null,
             "crate"
         );
-        Role admin = new Role("admin", true, Set.of(ALprivilege), null, Set.of());
+        Role admin = RolesHelper.userOf("admin", Set.of(ALprivilege), null);
         assertThat(sessions.getCursors(admin)).hasSize(2);
     }
 

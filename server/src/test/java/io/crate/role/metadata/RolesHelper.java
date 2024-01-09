@@ -26,13 +26,18 @@ import static io.crate.testing.Asserts.assertThat;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.settings.SecureString;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.role.GrantedRole;
 import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
 import io.crate.role.SecureHash;
 
@@ -66,6 +71,15 @@ public final class RolesHelper {
         DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD.put("DummyRole", roleOf("DummyRole"));
     }
 
+    public static final Map<String, Set<Privilege>> OLD_DUMMY_USERS_PRIVILEGES = Map.of(
+        "Ford", Set.of(
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "doc", "crate")
+        ),
+        "Arthur", Set.of(
+            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "doc", "crate")
+        ));
+
     public static UsersMetadata usersMetadataOf(Map<String, Role> users) {
         Map<String, SecureHash> map = new HashMap<>(users.size());
         for (var user : users.entrySet()) {
@@ -95,10 +109,35 @@ public final class RolesHelper {
     }
 
     public static Role userOf(String name, Set<Privilege> privileges, @Nullable SecureHash password) {
-        return new Role(name, true, privileges, password, Set.of());
+        return new Role(name, true, privileges, Set.of(), password);
+    }
+
+    public static Role userOf(String name, Set<Privilege> privileges, Set<GrantedRole> grantedRoles, @Nullable SecureHash password) {
+        return new Role(name, true, privileges, grantedRoles, password);
     }
 
     public static Role roleOf(String name) {
-        return new Role(name, false, Set.of(), null, Set.of());
+        return new Role(name, false, Set.of(), Set.of(), null);
+    }
+
+    public static Role roleOf(String name, Set<Privilege> privileges, List<String> grantedRoles) {
+        return new Role(name, false, privileges, buildGrantedRoles(grantedRoles), null);
+    }
+
+    public static Role roleOf(String name, Set<Privilege> privileges) {
+        return new Role(name, false, privileges, Set.of(), null);
+    }
+
+    public static Role roleOf(String name, List<String> grantedRoles) {
+        return new Role(name, false, Set.of(), buildGrantedRoles(grantedRoles), null);
+    }
+
+    @NotNull
+    private static Set<GrantedRole> buildGrantedRoles(List<String> grantedRoles) {
+        Set<GrantedRole> parents = new LinkedHashSet<>(grantedRoles.size());
+        for (var grantedRole : grantedRoles) {
+            parents.add(new GrantedRole(grantedRole, "theGrantor"));
+        }
+        return parents;
     }
 }

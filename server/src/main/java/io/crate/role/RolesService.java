@@ -24,6 +24,7 @@ package io.crate.role;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,6 +35,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.FourFunction;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -63,6 +65,12 @@ public class RolesService implements Roles, ClusterStateListener {
     }
 
     @Override
+    @Nullable
+    public Role findRole(String roleName) {
+        return roles.get(roleName);
+    }
+
+    @Override
     public void clusterChanged(ClusterChangedEvent event) {
         Metadata prevMetadata = event.previousState().metadata();
         Metadata newMetadata = event.state().metadata();
@@ -89,34 +97,78 @@ public class RolesService implements Roles, ClusterStateListener {
         if (usersMetadata != null) {
             for (Map.Entry<String, SecureHash> user: usersMetadata.users().entrySet()) {
                 String userName = user.getKey();
-                SecureHash password = user.getValue();
                 Set<Privilege> privileges = Set.of();
                 if (privilegesMetadata != null) {
-                    privileges = privilegesMetadata.getUserPrivileges(userName);
-                    if (privileges == null) {
-                        // create empty set
-                        privileges = Set.of();
-                        privilegesMetadata.createPrivileges(userName, privileges);
+                    var oldPrivileges = privilegesMetadata.getUserPrivileges(userName);
+                    if (oldPrivileges != null) {
+                        privileges = oldPrivileges;
                     }
                 }
-                roles.put(userName, new Role(userName, true, privileges, password, Set.of()));
+                roles.put(userName, new Role(userName, true, privileges, Set.of(), user.getValue()));
             }
         } else if (rolesMetadata != null) {
-            for (Map.Entry<String, Role> role: rolesMetadata.roles().entrySet()) {
-                String userName = role.getKey();
-                SecureHash password = role.getValue().password();
-                Set<Privilege> privileges = Set.of();
-                if (privilegesMetadata != null) {
-                    privileges = privilegesMetadata.getUserPrivileges(userName);
-                    if (privileges == null) {
-                        // create empty set
-                        privileges = Set.of();
-                        privilegesMetadata.createPrivileges(userName, privileges);
-                    }
-                }
-                roles.put(userName, new Role(userName, role.getValue().isUser(), privileges, password, Set.of()));
-            }
+            roles.putAll(rolesMetadata.roles());
         }
         return Collections.unmodifiableMap(roles);
+    }
+
+    @Override
+    public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+        return hasPrivilege(user, type, clazz, ident, HAS_PRIVILEGE_FUNCTION);
+    }
+
+    @Override
+    public boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
+        return hasPrivilege(user, null, clazz, ident, HAS_ANY_PRIVILEGE_FUNCTION);
+    }
+
+    @Override
+    public boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
+        return user.isSuperUser() || hasPrivilege(user, type, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION);
+    }
+
+    private boolean hasPrivilege(Role role,
+                                 Privilege.Type type,
+                                 @Nullable Privilege.Clazz clazz,
+                                 @Nullable Object object,
+                                 FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> function) {
+        boolean hasPriv = role.isSuperUser() || function.apply(role, type, clazz, object);
+        if (hasPriv) {
+            return true;
+        }
+
+        Set<String> rolesToVisit = new LinkedHashSet<>(role.grantedRoleNames());
+
+        var iter = rolesToVisit.iterator();
+        while (iter.hasNext()) {
+            String roleName = iter.next();
+            Set<String> result = hasPrivilegeOrParents(roleName, type, clazz, object, function);
+            if (result == null) {
+                return true;
+            }
+            iter.remove();
+            rolesToVisit.addAll(result);
+            iter = rolesToVisit.iterator();
+        }
+        return false;
+    }
+
+    /**
+     * @return null if privilege is resolved, or else the parents of the role
+     */
+    private Set<String> hasPrivilegeOrParents(
+        String roleName,
+        Privilege.Type type,
+        @Nullable Privilege.Clazz clazz,
+        @Nullable Object object,
+        FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, Boolean> function) {
+
+        Role grantedRole = findRole(roleName);
+        assert grantedRole != null : "grantedRole must exist";
+        boolean hasPriv = function.apply(grantedRole, type, clazz, object);
+        if (hasPriv) {
+            return null;
+        }
+        return grantedRole.grantedRoleNames();
     }
 }

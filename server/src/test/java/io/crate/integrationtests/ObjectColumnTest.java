@@ -348,21 +348,49 @@ public class ObjectColumnTest extends IntegTestCase {
             create table tbl (
                 id int,
                 o object as (
-                    key text default 'd'
+                    key text default 'synth'
                 ),
                 os array(object as (
-                    x text default 'd',
+                    x text default 'synth',
                     y text
                 )),
                 complex object as (
                     os array(object as (
-                        key text default 'd'
+                        key text default 'synth'
                     )),
-                    x text default 'd'
+                    x text default 'synth'
                 )
             )
             """
         );
+        execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets();
+    }
+
+    @Test
+    public void test_generated_columns_in_object_result_in_object_creation_if_missing_from_insert() throws Exception {
+        execute("""
+            create table tbl (
+                id int,
+                o object as (
+                    key text as 'synth'
+                ),
+                os array(object as (
+                    x text as 'synth',
+                    y text
+                )),
+                complex object as (
+                    os array(object as (
+                        key text as 'synth'
+                    )),
+                    x text as 'synth'
+                )
+            )
+            """
+        );
+        execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets();
+    }
+
+    private void execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets() {
         execute("insert into tbl (id) values (1)");
         assertThat(response).hasRowCount(1);
 
@@ -374,9 +402,9 @@ public class ObjectColumnTest extends IntegTestCase {
 
         execute("refresh table tbl");
         assertThat(execute("select id, o, os, complex from tbl order by 1 asc")).hasRows(
-            "1| {key=d}| NULL| {x=d}",
-            "2| {key=d}| [{x=d}, null, {x=d, y=10}, {x=1, y=2}]| {x=d}",
-            "3| {key=d}| NULL| {os=[{key=d}, null], x=d}"
+            "1| {key=synth}| NULL| {x=synth}",
+            "2| {key=synth}| [{x=synth}, null, {x=synth, y=10}, {x=1, y=2}]| {x=synth}",
+            "3| {key=synth}| NULL| {os=[{key=synth}, null], x=synth}"
         );
     }
 

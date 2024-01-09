@@ -25,12 +25,16 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
-public class Privilege implements Writeable {
+public class Privilege implements Writeable, ToXContent {
 
     public enum Type {
         DQL,
@@ -55,6 +59,72 @@ public class Privilege implements Writeable {
         public static final List<Clazz> VALUES = List.of(values());
     }
 
+    /**
+     * A Privilege is stored in the form of:
+     * <p>
+     *   {"state": 1, "type": 2, "class": 3, "ident": "some_table/schema", "grantor": "grantor_username"}
+     */
+    public static Privilege fromXContent(XContentParser parser) throws IOException {
+        if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
+            throw new ElasticsearchParseException(
+                "failed to parse privilege, expected a START_OBJECT token but got [{}]",
+                parser.currentToken());
+        }
+
+        XContentParser.Token currentToken;
+        PrivilegeState state = null;
+        Privilege.Type type = null;
+        Privilege.Clazz clazz = null;
+        String ident = null;
+        String grantor = null;
+        while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (currentToken == XContentParser.Token.FIELD_NAME) {
+                String currentFieldName = parser.currentName();
+                currentToken = parser.nextToken();
+                switch (currentFieldName) {
+                    case "state":
+                        if (currentToken != XContentParser.Token.VALUE_NUMBER) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse privilege, 'state' value is not a number [{}]", currentToken);
+                        }
+                        state = PrivilegeState.values()[parser.intValue()];
+                        break;
+                    case "type":
+                        if (currentToken != XContentParser.Token.VALUE_NUMBER) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse privilege, 'type' value is not a number [{}]", currentToken);
+                        }
+                        type = Privilege.Type.values()[parser.intValue()];
+                        break;
+                    case "class":
+                        if (currentToken != XContentParser.Token.VALUE_NUMBER) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse privilege, 'class' value is not a number [{}]", currentToken);
+                        }
+                        clazz = Privilege.Clazz.values()[parser.intValue()];
+                        break;
+                    case "ident":
+                        if (currentToken != XContentParser.Token.VALUE_STRING
+                            && currentToken != XContentParser.Token.VALUE_NULL) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse privilege, 'ident' value is not a string or null [{}]", currentToken);
+                        }
+                        ident = parser.textOrNull();
+                        break;
+                    case "grantor":
+                        if (currentToken != XContentParser.Token.VALUE_STRING) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse privilege, 'grantor' value is not a string [{}]", currentToken);
+                        }
+                        grantor = parser.text();
+                        break;
+                    default:
+                        throw new ElasticsearchParseException("failed to parse privilege");
+                }
+            }
+        }
+        return new Privilege(state, type, clazz, ident, grantor);
+    }
 
     private final PrivilegeState state;
     private final PrivilegeIdent ident;
@@ -111,5 +181,16 @@ public class Privilege implements Writeable {
         out.writeInt(state.ordinal());
         ident.writeTo(out);
         out.writeString(grantor);
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        return builder.startObject()
+            .field("state", state.ordinal())
+            .field("type", ident.type().ordinal())
+            .field("class", ident.clazz().ordinal())
+            .field("ident", ident.ident())
+            .field("grantor", grantor)
+            .endObject();
     }
 }

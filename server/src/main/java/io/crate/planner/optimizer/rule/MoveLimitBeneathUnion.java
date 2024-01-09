@@ -37,7 +37,6 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.types.DataTypes;
 
 public class MoveLimitBeneathUnion implements Rule<Limit> {
 
@@ -47,7 +46,7 @@ public class MoveLimitBeneathUnion implements Rule<Limit> {
     public MoveLimitBeneathUnion() {
         this.unionCapture = new Capture<>();
         this.pattern = typeOf(Limit.class)
-            .with(l -> l.isPushedDown() == false)
+            .with(l -> l.isPushedBeneathUnion() == false)
             .with(source(), typeOf(Union.class).capturedAs(unionCapture));
     }
 
@@ -64,27 +63,19 @@ public class MoveLimitBeneathUnion implements Rule<Limit> {
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Union union = captures.get(unionCapture);
-        // We cannot push the offset down to the sources, otherwise
-        // we may loose rows, therefore we create a new limit where
-        // the offset is added to the limit.
-        if (limit.limit() instanceof Literal<?> l &&
-            limit.offset() instanceof Literal<?> o) {
+        var newLimit = limit.limitAndOffset();
+        var newOffSet = Literal.of(0);
 
-            int limitVal = DataTypes.INTEGER.sanitizeValue(l.value());
-            int offSetVal = DataTypes.INTEGER.sanitizeValue(o.value());
-            int newLimit = offSetVal + limitVal;
-
-            return new Limit(
-                new Union(
-                    new Limit(union.lhs(), Literal.of(newLimit), Literal.of(0), false),
-                    new Limit(union.rhs(), Literal.of(newLimit), Literal.of(0), false),
-                    union.outputs()
-                ),
-                limit.limit(),
-                limit.offset(),
-                true
-            );
-        }
-        return null;
+        return new Limit(
+            new Union(
+                new Limit(union.lhs(), newLimit, newOffSet, false, false),
+                new Limit(union.rhs(), newLimit,newOffSet, false, false),
+                union.outputs()
+            ),
+            limit.limit(),
+            limit.offset(),
+            true,
+            limit.isPushedBeneathJoin()
+        );
     }
 }

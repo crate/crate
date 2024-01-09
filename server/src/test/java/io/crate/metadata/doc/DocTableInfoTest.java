@@ -415,8 +415,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             oidSupplier::incrementAndGet,
             List.of(newReference),
             new IntArrayList(),
-            Map.of()
-        );
+            Map.of());
         assertThat(table2.columns()).satisfiesExactly(
             x -> assertThat(x).isReference()
                 .hasName("x")
@@ -447,8 +446,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             oidSupplier::incrementAndGet,
             List.of(pointY),
             new IntArrayList(),
-            Map.of()
-        );
+            Map.of());
         Reference newPointRef = table3.getReference(new ColumnIdent("point"));
         assertThat(newPointRef.valueType()).isExactlyInstanceOf(ObjectType.class);
         DataType<?> yInnerType = ((ObjectType) newPointRef.valueType()).innerType("y");
@@ -474,8 +472,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 () -> 2,
                 List.of(ox),
                 new IntArrayList(),
-                Map.of()
-            )
+                Map.of())
         ).isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot create parents of new column implicitly. `o` is undefined");
     }

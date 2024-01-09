@@ -69,12 +69,16 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersMetadata;
 
+@IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
     private static final String REPOSITORY_NAME = "my_repo";
@@ -996,53 +1000,88 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("CREATE ROLE \"DummyRole\"");
         execute("SELECT * FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
-            "Arthur| NULL| false",
-            "John| ********| false",
-            "crate| NULL| true");
+            "Arthur| []| NULL| false",
+            "John| []| ********| false",
+            "crate| []| NULL| true");
+
         execute("SELECT * FROM sys.roles ORDER BY name");
-        assertThat(response).hasRows("DummyRole");
+        assertThat(response).hasRows("DummyRole| []");
+
+        execute("GRANT AL TO \"DummyRole\"");
+        execute("GRANT DML ON SCHEMA \"doc\" TO \"Arthur\"");
+        execute("SELECT * FROM sys.privileges ORDER BY grantee");
+        assertThat(response).hasRows(
+            "SCHEMA| Arthur| crate| doc| GRANT| DML",
+            "CLUSTER| DummyRole| crate| NULL| GRANT| AL");
 
         // Snapshot contains the following users:
         // CREATE USER "Arthur" WITH (password='arthurs-password');
         // CREATE USER "Ford" WITH (password='fords-password');
         // CREATE USER "John";
+        // GRANT DQL ON SCHEMA "sys" TO "John";
+        // GRANT AL TO "Ford";
         execute("RESTORE SNAPSHOT users_repo.usersnap USERS with (wait_for_completion=true)");
 
         execute("SELECT * FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
-            "Arthur| ********| false",
-            "Ford| ********| false",
-            "John| NULL| false",
-            "crate| NULL| true");
+            "Arthur| []| ********| false",
+            "Ford| []| ********| false",
+            "John| []| NULL| false",
+            "crate| []| NULL| true");
         execute("SELECT count(*) FROM sys.roles");
         assertThat(response).hasRows("0");
 
-        // Before any CREATE/ALTER/DROP operation, RolesMetadata still has the users&roles defined
-        // but only UsersMetadata are used
+        execute("SELECT * FROM sys.privileges ORDER BY grantee");
+        assertThat(response).hasRows(
+            "CLUSTER| Ford| crate| NULL| GRANT| AL",
+            "SCHEMA| John| crate| sys| GRANT| DQL");
+
+        // Before any CREATE/ALTER/DROP operation, RolesMetadata still has the users/roles/privileges defined
+        // but only old UsersMetadata & UsersPrivilegesMetadata are used.
         RolesMetadata rolesMetadata = cluster().clusterService().state().metadata().custom(RolesMetadata.TYPE);
         assertThat(rolesMetadata).isNotNull();
-        Assertions.assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "John", "DummyRole");
+        assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "John", "DummyRole");
+        assertThat(rolesMetadata.roles().get("Arthur").privileges()).isNotEmpty();
         UsersMetadata usersMetadata = cluster().clusterService().state().metadata().custom(UsersMetadata.TYPE);
         assertThat(usersMetadata).isNotNull();
         assertThat(usersMetadata.users()).containsOnlyKeys("Arthur", "Ford", "John");
+        UsersPrivilegesMetadata usersPrivilegesMetadata =
+            cluster().clusterService().state().metadata().custom(UsersPrivilegesMetadata.TYPE);
+        assertThat(usersPrivilegesMetadata).isNotNull();
+        assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur")).isEmpty();
+        assertThat(usersPrivilegesMetadata.getUserPrivileges("John")).containsExactly(
+            new Privilege(
+                PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "sys", "crate")
+        );
+        assertThat(usersPrivilegesMetadata.getUserPrivileges("Ford")).containsExactly(
+            new Privilege(
+                PrivilegeState.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, null, "crate")
+        );
 
         execute("ALTER USER \"John\" SET (password='johns-new-password')");
         execute("SELECT * FROM sys.users ORDER BY name");
         assertThat(response).hasRows(
-            "Arthur| ********| false",
-            "Ford| ********| false",
-            "John| ********| false",
-            "crate| NULL| true");
+            "Arthur| []| ********| false",
+            "Ford| []| ********| false",
+            "John| []| ********| false",
+            "crate| []| NULL| true");
         execute("SELECT count(*) FROM sys.roles");
         assertThat(response).hasRows("0");
 
+        execute("REVOKE AL FROM \"Ford\"");
+        execute("SELECT * FROM sys.privileges ORDER BY grantee");
+        assertThat(response).hasRows(
+            "SCHEMA| John| crate| sys| GRANT| DQL");
+
         // After CREATE/ALTER/DROP operation, current RolesMetadata is dropped and
-        // recreated from UsersMetadata, thus fully overriden by these restored UsersMetadata
+        // recreated from UsersMetadata/UserPrivileges, thus fully overriden by these restored UsersMetadata
         rolesMetadata = cluster().clusterService().state().metadata().custom(RolesMetadata.TYPE);
         assertThat(rolesMetadata).isNotNull();
         Assertions.assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "Ford", "John");
         usersMetadata = cluster().clusterService().state().metadata().custom(UsersMetadata.TYPE);
         assertThat(usersMetadata).isNull();
+        usersPrivilegesMetadata = cluster().clusterService().state().metadata().custom(UsersPrivilegesMetadata.TYPE);
+        assertThat(usersPrivilegesMetadata).isNull();
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {

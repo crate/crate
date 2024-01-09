@@ -24,6 +24,7 @@ package io.crate.role;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
+import java.util.Set;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.test.ESTestCase;
@@ -33,7 +34,7 @@ public class PrivilegesRequestTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        List<String> users = List.of("ford", "arthur");
+        List<String> roles = List.of("ford", "arthur");
         List<Privilege> privileges = List.of(
             new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
             new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate"),
@@ -41,14 +42,17 @@ public class PrivilegesRequestTest extends ESTestCase {
             new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, null, "crate"),
             new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, null, "crate")
         );
-        PrivilegesRequest r1 = new PrivilegesRequest(users, privileges);
+        RolePrivilegeToApply rolePrivilegeToApply = new RolePrivilegeToApply(
+            PrivilegeState.REVOKE, Set.of("role1", "role2"), "admin");
+        PrivilegesRequest r1 = new PrivilegesRequest(roles, privileges, rolePrivilegeToApply);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
 
         PrivilegesRequest r2 = new PrivilegesRequest(out.bytes().streamInput());
 
-        assertThat(r2.userNames()).isEqualTo(users);
+        assertThat(r2.roleNames()).isEqualTo(roles);
         assertThat(r2.privileges()).isEqualTo(privileges);
+        assertThat(r2.rolePrivilege()).isEqualTo(rolePrivilegeToApply);
     }
 }

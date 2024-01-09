@@ -23,11 +23,16 @@ package io.crate.role;
 
 import static io.crate.role.metadata.RolesHelper.DUMMY_USERS;
 import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_WITHOUT_PASSWORD;
+import static io.crate.role.metadata.RolesHelper.OLD_DUMMY_USERS_PRIVILEGES;
 import static io.crate.role.metadata.RolesHelper.SINGLE_USER_ONLY;
 import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -47,14 +52,6 @@ public class TransportRoleActionTest extends ESTestCase {
         TransportCreateRoleAction.putRole(mdBuilder, "root", true, null);
         RolesMetadata metadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         assertThat(metadata.roleNames()).containsExactly("root");
-    }
-
-    @Test
-    public void testEmptyPrivilegesAreCreatedForNewUsers() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder();
-        TransportCreateRoleAction.putRole(mdBuilder, "root", true, null);
-        UsersPrivilegesMetadata metadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        assertThat(metadata.getUserPrivileges("root")).isEmpty();
     }
 
     @Test
@@ -90,17 +87,25 @@ public class TransportRoleActionTest extends ESTestCase {
 
     @Test
     public void test_alter_user_with_old_users_metadata() throws Exception {
-        var oldUsersMetadata = usersMetadataOf(DUMMY_USERS);
-        var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
+        var oldUsersMetadata = usersMetadataOf(DUMMY_USERS_WITHOUT_PASSWORD);
+        var oldUsersPrivilegesMetadata = new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES);
+        var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
+            .putCustom(UsersPrivilegesMetadata.TYPE, oldUsersPrivilegesMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newPasswd = getSecureHash("arthurs-new-passwd");
         boolean res = TransportAlterRoleAction.alterRole(mdBuilder, "Arthur", newPasswd);
         assertThat(res).isTrue();
+
+        var newFordUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Ford")
+                .with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"));
+        var newArthurUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Arthur")
+                .with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))
+                .with(newPasswd);
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", RolesHelper.userOf("Arthur", newPasswd),
-                "Ford", DUMMY_USERS.get("Ford")));
+            Map.of("Arthur", newArthurUser,
+                "Ford", newFordUser));
     }
 
     @Test
@@ -119,11 +124,28 @@ public class TransportRoleActionTest extends ESTestCase {
 
     @Test
     public void testDropUser() throws Exception {
-        RolesMetadata oldMetadata = new RolesMetadata(DUMMY_USERS);
-        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, oldMetadata);
+        RolesMetadata metadata = new RolesMetadata(DUMMY_USERS);
+        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
         boolean res = TransportDropRoleAction.dropRole(mdBuilder, "Arthur");
         assertThat(roles(mdBuilder)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
         assertThat(res).isTrue();
+    }
+
+    @Test
+    public void test_drop_role_with_children_is_not_allowed() {
+        var role1 = RolesHelper.roleOf("role1");
+        var role2 = RolesHelper.roleOf("role1", List.of("role1"));
+        var role3 = RolesHelper.roleOf("role3", List.of("role2"));
+        Map<String, Role> roles = Map.of(
+            "role1", role1,
+            "role2", role2,
+            "role3", role3
+        );
+        RolesMetadata metadata = new RolesMetadata(roles);
+        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
+        assertThatThrownBy(() -> TransportDropRoleAction.dropRole(mdBuilder, "role2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot drop ROLE: role2 as it is granted on role: role3");
     }
 
     @Test

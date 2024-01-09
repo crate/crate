@@ -129,12 +129,12 @@ public final class SourceParser {
     }
 
     public Map<String, Object> parse(BytesReference bytes, boolean includeUnknownCols) {
-        try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes)) {
-            XContentParser parser = XContentType.JSON.xContent().createParser(
-                NamedXContentRegistry.EMPTY,
-                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                inputStream
-            );
+        try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes);
+             XContentParser parser = XContentType.JSON.xContent().createParser(
+                 NamedXContentRegistry.EMPTY,
+                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                 inputStream
+             )) {
             Token token = parser.currentToken();
             if (token == null) {
                 parser.nextToken();
@@ -236,7 +236,7 @@ public final class SourceParser {
                 if (required instanceof DataType<?> dataType) {
                     type = dataType;
                     required = null;
-                    if (dataType instanceof ObjectType objectType) {
+                    if (ArrayType.unnest(dataType) instanceof ObjectType objectType) {
                         // Use inner types to parse the object sub-columns for type aware parsing
                         required = objectType.innerTypes();
                         // When parsing a complete object, we need to parse also possible ignored sub-columns
@@ -245,8 +245,15 @@ public final class SourceParser {
                     }
                 }
 
-                values.put(fieldName, parseValue(parser, type, (Map) required, droppedColumns,
-                        lookupNameBySourceKey, colPath, currentTreeIncludeUnknown));
+                Object value = parseValue(
+                    parser,
+                    type,
+                    (Map) required,
+                    droppedColumns,
+                    lookupNameBySourceKey,
+                    colPath,
+                    currentTreeIncludeUnknown);
+                values.put(fieldName, value);
 
                 colPath.delete(prevLength, colPath.length());
             }

@@ -239,21 +239,21 @@
     <versions.jdk>21.0.1</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
     <versions.log4j>2.22.0</versions.log4j>
-    <versions.assertj>3.24.2</versions.assertj>
+    <versions.assertj>3.25.1</versions.assertj>
     <versions.junit5>5.10.1</versions.junit5>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
-    <versions.jackson>2.16.0</versions.jackson>
+    <versions.jackson>2.16.1</versions.jackson>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.1</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
-    <versions.netty>4.1.101.Final</versions.netty>
+    <versions.netty>4.1.104.Final</versions.netty>
     <versions.lucene>9.9.1</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>
     <versions.jna>5.13.0</versions.jna>
-    <versions.tdigest>3.2</versions.tdigest>
+    <versions.tdigest>3.3</versions.tdigest>
     <versions.hdrhistogram>2.1.12</versions.hdrhistogram>
     <versions.caffeine>3.1.8</versions.caffeine>
     <versions.jodatime>2.12.5</versions.jodatime>
@@ -264,7 +264,7 @@
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>4.11.0</versions.mockito>
-    <versions.jdbc>42.7.0</versions.jdbc>
+    <versions.jdbc>42.7.1</versions.jdbc>
     <versions.jsonassert>1.5.1</versions.jsonassert>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>

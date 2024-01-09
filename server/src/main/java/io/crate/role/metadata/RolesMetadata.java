@@ -23,12 +23,15 @@ package io.crate.role.metadata;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
@@ -40,8 +43,11 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.role.GrantedRole;
+import io.crate.role.Privilege;
+import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
-import io.crate.role.SecureHash;
+import io.crate.role.RolePrivilegeToApply;
 
 public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -64,27 +70,30 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         return new RolesMetadata(new HashMap<>(instance.roles));
     }
 
-    public static RolesMetadata ofOldUsersMetadata(@Nullable UsersMetadata usersMetadata) {
+    public static RolesMetadata ofOldUsersMetadata(@Nullable UsersMetadata usersMetadata,
+                                                   @Nullable UsersPrivilegesMetadata usersPrivilegesMetadata) {
         if (usersMetadata == null) {
             return null;
         }
+        Function<String, Set<Privilege>> getPrivileges = username -> Set.of();
+        if (usersPrivilegesMetadata != null) {
+            getPrivileges = usersPrivilegesMetadata::getUserPrivileges;
+        }
         RolesMetadata rolesMetadata = new RolesMetadata();
         for (var user : usersMetadata.users().entrySet()) {
-            rolesMetadata.put(user.getKey(), true, user.getValue());
+            var userName = user.getKey();
+            var role = new Role(userName, true, getPrivileges.apply(userName), Set.of(), user.getValue());
+            rolesMetadata.roles().put(userName, role);
         }
         return rolesMetadata;
-    }
-
-    public void put(String name, boolean isUser, SecureHash password) {
-        roles.put(name, new Role(name, isUser, Set.of(), password, Set.of()));
     }
 
     public boolean contains(String name) {
         return roles.containsKey(name);
     }
 
-    public void remove(String name) {
-        roles.remove(name);
+    public Role remove(String name) {
+        return roles.remove(name);
     }
 
     public List<String> roleNames() {
@@ -97,22 +106,18 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
     public RolesMetadata(StreamInput in) throws IOException {
         int numRoles = in.readVInt();
-        roles = new HashMap<>(numRoles);
+        roles = HashMap.newHashMap(numRoles);
         for (int i = 0; i < numRoles; i++) {
-            String roleName = in.readString();
-            boolean isUser = in.readBoolean();
-            SecureHash secureHash = in.readOptionalWriteable(SecureHash::readFrom);
-            put(roleName, isUser, secureHash);
+            var role = new Role(in);
+            roles.put(role.name(), role);
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(roles.size());
-        for (Map.Entry<String, Role> role : roles.entrySet()) {
-            out.writeString(role.getKey());
-            out.writeBoolean(role.getValue().isUser());
-            out.writeOptionalWriteable(role.getValue().password());
+        for (var role : roles.values()) {
+            role.writeTo(out);
         }
     }
 
@@ -131,18 +136,15 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
      *
      * roles: {
      *   "role1": {
-     *     "is_user" : true,
-     *     "secure_hash": {
-     *       "iterations": INT,
-     *       "hash": BYTE[],
-     *       "salt": BYTE[]
-     *     }
+     *     ...
      *   },
      *   "role2": {
-     *     "is_user" : false,
+     *     ...
      *   },
      *   ...
      * }
+     *
+     * The format of each role can be found in {@link Role#fromXContent(XContentParser)}
      */
     public static RolesMetadata fromXContent(XContentParser parser) throws IOException {
         Map<String, Role> roles = new HashMap<>();
@@ -167,20 +169,61 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     }
 
     public static RolesMetadata of(Metadata.Builder mdBuilder,
-                                   UsersMetadata oldUsersMetadata,
+                                   @Nullable UsersMetadata oldUsersMetadata,
+                                   @Nullable UsersPrivilegesMetadata oldUserPrivilegesMetadata,
                                    RolesMetadata oldRolesMetadata) {
         RolesMetadata newMetadata;
         // create a new instance of the metadata, to guarantee the cluster changed action
-        // and use old UsersMetadata if exists
+        // and use old UsersMetadata/UsersPrivilegesMetadata if exists
         if (oldUsersMetadata != null) {
             // could be after upgrade or when users have been restored from old snapshot,
             // and we want to override all existing users & roles
-            newMetadata = RolesMetadata.ofOldUsersMetadata(oldUsersMetadata);
+            newMetadata = RolesMetadata.ofOldUsersMetadata(oldUsersMetadata, oldUserPrivilegesMetadata);
             mdBuilder.removeCustom(UsersMetadata.TYPE);
+            mdBuilder.removeCustom(UsersPrivilegesMetadata.TYPE);
         } else {
             newMetadata = RolesMetadata.newInstance(oldRolesMetadata);
         }
         return newMetadata;
+    }
+
+    /**
+     * Applies the provided granted/revoked roles to the specified users.
+     *
+     * @return the number of affected role privileges
+     *         (doesn't count no-ops e.g.: granting a role to a user which already has)
+     */
+    public long applyRolePrivileges(Collection<String> userNames, RolePrivilegeToApply newRolePrivilegeToApply) {
+        long affectedPrivileges = 0L;
+        for (String userName : userNames) {
+            affectedPrivileges += applyRolePrivilegesToUser(userName, newRolePrivilegeToApply);
+        }
+        return affectedPrivileges;
+    }
+
+    private long applyRolePrivilegesToUser(String roleName, RolePrivilegeToApply newRolePrivilegeToApply) {
+        Role role = roles.get(roleName);
+
+        // Create a new set to avoid modifying in-place the granted roles as this will lead
+        // to no difference in previous and new metadata and thus cluster state
+        Set<GrantedRole> grantedRoles = new HashSet<>(role.grantedRoles());
+        long affectedCount = 0L;
+        for (var roleNameToApply : newRolePrivilegeToApply.roleNames()) {
+
+            if (newRolePrivilegeToApply.state() == PrivilegeState.GRANT) {
+                if (grantedRoles.add(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
+                    affectedCount++;
+                }
+            } else if (newRolePrivilegeToApply.state() == PrivilegeState.REVOKE) {
+                if (grantedRoles.remove(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
+                    affectedCount++;
+                }
+            }
+        }
+        if (affectedCount > 0) {
+            roles.put(role.name(), new Role(role.name(), role.isUser(), Set.of(), grantedRoles, role.password()));
+        }
+        return affectedCount;
     }
 
     @Override
@@ -194,7 +237,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         if (o == null || getClass() != o.getClass()) return false;
 
         RolesMetadata that = (RolesMetadata) o;
-        return roles.equals(that.roles);
+        return Objects.equals(roles, that.roles);
     }
 
     @Override
