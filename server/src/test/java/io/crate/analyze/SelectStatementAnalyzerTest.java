@@ -32,6 +32,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -3043,5 +3044,15 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             x -> assertThat(x).isLiteral("'")
         );
 
+    }
+
+    @Test
+    public void test_result_column_type_of_nested_unnest_arg_is_not_an_array() throws Exception {
+        var executor = SQLExecutor.builder(clusterService).build();
+        QueriedSelectRelation relation = executor.analyze("SELECT x from unnest([[1, 2], [3]]) as t (x)");
+        assertThat(relation.outputs()).satisfiesExactly(
+            x -> assertThat(x).isScopedSymbol("x")
+                .hasDataType(DataTypes.INTEGER)
+        );
     }
 }
