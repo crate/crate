@@ -489,9 +489,10 @@ on ``sys.users``.
     cr> REVOKE DQL ON TABLE sys.users FROM role_a;
     REVOKE OK, 1 row affected (... sec)
 
-Keep in mind, that ``DENY`` has precedence over ``GRANT``, so even if the user
-has been granted a privilege through role inheritance, if the same privilege is
-denied to the user, then ``DENY`` will prevail, for example::
+Keep in mind that ``DENY`` has precedence over ``GRANT``. If a role has been
+both granted and denied a privilege (directly or through role inheritance), then
+``DENY`` will take effect. For example, ``GRANT`` is inherited from a role
+and ``DENY`` directly set on the user::
 
     cr> GRANT DQL ON TABLE sys.users TO role_a;
     GRANT OK, 1 row affected (... sec)
@@ -516,10 +517,7 @@ User ``john`` cannot query ``sys.users``.
     cr> REVOKE DQL ON TABLE sys.users FROM role_a;
     REVOKE OK, 1 row affected (... sec)
 
-Additionally, ``DENY`` has precedence over ``GRANT`` for the granted roles of a
-user or role. If, for example, a user has been granted two roles, where one has
-a grant privilege and the other has a deny for the same privilege, then ``DENY``
-will prevail::
+Another example with ``DENY`` in effect, inherited from a role::
 
     cr> GRANT DQL ON TABLE sys.users TO role_a;
     GRANT OK, 1 row affected (... sec)
