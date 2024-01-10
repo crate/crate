@@ -21,10 +21,6 @@
 
 package io.crate.role;
 
-import static io.crate.role.PrivilegeState.DENY;
-import static io.crate.role.PrivilegeState.GRANT;
-import static io.crate.role.PrivilegeState.REVOKE;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +34,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.FourFunction;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -113,56 +108,5 @@ public class RolesService implements Roles, ClusterStateListener {
             roles.putAll(rolesMetadata.roles());
         }
         return Collections.unmodifiableMap(roles);
-    }
-
-    @Override
-    public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        return hasPrivilege(user, type, clazz, ident, HAS_PRIVILEGE_FUNCTION) == GRANT;
-    }
-
-    @Override
-    public boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
-        return hasPrivilege(user, null, clazz, ident, HAS_ANY_PRIVILEGE_FUNCTION) == GRANT;
-    }
-
-    @Override
-    public boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
-        return hasPrivilege(user, type, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION) == GRANT;
-    }
-
-    /**
-     * Resolves privilege recursively in a depth-first fashion.
-     * DENY has precedence, so given a role, if for one of its parents the privilege resolves to DENY,
-     * then the privilege resolves to DENY for the role.
-     */
-    private PrivilegeState hasPrivilege(
-        Role role,
-        Privilege.Type type,
-        @Nullable Privilege.Clazz clazz,
-        @Nullable Object object,
-        FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> function) {
-
-        if (role.isSuperUser()) {
-            return GRANT;
-        }
-        PrivilegeState resolution = function.apply(role, type, clazz, object);
-        if (resolution == DENY || resolution == GRANT) {
-            return resolution;
-        }
-
-
-        PrivilegeState result = REVOKE;
-        for (String parentRoleName : role.grantedRoleNames()) {
-            var parentRole = findRole(parentRoleName);
-            assert parentRole != null : "role must exist";
-            var partialResult = hasPrivilege(parentRole, type, clazz, object, function);
-            if (partialResult == DENY) {
-                return DENY;
-            }
-            if (result == REVOKE) {
-                result = partialResult;
-            }
-        }
-        return result;
     }
 }

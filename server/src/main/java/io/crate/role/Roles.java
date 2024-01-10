@@ -21,6 +21,10 @@
 
 package io.crate.role;
 
+import static io.crate.role.PrivilegeState.DENY;
+import static io.crate.role.PrivilegeState.GRANT;
+import static io.crate.role.PrivilegeState.REVOKE;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -102,7 +106,7 @@ public interface Roles {
      * @param ident          ident of the object
      */
     default boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        return user.isSuperUser() || HAS_PRIVILEGE_FUNCTION.apply(user, type, clazz, ident) == PrivilegeState.GRANT;
+        return user.isSuperUser() || hasPrivilege(user, type, clazz, ident, HAS_PRIVILEGE_FUNCTION) == GRANT;
     }
 
     /**
@@ -112,7 +116,7 @@ public interface Roles {
      * @param schemaOid      OID of the schema
      */
     default boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
-        return user.isSuperUser() || HAS_SCHEMA_PRIVILEGE_FUNCTION.apply(user, type, null, schemaOid) == PrivilegeState.GRANT;
+        return user.isSuperUser() || hasPrivilege(user, type, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION) == GRANT;
     }
 
     /**
@@ -124,7 +128,7 @@ public interface Roles {
      * @param ident     ident of the object
      */
     default boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
-        return user.isSuperUser() || HAS_ANY_PRIVILEGE_FUNCTION.apply(user, null, clazz, ident) == PrivilegeState.GRANT;
+        return user.isSuperUser() || hasPrivilege(user, null, clazz, ident, HAS_ANY_PRIVILEGE_FUNCTION) == GRANT;
     }
 
     Collection<Role> roles();
@@ -144,5 +148,41 @@ public interface Roles {
             assert parentRole != null : "parent role must exist";
             findParents(parentRole, allParents);
         }
+    }
+
+    /**
+     * Resolves privilege recursively in a depth-first fashion.
+     * DENY has precedence, so given a role, if for one of its parents the privilege resolves to DENY,
+     * then the privilege resolves to DENY for the role.
+     */
+    private PrivilegeState hasPrivilege(
+        Role role,
+        Privilege.Type type,
+        @Nullable Privilege.Clazz clazz,
+        @Nullable Object object,
+        FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> function) {
+
+        if (role.isSuperUser()) {
+            return GRANT;
+        }
+        PrivilegeState resolution = function.apply(role, type, clazz, object);
+        if (resolution == DENY || resolution == GRANT) {
+            return resolution;
+        }
+
+
+        PrivilegeState result = REVOKE;
+        for (String parentRoleName : role.grantedRoleNames()) {
+            var parentRole = findRole(parentRoleName);
+            assert parentRole != null : "role must exist";
+            var partialResult = hasPrivilege(parentRole, type, clazz, object, function);
+            if (partialResult == DENY) {
+                return DENY;
+            }
+            if (result == REVOKE) {
+                result = partialResult;
+            }
+        }
+        return result;
     }
 }
