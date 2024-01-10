@@ -42,9 +42,9 @@ public class PrivilegesRequestTest extends ESTestCase {
             new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, null, "crate"),
             new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, null, "crate")
         );
-        RolePrivilegeToApply rolePrivilegeToApply = new RolePrivilegeToApply(
+        GrantedRolesChange grantedRolesChange = new GrantedRolesChange(
             PrivilegeState.REVOKE, Set.of("role1", "role2"), "admin");
-        PrivilegesRequest r1 = new PrivilegesRequest(roles, privileges, rolePrivilegeToApply);
+        PrivilegesRequest r1 = new PrivilegesRequest(roles, privileges, grantedRolesChange);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
@@ -53,6 +53,6 @@ public class PrivilegesRequestTest extends ESTestCase {
 
         assertThat(r2.roleNames()).isEqualTo(roles);
         assertThat(r2.privileges()).isEqualTo(privileges);
-        assertThat(r2.rolePrivilege()).isEqualTo(rolePrivilegeToApply);
+        assertThat(r2.rolePrivilege()).isEqualTo(grantedRolesChange);
     }
 }
