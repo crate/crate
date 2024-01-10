@@ -48,8 +48,8 @@ import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.role.Privilege;
-import io.crate.role.Privilege.Clazz;
-import io.crate.role.Privilege.Type;
+import io.crate.role.Privilege.Permission;
+import io.crate.role.Privilege.Securable;
 import io.crate.role.Roles;
 
 public class SysTableDefinitions {
@@ -82,7 +82,7 @@ public class SysTableDefinitions {
                     .filter(x ->
                         user.isSuperUser()
                         || user.name().equals(x.username())
-                        || roles.hasPrivilege(user, Type.AL, Clazz.CLUSTER, null))
+                        || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
                     .iterator()
             ),
             sysJobsTable.expressions(),
@@ -94,7 +94,7 @@ public class SysTableDefinitions {
                     .filter(x ->
                         user.isSuperUser()
                         || user.name().equals(x.username())
-                        || roles.hasPrivilege(user, Type.AL, Clazz.CLUSTER, null))
+                        || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
                     .iterator()
             ),
             sysJobsLogTable.expressions(),
@@ -135,7 +135,7 @@ public class SysTableDefinitions {
 
         tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> sysAllocations,
-            (user, allocation) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, allocation.fqn()),
+            (user, allocation) -> roles.hasAnyPrivilege(user, Privilege.Securable.TABLE, allocation.fqn()),
             SysAllocationsTableInfo.create().expressions()
         ));
 
@@ -149,7 +149,7 @@ public class SysTableDefinitions {
         tableDefinitions.put(SysHealth.IDENT, new StaticTableDefinition<>(
             () -> TableHealth.compute(clusterService.state()),
             sysHealth.expressions(),
-            (user, tableHealth) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, tableHealth.fqn()),
+            (user, tableHealth) -> roles.hasAnyPrivilege(user, Privilege.Securable.TABLE, tableHealth.fqn()),
             true)
         );
         tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(

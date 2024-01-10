@@ -31,23 +31,23 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 public class RolePrivilegeToApply implements Writeable {
 
-    private final PrivilegeState state;
+    private final PrivilegeType state;
     private final Set<String> roleNames;
     private final String grantor;
 
-    public RolePrivilegeToApply(PrivilegeState state, Set<String> roleNames, String grantor) {
+    public RolePrivilegeToApply(PrivilegeType state, Set<String> roleNames, String grantor) {
         this.state = state;
         this.roleNames = roleNames;
         this.grantor = grantor;
     }
 
     public RolePrivilegeToApply(StreamInput in) throws IOException {
-        state = PrivilegeState.VALUES.get(in.readInt());
+        state = PrivilegeType.VALUES.get(in.readInt());
         roleNames = in.readSet(StreamInput::readString);
         grantor = in.readString();
     }
 
-    public PrivilegeState state() {
+    public PrivilegeType state() {
         return state;
     }
 

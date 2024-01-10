@@ -44,27 +44,27 @@ import io.crate.role.metadata.RolesMetadata;
 public class PrivilegesModifierTest {
 
     private static final Privilege GRANT_DQL =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null, "crate");
     private static final Privilege GRANT_DML =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.CLUSTER, null, "crate");
     private static final Privilege REVOKE_DQL =
-        new Privilege(PrivilegeState.REVOKE, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeType.REVOKE, Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null, "crate");
     private static final Privilege REVOKE_DML =
-        new Privilege(PrivilegeState.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeType.REVOKE, Privilege.Permission.DML, Privilege.Securable.CLUSTER, null, "crate");
     public static final Privilege DENY_DQL =
-        new Privilege(PrivilegeState.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeType.DENY, Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null, "crate");
     public static final Privilege GRANT_TABLE_DQL =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "testSchema.test", "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DQL, Privilege.Securable.TABLE, "testSchema.test", "crate");
     public static final Privilege GRANT_TABLE_DDL =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, "testSchema.test2", "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DDL, Privilege.Securable.TABLE, "testSchema.test2", "crate");
     public static final Privilege GRANT_VIEW_DQL =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.VIEW, "testSchema.view1", "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DQL, Privilege.Securable.VIEW, "testSchema.view1", "crate");
     public static final Privilege GRANT_VIEW_DDL =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Privilege.Clazz.VIEW, "testSchema.view2", "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DDL, Privilege.Securable.VIEW, "testSchema.view2", "crate");
     public static final Privilege GRANT_VIEW_DML =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, "view3", "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.VIEW, "view3", "crate");
     public static final Privilege GRANT_SCHEMA_DML =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "testSchema", "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.SCHEMA, "testSchema", "crate");
 
     public static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
     public static final List<String> USERNAMES = Arrays.asList("Ford", "Arthur");
@@ -129,7 +129,7 @@ public class PrivilegesModifierTest {
         long rowCount = PrivilegesModifier.applyPrivileges(
             rolesMetadata,
             Collections.singletonList("Arthur"),
-            Collections.singletonList(new Privilege(PrivilegeState.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "hoschi"))
+            Collections.singletonList(new Privilege(PrivilegeType.REVOKE, Privilege.Permission.DML, Privilege.Securable.CLUSTER, null, "hoschi"))
         );
 
         assertThat(rowCount).isEqualTo(1L);
@@ -208,7 +208,7 @@ public class PrivilegesModifierTest {
         assertThat(otherTablePrivilege.isPresent()).isTrue();
 
         Optional<Privilege> schemaPrivilege = updatedPrivileges.stream()
-            .filter(p -> p.ident().clazz().equals(Privilege.Clazz.SCHEMA))
+            .filter(p -> p.ident().clazz().equals(Privilege.Securable.SCHEMA))
             .findAny();
         assertThat(schemaPrivilege.isPresent() && schemaPrivilege.get().equals(GRANT_SCHEMA_DML)).isTrue();
     }

@@ -41,7 +41,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     public static final String NAME = "has_database_privilege";
 
-    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_NAME =
+    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Permission>, Boolean> CHECK_BY_DB_NAME =
         (roles, user, db, privileges) -> {
             if (Constants.DB_NAME.equals(db) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -51,7 +51,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return checkPrivileges(user, privileges);
         };
 
-    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_OID =
+    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Permission>, Boolean> CHECK_BY_DB_OID =
         (roles, user, db, privileges) -> {
             if (Constants.DB_OID != (Integer) db) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -61,16 +61,16 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return checkPrivileges(user, privileges);
         };
 
-    private static boolean checkPrivileges(Role user, Collection<Privilege.Type> privileges) {
-        if (privileges.contains(Privilege.Type.DQL)) { // CONNECT
+    private static boolean checkPrivileges(Role user, Collection<Privilege.Permission> privileges) {
+        if (privileges.contains(Privilege.Permission.DQL)) { // CONNECT
             return true;
         }
 
         boolean result = true;
-        if (privileges.contains(Privilege.Type.DML)) { // TEMP privilege
+        if (privileges.contains(Privilege.Permission.DML)) { // TEMP privilege
             result = false;
         }
-        if (privileges.contains(Privilege.Type.DDL)) { // CREATE privilege
+        if (privileges.contains(Privilege.Permission.DDL)) { // CREATE privilege
             result = hasCreatePrivilege(user);
         }
         return result;
@@ -81,8 +81,8 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return true;
         }
         for (Privilege p : user.privileges()) {
-            if (p.ident().type() == Privilege.Type.DDL &&
-                (p.ident().clazz() == Privilege.Clazz.SCHEMA || p.ident().clazz() == Privilege.Clazz.CLUSTER)) {
+            if (p.ident().type() == Privilege.Permission.DDL &&
+                (p.ident().clazz() == Privilege.Securable.SCHEMA || p.ident().clazz() == Privilege.Securable.CLUSTER)) {
                 return true;
             }
         }
@@ -98,16 +98,16 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
      * @see HasPrivilegeFunction#parsePrivileges(String)
      */
     @Nullable
-    protected Collection<Privilege.Type> parsePrivileges(String privilege) {
-        Collection<Privilege.Type> toCheck = new HashSet<>();
+    protected Collection<Privilege.Permission> parsePrivileges(String privilege) {
+        Collection<Privilege.Permission> toCheck = new HashSet<>();
         String[] privileges = privilege.toLowerCase(Locale.ENGLISH).split(",");
         for (String p : privileges) {
             p = p.trim();
             switch (p) {
-                case "connect" -> toCheck.add(Privilege.Type.DQL);
-                case "create" -> toCheck.add(Privilege.Type.DDL);
-                case "temp" -> toCheck.add(Privilege.Type.DML);
-                case "temporary" -> toCheck.add(Privilege.Type.DML);
+                case "connect" -> toCheck.add(Privilege.Permission.DQL);
+                case "create" -> toCheck.add(Privilege.Permission.DDL);
+                case "temp" -> toCheck.add(Privilege.Permission.DML);
+                case "temporary" -> toCheck.add(Privilege.Permission.DML);
                 default ->
                     // Same error as PG
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -194,7 +194,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
     protected HasDatabasePrivilegeFunction(Signature signature,
                                            BoundSignature boundSignature,
                                            BiFunction<Roles, Object, Role> getUser,
-                                           FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                           FourFunction<Roles, Role, Object, Collection<Privilege.Permission>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

@@ -46,7 +46,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
     private final BiFunction<Roles, Object, Role> getUser;
 
-    private final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege;
+    private final FourFunction<Roles, Role, Object, Collection<Privilege.Permission>, Boolean> checkPrivilege;
 
     protected static final BiFunction<Roles, Object, Role> USER_BY_NAME = (roles, userName) -> {
         var user = roles.findUser((String) userName);
@@ -74,12 +74,12 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
      * @return collection of privileges parsed
      */
     @Nullable
-    protected abstract Collection<Privilege.Type> parsePrivileges(String privilege);
+    protected abstract Collection<Privilege.Permission> parsePrivileges(String privilege);
 
     protected HasPrivilegeFunction(Signature signature,
                                    BoundSignature boundSignature,
                                    BiFunction<Roles, Object, Role> getUser,
-                                   FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                   FourFunction<Roles, Role, Object, Collection<Privilege.Permission>, Boolean> checkPrivilege) {
         super(signature, boundSignature);
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
@@ -107,7 +107,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             privileges = arguments.get(2);
         }
 
-        Collection<Privilege.Type> compiledPrivileges = normalizePrivilegeIfLiteral(privileges);
+        Collection<Privilege.Permission> compiledPrivileges = normalizePrivilegeIfLiteral(privileges);
         if (userValue == null) {
             // Fall to non-compiled version which returns null.
             return this;
@@ -128,7 +128,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
      * @return List of Privilege.Type compiled from inout or NULL if cannot be compiled.
      */
     @Nullable
-    private Collection<Privilege.Type> normalizePrivilegeIfLiteral(Symbol symbol) {
+    private Collection<Privilege.Permission> normalizePrivilegeIfLiteral(Symbol symbol) {
         if (symbol instanceof Input<?> input) {
             var value = input.value();
             if (value == null) {
@@ -175,14 +175,14 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
         // We don't use String to avoid unnecessary cast of the ignored argument
         // when function provides pre-computed results
-        private final Function<Object, Collection<Privilege.Type>> getPrivileges;
+        private final Function<Object, Collection<Privilege.Permission>> getPrivileges;
 
         private CompiledHasPrivilege(Roles roles,
                                      Signature signature,
                                      BoundSignature boundSignature,
                                      Role sessionUser,
                                      Role user,
-                                     @Nullable Collection<Privilege.Type> compiledPrivileges) {
+                                     @Nullable Collection<Privilege.Permission> compiledPrivileges) {
             super(signature, boundSignature);
             this.roles = roles;
             this.sessionUser = sessionUser;
@@ -218,8 +218,8 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     protected static void validateCallPrivileges(Roles roles, Role sessionUser, Role user) {
         // Only superusers can call this function for other users
         if (user.name().equals(sessionUser.name()) == false
-            && roles.hasPrivilege(sessionUser, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges") == false
-            && roles.hasPrivilege(sessionUser, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate") == false) {
+            && roles.hasPrivilege(sessionUser, Privilege.Permission.DQL, Privilege.Securable.TABLE, "sys.privileges") == false
+            && roles.hasPrivilege(sessionUser, Privilege.Permission.AL, Privilege.Securable.CLUSTER, "crate") == false) {
             throw new MissingPrivilegeException(sessionUser.name());
         }
     }

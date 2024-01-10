@@ -181,7 +181,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
 
     @VisibleForTesting
     static void detectCyclesInRolesHierarchy(Roles roles, PrivilegesRequest request) {
-        if (request.rolePrivilege().state() == PrivilegeState.GRANT) {
+        if (request.rolePrivilege().state() == PrivilegeType.GRANT) {
             for (var roleNameToGrant : request.rolePrivilege().roleNames()) {
                 Set<String> parentsOfRoleToGrant = roles.findAllParents(roleNameToGrant);
                 for (var grantee : request.roleNames()) {

@@ -76,9 +76,9 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
         var sysOid = OidHash.schemaOid("sys");
         var docOid = OidHash.schemaOid("doc");
         var grantDDLCluster = new Privilege(
-            PrivilegeState.GRANT,
-            Privilege.Type.DDL,
-            Privilege.Clazz.CLUSTER,
+            PrivilegeType.GRANT,
+            Privilege.Permission.DDL,
+            Privilege.Securable.CLUSTER,
             null,
             "crate"
         );
@@ -90,13 +90,13 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
                 return role1;
             }
         };
-        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Type.DDL, sysOid)).isTrue();
-        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Type.DDL, docOid)).isTrue();
+        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Permission.DDL, sysOid)).isTrue();
+        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Permission.DDL, docOid)).isTrue();
 
         var denyDDLSys = new Privilege(
-            PrivilegeState.DENY,
-            Privilege.Type.DDL,
-            Privilege.Clazz.SCHEMA,
+            PrivilegeType.DENY,
+            Privilege.Permission.DDL,
+            Privilege.Securable.SCHEMA,
             "sys",
             "crate"
         );
@@ -107,8 +107,8 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
                 return role2;
             }
         };
-        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Type.DDL, sysOid)).isFalse();
-        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Type.DDL, docOid)).isTrue();
+        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Permission.DDL, sysOid)).isFalse();
+        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Permission.DDL, docOid)).isTrue();
     }
 
     @Test
@@ -138,9 +138,9 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
                    role5
          */
         var privilege = new Privilege(
-            PrivilegeState.GRANT,
-            Privilege.Type.DDL,
-            Privilege.Clazz.SCHEMA,
+            PrivilegeType.GRANT,
+            Privilege.Permission.DDL,
+            Privilege.Securable.SCHEMA,
             "sys",
             "crate"
         );
@@ -164,12 +164,12 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
             }
         };
         for (var role : roles.values()) {
-            assertThat(roleService.hasPrivilege(role, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "sys"))
+            assertThat(roleService.hasPrivilege(role, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "sys"))
                 .as("role=" + role.name())
                 .isTrue();
-            assertThat(roleService.hasAnyPrivilege(role, Privilege.Clazz.SCHEMA, "sys"))
+            assertThat(roleService.hasAnyPrivilege(role, Privilege.Securable.SCHEMA, "sys"))
                 .isTrue();
-            assertThat(roleService.hasSchemaPrivilege(role, Privilege.Type.DDL, OidHash.schemaOid("sys")))
+            assertThat(roleService.hasSchemaPrivilege(role, Privilege.Permission.DDL, OidHash.schemaOid("sys")))
                 .isTrue();
         }
     }
@@ -184,37 +184,37 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
                             role4 (MISSING)
          */
         var grantDDLCluster = new Privilege(
-            PrivilegeState.GRANT,
-            Privilege.Type.DDL,
-            Privilege.Clazz.CLUSTER,
+            PrivilegeType.GRANT,
+            Privilege.Permission.DDL,
+            Privilege.Securable.CLUSTER,
             null,
             "crate"
         );
         var grantDDLSys = new Privilege(
-            PrivilegeState.GRANT,
-            Privilege.Type.DDL,
-            Privilege.Clazz.SCHEMA,
+            PrivilegeType.GRANT,
+            Privilege.Permission.DDL,
+            Privilege.Securable.SCHEMA,
             "sys",
             "crate"
         );
         var grantDDLDoc = new Privilege(
-            PrivilegeState.GRANT,
-            Privilege.Type.DDL,
-            Privilege.Clazz.SCHEMA,
+            PrivilegeType.GRANT,
+            Privilege.Permission.DDL,
+            Privilege.Securable.SCHEMA,
             "doc",
             "crate"
         );
         var denyDDLSys = new Privilege(
-            PrivilegeState.DENY,
-            Privilege.Type.DDL,
-            Privilege.Clazz.SCHEMA,
+            PrivilegeType.DENY,
+            Privilege.Permission.DDL,
+            Privilege.Securable.SCHEMA,
             "sys",
             "crate"
         );
         var denyDDLDoc = new Privilege(
-            PrivilegeState.DENY,
-            Privilege.Type.DDL,
-            Privilege.Clazz.SCHEMA,
+            PrivilegeType.DENY,
+            Privilege.Permission.DDL,
+            Privilege.Securable.SCHEMA,
             "doc",
             "crate"
         );
@@ -235,32 +235,32 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
             }
         };
 
-        assertThat(roleService.hasPrivilege(role1, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "sys")).isTrue();
-        assertThat(roleService.hasPrivilege(role1, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc")).isTrue();
-        assertThat(roleService.hasAnyPrivilege(role1, Privilege.Clazz.SCHEMA, "sys")).isTrue();
-        assertThat(roleService.hasAnyPrivilege(role1, Privilege.Clazz.SCHEMA, "doc")).isTrue();
-        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Type.DDL, OidHash.schemaOid("sys"))).isTrue();
-        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Type.DDL, OidHash.schemaOid("doc"))).isTrue();
+        assertThat(roleService.hasPrivilege(role1, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "sys")).isTrue();
+        assertThat(roleService.hasPrivilege(role1, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "doc")).isTrue();
+        assertThat(roleService.hasAnyPrivilege(role1, Privilege.Securable.SCHEMA, "sys")).isTrue();
+        assertThat(roleService.hasAnyPrivilege(role1, Privilege.Securable.SCHEMA, "doc")).isTrue();
+        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Permission.DDL, OidHash.schemaOid("sys"))).isTrue();
+        assertThat(roleService.hasSchemaPrivilege(role1, Privilege.Permission.DDL, OidHash.schemaOid("doc"))).isTrue();
 
-        assertThat(roleService.hasPrivilege(role2, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "sys")).isFalse();
-        assertThat(roleService.hasPrivilege(role2, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc")).isTrue();
-        assertThat(roleService.hasAnyPrivilege(role2, Privilege.Clazz.SCHEMA, "sys")).isFalse();
-        assertThat(roleService.hasAnyPrivilege(role2, Privilege.Clazz.SCHEMA, "doc")).isTrue();
-        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Type.DDL, OidHash.schemaOid("sys"))).isFalse();
-        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Type.DDL, OidHash.schemaOid("doc"))).isTrue();
+        assertThat(roleService.hasPrivilege(role2, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "sys")).isFalse();
+        assertThat(roleService.hasPrivilege(role2, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "doc")).isTrue();
+        assertThat(roleService.hasAnyPrivilege(role2, Privilege.Securable.SCHEMA, "sys")).isFalse();
+        assertThat(roleService.hasAnyPrivilege(role2, Privilege.Securable.SCHEMA, "doc")).isTrue();
+        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Permission.DDL, OidHash.schemaOid("sys"))).isFalse();
+        assertThat(roleService.hasSchemaPrivilege(role2, Privilege.Permission.DDL, OidHash.schemaOid("doc"))).isTrue();
 
-        assertThat(roleService.hasPrivilege(role3, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "sys")).isTrue();
-        assertThat(roleService.hasPrivilege(role3, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(roleService.hasAnyPrivilege(role3, Privilege.Clazz.SCHEMA, "sys")).isTrue();
-        assertThat(roleService.hasAnyPrivilege(role3, Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(roleService.hasSchemaPrivilege(role3, Privilege.Type.DDL, OidHash.schemaOid("sys"))).isTrue();
-        assertThat(roleService.hasSchemaPrivilege(role3, Privilege.Type.DDL, OidHash.schemaOid("doc"))).isFalse();
+        assertThat(roleService.hasPrivilege(role3, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "sys")).isTrue();
+        assertThat(roleService.hasPrivilege(role3, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "doc")).isFalse();
+        assertThat(roleService.hasAnyPrivilege(role3, Privilege.Securable.SCHEMA, "sys")).isTrue();
+        assertThat(roleService.hasAnyPrivilege(role3, Privilege.Securable.SCHEMA, "doc")).isFalse();
+        assertThat(roleService.hasSchemaPrivilege(role3, Privilege.Permission.DDL, OidHash.schemaOid("sys"))).isTrue();
+        assertThat(roleService.hasSchemaPrivilege(role3, Privilege.Permission.DDL, OidHash.schemaOid("doc"))).isFalse();
 
-        assertThat(roleService.hasPrivilege(role4, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "sys")).isFalse();
-        assertThat(roleService.hasPrivilege(role4, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(roleService.hasAnyPrivilege(role4, Privilege.Clazz.SCHEMA, "sys")).isFalse();
-        assertThat(roleService.hasAnyPrivilege(role4, Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(roleService.hasSchemaPrivilege(role4, Privilege.Type.DDL, OidHash.schemaOid("sys"))).isFalse();
-        assertThat(roleService.hasSchemaPrivilege(role4, Privilege.Type.DDL, OidHash.schemaOid("doc"))).isFalse();
+        assertThat(roleService.hasPrivilege(role4, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "sys")).isFalse();
+        assertThat(roleService.hasPrivilege(role4, Privilege.Permission.DDL, Privilege.Securable.SCHEMA, "doc")).isFalse();
+        assertThat(roleService.hasAnyPrivilege(role4, Privilege.Securable.SCHEMA, "sys")).isFalse();
+        assertThat(roleService.hasAnyPrivilege(role4, Privilege.Securable.SCHEMA, "doc")).isFalse();
+        assertThat(roleService.hasSchemaPrivilege(role4, Privilege.Permission.DDL, OidHash.schemaOid("sys"))).isFalse();
+        assertThat(roleService.hasSchemaPrivilege(role4, Privilege.Permission.DDL, OidHash.schemaOid("doc"))).isFalse();
     }
 }

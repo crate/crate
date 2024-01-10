@@ -158,7 +158,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
         for (TableInfo table : tables) {
-            if (roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, table.ident().fqn())) {
+            if (roles.hasAnyPrivilege(user, Privilege.Securable.TABLE, table.ident().fqn())) {
                 String candidate = table.ident().name();
                 float score = levenshteinDistance.getDistance(tableName.toLowerCase(Locale.ENGLISH), candidate.toLowerCase(Locale.ENGLISH));
                 if (score > 0.7f) {
@@ -177,7 +177,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
         for (String availableSchema : schemas.keySet()) {
-            if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, availableSchema)) {
+            if (roles.hasAnyPrivilege(user, Privilege.Securable.SCHEMA, availableSchema)) {
                 float score = levenshteinDistance.getDistance(schema.toLowerCase(Locale.ENGLISH), availableSchema.toLowerCase(Locale.ENGLISH));
                 if (score > 0.7f) {
                     candidates.add(new Candidate(score, availableSchema));

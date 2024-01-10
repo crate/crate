@@ -21,38 +21,38 @@
 
 package io.crate.role;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Objects;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
+
 public class PrivilegeIdent implements Writeable {
 
-    private final Privilege.Type type;
-    private final Privilege.Clazz clazz;
+    private final Privilege.Permission type;
+    private final Privilege.Securable clazz;
     @Nullable
     private final String ident;  // for CLUSTER this will be always null, otherwise schemaName, tableName etc.
 
-    public PrivilegeIdent(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+    public PrivilegeIdent(Privilege.Permission type, Privilege.Securable clazz, @Nullable String ident) {
         this.type = type;
         this.clazz = clazz;
         this.ident = ident;
     }
 
     PrivilegeIdent(StreamInput in) throws IOException {
-        type = Privilege.Type.VALUES.get(in.readInt());
-        clazz = Privilege.Clazz.VALUES.get(in.readInt());
+        type = Privilege.Permission.VALUES.get(in.readInt());
+        clazz = Privilege.Securable.VALUES.get(in.readInt());
         ident = in.readOptionalString();
     }
 
-    public Privilege.Type type() {
+    public Privilege.Permission type() {
         return type;
     }
 
-    public Privilege.Clazz clazz() {
+    public Privilege.Securable clazz() {
         return clazz;
     }
 

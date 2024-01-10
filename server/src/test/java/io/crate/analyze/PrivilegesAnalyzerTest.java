@@ -21,18 +21,19 @@
 
 package io.crate.analyze;
 
-import static io.crate.role.Privilege.Clazz.CLUSTER;
-import static io.crate.role.Privilege.Clazz.SCHEMA;
-import static io.crate.role.Privilege.Clazz.TABLE;
-import static io.crate.role.Privilege.Clazz.VIEW;
-import static io.crate.role.Privilege.Type.AL;
-import static io.crate.role.Privilege.Type.DDL;
-import static io.crate.role.Privilege.Type.DML;
-import static io.crate.role.Privilege.Type.DQL;
-import static io.crate.role.PrivilegeState.DENY;
-import static io.crate.role.PrivilegeState.GRANT;
-import static io.crate.role.PrivilegeState.REVOKE;
+import static io.crate.role.Privilege.Permission.AL;
+import static io.crate.role.Privilege.Permission.DDL;
+import static io.crate.role.Privilege.Permission.DML;
+import static io.crate.role.Privilege.Permission.DQL;
+import static io.crate.role.Privilege.Securable.CLUSTER;
+import static io.crate.role.Privilege.Securable.SCHEMA;
+import static io.crate.role.Privilege.Securable.TABLE;
+import static io.crate.role.Privilege.Securable.VIEW;
+import static io.crate.role.PrivilegeType.DENY;
+import static io.crate.role.PrivilegeType.GRANT;
+import static io.crate.role.PrivilegeType.REVOKE;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
@@ -43,7 +44,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
+import io.crate.role.PrivilegeType;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.StubRoleManager;
@@ -379,7 +380,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
-    private Privilege privilegeOf(PrivilegeState state, Privilege.Type type, Privilege.Clazz clazz, String ident) {
+    private Privilege privilegeOf(PrivilegeType state, Privilege.Permission type, Privilege.Securable clazz, String ident) {
         return new Privilege(state,
             type,
             clazz,

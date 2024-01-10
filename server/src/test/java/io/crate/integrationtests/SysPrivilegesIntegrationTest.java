@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -33,14 +34,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
+import io.crate.role.PrivilegeType;
 import io.crate.role.RoleManager;
 
 public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")));
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null, "crate"),
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.CLUSTER, null, "crate")));
     private static final List<String> USERNAMES = Arrays.asList("ford", "arthur", "normal");
 
 

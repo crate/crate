@@ -40,7 +40,7 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
+import io.crate.role.PrivilegeType;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.testing.Asserts;
 
@@ -52,9 +52,9 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     private Session createGrantorUserSession() {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
         var alPriv = new Privilege(
-            PrivilegeState.GRANT,
-            Privilege.Type.AL,
-            Privilege.Clazz.CLUSTER,
+            PrivilegeType.GRANT,
+            Privilege.Permission.AL,
+            Privilege.Securable.CLUSTER,
             null,
             "crate");
         return sqlOperations.newSession(null, RolesHelper.userOf("the_grantor", Set.of(alPriv), null));

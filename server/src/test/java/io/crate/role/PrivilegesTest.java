@@ -38,7 +38,7 @@ public class PrivilegesTest extends ESTestCase {
 
     @Test
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {
-        assertThatThrownBy(() -> ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null))
+        assertThatThrownBy(() -> ensureUserHasPrivilege(Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
             .hasMessage("Missing 'DQL' privilege for user 'ford'");
     }
@@ -46,12 +46,12 @@ public class PrivilegesTest extends ESTestCase {
     @Test
     public void testNoExceptionIsThrownIfUserHasNotRequiredPrivilegeOnInformationSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
-        ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "information_schema");
+        ensureUserHasPrivilege(Privilege.Permission.DQL, Privilege.Securable.SCHEMA, "information_schema");
     }
 
     @Test
     public void testExceptionIsThrownIfUserHasNotAnyPrivilege() throws Exception {
-        assertThatThrownBy(() -> ensureUserHasPrivilege(Privilege.Clazz.CLUSTER, null))
+        assertThatThrownBy(() -> ensureUserHasPrivilege(Privilege.Securable.CLUSTER, null))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
             .hasMessage("Missing privilege for user 'ford'");
     }
@@ -59,24 +59,24 @@ public class PrivilegesTest extends ESTestCase {
     @Test
     public void testUserWithNoPrivilegeCanAccessInformationSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
-        ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "information_schema");
-        ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.table");
-        ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.views");
+        ensureUserHasPrivilege(Privilege.Securable.SCHEMA, "information_schema");
+        ensureUserHasPrivilege(Privilege.Securable.TABLE, "information_schema.table");
+        ensureUserHasPrivilege(Privilege.Securable.TABLE, "information_schema.views");
     }
 
     @Test
     public void testUserWithNoPrivilegesCanAccessPgCatalogSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `pg_catalog`
-        ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "pg_catalog");
-        ensureUserHasPrivilege(Privilege.Clazz.TABLE, "pg_catalog.pg_am");
-        ensureUserHasPrivilege(Privilege.Clazz.TABLE, "pg_catalog.pg_database");
+        ensureUserHasPrivilege(Privilege.Securable.SCHEMA, "pg_catalog");
+        ensureUserHasPrivilege(Privilege.Securable.TABLE, "pg_catalog.pg_am");
+        ensureUserHasPrivilege(Privilege.Securable.TABLE, "pg_catalog.pg_database");
     }
 
-    private static void ensureUserHasPrivilege(Privilege.Clazz clazz, String ident) {
+    private static void ensureUserHasPrivilege(Privilege.Securable clazz, String ident) {
         Privileges.ensureUserHasPrivilege(ROLES, USER, clazz, ident);
     }
 
-    private static void ensureUserHasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+    private static void ensureUserHasPrivilege(Privilege.Permission type, Privilege.Securable clazz, String ident) {
         Privileges.ensureUserHasPrivilege(ROLES, USER, type, clazz, ident);
     }
 }

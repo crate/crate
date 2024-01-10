@@ -73,7 +73,7 @@ public final class PrivilegesModifier {
                 PrivilegeIdent privilegeIdent = userPrivilege.ident();
                 if (privilegeIdent.equals(newPrivilege.ident())) {
                     userHadPrivilegeOnSameObject = true;
-                    if (newPrivilege.state().equals(PrivilegeState.REVOKE)) {
+                    if (newPrivilege.state().equals(PrivilegeType.REVOKE)) {
                         iterator.remove();
                         affectedCount++;
                         break;
@@ -89,7 +89,7 @@ public final class PrivilegesModifier {
                 }
             }
 
-            if (userHadPrivilegeOnSameObject == false && newPrivilege.state().equals(PrivilegeState.REVOKE) == false) {
+            if (userHadPrivilegeOnSameObject == false && newPrivilege.state().equals(PrivilegeType.REVOKE) == false) {
                 // revoking a privilege that was not granted is a no-op
                 affectedCount++;
                 privileges.add(newPrivilege);
@@ -106,7 +106,7 @@ public final class PrivilegesModifier {
     /**
      * Returns a copy of the {@link RolesMetadata} including a copied list of privileges if at least one
      * privilege was replaced. Otherwise returns the NULL to indicate that nothing was changed.
-     * Privileges of class {@link Privilege.Clazz#TABLE} whose idents are matching the given source ident are replaced
+     * Privileges of class {@link Privilege.Securable#TABLE} whose idents are matching the given source ident are replaced
      * by a copy where the ident is changed to the given target ident.
      */
     @Nullable
@@ -120,7 +120,7 @@ public final class PrivilegesModifier {
             Set<Privilege> privileges = HashSet.newHashSet(role.privileges().size());
             for (Privilege privilege : role.privileges()) {
                 PrivilegeIdent privilegeIdent = privilege.ident();
-                if (privilegeIdent.clazz().equals(Privilege.Clazz.TABLE) == false) {
+                if (privilegeIdent.clazz().equals(Privilege.Securable.TABLE) == false) {
                     privileges.add(privilege);
                     continue;
                 }
@@ -154,8 +154,8 @@ public final class PrivilegesModifier {
             Set<Privilege> updatedPrivileges = new HashSet<>();
             for (Privilege privilege : role.privileges()) {
                 PrivilegeIdent privilegeIdent = privilege.ident();
-                Privilege.Clazz clazz = privilegeIdent.clazz();
-                if (clazz.equals(Privilege.Clazz.TABLE) == false && clazz.equals(Privilege.Clazz.VIEW) == false) {
+                Privilege.Securable clazz = privilegeIdent.clazz();
+                if (clazz.equals(Privilege.Securable.TABLE) == false && clazz.equals(Privilege.Securable.VIEW) == false) {
                     continue;
                 }
 
@@ -183,7 +183,7 @@ public final class PrivilegesModifier {
             Set<Privilege> updatedPrivileges = new HashSet<>();
             for (Privilege privilege : role.privileges()) {
                 PrivilegeIdent ident = privilege.ident();
-                if (ident.clazz() == Privilege.Clazz.TABLE) {
+                if (ident.clazz() == Privilege.Securable.TABLE) {
                     if (source.fqn().equals(ident.ident())) {
                         updatedPrivileges.add(
                             new Privilege(privilege.state(), ident.type(), ident.clazz(), target.fqn(), privilege.grantor()));

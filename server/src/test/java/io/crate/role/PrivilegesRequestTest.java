@@ -21,7 +21,7 @@
 
 package io.crate.role;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Set;
@@ -36,14 +36,14 @@ public class PrivilegesRequestTest extends ESTestCase {
     public void testStreaming() throws Exception {
         List<String> roles = List.of("ford", "arthur");
         List<Privilege> privileges = List.of(
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, null, "crate")
+            new Privilege(PrivilegeType.GRANT, Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.SCHEMA, null, "crate"),
+            new Privilege(PrivilegeType.GRANT, Privilege.Permission.DDL, Privilege.Securable.TABLE, null, "crate"),
+            new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.VIEW, null, "crate")
         );
         RolePrivilegeToApply rolePrivilegeToApply = new RolePrivilegeToApply(
-            PrivilegeState.REVOKE, Set.of("role1", "role2"), "admin");
+            PrivilegeType.REVOKE, Set.of("role1", "role2"), "admin");
         PrivilegesRequest r1 = new PrivilegesRequest(roles, privileges, rolePrivilegeToApply);
 
         BytesStreamOutput out = new BytesStreamOutput();

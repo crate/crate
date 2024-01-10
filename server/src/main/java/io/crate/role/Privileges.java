@@ -41,8 +41,8 @@ public final class Privileges {
      */
     public static void ensureUserHasPrivilege(Roles roles,
                                               Role user,
-                                              Privilege.Type type,
-                                              Privilege.Clazz clazz,
+                                              Privilege.Permission type,
+                                              Privilege.Securable clazz,
                                               @Nullable String ident) throws MissingPrivilegeException {
         assert roles != null : "Roles must not be null when trying to validate privileges";
         assert user != null : "User must not be null when trying to validate privileges";
@@ -66,7 +66,7 @@ public final class Privileges {
                     case TABLE:
                     case VIEW:
                         RelationName relationName = RelationName.fromIndexName(ident);
-                        if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, relationName.schema())) {
+                        if (roles.hasAnyPrivilege(user, Privilege.Securable.SCHEMA, relationName.schema())) {
                             throw new RelationUnknown(relationName);
                         } else {
                             throw new SchemaUnknownException(relationName.schema());
@@ -85,7 +85,7 @@ public final class Privileges {
     @VisibleForTesting
     public static void ensureUserHasPrivilege(Roles roles,
                                               Role user,
-                                              Privilege.Clazz clazz,
+                                              Privilege.Securable clazz,
                                               @Nullable String ident) throws MissingPrivilegeException {
         assert roles != null : "Roles must not be null when trying to validate privileges";
         assert user != null : "User must not be null when trying to validate privileges";
@@ -106,7 +106,7 @@ public final class Privileges {
                 case TABLE:
                 case VIEW:
                     RelationName relationName = RelationName.fromIndexName(ident);
-                    if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, relationName.schema())) {
+                    if (roles.hasAnyPrivilege(user, Privilege.Securable.SCHEMA, relationName.schema())) {
                         throw new RelationUnknown(relationName);
                     } else {
                         throw new SchemaUnknownException(relationName.schema());
@@ -119,13 +119,13 @@ public final class Privileges {
         }
     }
 
-    private static String getTargetSchema(Privilege.Clazz clazz, @Nullable String ident) {
+    private static String getTargetSchema(Privilege.Securable clazz, @Nullable String ident) {
         String schemaName = null;
-        if (Privilege.Clazz.CLUSTER.equals(clazz)) {
+        if (Privilege.Securable.CLUSTER.equals(clazz)) {
             return schemaName;
         }
         assert ident != null : "ident must not be null if privilege class is not 'CLUSTER'";
-        if (Privilege.Clazz.TABLE.equals(clazz)) {
+        if (Privilege.Securable.TABLE.equals(clazz)) {
             schemaName = new IndexParts(ident).getSchema();
         } else {
             schemaName = ident;
@@ -133,12 +133,12 @@ public final class Privileges {
         return schemaName;
     }
 
-    private static boolean isInformationSchema(Privilege.Clazz clazz, String ident) {
+    private static boolean isInformationSchema(Privilege.Securable clazz, String ident) {
         String targetSchema = getTargetSchema(clazz, ident);
         return InformationSchemaInfo.NAME.equals(targetSchema);
     }
 
-    private static boolean isPgCatalogSchema(Privilege.Clazz clazz, String ident) {
+    private static boolean isPgCatalogSchema(Privilege.Securable clazz, String ident) {
         String targetSchema = getTargetSchema(clazz, ident);
         return PgCatalogSchemaInfo.NAME.equals(targetSchema);
     }

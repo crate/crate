@@ -247,7 +247,7 @@ public class SysShardsTableInfo {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
             for (String indexName : concreteIndices) {
                 String tableName = RelationName.fqnFromIndexName(indexName);
-                if (roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, tableName)) {
+                if (roles.hasAnyPrivilege(user, Privilege.Securable.TABLE, tableName)) {
                     accessibleTables.add(indexName);
                 }
             }

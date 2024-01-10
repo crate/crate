@@ -21,9 +21,9 @@
 
 package io.crate.role;
 
-import static io.crate.role.PrivilegeState.DENY;
-import static io.crate.role.PrivilegeState.GRANT;
-import static io.crate.role.PrivilegeState.REVOKE;
+import static io.crate.role.PrivilegeType.DENY;
+import static io.crate.role.PrivilegeType.GRANT;
+import static io.crate.role.PrivilegeType.REVOKE;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,21 +36,21 @@ import io.crate.metadata.pgcatalog.OidHash;
 
 public interface Roles {
 
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_PRIVILEGE_FUNCTION =
+    FourFunction<Role, Privilege.Permission, Privilege.Securable, Object, PrivilegeType> HAS_PRIVILEGE_FUNCTION =
         (r, t, c, o) -> r.privileges().matchPrivilege(t, c, (String) o);
 
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_ANY_PRIVILEGE_FUNCTION =
+    FourFunction<Role, Privilege.Permission, Privilege.Securable, Object, PrivilegeType> HAS_ANY_PRIVILEGE_FUNCTION =
         (r, t, c, o) -> r.privileges().matchPrivilegeOfAnyType(c, (String) o);
 
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_SCHEMA_PRIVILEGE_FUNCTION =
+    FourFunction<Role, Privilege.Permission, Privilege.Securable, Object, PrivilegeType> HAS_SCHEMA_PRIVILEGE_FUNCTION =
         (r, t, c, o) -> {
-            PrivilegeState result = PrivilegeState.REVOKE;
+            PrivilegeType result = PrivilegeType.REVOKE;
             for (Privilege privilege : r.privileges()) {
                 if (privilege.ident().type() == t) {
-                    if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA
+                    if (privilege.ident().clazz() == Privilege.Securable.SCHEMA
                         && OidHash.schemaOid(privilege.ident().ident()) == (Integer) o) {
                         return privilege.state();
-                    } else if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
+                    } else if (privilege.ident().clazz() == Privilege.Securable.CLUSTER) {
                         result = privilege.state();
                     }
                 }
@@ -100,35 +100,38 @@ public interface Roles {
      * Checks if the user has a privilege that matches the given class, type, ident and
      * default schema. Currently only the type is checked since Class is always
      * CLUSTER and ident null.
-     * @param user           user
-     * @param type           privilege type
-     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
-     * @param ident          ident of the object
+     * @param user             user
+     * @param permission       privilege type
+     * @param securable        privilege class (ie. CLUSTER, TABLE, etc)
+     * @param subject          ident of the object
      */
-    default boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        return user.isSuperUser() || hasPrivilege(user, type, clazz, ident, HAS_PRIVILEGE_FUNCTION) == GRANT;
+    default boolean hasPrivilege(Role user, Privilege.Permission permission, Privilege.Securable securable, @Nullable String subject) {
+        return user.isSuperUser()
+            || hasPrivilege(user, permission, securable, subject, HAS_PRIVILEGE_FUNCTION) == GRANT;
     }
 
     /**
      * Checks if the user has a schema privilege that matches the given type and ident OID.
      * @param user           user
-     * @param type           privilege type
+     * @param permission           privilege type
      * @param schemaOid      OID of the schema
      */
-    default boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
-        return user.isSuperUser() || hasPrivilege(user, type, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION) == GRANT;
+    default boolean hasSchemaPrivilege(Role user, Privilege.Permission permission, Integer schemaOid) {
+        return user.isSuperUser()
+            || hasPrivilege(user, permission, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION) == GRANT;
     }
 
     /**
      * Checks if the user has any privilege that matches the given class, type and ident
      * currently we check for any privilege, since Class is always CLUSTER and ident null.
      *
-     * @param user  user
-     * @param clazz     privilege class (ie. CLUSTER, TABLE, etc)
-     * @param ident     ident of the object
+     * @param user        user
+     * @param securable   privilege class (ie. CLUSTER, TABLE, etc)
+     * @param subject     ident of the object
      */
-    default boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
-        return user.isSuperUser() || hasPrivilege(user, null, clazz, ident, HAS_ANY_PRIVILEGE_FUNCTION) == GRANT;
+    default boolean hasAnyPrivilege(Role user, Privilege.Securable securable, @Nullable String subject) {
+        return user.isSuperUser()
+            || hasPrivilege(user, null, securable, subject, HAS_ANY_PRIVILEGE_FUNCTION) == GRANT;
     }
 
     Collection<Role> roles();
@@ -155,27 +158,27 @@ public interface Roles {
      * DENY has precedence, so given a role, if for one of its parents the privilege resolves to DENY,
      * then the privilege resolves to DENY for the role.
      */
-    private PrivilegeState hasPrivilege(
+    private PrivilegeType hasPrivilege(
         Role role,
-        Privilege.Type type,
-        @Nullable Privilege.Clazz clazz,
-        @Nullable Object object,
-        FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> function) {
+        Privilege.Permission permission,
+        @Nullable Privilege.Securable securable,
+        @Nullable Object subject,
+        FourFunction<Role, Privilege.Permission, Privilege.Securable, Object, PrivilegeType> resolveType) {
 
         if (role.isSuperUser()) {
             return GRANT;
         }
-        PrivilegeState resolution = function.apply(role, type, clazz, object);
+        PrivilegeType resolution = resolveType.apply(role, permission, securable, subject);
         if (resolution == DENY || resolution == GRANT) {
             return resolution;
         }
 
 
-        PrivilegeState result = REVOKE;
+        PrivilegeType result = REVOKE;
         for (String parentRoleName : role.grantedRoleNames()) {
             var parentRole = findRole(parentRoleName);
             assert parentRole != null : "role must exist";
-            var partialResult = hasPrivilege(parentRole, type, clazz, object, function);
+            var partialResult = hasPrivilege(parentRole, permission, securable, subject, resolveType);
             if (partialResult == DENY) {
                 return DENY;
             }

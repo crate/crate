@@ -64,7 +64,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
             }
 
             @Override
-            public boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
+            public boolean hasAnyPrivilege(Role user, Privilege.Securable clazz, @Nullable String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(clazz, ident, user.name()));
                 return true;
             }
@@ -74,16 +74,16 @@ public class AccessControlMaySeeTest extends ESTestCase {
 
     private void assertAskedAnyForCluster() {
         assertThat(validationCallArguments).satisfiesExactly(
-            s -> assertThat(s).containsExactly(Privilege.Clazz.CLUSTER, null, user.name()));
+            s -> assertThat(s).containsExactly(Privilege.Securable.CLUSTER, null, user.name()));
     }
 
     private void assertAskedAnyForSchema(String ident) {
         assertThat(validationCallArguments).satisfiesExactly(
-            s -> assertThat(s).containsExactly(Privilege.Clazz.SCHEMA, ident, user.name()));
+            s -> assertThat(s).containsExactly(Privilege.Securable.SCHEMA, ident, user.name()));
     }
 
     private void assertAskedAnyForTable(String ident) {
-        assertThat(validationCallArguments).contains(List.of(Privilege.Clazz.TABLE, ident, user.name()));
+        assertThat(validationCallArguments).contains(List.of(Privilege.Securable.TABLE, ident, user.name()));
     }
 
     @Test

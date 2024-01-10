@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.GrantedRole;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
+import io.crate.role.PrivilegeType;
 import io.crate.role.Role;
 import io.crate.role.RolePrivilegeToApply;
 
@@ -210,11 +210,11 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         long affectedCount = 0L;
         for (var roleNameToApply : newRolePrivilegeToApply.roleNames()) {
 
-            if (newRolePrivilegeToApply.state() == PrivilegeState.GRANT) {
+            if (newRolePrivilegeToApply.state() == PrivilegeType.GRANT) {
                 if (grantedRoles.add(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
                     affectedCount++;
                 }
-            } else if (newRolePrivilegeToApply.state() == PrivilegeState.REVOKE) {
+            } else if (newRolePrivilegeToApply.state() == PrivilegeType.REVOKE) {
                 if (grantedRoles.remove(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
                     affectedCount++;
                 }

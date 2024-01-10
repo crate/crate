@@ -21,7 +21,7 @@
 
 package io.crate.role.metadata;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.security.GeneralSecurityException;
 import java.util.Collections;
@@ -37,7 +37,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.GrantedRole;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
+import io.crate.role.PrivilegeType;
 import io.crate.role.Role;
 import io.crate.role.SecureHash;
 
@@ -73,11 +73,11 @@ public final class RolesHelper {
 
     public static final Map<String, Set<Privilege>> OLD_DUMMY_USERS_PRIVILEGES = Map.of(
         "Ford", Set.of(
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "doc", "crate")
+            new Privilege(PrivilegeType.GRANT, Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.SCHEMA, "doc", "crate")
         ),
         "Arthur", Set.of(
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "doc", "crate")
+            new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.SCHEMA, "doc", "crate")
         ));
 
     public static UsersMetadata usersMetadataOf(Map<String, Role> users) {

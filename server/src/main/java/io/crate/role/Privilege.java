@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class Privilege implements Writeable, ToXContent {
 
-    public enum Type {
+    public enum Permission {
         DQL,
         DML,
         DDL,
@@ -45,18 +45,18 @@ public class Privilege implements Writeable, ToXContent {
          */
         AL;
 
-        public static final List<Type> VALUES = List.of(values());
+        public static final List<Permission> VALUES = List.of(values());
 
-        public static final List<Type> READ_WRITE_DEFINE = List.of(DQL, DML, DDL);
+        public static final List<Permission> READ_WRITE_DEFINE = List.of(DQL, DML, DDL);
     }
 
-    public enum Clazz {
+    public enum Securable {
         CLUSTER,
         SCHEMA,
         TABLE,
         VIEW;
 
-        public static final List<Clazz> VALUES = List.of(values());
+        public static final List<Securable> VALUES = List.of(values());
     }
 
     /**
@@ -72,9 +72,9 @@ public class Privilege implements Writeable, ToXContent {
         }
 
         XContentParser.Token currentToken;
-        PrivilegeState state = null;
-        Privilege.Type type = null;
-        Privilege.Clazz clazz = null;
+        PrivilegeType state = null;
+        Privilege.Permission type = null;
+        Privilege.Securable clazz = null;
         String ident = null;
         String grantor = null;
         while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -87,21 +87,21 @@ public class Privilege implements Writeable, ToXContent {
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'state' value is not a number [{}]", currentToken);
                         }
-                        state = PrivilegeState.values()[parser.intValue()];
+                        state = PrivilegeType.values()[parser.intValue()];
                         break;
                     case "type":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'type' value is not a number [{}]", currentToken);
                         }
-                        type = Privilege.Type.values()[parser.intValue()];
+                        type = Privilege.Permission.values()[parser.intValue()];
                         break;
                     case "class":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'class' value is not a number [{}]", currentToken);
                         }
-                        clazz = Privilege.Clazz.values()[parser.intValue()];
+                        clazz = Privilege.Securable.values()[parser.intValue()];
                         break;
                     case "ident":
                         if (currentToken != XContentParser.Token.VALUE_STRING
@@ -126,23 +126,23 @@ public class Privilege implements Writeable, ToXContent {
         return new Privilege(state, type, clazz, ident, grantor);
     }
 
-    private final PrivilegeState state;
+    private final PrivilegeType state;
     private final PrivilegeIdent ident;
     private final String grantor;
 
-    public Privilege(PrivilegeState state, Type type, Clazz clazz, @Nullable String ident, String grantor) {
+    public Privilege(PrivilegeType state, Permission type, Securable clazz, @Nullable String ident, String grantor) {
         this.state = state;
         this.ident = new PrivilegeIdent(type, clazz, ident);
         this.grantor = grantor;
     }
 
     public Privilege(StreamInput in) throws IOException {
-        state = PrivilegeState.VALUES.get(in.readInt());
+        state = PrivilegeType.VALUES.get(in.readInt());
         ident = new PrivilegeIdent(in);
         grantor = in.readString();
     }
 
-    public PrivilegeState state() {
+    public PrivilegeType state() {
         return state;
     }
 

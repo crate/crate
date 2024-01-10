@@ -33,7 +33,7 @@ public class RolePrivilegeToApplyTest {
     @Test
     public void test_role_privilege_trip() throws Exception {
         var out = new BytesStreamOutput();
-        var rolePrivilege = new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("role1", "role2", "role3"), "admin");
+        var rolePrivilege = new RolePrivilegeToApply(PrivilegeType.GRANT, Set.of("role1", "role2", "role3"), "admin");
         rolePrivilege.writeTo(out);
 
         var in = out.bytes().streamInput();

@@ -23,7 +23,7 @@ package io.crate.role;
 
 import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES;
 import static io.crate.role.metadata.RolesHelper.userOf;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -44,11 +44,11 @@ import io.crate.role.metadata.RolesMetadata;
 public class TransportPrivilegesActionTest extends ESTestCase {
 
     private static final Privilege GRANT_DQL =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null, "crate");
     private static final Privilege GRANT_DML =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeType.GRANT, Privilege.Permission.DML, Privilege.Securable.CLUSTER, null, "crate");
     private static final Privilege DENY_DQL =
-        new Privilege(PrivilegeState.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+        new Privilege(PrivilegeType.DENY, Privilege.Permission.DQL, Privilege.Securable.CLUSTER, null, "crate");
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
 
     @Test
@@ -101,14 +101,14 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         mdBuilder.putCustom(RolesMetadata.TYPE, rolesMetadata);
 
         PrivilegesRequest privilegeReq = new PrivilegesRequest(
-            List.of("unknownUser"), Set.of(), new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("John"), null));
+            List.of("unknownUser"), Set.of(), new RolePrivilegeToApply(PrivilegeType.GRANT, Set.of("John"), null));
 
         var result = TransportPrivilegesAction.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq);
         assertThat(result.affectedRows()).isEqualTo(-1);
         assertThat(result.unknownRoleNames()).containsExactly("unknownUser");
 
         privilegeReq = new PrivilegesRequest(
-            List.of("John"), Set.of(), new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("unknownRole"), null));
+            List.of("John"), Set.of(), new RolePrivilegeToApply(PrivilegeType.GRANT, Set.of("unknownRole"), null));
 
         result = TransportPrivilegesAction.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq);
         assertThat(result.affectedRows()).isEqualTo(-1);
@@ -121,7 +121,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         var rolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
         mdBuilder.putCustom(RolesMetadata.TYPE, rolesMetadata);
 
-        for (var state : List.of(PrivilegeState.GRANT, PrivilegeState.REVOKE)) {
+        for (var state : List.of(PrivilegeType.GRANT, PrivilegeType.REVOKE)) {
             var privilegeReq = new PrivilegesRequest(
                 List.of("DummyRole"), Set.of(), new RolePrivilegeToApply(state, Set.of("John"), null));
 
@@ -174,7 +174,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
                role5
          */
         var privilegeReq1 = new PrivilegesRequest(
-            List.of("role1"), Set.of(), new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("role4"), null));
+            List.of("role1"), Set.of(), new RolePrivilegeToApply(PrivilegeType.GRANT, Set.of("role4"), null));
         assertThatThrownBy(() ->
             TransportPrivilegesAction.detectCyclesInRolesHierarchy(roles::values, privilegeReq1))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -195,7 +195,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
                role5 <-------+
          */
         var privilegeReq2 = new PrivilegesRequest(
-            List.of("role2"), Set.of(), new RolePrivilegeToApply(PrivilegeState.GRANT, Set.of("role5"), null));
+            List.of("role2"), Set.of(), new RolePrivilegeToApply(PrivilegeType.GRANT, Set.of("role5"), null));
         assertThatThrownBy(() ->
             TransportPrivilegesAction.detectCyclesInRolesHierarchy(roles::values, privilegeReq2))
             .isExactlyInstanceOf(IllegalArgumentException.class)

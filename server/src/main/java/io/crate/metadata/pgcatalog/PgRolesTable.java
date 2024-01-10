@@ -65,8 +65,8 @@ public final class PgRolesTable {
             Privileges.ensureUserHasPrivilege(
                 roles,
                 role,
-                Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Privilege.Permission.AL,
+                Privilege.Securable.CLUSTER,
                 null);
             return true;
         } catch (MissingPrivilegeException e) {

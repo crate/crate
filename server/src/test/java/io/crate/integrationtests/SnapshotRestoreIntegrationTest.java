@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -70,7 +71,7 @@ import org.junit.rules.TemporaryFolder;
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
+import io.crate.role.PrivilegeType;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -1051,11 +1052,11 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur")).isEmpty();
         assertThat(usersPrivilegesMetadata.getUserPrivileges("John")).containsExactly(
             new Privilege(
-                PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "sys", "crate")
+                PrivilegeType.GRANT, Privilege.Permission.DQL, Privilege.Securable.SCHEMA, "sys", "crate")
         );
         assertThat(usersPrivilegesMetadata.getUserPrivileges("Ford")).containsExactly(
             new Privilege(
-                PrivilegeState.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, null, "crate")
+                PrivilegeType.GRANT, Privilege.Permission.AL, Privilege.Securable.CLUSTER, null, "crate")
         );
 
         execute("ALTER USER \"John\" SET (password='johns-new-password')");
