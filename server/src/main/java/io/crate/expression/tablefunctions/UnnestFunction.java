@@ -21,7 +21,6 @@
 
 package io.crate.expression.tablefunctions;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
 
 import java.util.ArrayList;
@@ -55,44 +54,31 @@ public class UnnestFunction {
             Signature
                 .table(
                     NAME,
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("E")
-                )
-                .withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Scalar.Feature.NON_NULLABLE),
-            (signature, boundSignature) -> new UnnestTableFunctionImplementation(
-                signature,
-                boundSignature,
-                LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings()) ?
-                    new RowType(List.of(boundSignature.returnType())) :
-                    new RowType(List.of(boundSignature.returnType()), List.of(NAME)))
-        );
-        module.register(
-            Signature
-                .table(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(N)"),
                     RowType.EMPTY.getTypeSignature()
                 )
-                .withTypeVariableConstraints(typeVariable("E"), typeVariableOfAnyType("N"))
+                .withTypeVariableConstraints(typeVariableOfAnyType("N"))
                 .withFeature(Scalar.Feature.NON_NULLABLE)
-            .withVariableArity(),
+                .withVariableArity(),
             (signature, boundSignature) -> {
-                var argTypes = boundSignature.argTypes();
-                ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
-                for (int i = 0; i < argTypes.size(); i++) {
-                    DataType<?> dataType = argTypes.get(i);
-                    fieldTypes.add(ArrayType.unnest(dataType));
-                }
-                var returnType = new RowType(fieldTypes);
-                // the return type of the bound signature has to be resolved
-                // and created explicitly based on the arguments of the bounded
-                // signature, such as we cannot resolve correctly the field types
-                // of the record type from the array of any type with variable arity.
+                List<DataType<?>> fieldTypes = Lists2.map(boundSignature.argTypes(), ArrayType::unnest);
+                Boolean useLegacyName = LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings());
+                List<String> fieldNames = fieldTypes.size() == 1 && !useLegacyName
+                    ? List.of(NAME)
+                    : List.of();
+                RowType returnType = new RowType(fieldTypes, fieldNames);
+
+                /**
+                 * See class javadoc of {@link TableFunctionImplementation}
+                 * Single return value is promoted/unwrapped from Row
+                 **/
+                BoundSignature newBoundSignature = new BoundSignature(
+                    boundSignature.argTypes(),
+                    fieldTypes.size() == 1 ? fieldTypes.get(0) : returnType
+                );
                 return new UnnestTableFunctionImplementation(
                     signature,
-                    new BoundSignature(boundSignature.argTypes(), returnType),
+                    newBoundSignature,
                     returnType
                 );
             }
