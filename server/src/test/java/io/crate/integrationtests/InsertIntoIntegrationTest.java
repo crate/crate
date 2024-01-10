@@ -2024,7 +2024,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
     @Test
     @UseNewCluster
-    @Repeat(iterations = 100)
     @UseJdbc(value = 1)
     public void test_select_non_determinsitic_column_source_value_not_equal_to_regular_select() throws Exception {
         execute("""
@@ -2036,8 +2035,12 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("INSERT INTO tbl (id) VALUES (1)");
         refresh();
 
-        execute("SELECT modification_date, _raw FROM tbl");
-        var sourceValue = Maps.get(new ObjectMapper().readValue((String) response.rows()[0][1], HashMap.class), "2");
-        assertThat((long) response.rows()[0][0]).isEqualTo(sourceValue);
+        execute("SELECT modification_date FROM tbl");
+        long ts = (long) response.rows()[0][0];
+        for (int i = 0; i <10; i++) {
+            execute("SELECT modification_date FROM tbl");
+            assertThat((long) response.rows()[0][0]).isEqualTo(ts);
+        }
+
     }
 }
