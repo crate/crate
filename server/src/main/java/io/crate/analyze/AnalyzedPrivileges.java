@@ -29,22 +29,22 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.role.Privilege;
-import io.crate.role.RolePrivilegeToApply;
+import io.crate.role.GrantedRolesChange;
 
 public class AnalyzedPrivileges implements DCLStatement {
 
     private final List<String> userNames;
     private final Set<Privilege> privileges;
-    private final RolePrivilegeToApply rolePrivilegeToApply;
+    private final GrantedRolesChange grantedRolesChange;
 
     private AnalyzedPrivileges(List<String> userNames,
                                Set<Privilege> privileges,
-                               @Nullable RolePrivilegeToApply rolePrivilegeToApply) {
+                               @Nullable GrantedRolesChange grantedRolesChange) {
         this.userNames = userNames;
         this.privileges = privileges;
-        this.rolePrivilegeToApply = rolePrivilegeToApply;
-        assert (privileges.isEmpty() && rolePrivilegeToApply != null) ||
-            (rolePrivilegeToApply == null && privileges.isEmpty() == false) :
+        this.grantedRolesChange = grantedRolesChange;
+        assert (privileges.isEmpty() && grantedRolesChange != null) ||
+            (grantedRolesChange == null && privileges.isEmpty() == false) :
             "privileges and rolePrivileges cannot be set together";
     }
 
@@ -52,8 +52,8 @@ public class AnalyzedPrivileges implements DCLStatement {
         return new AnalyzedPrivileges(userNames, privileges, null);
     }
 
-    public static AnalyzedPrivileges ofRolePrivileges(List<String> userNames, RolePrivilegeToApply rolePrivilegeToApply) {
-        return new AnalyzedPrivileges(userNames, Set.of(), rolePrivilegeToApply);
+    public static AnalyzedPrivileges ofRolePrivileges(List<String> userNames, GrantedRolesChange grantedRolesChange) {
+        return new AnalyzedPrivileges(userNames, Set.of(), grantedRolesChange);
     }
 
     @Override
@@ -69,8 +69,8 @@ public class AnalyzedPrivileges implements DCLStatement {
         return privileges;
     }
 
-    public RolePrivilegeToApply rolePrivilege() {
-        return rolePrivilegeToApply;
+    public GrantedRolesChange rolePrivilege() {
+        return grantedRolesChange;
     }
 
     @Override

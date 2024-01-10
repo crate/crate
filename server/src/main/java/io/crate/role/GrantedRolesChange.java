@@ -29,19 +29,19 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public class RolePrivilegeToApply implements Writeable {
+public class GrantedRolesChange implements Writeable {
 
     private final PrivilegeState state;
     private final Set<String> roleNames;
     private final String grantor;
 
-    public RolePrivilegeToApply(PrivilegeState state, Set<String> roleNames, String grantor) {
+    public GrantedRolesChange(PrivilegeState state, Set<String> roleNames, String grantor) {
         this.state = state;
         this.roleNames = roleNames;
         this.grantor = grantor;
     }
 
-    public RolePrivilegeToApply(StreamInput in) throws IOException {
+    public GrantedRolesChange(StreamInput in) throws IOException {
         state = PrivilegeState.VALUES.get(in.readInt());
         roleNames = in.readSet(StreamInput::readString);
         grantor = in.readString();
@@ -67,7 +67,7 @@ public class RolePrivilegeToApply implements Writeable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        RolePrivilegeToApply that = (RolePrivilegeToApply) o;
+        GrantedRolesChange that = (GrantedRolesChange) o;
         return state == that.state && Objects.equals(roleNames, that.roleNames);
     }
 

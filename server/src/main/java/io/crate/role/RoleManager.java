@@ -68,13 +68,13 @@ public interface RoleManager extends Roles {
 
      * @param roleNames     List of role names all privileges should be applied for
      * @param privileges    List of privileges to apply
-     * @param rolePrivilegeToApply    role privileges to apply
+     * @param grantedRolesChange    role privileges to apply
      * @return a future which returns the number of privileges which were successfully applied
      */
     CompletableFuture<Long> applyPrivileges(
         Collection<String> roleNames,
         Collection<Privilege> privileges,
-        RolePrivilegeToApply rolePrivilegeToApply);
+        GrantedRolesChange grantedRolesChange);
 
     AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings);
 }

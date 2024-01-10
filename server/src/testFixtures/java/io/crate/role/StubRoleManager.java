@@ -53,7 +53,7 @@ public class StubRoleManager implements RoleManager {
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames,
                                                    Collection<Privilege> privileges,
-                                                   RolePrivilegeToApply rolePrivilegeToApply) {
+                                                   GrantedRolesChange grantedRolesChange) {
         return CompletableFuture.failedFuture(
             new UnsupportedFeatureException("applyPrivileges is not implemented in StubRoleManager"));
     }
