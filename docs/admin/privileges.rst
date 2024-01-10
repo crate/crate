@@ -415,6 +415,11 @@ of each role before or after granting roles to other roles or users.
     Roles can be granted to other roles or users, but users (roles which can
     also login to the database) cannot be granted to other roles or users.
 
+.. NOTE::
+
+    Superuser ``crate`` cannot be granted to other users or roles, and roles
+    cannot be granted to it.
+
 Inheritance
 ...........
 

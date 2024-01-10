@@ -60,19 +60,19 @@ class PrivilegesAnalyzer {
     }
 
     AnalyzedPrivileges analyzeGrant(GrantPrivilege node, Role grantor, SearchPath searchPath) {
-        return getAnalyzedPrivileges(node, grantor, searchPath);
+        return buildAnalyzedPrivileges(node, grantor, searchPath);
     }
 
     AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, Role grantor, SearchPath searchPath) {
-        return getAnalyzedPrivileges(node, grantor, searchPath);
+        return buildAnalyzedPrivileges(node, grantor, searchPath);
     }
 
     AnalyzedPrivileges analyzeDeny(DenyPrivilege node, Role grantor, SearchPath searchPath) {
-        return getAnalyzedPrivileges(node, grantor, searchPath);
+        return buildAnalyzedPrivileges(node, grantor, searchPath);
     }
 
     @NotNull
-    private AnalyzedPrivileges getAnalyzedPrivileges(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
+    private AnalyzedPrivileges buildAnalyzedPrivileges(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
         PrivilegeState state;
         switch (node) {
             case GrantPrivilege ignored -> state = PrivilegeState.GRANT;
@@ -104,9 +104,18 @@ class PrivilegesAnalyzer {
                             clazz));
                 }
             }
+
             if (state == PrivilegeState.DENY) {
                 throw new IllegalArgumentException("Cannot DENY a role");
             }
+            if (node.userNames().contains(Role.CRATE_USER.name())) {
+                throw new IllegalArgumentException("Cannot grant roles to " + Role.CRATE_USER.name() + " superuser");
+            }
+            if (node.privileges().contains(Role.CRATE_USER.name())) {
+                throw new IllegalArgumentException("Cannot grant " + Role.CRATE_USER.name() + " superuser, to other " +
+                    "users or roles");
+            }
+
             for (var grantee : node.userNames()) {
                 for (var roleNameToGrant : node.privileges()) {
                     if (roleNameToGrant.equals(grantee)) {

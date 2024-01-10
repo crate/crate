@@ -362,6 +362,20 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_cannot_grant_superuser() {
+        assertThatThrownBy(() -> analyzePrivilegesStatement("GRANT role1, crate TO role2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot grant crate superuser, to other users or roles");
+    }
+
+    @Test
+    public void test_cannot_grant_roles_to_superuser() {
+        assertThatThrownBy(() -> analyzePrivilegesStatement("GRANT role1 TO role2, crate"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot grant roles to crate superuser");
+    }
+
+    @Test
     public void test_grant_role_to_user() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT role1, role2, role1 TO user1, user2");
         assertThat(analysis.userNames()).containsExactly("user1", "user2");
