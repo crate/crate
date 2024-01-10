@@ -21,6 +21,9 @@
 
 package io.crate.role;
 
+import static io.crate.role.Privilege.Clazz.CLUSTER;
+import static io.crate.role.Privilege.Clazz.SCHEMA;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +39,8 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.metadata.pgcatalog.OidHash;
 
 public class Role implements Writeable, ToXContent {
 
@@ -171,6 +176,23 @@ public class Role implements Writeable, ToXContent {
 
     public Set<GrantedRole> grantedRoles() {
         return grantedRoles;
+    }
+
+    public PrivilegeState matchSchema(Privilege.Type type, int oid) {
+        PrivilegeState result = PrivilegeState.REVOKE;
+        for (var privilege : privileges) {
+            PrivilegeIdent ident = privilege.ident();
+            if (ident.type() != type) {
+                continue;
+            }
+            if (ident.clazz() == SCHEMA && OidHash.schemaOid(ident.ident()) == oid) {
+                return privilege.state();
+            }
+            if (ident.clazz() == CLUSTER) {
+                result = privilege.state();
+            }
+        }
+        return result;
     }
 
     public Set<String> grantedRoleNames() {

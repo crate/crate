@@ -36,28 +36,6 @@ import io.crate.metadata.pgcatalog.OidHash;
 
 public interface Roles {
 
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_PRIVILEGE_FUNCTION =
-        (r, t, c, o) -> r.privileges().matchPrivilege(t, c, (String) o);
-
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_ANY_PRIVILEGE_FUNCTION =
-        (r, t, c, o) -> r.privileges().matchPrivilegeOfAnyType(c, (String) o);
-
-    FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> HAS_SCHEMA_PRIVILEGE_FUNCTION =
-        (r, t, c, o) -> {
-            PrivilegeState result = PrivilegeState.REVOKE;
-            for (Privilege privilege : r.privileges()) {
-                if (privilege.ident().type() == t) {
-                    if (privilege.ident().clazz() == Privilege.Clazz.SCHEMA
-                        && OidHash.schemaOid(privilege.ident().ident()) == (Integer) o) {
-                        return privilege.state();
-                    } else if (privilege.ident().clazz() == Privilege.Clazz.CLUSTER) {
-                        result = privilege.state();
-                    }
-                }
-            }
-            return result;
-        };
-
     /**
      * finds a role by role name
      */
@@ -106,7 +84,8 @@ public interface Roles {
      * @param ident          ident of the object
      */
     default boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        return user.isSuperUser() || hasPrivilege(user, type, clazz, ident, HAS_PRIVILEGE_FUNCTION) == GRANT;
+        return user.isSuperUser()
+            || hasPrivilege(user, type, clazz, ident, (r, t, c, o) -> r.privileges().matchPrivilege(t, c, (String) o)) == GRANT;
     }
 
     /**
@@ -116,7 +95,8 @@ public interface Roles {
      * @param schemaOid      OID of the schema
      */
     default boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
-        return user.isSuperUser() || hasPrivilege(user, type, null, schemaOid, HAS_SCHEMA_PRIVILEGE_FUNCTION) == GRANT;
+        return user.isSuperUser()
+            || hasPrivilege(user, type, null, schemaOid, (r, t, c, o) -> r.matchSchema(t, (Integer) o)) == GRANT;
     }
 
     /**
@@ -128,7 +108,8 @@ public interface Roles {
      * @param ident     ident of the object
      */
     default boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
-        return user.isSuperUser() || hasPrivilege(user, null, clazz, ident, HAS_ANY_PRIVILEGE_FUNCTION) == GRANT;
+        return user.isSuperUser()
+            || hasPrivilege(user, null, clazz, ident, (r, t, c, o) -> r.privileges().matchPrivilegeOfAnyType(c, (String) o)) == GRANT;
     }
 
     Collection<Role> roles();
@@ -149,6 +130,7 @@ public interface Roles {
             findParents(parentRole, allParents);
         }
     }
+
 
     /**
      * Resolves privilege recursively in a depth-first fashion.
