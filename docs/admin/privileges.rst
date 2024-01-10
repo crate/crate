@@ -477,6 +477,64 @@ privilege on the table, he is granted ``role_c`` which in turn is granted
 ``role_b`` which is granted ``role_a``, and ``role`` has the ``DQL`` privilege
 on ``sys.users``.
 
+
+.. hide:
+
+    cr> REVOKE role_c FROM john;
+    REVOKE OK, 1 row affected (... sec)
+    cr> REVOKE role_b FROM role_c;
+    REVOKE OK, 1 row affected (... sec)
+    cr> REVOKE role_a FROM role_b;
+    REVOKE OK, 1 row affected (... sec)
+    cr> REVOKE DQL ON TABLE sys.users FROM role_a;
+    REVOKE OK, 1 row affected (... sec)
+
+Keep in mind that ``DENY`` has precedence over ``GRANT``. If a role has been
+both granted and denied a privilege (directly or through role inheritance), then
+``DENY`` will take effect. For example, ``GRANT`` is inherited from a role
+and ``DENY`` directly set on the user::
+
+    cr> GRANT DQL ON TABLE sys.users TO role_a;
+    GRANT OK, 1 row affected (... sec)
+
+::
+
+    cr> GRANT role_a TO john
+    GRANT OK, 1 row affected (... sec)
+
+::
+
+    cr> DENY DQL ON TABLE sys.users TO john
+    DENY OK, 1 row affected (... sec)
+
+User ``john`` cannot query ``sys.users``.
+
+
+.. hide:
+
+    cr> REVOKE role_a FROM john;
+    REVOKE OK, 1 row affected (... sec)
+    cr> REVOKE DQL ON TABLE sys.users FROM role_a;
+    REVOKE OK, 1 row affected (... sec)
+
+Another example with ``DENY`` in effect, inherited from a role::
+
+    cr> GRANT DQL ON TABLE sys.users TO role_a;
+    GRANT OK, 1 row affected (... sec)
+
+::
+
+    cr> DENY DQL ON TABLE sys.users TO role_b;
+    DENY OK, 1 row affected (... sec)
+
+::
+
+    cr> GRANT role_a, role_b TO john;
+    GRANT OK, 2 rows affected (... sec)
+
+User ``john`` cannot query ``sys.users``.
+
+
 .. hide:
 
     cr> DROP USER john;

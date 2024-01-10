@@ -21,7 +21,7 @@
 
 package io.crate.auth.user;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -56,46 +56,46 @@ public class RolePrivilegesTest extends ESTestCase {
     @Test
     public void testMatchPrivilegesEmpty() throws Exception {
         RolePrivileges rolePrivileges = new RolePrivileges(Collections.emptyList());
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.CLUSTER, null)).isFalse();
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, "doc.t1")).isFalse();
-        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.CLUSTER, null)).isFalse();
-        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isFalse();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.CLUSTER, null)).isMissing();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc")).isMissing();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, "doc.t1")).isMissing();
+        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.CLUSTER, null)).isMissing();
+        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isMissing();
+        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isMissing();
     }
 
     @Test
     public void testMatchPrivilegeNoType() throws Exception {
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.CLUSTER, null)).isFalse();
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, "doc.t1")).isFalse();
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.CLUSTER, null)).isTrue();
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isTrue();
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isTrue();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.CLUSTER, null)).isMissing();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc")).isMissing();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DDL, Privilege.Clazz.TABLE, "doc.t1")).isMissing();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.CLUSTER, null)).isGranted();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isGranted();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isGranted();
     }
 
     @Test
     public void testMatchPrivilegeType() throws Exception {
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null)).isTrue();
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.CLUSTER, null)).isTrue();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null)).isGranted();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.CLUSTER, null)).isGranted();
     }
 
     @Test
     public void testMatchPrivilegeSchema() throws Exception {
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc")).isTrue();
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isTrue();
-        assertThat(USER_PRIVILEGES_SCHEMA.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc")).isTrue();
-        assertThat(USER_PRIVILEGES_SCHEMA.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isTrue();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc")).isGranted();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isGranted();
+        assertThat(USER_PRIVILEGES_SCHEMA.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc")).isGranted();
+        assertThat(USER_PRIVILEGES_SCHEMA.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isGranted();
     }
 
     @Test
     public void testMatchPrivilegeTable() throws Exception {
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isTrue();
-        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isTrue();
-        assertThat(USER_PRIVILEGES_SCHEMA.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isTrue();
-        assertThat(USER_PRIVILEGES_SCHEMA.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isTrue();
-        assertThat(USER_PRIVILEGES_TABLE.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isTrue();
-        assertThat(USER_PRIVILEGES_TABLE.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isTrue();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isGranted();
+        assertThat(USER_PRIVILEGES_CLUSTER.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isGranted();
+        assertThat(USER_PRIVILEGES_SCHEMA.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isGranted();
+        assertThat(USER_PRIVILEGES_SCHEMA.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isGranted();
+        assertThat(USER_PRIVILEGES_TABLE.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isGranted();
+        assertThat(USER_PRIVILEGES_TABLE.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isGranted();
     }
 
     @Test
@@ -104,12 +104,12 @@ public class RolePrivilegesTest extends ESTestCase {
             new Privilege(PrivilegeState.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")
         );
         RolePrivileges rolePrivileges = new RolePrivileges(privileges);
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null)).isFalse();
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isFalse();
-        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.CLUSTER, null)).isFalse();
-        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isFalse();
-        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isFalse();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null)).isDenied();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc")).isDenied();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isDenied();
+        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.CLUSTER, null)).isDenied();
+        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.SCHEMA, "doc")).isDenied();
+        assertThat(rolePrivileges.matchPrivilegeOfAnyType(Privilege.Clazz.TABLE, "doc.t1")).isDenied();
     }
 
     @Test
@@ -120,8 +120,8 @@ public class RolePrivilegesTest extends ESTestCase {
             new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1", "crate")
         );
         RolePrivileges rolePrivileges = new RolePrivileges(privileges);
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isTrue();
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t2")).isFalse();
-        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "my_schema")).isTrue();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1")).isGranted();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t2")).isDenied();
+        assertThat(rolePrivileges.matchPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "my_schema")).isGranted();
     }
 }
