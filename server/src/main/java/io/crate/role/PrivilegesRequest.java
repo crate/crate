@@ -38,14 +38,14 @@ public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
     private final Collection<Privilege> privileges;
 
     @Nullable
-    private final RolePrivilegeToApply rolePrivilegeToApply;
+    private final GrantedRolesChange grantedRolesChange;
 
     PrivilegesRequest(Collection<String> roleNames,
                       Collection<Privilege> privileges,
-                      @Nullable RolePrivilegeToApply rolePrivilegeToApply) {
+                      @Nullable GrantedRolesChange grantedRolesChange) {
         this.roleNames = roleNames;
         this.privileges = privileges;
-        this.rolePrivilegeToApply = rolePrivilegeToApply;
+        this.grantedRolesChange = grantedRolesChange;
     }
 
     Collection<String> roleNames() {
@@ -57,8 +57,8 @@ public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
     }
 
     @Nullable
-    public RolePrivilegeToApply rolePrivilege() {
-        return rolePrivilegeToApply;
+    public GrantedRolesChange rolePrivilege() {
+        return grantedRolesChange;
     }
 
     public PrivilegesRequest(StreamInput in) throws IOException {
@@ -74,9 +74,9 @@ public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
             privileges.add(new Privilege(in));
         }
         if (in.getVersion().onOrAfter(V_5_6_0)) {
-            rolePrivilegeToApply = in.readOptionalWriteable(RolePrivilegeToApply::new);
+            grantedRolesChange = in.readOptionalWriteable(GrantedRolesChange::new);
         } else {
-            rolePrivilegeToApply = null;
+            grantedRolesChange = null;
         }
     }
 
@@ -92,7 +92,7 @@ public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
             privilege.writeTo(out);
         }
         if (out.getVersion().onOrAfter(V_5_6_0)) {
-            out.writeOptionalWriteable(rolePrivilegeToApply);
+            out.writeOptionalWriteable(grantedRolesChange);
         }
     }
 }

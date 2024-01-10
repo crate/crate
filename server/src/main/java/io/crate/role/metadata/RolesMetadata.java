@@ -47,7 +47,7 @@ import io.crate.role.GrantedRole;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
-import io.crate.role.RolePrivilegeToApply;
+import io.crate.role.GrantedRolesChange;
 
 public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -193,29 +193,29 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
      * @return the number of affected role privileges
      *         (doesn't count no-ops e.g.: granting a role to a user which already has)
      */
-    public long applyRolePrivileges(Collection<String> userNames, RolePrivilegeToApply newRolePrivilegeToApply) {
+    public long applyRolePrivileges(Collection<String> userNames, GrantedRolesChange newGrantedRolesChange) {
         long affectedPrivileges = 0L;
         for (String userName : userNames) {
-            affectedPrivileges += applyRolePrivilegesToUser(userName, newRolePrivilegeToApply);
+            affectedPrivileges += applyRolePrivilegesToUser(userName, newGrantedRolesChange);
         }
         return affectedPrivileges;
     }
 
-    private long applyRolePrivilegesToUser(String roleName, RolePrivilegeToApply newRolePrivilegeToApply) {
+    private long applyRolePrivilegesToUser(String roleName, GrantedRolesChange newGrantedRolesChange) {
         Role role = roles.get(roleName);
 
         // Create a new set to avoid modifying in-place the granted roles as this will lead
         // to no difference in previous and new metadata and thus cluster state
         Set<GrantedRole> grantedRoles = new HashSet<>(role.grantedRoles());
         long affectedCount = 0L;
-        for (var roleNameToApply : newRolePrivilegeToApply.roleNames()) {
+        for (var roleNameToApply : newGrantedRolesChange.roleNames()) {
 
-            if (newRolePrivilegeToApply.state() == PrivilegeState.GRANT) {
-                if (grantedRoles.add(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
+            if (newGrantedRolesChange.state() == PrivilegeState.GRANT) {
+                if (grantedRoles.add(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()))) {
                     affectedCount++;
                 }
-            } else if (newRolePrivilegeToApply.state() == PrivilegeState.REVOKE) {
-                if (grantedRoles.remove(new GrantedRole(roleNameToApply, newRolePrivilegeToApply.grantor()))) {
+            } else if (newGrantedRolesChange.state() == PrivilegeState.REVOKE) {
+                if (grantedRoles.remove(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()))) {
                     affectedCount++;
                 }
             }

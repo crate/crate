@@ -171,10 +171,10 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         return new ApplyPrivsResult(affectedRows, unknownRoleNames);
     }
 
-    private static void validateIsNotUser(Roles roles, RolePrivilegeToApply rolePrivilegeToApply) {
-        for (String roleNameToApply : rolePrivilegeToApply.roleNames()) {
+    private static void validateIsNotUser(Roles roles, GrantedRolesChange grantedRolesChange) {
+        for (String roleNameToApply : grantedRolesChange.roleNames()) {
             if (roles.findRole(roleNameToApply).isUser()) {
-                throw new IllegalArgumentException("Cannot " + rolePrivilegeToApply.state().name() + " a USER to a ROLE");
+                throw new IllegalArgumentException("Cannot " + grantedRolesChange.state().name() + " a USER to a ROLE");
             }
         }
     }

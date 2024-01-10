@@ -145,9 +145,9 @@ public class RoleManagerService implements RoleManager {
 
     public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames,
                                                    Collection<Privilege> privileges,
-                                                   RolePrivilegeToApply rolePrivilegeToApply) {
+                                                   GrantedRolesChange grantedRolesChange) {
         roleNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(roles.findUser(s)));
-        return transportPrivilegesAction.execute(new PrivilegesRequest(roleNames, privileges, rolePrivilegeToApply), r -> {
+        return transportPrivilegesAction.execute(new PrivilegesRequest(roleNames, privileges, grantedRolesChange), r -> {
             if (!r.unknownUserNames().isEmpty()) {
                 throw new RoleUnknownException(r.unknownUserNames());
             }

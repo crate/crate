@@ -53,7 +53,7 @@ import org.junit.Test;
 import io.crate.role.GrantedRole;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
-import io.crate.role.RolePrivilegeToApply;
+import io.crate.role.GrantedRolesChange;
 
 public class RolesMetadataTest extends ESTestCase {
 
@@ -177,7 +177,7 @@ public class RolesMetadataTest extends ESTestCase {
     @Test
     public void test_grant_roles_to_user() {
         var rolesMetadata = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford", "John"), new RolePrivilegeToApply(
+        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford", "John"), new GrantedRolesChange(
             PrivilegeState.GRANT,
             Set.of("role1", "role3"),
             "theGrantor"));
@@ -194,7 +194,7 @@ public class RolesMetadataTest extends ESTestCase {
     @Test
     public void test_revoke_roles_from_user() {
         var rolesMetadata = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford", "John"), new RolePrivilegeToApply(
+        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford", "John"), new GrantedRolesChange(
             PrivilegeState.REVOKE,
             Set.of("role1", "role3"),
             "theGrantor"));
