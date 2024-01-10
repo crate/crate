@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -217,5 +218,40 @@ public class ViewsITest extends IntegTestCase {
         assertThat(execute("select table_name from information_schema.views")).hasRows(
             "v2"
         );
+    }
+
+    @Test
+    public void test_cannot_rename_view_if_target_already_exists() {
+        String schema = sqlExecutor.getCurrentSchema();
+
+        execute("create view v1 as select * from sys.cluster");
+        assertThat(execute("select * from v1")).hasRowCount(1);
+        execute("create view v2 as select * from sys.cluster");
+        assertThat(execute("select * from v2")).hasRowCount(1);
+        Asserts.assertSQLError(() -> execute("alter table v1 rename to v2"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename view %s.v1 to %s.v2, view %s.v2 already exists",
+                schema, schema, schema));
+
+        execute("create table tbl(a int)");
+        Asserts.assertSQLError(() -> execute("alter table v1 rename to tbl"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename view %s.v1 to %s.tbl, table %s.tbl already exists",
+                schema, schema, schema));
+
+        execute("create table tbl_parted(a int) partitioned by(a)");
+        Asserts.assertSQLError(() -> execute("alter table v1 rename to tbl_parted"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename view %s.v1 to %s.tbl_parted, table %s.tbl_parted already exists",
+                schema, schema, schema));
     }
 }

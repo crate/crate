@@ -51,9 +51,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.role.GrantedRole;
+import io.crate.role.GrantedRolesChange;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
-import io.crate.role.GrantedRolesChange;
 
 public class RolesMetadataTest extends ESTestCase {
 
