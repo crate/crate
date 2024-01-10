@@ -23,8 +23,14 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 
+import java.util.Locale;
+
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.testing.Asserts;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class RenameTableIntegrationTest extends IntegTestCase {
 
@@ -152,5 +158,38 @@ public class RenameTableIntegrationTest extends IntegTestCase {
 
         execute("select closed from information_schema.table_partitions where partition_ident = '04132'");
         assertThat((boolean) response.rows()[0][0]).isTrue();
+    }
+
+    @Test
+    public void test_cannot_rename_table_if_target_already_exists() {
+        String schema = sqlExecutor.getCurrentSchema();
+
+        execute("create table t1(a int)");
+        execute("create table t2(b int)");
+        execute("create table t1_parted(a int) partitioned by(a)");
+        Asserts.assertSQLError(() -> execute("alter table t1 rename to t2"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename table %s.t1 to %s.t2, table %s.t2 already exists",
+                schema, schema, schema));
+        Asserts.assertSQLError(() -> execute("alter table t2 rename to t1_parted"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename table %s.t2 to %s.t1_parted, table %s.t1_parted already exists",
+                schema, schema, schema));
+
+        execute("create view v1 as select * from sys.cluster");
+        assertThat(execute("select * from v1")).hasRowCount(1);
+        Asserts.assertSQLError(() -> execute("alter table t1 rename to v1"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename table %s.t1 to %s.v1, view %s.v1 already exists",
+                schema, schema, schema));
     }
 }
