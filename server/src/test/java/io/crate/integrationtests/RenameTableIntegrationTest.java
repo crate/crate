@@ -21,14 +21,10 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
-
-import io.crate.testing.TestingHelpers;
 
 public class RenameTableIntegrationTest extends IntegTestCase {
 
@@ -39,17 +35,20 @@ public class RenameTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("alter table t1 rename to t2");
-        assertThat(response.rowCount(), anyOf(is(-1L), is(0L)));
+        assertThat(response.rowCount()).satisfiesAnyOf(
+            rc -> assertThat(rc).isEqualTo(-1),
+            rc -> assertThat(rc).isEqualTo(0));
 
         execute("select * from t2 order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
-                                                                    "2\n"));
+        assertThat(response).hasRows(
+            "1",
+            "2");
 
         execute("select * from information_schema.tables where table_name = 't2'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
 
         execute("select * from information_schema.tables where table_name = 't1'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -75,10 +74,12 @@ public class RenameTableIntegrationTest extends IntegTestCase {
         execute("alter table t1 close");
 
         execute("alter table t1 rename to t2");
-        assertThat(response.rowCount(), anyOf(is(0L), is(-1L)));
+        assertThat(response.rowCount()).satisfiesAnyOf(
+            rc -> assertThat(rc).isEqualTo(-1),
+            rc -> assertThat(rc).isEqualTo(0));
 
         execute("select closed from information_schema.tables where table_name = 't2'");
-        assertThat(response.rows()[0][0], is(true));
+        assertThat((boolean) response.rows()[0][0]).isTrue();
     }
 
     @Test
@@ -88,17 +89,20 @@ public class RenameTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("alter table tp1 rename to tp2");
-        assertThat(response.rowCount(), anyOf(is(-1L), is(0L)));
+        assertThat(response.rowCount()).satisfiesAnyOf(
+            rc -> assertThat(rc).isEqualTo(-1),
+            rc -> assertThat(rc).isEqualTo(0));
 
         execute("select id from tp2 order by id2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
-                                                                    "2\n"));
+        assertThat(response).hasRows(
+            "1",
+            "2");
 
         execute("select * from information_schema.tables where table_name = 'tp2'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1);
 
         execute("select * from information_schema.tables where table_name = 'tp1'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
@@ -107,10 +111,12 @@ public class RenameTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("alter table tp1 rename to tp2");
-        assertThat(response.rowCount(), anyOf(is(0L), is(-1L)));
+        assertThat(response.rowCount()).satisfiesAnyOf(
+            rc -> assertThat(rc).isEqualTo(-1),
+            rc -> assertThat(rc).isEqualTo(0));
 
         execute("select * from tp2");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
@@ -127,11 +133,11 @@ public class RenameTableIntegrationTest extends IntegTestCase {
 
         refresh();
         execute("select * from tp1");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2);
         execute("drop table tp1");
 
         execute("select * from tp2");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2);
     }
 
     @Test
@@ -145,6 +151,6 @@ public class RenameTableIntegrationTest extends IntegTestCase {
         execute("alter table tp1 rename to tp2");
 
         execute("select closed from information_schema.table_partitions where partition_ident = '04132'");
-        assertThat(response.rows()[0][0], is(true));
+        assertThat((boolean) response.rows()[0][0]).isTrue();
     }
 }
