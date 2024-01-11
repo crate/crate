@@ -98,3 +98,17 @@ Fixes
 
 - Fixed a performance regression introduced in 5.5.0 for aggregations on columns
   with the column store disabled.
+
+- Fixed a regression introduced in 5.3.0 that caused replication failure
+  leading to an unstable cluster when ``INSERT... ON CONFLICT... UPDATE SET``
+  was run on a table with non-deterministic column and some of table's columns
+  weren't part of the ``INSERT`` targets.
+  An example case where this happened is::
+
+    CREATE TABLE tbl (
+        id INT PRIMARY KEY,
+        a INT,
+        b TEXT,
+        modification_date TIMESTAMP AS current_timestamp
+    )
+    INSERT INTO tbl (id, a) VALUES (1, 2) ON CONFLICT (id) DO UPDATE SET a = 3;
