@@ -24,11 +24,8 @@ package io.crate.expression.operator;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Locale;
 
-import org.apache.lucene.document.InetAddressPoint;
-import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.network.InetAddresses;
 
@@ -42,12 +39,11 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.types.EqQuery;
 
 public final class CIDROperator {
 
     public static final String CONTAINED_WITHIN = Operator.PREFIX + "<<";
-
-    private static final int IPV4_ADDRESS_LEN = 4;
 
     private CIDROperator() {}
 
@@ -73,37 +69,16 @@ public final class CIDROperator {
         }
         try {
             BigInteger ip = new BigInteger(1, InetAddress.getByName(ipStr).getAddress());
-            AddressLimits cidr = extractRange(cidrStr);
-            return cidr.start().compareTo(ip) <= 0 && ip.compareTo(cidr.end()) <= 0;
+
+            InetAddresses.InetAddressPrefixLength cidr = InetAddresses.parseCidr(cidrStr);
+            InetAddress[] bounds = obtainBounds(cidr.inetAddress(), cidr.prefixLen());
+            BigInteger lower = new BigInteger(1, bounds[0].getAddress());
+            BigInteger upper = new BigInteger(1, bounds[1].getAddress());
+
+            return lower.compareTo(ip) <= 0 && ip.compareTo(upper) <= 0;
         } catch (UnknownHostException uhe) {
             throw new IllegalArgumentException(uhe);
         }
-    }
-
-    private record AddressLimits(BigInteger start, BigInteger end) {}
-
-    private static AddressLimits extractRange(String cidr) {
-        if (null == cidr || false == cidr.contains("/")) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH, "operand [%s] must conform with CIDR notation", cidr));
-        }
-        InetAddresses.InetAddressPrefixLength tup = InetAddresses.parseCidr(cidr);
-        InetAddress inetAddress = tup.inetAddress();
-        BigInteger base = new BigInteger(1, inetAddress.getAddress());
-        BigInteger mask = createMask(inetAddress.getAddress().length, tup.prefixLen());
-        BigInteger start = base.and(mask);
-        BigInteger end = start.add(mask.not());
-        return new AddressLimits(start, end);
-    }
-
-    private static BigInteger createMask(int addressSizeInBytes, int prefixLength) {
-        ByteBuffer maskBuffer = ByteBuffer.allocate(addressSizeInBytes);
-        if (IPV4_ADDRESS_LEN == addressSizeInBytes) {
-            maskBuffer = maskBuffer.putInt(-1);
-        } else {
-            maskBuffer = maskBuffer.putLong(-1L).putLong(-1L);
-        }
-        return new BigInteger(1, maskBuffer.array()).not().shiftRight(prefixLength);
     }
 
     public static class ContainedWithinOperator extends Scalar<Boolean, Object> {
@@ -129,11 +104,48 @@ public final class CIDROperator {
         @Override
         public Query toQuery(Reference ref, Literal<?> literal) {
             String cidrStr = (String) literal.value();
-            if (ref.indexType() == IndexType.NONE) {
-                return new MatchNoDocsQuery("column does not exist in this index");
-            }
             InetAddresses.InetAddressPrefixLength cidr = InetAddresses.parseCidr(cidrStr);
-            return InetAddressPoint.newPrefixQuery(ref.storageIdent(), cidr.inetAddress(), cidr.prefixLen());
+            InetAddress[] bounds = obtainBounds(cidr.inetAddress(), cidr.prefixLen());
+            assert ref.valueType().id() == DataTypes.IP.id()
+                : "In <ref> << <literal> the ref must have type IP due to function registration";
+            EqQuery<? super String> eqQuery = DataTypes.IP.storageSupportSafe().eqQuery();
+            if (eqQuery == null) {
+                return null;
+            }
+            return eqQuery.rangeQuery(
+                ref.storageIdent(),
+                bounds[0].getHostAddress(),
+                bounds[1].getHostAddress(),
+                true,
+                true,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
+        }
+    }
+
+    /**
+     *  The logic is extracted from {@link org.apache.lucene.document.InetAddressPoint#newPrefixQuery(String, InetAddress, int)}
+     */
+    private static InetAddress[] obtainBounds(InetAddress value, int prefixLength) {
+        if (prefixLength >= 0 && prefixLength <= 8 * value.getAddress().length) {
+            byte[] lower = value.getAddress();
+            byte[] upper = value.getAddress();
+
+            for (int i = prefixLength; i < 8 * lower.length; ++i) {
+                int m = 1 << 7 - (i & 7);
+                lower[i >> 3] = (byte) (lower[i >> 3] & ~m);
+                upper[i >> 3] = (byte) (upper[i >> 3] | m);
+            }
+            try {
+                return new InetAddress[]{
+                    InetAddress.getByAddress(lower),
+                    InetAddress.getByAddress(upper)
+                };
+            } catch (UnknownHostException e) {
+                throw new IllegalArgumentException(e);
+            }
+        } else {
+            throw new IllegalArgumentException("illegal prefixLength '" + prefixLength + "'. Must be 0-32 for IPv4 ranges, 0-128 for IPv6 ranges");
         }
     }
 }

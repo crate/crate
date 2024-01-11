@@ -71,5 +71,17 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
         try (QueryTester tester = builder.build()) {
             assertThat(tester.runQuery("ip_addr", queryStr), Matchers.contains(expectedResults));
         }
+
+        // test ip col with index off
+        builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (ip_addr ip index off)"
+        );
+        builder.indexValues("ip_addr", valuesToIndex);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("ip_addr", queryStr), Matchers.contains(expectedResults));
+        }
     }
 }
