@@ -42,6 +42,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
 import io.crate.expression.operator.any.AnyEqOperator;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
@@ -148,7 +149,12 @@ public class EqualityExtractor {
                     List<Symbol> row = new ArrayList<>(proxies.size());
                     for (EqProxy proxy : proxies) {
                         proxy.reset();
-                        row.add(proxy.origin.arguments().get(1));
+                        Symbol col = proxy.origin.arguments().get(0);
+                        if (col instanceof Function f) {
+                            col = f.arguments().getFirst();
+                        }
+                        Symbol compValue = proxy.origin.arguments().get(1);
+                        row.add(compValue.cast(col.valueType(), CastMode.IMPLICIT));
                     }
                     result.add(row);
                 }
