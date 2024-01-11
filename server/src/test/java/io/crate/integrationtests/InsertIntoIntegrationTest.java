@@ -2018,4 +2018,29 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             assertThat(response.rows()[0][0]).isEqualTo(generated);
         }
     }
+
+
+    /**
+     * Tests a regression introduced in 5.3 (https://github.com/crate/crate/issues/15171).
+     */
+    @Test
+    public void test_insert_on_conflict_with_non_deterministic_column_succeed_on_replication() {
+        execute("""
+            CREATE TABLE tbl (
+               id int PRIMARY KEY,
+               value DOUBLE PRECISION,
+               value_text TEXT,
+               rnd_col int GENERATED ALWAYS AS random() + 10
+            ) with (number_of_replicas = 1)""");
+
+        ensureGreen();
+        execute("INSERT INTO tbl (id, value) " +
+            "VALUES (1, 99999) " +
+            "ON CONFLICT (id) DO UPDATE SET value = excluded.value");
+        assertThat(response.rowCount()).isEqualTo(1);
+        refresh();
+
+        execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
+        assertThat(response).hasRows("0"); // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
+    }
 }

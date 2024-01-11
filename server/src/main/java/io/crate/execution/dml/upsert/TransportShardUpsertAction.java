@@ -23,7 +23,6 @@ package io.crate.execution.dml.upsert;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,6 +78,7 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -158,22 +158,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 request.updateColumns(),
                 insertColumns
             );
-        if (updateToInsert != null) {
-            insertColumns = updateToInsert.columns();
 
-            // updateToInsert.columns() must have an exact overlap with the insert
-            // target-column-list because the supplied values
-            // will be in that order.
-            //
-            // Example where it adds columns:
-            //
-            // INSERT INTO tbl (x) VALUES (1)
-            //  ON CONFLICT (x) DO UPDATE SET y = 20
-            //
-            //  Would need to have [x, y, ...]
-            assert request.insertColumns() == null || insertColumns.subList(0, request.insertColumns().length).equals(Arrays.asList(request.insertColumns()))
-                : "updateToInsert.columns() must be a superset of insertColumns where the start is an exact overlap. It may only add new columns at the end";
-        }
         Indexer indexer = new Indexer(
             indexName,
             tableInfo,
@@ -183,13 +168,41 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             insertColumns,
             request.returnValues()
         );
-        if (indexer.hasUndeterministicSynthetics()) {
-            // This change also applies for RawIndexer if it's used.
-            // RawIndexer adds non-deterministic generated columns in addition to _raw and uses same request.
-            request.insertColumns(indexer.insertColumns(insertColumns));
+
+        Indexer updatingIndexer = null;
+        if (updateToInsert != null) {
+            updatingIndexer = new Indexer(
+                request.index(),
+                tableInfo,
+                txnCtx,
+                nodeCtx,
+                getFieldType,
+                updateToInsert.columns(),
+                request.returnValues()
+            );
+        }
+
+        ColumnIdent firstColumnIdent;
+        if (indexer.columns().isEmpty()) {
+            assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE";
+            firstColumnIdent = updatingIndexer.columns().get(0).column();
+            // UPDATE operation, indexing operation will use updatingIndexer right away, so expand columns based on its targets.
+            if (updatingIndexer.hasUndeterministicSynthetics()) {
+                request.insertColumns(updatingIndexer.insertColumns(updatingIndexer.columns()));
+            }
+        } else {
+            // Regular INSERT or first phase of UPSERT.
+            // Indexing operation will use indexer (and maybe will switch to updatingIndexer later on).
+            firstColumnIdent = indexer.columns().get(0).column();
+            if (indexer.hasUndeterministicSynthetics()) {
+                // This change also applies for RawIndexer if it's used.
+                // RawIndexer adds non-deterministic generated columns in addition to _raw and uses same request.
+                request.insertColumns(indexer.insertColumns(indexer.columns()));
+            }
         }
         RawIndexer rawIndexer = null;
-        if (insertColumns.get(0).column().equals(DocSysColumns.RAW)) {
+
+        if (firstColumnIdent.equals(DocSysColumns.RAW)) {
             rawIndexer = new RawIndexer(
                 indexName,
                 tableInfo,
@@ -214,6 +227,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             try {
                 IndexItemResponse indexItemResponse = indexItem(
                     indexer,
+                    updatingIndexer,
                     request,
                     item,
                     indexShard,
@@ -439,8 +453,21 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return new WriteReplicaResult<>(location, null, indexShard);
     }
 
+    /**
+     * @param indexer is constantly used for:
+     * <ul>
+     *  <li>INSERT</li>
+     *  <li>INSERT... ON CONFLICT DO NOTHING</li>
+     *  <li></li>
+     * </ul>
+     * <p>
+     * @param updatingIndexer is constantly used for UPDATE.
+     * <p>
+     * INSERT... ON CONFLICT... DO UPDATE SET uses both indexers - for insert/update phases correspondingly.
+     */
     @Nullable
     private IndexItemResponse indexItem(Indexer indexer,
+                                        @Nullable Indexer updatingIndexer,
                                         ShardUpsertRequest request,
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
@@ -484,10 +511,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());
                     item.insertValues(indexItem.insertValues());
-                    request.insertColumns(indexer.insertColumns(updateToInsert.columns()));
+                    assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE or UPSERT";
+                    request.insertColumns(updatingIndexer.insertColumns(updatingIndexer.columns()));
                 }
                 return insert(
-                    indexer,
+                    tryInsertFirst ? indexer : updatingIndexer,
                     request,
                     item,
                     indexShard,
