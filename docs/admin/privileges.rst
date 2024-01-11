@@ -31,7 +31,12 @@ The privileges that can be granted, denied or revoked are:
 
 Skip to :ref:`privilege_types` for details.
 
-These privileges can be granted on different levels:
+.. _privileges-classes:
+
+Privilege Classes
+=================
+
+The privileges can be granted on different classes:
 
 - ``CLUSTER``
 - ``SCHEMA``
@@ -333,7 +338,8 @@ like this::
 List privileges
 ===============
 
-CrateDB exposes privileges ``sys.privileges`` system table.
+CrateDB exposes the privileges of users and roles of the database through the
+:ref:`sys.privileges <sys-privileges>` system table.
 
 By querying the ``sys.privileges`` table you can get all
 information regarding the existing privileges. E.g.::

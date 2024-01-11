@@ -2166,6 +2166,37 @@ The ``sys.users`` table contains all existing database users in the cluster.
 |               | ``NULL`` if there is not.                    |             |
 +---------------+----------------------------------------------+-------------+
 
+.. _sys-privileges:
+
+Privileges
+==========
+
+The ``sys.privileges`` table contains all privileges for each user and role of
+the database.
+
++--------------+-------------------------------------------------+-------------+
+| Column Name  | Description                                     | Return Type |
++==============+=================================================+=============+
+| ``class``    | The :ref:`class <privileges-classes>` on which  | ``TEXT``    |
+|              | the privilege applies                           |             |
++--------------+-------------------------------------------------+-------------+
+| ``grantee``  | The name of the database user or role for which | ``TEXT``    |
+|              | the privilege is granted or denied              |             |
++--------------+-------------------------------------------------+-------------+
+| ``grantor``  | The name of the database user who granted or    | ``TEXT``    |
+|              | denied the privilege                            |             |
++--------------+-------------------------------------------------+-------------+
+| ``ident``    | The name of the database object on which the    | ``TEXT``    |
+|              | privilege applies                               |             |
++--------------+-------------------------------------------------+-------------+
+| ``state``    | Either ``GRANT`` or ``DENY``, which indicates   | ``ARRAY``   |
+|              | if the user or role has been granted or denied  |             |
+|              | access to the specific database object          |             |
++--------------+-------------------------------------------------+-------------+
+| ``type``     | The :ref:`type of access <privilege_types>`     | ``TEXT``    |
+|              | for the specific database object                |             |
++--------------+-------------------------------------------------+-------------+
+
 .. _sys-allocations:
 
 Allocations
