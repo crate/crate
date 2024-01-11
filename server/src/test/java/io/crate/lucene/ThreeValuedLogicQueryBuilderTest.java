@@ -76,7 +76,7 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_nullif() {
         assertThat(convert("NULLIF(2, x) != 1")).hasToString(
-            "+(+*:* -(nullif(2, x) = 1))");
+            "+(+*:* -(nullif(2, x) = 1)) #(NOT (nullif(2, x) = 1))");
     }
 
     @Test
