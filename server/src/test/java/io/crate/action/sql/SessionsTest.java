@@ -53,6 +53,7 @@ import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.statistics.TableStats;
@@ -104,7 +105,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
         var ALprivilege = new Privilege(
             PrivilegeState.GRANT,
             Privilege.Type.AL,
-            Privilege.Clazz.CLUSTER,
+            Securable.CLUSTER,
             null,
             "crate"
         );

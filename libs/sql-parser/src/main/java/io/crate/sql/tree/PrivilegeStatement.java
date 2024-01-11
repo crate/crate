@@ -31,22 +31,22 @@ public abstract sealed class PrivilegeStatement extends Statement
     protected final List<String> userNames;
     protected final List<String> privilegeTypes;
     private final List<QualifiedName> tableOrSchemaNames;
-    private final String clazz;
+    private final String securable;
     protected final boolean all;
 
-    protected PrivilegeStatement(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
+    protected PrivilegeStatement(List<String> userNames, String securable, List<QualifiedName> tableOrSchemaNames) {
         this.userNames = userNames;
         privilegeTypes = Collections.emptyList();
         all = true;
-        this.clazz = clazz;
+        this.securable = securable;
         this.tableOrSchemaNames = tableOrSchemaNames;
     }
 
-    protected PrivilegeStatement(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
+    protected PrivilegeStatement(List<String> userNames, List<String> privilegeTypes, String securable, List<QualifiedName> tableOrSchemaNames) {
         this.userNames = userNames;
         this.privilegeTypes = privilegeTypes;
         this.all = false;
-        this.clazz = clazz;
+        this.securable = securable;
         this.tableOrSchemaNames = tableOrSchemaNames;
     }
 
@@ -66,8 +66,8 @@ public abstract sealed class PrivilegeStatement extends Statement
         return tableOrSchemaNames;
     }
 
-    public String clazz() {
-        return clazz;
+    public String securable() {
+        return securable;
     }
 
     @Override

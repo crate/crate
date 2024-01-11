@@ -44,8 +44,8 @@ import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
-import io.crate.role.Privilege;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.statistics.TableStats;
 
 public final class PgCatalogTableDefinitions {
@@ -64,7 +64,7 @@ public final class PgCatalogTableDefinitions {
         tableDefinitions = new HashMap<>();
         tableDefinitions.put(PgStatsTable.NAME, new StaticTableDefinition<>(
                 tableStats::statsEntries,
-                (user, t) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, t.relation().fqn()),
+                (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relation().fqn()),
                 PgStatsTable.create().expressions()
             )
         );
@@ -74,15 +74,15 @@ public final class PgCatalogTableDefinitions {
             false));
         tableDefinitions.put(PgClassTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::pgClasses,
-            (user, t) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, t.ident.fqn())
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.ident.fqn())
                          // we also need to check for views which have privileges set
-                         || roles.hasAnyPrivilege(user, Privilege.Clazz.VIEW, t.ident.fqn())
+                         || roles.hasAnyPrivilege(user, Securable.VIEW, t.ident.fqn())
                          || isPgCatalogOrInformationSchema(t.ident.schema()),
             pgCatalogSchemaInfo.pgClassTable().expressions()
         ));
         tableDefinitions.put(PgProcTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::pgProc,
-            (user, f) -> roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, f.functionName.schema())
+            (user, f) -> roles.hasAnyPrivilege(user, Securable.SCHEMA, f.functionName.schema())
                          || f.functionName.isBuiltin(),
             PgProcTable.create().expressions())
         );
@@ -93,16 +93,17 @@ public final class PgCatalogTableDefinitions {
         tableDefinitions.put(PgNamespaceTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
             (user, s) -> {
-                if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, s.name()) || isPgCatalogOrInformationSchema(s.name())) {
+                if (roles.hasAnyPrivilege(user, Securable.SCHEMA, s.name()) ||
+                    isPgCatalogOrInformationSchema(s.name())) {
                     return true;
                 }
                 for (var table : s.getTables()) {
-                    if (roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, table.ident().fqn())) {
+                    if (roles.hasAnyPrivilege(user, Securable.TABLE, table.ident().fqn())) {
                         return true;
                     }
                 }
                 for (var view : s.getViews()) {
-                    if (roles.hasAnyPrivilege(user, Privilege.Clazz.VIEW, view.ident().fqn())) {
+                    if (roles.hasAnyPrivilege(user, Securable.VIEW, view.ident().fqn())) {
                         return true;
                     }
                 }
@@ -116,8 +117,8 @@ public final class PgCatalogTableDefinitions {
             false));
         tableDefinitions.put(PgAttributeTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::columns,
-            (user, c) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, c.relation().ident().fqn())
-                         || roles.hasAnyPrivilege(user, Privilege.Clazz.VIEW, c.relation().ident().fqn())
+            (user, c) -> roles.hasAnyPrivilege(user, Securable.TABLE, c.relation().ident().fqn())
+                         || roles.hasAnyPrivilege(user, Securable.VIEW, c.relation().ident().fqn())
                          || isPgCatalogOrInformationSchema(c.relation().ident().schema()),
             PgAttributeTable.create().expressions()
         ));
@@ -127,7 +128,7 @@ public final class PgCatalogTableDefinitions {
             false));
         tableDefinitions.put(PgConstraintTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::pgConstraints,
-            (user, t) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, t.relationName().fqn())
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relationName().fqn())
                          || isPgCatalogOrInformationSchema(t.relationName().schema()),
             PgConstraintTable.create().expressions()
         ));
@@ -212,13 +213,13 @@ public final class PgCatalogTableDefinitions {
 
         tableDefinitions.put(PgTablesTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::tables,
-            (user, t) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, t.ident().fqn()),
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.ident().fqn()),
             PgTablesTable.create().expressions()
         ));
 
         tableDefinitions.put(PgViewsTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::views,
-            (user, t) -> roles.hasAnyPrivilege(user, Privilege.Clazz.VIEW, t.ident().fqn()),
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.VIEW, t.ident().fqn()),
             PgViewsTable.create().expressions()
         ));
 

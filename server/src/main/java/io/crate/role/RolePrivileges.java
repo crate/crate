@@ -45,7 +45,7 @@ public class RolePrivileges implements Iterable<Privilege> {
         for (Privilege privilege : privileges) {
             PrivilegeIdent privilegeIdent = privilege.ident();
             privilegeByIdent.put(privilegeIdent, privilege);
-            switch (privilegeIdent.clazz()) {
+            switch (privilegeIdent.securable()) {
                 case CLUSTER:
                     if (anyClusterPriv != PrivilegeState.DENY) {
                         anyClusterPriv = privilege.state();
@@ -67,7 +67,7 @@ public class RolePrivileges implements Iterable<Privilege> {
                     }
                     break;
                 default:
-                    throw new IllegalStateException("Unsupported privilege class=" + privilegeIdent.clazz());
+                    throw new IllegalStateException("Unsupported securable=" + privilegeIdent.securable());
             }
         }
         this.anyClusterPrivilege = anyClusterPriv;
@@ -76,9 +76,9 @@ public class RolePrivileges implements Iterable<Privilege> {
     /**
      * Try to match a privilege at the given collection ignoring the type.
      */
-    public PrivilegeState matchPrivilegeOfAnyType(Privilege.Clazz clazz, @Nullable String ident) {
+    public PrivilegeState matchPrivilegeOfAnyType(Securable securable, @Nullable String ident) {
         PrivilegeState resolution;
-        switch (clazz) {
+        switch (securable) {
             case CLUSTER:
                 resolution = hasAnyClusterPrivilege();
                 break;
@@ -109,28 +109,28 @@ public class RolePrivileges implements Iterable<Privilege> {
                 }
                 break;
             default:
-                throw new IllegalStateException("Unsupported privilege class=" + clazz);
+                throw new IllegalStateException("Unsupported securable=" + securable);
         }
         return resolution;
     }
 
     /**
      * Try to match a privilege at the given collection.
-     * If none is found for the current {@link Privilege.Clazz}, try to find one on the upper class.
+     * If none is found for the current {@link Securable}, try to find one on the upper securable.
      * If a privilege with a {@link PrivilegeState#DENY} state is found, false is returned.
      */
-    public PrivilegeState matchPrivilege(@Nullable Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, clazz, ident));
+    public PrivilegeState matchPrivilege(@Nullable Privilege.Type type, Securable securable, @Nullable String ident) {
+        Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, securable, ident));
         if (foundPrivilege == null) {
-            switch (clazz) {
+            switch (securable) {
                 case SCHEMA:
-                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
+                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Securable.CLUSTER, null));
                     break;
                 case TABLE, VIEW:
                     String schemaIdent = new IndexParts(ident).getSchema();
-                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.SCHEMA, schemaIdent));
+                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Securable.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
-                        foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
+                        foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Securable.CLUSTER, null));
                     }
                     break;
                 default:

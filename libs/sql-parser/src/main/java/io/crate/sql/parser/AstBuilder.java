@@ -591,45 +591,45 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitGrantPrivilege(SqlBaseParser.GrantPrivilegeContext context) {
         List<String> usernames = identsToStrings(context.users.ident());
-        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges(
+        SecurableAndIdent securableAndIdent = getSecurableAndIdentsForPrivileges(
             context.ON() == null,
-            context.clazz(),
+            context.securable(),
             context.qnames());
         if (context.ALL() != null) {
-            return new GrantPrivilege(usernames, clazzAndIdent.clazz, clazzAndIdent.idents);
+            return new GrantPrivilege(usernames, securableAndIdent.securable, securableAndIdent.idents);
         } else {
             List<String> privilegeTypes = identsToStrings(context.priviliges.ident());
-            return new GrantPrivilege(usernames, privilegeTypes, clazzAndIdent.clazz, clazzAndIdent.idents);
+            return new GrantPrivilege(usernames, privilegeTypes, securableAndIdent.securable, securableAndIdent.idents);
         }
     }
 
     @Override
     public Node visitDenyPrivilege(SqlBaseParser.DenyPrivilegeContext context) {
         List<String> usernames = identsToStrings(context.users.ident());
-        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges(
+        SecurableAndIdent securableAndIdent = getSecurableAndIdentsForPrivileges(
             context.ON() == null,
-            context.clazz(),
+            context.securable(),
             context.qnames());
         if (context.ALL() != null) {
-            return new DenyPrivilege(usernames, clazzAndIdent.clazz, clazzAndIdent.idents);
+            return new DenyPrivilege(usernames, securableAndIdent.securable, securableAndIdent.idents);
         } else {
             List<String> privilegeTypes = identsToStrings(context.priviliges.ident());
-            return new DenyPrivilege(usernames, privilegeTypes, clazzAndIdent.clazz, clazzAndIdent.idents);
+            return new DenyPrivilege(usernames, privilegeTypes, securableAndIdent.securable, securableAndIdent.idents);
         }
     }
 
     @Override
     public Node visitRevokePrivilege(SqlBaseParser.RevokePrivilegeContext context) {
         List<String> usernames = identsToStrings(context.users.ident());
-        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges(
+        SecurableAndIdent securableAndIdent = getSecurableAndIdentsForPrivileges(
             context.ON() == null,
-            context.clazz(),
+            context.securable(),
             context.qnames());
         if (context.ALL() != null) {
-            return new RevokePrivilege(usernames, clazzAndIdent.clazz, clazzAndIdent.idents);
+            return new RevokePrivilege(usernames, securableAndIdent.securable, securableAndIdent.idents);
         } else {
             List<String> privilegeTypes = identsToStrings(context.privileges.ident());
-            return new RevokePrivilege(usernames, privilegeTypes, clazzAndIdent.clazz, clazzAndIdent.idents);
+            return new RevokePrivilege(usernames, privilegeTypes, securableAndIdent.securable, securableAndIdent.idents);
         }
     }
 
@@ -2315,14 +2315,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Nullable
-    private <T> T visitOptionalContext(@Nullable ParserRuleContext context, Class<T> clazz) {
+    private <T> T visitOptionalContext(@Nullable ParserRuleContext context, Class<T> securable) {
         if (context != null) {
-            return clazz.cast(visit(context));
+            return securable.cast(visit(context));
         }
         return null;
     }
 
-    private <T> Optional<T> visitIfPresent(@Nullable ParserRuleContext context, Class<T> clazz) {
+    private <T> Optional<T> visitIfPresent(@Nullable ParserRuleContext context, Class<T> securable) {
         if (context == null) {
             return Optional.empty();
         }
@@ -2330,15 +2330,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         if (node == null) {
             return Optional.empty();
         }
-        return Optional.of(clazz.cast(node));
+        return Optional.of(securable.cast(node));
     }
 
-    private <T> List<T> visitCollection(List<? extends ParserRuleContext> contexts, Class<T> clazz) {
+    private <T> List<T> visitCollection(List<? extends ParserRuleContext> contexts, Class<T> securable) {
         ArrayList<T> result = new ArrayList<>(contexts.size());
         assert contexts instanceof RandomAccess : "Index access must be fast";
         for (int i = 0; i < contexts.size(); i++) {
             ParserRuleContext parserRuleContext = contexts.get(i);
-            T item = clazz.cast(parserRuleContext.accept(this));
+            T item = securable.cast(parserRuleContext.accept(this));
             result.add(item);
         }
         return result;
@@ -2475,12 +2475,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         };
     }
 
-    private static String getClazz(Token token) {
+    private static String getSecurable(Token token) {
         return switch (token.getType()) {
             case SqlBaseLexer.SCHEMA -> SCHEMA;
             case SqlBaseLexer.TABLE -> TABLE;
             case SqlBaseLexer.VIEW -> VIEW;
-            default -> throw new IllegalArgumentException("Unsupported privilege class: " + token.getText());
+            default -> throw new IllegalArgumentException("Unsupported privilege securable: " + token.getText());
         };
     }
 
@@ -2506,22 +2506,22 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         }
     }
 
-    private ClassAndIdent getClassAndIdentsForPrivileges(boolean onCluster,
-                                                         SqlBaseParser.ClazzContext clazz,
-                                                         SqlBaseParser.QnamesContext qnamesContext) {
+    private SecurableAndIdent getSecurableAndIdentsForPrivileges(boolean onCluster,
+                                                                 SqlBaseParser.SecurableContext securable,
+                                                                 SqlBaseParser.QnamesContext qnamesContext) {
         if (onCluster) {
-            return new ClassAndIdent(CLUSTER, emptyList());
+            return new SecurableAndIdent(CLUSTER, emptyList());
         } else {
-            return new ClassAndIdent(getClazz(clazz.getStart()), getIdents(qnamesContext.qname()));
+            return new SecurableAndIdent(getSecurable(securable.getStart()), getIdents(qnamesContext.qname()));
         }
     }
 
-    private static class ClassAndIdent {
-        private final String clazz;
+    private static class SecurableAndIdent {
+        private final String securable;
         private final List<QualifiedName> idents;
 
-        ClassAndIdent(String clazz, List<QualifiedName> idents) {
-            this.clazz = clazz;
+        SecurableAndIdent(String securable, List<QualifiedName> idents) {
+            this.securable = securable;
             this.idents = idents;
         }
     }

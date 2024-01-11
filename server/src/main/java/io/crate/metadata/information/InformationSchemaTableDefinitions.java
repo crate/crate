@@ -33,8 +33,8 @@ import org.elasticsearch.common.inject.Singleton;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;
-import io.crate.role.Privilege;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 
 @Singleton
 public class InformationSchemaTableDefinitions {
@@ -46,42 +46,42 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions = HashMap.newHashMap(11);
         tableDefinitions.put(InformationSchemataTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
-            (user, s) -> roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, s.name()),
+            (user, s) -> roles.hasAnyPrivilege(user, Securable.SCHEMA, s.name()),
             InformationSchemataTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationTablesTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::relations,
-            (user, t) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, t.ident().fqn())
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.ident().fqn())
                          // we also need to check for views which have privileges set
-                         || roles.hasAnyPrivilege(user, Privilege.Clazz.VIEW, t.ident().fqn()),
+                         || roles.hasAnyPrivilege(user, Securable.VIEW, t.ident().fqn()),
             InformationTablesTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationViewsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::views,
-            (user, t) -> roles.hasAnyPrivilege(user, Privilege.Clazz.VIEW, t.ident().fqn()),
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.VIEW, t.ident().fqn()),
             InformationViewsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationPartitionsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::partitions,
-            (user, p) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, p.name().relationName().fqn()),
+            (user, p) -> roles.hasAnyPrivilege(user, Securable.TABLE, p.name().relationName().fqn()),
             InformationPartitionsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationColumnsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::columns,
-            (user, c) -> (roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, c.relation().ident().fqn())
+            (user, c) -> (roles.hasAnyPrivilege(user, Securable.TABLE, c.relation().ident().fqn())
                          // we also need to check for views which have privileges set
-                         || roles.hasAnyPrivilege(user, Privilege.Clazz.VIEW, c.relation().ident().fqn())
+                         || roles.hasAnyPrivilege(user, Securable.VIEW, c.relation().ident().fqn())
                          ) && !c.ref().isDropped(),
             InformationColumnsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationTableConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::constraints,
-            (user, t) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, t.relationName().fqn()),
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relationName().fqn()),
             InformationTableConstraintsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationRoutinesTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::routines,
-            (user, r) -> roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, r.schema()),
+            (user, r) -> roles.hasAnyPrivilege(user, Securable.SCHEMA, r.schema()),
             InformationRoutinesTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationSqlFeaturesTableInfo.IDENT, new StaticTableDefinition<>(
@@ -90,15 +90,15 @@ public class InformationSchemaTableDefinitions {
             false));
         tableDefinitions.put(InformationKeyColumnUsageTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::keyColumnUsage,
-            (user, k) -> roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, k.getFQN()),
+            (user, k) -> roles.hasAnyPrivilege(user, Securable.TABLE, k.getFQN()),
             InformationKeyColumnUsageTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationReferentialConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
             InformationReferentialConstraintsTableInfo.create().expressions(),
             false));
-        tableDefinitions.put(InformationCharacterSetsTable.IDENT, new StaticTableDefinition<Void>(
-            () -> completedFuture(Arrays.<Void>asList(new Void[] { null })),
+        tableDefinitions.put(InformationCharacterSetsTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(Arrays.asList(new Void[]{null})),
             InformationCharacterSetsTable.create().expressions(),
             false));
     }

@@ -35,12 +35,13 @@ import org.junit.Test;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.RoleManager;
+import io.crate.role.Securable;
 
 public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")));
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Securable.CLUSTER, null, "crate"),
+        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Securable.CLUSTER, null, "crate")));
     private static final List<String> USERNAMES = Arrays.asList("ford", "arthur", "normal");
 
 

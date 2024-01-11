@@ -113,6 +113,7 @@ import io.crate.role.PrivilegeState;
 import io.crate.role.Privileges;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.sql.tree.SetStatement;
 
 public final class AccessControlImpl implements AccessControl {
@@ -198,7 +199,7 @@ public final class AccessControlImpl implements AccessControl {
                 roles,
                 context.user,
                 context.type,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 tableRelation.tableInfo().ident().fqn()
             );
             return null;
@@ -210,7 +211,7 @@ public final class AccessControlImpl implements AccessControl {
                 roles,
                 context.user,
                 context.type,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 relation.tableInfo().ident().fqn()
             );
             return null;
@@ -223,7 +224,7 @@ public final class AccessControlImpl implements AccessControl {
             // ex) select * from custom_schema.udf(); -- the user must have privilege for custom_schema
             if (schema != null) {
                 Privileges.ensureUserHasPrivilege(
-                    roles, context.user, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, schema);
+                    roles, context.user, Privilege.Type.DQL, Securable.SCHEMA, schema);
             }
             // On the other hand, all users should be able to access built-in functions without any privileges.
             // ex) select * from abs(1);
@@ -249,7 +250,7 @@ public final class AccessControlImpl implements AccessControl {
                 roles,
                 context.user,
                 context.type,
-                Privilege.Clazz.VIEW,
+                Securable.VIEW,
                 analyzedView.name().toString()
             );
             Role owner = analyzedView.owner() == null ? null : roles.findUser(analyzedView.owner());
@@ -307,9 +308,9 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitSwapTable(AnalyzedSwapTable swapTable, Role user) {
             Roles roles = relationVisitor.roles;
-            if (!roles.hasPrivilege(user, Privilege.Type.AL, Privilege.Clazz.CLUSTER, null)) {
-                if (!roles.hasPrivilege(user, Privilege.Type.DDL, Privilege.Clazz.TABLE, swapTable.target().ident().fqn())
-                    || !roles.hasPrivilege(user, Privilege.Type.DDL, Privilege.Clazz.TABLE, swapTable.source().ident().fqn())
+            if (!roles.hasPrivilege(user, Privilege.Type.AL, Securable.CLUSTER, null)) {
+                if (!roles.hasPrivilege(user, Privilege.Type.DDL, Securable.TABLE, swapTable.target().ident().fqn())
+                    || !roles.hasPrivilege(user, Privilege.Type.DDL, Securable.TABLE, swapTable.source().ident().fqn())
                 ) {
                     throw new MissingPrivilegeException(user.name());
                 }
@@ -323,7 +324,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -335,7 +336,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -357,7 +358,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 alterTable.tableInfo().ident().toString()
             );
             return null;
@@ -369,7 +370,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DML,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.tableInfo().ident().toString()
             );
             return null;
@@ -381,7 +382,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DQL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.tableInfo().ident().fqn()
             );
             return null;
@@ -393,7 +394,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.SCHEMA,
+                Securable.SCHEMA,
                 createTable.relationName().schema()
             );
             return null;
@@ -405,7 +406,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.SCHEMA,
+                Securable.SCHEMA,
                 createTableAs.analyzedCreateTable().relationName().schema()
             );
             visitRelation(createTableAs.sourceRelation(), user, Privilege.Type.DQL);
@@ -418,7 +419,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -436,7 +437,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DML,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.tableInfo().ident().toString()
             );
             visitRelation(analysis.subQueryRelation(), user, Privilege.Type.DQL);
@@ -461,7 +462,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.SCHEMA,
+                Securable.SCHEMA,
                 analysis.schema()
             );
             return null;
@@ -473,7 +474,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.SCHEMA,
+                Securable.SCHEMA,
                 analysis.schema()
             );
             return null;
@@ -487,7 +488,7 @@ public final class AccessControlImpl implements AccessControl {
                     relationVisitor.roles,
                     user,
                     Privilege.Type.DDL,
-                    Privilege.Clazz.TABLE,
+                    Securable.TABLE,
                     table.ident().toString()
                 );
             }
@@ -500,7 +501,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -512,7 +513,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.SCHEMA,
+                Securable.SCHEMA,
                 analysis.relationName().schema()
             );
             return null;
@@ -525,7 +526,7 @@ public final class AccessControlImpl implements AccessControl {
                     relationVisitor.roles,
                     user,
                     Privilege.Type.DQL,
-                    Privilege.Clazz.TABLE,
+                    Securable.TABLE,
                     tableInfo.ident().fqn()
                 );
             }
@@ -538,7 +539,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.sourceName().fqn()
             );
             return null;
@@ -550,7 +551,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.tableInfo().ident().toString()
             );
             return null;
@@ -563,7 +564,7 @@ public final class AccessControlImpl implements AccessControl {
                     relationVisitor.roles,
                     user,
                     Privilege.Type.AL,
-                    Privilege.Clazz.CLUSTER,
+                    Securable.CLUSTER,
                     null
                 );
             }
@@ -589,7 +590,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.table().ident().toString()
             );
             return null;
@@ -601,7 +602,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.table().ident().toString()
             );
             return null;
@@ -613,7 +614,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.table().toString()
             );
             return null;
@@ -626,7 +627,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 dropCheckConstraint.tableInfo().ident().toString()
             );
             return null;
@@ -638,7 +639,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.tableInfo().ident().toString()
             );
             return null;
@@ -662,7 +663,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DQL,
-                Privilege.Clazz.TABLE,
+                Securable.TABLE,
                 analysis.tableInfo().ident().toString()
             );
             return null;
@@ -674,7 +675,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -686,7 +687,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -698,7 +699,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -710,7 +711,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -722,7 +723,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -749,7 +750,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.DDL,
-                Privilege.Clazz.SCHEMA,
+                Securable.SCHEMA,
                 createViewStmt.name().schema()
             );
             visitRelation(createViewStmt.analyzedQuery(), user, Privilege.Type.DQL);
@@ -762,7 +763,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -774,7 +775,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -786,7 +787,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             for (Privilege privilege : changePrivileges.privileges()) {
@@ -795,7 +796,7 @@ public final class AccessControlImpl implements AccessControl {
                         relationVisitor.roles,
                         user,
                         privilege.ident().type(),
-                        privilege.ident().clazz(),
+                        privilege.ident().securable(),
                         privilege.ident().ident()
                     );
                 }
@@ -810,7 +811,7 @@ public final class AccessControlImpl implements AccessControl {
                     relationVisitor.roles,
                     user,
                     Privilege.Type.DDL,
-                    Privilege.Clazz.VIEW,
+                    Securable.VIEW,
                     name.toString()
                 );
             }
@@ -834,7 +835,7 @@ public final class AccessControlImpl implements AccessControl {
                     relationVisitor.roles,
                     user,
                     Privilege.Type.DDL,
-                    Privilege.Clazz.TABLE,
+                    Securable.TABLE,
                     table.ident().toString()
                 );
             }
@@ -847,7 +848,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             // All tables cannot be checked on publication creation - they are checked before actual replication starts
@@ -858,7 +859,7 @@ public final class AccessControlImpl implements AccessControl {
                         relationVisitor.roles,
                         user,
                         type,
-                        Privilege.Clazz.TABLE,
+                        Securable.TABLE,
                         relationName.fqn()
                     );
                 }
@@ -872,7 +873,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -884,7 +885,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             for (RelationName relationName: alterPublication.tables()) {
@@ -893,7 +894,7 @@ public final class AccessControlImpl implements AccessControl {
                         relationVisitor.roles,
                         user,
                         type,
-                        Privilege.Clazz.TABLE,
+                        Securable.TABLE,
                         relationName.fqn()
                     );
                 }
@@ -907,7 +908,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -919,7 +920,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -931,7 +932,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -943,7 +944,7 @@ public final class AccessControlImpl implements AccessControl {
                 relationVisitor.roles,
                 user,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null
             );
             return null;
@@ -967,7 +968,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitTableScopeException(TableScopeException e, Role user) {
             for (RelationName relationName : e.getTableIdents()) {
-                Privileges.ensureUserHasPrivilege(roles, user, Privilege.Clazz.TABLE, relationName.toString());
+                Privileges.ensureUserHasPrivilege(roles, user, Securable.TABLE, relationName.toString());
             }
             return null;
         }
@@ -992,7 +993,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         protected Void visitSchemaScopeException(SchemaScopeException e, Role user) {
-            Privileges.ensureUserHasPrivilege(roles, user, Privilege.Clazz.SCHEMA, e.getSchemaName());
+            Privileges.ensureUserHasPrivilege(roles, user, Securable.SCHEMA, e.getSchemaName());
             return null;
         }
 
@@ -1006,7 +1007,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         protected Void visitClusterScopeException(ClusterScopeException e, Role user) {
-            Privileges.ensureUserHasPrivilege(roles, user, Privilege.Clazz.CLUSTER, null);
+            Privileges.ensureUserHasPrivilege(roles, user, Securable.CLUSTER, null);
             return null;
         }
 

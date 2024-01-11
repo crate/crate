@@ -37,28 +37,28 @@ public final class Privileges {
     private Privileges() {}
 
     /**
-     * Checks if the user the concrete privilege for the given class, ident and default schema, if not raise exception.
+     * Checks if the user the concrete privilege for the given securable, ident and default schema, if not raise exception.
      */
     public static void ensureUserHasPrivilege(Roles roles,
                                               Role user,
                                               Privilege.Type type,
-                                              Privilege.Clazz clazz,
+                                              Securable securable,
                                               @Nullable String ident) throws MissingPrivilegeException {
         assert roles != null : "Roles must not be null when trying to validate privileges";
         assert user != null : "User must not be null when trying to validate privileges";
         assert type != null : "Privilege type must not be null";
 
         // information_schema and pg_catalog should not be protected
-        if (isInformationSchema(clazz, ident) || isPgCatalogSchema(clazz, ident)) {
+        if (isInformationSchema(securable, ident) || isPgCatalogSchema(securable, ident)) {
             return;
         }
         //noinspection PointlessBooleanExpression
-        if (roles.hasPrivilege(user, type, clazz, ident) == false) {
-            boolean objectIsVisibleToUser = roles.hasAnyPrivilege(user, clazz, ident);
+        if (roles.hasPrivilege(user, type, securable, ident) == false) {
+            boolean objectIsVisibleToUser = roles.hasAnyPrivilege(user, securable, ident);
             if (objectIsVisibleToUser) {
                 throw new MissingPrivilegeException(user.name(), type);
             } else {
-                switch (clazz) {
+                switch (securable) {
                     case CLUSTER:
                         throw new MissingPrivilegeException(user.name(), type);
                     case SCHEMA:
@@ -66,37 +66,37 @@ public final class Privileges {
                     case TABLE:
                     case VIEW:
                         RelationName relationName = RelationName.fromIndexName(ident);
-                        if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, relationName.schema())) {
+                        if (roles.hasAnyPrivilege(user, Securable.SCHEMA, relationName.schema())) {
                             throw new RelationUnknown(relationName);
                         } else {
                             throw new SchemaUnknownException(relationName.schema());
                         }
 
                     default:
-                        throw new AssertionError("Invalid clazz: " + clazz);
+                        throw new AssertionError("Invalid securable: " + securable);
                 }
             }
         }
     }
 
     /**
-     * Checks if the user has ANY privilege for the given class and ident, if not raise exception.
+     * Checks if the user has ANY privilege for the given securable and ident, if not raise exception.
      */
     @VisibleForTesting
     public static void ensureUserHasPrivilege(Roles roles,
                                               Role user,
-                                              Privilege.Clazz clazz,
+                                              Securable securable,
                                               @Nullable String ident) throws MissingPrivilegeException {
         assert roles != null : "Roles must not be null when trying to validate privileges";
         assert user != null : "User must not be null when trying to validate privileges";
 
         // information_schema and pg_catalog should not be protected
-        if (isInformationSchema(clazz, ident) || isPgCatalogSchema(clazz, ident)) {
+        if (isInformationSchema(securable, ident) || isPgCatalogSchema(securable, ident)) {
             return;
         }
         //noinspection PointlessBooleanExpression
-        if (roles.hasAnyPrivilege(user, clazz, ident) == false) {
-            switch (clazz) {
+        if (roles.hasAnyPrivilege(user, securable, ident) == false) {
+            switch (securable) {
                 case CLUSTER:
                     throw new MissingPrivilegeException(user.name());
 
@@ -106,26 +106,26 @@ public final class Privileges {
                 case TABLE:
                 case VIEW:
                     RelationName relationName = RelationName.fromIndexName(ident);
-                    if (roles.hasAnyPrivilege(user, Privilege.Clazz.SCHEMA, relationName.schema())) {
+                    if (roles.hasAnyPrivilege(user, Securable.SCHEMA, relationName.schema())) {
                         throw new RelationUnknown(relationName);
                     } else {
                         throw new SchemaUnknownException(relationName.schema());
                     }
 
                 default:
-                    throw new AssertionError("Invalid clazz: " + clazz);
+                    throw new AssertionError("Invalid securable: " + securable);
 
             }
         }
     }
 
-    private static String getTargetSchema(Privilege.Clazz clazz, @Nullable String ident) {
+    private static String getTargetSchema(Securable securable, @Nullable String ident) {
         String schemaName = null;
-        if (Privilege.Clazz.CLUSTER.equals(clazz)) {
+        if (Securable.CLUSTER.equals(securable)) {
             return schemaName;
         }
-        assert ident != null : "ident must not be null if privilege class is not 'CLUSTER'";
-        if (Privilege.Clazz.TABLE.equals(clazz)) {
+        assert ident != null : "ident must not be null if privilege securable is not 'CLUSTER'";
+        if (Securable.TABLE.equals(securable)) {
             schemaName = new IndexParts(ident).getSchema();
         } else {
             schemaName = ident;
@@ -133,13 +133,13 @@ public final class Privileges {
         return schemaName;
     }
 
-    private static boolean isInformationSchema(Privilege.Clazz clazz, String ident) {
-        String targetSchema = getTargetSchema(clazz, ident);
+    private static boolean isInformationSchema(Securable securable, String ident) {
+        String targetSchema = getTargetSchema(securable, ident);
         return InformationSchemaInfo.NAME.equals(targetSchema);
     }
 
-    private static boolean isPgCatalogSchema(Privilege.Clazz clazz, String ident) {
-        String targetSchema = getTargetSchema(clazz, ident);
+    private static boolean isPgCatalogSchema(Securable securable, String ident) {
+        String targetSchema = getTargetSchema(securable, ident);
         return PgCatalogSchemaInfo.NAME.equals(targetSchema);
     }
 }

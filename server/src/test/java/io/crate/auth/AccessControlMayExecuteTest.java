@@ -67,6 +67,7 @@ import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.RoleManagerService;
 import io.crate.role.RolesService;
+import io.crate.role.Securable;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -102,7 +103,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                        "normal",
                        Set.of(new Privilege(PrivilegeState.GRANT,
                                             Privilege.Type.DQL,
-                                            Privilege.Clazz.SCHEMA,
+                                            Securable.SCHEMA,
                                             "custom_schema",
                                             "crate")),
                        null);
@@ -120,8 +121,8 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
+            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, securable, ident, user.name()));
                 if ("ddlOnly".equals(user.name())) {
                     return Privilege.Type.DDL == type;
                 }
@@ -190,12 +191,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     private void assertAskedForCluster(Privilege.Type type, Role user) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Privilege.Clazz.CLUSTER, null, user.name()));
+            s -> assertThat(s).containsExactly(type, Securable.CLUSTER, null, user.name()));
     }
 
     private void assertAskedForSchema(Privilege.Type type, String ident) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Privilege.Clazz.SCHEMA, ident, normalUser.name()));
+            s -> assertThat(s).containsExactly(type, Securable.SCHEMA, ident, normalUser.name()));
     }
 
     private void assertAskedForTable(Privilege.Type type, String ident) {
@@ -204,12 +205,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     private void assertAskedForTable(Privilege.Type type, String ident, Role user) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Privilege.Clazz.TABLE, ident, user.name()));
+            s -> assertThat(s).containsExactly(type, Securable.TABLE, ident, user.name()));
     }
 
     private void assertAskedForView(Privilege.Type type, String ident) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Privilege.Clazz.VIEW, ident, normalUser.name()));
+            s -> assertThat(s).containsExactly(type, Securable.VIEW, ident, normalUser.name()));
     }
 
     @Test
