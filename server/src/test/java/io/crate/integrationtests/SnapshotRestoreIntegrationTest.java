@@ -1011,8 +1011,8 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("GRANT DML ON SCHEMA \"doc\" TO \"Arthur\"");
         execute("SELECT * FROM sys.privileges ORDER BY grantee");
         assertThat(response).hasRows(
-            "SCHEMA| Arthur| crate| doc| GRANT| DML",
-            "CLUSTER| DummyRole| crate| NULL| GRANT| AL");
+            "Arthur| crate| doc| SCHEMA| GRANT| DML",
+            "DummyRole| crate| NULL| CLUSTER| GRANT| AL");
 
         // Snapshot contains the following users:
         // CREATE USER "Arthur" WITH (password='arthurs-password');
@@ -1033,8 +1033,8 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         execute("SELECT * FROM sys.privileges ORDER BY grantee");
         assertThat(response).hasRows(
-            "CLUSTER| Ford| crate| NULL| GRANT| AL",
-            "SCHEMA| John| crate| sys| GRANT| DQL");
+            "Ford| crate| NULL| CLUSTER| GRANT| AL",
+            "John| crate| sys| SCHEMA| GRANT| DQL");
 
         // Before any CREATE/ALTER/DROP operation, RolesMetadata still has the users/roles/privileges defined
         // but only old UsersMetadata & UsersPrivilegesMetadata are used.
@@ -1071,7 +1071,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("REVOKE AL FROM \"Ford\"");
         execute("SELECT * FROM sys.privileges ORDER BY grantee");
         assertThat(response).hasRows(
-            "SCHEMA| John| crate| sys| GRANT| DQL");
+            "John| crate| sys| SCHEMA| GRANT| DQL");
 
         // After CREATE/ALTER/DROP operation, current RolesMetadata is dropped and
         // recreated from UsersMetadata/UserPrivileges, thus fully overriden by these restored UsersMetadata

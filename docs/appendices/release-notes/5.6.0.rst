@@ -52,6 +52,9 @@ Breaking Changes
   database together with their privileges are restored. Restoring ``USERS`` or
   ``PRIVILEGES`` separately is not possible anymore.
 
+- Column ``class`` of :ref:`sys.privileges <sys-privileges>` table has been
+  renamed to ``securable``.
+
 Deprecations
 ============
 

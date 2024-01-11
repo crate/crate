@@ -347,15 +347,15 @@ CrateDB exposes the privileges of users and roles of the database through the
 By querying the ``sys.privileges`` table you can get all
 information regarding the existing privileges. E.g.::
 
-    cr> SELECT * FROM sys.privileges order by grantee, class, ident;
-    +---------+----------+---------+----------------+-------+------+
-    | class   | grantee  | grantor | ident          | state | type |
-    +---------+----------+---------+----------------+-------+------+
-    | SCHEMA  | riley    | crate   | doc            | GRANT | DQL  |
-    | TABLE   | riley    | crate   | doc.accounting | DENY  | DQL  |
-    | TABLE   | will     | crate   | doc.books      | GRANT | DDL  |
-    | CLUSTER | wolfgang | crate   | NULL           | GRANT | DML  |
-    +---------+----------+---------+----------------+-------+------+
+    cr> SELECT * FROM sys.privileges order by grantee, securable, ident;
+    +----------+---------+----------------+-----------+-------+------+
+    | grantee  | grantor | ident          | securable | state | type |
+    +----------+---------+----------------+-----------+-------+------+
+    | riley    | crate   | doc            | SCHEMA    | GRANT | DQL  |
+    | riley    | crate   | doc.accounting | TABLE     | DENY  | DQL  |
+    | will     | crate   | doc.books      | TABLE     | GRANT | DDL  |
+    | wolfgang | crate   | NULL           | CLUSTER   | GRANT | DML  |
+    +----------+---------+----------------+-----------+-------+------+
     SELECT 4 rows in set (... sec)
 
 .. hide:

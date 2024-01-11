@@ -53,13 +53,13 @@ public class SysPrivilegesTableInfo {
             .add("grantor", STRING, x -> x.privilege.grantor())
             .add("state", STRING, x -> x.privilege.state().toString())
             .add("type", STRING, x -> x.privilege.ident().type().toString())
-            .add("class", STRING, x -> x.privilege.ident().clazz().toString())
+            .add("securable", STRING, x -> x.privilege.ident().securable().toString())
             .add("ident", STRING, x -> x.privilege.ident().ident())
             .setPrimaryKeys(
                 new ColumnIdent("grantee"),
                 new ColumnIdent("state"),
                 new ColumnIdent("type"),
-                new ColumnIdent("class"),
+                new ColumnIdent("securable"),
                 new ColumnIdent("ident")
             )
             .build();
