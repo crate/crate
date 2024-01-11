@@ -71,10 +71,10 @@ import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropRole;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
@@ -1388,8 +1388,8 @@ public final class SqlFormatter {
                 appendPrivilegesList(node.privileges());
             }
 
-            if (!node.clazz().equals("CLUSTER")) {
-                builder.append(" ON ").append(node.clazz()).append(" ");
+            if (!node.securable().equals("CLUSTER")) {
+                builder.append(" ON ").append(node.securable()).append(" ");
                 appendTableOrSchemaNames(node.privilegeIdents());
             }
 

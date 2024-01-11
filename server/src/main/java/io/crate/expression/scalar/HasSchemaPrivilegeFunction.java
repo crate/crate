@@ -35,6 +35,7 @@ import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.types.DataTypes;
 
 public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
@@ -50,8 +51,8 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
                 if (type == Privilege.Type.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaName)) {
                     return true;
                 }
-                // Last argument is null as it's not used for Privilege.Clazz.SCHEMA
-                result |= roles.hasPrivilege(user, type, Privilege.Clazz.SCHEMA, schemaName);
+                // Last argument is null as it's not used for Privilege.Securable.SCHEMA
+                result |= roles.hasPrivilege(user, type, Securable.SCHEMA, schemaName);
             }
             return result;
         };

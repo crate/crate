@@ -37,10 +37,11 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.role.GrantedRolesChange;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
-import io.crate.role.GrantedRolesChange;
+import io.crate.role.Securable;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.PrivilegeStatement;
@@ -79,16 +80,16 @@ class PrivilegesAnalyzer {
             case RevokePrivilege ignored -> state = PrivilegeState.REVOKE;
             case DenyPrivilege ignored -> state = PrivilegeState.DENY;
         }
-        Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
+        Securable securable = Securable.valueOf(node.securable());
         List<String> idents = validatePrivilegeIdents(
-            clazz,
+            securable,
             node.privilegeIdents(),
             state == PrivilegeState.REVOKE,
             searchPath,
             schemas);
 
 
-        if (clazz == Privilege.Clazz.CLUSTER && node.all() == false) {
+        if (securable == Securable.CLUSTER && node.all() == false) {
             List<Privilege.Type> types = parsePrivilegeTypes(node.privileges(), false);
             if (types.isEmpty() == false) {
                 if (types.size() != node.privileges().size()) {
@@ -101,7 +102,7 @@ class PrivilegesAnalyzer {
                             grantor,
                             state,
                             idents,
-                            clazz));
+                            securable));
                 }
             }
 
@@ -136,7 +137,7 @@ class PrivilegesAnalyzer {
                     grantor,
                     state,
                     idents,
-                    clazz));
+                    securable));
         }
     }
 
@@ -160,12 +161,12 @@ class PrivilegesAnalyzer {
         }
     }
 
-    private List<String> validatePrivilegeIdents(Privilege.Clazz clazz,
+    private List<String> validatePrivilegeIdents(Securable securable,
                                                  List<QualifiedName> tableOrSchemaNames,
                                                  boolean isRevoke,
                                                  SearchPath searchPath,
                                                  Schemas schemas) {
-        if (Privilege.Clazz.SCHEMA.equals(clazz)) {
+        if (Securable.SCHEMA.equals(securable)) {
             List<String> schemaNames = Lists2.map(tableOrSchemaNames, QualifiedName::toString);
             if (isRevoke) {
                 return schemaNames;
@@ -198,13 +199,13 @@ class PrivilegesAnalyzer {
                                                              Role grantor,
                                                              PrivilegeState state,
                                                              List<String> idents,
-                                                             Privilege.Clazz clazz) {
+                                                             Securable securable) {
         Set<Privilege> privileges = new HashSet<>(privilegeTypes.size());
-        if (Privilege.Clazz.CLUSTER.equals(clazz)) {
+        if (Securable.CLUSTER.equals(securable)) {
             for (Privilege.Type privilegeType : privilegeTypes) {
                 Privilege privilege = new Privilege(state,
                     privilegeType,
-                    clazz,
+                    securable,
                     null,
                     grantor.name()
                 );
@@ -215,7 +216,7 @@ class PrivilegesAnalyzer {
                 for (String ident : idents) {
                     Privilege privilege = new Privilege(state,
                         privilegeType,
-                        clazz,
+                        securable,
                         ident,
                         grantor.name()
                     );

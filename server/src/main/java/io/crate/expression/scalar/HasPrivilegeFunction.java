@@ -41,6 +41,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 
 public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
@@ -218,8 +219,8 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     protected static void validateCallPrivileges(Roles roles, Role sessionUser, Role user) {
         // Only superusers can call this function for other users
         if (user.name().equals(sessionUser.name()) == false
-            && roles.hasPrivilege(sessionUser, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges") == false
-            && roles.hasPrivilege(sessionUser, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate") == false) {
+            && roles.hasPrivilege(sessionUser, Privilege.Type.DQL, Securable.TABLE, "sys.privileges") == false
+            && roles.hasPrivilege(sessionUser, Privilege.Type.AL, Securable.CLUSTER, "crate") == false) {
             throw new MissingPrivilegeException(sessionUser.name());
         }
     }

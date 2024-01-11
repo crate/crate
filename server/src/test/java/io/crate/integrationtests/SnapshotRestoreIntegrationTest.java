@@ -71,6 +71,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
+import io.crate.role.Securable;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -1051,11 +1052,11 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur")).isEmpty();
         assertThat(usersPrivilegesMetadata.getUserPrivileges("John")).containsExactly(
             new Privilege(
-                PrivilegeState.GRANT, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "sys", "crate")
+                PrivilegeState.GRANT, Privilege.Type.DQL, Securable.SCHEMA, "sys", "crate")
         );
         assertThat(usersPrivilegesMetadata.getUserPrivileges("Ford")).containsExactly(
             new Privilege(
-                PrivilegeState.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, null, "crate")
+                PrivilegeState.GRANT, Privilege.Type.AL, Securable.CLUSTER, null, "crate")
         );
 
         execute("ALTER USER \"John\" SET (password='johns-new-password')");

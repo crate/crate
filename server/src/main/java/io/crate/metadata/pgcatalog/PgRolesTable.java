@@ -35,6 +35,7 @@ import io.crate.role.Privilege;
 import io.crate.role.Privileges;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 
 public final class PgRolesTable {
 
@@ -66,7 +67,7 @@ public final class PgRolesTable {
                 roles,
                 role,
                 Privilege.Type.AL,
-                Privilege.Clazz.CLUSTER,
+                Securable.CLUSTER,
                 null);
             return true;
         } catch (MissingPrivilegeException e) {

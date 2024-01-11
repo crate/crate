@@ -26,12 +26,15 @@ import java.util.List;
 
 public final class GrantPrivilege extends PrivilegeStatement {
 
-    public GrantPrivilege(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, clazz, tableOrSchemaNames);
+    public GrantPrivilege(List<String> userNames, String securable, List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, securable, tableOrSchemaNames);
     }
 
-    public GrantPrivilege(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, privilegeTypes, clazz, tableOrSchemaNames);
+    public GrantPrivilege(List<String> userNames,
+                          List<String> privilegeTypes,
+                          String securable,
+                          List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, privilegeTypes, securable, tableOrSchemaNames);
     }
 
 

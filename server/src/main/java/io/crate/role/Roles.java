@@ -75,17 +75,17 @@ public interface Roles {
     }
 
     /**
-     * Checks if the user has a privilege that matches the given class, type, ident and
+     * Checks if the user has a privilege that matches the given securable, type, ident and
      * default schema. Currently only the type is checked since Class is always
      * CLUSTER and ident null.
      * @param user           user
      * @param type           privilege type
-     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
+     * @param securable      Securable (ie. CLUSTER, TABLE, etc)
      * @param ident          ident of the object
      */
-    default boolean hasPrivilege(Role user, Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+    default boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
         return user.isSuperUser()
-            || hasPrivilege(user, type, clazz, ident, (r, t, c, o) -> r.privileges().matchPrivilege(t, c, (String) o)) == GRANT;
+            || hasPrivilege(user, type, securable, ident, (r, t, c, o) -> r.privileges().matchPrivilege(t, c, (String) o)) == GRANT;
     }
 
     /**
@@ -100,16 +100,16 @@ public interface Roles {
     }
 
     /**
-     * Checks if the user has any privilege that matches the given class, type and ident
+     * Checks if the user has any privilege that matches the given securable, type and ident
      * currently we check for any privilege, since Class is always CLUSTER and ident null.
      *
      * @param user  user
-     * @param clazz     privilege class (ie. CLUSTER, TABLE, etc)
+     * @param securable securable (ie. CLUSTER, TABLE, etc)
      * @param ident     ident of the object
      */
-    default boolean hasAnyPrivilege(Role user, Privilege.Clazz clazz, @Nullable String ident) {
+    default boolean hasAnyPrivilege(Role user, Securable securable, @Nullable String ident) {
         return user.isSuperUser()
-            || hasPrivilege(user, null, clazz, ident, (r, t, c, o) -> r.privileges().matchPrivilegeOfAnyType(c, (String) o)) == GRANT;
+            || hasPrivilege(user, null, securable, ident, (r, t, c, o) -> r.privileges().matchPrivilegeOfAnyType(c, (String) o)) == GRANT;
     }
 
     Collection<Role> roles();
@@ -140,14 +140,14 @@ public interface Roles {
     private PrivilegeState hasPrivilege(
         Role role,
         Privilege.Type type,
-        @Nullable Privilege.Clazz clazz,
+        @Nullable Securable securable,
         @Nullable Object object,
-        FourFunction<Role, Privilege.Type, Privilege.Clazz, Object, PrivilegeState> function) {
+        FourFunction<Role, Privilege.Type, Securable, Object, PrivilegeState> function) {
 
         if (role.isSuperUser()) {
             return GRANT;
         }
-        PrivilegeState resolution = function.apply(role, type, clazz, object);
+        PrivilegeState resolution = function.apply(role, type, securable, object);
         if (resolution == DENY || resolution == GRANT) {
             return resolution;
         }
@@ -157,7 +157,7 @@ public interface Roles {
         for (String parentRoleName : role.grantedRoleNames()) {
             var parentRole = findRole(parentRoleName);
             assert parentRole != null : "role must exist";
-            var partialResult = hasPrivilege(parentRole, type, clazz, object, function);
+            var partialResult = hasPrivilege(parentRole, type, securable, object, function);
             if (partialResult == DENY) {
                 return DENY;
             }

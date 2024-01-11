@@ -58,9 +58,9 @@ import io.crate.metadata.SystemTable;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.types.DataTypes;
 
 public class SysShardsTableInfo {
@@ -247,7 +247,7 @@ public class SysShardsTableInfo {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
             for (String indexName : concreteIndices) {
                 String tableName = RelationName.fqnFromIndexName(indexName);
-                if (roles.hasAnyPrivilege(user, Privilege.Clazz.TABLE, tableName)) {
+                if (roles.hasAnyPrivilege(user, Securable.TABLE, tableName)) {
                     accessibleTables.add(indexName);
                 }
             }

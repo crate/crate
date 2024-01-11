@@ -21,8 +21,8 @@
 
 package io.crate.role;
 
-import static io.crate.role.Privilege.Clazz.CLUSTER;
-import static io.crate.role.Privilege.Clazz.SCHEMA;
+import static io.crate.role.Securable.CLUSTER;
+import static io.crate.role.Securable.SCHEMA;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -185,10 +185,10 @@ public class Role implements Writeable, ToXContent {
             if (ident.type() != type) {
                 continue;
             }
-            if (ident.clazz() == SCHEMA && OidHash.schemaOid(ident.ident()) == oid) {
+            if (ident.securable() == SCHEMA && OidHash.schemaOid(ident.ident()) == oid) {
                 return privilege.state();
             }
-            if (ident.clazz() == CLUSTER) {
+            if (ident.securable() == CLUSTER) {
                 result = privilege.state();
             }
         }
@@ -265,7 +265,7 @@ public class Role implements Writeable, ToXContent {
      * <p>
      *   "role1": {
      *     "privileges": [
-     *       {"state": 1, "type": 2, "class": 3, "ident": "some_table", "grantor": "grantor_username"},
+     *       {"state": 1, "type": 2, "securable": 3, "ident": "some_table", "grantor": "grantor_username"},
      *       ...
      *     ],
      *     "granted_roles: [{"role1", "grantor1"}, {"role2", "grantor2"}],

@@ -26,12 +26,15 @@ import java.util.List;
 
 public final class RevokePrivilege extends PrivilegeStatement {
 
-    public RevokePrivilege(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, clazz, tableOrSchemaNames);
+    public RevokePrivilege(List<String> userNames, String securable, List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, securable, tableOrSchemaNames);
     }
 
-    public RevokePrivilege(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, privilegeTypes, clazz, tableOrSchemaNames);
+    public RevokePrivilege(List<String> userNames,
+                           List<String> privilegeTypes,
+                           String securable,
+                           List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, privilegeTypes, securable, tableOrSchemaNames);
     }
 
     @Override

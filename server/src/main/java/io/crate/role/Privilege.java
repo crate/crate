@@ -50,19 +50,10 @@ public class Privilege implements Writeable, ToXContent {
         public static final List<Type> READ_WRITE_DEFINE = List.of(DQL, DML, DDL);
     }
 
-    public enum Clazz {
-        CLUSTER,
-        SCHEMA,
-        TABLE,
-        VIEW;
-
-        public static final List<Clazz> VALUES = List.of(values());
-    }
-
     /**
      * A Privilege is stored in the form of:
      * <p>
-     *   {"state": 1, "type": 2, "class": 3, "ident": "some_table/schema", "grantor": "grantor_username"}
+     *   {"state": 1, "type": 2, "securable": 3, "ident": "some_table/schema", "grantor": "grantor_username"}
      */
     public static Privilege fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
@@ -74,7 +65,7 @@ public class Privilege implements Writeable, ToXContent {
         XContentParser.Token currentToken;
         PrivilegeState state = null;
         Privilege.Type type = null;
-        Privilege.Clazz clazz = null;
+        Securable securable = null;
         String ident = null;
         String grantor = null;
         while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -96,12 +87,12 @@ public class Privilege implements Writeable, ToXContent {
                         }
                         type = Privilege.Type.values()[parser.intValue()];
                         break;
-                    case "class":
+                    case "securable", "class":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
                             throw new ElasticsearchParseException(
-                                "failed to parse privilege, 'class' value is not a number [{}]", currentToken);
+                                "failed to parse privilege, 'securable' value is not a number [{}]", currentToken);
                         }
-                        clazz = Privilege.Clazz.values()[parser.intValue()];
+                        securable = Securable.values()[parser.intValue()];
                         break;
                     case "ident":
                         if (currentToken != XContentParser.Token.VALUE_STRING
@@ -123,16 +114,16 @@ public class Privilege implements Writeable, ToXContent {
                 }
             }
         }
-        return new Privilege(state, type, clazz, ident, grantor);
+        return new Privilege(state, type, securable, ident, grantor);
     }
 
     private final PrivilegeState state;
     private final PrivilegeIdent ident;
     private final String grantor;
 
-    public Privilege(PrivilegeState state, Type type, Clazz clazz, @Nullable String ident, String grantor) {
+    public Privilege(PrivilegeState state, Type type, Securable securable, @Nullable String ident, String grantor) {
         this.state = state;
-        this.ident = new PrivilegeIdent(type, clazz, ident);
+        this.ident = new PrivilegeIdent(type, securable, ident);
         this.grantor = grantor;
     }
 
@@ -188,7 +179,7 @@ public class Privilege implements Writeable, ToXContent {
         return builder.startObject()
             .field("state", state.ordinal())
             .field("type", ident.type().ordinal())
-            .field("class", ident.clazz().ordinal())
+            .field("securable", ident.securable().ordinal())
             .field("ident", ident.ident())
             .field("grantor", grantor)
             .endObject();

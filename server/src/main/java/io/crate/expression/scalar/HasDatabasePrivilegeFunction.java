@@ -35,6 +35,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.types.DataTypes;
 
 public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
@@ -82,7 +83,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
         }
         for (Privilege p : user.privileges()) {
             if (p.ident().type() == Privilege.Type.DDL &&
-                (p.ident().clazz() == Privilege.Clazz.SCHEMA || p.ident().clazz() == Privilege.Clazz.CLUSTER)) {
+                (p.ident().securable() == Securable.SCHEMA || p.ident().securable() == Securable.CLUSTER)) {
                 return true;
             }
         }

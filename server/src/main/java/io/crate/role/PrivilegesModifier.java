@@ -106,7 +106,7 @@ public final class PrivilegesModifier {
     /**
      * Returns a copy of the {@link RolesMetadata} including a copied list of privileges if at least one
      * privilege was replaced. Otherwise returns the NULL to indicate that nothing was changed.
-     * Privileges of class {@link Privilege.Clazz#TABLE} whose idents are matching the given source ident are replaced
+     * Privileges of {@link Securable#TABLE} whose idents are matching the given source ident are replaced
      * by a copy where the ident is changed to the given target ident.
      */
     @Nullable
@@ -120,15 +120,15 @@ public final class PrivilegesModifier {
             Set<Privilege> privileges = HashSet.newHashSet(role.privileges().size());
             for (Privilege privilege : role.privileges()) {
                 PrivilegeIdent privilegeIdent = privilege.ident();
-                if (privilegeIdent.clazz().equals(Privilege.Clazz.TABLE) == false) {
+                if (privilegeIdent.securable() != Securable.TABLE) {
                     privileges.add(privilege);
                     continue;
                 }
 
                 String ident = privilegeIdent.ident();
-                assert ident != null : "ident must not be null for privilege class 'TABLE'";
+                assert ident != null : "ident must not be null for securable 'TABLE'";
                 if (ident.equals(sourceIdent)) {
-                    privileges.add(new Privilege(privilege.state(), privilegeIdent.type(), privilegeIdent.clazz(),
+                    privileges.add(new Privilege(privilege.state(), privilegeIdent.type(), privilegeIdent.securable(),
                         targetIdent, privilege.grantor()));
                     privilegesChanged = true;
                 } else {
@@ -154,13 +154,13 @@ public final class PrivilegesModifier {
             Set<Privilege> updatedPrivileges = new HashSet<>();
             for (Privilege privilege : role.privileges()) {
                 PrivilegeIdent privilegeIdent = privilege.ident();
-                Privilege.Clazz clazz = privilegeIdent.clazz();
-                if (clazz.equals(Privilege.Clazz.TABLE) == false && clazz.equals(Privilege.Clazz.VIEW) == false) {
+                Securable securable = privilegeIdent.securable();
+                if (securable != Securable.TABLE && securable != Securable.VIEW) {
                     continue;
                 }
 
                 String ident = privilegeIdent.ident();
-                assert ident != null : "ident must not be null for privilege class 'TABLE'";
+                assert ident != null : "ident must not be null for securable 'TABLE'";
                 if (ident.equals(tableOrViewIdent)) {
                     affectedPrivileges++;
                 } else {
@@ -183,13 +183,13 @@ public final class PrivilegesModifier {
             Set<Privilege> updatedPrivileges = new HashSet<>();
             for (Privilege privilege : role.privileges()) {
                 PrivilegeIdent ident = privilege.ident();
-                if (ident.clazz() == Privilege.Clazz.TABLE) {
+                if (ident.securable() == Securable.TABLE) {
                     if (source.fqn().equals(ident.ident())) {
                         updatedPrivileges.add(
-                            new Privilege(privilege.state(), ident.type(), ident.clazz(), target.fqn(), privilege.grantor()));
+                            new Privilege(privilege.state(), ident.type(), ident.securable(), target.fqn(), privilege.grantor()));
                     } else if (target.fqn().equals(ident.ident())) {
                         updatedPrivileges.add(
-                            new Privilege(privilege.state(), ident.type(), ident.clazz(), source.fqn(), privilege.grantor()));
+                            new Privilege(privilege.state(), ident.type(), ident.securable(), source.fqn(), privilege.grantor()));
                     } else {
                         updatedPrivileges.add(privilege);
                     }

@@ -82,11 +82,11 @@ statement
         TO DIRECTORY? path=expr withProperties?                                      #copyTo
     | dropStmt                                                                       #drop
     | GRANT (priviliges=idents | ALL PRIVILEGES?)
-        (ON clazz qnames)? TO users=idents                                           #grantPrivilege
+        (ON securable qnames)? TO users=idents                                           #grantPrivilege
     | DENY (priviliges=idents | ALL PRIVILEGES?)
-        (ON clazz qnames)? TO users=idents                                           #denyPrivilege
+        (ON securable qnames)? TO users=idents                                           #denyPrivilege
     | REVOKE (privileges=idents | ALL PRIVILEGES?)
-        (ON clazz qnames)? FROM users=idents                                         #revokePrivilege
+        (ON securable qnames)? FROM users=idents                                         #revokePrivilege
     | createStmt                                                                     #create
     | DEALLOCATE (PREPARE)? (ALL | prepStmt=stringLiteralOrIdentifierOrQname)        #deallocate
     | ANALYZE                                                                        #analyze
@@ -786,7 +786,7 @@ on
     : ON
     ;
 
-clazz
+securable
     : SCHEMA
     | TABLE
     | VIEW
