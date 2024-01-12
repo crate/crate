@@ -183,7 +183,7 @@ public class PrivilegesModifierTest {
     @Test
     public void testTablePrivilegesAreTransferred() throws Exception {
         var newRolesMetadata = PrivilegesModifier.maybeCopyAndReplaceTableIdents(
-            rolesMetadata, GRANT_TABLE_DQL.ident().ident(), "testSchema.testing");
+            rolesMetadata, GRANT_TABLE_DQL.subject().ident(), "testSchema.testing");
 
         assertThat(newRolesMetadata).isNotNull();
 
@@ -209,7 +209,7 @@ public class PrivilegesModifierTest {
         assertThat(otherTablePrivilege.isPresent()).isTrue();
 
         Optional<Privilege> schemaPrivilege = updatedPrivileges.stream()
-            .filter(p -> p.ident().securable().equals(Securable.SCHEMA))
+            .filter(p -> p.subject().securable().equals(Securable.SCHEMA))
             .findAny();
         assertThat(schemaPrivilege.isPresent() && schemaPrivilege.get().equals(GRANT_SCHEMA_DML)).isTrue();
     }
@@ -217,7 +217,7 @@ public class PrivilegesModifierTest {
     @Test
     public void testDropTablePrivileges() {
         var mdBuilder = Metadata.builder();
-        long affectedPrivileges = PrivilegesModifier.dropTableOrViewPrivileges(mdBuilder, rolesMetadata, GRANT_TABLE_DQL.ident().ident());
+        long affectedPrivileges = PrivilegesModifier.dropTableOrViewPrivileges(mdBuilder, rolesMetadata, GRANT_TABLE_DQL.subject().ident());
         assertThat(affectedPrivileges).isEqualTo(1L);
 
         var newRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
@@ -235,7 +235,7 @@ public class PrivilegesModifierTest {
     @Test
     public void testDropViewPrivileges() {
         var mdBuilder = Metadata.builder();
-        long affectedPrivileges = PrivilegesModifier.dropTableOrViewPrivileges(mdBuilder, rolesMetadata, GRANT_VIEW_DQL.ident().ident());
+        long affectedPrivileges = PrivilegesModifier.dropTableOrViewPrivileges(mdBuilder, rolesMetadata, GRANT_VIEW_DQL.subject().ident());
         assertThat(affectedPrivileges).isEqualTo(1L);
 
         var newRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
@@ -252,6 +252,6 @@ public class PrivilegesModifierTest {
 
     @NotNull
     private static Predicate<Privilege> hasPrivilegeOn(String object) {
-        return p -> object.equals(p.ident().ident());
+        return p -> object.equals(p.subject().ident());
     }
 }

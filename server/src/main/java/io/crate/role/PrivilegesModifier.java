@@ -70,8 +70,8 @@ public final class PrivilegesModifier {
             boolean userHadPrivilegeOnSameObject = false;
             while (iterator.hasNext()) {
                 Privilege userPrivilege = iterator.next();
-                PrivilegeIdent privilegeIdent = userPrivilege.ident();
-                if (privilegeIdent.equals(newPrivilege.ident())) {
+                Subject subject = userPrivilege.subject();
+                if (subject.equals(newPrivilege.subject())) {
                     userHadPrivilegeOnSameObject = true;
                     if (newPrivilege.policy().equals(Policy.REVOKE)) {
                         iterator.remove();
@@ -119,19 +119,19 @@ public final class PrivilegesModifier {
             var role = entry.getValue();
             Set<Privilege> privileges = HashSet.newHashSet(role.privileges().size());
             for (Privilege privilege : role.privileges()) {
-                PrivilegeIdent privilegeIdent = privilege.ident();
-                if (privilegeIdent.securable() != Securable.TABLE) {
+                Subject subject = privilege.subject();
+                if (subject.securable() != Securable.TABLE) {
                     privileges.add(privilege);
                     continue;
                 }
 
-                String ident = privilegeIdent.ident();
+                String ident = subject.ident();
                 assert ident != null : "ident must not be null for securable 'TABLE'";
                 if (ident.equals(sourceIdent)) {
                     privileges.add(new Privilege(
                         privilege.policy(),
-                        privilegeIdent.permission(),
-                        privilegeIdent.securable(),
+                        subject.permission(),
+                        subject.securable(),
                         targetIdent,
                         privilege.grantor()));
                     privilegesChanged = true;
@@ -157,13 +157,13 @@ public final class PrivilegesModifier {
             var role = entry.getValue();
             Set<Privilege> updatedPrivileges = new HashSet<>();
             for (Privilege privilege : role.privileges()) {
-                PrivilegeIdent privilegeIdent = privilege.ident();
-                Securable securable = privilegeIdent.securable();
+                Subject subject = privilege.subject();
+                Securable securable = subject.securable();
                 if (securable != Securable.TABLE && securable != Securable.VIEW) {
                     continue;
                 }
 
-                String ident = privilegeIdent.ident();
+                String ident = subject.ident();
                 assert ident != null : "ident must not be null for securable 'TABLE'";
                 if (ident.equals(tableOrViewIdent)) {
                     affectedPrivileges++;
@@ -186,7 +186,7 @@ public final class PrivilegesModifier {
             var role = entry.getValue();
             Set<Privilege> updatedPrivileges = new HashSet<>();
             for (Privilege privilege : role.privileges()) {
-                PrivilegeIdent ident = privilege.ident();
+                Subject ident = privilege.subject();
                 if (ident.securable() == Securable.TABLE) {
                     if (source.fqn().equals(ident.ident())) {
                         updatedPrivileges.add(

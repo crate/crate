@@ -796,9 +796,9 @@ public final class AccessControlImpl implements AccessControl {
                     Privileges.ensureUserHasPrivilege(
                         relationVisitor.roles,
                         user,
-                        privilege.ident().permission(),
-                        privilege.ident().securable(),
-                        privilege.ident().ident()
+                        privilege.subject().permission(),
+                        privilege.subject().securable(),
+                        privilege.subject().ident()
                     );
                 }
             }

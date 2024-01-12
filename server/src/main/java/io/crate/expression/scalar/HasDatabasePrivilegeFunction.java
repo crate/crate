@@ -83,8 +83,8 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return true;
         }
         for (Privilege p : user.privileges()) {
-            if (p.ident().permission() == Permission.DDL &&
-                (p.ident().securable() == Securable.SCHEMA || p.ident().securable() == Securable.CLUSTER)) {
+            if (p.subject().permission() == Permission.DDL &&
+                (p.subject().securable() == Securable.SCHEMA || p.subject().securable() == Securable.CLUSTER)) {
                 return true;
             }
         }
