@@ -984,15 +984,21 @@ public class Indexer {
                     root = new HashMap<>();
                     extendedValues.add(root);
                 } else {
+                    assert valueIdx < insertValues.length : "Target columns and values must have the same size";
                     root = (Map<String, Object>) insertValues[valueIdx];
                 }
                 ColumnIdent child = column.shiftRight();
                 Object value = synthetic.value();
+                // We don't override value if it exists.
+                // It's needed when:
+                // - users explicitly provide the whole object (including generated sub-column), then we take user provided value.
+                // - when upsert/update takes existing value from the existing document, it needs to take the whole object as is.
                 Maps.mergeInto(
                     root,
                     child.name(),
                     child.path(),
-                    value
+                    value,
+                    Map::putIfAbsent
                 );
             }
         }
