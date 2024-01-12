@@ -32,5 +32,6 @@ public enum Permission {
      */
     AL;
 
+    public static final List<Permission> VALUES = List.of(values());
     public static final List<Permission> READ_WRITE_DEFINE = List.of(DQL, DML, DDL);
 }

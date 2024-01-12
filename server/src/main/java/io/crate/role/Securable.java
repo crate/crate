@@ -21,10 +21,14 @@
 
 package io.crate.role;
 
+import java.util.List;
+
 public enum Securable {
 
     CLUSTER,
     SCHEMA,
     TABLE,
-    VIEW
+    VIEW;
+
+    public static final List<Securable> VALUES = List.of(values());
 }

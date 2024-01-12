@@ -63,21 +63,21 @@ public class Privilege implements Writeable, ToXContent {
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'state' value is not a number [{}]", currentToken);
                         }
-                        policy = Policy.values()[parser.intValue()];
+                        policy = Policy.VALUES.get(parser.intValue());
                         break;
                     case "permission", "type":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'permission' value is not a number [{}]", currentToken);
                         }
-                        permission = Permission.values()[parser.intValue()];
+                        permission = Permission.VALUES.get(parser.intValue());
                         break;
                     case "securable", "class":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'securable' value is not a number [{}]", currentToken);
                         }
-                        securable = Securable.values()[parser.intValue()];
+                        securable = Securable.VALUES.get(parser.intValue());
                         break;
                     case "ident":
                         if (currentToken != XContentParser.Token.VALUE_STRING
