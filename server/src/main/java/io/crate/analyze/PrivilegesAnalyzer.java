@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -143,7 +142,7 @@ class PrivilegesAnalyzer {
     private static Collection<Permission> getPermissions(boolean all, List<String> permissionNames) {
         Collection<Permission> permissions;
         if (all) {
-            permissions = Arrays.asList(Permission.values());
+            permissions = Permission.VALUES;
         } else {
             permissions = parsePermissions(permissionNames, true);
         }
