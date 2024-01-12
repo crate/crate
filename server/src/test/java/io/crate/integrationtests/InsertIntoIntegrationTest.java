@@ -1998,6 +1998,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("""
             CREATE TABLE tbl (
                 a int PRIMARY KEY,
+                b text,
                 o1 object as (
                     sub int as round((random() + 1) * 100)
                 )
@@ -2008,14 +2009,27 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("INSERT INTO tbl(a) VALUES (1)");
         refresh();
 
+        // Replication of non-deterministic sub-columns had 2 issues:
+        // 1. Used to fail with IndexOutOfBoundsException when preparing replica request
+        //    because values size was less than columns size.
+        //    This is solved now by having dedicated indexers for INSERT and for UPSERT/UPDATE.
+        // 2. If object column is not updated, it's supposed to be taken from the existing doc.
+        //    Object was taken but sub-column used to be re-generated and merged into existing object.
         execute("SELECT o1['sub'] FROM tbl");
-        int generated = (int) response.rows()[0][0];
-        assertThat(generated).isGreaterThan(0);
+        int generatedBeforeUpsert = (int) response.rows()[0][0];
+        assertThat(generatedBeforeUpsert).isGreaterThan(0);
 
-        // some iterations to ensure it hits both primary and replica
+
+        execute("INSERT INTO tbl(a) VALUES (1) " +
+            "ON CONFLICT (a) DO UPDATE SET b = 'updated'"
+        );
+        refresh();
+
+        // Some iterations to ensure it hits both primary and replica
+        // Ensure that non-deterministic sub-column is not re-genrated on replicas.
         for (int i = 0; i < 10; i++) {
             execute("SELECT o1['sub'] FROM tbl");
-            assertThat(response.rows()[0][0]).isEqualTo(generated);
+            assertThat(response.rows()[0][0]).isEqualTo(generatedBeforeUpsert);
         }
     }
 
