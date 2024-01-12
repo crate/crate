@@ -40,8 +40,8 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.role.GrantedRolesChange;
 import io.crate.role.Permission;
+import io.crate.role.Policy;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
 import io.crate.role.Securable;
 import io.crate.sql.tree.DenyPrivilege;
@@ -76,17 +76,17 @@ class PrivilegesAnalyzer {
 
     @NotNull
     private AnalyzedPrivileges buildAnalyzedPrivileges(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
-        PrivilegeState state;
+        Policy policy;
         switch (node) {
-            case GrantPrivilege ignored -> state = PrivilegeState.GRANT;
-            case RevokePrivilege ignored -> state = PrivilegeState.REVOKE;
-            case DenyPrivilege ignored -> state = PrivilegeState.DENY;
+            case GrantPrivilege ignored -> policy = Policy.GRANT;
+            case RevokePrivilege ignored -> policy = Policy.REVOKE;
+            case DenyPrivilege ignored -> policy = Policy.DENY;
         }
         Securable securable = Securable.valueOf(node.securable());
         List<String> idents = validatePrivilegeIdents(
             securable,
             node.privilegeIdents(),
-            state == PrivilegeState.REVOKE,
+            policy == Policy.REVOKE,
             searchPath,
             schemas);
 
@@ -98,17 +98,15 @@ class PrivilegesAnalyzer {
                     throw new IllegalArgumentException("Mixing up cluster privileges with roles is not allowed");
                 } else {
                     return AnalyzedPrivileges.ofPrivileges(node.userNames(),
-                        permissionsToPrivileges(
-                            getPermissions(node.all(),
-                                node.privileges()),
+                        permissionsToPrivileges(getPermissions(node.all(), node.privileges()),
                             grantor,
-                            state,
+                            policy,
                             idents,
                             securable));
                 }
             }
 
-            if (state == PrivilegeState.DENY) {
+            if (policy == Policy.DENY) {
                 throw new IllegalArgumentException("Cannot DENY a role");
             }
             if (node.userNames().contains(Role.CRATE_USER.name())) {
@@ -129,14 +127,14 @@ class PrivilegesAnalyzer {
             }
             return AnalyzedPrivileges.ofRolePrivileges(
                 node.userNames(),
-                new GrantedRolesChange(state, new HashSet<>(node.privileges()),
+                new GrantedRolesChange(policy, new HashSet<>(node.privileges()),
                     grantor.name()));
         } else {
             return AnalyzedPrivileges.ofPrivileges(node.userNames(),
                 permissionsToPrivileges(
                     getPermissions(node.all(), node.privileges()),
                     grantor,
-                    state,
+                    policy,
                     idents,
                     securable));
         }
@@ -198,13 +196,14 @@ class PrivilegesAnalyzer {
 
     private static Set<Privilege> permissionsToPrivileges(Collection<Permission> permissions,
                                                           Role grantor,
-                                                          PrivilegeState state,
+                                                          Policy policy,
                                                           List<String> idents,
                                                           Securable securable) {
         Set<Privilege> privileges = new HashSet<>(permissions.size());
         if (Securable.CLUSTER.equals(securable)) {
             for (Permission permission : permissions) {
-                Privilege privilege = new Privilege(state,
+                Privilege privilege = new Privilege(
+                    policy,
                     permission,
                     securable,
                     null,
@@ -215,7 +214,8 @@ class PrivilegesAnalyzer {
         } else {
             for (Permission permission : permissions) {
                 for (String ident : idents) {
-                    Privilege privilege = new Privilege(state,
+                    Privilege privilege = new Privilege(
+                        policy,
                         permission,
                         securable,
                         ident,

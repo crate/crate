@@ -70,8 +70,8 @@ import org.junit.rules.TemporaryFolder;
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.role.Permission;
+import io.crate.role.Policy;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
 import io.crate.role.Securable;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
@@ -1053,11 +1053,11 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur")).isEmpty();
         assertThat(usersPrivilegesMetadata.getUserPrivileges("John")).containsExactly(
             new Privilege(
-                PrivilegeState.GRANT, Permission.DQL, Securable.SCHEMA, "sys", "crate")
+                Policy.GRANT, Permission.DQL, Securable.SCHEMA, "sys", "crate")
         );
         assertThat(usersPrivilegesMetadata.getUserPrivileges("Ford")).containsExactly(
             new Privilege(
-                PrivilegeState.GRANT, Permission.AL, Securable.CLUSTER, null, "crate")
+                Policy.GRANT, Permission.AL, Securable.CLUSTER, null, "crate")
         );
 
         execute("ALTER USER \"John\" SET (password='johns-new-password')");

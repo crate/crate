@@ -51,7 +51,7 @@ public class SysPrivilegesTableInfo {
         return SystemTable.<PrivilegeRow>builder(IDENT)
             .add("grantee", STRING, x -> x.grantee)
             .add("grantor", STRING, x -> x.privilege.grantor())
-            .add("state", STRING, x -> x.privilege.state().toString())
+            .add("state", STRING, x -> x.privilege.policy().toString())
             .add("type", STRING, x -> x.privilege.ident().permission().toString())
             .add("class", STRING, x -> x.privilege.ident().securable().toString())
             .add("ident", STRING, x -> x.privilege.ident().ident())

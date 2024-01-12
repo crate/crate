@@ -33,12 +33,12 @@ public class GrantedRolesChangeTest {
     @Test
     public void test_role_privilege_trip() throws Exception {
         var out = new BytesStreamOutput();
-        var rolePrivilege = new GrantedRolesChange(PrivilegeState.GRANT, Set.of("role1", "role2", "role3"), "admin");
-        rolePrivilege.writeTo(out);
+        var rolesChange = new GrantedRolesChange(Policy.GRANT, Set.of("role1", "role2", "role3"), "admin");
+        rolesChange.writeTo(out);
 
         var in = out.bytes().streamInput();
         var rolePrivilegeFromStream = new GrantedRolesChange(in);
 
-        assertThat(rolePrivilegeFromStream).isEqualTo(rolePrivilege);
+        assertThat(rolePrivilegeFromStream).isEqualTo(rolesChange);
     }
 }

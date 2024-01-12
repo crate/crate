@@ -174,14 +174,14 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     private static void validateIsNotUser(Roles roles, GrantedRolesChange grantedRolesChange) {
         for (String roleNameToApply : grantedRolesChange.roleNames()) {
             if (roles.findRole(roleNameToApply).isUser()) {
-                throw new IllegalArgumentException("Cannot " + grantedRolesChange.state().name() + " a USER to a ROLE");
+                throw new IllegalArgumentException("Cannot " + grantedRolesChange.policy().name() + " a USER to a ROLE");
             }
         }
     }
 
     @VisibleForTesting
     static void detectCyclesInRolesHierarchy(Roles roles, PrivilegesRequest request) {
-        if (request.rolePrivilege().state() == PrivilegeState.GRANT) {
+        if (request.rolePrivilege().policy() == Policy.GRANT) {
             for (var roleNameToGrant : request.rolePrivilege().roleNames()) {
                 Set<String> parentsOfRoleToGrant = roles.findAllParents(roleNameToGrant);
                 for (var grantee : request.roleNames()) {

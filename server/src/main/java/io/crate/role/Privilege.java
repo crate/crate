@@ -38,7 +38,7 @@ public class Privilege implements Writeable, ToXContent {
     /**
      * A Privilege is stored in the form of:
      * <p>
-     *   {"state": 1, "permission": 2, "securable": 3, "ident": "some_table/schema", "grantor": "grantor_username"}
+     *   {"policy": 1, "permission": 2, "securable": 3, "ident": "some_table/schema", "grantor": "grantor_username"}
      */
     public static Privilege fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
@@ -48,7 +48,7 @@ public class Privilege implements Writeable, ToXContent {
         }
 
         XContentParser.Token currentToken;
-        PrivilegeState state = null;
+        Policy policy = null;
         Permission permission = null;
         Securable securable = null;
         String ident = null;
@@ -58,12 +58,12 @@ public class Privilege implements Writeable, ToXContent {
                 String currentFieldName = parser.currentName();
                 currentToken = parser.nextToken();
                 switch (currentFieldName) {
-                    case "state":
+                    case "policy", "state":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'state' value is not a number [{}]", currentToken);
                         }
-                        state = PrivilegeState.values()[parser.intValue()];
+                        policy = Policy.values()[parser.intValue()];
                         break;
                     case "permission", "type":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
@@ -99,31 +99,31 @@ public class Privilege implements Writeable, ToXContent {
                 }
             }
         }
-        return new Privilege(state, permission, securable, ident, grantor);
+        return new Privilege(policy, permission, securable, ident, grantor);
     }
 
-    private final PrivilegeState state;
+    private final Policy policy;
     private final PrivilegeIdent ident;
     private final String grantor;
 
-    public Privilege(PrivilegeState state,
+    public Privilege(Policy policy,
                      Permission permission,
                      Securable securable,
                      @Nullable String ident,
                      String grantor) {
-        this.state = state;
+        this.policy = policy;
         this.ident = new PrivilegeIdent(permission, securable, ident);
         this.grantor = grantor;
     }
 
     public Privilege(StreamInput in) throws IOException {
-        state = PrivilegeState.VALUES.get(in.readInt());
+        policy = in.readEnum(Policy.class);
         ident = new PrivilegeIdent(in);
         grantor = in.readString();
     }
 
-    public PrivilegeState state() {
-        return state;
+    public Policy policy() {
+        return policy;
     }
 
     public PrivilegeIdent ident() {
@@ -143,7 +143,7 @@ public class Privilege implements Writeable, ToXContent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Privilege privilege = (Privilege) o;
-        return state == privilege.state &&
+        return policy == privilege.policy &&
                Objects.equals(ident, privilege.ident);
     }
 
@@ -153,12 +153,12 @@ public class Privilege implements Writeable, ToXContent {
      */
     @Override
     public int hashCode() {
-        return Objects.hash(state, ident);
+        return Objects.hash(policy, ident);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeInt(state.ordinal());
+        out.writeEnum(policy);
         ident.writeTo(out);
         out.writeString(grantor);
     }
@@ -166,7 +166,7 @@ public class Privilege implements Writeable, ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         return builder.startObject()
-            .field("state", state.ordinal())
+            .field("policy", policy.ordinal())
             .field("permission", ident.permission().ordinal())
             .field("securable", ident.securable().ordinal())
             .field("ident", ident.ident())

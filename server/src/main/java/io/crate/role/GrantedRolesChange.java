@@ -31,24 +31,24 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 public class GrantedRolesChange implements Writeable {
 
-    private final PrivilegeState state;
+    private final Policy policy;
     private final Set<String> roleNames;
     private final String grantor;
 
-    public GrantedRolesChange(PrivilegeState state, Set<String> roleNames, String grantor) {
-        this.state = state;
+    public GrantedRolesChange(Policy policy, Set<String> roleNames, String grantor) {
+        this.policy = policy;
         this.roleNames = roleNames;
         this.grantor = grantor;
     }
 
     public GrantedRolesChange(StreamInput in) throws IOException {
-        state = PrivilegeState.VALUES.get(in.readInt());
+        policy = in.readEnum(Policy.class);
         roleNames = in.readSet(StreamInput::readString);
         grantor = in.readString();
     }
 
-    public PrivilegeState state() {
-        return state;
+    public Policy policy() {
+        return policy;
     }
 
     public Set<String> roleNames() {
@@ -68,7 +68,7 @@ public class GrantedRolesChange implements Writeable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GrantedRolesChange that = (GrantedRolesChange) o;
-        return state == that.state && Objects.equals(roleNames, that.roleNames);
+        return policy == that.policy && Objects.equals(roleNames, that.roleNames);
     }
 
     /**
@@ -77,12 +77,12 @@ public class GrantedRolesChange implements Writeable {
      */
     @Override
     public int hashCode() {
-        return Objects.hash(state, roleNames);
+        return Objects.hash(policy, roleNames);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeInt(state.ordinal());
+        out.writeEnum(policy);
         out.writeCollection(roleNames, StreamOutput::writeString);
         out.writeString(grantor);
     }

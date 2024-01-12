@@ -62,8 +62,8 @@ import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.role.Permission;
+import io.crate.role.Policy;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.RoleManagerService;
@@ -102,7 +102,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
         normalUser = userOf(
                        "normal",
-                       Set.of(new Privilege(PrivilegeState.GRANT,
+                       Set.of(new Privilege(Policy.GRANT,
                                             Permission.DQL,
                                             Securable.SCHEMA,
                                             "custom_schema",

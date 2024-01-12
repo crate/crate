@@ -21,9 +21,9 @@
 
 package io.crate.role;
 
-import static io.crate.role.PrivilegeState.DENY;
-import static io.crate.role.PrivilegeState.GRANT;
-import static io.crate.role.PrivilegeState.REVOKE;
+import static io.crate.role.Policy.DENY;
+import static io.crate.role.Policy.GRANT;
+import static io.crate.role.Policy.REVOKE;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -96,7 +96,7 @@ public interface Roles {
      */
     default boolean hasSchemaPrivilege(Role user, Permission permission, Integer schemaOid) {
         return user.isSuperUser()
-            || hasPrivilege(user, permission, null, schemaOid, (r, t, c, o) -> r.matchSchema(t, (Integer) o)) == GRANT;
+            || hasPrivilege(user, permission, null, schemaOid, (r, p, s, o) -> r.matchSchema(p, (Integer) o)) == GRANT;
     }
 
     /**
@@ -109,7 +109,7 @@ public interface Roles {
      */
     default boolean hasAnyPrivilege(Role user, Securable securable, @Nullable String ident) {
         return user.isSuperUser()
-            || hasPrivilege(user, null, securable, ident, (r, t, c, o) -> r.privileges().matchPrivilegeOfAnyType(c, (String) o)) == GRANT;
+            || hasPrivilege(user, null, securable, ident, (r, p, s, o) -> r.privileges().matchPrivilegeOfAnyType(s, (String) o)) == GRANT;
     }
 
     Collection<Role> roles();
@@ -137,23 +137,23 @@ public interface Roles {
      * DENY has precedence, so given a role, if for one of its parents the privilege resolves to DENY,
      * then the privilege resolves to DENY for the role.
      */
-    private PrivilegeState hasPrivilege(
+    private Policy hasPrivilege(
         Role role,
         Permission permission,
         @Nullable Securable securable,
         @Nullable Object object,
-        FourFunction<Role, Permission, Securable, Object, PrivilegeState> function) {
+        FourFunction<Role, Permission, Securable, Object, Policy> function) {
 
         if (role.isSuperUser()) {
             return GRANT;
         }
-        PrivilegeState resolution = function.apply(role, permission, securable, object);
+        Policy resolution = function.apply(role, permission, securable, object);
         if (resolution == DENY || resolution == GRANT) {
             return resolution;
         }
 
 
-        PrivilegeState result = REVOKE;
+        Policy result = REVOKE;
         for (String parentRoleName : role.grantedRoleNames()) {
             var parentRole = findRole(parentRoleName);
             assert parentRole != null : "role must exist";
