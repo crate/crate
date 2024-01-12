@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,35 +19,18 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.role;
 
 import java.util.List;
 
-public final class DenyPrivilege extends PrivilegeStatement {
+public enum Permission {
+    DQL,
+    DML,
+    DDL,
+    /**
+     * Administration Language
+     */
+    AL;
 
-    public DenyPrivilege(List<String> userNames, String securable, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, securable, tableOrSchemaNames);
-    }
-
-    public DenyPrivilege(List<String> userNames,
-                         List<String> permissions,
-                         String securable,
-                         List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, permissions, securable, tableOrSchemaNames);
-    }
-
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDenyPrivilege(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return "DenyPrivilege{" +
-               "allPrivileges=" + all +
-               "permissions=" + permissions +
-               ", userNames=" + userNames +
-               '}';
-    }
+    public static final List<Permission> READ_WRITE_DEFINE = List.of(DQL, DML, DDL);
 }

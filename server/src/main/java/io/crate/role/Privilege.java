@@ -22,7 +22,6 @@
 package io.crate.role;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchParseException;
@@ -36,24 +35,10 @@ import org.jetbrains.annotations.Nullable;
 
 public class Privilege implements Writeable, ToXContent {
 
-    public enum Type {
-        DQL,
-        DML,
-        DDL,
-        /**
-         * Administration Language
-         */
-        AL;
-
-        public static final List<Type> VALUES = List.of(values());
-
-        public static final List<Type> READ_WRITE_DEFINE = List.of(DQL, DML, DDL);
-    }
-
     /**
      * A Privilege is stored in the form of:
      * <p>
-     *   {"state": 1, "type": 2, "securable": 3, "ident": "some_table/schema", "grantor": "grantor_username"}
+     *   {"state": 1, "permission": 2, "securable": 3, "ident": "some_table/schema", "grantor": "grantor_username"}
      */
     public static Privilege fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
@@ -64,7 +49,7 @@ public class Privilege implements Writeable, ToXContent {
 
         XContentParser.Token currentToken;
         PrivilegeState state = null;
-        Privilege.Type type = null;
+        Permission permission = null;
         Securable securable = null;
         String ident = null;
         String grantor = null;
@@ -80,12 +65,12 @@ public class Privilege implements Writeable, ToXContent {
                         }
                         state = PrivilegeState.values()[parser.intValue()];
                         break;
-                    case "type":
+                    case "permission", "type":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
                             throw new ElasticsearchParseException(
-                                "failed to parse privilege, 'type' value is not a number [{}]", currentToken);
+                                "failed to parse privilege, 'permission' value is not a number [{}]", currentToken);
                         }
-                        type = Privilege.Type.values()[parser.intValue()];
+                        permission = Permission.values()[parser.intValue()];
                         break;
                     case "securable", "class":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
@@ -114,16 +99,20 @@ public class Privilege implements Writeable, ToXContent {
                 }
             }
         }
-        return new Privilege(state, type, securable, ident, grantor);
+        return new Privilege(state, permission, securable, ident, grantor);
     }
 
     private final PrivilegeState state;
     private final PrivilegeIdent ident;
     private final String grantor;
 
-    public Privilege(PrivilegeState state, Type type, Securable securable, @Nullable String ident, String grantor) {
+    public Privilege(PrivilegeState state,
+                     Permission permission,
+                     Securable securable,
+                     @Nullable String ident,
+                     String grantor) {
         this.state = state;
-        this.ident = new PrivilegeIdent(type, securable, ident);
+        this.ident = new PrivilegeIdent(permission, securable, ident);
         this.grantor = grantor;
     }
 
@@ -178,7 +167,7 @@ public class Privilege implements Writeable, ToXContent {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         return builder.startObject()
             .field("state", state.ordinal())
-            .field("type", ident.type().ordinal())
+            .field("permission", ident.permission().ordinal())
             .field("securable", ident.securable().ordinal())
             .field("ident", ident.ident())
             .field("grantor", grantor)

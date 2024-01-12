@@ -31,10 +31,10 @@ public final class RevokePrivilege extends PrivilegeStatement {
     }
 
     public RevokePrivilege(List<String> userNames,
-                           List<String> privilegeTypes,
+                           List<String> permissions,
                            String securable,
                            List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, privilegeTypes, securable, tableOrSchemaNames);
+        super(userNames, permissions, securable, tableOrSchemaNames);
     }
 
     @Override
@@ -46,7 +46,7 @@ public final class RevokePrivilege extends PrivilegeStatement {
     public String toString() {
         return "RevokePrivilege{" +
                "allPrivileges=" + all +
-               "privilegeTypes=" + privilegeTypes +
+               "permissions=" + permissions +
                ", userNames=" + userNames +
                '}';
     }

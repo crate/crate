@@ -36,6 +36,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.GrantedRole;
+import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
@@ -74,11 +75,11 @@ public final class RolesHelper {
 
     public static final Map<String, Set<Privilege>> OLD_DUMMY_USERS_PRIVILEGES = Map.of(
         "Ford", Set.of(
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Securable.CLUSTER, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Securable.SCHEMA, "doc", "crate")
+            new Privilege(PrivilegeState.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate"),
+            new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.SCHEMA, "doc", "crate")
         ),
         "Arthur", Set.of(
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Securable.SCHEMA, "doc", "crate")
+            new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.SCHEMA, "doc", "crate")
         ));
 
     public static UsersMetadata usersMetadataOf(Map<String, Role> users) {

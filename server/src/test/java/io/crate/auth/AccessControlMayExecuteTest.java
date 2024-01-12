@@ -22,7 +22,7 @@
 package io.crate.auth;
 
 import static io.crate.expression.udf.UdfUnitTest.DUMMY_LANG;
-import static io.crate.role.Privilege.Type.READ_WRITE_DEFINE;
+import static io.crate.role.Permission.READ_WRITE_DEFINE;
 import static io.crate.role.Role.CRATE_USER;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static java.util.Collections.singletonList;
@@ -61,6 +61,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
@@ -102,7 +103,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         normalUser = userOf(
                        "normal",
                        Set.of(new Privilege(PrivilegeState.GRANT,
-                                            Privilege.Type.DQL,
+                                            Permission.DQL,
                                             Securable.SCHEMA,
                                             "custom_schema",
                                             "crate")),
@@ -121,10 +122,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission type, Securable securable, @Nullable String ident) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, securable, ident, user.name()));
                 if ("ddlOnly".equals(user.name())) {
-                    return Privilege.Type.DDL == type;
+                    return Permission.DDL == type;
                 }
                 return true;
             }
@@ -185,32 +186,32 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             SqlParser.createStatement(stmt), new CoordinatorSessionSettings(user), ParamTypeHints.EMPTY, e.cursors);
     }
 
-    private void assertAskedForCluster(Privilege.Type type) {
-        assertAskedForCluster(type, normalUser);
+    private void assertAskedForCluster(Permission permission) {
+        assertAskedForCluster(permission, normalUser);
     }
 
-    private void assertAskedForCluster(Privilege.Type type, Role user) {
+    private void assertAskedForCluster(Permission permission, Role user) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Securable.CLUSTER, null, user.name()));
+            s -> assertThat(s).containsExactly(permission, Securable.CLUSTER, null, user.name()));
     }
 
-    private void assertAskedForSchema(Privilege.Type type, String ident) {
+    private void assertAskedForSchema(Permission permission, String ident) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Securable.SCHEMA, ident, normalUser.name()));
+            s -> assertThat(s).containsExactly(permission, Securable.SCHEMA, ident, normalUser.name()));
     }
 
-    private void assertAskedForTable(Privilege.Type type, String ident) {
-        assertAskedForTable(type, ident, normalUser);
+    private void assertAskedForTable(Permission permission, String ident) {
+        assertAskedForTable(permission, ident, normalUser);
     }
 
-    private void assertAskedForTable(Privilege.Type type, String ident, Role user) {
+    private void assertAskedForTable(Permission permission, String ident, Role user) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Securable.TABLE, ident, user.name()));
+            s -> assertThat(s).containsExactly(permission, Securable.TABLE, ident, user.name()));
     }
 
-    private void assertAskedForView(Privilege.Type type, String ident) {
+    private void assertAskedForView(Permission permission, String ident) {
         assertThat(validationCallArguments).anySatisfy(
-            s -> assertThat(s).containsExactly(type, Securable.VIEW, ident, normalUser.name()));
+            s -> assertThat(s).containsExactly(permission, Securable.VIEW, ident, normalUser.name()));
     }
 
     @Test
@@ -236,13 +237,13 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_set_global_statements_can_be_executed_with_al_cluster_privileges() throws Exception {
         analyze("set global stats.enabled = true");
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
     public void test_reset_requires_AL_privileges() throws Exception {
         analyze("reset global stats.enabled");
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
@@ -255,106 +256,106 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAlterTable() throws Exception {
         analyze("alter table users set (number_of_replicas=1)");
-        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test
     public void testCopyFrom() throws Exception {
         analyze("copy users from 'file:///tmp'");
-        assertAskedForTable(Privilege.Type.DML, "doc.users");
+        assertAskedForTable(Permission.DML, "doc.users");
     }
 
     @Test
     public void testCopyTo() throws Exception {
         analyze("copy users to DIRECTORY '/tmp'");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void testCreateTable() throws Exception {
         analyze("create table my_schema.my_table (id int)");
-        assertAskedForSchema(Privilege.Type.DDL, "my_schema");
+        assertAskedForSchema(Permission.DDL, "my_schema");
     }
 
     @Test
     public void testCreateBlobTable() throws Exception {
         analyze("create blob table myblobs");
-        assertAskedForSchema(Privilege.Type.DDL, "blob");
+        assertAskedForSchema(Permission.DDL, "blob");
     }
 
     @Test
     public void testCreateRepository() throws Exception {
         analyze("create repository new_repository TYPE fs with (location='/tmp', compress=True)");
-        assertAskedForCluster(Privilege.Type.DDL);
+        assertAskedForCluster(Permission.DDL);
     }
 
     @Test
     public void testDropRepository() throws Exception {
         analyze("drop repository my_repo");
-        assertAskedForCluster(Privilege.Type.DDL);
+        assertAskedForCluster(Permission.DDL);
     }
 
     @Test
     public void testCreateSnapshot() throws Exception {
         analyze("create snapshot my_repo.my_snapshot table users");
-        assertAskedForCluster(Privilege.Type.DDL);
+        assertAskedForCluster(Permission.DDL);
     }
 
     @Test
     public void testRestoreSnapshot() throws Exception {
         analyze("restore snapshot my_repo.my_snapshot table my_table");
-        assertAskedForCluster(Privilege.Type.DDL);
+        assertAskedForCluster(Permission.DDL);
     }
 
     @Test
     public void testDropSnapshot() throws Exception {
         analyze("drop snapshot my_repo.my_snap_1");
-        assertAskedForCluster(Privilege.Type.DDL);
+        assertAskedForCluster(Permission.DDL);
     }
 
     @Test
     public void testDelete() throws Exception {
         analyze("delete from users");
-        assertAskedForTable(Privilege.Type.DML, "doc.users");
+        assertAskedForTable(Permission.DML, "doc.users");
     }
 
     @Test
     public void testInsertFromValues() throws Exception {
         analyze("insert into users (id) values (1)");
-        assertAskedForTable(Privilege.Type.DML, "doc.users");
+        assertAskedForTable(Permission.DML, "doc.users");
     }
 
     @Test
     public void testInsertFromSubquery() throws Exception {
         analyze("insert into users (id) ( select id from parted )");
-        assertAskedForTable(Privilege.Type.DML, "doc.users");
-        assertAskedForTable(Privilege.Type.DQL, "doc.parted");
+        assertAskedForTable(Permission.DML, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.parted");
     }
 
     @Test
     public void testUpdate() throws Exception {
         analyze("update users set name = 'ford' where id = 1");
-        assertAskedForTable(Privilege.Type.DML, "doc.users");
+        assertAskedForTable(Permission.DML, "doc.users");
     }
 
     @Test
     public void testSelectSingleRelation() throws Exception {
         analyze("select * from sys.cluster");
-        assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
+        assertAskedForTable(Permission.DQL, "sys.cluster");
     }
 
     @Test
     public void testSelectMultiRelation() throws Exception {
         analyze("select * from sys.cluster, users");
-        assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "sys.cluster");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void testSelectUnion() throws Exception {
         analyze("select name from sys.cluster union all select name from users");
-        assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "sys.cluster");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     /**
@@ -365,8 +366,8 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSelectUnionWithOrderBy() throws Exception {
         analyze("select name from sys.cluster union all select name from users order by 1");
-        assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "sys.cluster");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
@@ -374,93 +375,93 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze("select * from (" +
                 " select users.id from users join parted on users.id = parted.id::long order by users.name limit 2" +
                 ") as users_parted order by users_parted.id");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
-        assertAskedForTable(Privilege.Type.DQL, "doc.parted");
+        assertAskedForTable(Permission.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.parted");
     }
 
     @Test
     public void test_select_with_scalar_subselect_in_select() {
         analyze("SELECT 1, array(SELECT users.id FROM USERS), 2");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void test_select_with_scalar_subselect_in_where() {
         analyze("SELECT generate_series(1, 10, 1) WHERE EXISTS " +
                 "(SELECT u.a + 10 FROM (SELECT users.id AS a FROM USERS) u)");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void test_select_with_scalar_subselect_in_order_by() {
         analyze("SELECT generate_series(1, 10, 1) ORDER BY " +
                 "(SELECT u.a + 10 FROM (SELECT users.id AS a FROM USERS) u)");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void test_select_with_scalar_subselect_in_group_by() {
         analyze("SELECT count(*) FROM (SELECT * FROM GENERATE_SERIES(1,10,1) AS g) gs " +
                 "GROUP BY gs.g + (SELECT u.a + 10 FROM (SELECT users.id AS a FROM USERS) u)");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void test_select_with_scalar_subselect_in_having() {
         analyze("SELECT count(*) FROM parted GROUP BY id HAVING id > " +
                 "(SELECT u.a + 10 FROM (SELECT users.id AS a FROM USERS) u)");
-        assertAskedForTable(Privilege.Type.DQL, "doc.parted");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.parted");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void testCreateFunction() throws Exception {
         analyze("create function bar()" +
                 " returns long language dummy_lang AS 'function() { return 1; }'");
-        assertAskedForSchema(Privilege.Type.DDL, "doc");
+        assertAskedForSchema(Permission.DDL, "doc");
     }
 
     @Test
     public void testDropFunction() throws Exception {
         analyze("drop function bar(long, object)");
-        assertAskedForSchema(Privilege.Type.DDL, "doc");
+        assertAskedForSchema(Permission.DDL, "doc");
     }
 
     @Test
     public void testDropTable() throws Exception {
         analyze("drop table users");
-        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test
     public void testDropBlobTable() throws Exception {
         analyze("drop blob table blobs");
-        assertAskedForTable(Privilege.Type.DDL, "blob.blobs");
+        assertAskedForTable(Permission.DDL, "blob.blobs");
     }
 
     @Test
     public void testCreateAnalyzer() throws Exception {
         analyze("create analyzer a1 (tokenizer lowercase)");
-        assertAskedForCluster(Privilege.Type.DDL);
+        assertAskedForCluster(Permission.DDL);
     }
 
     @Test
     public void testRefresh() throws Exception {
         analyze("refresh table users, parted partition (date = 1395874800000)");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
-        assertAskedForTable(Privilege.Type.DQL, "doc.parted");
+        assertAskedForTable(Permission.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.parted");
     }
 
     @Test
     public void testRenameTable() throws Exception {
         analyze("alter table users rename to users_new");
-        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test
     public void testAlterBlobTable() throws Exception {
         analyze("alter blob table blobs set (number_of_replicas=1)");
-        assertAskedForTable(Privilege.Type.DDL, "blob.blobs");
+        assertAskedForTable(Permission.DDL, "blob.blobs");
     }
 
     @Test
@@ -473,31 +474,31 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAddColumn() throws Exception {
         analyze("alter table users add column foo string");
-        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test
     public void test_drop_column() {
         analyze("alter table users drop column floats");
-        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test
     public void test_rename_column() {
         analyze("alter table users rename column floats to flts");
-        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test
     public void testOpenCloseTable() throws Exception {
         analyze("alter table users close");
-        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test
     public void testShowTable() throws Exception {
         analyze("show create table users");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
@@ -511,33 +512,33 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testExplainSelect() throws Exception {
         analyze("explain select * from users");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void testExplainCopyFrom() throws Exception {
         analyze("explain copy users from 'file:///tmp'");
-        assertAskedForTable(Privilege.Type.DML, "doc.users");
+        assertAskedForTable(Permission.DML, "doc.users");
     }
 
     @Test
     public void testUserWithDDLCanCreateViewOnTablesWhereDQLPermissionsAreAvailable() {
         analyze("create view xx.v1 as select * from doc.users");
-        assertAskedForSchema(Privilege.Type.DDL, "xx");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForSchema(Permission.DDL, "xx");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
     public void testQueryOnViewRequiresOwnerToHavePrivilegesOnInvolvedRelations() {
         analyze("select * from doc.v1");
-        assertAskedForView(Privilege.Type.DQL, "doc.v1");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users", superUser);
+        assertAskedForView(Permission.DQL, "doc.v1");
+        assertAskedForTable(Permission.DQL, "doc.users", superUser);
     }
 
     @Test
     public void testDroppingAViewRequiresDDLPermissionOnView() {
         analyze("drop view doc.v1");
-        assertAskedForView(Privilege.Type.DDL, "doc.v1");
+        assertAskedForView(Permission.DDL, "doc.v1");
     }
 
     @Test
@@ -549,13 +550,13 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testFunctionsBoundToSchemaRequirePermissions() {
         analyze("select * from custom_schema.foo(1)");
-        assertAskedForSchema(Privilege.Type.DQL, "custom_schema");
+        assertAskedForSchema(Permission.DQL, "custom_schema");
     }
 
     @Test
     public void testPermissionCheckIsDoneOnSchemaAndTableNotOnTableAlias() {
         analyze("select * from doc.users as t");
-        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
     }
 
     @Test
@@ -569,53 +570,53 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_alter_cluster_reroute_retry_works_for_normal_user_with_AL_privileges() {
         analyze("alter cluster reroute retry failed", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
     public void test_alter_cluster_gc_dangling_artifacts_works_for_normal_user_with_AL_privileges() {
         analyze("alter cluster gc dangling artifacts", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
     public void test_alter_cluster_swap_table_works_for_normal_user_with_AL_privileges() {
         // pre-configured user has all privileges
         analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
     public void test_alter_cluster_swap_table_works_for_normal_user_with_no_AI_with_DDL_on_both_tables() {
         analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", ddlOnlyUser);
-        assertAskedForCluster(Privilege.Type.AL, ddlOnlyUser); // first checks AL and if user doesn't have it, checks both DDL-s
-        assertAskedForTable(Privilege.Type.DDL, "doc.t2", ddlOnlyUser);
-        assertAskedForTable(Privilege.Type.DDL, "doc.t1", ddlOnlyUser);
+        assertAskedForCluster(Permission.AL, ddlOnlyUser); // first checks AL and if user doesn't have it, checks both DDL-s
+        assertAskedForTable(Permission.DDL, "doc.t2", ddlOnlyUser);
+        assertAskedForTable(Permission.DDL, "doc.t1", ddlOnlyUser);
     }
 
     @Test
     public void test_a_user_with_al_on_cluster_privileges_can_create_other_users() {
         analyze("create user joe");
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
     public void test_a_user_with_al_on_cluster_can_delete_users() {
         analyze("drop user joe");
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
     public void test_a_user_with_al_on_cluster_can_grant_privileges_he_has_to_other_users() {
         analyze("GRANT DQL ON SCHEMA foo TO joe");
-        assertAskedForCluster(Privilege.Type.AL);
-        assertAskedForSchema(Privilege.Type.DQL, "foo");
+        assertAskedForCluster(Permission.AL);
+        assertAskedForSchema(Permission.DQL, "foo");
     }
 
     @Test
     public void test_a_user_with_al_can_revoke_privileges_from_users() {
         analyze("REVOKE DQL ON SCHEMA foo FROM joe");
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
@@ -690,14 +691,14 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_create_table_as_requires_DDL_on_target_and_DQL_on_source() {
         analyze("create table target_schema.target_table as (select * from sys.cluster)");
-        assertAskedForSchema(Privilege.Type.DDL, "target_schema");
-        assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
+        assertAskedForSchema(Permission.DDL, "target_schema");
+        assertAskedForTable(Permission.DQL, "sys.cluster");
     }
 
     @Test
     public void test_optimize_table_is_allowed_with_ddl_privileges_on_table() {
         analyze("optimize table users");
-        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test
@@ -709,10 +710,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_create_publication_asks_cluster_AL_and_all_for_each_table() {
         analyze("create publication pub1 FOR TABLE t1, t2", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
-        for (Privilege.Type type: READ_WRITE_DEFINE) {
-            assertAskedForTable(type, "doc.t1");
-            assertAskedForTable(type, "doc.t2");
+        assertAskedForCluster(Permission.AL);
+        for (Permission permission : READ_WRITE_DEFINE) {
+            assertAskedForTable(permission, "doc.t1");
+            assertAskedForTable(permission, "doc.t2");
         }
     }
 
@@ -724,7 +725,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .setUserManager(roleManager)
             .build();
         analyze("DROP PUBLICATION pub1", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
@@ -735,16 +736,16 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .setUserManager(roleManager)
             .build();
         analyze("ALTER PUBLICATION pub1 ADD TABLE t2", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
-        for (Privilege.Type type: READ_WRITE_DEFINE) {
-            assertAskedForTable(type, "doc.t2");
+        assertAskedForCluster(Permission.AL);
+        for (Permission permission : READ_WRITE_DEFINE) {
+            assertAskedForTable(permission, "doc.t2");
         }
     }
 
     @Test
     public void test_create_subscription_asks_cluster_AL() {
         analyze("create subscription sub1 CONNECTION 'postgresql://user@localhost/crate:5432' PUBLICATION pub1", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
@@ -755,7 +756,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .setUserManager(roleManager)
             .build();
         analyze("DROP SUBSCRIPTION sub1", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
@@ -766,19 +767,19 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .setUserManager(roleManager)
             .build();
         analyze("ALTER SUBSCRIPTION sub1 DISABLE", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
     public void test_anaylze_works_for_normal_user_with_AL_privileges() {
         analyze("ANALYZE", normalUser);
-        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
     public void test_declare_cursor_for_non_super_users() {
         analyze("DECLARE this_cursor NO SCROLL CURSOR FOR SELECT * FROM sys.summits;", normalUser);
-        assertAskedForTable(Privilege.Type.DQL, "sys.summits");
+        assertAskedForTable(Permission.DQL, "sys.summits");
     }
 
     @Test

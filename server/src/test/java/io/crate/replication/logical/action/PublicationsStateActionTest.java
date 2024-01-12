@@ -45,7 +45,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.RelationMetadata;
-import io.crate.role.Privilege;
+import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
@@ -81,7 +81,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -123,7 +123,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
                 if (user.name().equals("publisher")) {
                     return "doc.t1".equals(ident);
                 } else {
@@ -162,7 +162,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
                 if (user.name().equals("subscriber")) {
                     return "doc.t1".equals(ident);
                 } else {
@@ -195,7 +195,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
                 if (user.name().equals("subscriber")) {
                     return "doc.t1".equals(ident);
                 } else {
@@ -236,7 +236,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -269,7 +269,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -306,7 +306,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };
@@ -340,7 +340,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
 
             @Override
-            public boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
                 return true; // This test case doesn't check privileges.
             }
         };

@@ -39,6 +39,7 @@ import org.junit.Test;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Securable;
@@ -54,7 +55,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
         var alPriv = new Privilege(
             PrivilegeState.GRANT,
-            Privilege.Type.AL,
+            Permission.AL,
             Securable.CLUSTER,
             null,
             "crate");

@@ -49,7 +49,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
-import io.crate.role.Privilege.Type;
+import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Securable;
 import io.crate.statistics.TableStats;
@@ -211,7 +211,7 @@ public class Sessions {
     public Iterable<Cursor> getCursors(Role user) {
         return () -> sessions.values().stream()
             .filter(session ->
-                nodeCtx.roles().hasPrivilege(user, Type.AL, Securable.CLUSTER, null)
+                nodeCtx.roles().hasPrivilege(user, Permission.AL, Securable.CLUSTER, null)
                 || session.sessionSettings().sessionUser().equals(user))
             .flatMap(session -> StreamSupport.stream(session.cursors.spliterator(), false))
             .iterator();

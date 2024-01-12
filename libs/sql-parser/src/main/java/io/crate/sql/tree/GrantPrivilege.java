@@ -31,10 +31,10 @@ public final class GrantPrivilege extends PrivilegeStatement {
     }
 
     public GrantPrivilege(List<String> userNames,
-                          List<String> privilegeTypes,
+                          List<String> permissions,
                           String securable,
                           List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, privilegeTypes, securable, tableOrSchemaNames);
+        super(userNames, permissions, securable, tableOrSchemaNames);
     }
 
 
@@ -47,7 +47,7 @@ public final class GrantPrivilege extends PrivilegeStatement {
     public String toString() {
         return "GrantPrivilege{" +
                "allPrivileges=" + all +
-               "privilegeTypes=" + privilegeTypes +
+               "permissions=" + permissions +
                ", userNames=" + userNames +
                '}';
     }

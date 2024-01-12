@@ -31,25 +31,25 @@ import org.jetbrains.annotations.Nullable;
 
 public class PrivilegeIdent implements Writeable {
 
-    private final Privilege.Type type;
+    private final Permission permission;
     private final Securable securable;
     @Nullable
     private final String ident;  // for CLUSTER this will be always null, otherwise schemaName, tableName etc.
 
-    public PrivilegeIdent(Privilege.Type type, Securable securable, @Nullable String ident) {
-        this.type = type;
+    public PrivilegeIdent(Permission permission, Securable securable, @Nullable String ident) {
+        this.permission = permission;
         this.securable = securable;
         this.ident = ident;
     }
 
     PrivilegeIdent(StreamInput in) throws IOException {
-        type = Privilege.Type.VALUES.get(in.readInt());
+        permission = in.readEnum(Permission.class);
         securable = in.readEnum(Securable.class);
         ident = in.readOptionalString();
     }
 
-    public Privilege.Type type() {
-        return type;
+    public Permission permission() {
+        return permission;
     }
 
     public Securable securable() {
@@ -63,7 +63,7 @@ public class PrivilegeIdent implements Writeable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeInt(type.ordinal());
+        out.writeEnum(permission);
         out.writeEnum(securable);
         out.writeOptionalString(ident);
     }
@@ -73,13 +73,13 @@ public class PrivilegeIdent implements Writeable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PrivilegeIdent that = (PrivilegeIdent) o;
-        return type == that.type &&
+        return permission == that.permission &&
                securable == that.securable &&
                Objects.equals(ident, that.ident);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, securable, ident);
+        return Objects.hash(permission, securable, ident);
     }
 }

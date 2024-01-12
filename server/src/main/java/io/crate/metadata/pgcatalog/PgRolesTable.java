@@ -31,7 +31,7 @@ import static io.crate.types.DataTypes.TIMESTAMPZ;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.role.Privilege;
+import io.crate.role.Permission;
 import io.crate.role.Privileges;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -66,7 +66,7 @@ public final class PgRolesTable {
             Privileges.ensureUserHasPrivilege(
                 roles,
                 role,
-                Privilege.Type.AL,
+                Permission.AL,
                 Securable.CLUSTER,
                 null);
             return true;

@@ -21,10 +21,10 @@
 
 package io.crate.analyze;
 
-import static io.crate.role.Privilege.Type.AL;
-import static io.crate.role.Privilege.Type.DDL;
-import static io.crate.role.Privilege.Type.DML;
-import static io.crate.role.Privilege.Type.DQL;
+import static io.crate.role.Permission.AL;
+import static io.crate.role.Permission.DDL;
+import static io.crate.role.Permission.DML;
+import static io.crate.role.Permission.DQL;
 import static io.crate.role.PrivilegeState.DENY;
 import static io.crate.role.PrivilegeState.GRANT;
 import static io.crate.role.PrivilegeState.REVOKE;
@@ -42,6 +42,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
@@ -394,9 +395,10 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
-    private Privilege privilegeOf(PrivilegeState state, Privilege.Type type, Securable securable, String ident) {
-        return new Privilege(state,
-            type,
+    private Privilege privilegeOf(PrivilegeState state, Permission permission, Securable securable, String ident) {
+        return new Privilege(
+            state,
+            permission,
             securable,
             ident,
             GRANTOR_TEST_USER.name()

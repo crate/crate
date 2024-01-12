@@ -598,8 +598,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         if (context.ALL() != null) {
             return new GrantPrivilege(usernames, securableAndIdent.securable, securableAndIdent.idents);
         } else {
-            List<String> privilegeTypes = identsToStrings(context.priviliges.ident());
-            return new GrantPrivilege(usernames, privilegeTypes, securableAndIdent.securable, securableAndIdent.idents);
+            List<String> permissions = identsToStrings(context.priviliges.ident());
+            return new GrantPrivilege(usernames, permissions, securableAndIdent.securable, securableAndIdent.idents);
         }
     }
 
@@ -613,8 +613,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         if (context.ALL() != null) {
             return new DenyPrivilege(usernames, securableAndIdent.securable, securableAndIdent.idents);
         } else {
-            List<String> privilegeTypes = identsToStrings(context.priviliges.ident());
-            return new DenyPrivilege(usernames, privilegeTypes, securableAndIdent.securable, securableAndIdent.idents);
+            List<String> permissions = identsToStrings(context.priviliges.ident());
+            return new DenyPrivilege(usernames, permissions, securableAndIdent.securable, securableAndIdent.idents);
         }
     }
 
@@ -628,8 +628,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         if (context.ALL() != null) {
             return new RevokePrivilege(usernames, securableAndIdent.securable, securableAndIdent.idents);
         } else {
-            List<String> privilegeTypes = identsToStrings(context.privileges.ident());
-            return new RevokePrivilege(usernames, privilegeTypes, securableAndIdent.securable, securableAndIdent.idents);
+            List<String> permissions = identsToStrings(context.privileges.ident());
+            return new RevokePrivilege(usernames, permissions, securableAndIdent.securable, securableAndIdent.idents);
         }
     }
 

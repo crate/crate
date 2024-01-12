@@ -32,7 +32,7 @@ import io.crate.common.FourFunction;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
-import io.crate.role.Privilege;
+import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
@@ -42,56 +42,55 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
     public static final String NAME = "has_schema_privilege";
 
-    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_NAME =
-        (roles, user, schema, privileges) -> {
+    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_SCHEMA_NAME =
+        (roles, user, schema, permissions) -> {
             String schemaName = (String) schema;
             boolean result = false;
-            for (Privilege.Type type: privileges) {
+            for (Permission permission : permissions) {
                 // USAGE is allowed for public schemas
-                if (type == Privilege.Type.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaName)) {
+                if (permission == Permission.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaName)) {
                     return true;
                 }
                 // Last argument is null as it's not used for Privilege.Securable.SCHEMA
-                result |= roles.hasPrivilege(user, type, Securable.SCHEMA, schemaName);
+                result |= roles.hasPrivilege(user, permission, Securable.SCHEMA, schemaName);
             }
             return result;
         };
 
-    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_SCHEMA_OID =
-        (roles, user, schema, privileges) -> {
+    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_SCHEMA_OID =
+        (roles, user, schema, permissions) -> {
             Integer schemaOid = (Integer) schema;
             boolean result = false;
-            for (Privilege.Type type: privileges) {
+            for (Permission permission : permissions) {
                 // USAGE is allowed for public schemas
-                if (type == Privilege.Type.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaOid)) {
+                if (permission == Permission.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaOid)) {
                     return true;
                 }
-                result |= roles.hasSchemaPrivilege(user, type, schemaOid); // Returns true if has any privilege out of 2 possible
+                result |= roles.hasSchemaPrivilege(user, permission, schemaOid); // Returns true if has any privilege out of 2 possible
             }
             return result;
         };
 
     /**
-     * @param privilege is a comma separated list.
-     * Valid privileges are 'CREATE' and 'USAGE' which map to DDL and DQL respectively.
-     * Case of the privilege string is not significant, and extra whitespace is allowed between privilege names.
-     * Repetition of the valid argument is allowed.
+     * @param permissionNames is a comma separated list.
+     * Valid permissionNames are 'CREATE' and 'USAGE' which map to DDL and DQL respectively.
+     * Extra whitespaces between privilege names and repetition of a valid argument are allowed.
      *
-     * @see HasPrivilegeFunction#parsePrivileges(String)
+     * @see HasPrivilegeFunction#parsePermissions(String)
      */
     @Nullable
-    protected Collection<Privilege.Type> parsePrivileges(String privilege) {
-        Collection<Privilege.Type> toCheck = new HashSet<>();
-        String[] privileges = privilege.toLowerCase(Locale.ENGLISH).split(",");
-        for (String p : privileges) {
+    protected Collection<Permission> parsePermissions(String permissionNames) {
+        Collection<Permission> toCheck = new HashSet<>();
+        String[] permissions = permissionNames.toLowerCase(Locale.ENGLISH).split(",");
+        for (String p : permissions) {
             p = p.trim();
             if (p.equals("create")) {
-                toCheck.add(Privilege.Type.DDL);
+                toCheck.add(Permission.DDL);
             } else if (p.equals("usage")) {
-                toCheck.add(Privilege.Type.DQL);
+                toCheck.add(Permission.DQL);
             } else {
                 // Same error as PG
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Unrecognized privilege type: %s", p));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Unrecognized permission: %s", p));
             }
         }
         return toCheck;
@@ -168,7 +167,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
     protected HasSchemaPrivilegeFunction(Signature signature,
                                          BoundSignature boundSignature,
                                          BiFunction<Roles, Object, Role> getUser,
-                                         FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                         FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

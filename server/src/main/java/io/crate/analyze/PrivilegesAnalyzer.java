@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -38,6 +39,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.role.GrantedRolesChange;
+import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
@@ -90,14 +92,14 @@ class PrivilegesAnalyzer {
 
 
         if (securable == Securable.CLUSTER && node.all() == false) {
-            List<Privilege.Type> types = parsePrivilegeTypes(node.privileges(), false);
-            if (types.isEmpty() == false) {
-                if (types.size() != node.privileges().size()) {
+            List<Permission> permissions = parsePermissions(node.privileges(), false);
+            if (permissions.isEmpty() == false) {
+                if (permissions.size() != node.privileges().size()) {
                     throw new IllegalArgumentException("Mixing up cluster privileges with roles is not allowed");
                 } else {
                     return AnalyzedPrivileges.ofPrivileges(node.userNames(),
-                        privilegeTypesToPrivileges(
-                            getPrivilegeTypes(node.all(),
+                        permissionsToPrivileges(
+                            getPermissions(node.all(),
                                 node.privileges()),
                             grantor,
                             state,
@@ -131,9 +133,8 @@ class PrivilegesAnalyzer {
                     grantor.name()));
         } else {
             return AnalyzedPrivileges.ofPrivileges(node.userNames(),
-                privilegeTypesToPrivileges(
-                    getPrivilegeTypes(node.all(),
-                        node.privileges()),
+                permissionsToPrivileges(
+                    getPermissions(node.all(), node.privileges()),
                     grantor,
                     state,
                     idents,
@@ -141,14 +142,14 @@ class PrivilegesAnalyzer {
         }
     }
 
-    private static Collection<Privilege.Type> getPrivilegeTypes(boolean all, List<String> typeNames) {
-        Collection<Privilege.Type> privilegeTypes;
+    private static Collection<Permission> getPermissions(boolean all, List<String> permissionNames) {
+        Collection<Permission> permissions;
         if (all) {
-            privilegeTypes = Privilege.Type.VALUES;
+            permissions = Arrays.asList(Permission.values());
         } else {
-            privilegeTypes = parsePrivilegeTypes(typeNames, true);
+            permissions = parsePermissions(permissionNames, true);
         }
-        return privilegeTypes;
+        return permissions;
     }
 
     private static void validateSchemaNames(List<String> schemaNames) {
@@ -178,33 +179,33 @@ class PrivilegesAnalyzer {
         }
     }
 
-    private static List<Privilege.Type> parsePrivilegeTypes(List<String> privilegeTypeNames, boolean validate) {
-        List<Privilege.Type> privilegeTypes = new ArrayList<>(privilegeTypeNames.size());
-        for (String typeName : privilegeTypeNames) {
-            Privilege.Type privilegeType;
+    private static List<Permission> parsePermissions(List<String> permissionNames, boolean validate) {
+        List<Permission> permissions = new ArrayList<>(permissionNames.size());
+        for (String permissionName : permissionNames) {
+            Permission permission;
             try {
-                privilegeType = Privilege.Type.valueOf(typeName.toUpperCase(Locale.ENGLISH));
-                privilegeTypes.add(privilegeType);
+                permission = Permission.valueOf(permissionName.toUpperCase(Locale.ENGLISH));
+                permissions.add(permission);
             } catch (IllegalArgumentException e) {
                 if (validate) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "Unknown privilege type '%s'", typeName));
+                        "Unknown permission '%s'", permissionName));
                 }
             }
         }
-        return privilegeTypes;
+        return permissions;
     }
 
-    private static Set<Privilege> privilegeTypesToPrivileges(Collection<Privilege.Type> privilegeTypes,
-                                                             Role grantor,
-                                                             PrivilegeState state,
-                                                             List<String> idents,
-                                                             Securable securable) {
-        Set<Privilege> privileges = new HashSet<>(privilegeTypes.size());
+    private static Set<Privilege> permissionsToPrivileges(Collection<Permission> permissions,
+                                                          Role grantor,
+                                                          PrivilegeState state,
+                                                          List<String> idents,
+                                                          Securable securable) {
+        Set<Privilege> privileges = new HashSet<>(permissions.size());
         if (Securable.CLUSTER.equals(securable)) {
-            for (Privilege.Type privilegeType : privilegeTypes) {
+            for (Permission permission : permissions) {
                 Privilege privilege = new Privilege(state,
-                    privilegeType,
+                    permission,
                     securable,
                     null,
                     grantor.name()
@@ -212,10 +213,10 @@ class PrivilegesAnalyzer {
                 privileges.add(privilege);
             }
         } else {
-            for (Privilege.Type privilegeType : privilegeTypes) {
+            for (Permission permission : permissions) {
                 for (String ident : idents) {
                     Privilege privilege = new Privilege(state,
-                        privilegeType,
+                        permission,
                         securable,
                         ident,
                         grantor.name()
