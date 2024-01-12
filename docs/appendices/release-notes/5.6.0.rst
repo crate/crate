@@ -156,3 +156,9 @@ Administration and Operations
 - Added ``granted_roles`` column to :ref:`sys.users<sys-users>` table which
   lists the roles granted to a user, together with the user that granted each
   role.
+
+User Interface
+--------------
+
+- Updated to Admin UI 1.24.7, which fixed a minor grammar issue on the Spanish
+  version of the Help page, and optimized images with ``oxipng``.

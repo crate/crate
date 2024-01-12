@@ -62,10 +62,10 @@
           </execution>
         </executions>
         <configuration>
-          <url>https://cdn.crate.io/downloads/releases/crate-admin-1.24.6.tar.gz</url>
+          <url>https://cdn.crate.io/downloads/releases/crate-admin-1.24.7.tar.gz</url>
           <unpack>true</unpack>
           <outputDirectory>${project.build.directory}</outputDirectory>
-          <sha256>a4256e0ad6a8bbded682f7a5d721017df92b22251b64fdbcfbe2649980f0eb8a</sha256>
+          <sha256>9bf415bef68c39b3fb0a845ade2c86cb707d0457eba7badc6b9dd29ba7e773f0</sha256>
         </configuration>
       </plugin>
       <plugin>
