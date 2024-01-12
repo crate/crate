@@ -36,14 +36,14 @@ public class PrivilegesRequestTest extends ESTestCase {
     public void testStreaming() throws Exception {
         List<String> roles = List.of("ford", "arthur");
         List<Privilege> privileges = List.of(
-            new Privilege(PrivilegeState.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.CLUSTER, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.SCHEMA, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Permission.DDL, Securable.TABLE, null, "crate"),
-            new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.VIEW, null, "crate")
+            new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate"),
+            new Privilege(Policy.GRANT, Permission.DML, Securable.CLUSTER, null, "crate"),
+            new Privilege(Policy.GRANT, Permission.DML, Securable.SCHEMA, null, "crate"),
+            new Privilege(Policy.GRANT, Permission.DDL, Securable.TABLE, null, "crate"),
+            new Privilege(Policy.GRANT, Permission.DML, Securable.VIEW, null, "crate")
         );
         GrantedRolesChange grantedRolesChange = new GrantedRolesChange(
-            PrivilegeState.REVOKE, Set.of("role1", "role2"), "admin");
+            Policy.REVOKE, Set.of("role1", "role2"), "admin");
         PrivilegesRequest r1 = new PrivilegesRequest(roles, privileges, grantedRolesChange);
 
         BytesStreamOutput out = new BytesStreamOutput();

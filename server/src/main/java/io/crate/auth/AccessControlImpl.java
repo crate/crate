@@ -109,8 +109,8 @@ import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
 import io.crate.replication.logical.analyze.AnalyzedDropPublication;
 import io.crate.replication.logical.analyze.AnalyzedDropSubscription;
 import io.crate.role.Permission;
+import io.crate.role.Policy;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
 import io.crate.role.Privileges;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -792,7 +792,7 @@ public final class AccessControlImpl implements AccessControl {
                 null
             );
             for (Privilege privilege : changePrivileges.privileges()) {
-                if (privilege.state() == PrivilegeState.GRANT) {
+                if (privilege.policy() == Policy.GRANT) {
                     Privileges.ensureUserHasPrivilege(
                         relationVisitor.roles,
                         user,

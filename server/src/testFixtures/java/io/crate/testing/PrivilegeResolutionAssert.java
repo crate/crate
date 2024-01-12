@@ -23,17 +23,17 @@ package io.crate.testing;
 
 import org.assertj.core.api.AbstractAssert;
 
-import io.crate.role.PrivilegeState;
+import io.crate.role.Policy;
 
-public final class PrivilegeResolutionAssert extends AbstractAssert<PrivilegeResolutionAssert, PrivilegeState> {
+public final class PrivilegeResolutionAssert extends AbstractAssert<PrivilegeResolutionAssert, Policy> {
 
-    public PrivilegeResolutionAssert(PrivilegeState actual) {
+    public PrivilegeResolutionAssert(Policy actual) {
         super(actual, PrivilegeResolutionAssert.class);
     }
 
     public PrivilegeResolutionAssert isGranted() {
         isNotNull();
-        if (actual != PrivilegeState.GRANT) {
+        if (actual != Policy.GRANT) {
             failWithMessage("Expected PrivilegeState to be GRANTED");
         }
         return this;
@@ -41,7 +41,7 @@ public final class PrivilegeResolutionAssert extends AbstractAssert<PrivilegeRes
 
     public PrivilegeResolutionAssert isDenied() {
         isNotNull();
-        if (actual != PrivilegeState.DENY) {
+        if (actual != Policy.DENY) {
             failWithMessage("Expected PrivilegeState to be DENIED");
         }
         return this;
@@ -49,7 +49,7 @@ public final class PrivilegeResolutionAssert extends AbstractAssert<PrivilegeRes
 
     public PrivilegeResolutionAssert isMissing() {
         isNotNull();
-        if (actual != PrivilegeState.REVOKE) {
+        if (actual != Policy.REVOKE) {
             failWithMessage("Expected PrivilegeState to be missing");
         }
         return this;

@@ -44,7 +44,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.role.PrivilegeState;
+import io.crate.role.Policy;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
@@ -112,7 +112,7 @@ public class Asserts extends Assertions {
         return new ParsedDocumentAssert(actual);
     }
 
-    public static PrivilegeResolutionAssert assertThat(PrivilegeState actual) {
+    public static PrivilegeResolutionAssert assertThat(Policy actual) {
         return new PrivilegeResolutionAssert(actual);
     }
 

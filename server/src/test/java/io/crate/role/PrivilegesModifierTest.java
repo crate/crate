@@ -44,27 +44,27 @@ import io.crate.role.metadata.RolesMetadata;
 public class PrivilegesModifierTest {
 
     private static final Privilege GRANT_DQL =
-        new Privilege(PrivilegeState.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate");
+        new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate");
     private static final Privilege GRANT_DML =
-        new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.CLUSTER, null, "crate");
+        new Privilege(Policy.GRANT, Permission.DML, Securable.CLUSTER, null, "crate");
     private static final Privilege REVOKE_DQL =
-        new Privilege(PrivilegeState.REVOKE, Permission.DQL, Securable.CLUSTER, null, "crate");
+        new Privilege(Policy.REVOKE, Permission.DQL, Securable.CLUSTER, null, "crate");
     private static final Privilege REVOKE_DML =
-        new Privilege(PrivilegeState.REVOKE, Permission.DML, Securable.CLUSTER, null, "crate");
+        new Privilege(Policy.REVOKE, Permission.DML, Securable.CLUSTER, null, "crate");
     public static final Privilege DENY_DQL =
-        new Privilege(PrivilegeState.DENY, Permission.DQL, Securable.CLUSTER, null, "crate");
+        new Privilege(Policy.DENY, Permission.DQL, Securable.CLUSTER, null, "crate");
     public static final Privilege GRANT_TABLE_DQL =
-        new Privilege(PrivilegeState.GRANT, Permission.DQL, Securable.TABLE, "testSchema.test", "crate");
+        new Privilege(Policy.GRANT, Permission.DQL, Securable.TABLE, "testSchema.test", "crate");
     public static final Privilege GRANT_TABLE_DDL =
-        new Privilege(PrivilegeState.GRANT, Permission.DDL, Securable.TABLE, "testSchema.test2", "crate");
+        new Privilege(Policy.GRANT, Permission.DDL, Securable.TABLE, "testSchema.test2", "crate");
     public static final Privilege GRANT_VIEW_DQL =
-        new Privilege(PrivilegeState.GRANT, Permission.DQL, Securable.VIEW, "testSchema.view1", "crate");
+        new Privilege(Policy.GRANT, Permission.DQL, Securable.VIEW, "testSchema.view1", "crate");
     public static final Privilege GRANT_VIEW_DDL =
-        new Privilege(PrivilegeState.GRANT, Permission.DDL, Securable.VIEW, "testSchema.view2", "crate");
+        new Privilege(Policy.GRANT, Permission.DDL, Securable.VIEW, "testSchema.view2", "crate");
     public static final Privilege GRANT_VIEW_DML =
-        new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.VIEW, "view3", "crate");
+        new Privilege(Policy.GRANT, Permission.DML, Securable.VIEW, "view3", "crate");
     public static final Privilege GRANT_SCHEMA_DML =
-        new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.SCHEMA, "testSchema", "crate");
+        new Privilege(Policy.GRANT, Permission.DML, Securable.SCHEMA, "testSchema", "crate");
 
     public static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
     public static final List<String> USERNAMES = Arrays.asList("Ford", "Arthur");
@@ -130,7 +130,7 @@ public class PrivilegesModifierTest {
             rolesMetadata,
             Collections.singletonList("Arthur"),
             Collections.singletonList(new Privilege(
-                PrivilegeState.REVOKE, Permission.DML, Securable.CLUSTER, null, "hoschi"))
+                Policy.REVOKE, Permission.DML, Securable.CLUSTER, null, "hoschi"))
         );
 
         assertThat(rowCount).isEqualTo(1L);

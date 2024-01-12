@@ -76,7 +76,7 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
         var sysOid = OidHash.schemaOid("sys");
         var docOid = OidHash.schemaOid("doc");
         var grantDDLCluster = new Privilege(
-            PrivilegeState.GRANT,
+            Policy.GRANT,
             Permission.DDL,
             Securable.CLUSTER,
             null,
@@ -94,7 +94,7 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(roleService.hasSchemaPrivilege(role1, Permission.DDL, docOid)).isTrue();
 
         var denyDDLSys = new Privilege(
-            PrivilegeState.DENY,
+            Policy.DENY,
             Permission.DDL,
             Securable.SCHEMA,
             "sys",
@@ -138,7 +138,7 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
                    role5
          */
         var privilege = new Privilege(
-            PrivilegeState.GRANT,
+            Policy.GRANT,
             Permission.DDL,
             Securable.SCHEMA,
             "sys",
@@ -184,35 +184,35 @@ public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
                             role4 (MISSING)
          */
         var grantDDLCluster = new Privilege(
-            PrivilegeState.GRANT,
+            Policy.GRANT,
             Permission.DDL,
             Securable.CLUSTER,
             null,
             "crate"
         );
         var grantDDLSys = new Privilege(
-            PrivilegeState.GRANT,
+            Policy.GRANT,
             Permission.DDL,
             Securable.SCHEMA,
             "sys",
             "crate"
         );
         var grantDDLDoc = new Privilege(
-            PrivilegeState.GRANT,
+            Policy.GRANT,
             Permission.DDL,
             Securable.SCHEMA,
             "doc",
             "crate"
         );
         var denyDDLSys = new Privilege(
-            PrivilegeState.DENY,
+            Policy.DENY,
             Permission.DDL,
             Securable.SCHEMA,
             "sys",
             "crate"
         );
         var denyDDLDoc = new Privilege(
-            PrivilegeState.DENY,
+            Policy.DENY,
             Permission.DDL,
             Securable.SCHEMA,
             "doc",

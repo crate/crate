@@ -44,10 +44,10 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.GrantedRole;
-import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
-import io.crate.role.Role;
 import io.crate.role.GrantedRolesChange;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
 
 public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -210,11 +210,11 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         long affectedCount = 0L;
         for (var roleNameToApply : newGrantedRolesChange.roleNames()) {
 
-            if (newGrantedRolesChange.state() == PrivilegeState.GRANT) {
+            if (newGrantedRolesChange.policy() == Policy.GRANT) {
                 if (grantedRoles.add(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()))) {
                     affectedCount++;
                 }
-            } else if (newGrantedRolesChange.state() == PrivilegeState.REVOKE) {
+            } else if (newGrantedRolesChange.policy() == Policy.REVOKE) {
                 if (grantedRoles.remove(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()))) {
                     affectedCount++;
                 }

@@ -25,9 +25,9 @@ import static io.crate.role.Permission.AL;
 import static io.crate.role.Permission.DDL;
 import static io.crate.role.Permission.DML;
 import static io.crate.role.Permission.DQL;
-import static io.crate.role.PrivilegeState.DENY;
-import static io.crate.role.PrivilegeState.GRANT;
-import static io.crate.role.PrivilegeState.REVOKE;
+import static io.crate.role.Policy.DENY;
+import static io.crate.role.Policy.GRANT;
+import static io.crate.role.Policy.REVOKE;
 import static io.crate.role.Securable.CLUSTER;
 import static io.crate.role.Securable.SCHEMA;
 import static io.crate.role.Securable.TABLE;
@@ -43,8 +43,8 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.role.Permission;
+import io.crate.role.Policy;
 import io.crate.role.Privilege;
-import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.Securable;
@@ -382,7 +382,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT role1, role2, role1 TO user1, user2");
         assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.rolePrivilege().grantor()).isEqualTo("test");
-        assertThat(analysis.rolePrivilege().state()).isEqualTo(GRANT);
+        assertThat(analysis.rolePrivilege().policy()).isEqualTo(GRANT);
         assertThat(analysis.rolePrivilege().roleNames()).containsExactlyInAnyOrder("role1", "role2");
     }
 
@@ -395,9 +395,9 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
-    private Privilege privilegeOf(PrivilegeState state, Permission permission, Securable securable, String ident) {
+    private Privilege privilegeOf(Policy policy, Permission permission, Securable securable, String ident) {
         return new Privilege(
-            state,
+            policy,
             permission,
             securable,
             ident,

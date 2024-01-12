@@ -21,13 +21,9 @@
 
 package io.crate.role;
 
-import java.util.List;
-
-public enum PrivilegeState {
+public enum Policy {
     // Order of the enum values is important because the ordinal is used for serialization!
     GRANT,
     DENY,
-    REVOKE;
-
-    public static final List<PrivilegeState> VALUES = List.of(values());
+    REVOKE
 }

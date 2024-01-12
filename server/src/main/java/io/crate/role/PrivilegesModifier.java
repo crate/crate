@@ -73,7 +73,7 @@ public final class PrivilegesModifier {
                 PrivilegeIdent privilegeIdent = userPrivilege.ident();
                 if (privilegeIdent.equals(newPrivilege.ident())) {
                     userHadPrivilegeOnSameObject = true;
-                    if (newPrivilege.state().equals(PrivilegeState.REVOKE)) {
+                    if (newPrivilege.policy().equals(Policy.REVOKE)) {
                         iterator.remove();
                         affectedCount++;
                         break;
@@ -89,7 +89,7 @@ public final class PrivilegesModifier {
                 }
             }
 
-            if (userHadPrivilegeOnSameObject == false && newPrivilege.state().equals(PrivilegeState.REVOKE) == false) {
+            if (userHadPrivilegeOnSameObject == false && newPrivilege.policy().equals(Policy.REVOKE) == false) {
                 // revoking a privilege that was not granted is a no-op
                 affectedCount++;
                 privileges.add(newPrivilege);
@@ -128,8 +128,12 @@ public final class PrivilegesModifier {
                 String ident = privilegeIdent.ident();
                 assert ident != null : "ident must not be null for securable 'TABLE'";
                 if (ident.equals(sourceIdent)) {
-                    privileges.add(new Privilege(privilege.state(), privilegeIdent.permission(), privilegeIdent.securable(),
-                        targetIdent, privilege.grantor()));
+                    privileges.add(new Privilege(
+                        privilege.policy(),
+                        privilegeIdent.permission(),
+                        privilegeIdent.securable(),
+                        targetIdent,
+                        privilege.grantor()));
                     privilegesChanged = true;
                 } else {
                     privileges.add(privilege);
@@ -186,10 +190,10 @@ public final class PrivilegesModifier {
                 if (ident.securable() == Securable.TABLE) {
                     if (source.fqn().equals(ident.ident())) {
                         updatedPrivileges.add(
-                            new Privilege(privilege.state(), ident.permission(), ident.securable(), target.fqn(), privilege.grantor()));
+                            new Privilege(privilege.policy(), ident.permission(), ident.securable(), target.fqn(), privilege.grantor()));
                     } else if (target.fqn().equals(ident.ident())) {
                         updatedPrivileges.add(
-                            new Privilege(privilege.state(), ident.permission(), ident.securable(), source.fqn(), privilege.grantor()));
+                            new Privilege(privilege.policy(), ident.permission(), ident.securable(), source.fqn(), privilege.grantor()));
                     } else {
                         updatedPrivileges.add(privilege);
                     }
