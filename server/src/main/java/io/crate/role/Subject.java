@@ -29,20 +29,20 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.Nullable;
 
-public class PrivilegeIdent implements Writeable {
+public class Subject implements Writeable {
 
     private final Permission permission;
     private final Securable securable;
     @Nullable
     private final String ident;  // for CLUSTER this will be always null, otherwise schemaName, tableName etc.
 
-    public PrivilegeIdent(Permission permission, Securable securable, @Nullable String ident) {
+    public Subject(Permission permission, Securable securable, @Nullable String ident) {
         this.permission = permission;
         this.securable = securable;
         this.ident = ident;
     }
 
-    PrivilegeIdent(StreamInput in) throws IOException {
+    Subject(StreamInput in) throws IOException {
         permission = in.readEnum(Permission.class);
         securable = in.readEnum(Securable.class);
         ident = in.readOptionalString();
@@ -72,7 +72,7 @@ public class PrivilegeIdent implements Writeable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        PrivilegeIdent that = (PrivilegeIdent) o;
+        Subject that = (Subject) o;
         return permission == that.permission &&
                securable == that.securable &&
                Objects.equals(ident, that.ident);

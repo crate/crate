@@ -181,7 +181,7 @@ public class Role implements Writeable, ToXContent {
     public Policy matchSchema(Permission permission, int oid) {
         Policy result = Policy.REVOKE;
         for (var privilege : privileges) {
-            PrivilegeIdent ident = privilege.ident();
+            Subject ident = privilege.subject();
             if (ident.permission() != permission) {
                 continue;
             }

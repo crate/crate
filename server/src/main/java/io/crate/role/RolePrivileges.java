@@ -33,7 +33,7 @@ import io.crate.metadata.IndexParts;
 
 public class RolePrivileges implements Iterable<Privilege> {
 
-    private final Map<PrivilegeIdent, Privilege> privilegeByIdent;
+    private final Map<Subject, Privilege> privilegeByIdent;
     private final Policy anyClusterPrivilege;
     private final Map<String, Policy> schemaPrivileges = new HashMap<>();
     private final Map<String, Policy> tablePrivileges = new HashMap<>();
@@ -43,31 +43,31 @@ public class RolePrivileges implements Iterable<Privilege> {
         privilegeByIdent = HashMap.newHashMap(privileges.size());
         Policy anyClusterPriv = Policy.REVOKE;
         for (Privilege privilege : privileges) {
-            PrivilegeIdent privilegeIdent = privilege.ident();
-            privilegeByIdent.put(privilegeIdent, privilege);
-            switch (privilegeIdent.securable()) {
+            Subject subject = privilege.subject();
+            privilegeByIdent.put(subject, privilege);
+            switch (subject.securable()) {
                 case CLUSTER:
                     if (anyClusterPriv != Policy.DENY) {
                         anyClusterPriv = privilege.policy();
                     }
                     break;
                 case SCHEMA:
-                    if (schemaPrivileges.get(privilegeIdent.ident()) != Policy.DENY) {
-                        schemaPrivileges.put(privilegeIdent.ident(), privilege.policy());
+                    if (schemaPrivileges.get(subject.ident()) != Policy.DENY) {
+                        schemaPrivileges.put(subject.ident(), privilege.policy());
                     }
                     break;
                 case TABLE:
-                    if (tablePrivileges.get(privilegeIdent.ident()) != Policy.DENY) {
-                        tablePrivileges.put(privilegeIdent.ident(), privilege.policy());
+                    if (tablePrivileges.get(subject.ident()) != Policy.DENY) {
+                        tablePrivileges.put(subject.ident(), privilege.policy());
                     }
                     break;
                 case VIEW:
-                    if (viewPrivileges.get(privilegeIdent.ident()) != Policy.DENY) {
-                        viewPrivileges.put(privilegeIdent.ident(), privilege.policy());
+                    if (viewPrivileges.get(subject.ident()) != Policy.DENY) {
+                        viewPrivileges.put(subject.ident(), privilege.policy());
                     }
                     break;
                 default:
-                    throw new IllegalStateException("Unsupported securable=" + privilegeIdent.securable());
+                    throw new IllegalStateException("Unsupported securable=" + subject.securable());
             }
         }
         this.anyClusterPrivilege = anyClusterPriv;
@@ -120,17 +120,17 @@ public class RolePrivileges implements Iterable<Privilege> {
      * If a privilege with a {@link Policy#DENY} policy is found, false is returned.
      */
     public Policy matchPrivilege(@Nullable Permission permission, Securable securable, @Nullable String ident) {
-        Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(permission, securable, ident));
+        Privilege foundPrivilege = privilegeByIdent.get(new Subject(permission, securable, ident));
         if (foundPrivilege == null) {
             switch (securable) {
                 case SCHEMA:
-                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(permission, Securable.CLUSTER, null));
+                    foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.CLUSTER, null));
                     break;
                 case TABLE, VIEW:
                     String schemaIdent = new IndexParts(ident).getSchema();
-                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(permission, Securable.SCHEMA, schemaIdent));
+                    foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
-                        foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(permission, Securable.CLUSTER, null));
+                        foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.CLUSTER, null));
                     }
                     break;
                 default:

@@ -52,9 +52,9 @@ public class SysPrivilegesTableInfo {
             .add("grantee", STRING, x -> x.grantee)
             .add("grantor", STRING, x -> x.privilege.grantor())
             .add("state", STRING, x -> x.privilege.policy().toString())
-            .add("type", STRING, x -> x.privilege.ident().permission().toString())
-            .add("class", STRING, x -> x.privilege.ident().securable().toString())
-            .add("ident", STRING, x -> x.privilege.ident().ident())
+            .add("type", STRING, x -> x.privilege.subject().permission().toString())
+            .add("class", STRING, x -> x.privilege.subject().securable().toString())
+            .add("ident", STRING, x -> x.privilege.subject().ident())
             .setPrimaryKeys(
                 new ColumnIdent("grantee"),
                 new ColumnIdent("state"),

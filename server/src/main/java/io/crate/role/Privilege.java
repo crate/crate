@@ -103,22 +103,22 @@ public class Privilege implements Writeable, ToXContent {
     }
 
     private final Policy policy;
-    private final PrivilegeIdent ident;
+    private final Subject subject;
     private final String grantor;
 
     public Privilege(Policy policy,
                      Permission permission,
                      Securable securable,
-                     @Nullable String ident,
+                     @Nullable String subject,
                      String grantor) {
         this.policy = policy;
-        this.ident = new PrivilegeIdent(permission, securable, ident);
+        this.subject = new Subject(permission, securable, subject);
         this.grantor = grantor;
     }
 
     public Privilege(StreamInput in) throws IOException {
         policy = in.readEnum(Policy.class);
-        ident = new PrivilegeIdent(in);
+        subject = new Subject(in);
         grantor = in.readString();
     }
 
@@ -126,8 +126,8 @@ public class Privilege implements Writeable, ToXContent {
         return policy;
     }
 
-    public PrivilegeIdent ident() {
-        return ident;
+    public Subject subject() {
+        return subject;
     }
 
     public String grantor() {
@@ -144,7 +144,7 @@ public class Privilege implements Writeable, ToXContent {
         if (o == null || getClass() != o.getClass()) return false;
         Privilege privilege = (Privilege) o;
         return policy == privilege.policy &&
-               Objects.equals(ident, privilege.ident);
+               Objects.equals(subject, privilege.subject);
     }
 
     /**
@@ -153,13 +153,13 @@ public class Privilege implements Writeable, ToXContent {
      */
     @Override
     public int hashCode() {
-        return Objects.hash(policy, ident);
+        return Objects.hash(policy, subject);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeEnum(policy);
-        ident.writeTo(out);
+        subject.writeTo(out);
         out.writeString(grantor);
     }
 
@@ -167,9 +167,9 @@ public class Privilege implements Writeable, ToXContent {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         return builder.startObject()
             .field("policy", policy.ordinal())
-            .field("permission", ident.permission().ordinal())
-            .field("securable", ident.securable().ordinal())
-            .field("ident", ident.ident())
+            .field("permission", subject.permission().ordinal())
+            .field("securable", subject.securable().ordinal())
+            .field("ident", subject.ident())
             .field("grantor", grantor)
             .endObject();
     }
