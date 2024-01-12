@@ -1352,11 +1352,11 @@ public final class SqlFormatter {
             }
         }
 
-        private void appendPrivilegesList(List<String> privilegeTypes) {
+        private void appendPrivilegesList(List<String> permissions) {
             int j = 0;
-            for (String privilegeType : privilegeTypes) {
-                builder.append(privilegeType);
-                if (j < privilegeTypes.size() - 1) {
+            for (String permission : permissions) {
+                builder.append(permission);
+                if (j < permissions.size() - 1) {
                     builder.append(", ");
                 }
                 j++;

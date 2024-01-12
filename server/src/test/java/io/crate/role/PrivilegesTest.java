@@ -38,7 +38,7 @@ public class PrivilegesTest extends ESTestCase {
 
     @Test
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {
-        assertThatThrownBy(() -> ensureUserHasPrivilege(Privilege.Type.DQL, Securable.CLUSTER, null))
+        assertThatThrownBy(() -> ensureUserHasPrivilege(Permission.DQL, Securable.CLUSTER, null))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
             .hasMessage("Missing 'DQL' privilege for user 'ford'");
     }
@@ -46,7 +46,7 @@ public class PrivilegesTest extends ESTestCase {
     @Test
     public void testNoExceptionIsThrownIfUserHasNotRequiredPrivilegeOnInformationSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
-        ensureUserHasPrivilege(Privilege.Type.DQL, Securable.SCHEMA, "information_schema");
+        ensureUserHasPrivilege(Permission.DQL, Securable.SCHEMA, "information_schema");
     }
 
     @Test
@@ -76,7 +76,7 @@ public class PrivilegesTest extends ESTestCase {
         Privileges.ensureUserHasPrivilege(ROLES, USER, securable, ident);
     }
 
-    private static void ensureUserHasPrivilege(Privilege.Type type, Securable securable, String ident) {
-        Privileges.ensureUserHasPrivilege(ROLES, USER, type, securable, ident);
+    private static void ensureUserHasPrivilege(Permission permission, Securable securable, String ident) {
+        Privileges.ensureUserHasPrivilege(ROLES, USER, permission, securable, ident);
     }
 }

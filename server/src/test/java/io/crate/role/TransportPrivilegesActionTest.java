@@ -44,11 +44,11 @@ import io.crate.role.metadata.RolesMetadata;
 public class TransportPrivilegesActionTest extends ESTestCase {
 
     private static final Privilege GRANT_DQL =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Securable.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate");
     private static final Privilege GRANT_DML =
-        new Privilege(PrivilegeState.GRANT, Privilege.Type.DML, Securable.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.GRANT, Permission.DML, Securable.CLUSTER, null, "crate");
     private static final Privilege DENY_DQL =
-        new Privilege(PrivilegeState.DENY, Privilege.Type.DQL, Securable.CLUSTER, null, "crate");
+        new Privilege(PrivilegeState.DENY, Permission.DQL, Securable.CLUSTER, null, "crate");
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
 
     @Test

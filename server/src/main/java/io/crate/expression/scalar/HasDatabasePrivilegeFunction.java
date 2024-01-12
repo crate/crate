@@ -32,6 +32,7 @@ import io.crate.Constants;
 import io.crate.common.FourFunction;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -42,36 +43,36 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     public static final String NAME = "has_database_privilege";
 
-    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_NAME =
-        (roles, user, db, privileges) -> {
+    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_DB_NAME =
+        (roles, user, db, permissions) -> {
             if (Constants.DB_NAME.equals(db) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "database \"%s\" does not exist",
                                                                  db));
             }
-            return checkPrivileges(user, privileges);
+            return checkPrivileges(user, permissions);
         };
 
-    private static final FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> CHECK_BY_DB_OID =
+    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_DB_OID =
         (roles, user, db, privileges) -> {
             if (Constants.DB_OID != (Integer) db) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                 "database with OID \"%d\" does not exist",
+                                                                 "database with OID \"%s\" does not exist",
                                                                  db));
             }
             return checkPrivileges(user, privileges);
         };
 
-    private static boolean checkPrivileges(Role user, Collection<Privilege.Type> privileges) {
-        if (privileges.contains(Privilege.Type.DQL)) { // CONNECT
+    private static boolean checkPrivileges(Role user, Collection<Permission> permissions) {
+        if (permissions.contains(Permission.DQL)) { // CONNECT
             return true;
         }
 
         boolean result = true;
-        if (privileges.contains(Privilege.Type.DML)) { // TEMP privilege
+        if (permissions.contains(Permission.DML)) { // TEMP privilege
             result = false;
         }
-        if (privileges.contains(Privilege.Type.DDL)) { // CREATE privilege
+        if (permissions.contains(Permission.DDL)) { // CREATE privilege
             result = hasCreatePrivilege(user);
         }
         return result;
@@ -82,7 +83,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return true;
         }
         for (Privilege p : user.privileges()) {
-            if (p.ident().type() == Privilege.Type.DDL &&
+            if (p.ident().permission() == Permission.DDL &&
                 (p.ident().securable() == Securable.SCHEMA || p.ident().securable() == Securable.CLUSTER)) {
                 return true;
             }
@@ -91,28 +92,27 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
     }
 
     /**
-     * @param privilege is a comma separated list.
-     * Valid privileges are 'CONNECT', 'CREATE' and 'TEMP' or `TEMPORARY` which map to DQL, DDL and DML respectively.
-     * Case of the privilege string is not significant, and extra whitespace is allowed between privilege names.
-     * Repetition of the valid argument is allowed.
+     * @param permissionNames is a comma separated list.
+     * Valid permissionNames are 'CONNECT', 'CREATE' and 'TEMP' or `TEMPORARY` which map to DQL, DDL and DML respectively.
+     * Extra whitespaces between privilege names and repetition of the valid argument are allowed.
      *
-     * @see HasPrivilegeFunction#parsePrivileges(String)
+     * @see HasPrivilegeFunction#parsePermissions(String)
      */
     @Nullable
-    protected Collection<Privilege.Type> parsePrivileges(String privilege) {
-        Collection<Privilege.Type> toCheck = new HashSet<>();
-        String[] privileges = privilege.toLowerCase(Locale.ENGLISH).split(",");
-        for (String p : privileges) {
+    protected Collection<Permission> parsePermissions(String permissionNames) {
+        Collection<Permission> toCheck = new HashSet<>();
+        String[] permissions = permissionNames.toLowerCase(Locale.ENGLISH).split(",");
+        for (String p : permissions) {
             p = p.trim();
             switch (p) {
-                case "connect" -> toCheck.add(Privilege.Type.DQL);
-                case "create" -> toCheck.add(Privilege.Type.DDL);
-                case "temp" -> toCheck.add(Privilege.Type.DML);
-                case "temporary" -> toCheck.add(Privilege.Type.DML);
+                case "connect" -> toCheck.add(Permission.DQL);
+                case "create" -> toCheck.add(Permission.DDL);
+                case "temp" -> toCheck.add(Permission.DML);
+                case "temporary" -> toCheck.add(Permission.DML);
                 default ->
                     // Same error as PG
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                     "Unrecognized privilege type: %s",
+                                                                     "Unrecognized permission: %s",
                                                                      p));
             }
         }
@@ -195,7 +195,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
     protected HasDatabasePrivilegeFunction(Signature signature,
                                            BoundSignature boundSignature,
                                            BiFunction<Roles, Object, Role> getUser,
-                                           FourFunction<Roles, Role, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+                                           FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

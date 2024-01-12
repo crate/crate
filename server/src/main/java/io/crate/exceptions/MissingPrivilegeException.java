@@ -21,16 +21,16 @@
 
 package io.crate.exceptions;
 
-import io.crate.role.Privilege;
-
 import java.util.Locale;
+
+import io.crate.role.Permission;
 
 public class MissingPrivilegeException extends UnauthorizedException {
 
     private static final String MESSAGE_TMPL = "Missing '%s' privilege for user '%s'";
 
-    public MissingPrivilegeException(String userName, Privilege.Type type) {
-        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, type, userName));
+    public MissingPrivilegeException(String userName, Permission permission) {
+        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, permission, userName));
     }
 
     public MissingPrivilegeException(String userName) {

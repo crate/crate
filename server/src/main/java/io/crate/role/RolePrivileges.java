@@ -119,18 +119,18 @@ public class RolePrivileges implements Iterable<Privilege> {
      * If none is found for the current {@link Securable}, try to find one on the upper securable.
      * If a privilege with a {@link PrivilegeState#DENY} state is found, false is returned.
      */
-    public PrivilegeState matchPrivilege(@Nullable Privilege.Type type, Securable securable, @Nullable String ident) {
-        Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, securable, ident));
+    public PrivilegeState matchPrivilege(@Nullable Permission permission, Securable securable, @Nullable String ident) {
+        Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(permission, securable, ident));
         if (foundPrivilege == null) {
             switch (securable) {
                 case SCHEMA:
-                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Securable.CLUSTER, null));
+                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(permission, Securable.CLUSTER, null));
                     break;
                 case TABLE, VIEW:
                     String schemaIdent = new IndexParts(ident).getSchema();
-                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Securable.SCHEMA, schemaIdent));
+                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(permission, Securable.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
-                        foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Securable.CLUSTER, null));
+                        foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(permission, Securable.CLUSTER, null));
                     }
                     break;
                 default:

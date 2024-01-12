@@ -41,7 +41,7 @@ import org.elasticsearch.index.IndexSettings;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
-import io.crate.role.Privilege;
+import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
@@ -177,7 +177,7 @@ public class Publication implements Writeable {
     }
 
     private static boolean subscriberCanRead(Roles roles, RelationName relationName, Role subscriber, String publicationName) {
-        boolean canRead = roles.hasPrivilege(subscriber, Privilege.Type.DQL, Securable.TABLE, relationName.fqn());
+        boolean canRead = roles.hasPrivilege(subscriber, Permission.DQL, Securable.TABLE, relationName.fqn());
         if (canRead == false) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("User {} subscribed to the publication {} doesn't have DQL privilege on the table {}, this table will not be replicated.",
@@ -188,15 +188,15 @@ public class Publication implements Writeable {
     }
 
     private static boolean userCanPublish(Roles roles, RelationName relationName, Role publicationOwner, String publicationName) {
-        for (Privilege.Type type: Privilege.Type.READ_WRITE_DEFINE) {
+        for (Permission permission : Permission.READ_WRITE_DEFINE) {
             // This check is triggered only on ALL TABLES case.
             // Required privileges correspond to those we check for the pre-defined tables case in AccessControlImpl.visitCreatePublication.
 
             // Schemas.DOC_SCHEMA_NAME is a dummy parameter since we are passing fqn as ident.
-            if (!roles.hasPrivilege(publicationOwner, type, Securable.TABLE, relationName.fqn())) {
+            if (!roles.hasPrivilege(publicationOwner, permission, Securable.TABLE, relationName.fqn())) {
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info("User {} owning publication {} doesn't have {} privilege on the table {}, this table will not be replicated.",
-                        publicationOwner.name(), publicationName, type.name(), relationName.fqn());
+                        publicationOwner.name(), publicationName, permission.name(), relationName.fqn());
                 }
                 return false;
             }

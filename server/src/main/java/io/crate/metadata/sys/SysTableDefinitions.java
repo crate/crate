@@ -47,7 +47,7 @@ import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.role.Privilege.Type;
+import io.crate.role.Permission;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
 
@@ -81,7 +81,7 @@ public class SysTableDefinitions {
                     .filter(x ->
                         user.isSuperUser()
                         || user.name().equals(x.username())
-                        || roles.hasPrivilege(user, Type.AL, Securable.CLUSTER, null))
+                        || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
                     .iterator()
             ),
             sysJobsTable.expressions(),
@@ -93,7 +93,7 @@ public class SysTableDefinitions {
                     .filter(x ->
                         user.isSuperUser()
                         || user.name().equals(x.username())
-                        || roles.hasPrivilege(user, Type.AL, Securable.CLUSTER, null))
+                        || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
                     .iterator()
             ),
             sysJobsLogTable.expressions(),

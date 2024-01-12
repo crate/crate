@@ -41,26 +41,26 @@ public final class Privileges {
      */
     public static void ensureUserHasPrivilege(Roles roles,
                                               Role user,
-                                              Privilege.Type type,
+                                              Permission permission,
                                               Securable securable,
                                               @Nullable String ident) throws MissingPrivilegeException {
         assert roles != null : "Roles must not be null when trying to validate privileges";
         assert user != null : "User must not be null when trying to validate privileges";
-        assert type != null : "Privilege type must not be null";
+        assert permission != null : "Permission must not be null";
 
         // information_schema and pg_catalog should not be protected
         if (isInformationSchema(securable, ident) || isPgCatalogSchema(securable, ident)) {
             return;
         }
         //noinspection PointlessBooleanExpression
-        if (roles.hasPrivilege(user, type, securable, ident) == false) {
+        if (roles.hasPrivilege(user, permission, securable, ident) == false) {
             boolean objectIsVisibleToUser = roles.hasAnyPrivilege(user, securable, ident);
             if (objectIsVisibleToUser) {
-                throw new MissingPrivilegeException(user.name(), type);
+                throw new MissingPrivilegeException(user.name(), permission);
             } else {
                 switch (securable) {
                     case CLUSTER:
-                        throw new MissingPrivilegeException(user.name(), type);
+                        throw new MissingPrivilegeException(user.name(), permission);
                     case SCHEMA:
                         throw new SchemaUnknownException(ident);
                     case TABLE:

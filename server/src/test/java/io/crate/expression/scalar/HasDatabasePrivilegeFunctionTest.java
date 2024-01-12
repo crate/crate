@@ -33,6 +33,7 @@ import org.junit.Test;
 import io.crate.Constants;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
@@ -46,15 +47,15 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
     private static final Role TEST_USER = RolesHelper.userOf("test");
     private static final Role TEST_USER_WITH_CREATE =
         RolesHelper.userOf("testWithCreate", Set.of(
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DDL, Securable.SCHEMA, "doc", Role.CRATE_USER.name())),
+            new Privilege(PrivilegeState.GRANT, Permission.DDL, Securable.SCHEMA, "doc", Role.CRATE_USER.name())),
             null);
     private static final Role TEST_USER_WITH_AL_ON_CLUSTER =
         RolesHelper.userOf("testUserWithClusterAL", Set.of(
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.AL, Securable.CLUSTER, "crate", Role.CRATE_USER.name())),
+            new Privilege(PrivilegeState.GRANT, Permission.AL, Securable.CLUSTER, "crate", Role.CRATE_USER.name())),
             null);
     private static final Role TEST_USER_WITH_DQL_ON_SYS =
         RolesHelper.userOf("testUserWithSysDQL", Set.of(
-            new Privilege(PrivilegeState.GRANT, Privilege.Type.DQL, Securable.TABLE, "sys.privileges", Role.CRATE_USER.name())),
+            new Privilege(PrivilegeState.GRANT, Permission.DQL, Securable.TABLE, "sys.privileges", Role.CRATE_USER.name())),
             null);
 
     @Before
@@ -95,11 +96,11 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
         assertThatThrownBy(
             () -> assertEvaluate("has_database_privilege('test', 'pg_catalog', 'TEMP , CREATE , SELECT')", null))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Unrecognized privilege type: select");
+            .hasMessage("Unrecognized permission: select");
         assertThatThrownBy(
             () -> assertEvaluate("has_database_privilege('test', 'pg_catalog', '')", null))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Unrecognized privilege type: ");
+            .hasMessage("Unrecognized permission: ");
     }
 
     @Test

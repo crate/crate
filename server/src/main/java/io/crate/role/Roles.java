@@ -79,31 +79,31 @@ public interface Roles {
      * default schema. Currently only the type is checked since Class is always
      * CLUSTER and ident null.
      * @param user           user
-     * @param type           privilege type
+     * @param permission     permission type
      * @param securable      Securable (ie. CLUSTER, TABLE, etc)
      * @param ident          ident of the object
      */
-    default boolean hasPrivilege(Role user, Privilege.Type type, Securable securable, @Nullable String ident) {
+    default boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
         return user.isSuperUser()
-            || hasPrivilege(user, type, securable, ident, (r, t, c, o) -> r.privileges().matchPrivilege(t, c, (String) o)) == GRANT;
+            || hasPrivilege(user, permission, securable, ident, (r, t, c, o) -> r.privileges().matchPrivilege(t, c, (String) o)) == GRANT;
     }
 
     /**
      * Checks if the user has a schema privilege that matches the given type and ident OID.
      * @param user           user
-     * @param type           privilege type
+     * @param permission     permission type
      * @param schemaOid      OID of the schema
      */
-    default boolean hasSchemaPrivilege(Role user, Privilege.Type type, Integer schemaOid) {
+    default boolean hasSchemaPrivilege(Role user, Permission permission, Integer schemaOid) {
         return user.isSuperUser()
-            || hasPrivilege(user, type, null, schemaOid, (r, t, c, o) -> r.matchSchema(t, (Integer) o)) == GRANT;
+            || hasPrivilege(user, permission, null, schemaOid, (r, t, c, o) -> r.matchSchema(t, (Integer) o)) == GRANT;
     }
 
     /**
      * Checks if the user has any privilege that matches the given securable, type and ident
      * currently we check for any privilege, since Class is always CLUSTER and ident null.
      *
-     * @param user  user
+     * @param user      user
      * @param securable securable (ie. CLUSTER, TABLE, etc)
      * @param ident     ident of the object
      */
@@ -139,15 +139,15 @@ public interface Roles {
      */
     private PrivilegeState hasPrivilege(
         Role role,
-        Privilege.Type type,
+        Permission permission,
         @Nullable Securable securable,
         @Nullable Object object,
-        FourFunction<Role, Privilege.Type, Securable, Object, PrivilegeState> function) {
+        FourFunction<Role, Permission, Securable, Object, PrivilegeState> function) {
 
         if (role.isSuperUser()) {
             return GRANT;
         }
-        PrivilegeState resolution = function.apply(role, type, securable, object);
+        PrivilegeState resolution = function.apply(role, permission, securable, object);
         if (resolution == DENY || resolution == GRANT) {
             return resolution;
         }
@@ -157,7 +157,7 @@ public interface Roles {
         for (String parentRoleName : role.grantedRoleNames()) {
             var parentRole = findRole(parentRoleName);
             assert parentRole != null : "role must exist";
-            var partialResult = hasPrivilege(parentRole, type, securable, object, function);
+            var partialResult = hasPrivilege(parentRole, permission, securable, object, function);
             if (partialResult == DENY) {
                 return DENY;
             }

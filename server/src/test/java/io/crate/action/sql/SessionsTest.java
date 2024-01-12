@@ -49,6 +49,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
+import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.PrivilegeState;
 import io.crate.role.Role;
@@ -104,7 +105,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
         var ALprivilege = new Privilege(
             PrivilegeState.GRANT,
-            Privilege.Type.AL,
+            Permission.AL,
             Securable.CLUSTER,
             null,
             "crate"

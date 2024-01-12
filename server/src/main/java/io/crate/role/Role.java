@@ -178,11 +178,11 @@ public class Role implements Writeable, ToXContent {
         return grantedRoles;
     }
 
-    public PrivilegeState matchSchema(Privilege.Type type, int oid) {
+    public PrivilegeState matchSchema(Permission permission, int oid) {
         PrivilegeState result = PrivilegeState.REVOKE;
         for (var privilege : privileges) {
             PrivilegeIdent ident = privilege.ident();
-            if (ident.type() != type) {
+            if (ident.permission() != permission) {
                 continue;
             }
             if (ident.securable() == SCHEMA && OidHash.schemaOid(ident.ident()) == oid) {
@@ -265,7 +265,7 @@ public class Role implements Writeable, ToXContent {
      * <p>
      *   "role1": {
      *     "privileges": [
-     *       {"state": 1, "type": 2, "securable": 3, "ident": "some_table", "grantor": "grantor_username"},
+     *       {"state": 1, "permission": 2, "securable": 3, "ident": "some_table", "grantor": "grantor_username"},
      *       ...
      *     ],
      *     "granted_roles: [{"role1", "grantor1"}, {"role2", "grantor2"}],

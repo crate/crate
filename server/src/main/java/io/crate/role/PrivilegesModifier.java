@@ -128,7 +128,7 @@ public final class PrivilegesModifier {
                 String ident = privilegeIdent.ident();
                 assert ident != null : "ident must not be null for securable 'TABLE'";
                 if (ident.equals(sourceIdent)) {
-                    privileges.add(new Privilege(privilege.state(), privilegeIdent.type(), privilegeIdent.securable(),
+                    privileges.add(new Privilege(privilege.state(), privilegeIdent.permission(), privilegeIdent.securable(),
                         targetIdent, privilege.grantor()));
                     privilegesChanged = true;
                 } else {
@@ -186,10 +186,10 @@ public final class PrivilegesModifier {
                 if (ident.securable() == Securable.TABLE) {
                     if (source.fqn().equals(ident.ident())) {
                         updatedPrivileges.add(
-                            new Privilege(privilege.state(), ident.type(), ident.securable(), target.fqn(), privilege.grantor()));
+                            new Privilege(privilege.state(), ident.permission(), ident.securable(), target.fqn(), privilege.grantor()));
                     } else if (target.fqn().equals(ident.ident())) {
                         updatedPrivileges.add(
-                            new Privilege(privilege.state(), ident.type(), ident.securable(), source.fqn(), privilege.grantor()));
+                            new Privilege(privilege.state(), ident.permission(), ident.securable(), source.fqn(), privilege.grantor()));
                     } else {
                         updatedPrivileges.add(privilege);
                     }
