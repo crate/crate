@@ -49,9 +49,10 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Forbid :ref:`renaming <sql-alter-table-rename-to>` of views and tables if the
-  target table or view already exists, and return an error message. Previously,
-  such a rename was allowed which caused the existing view or table to be lost.
+- Rejected :ref:`renaming <sql-alter-table-rename-to>` of views and tables if
+  the target table or view already exists, and return an error message.
+  Previously, such a rename was allowed which caused the existing view or table
+  to be lost.
 
 - Fixed a regression introduced in 4.2.0 that caused queries with ``UNNEST``
   with a single nested array as parameter to fail with a
