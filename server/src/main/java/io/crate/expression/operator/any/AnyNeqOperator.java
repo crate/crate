@@ -21,10 +21,11 @@
 
 package io.crate.expression.operator.any;
 
+import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -61,7 +62,7 @@ public final class AnyNeqOperator extends AnyOperator {
         String columnName = probe.storageIdent();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
-            return new MatchNoDocsQuery("column does not exist in this index");
+            return newUnmappedFieldQuery(columnName);
         }
 
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
@@ -95,7 +96,7 @@ public final class AnyNeqOperator extends AnyOperator {
 
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
-            return new MatchNoDocsQuery("column does not exist in this index");
+            return newUnmappedFieldQuery(columnName);
         }
         StorageSupport<?> storageSupport = probe.valueType().storageSupport();
         if (storageSupport == null) {
