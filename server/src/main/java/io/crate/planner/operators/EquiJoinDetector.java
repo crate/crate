@@ -67,7 +67,7 @@ public class EquiJoinDetector {
     private static class Context {
         boolean isHashJoinPossible = false;
         boolean insideEqOperator = false;
-        Set<RelationName> usedRelationsInsideEqOperatorArgument = new HashSet<>();
+        Set<RelationName> usedRelationsPerEqOperatorArgument = new HashSet<>();
     }
 
     private static class Visitor extends SymbolVisitor<Context, Void> {
@@ -84,12 +84,17 @@ public class EquiJoinDetector {
                 case EqOperator.NAME:
                     context.isHashJoinPossible = true;
                     context.insideEqOperator = true;
+                    Set<RelationName> usedRelationsFromBothEqOperatorArgs = new HashSet<>();
                     for (Symbol arg : function.arguments()) {
                         arg.accept(this, context);
-                        if (context.usedRelationsInsideEqOperatorArgument.size() != 1) {
+                        if (context.usedRelationsPerEqOperatorArgument.size() != 1) {
                             context.isHashJoinPossible = false;
                         }
-                        context.usedRelationsInsideEqOperatorArgument = new HashSet<>();
+                        usedRelationsFromBothEqOperatorArgs.addAll(context.usedRelationsPerEqOperatorArgument);
+                        context.usedRelationsPerEqOperatorArgument = new HashSet<>();
+                    }
+                    if (usedRelationsFromBothEqOperatorArgs.size() < 2) {
+                        context.isHashJoinPossible = false;
                     }
                     break;
                 default:
@@ -109,7 +114,7 @@ public class EquiJoinDetector {
         @Override
         public Void visitField(ScopedSymbol field, Context context) {
             if (context.insideEqOperator) {
-                context.usedRelationsInsideEqOperatorArgument.add(field.relation());
+                context.usedRelationsPerEqOperatorArgument.add(field.relation());
             }
             return null;
         }
@@ -117,7 +122,7 @@ public class EquiJoinDetector {
         @Override
         public Void visitReference(Reference ref, Context context) {
             if (context.insideEqOperator) {
-                context.usedRelationsInsideEqOperatorArgument.add(ref.ident().tableIdent());
+                context.usedRelationsPerEqOperatorArgument.add(ref.ident().tableIdent());
             }
             return null;
         }
