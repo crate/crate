@@ -76,8 +76,7 @@ public final class CmpOperator extends Operator<Object> {
         }
         EqQuery eqQuery = storageSupport.eqQuery();
         if (eqQuery == null) {
-            // For types that do not support EqQuery, a `x [>, >=, <, <=] <value>` is always considered a no-match
-            return new MatchNoDocsQuery("column does not exist in this index");
+            return new MatchNoDocsQuery("For types that do not support EqQuery, a `x [>, >=, <, <=] <value>` is always considered a no-match");
         }
         String field = ref.storageIdent();
         return switch (functionName) {

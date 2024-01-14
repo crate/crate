@@ -23,6 +23,7 @@ package io.crate.expression.operator;
 
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
 
 import java.util.Collection;
 import java.util.List;
@@ -198,7 +199,7 @@ public final class EqOperator extends Operator<Object> {
                 return null; // Fallback to generic filter on ARRAY(OBJECT)
             }
             // field doesn't exist, can't match
-            return new MatchNoDocsQuery("column does not exist in this index");
+            return newUnmappedFieldQuery(column);
         }
 
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
