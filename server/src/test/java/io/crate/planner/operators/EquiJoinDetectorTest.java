@@ -101,4 +101,13 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
         Symbol joinCondition = sqlExpressions.asSymbol("NOT (t1.a = t2.b)");
         assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
+
+    @Test
+    public void test_not_hash_join_possible_if_join_condition_refers_to_columns_from_a_single_relation() {
+        Symbol joinCondition = sqlExpressions.asSymbol("t1.a + t1.a = t1.a + t1.a");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+
+        joinCondition = sqlExpressions.asSymbol("t1.x = t1.i");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+    }
 }
