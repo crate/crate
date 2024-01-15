@@ -21,12 +21,13 @@
 
 package io.crate.common;
 
-import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import org.jetbrains.annotations.Nullable;
 
 /*
  * Extracted from https://github.com/google/guava/blob/master/guava/src/com/google/common/base/Suppliers.java
@@ -37,7 +38,7 @@ public final class Suppliers {
     }
 
     public static <T> Supplier<T> memoize(Supplier<T> delegate) {
-        return new MemoizingSupplier(delegate);
+        return new MemoizingSupplier<>(delegate);
     }
 
     static final class MemoizingSupplier<T> implements Supplier<T>, Serializable {

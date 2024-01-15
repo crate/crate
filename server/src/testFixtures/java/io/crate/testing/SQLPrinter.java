@@ -21,17 +21,20 @@
 
 package io.crate.testing;
 
-import io.crate.common.collections.Ordering;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.StringJoiner;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Ordering;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
-
-import java.util.Collection;
-import java.util.HashSet;
 
 public class SQLPrinter {
 
@@ -42,10 +45,17 @@ public class SQLPrinter {
             return print((OrderBy) o);
         } else if (o instanceof Symbol) {
             return print((Symbol) o);
-        } else if (o instanceof HashSet) {
-            return print(Ordering.usingToString().sortedCopy((HashSet) o));
-        } else if (o instanceof Collection) {
-            return print((Collection<Symbol>) o);
+        } else if (o instanceof HashSet<?> set) {
+            Object[] elements = set.toArray();
+            Arrays.sort(elements, Ordering.usingToString());
+            return print(List.of(elements));
+        } else if (o instanceof Collection<?> collection) {
+            StringJoiner joiner = new StringJoiner(", ");
+            for (var item : collection) {
+                String str = item instanceof Symbol symbol ? symbol.toString(Style.QUALIFIED) : item.toString();
+                joiner.add(str);
+            }
+            return joiner.toString();
         } else if (o == null) {
             return "null";
         } else if (o instanceof WhereClause) {

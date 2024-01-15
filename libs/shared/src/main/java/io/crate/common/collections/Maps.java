@@ -98,6 +98,7 @@ public final class Maps {
     }
 
     @Nullable
+    @SuppressWarnings("unchecked")
     public static Object getByPath(Map<String, Object> value, List<String> path) {
         assert path instanceof RandomAccess : "Path must support random access for fast iteration";
         Map<String, Object> map = value;
@@ -107,7 +108,6 @@ public final class Maps {
             if (i + 1 == path.size()) {
                 return val;
             } else if (val instanceof Map<?, ?>) {
-                //noinspection unchecked
                 map = (Map<String, Object>) val;
             } else {
                 return null;
@@ -150,6 +150,7 @@ public final class Maps {
     /**
      * Inserts a value into source under the given key+path
      */
+    @SuppressWarnings("unchecked")
     public static void mergeInto(Map<String, Object> source,
                                  String key,
                                  List<String> path,
