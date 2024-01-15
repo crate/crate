@@ -307,7 +307,7 @@ public final class DataTypes {
         entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked"})
     public static DataType<?> guessType(Object value) {
         if (value == null) {
             return UNDEFINED;

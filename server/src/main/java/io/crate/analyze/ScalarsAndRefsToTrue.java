@@ -21,6 +21,9 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.crate.expression.operator.Operators;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
@@ -30,9 +33,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.types.DataTypes;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * <p>
@@ -113,7 +113,7 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
     }
 
     @Override
-    public Symbol visitLiteral(Literal symbol, Void context) {
+    public Symbol visitLiteral(Literal<?> symbol, Void context) {
         return symbol;
     }
 }

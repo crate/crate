@@ -41,7 +41,7 @@ import io.crate.profile.ProfilingContext;
 import io.crate.sql.tree.Explain;
 import io.crate.types.DataTypes;
 
-public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
+public class ExplainAnalyzedStatement implements AnalyzedRelation {
 
     final AnalyzedStatement statement;
     private final ProfilingContext context;

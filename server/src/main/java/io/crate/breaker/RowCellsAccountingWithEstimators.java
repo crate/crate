@@ -32,7 +32,7 @@ public class RowCellsAccountingWithEstimators implements RowAccounting<Object[]>
 
     private final RamAccounting ramAccounting;
     private final int extraSizePerRow;
-    private final List<? extends DataType> columnTypes;
+    private final List<? extends DataType<?>> columnTypes;
 
     /**
      * @param columnTypes     Column types are needed to use the correct {@link SizeEstimator} per column
@@ -40,7 +40,7 @@ public class RowCellsAccountingWithEstimators implements RowAccounting<Object[]>
      * @param extraSizePerRow Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
      *                        might instantiate an ArrayList per row used for the internal hash->row buffer
      */
-    public RowCellsAccountingWithEstimators(List<? extends DataType> columnTypes,
+    public RowCellsAccountingWithEstimators(List<? extends DataType<?>> columnTypes,
                                             RamAccounting ramAccounting,
                                             int extraSizePerRow) {
         this.columnTypes = columnTypes;
@@ -61,12 +61,14 @@ public class RowCellsAccountingWithEstimators implements RowAccounting<Object[]>
         return rowBytes;
     }
 
+    @SuppressWarnings("unchecked")
     public long accountRowBytes(Object[] rowCells) {
         assert rowCells.length == columnTypes.size() : "Size of row must match the number of estimators";
         long size = 0;
         for (int i = 0; i < rowCells.length; i++) {
-            DataType dataType = columnTypes.get(i);
-            size += (dataType.valueBytes(rowCells[i]) + extraSizePerRow);
+            DataType<Object> dataType = (DataType<Object>) columnTypes.get(i);
+            Object object = rowCells[i];
+            size += (dataType.valueBytes(object) + extraSizePerRow);
         }
         return size;
     }
