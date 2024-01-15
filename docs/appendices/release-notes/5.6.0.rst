@@ -70,7 +70,8 @@ SQL Statements
 - Added support for explicit :ref:`NULL <null_constraint>` column constraint
   definitions in ``CREATE TABLE`` statements.
 
-- Added support for named ``PRIMARY KEY`` constraints.
+- Added support for named :ref:`PRIMARY KEY constraint declaration
+  <primary_key_constraint>`.
 
 - Extended the :ref:`EXPLAIN <ref-explain>` statement to support the ``VERBOSE``
   option.
