@@ -19,24 +19,7 @@
 
 package org.elasticsearch.gateway;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.support.nodes.BaseNodeResponse;
-import org.elasticsearch.action.support.nodes.BaseNodesResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.transport.ReceiveTimeoutTransportException;
-
-import io.crate.exceptions.SQLExceptions;
+import static java.util.Collections.emptySet;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,7 +31,25 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static java.util.Collections.emptySet;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.ElasticsearchTimeoutException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.FailedNodeException;
+import org.elasticsearch.action.support.nodes.BaseNodeResponse;
+import org.elasticsearch.action.support.nodes.BaseNodesResponse;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.transport.ReceiveTimeoutTransportException;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Allows to asynchronously fetch shard related data from other nodes for allocation, without blocking
@@ -78,12 +79,12 @@ public abstract class AsyncShardFetch<T extends BaseNodeResponse> implements Rel
     private boolean closed;
 
     protected AsyncShardFetch(Logger logger, String type, ShardId shardId, String customDataPath,
-                              Lister<? extends BaseNodesResponse<T>, T> action) {
+                              Lister<BaseNodesResponse<T>, T> action) {
         this.logger = logger;
         this.type = type;
         this.shardId = Objects.requireNonNull(shardId);
         this.customDataPath = Objects.requireNonNull(customDataPath);
-        this.action = (Lister<BaseNodesResponse<T>, T>) action;
+        this.action = action;
     }
 
     @Override

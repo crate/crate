@@ -21,6 +21,11 @@
 
 package io.crate.analyze;
 
+import java.util.Collections;
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.AmbiguousColumnException;
@@ -33,11 +38,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.types.DataTypes;
 
-import org.jetbrains.annotations.NotNull;
-import java.util.Collections;
-import java.util.List;
-
-public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelation {
+public class AnalyzedShowCreateTable implements AnalyzedRelation {
 
     private final DocTableInfo tableInfo;
     private final List<ScopedSymbol> fields;

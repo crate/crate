@@ -37,6 +37,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.collections.Maps;
+
 /**
  * fieldmapper for encoding and handling of primitive arrays (non-object) explicitly
  * <p>
@@ -179,8 +181,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             // consume tokens until start of object
         }
 
-        //noinspection unchecked
-        Map<String, Object> innerMap = (Map<String, Object>) parser.mapOrdered().get(innerMapper.simpleName());
+        Map<String, Object> innerMap = Maps.get(parser.mapOrdered(), innerMapper.simpleName());
 
         assert innerMap != null : "innerMap was null";
 

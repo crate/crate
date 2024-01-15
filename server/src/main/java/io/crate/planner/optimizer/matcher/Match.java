@@ -30,8 +30,8 @@ public abstract class Match<T> {
         return new Present<>(value, captures);
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> Match<T> empty() {
-        //noinspection unchecked
         return (Match<T>) Empty.INSTANCE;
     }
 
@@ -83,6 +83,7 @@ public abstract class Match<T> {
 
     static class Empty<T> extends Match<T> {
 
+        @SuppressWarnings("rawtypes")
         static final Empty INSTANCE = new Empty<>();
 
         @Override

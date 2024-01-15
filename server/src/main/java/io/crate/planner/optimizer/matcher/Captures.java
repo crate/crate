@@ -45,6 +45,7 @@ public class Captures {
         return new Captures(capture, value, NIL);
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T get(Capture<T> capture) {
         if (this.equals(NIL)) {
             throw new NoSuchElementException("Requested value for unknown Capture");
