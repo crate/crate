@@ -52,16 +52,6 @@ public class RolesService implements Roles, ClusterStateListener {
         return roles.values();
     }
 
-    @Nullable
-    @Override
-    public Role findUser(String userName) {
-        Role role = roles.get(userName);
-        if (role != null && role.isUser()) {
-            return role;
-        }
-        return null;
-    }
-
     @Override
     @Nullable
     public Role findRole(String roleName) {
