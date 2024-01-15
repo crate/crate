@@ -17,6 +17,12 @@ dnslib
 sphinx>=3.5,<5
 sphinx-csv-filter==0.4.0
 crate-docs-theme>=0.12.0
+# Dependencies of sphinx, but newer versions requires Sphinx>=5.0
+sphinxcontrib.applehelp==1.0.4
+sphinxcontrib.devhelp==1.0.2
+sphinxcontrib.htmlhelp==2.0.1
+sphinxcontrib.serializinghtml==1.1.5
+sphinxcontrib.qthelp==1.0.3
 
 # Documentation: local development
 sphinx-autobuild>=2020.9.1
