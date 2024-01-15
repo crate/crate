@@ -21,7 +21,6 @@
 
 package io.crate.common.collections;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,6 +37,8 @@ import java.util.Queue;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -71,13 +72,14 @@ public class Iterators {
      *
      * @throws NullPointerException if any of the provided iterators is null
      */
-    public static <T extends Object> Iterator<T> concat(Iterator<? extends T>... inputs) {
+    @SafeVarargs
+    public static final <T extends Object> Iterator<T> concat(Iterator<? extends T>... inputs) {
         return concatNoDefensiveCopy(Arrays.copyOf(inputs, inputs.length));
     }
 
     /** Concats a varargs array of iterators without making a defensive copy of the array. */
-    static <T extends Object> Iterator<T> concatNoDefensiveCopy(
-        Iterator<? extends T>... inputs) {
+    @SafeVarargs
+    static final <T extends Object> Iterator<T> concatNoDefensiveCopy(Iterator<? extends T>... inputs) {
         for (Iterator<? extends T> input : Objects.requireNonNull(inputs)) {
             Objects.requireNonNull(input);
         }
@@ -94,7 +96,8 @@ public class Iterators {
      *
      * <p>This is mainly just to avoid the intermediate ArrayDeque in ConsumingQueueIterator.
      */
-    private static <I extends Iterator<?>> Iterator<I> consumingForArray(@Nullable I... elements) {
+    @SafeVarargs
+    private static final <I extends Iterator<?>> Iterator<I> consumingForArray(@Nullable I... elements) {
         return new Iterator<I>() {
             int index = 0;
 

@@ -21,9 +21,7 @@
 
 package io.crate.common.collections;
 
-import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Array;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,10 +31,15 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.RandomAccess;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.io.Streams;
 
 /**
  * Extracted from https://github.com/google/guava/blob/master/guava/src/com/google/common/collect/Iterables.java
@@ -157,7 +160,8 @@ public final class Iterables {
      *
      * @throws NullPointerException if any of the provided iterables is null
      */
-    public static <T> Iterable<T> concat(Iterable<? extends T>... inputs) {
+    @SafeVarargs
+    public static final <T> Iterable<T> concat(Iterable<? extends T>... inputs) {
         return FluentIterable.concat(inputs);
     }
 
@@ -185,38 +189,24 @@ public final class Iterables {
      * @param type the type of the elements
      * @return a newly-allocated array into which all the elements of the iterable have been copied
      */
+    @SuppressWarnings("unchecked")
     public static <T> T[] toArray(Iterable<? extends T> iterable, Class<T> type) {
-        return toArray(iterable, newArray(type, 0));
+        return toArray(iterable, (T[]) Array.newInstance(type, 0));
     }
 
+    @SuppressWarnings("unchecked")
     static <T> T[] toArray(Iterable<? extends T> iterable, T[] array) {
-        Collection<? extends T> collection = castOrCopyToCollection(iterable);
+        final Collection<? extends T> collection;
+        if (iterable instanceof Collection) {
+            collection = (Collection<T>) iterable;
+        } else {
+            ArrayList<T> list = new ArrayList<>();
+            Iterators.addAll(list, iterable.iterator());
+            collection = list;
+        }
         return collection.toArray(array);
     }
 
-    static Object[] toArray(Iterable<?> iterable) {
-        return castOrCopyToCollection(iterable).toArray();
-    }
-
-    static <T> T[] newArray(Class<T> type, int length) {
-        return (T[]) Array.newInstance(type, length);
-    }
-
-
-    /**
-     * Converts an iterable into a collection. If the iterable is already a collection, it is
-     * returned. Otherwise, an {@link java.util.ArrayList} is created with the contents of the
-     * iterable in the same iteration order.
-     */
-    private static <E> Collection<E> castOrCopyToCollection(Iterable<E> iterable) {
-        if (iterable instanceof Collection) {
-            return (Collection<E>) iterable;
-        } else {
-            ArrayList<E> list = new ArrayList<>();
-            Iterators.addAll(list, iterable.iterator());
-            return list;
-        }
-    }
 
     /**
      * Divides an iterable into unmodifiable sublists of the given size (the final iterable may be
@@ -330,7 +320,8 @@ public final class Iterables {
             return concatNoDefensiveCopy(a, b);
         }
 
-        public static <T> FluentIterable<T> concat(Iterable<? extends T>... inputs) {
+        @SafeVarargs
+        public static final <T> FluentIterable<T> concat(Iterable<? extends T>... inputs) {
             return concatNoDefensiveCopy(Arrays.copyOf(inputs, inputs.length));
         }
 
@@ -345,8 +336,8 @@ public final class Iterables {
             };
         }
 
-        private static <T> FluentIterable<T> concatNoDefensiveCopy(
-            final Iterable<? extends T>... inputs) {
+        @SafeVarargs
+        private static final <T> FluentIterable<T> concatNoDefensiveCopy(final Iterable<? extends T>... inputs) {
             for (Iterable<? extends T> input : inputs) {
                 Objects.requireNonNull(input);
             }
