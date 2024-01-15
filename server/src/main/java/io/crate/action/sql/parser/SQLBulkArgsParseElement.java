@@ -22,13 +22,13 @@
 package io.crate.action.sql.parser;
 
 
-import org.elasticsearch.common.xcontent.XContentParser;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-class SQLBulkArgsParseElement extends SQLArgsParseElement implements SQLParseElement {
+import org.elasticsearch.common.xcontent.XContentParser;
+
+class SQLBulkArgsParseElement extends SQLArgsParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {

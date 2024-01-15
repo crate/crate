@@ -19,10 +19,10 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,7 +40,6 @@ import org.elasticsearch.common.collect.CopyOnWriteHashMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.time.IsoLocale;
@@ -128,8 +127,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
     }
 
     public static class TypeParser implements Mapper.TypeParser {
+
         @Override
-        @SuppressWarnings("rawtypes")
         public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             ObjectMapper.Builder builder = new Builder(name);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
@@ -143,7 +142,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             return builder;
         }
 
-        @SuppressWarnings({"unchecked", "rawtypes"})
+        @SuppressWarnings({"unchecked"})
         protected static boolean parseObjectOrDocumentTypeProperties(String fieldName, Object fieldNode, ParserContext parserContext, ObjectMapper.Builder builder) {
             assert !fieldName.equals("default_expr") : "Default values are not allowed for object columns";
 
@@ -178,7 +177,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             return false;
         }
 
-        @SuppressWarnings({"rawtypes", "unchecked"})
+        @SuppressWarnings({"unchecked"})
         protected static void parseProperties(ObjectMapper.Builder objBuilder, Map<String, Object> propsNode, ParserContext parserContext) {
             Iterator<Map.Entry<String, Object>> iterator = propsNode.entrySet().iterator();
             while (iterator.hasNext()) {
@@ -189,7 +188,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 boolean isEmptyList = entry.getValue() instanceof List && ((List<?>) entry.getValue()).isEmpty();
 
                 if (entry.getValue() instanceof Map) {
-                    @SuppressWarnings("unchecked")
                     Map<String, Object> propNode = (Map<String, Object>) entry.getValue();
                     String type;
                     Object typeNode = propNode.get("type");

@@ -28,6 +28,7 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpHeadersFactory;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
@@ -110,7 +111,13 @@ public class Netty4CorsHandler extends ChannelDuplexHandler {
     }
 
     private void handlePreflight(final ChannelHandlerContext ctx, final HttpRequest request) {
-        final HttpResponse response = new DefaultFullHttpResponse(request.protocolVersion(), HttpResponseStatus.OK, true, true);
+        final HttpResponse response = new DefaultFullHttpResponse(
+            request.protocolVersion(),
+            HttpResponseStatus.OK,
+            ctx.alloc().buffer(0),
+            DefaultHttpHeadersFactory.headersFactory(),
+            DefaultHttpHeadersFactory.trailersFactory()
+        );
         if (setOrigin(response)) {
             setAllowMethods(response);
             setAllowHeaders(response);

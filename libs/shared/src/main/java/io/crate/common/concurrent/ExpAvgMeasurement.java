@@ -18,7 +18,6 @@ package io.crate.common.concurrent;
 
 import java.util.function.DoubleUnaryOperator;
 
-import io.crate.common.concurrent.Measurement;
 
 public class ExpAvgMeasurement implements Measurement {
 

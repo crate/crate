@@ -44,23 +44,23 @@ public final class NegateLiterals extends SymbolVisitor<Void, Symbol> {
     }
 
     @Override
-    public Literal visitLiteral(Literal symbol, Void context) {
+    public Literal<?> visitLiteral(Literal<?> symbol, Void context) {
         Object value = symbol.value();
         if (value == null) {
             return symbol;
         }
-        DataType valueType = symbol.valueType();
+        DataType<?> valueType = symbol.valueType();
         switch (valueType.id()) {
             case DoubleType.ID:
-                return Literal.of(valueType, (Double) value * -1);
+                return Literal.ofUnchecked(valueType, (Double) value * -1);
             case FloatType.ID:
-                return Literal.of(valueType, (Double) value * -1);
+                return Literal.ofUnchecked(valueType, (Double) value * -1);
             case ShortType.ID:
-                return Literal.of(valueType, (Short) value * -1);
+                return Literal.ofUnchecked(valueType, (Short) value * -1);
             case IntegerType.ID:
-                return Literal.of(valueType, (Integer) value * -1);
+                return Literal.ofUnchecked(valueType, (Integer) value * -1);
             case LongType.ID:
-                return Literal.of(valueType, (Long) value * -1);
+                return Literal.ofUnchecked(valueType, (Long) value * -1);
             default:
                 throw new UnsupportedOperationException(Symbols.format(
                     "Cannot negate %s. You may need to add explicit type casts", symbol));
