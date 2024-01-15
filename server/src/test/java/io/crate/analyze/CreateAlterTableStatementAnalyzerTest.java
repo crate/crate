@@ -25,7 +25,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
@@ -533,11 +533,37 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   ("details={inner={dynamic=true, position=2, properties={age={position=4, type=integer}, " +
-                    "name={position=3, type=keyword}, " +
-                    "tags={inner={position=5, type=keyword}, type=array}}, type=object}, type=array}, " +
-                    "id={position=1, type=integer}"));
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "details", Map.of(
+                "type", "array",
+                "inner", Map.of(
+                    "dynamic", "true",
+                    "position", 2,
+                    "type", "object",
+                    "properties", Map.of(
+                        "age", Map.of(
+                            "position", 4,
+                            "type", "integer"
+                        ),
+                        "name", Map.of(
+                            "position", 3,
+                            "type", "keyword"
+                        ),
+                        "tags", Map.of(
+                            "inner", Map.of(
+                                "position", 5,
+                                "type", "keyword"
+                            ),
+                            "type", "array"
+                        )
+                    )
+                )
+            ),
+            "id", Map.of(
+                "position", 1,
+                "type", "integer"
+            )
+        ));
     }
 
     @Test
@@ -1176,7 +1202,15 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo("arr={inner={position=1, type=integer}, type=array}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "arr", Map.of(
+                "inner", Map.of(
+                    "position", 1,
+                    "type", "integer"
+                ),
+                "type", "array"
+            )
+        ));
     }
 
     @SuppressWarnings("unchecked")
@@ -1288,67 +1322,88 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   "name={default_expr='bar', position=1, type=keyword}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "name", Map.of(
+                "default_expr", "'bar'",
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionFunction() {
         BoundCreateTable analysis = analyze(
             "create table foo (name text default upper('bar'))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   "name={default_expr='BAR', position=1, type=keyword}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "name", Map.of(
+                "default_expr", "'BAR'",
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionWithCast() {
         BoundCreateTable analysis = analyze(
             "create table foo (id int default 3.5)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                "id={default_expr=3.5, position=1, type=integer}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "id", Map.of(
+                "default_expr", "3.5",
+                "position", 1,
+                "type", "integer"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionIsNotNormalized() {
         BoundCreateTable analysis = analyze(
             "create table foo (ts timestamp with time zone default current_timestamp(3))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
-
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   "ts={default_expr=current_timestamp(3), " +
-                   "format=epoch_millis||strict_date_optional_time, " +
-                   "position=1, type=date}");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "ts", Map.of(
+                "default_expr", "current_timestamp(3)",
+                "format", "epoch_millis||strict_date_optional_time",
+                "position", 1,
+                "type", "date"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionAsCompoundTypes() {
         BoundCreateTable analysis = analyze(
             "create table foo (" +
             "   arr array(long) default [1, 2])");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "arr={inner={default_expr=[1, 2], position=1, type=long}, type=array}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "arr", Map.of(
+                "inner", Map.of(
+                    "default_expr", "[1, 2]",
+                    "position", 1,
+                    "type", "long"
+                ),
+                "type", "array"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionAsGeoTypes() {
         BoundCreateTable analysis = analyze(
             "create table foo (" +
@@ -1356,11 +1411,21 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "   s geo_shape default 'LINESTRING (0 0, 1 1)')");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "p={default_expr=[0, 0], position=1, type=geo_point}, " +
-            "s={default_expr='LINESTRING (0 0, 1 1)', position=2, tree=geohash, type=geo_shape}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "p", Map.of(
+                "default_expr", "[0, 0]",
+                "position", 1,
+                "type", "geo_point"
+            ),
+            "s", Map.of(
+                "default_expr", "'LINESTRING (0 0, 1 1)'",
+                "position", 2,
+                "tree", "geohash",
+                "type", "geo_shape"
+            )
+        ));
     }
 
     @Test
@@ -1498,7 +1563,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_create_table_with_column_store_disabled() {
         for (var dataType : DataTypes.PRIMITIVE_TYPES) {
             var stmt = "create table columnstore_disabled (s " + dataType + " STORAGE WITH (columnstore = false))";
@@ -1506,11 +1570,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             if (dataType.storageSupport() != null && dataType.storageSupport().supportsDocValuesOff()) {
                 BoundCreateTable analysis = analyze(stmt);
                 var mapping = TestingHelpers.toMapping(analysis);
-                var mappingProperties = (Map<String, Object>) mapping.get("properties");
-                assertThat(mapToSortedString(mappingProperties))
-                    .contains("doc_values=false")
-                    .contains("position=1")
-                    .contains("type=" + DataTypes.esMappingNameFrom(dataType.id()));
+                Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
+                Map<String, Object> sProperties = Maps.get(mappingProperties, "s");
+                assertThat(sProperties)
+                    .containsEntry("doc_values", "false")
+                    .containsEntry("position", 1)
+                    .containsEntry("type", DataTypes.esMappingNameFrom(dataType.id()));
             } else if (dataType.storageSupport() != null) {
                 assertThatThrownBy(() -> analyze(stmt))
                     .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -1605,29 +1670,34 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_character_varying_type_can_be_used_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (name character varying)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(
-            mapToSortedString(mappingProperties))
-            .isEqualTo("name={position=1, type=keyword}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "name", Map.of(
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_create_table_with_varchar_column_of_limited_length() {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (name character varying(2))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(
-            mapToSortedString(mappingProperties))
-            .isEqualTo("name={length_limit=2, position=1, type=keyword}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "name", Map.of(
+                "length_limit", 2,
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
@@ -1661,94 +1731,114 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_can_use_bit_type_in_create_table_statement() throws Exception {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (xs bit(20))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "xs={length=20, position=1, type=bit}"
-        );
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "xs", Map.of(
+                "length", 20,
+                "position", 1,
+                "type", "bit"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_bit_type_defaults_to_length_1() throws Exception {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (xs bit)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "xs={length=1, position=1, type=bit}"
-        );
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "xs", Map.of(
+                "length", 1,
+                "position", 1,
+                "type", "bit"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_can_use_character_type_in_create_table_statement() {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (c character(10))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=10, position=1, type=keyword}"
-        );
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "c", Map.of(
+                "blank_padding", true,
+                "length_limit", 10,
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_character_type_defaults_to_length_1() throws Exception {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (c character)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=1, position=1, type=keyword}"
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "c", Map.of(
+                "blank_padding", true,
+                "length_limit", 1,
+                "position", 1,
+                "type", "keyword"
+            ))
         );
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_char_is_alias_for_character_type() throws Exception {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (c char)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=1, position=1, type=keyword}"
-        );
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "c", Map.of(
+                "blank_padding", true,
+                "length_limit", 1,
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_now_function_is_not_normalized_to_literal_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (ts timestamp with time zone default now())");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).startsWith(
-            "ts={default_expr=now()"
-        );
+        assertThat(mappingProperties)
+            .containsKey("ts")
+            .extractingByKey("ts", InstanceOfAssertFactories.MAP)
+            .containsEntry("default_expr", "now()");
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_current_user_function_is_not_normalized_to_literal_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (user_name text default current_user)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).startsWith(
-            "user_name={default_expr=CURRENT_USER, position=1, type=keyword}"
-        );
+        assertThat(mappingProperties)
+            .containsKey("user_name")
+            .extractingByKey("user_name", InstanceOfAssertFactories.MAP)
+                .containsEntry("default_expr", "CURRENT_USER")
+                .containsEntry("position", 1)
+                .containsEntry("type", "keyword");
     }
 
     @Test

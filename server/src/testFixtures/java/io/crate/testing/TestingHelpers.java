@@ -46,7 +46,6 @@ import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
@@ -87,10 +86,10 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.role.Role;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 
 public class TestingHelpers {
 
@@ -177,12 +176,6 @@ public class TestingHelpers {
             out.print(o.toString());
         }
         return first;
-    }
-
-    public static String mapToSortedString(Map<String, Object> map) {
-        return Sorted.sortRecursive(map).entrySet().stream()
-            .map(e -> e.getKey() + "=" + e.getValue())
-            .collect(Collectors.joining(", "));
     }
 
     public static NodeContext createNodeContext(AbstractModule... additionalModules) {
