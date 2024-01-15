@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -149,7 +148,11 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
         // partitioned columns must be not indexed in mapping
         Map<String, Object> nameMapping = (Map<String, Object>) mappingProperties.get("name");
-        assertThat(mapToSortedString(nameMapping)).isEqualTo("index=false, position=3, type=keyword");
+        assertThat(nameMapping).containsExactly(
+            Map.entry("index", false),
+            Map.entry("position", 3),
+            Map.entry("type", "keyword")
+        );
 
         Map<String, Object> metaMapping = (Map<String, Object>) mapping.get("_meta");
         List<List<String>> partitionedByMeta = (List<List<String>>) metaMapping.get("partitioned_by");
@@ -169,9 +172,21 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         assertThat(analysis.partitionedBy()).hasSize(2);
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> properties = (Map<String, Object>) mapping.get("properties");
-        assertThat(mapToSortedString(properties)).isEqualTo(
-                   "date={format=epoch_millis||strict_date_optional_time, index=false, position=2, type=date}, " +
-                   "name={index=false, position=1, type=keyword}");
+        assertThat(properties).isEqualTo(
+                Map.of(
+                    "date", Map.of(
+                        "format", "epoch_millis||strict_date_optional_time",
+                        "index", false,
+                        "position", 2,
+                        "type", "date"
+                    ),
+                    "name", Map.of(
+                        "index", false,
+                        "position", 1,
+                        "type", "keyword"
+                    )
+                )
+        );
         assertThat(analysis.partitionedBy().get(0)).containsExactly("name", "keyword");
         assertThat(analysis.partitionedBy().get(1)).containsExactly("date", "date");
     }
@@ -192,9 +207,18 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
         Map<String, Object> oMapping = (Map<String, Object>) mappingProperties.get("o");
-        assertThat(mapToSortedString(oMapping)).isEqualTo(
-            "dynamic=true, position=3, properties={name={index=false, position=4, type=keyword}}, type=object");
-
+        assertThat(oMapping).isEqualTo(Map.of(
+            "dynamic", "true",
+            "position", 3,
+            "properties", Map.of(
+                "name", Map.of(
+                    "index", false,
+                    "position", 4,
+                    "type", "keyword"
+                )
+            ),
+            "type", "object"
+        ));
         assertThat(analysis.partitionedBy().get(0)).containsExactly("date", "date");
         assertThat(analysis.partitionedBy().get(1)).containsExactly("o.name", "keyword");
     }
@@ -284,7 +308,11 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         Map<String, Object> oMapping = (Map<String, Object>) mappingProperties.get("id1");
-        assertThat(mapToSortedString(oMapping)).isEqualTo("index=false, position=1, type=integer");
+        assertThat(oMapping).isEqualTo(Map.of(
+            "index", false,
+            "position", 1,
+            "type", "integer"
+        ));
         Map<?, ?> meta = (Map<?, ?>) mapping.get("_meta");
         List<List<String>> partitionedBy = (List<List<String>>) meta.get("partitioned_by");
         assertThat(partitionedBy).containsExactly(List.of("id1", "integer"));

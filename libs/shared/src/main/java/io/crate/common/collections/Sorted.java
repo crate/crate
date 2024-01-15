@@ -30,9 +30,6 @@ import java.util.Map;
 
 public class Sorted {
 
-    public static Map<String, Object> sortRecursive(Map<String, Object> map) {
-        return sortRecursive(map, false);
-    }
 
     public static LinkedHashMap<String, Object> sortRecursive(Map<String, Object> map, boolean sortOnlyMaps) {
         LinkedHashMap<String, Object> sortedMap = new LinkedHashMap<>(map.size(), 1.0f);
