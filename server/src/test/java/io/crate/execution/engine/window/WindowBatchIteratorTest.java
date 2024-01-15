@@ -399,7 +399,7 @@ public class WindowBatchIteratorTest {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 return currentFrame.getRows().iterator().next()[0];
             }
 
@@ -422,7 +422,7 @@ public class WindowBatchIteratorTest {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 return new Tuple<>(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
             }
 
@@ -445,7 +445,7 @@ public class WindowBatchIteratorTest {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 return idxInPartition + 1; // sql row numbers are 1-indexed;
             }
 

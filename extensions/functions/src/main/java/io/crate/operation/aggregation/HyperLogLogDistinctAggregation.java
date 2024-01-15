@@ -130,7 +130,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     public HllState iterate(RamAccounting ramAccounting,
                             MemoryManager memoryManager,
                             HllState state,
-                            Input... args) throws CircuitBreakingException {
+                            Input<?> ... args) throws CircuitBreakingException {
         if (state.isInitialized() == false) {
             int precision = HyperLogLogPlusPlus.DEFAULT_PRECISION;
             if (args.length > 1) {

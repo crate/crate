@@ -72,7 +72,7 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
                                       WindowFrameState currentFrame,
                                       List<? extends CollectExpression<Row, ?>> expressions,
                                       Boolean ignoreNulls,
-                                      Input... args) {
+                                      Input<?> ... args) {
                     return idxInPartition + 1;
                 }
 

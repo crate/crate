@@ -21,6 +21,11 @@
 
 package io.crate.window;
 
+import java.util.List;
+import java.util.function.IntBinaryOperator;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -30,10 +35,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.function.IntBinaryOperator;
 
 
 public class RankFunctions implements WindowFunction {
@@ -68,7 +69,7 @@ public class RankFunctions implements WindowFunction {
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
-                          Input... args) {
+                          Input<?> ... args) {
         if (ignoreNulls != null) {
             throw new IllegalArgumentException("rank cannot accept RESPECT or IGNORE NULLS flag.");
         }

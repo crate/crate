@@ -49,7 +49,7 @@ public class NthValueFunctions implements WindowFunction {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 if (ignoreNulls) {
                     for (int i = adjustForShrinkingWindow; i < currentFrame.upperBoundExclusive(); i++) {
                         Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(i);
@@ -75,7 +75,7 @@ public class NthValueFunctions implements WindowFunction {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 if (ignoreNulls) {
                     for (int i = adjustForShrinkingWindow + currentFrame.size() - 1; i >= 0; i--) {
                         Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(i);
@@ -101,7 +101,7 @@ public class NthValueFunctions implements WindowFunction {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 Number position = (Number) args[1].value();
                 if (position == null) {
                     return null;
@@ -134,11 +134,11 @@ public class NthValueFunctions implements WindowFunction {
                                        WindowFrameState currentFrame,
                                        List<? extends CollectExpression<Row, ?>> expressions,
                                        boolean ignoreNulls,
-                                       Input[] args);
+                                       Input<?> ... args);
 
         protected static Object extractValueFromRow(Object[] nthRowCells,
                                    List<? extends CollectExpression<Row, ?>> expressions,
-                                   Input... args) {
+                                   Input<?> ... args) {
             Row nthRowInFrame = new RowN(nthRowCells);
             for (CollectExpression<Row, ?> expression : expressions) {
                 expression.setNextRow(nthRowInFrame);
@@ -149,7 +149,7 @@ public class NthValueFunctions implements WindowFunction {
         protected static Object extractValueAtIndex(int index,
                                              WindowFrameState currentFrame,
                                              List<? extends CollectExpression<Row, ?>> expressions,
-                                             Input[] args) {
+                                             Input<?> ... args) {
             Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(index);
             if (nthRowCells == null) {
                 return null;
@@ -237,7 +237,7 @@ public class NthValueFunctions implements WindowFunction {
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
-                          Input... args) {
+                          Input<?> ... args) {
         boolean ignoreNullsOrFalse = ignoreNulls != null && ignoreNulls;
         boolean shrinkingWindow = isLowerBoundIncreasing(currentFrame, seenFrameLowerBound);
         if (idxInPartition == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound || shrinkingWindow) {
