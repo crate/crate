@@ -22,43 +22,25 @@
 package io.crate.role;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.Nullable;
 
-public class Subject implements Writeable {
-
-    private final Permission permission;
-    private final Securable securable;
-    @Nullable
-    private final String ident;  // for CLUSTER this will be always null, otherwise schemaName, tableName etc.
-
-    public Subject(Permission permission, Securable securable, @Nullable String ident) {
-        this.permission = permission;
-        this.securable = securable;
-        this.ident = ident;
-    }
+/**
+ *
+ * @param ident narrows the securable to a specific instance; null for Securable.CLUSTER
+ */
+public record Subject(Permission permission, Securable securable, @Nullable String ident)
+        implements Writeable {
 
     Subject(StreamInput in) throws IOException {
-        permission = in.readEnum(Permission.class);
-        securable = in.readEnum(Securable.class);
-        ident = in.readOptionalString();
-    }
-
-    public Permission permission() {
-        return permission;
-    }
-
-    public Securable securable() {
-        return securable;
-    }
-
-    @Nullable
-    public String ident() {
-        return ident;
+        this(
+            in.readEnum(Permission.class),
+            in.readEnum(Securable.class),
+            in.readOptionalString()
+        );
     }
 
     @Override
@@ -66,20 +48,5 @@ public class Subject implements Writeable {
         out.writeEnum(permission);
         out.writeEnum(securable);
         out.writeOptionalString(ident);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Subject that = (Subject) o;
-        return permission == that.permission &&
-               securable == that.securable &&
-               Objects.equals(ident, that.ident);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(permission, securable, ident);
     }
 }
