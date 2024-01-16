@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -39,7 +40,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -123,7 +123,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
             @Override
             public boolean hasPrivilege(Role user, Permission type, Securable securable, @Nullable String ident) {
-                validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, securable, ident, user.name()));
+                validationCallArguments.add(Arrays.asList(type, securable, ident, user.name()));
                 if ("ddlOnly".equals(user.name())) {
                     return Permission.DDL == type;
                 }
