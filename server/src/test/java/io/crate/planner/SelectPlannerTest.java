@@ -126,7 +126,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = e.logicalPlan("select name from users where _id = 1");
         assertThat(plan).isEqualTo(
-            "Get[doc.users | name | DocKeys{1} | (_id = 1)]");
+            "Get[doc.users | name | DocKeys{'1'} | (_id = 1)]");
     }
 
     @Test

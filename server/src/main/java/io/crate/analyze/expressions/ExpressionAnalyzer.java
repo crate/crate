@@ -100,6 +100,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
@@ -1163,10 +1164,10 @@ public class ExpressionAnalyzer {
                                           List<Symbol> arguments,
                                           @Nullable Symbol filter,
                                           ExpressionAnalysisContext context,
-                                          CoordinatorTxnCtx coordinatorTxnCtx,
+                                          TransactionContext txnCtx,
                                           NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
-            null, functionName, arguments, filter, null, context, null, coordinatorTxnCtx, nodeCtx);
+            null, functionName, arguments, filter, null, context, null, txnCtx, nodeCtx);
     }
 
     /**
@@ -1179,7 +1180,7 @@ public class ExpressionAnalyzer {
      * @param filter The filter clause to filter {@link Function}'s input values.
      * @param context Context holding the state for the current translation.
      * @param windowDefinition The definition of the window the allocated function will be executed against.
-     * @param coordinatorTxnCtx {@link CoordinatorTxnCtx} for this transaction.
+     * @param txnCtx {@link TransactionContext} for this transaction.
      * @param nodeCtx The {@link NodeContext} to normalize constant expressions.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
@@ -1190,13 +1191,13 @@ public class ExpressionAnalyzer {
                                                        @Nullable Boolean ignoreNulls,
                                                        ExpressionAnalysisContext context,
                                                        @Nullable WindowDefinition windowDefinition,
-                                                       CoordinatorTxnCtx coordinatorTxnCtx,
+                                                       TransactionContext txnCtx,
                                                        NodeContext nodeCtx) {
         FunctionImplementation funcImpl = nodeCtx.functions().get(
             schema,
             functionName,
             arguments,
-            coordinatorTxnCtx.sessionSettings().searchPath());
+            txnCtx.sessionSettings().searchPath());
 
         Signature signature = funcImpl.signature();
         BoundSignature boundSignature = funcImpl.boundSignature();
