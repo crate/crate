@@ -24,11 +24,10 @@ package io.crate.execution.engine.collect;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Spliterator;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
-
-import org.elasticsearch.common.util.CollectionUtils;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -97,7 +96,7 @@ public final class RowsTransformer {
     }
 
     public static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
-        ArrayList<Object[]> objects = CollectionUtils.iterableAsArrayList(rows);
+        List<Object[]> objects = Lists.of(rows);
         Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
         objects.sort(ordering);
         return Lists.mapLazy(objects, Buckets.arrayToSharedRow());

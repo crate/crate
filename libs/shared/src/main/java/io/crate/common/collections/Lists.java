@@ -43,6 +43,18 @@ public final class Lists {
     private Lists() {
     }
 
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> of(Iterable<? extends T> items) {
+        if (items instanceof Collection<?> collection) {
+            return new ArrayList<>((Collection<T>) collection);
+        }
+        ArrayList<T> result = new ArrayList<>();
+        for (var item : items) {
+            result.add(item);
+        }
+        return result;
+    }
+
     /**
      * Create a new list that contains the elements of both arguments
      */
@@ -58,6 +70,27 @@ public final class Lists {
         xs.addAll(list1);
         xs.add(item);
         return xs;
+    }
+
+    @SafeVarargs
+    public static final <T> List<T> concat(T first, T ... tail) {
+        ArrayList<T> result = new ArrayList<>(1 + tail.length);
+        result.add(first);
+        for (int i = 0; i < tail.length; i++) {
+            result.add(tail[i]);
+        }
+        return result;
+    }
+
+    @SafeVarargs
+    public static final <T> List<T> concat(T first, T second, T ... tail) {
+        ArrayList<T> result = new ArrayList<>(2 + tail.length);
+        result.add(first);
+        result.add(second);
+        for (int i = 0; i < tail.length; i++) {
+            result.add(tail[i]);
+        }
+        return result;
     }
 
     public static <T> List<T> concatUnique(List<? extends T> list1, Collection<? extends T> list2) {
@@ -341,6 +374,57 @@ public final class Lists {
         @Override
         public int size() {
             return list.size();
+        }
+    }
+
+    /**
+     * Return a rotated view of the given list with the given distance.
+     */
+    public static <T> List<T> rotate(final List<T> list, int distance) {
+        if (list.isEmpty()) {
+            return list;
+        }
+
+        int d = distance % list.size();
+        if (d < 0) {
+            d += list.size();
+        }
+
+        if (d == 0) {
+            return list;
+        }
+
+        return new RotatedList<>(list, d);
+    }
+
+    private static class RotatedList<T> extends AbstractList<T> implements RandomAccess {
+
+        private final List<T> in;
+        private final int distance;
+
+        RotatedList(List<T> list, int distance) {
+            if (distance < 0 || distance >= list.size()) {
+                throw new IllegalArgumentException();
+            }
+            if (!(list instanceof RandomAccess)) {
+                throw new IllegalArgumentException();
+            }
+            this.in = list;
+            this.distance = distance;
+        }
+
+        @Override
+        public T get(int index) {
+            int idx = distance + index;
+            if (idx < 0 || idx >= in.size()) {
+                idx -= in.size();
+            }
+            return in.get(idx);
+        }
+
+        @Override
+        public int size() {
+            return in.size();
         }
     }
 
