@@ -21,6 +21,8 @@
 
 package io.crate.expression.operator.any;
 
+import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +30,6 @@ import java.util.function.Consumer;
 
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
@@ -65,7 +66,7 @@ public final class AnyEqOperator extends AnyOperator {
         List<?> values = (List<?>) candidates.value();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
-            return new MatchNoDocsQuery("column does not exist in this index");
+            return newUnmappedFieldQuery(columnName);
         }
         DataType<?> innerType = ArrayType.unnest(probe.valueType());
         return EqOperator.termsQuery(columnName, innerType, values, probe.hasDocValues(), probe.indexType());
@@ -79,7 +80,7 @@ public final class AnyEqOperator extends AnyOperator {
                 // {x=10} = any(objects)
                 return null;
             }
-            return new MatchNoDocsQuery("column doesn't exist in this index");
+            return newUnmappedFieldQuery(candidates.storageIdent());
         }
         if (DataTypes.isArray(probe.valueType())) {
             // [1, 2] = any(nested_array_ref)

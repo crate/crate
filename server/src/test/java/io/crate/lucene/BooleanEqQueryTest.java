@@ -107,4 +107,19 @@ public class BooleanEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
         assertThat(query).hasToString("arr2: [0, 1]");
     }
+
+    @Test
+    public void test_not_on_boolean_column() {
+        Query query = convert("not(a1)");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        assertThat(query)
+            .as("Uses term query and FieldsExist if index is available")
+            .hasToString("+(+*:* -a1:T) +FieldExistsQuery [field=a1]");
+
+        query = convert("not(a2)");
+        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
+        assertThat(query)
+            .as("Uses DocValuesRangeQuery and FieldsExist if index is not available")
+            .hasToString("+(+*:* -a2:[1 TO 1]) +FieldExistsQuery [field=a2]");
+    }
 }

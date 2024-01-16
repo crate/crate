@@ -32,13 +32,10 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -74,7 +71,9 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.EqQuery;
 
 
 @Singleton
@@ -311,12 +310,14 @@ public class LuceneQueryBuilder {
 
         @Override
         public Query visitReference(Reference ref, Context context) {
+            DataType<?> type = ref.valueType();
             // called for queries like: where boolColumn
-            if (ref.valueType() == DataTypes.BOOLEAN) {
-                if (ref.indexType() == IndexType.NONE) {
-                    return new MatchNoDocsQuery("column does not exist in this index");
+            if (type == DataTypes.BOOLEAN) {
+                EqQuery<? super Boolean> eqQuery = DataTypes.BOOLEAN.storageSupportSafe().eqQuery();
+                if (eqQuery != null) {
+                    return eqQuery.termQuery(
+                        ref.storageIdent(), Boolean.TRUE, ref.hasDocValues(), ref.indexType() != IndexType.NONE);
                 }
-                return new TermQuery(new Term(ref.storageIdent(), new BytesRef("T")));
             }
             return super.visitReference(ref, context);
         }
