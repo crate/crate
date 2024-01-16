@@ -76,7 +76,6 @@ public final class WhereClauseOptimizer {
                       DocKeys docKeys,
                       List<List<Symbol>> partitionValues,
                       Set<Symbol> clusteredByValues,
-                      DocTableInfo table,
                       boolean queryHasPkSymbolsOnly) {
             this.query = query;
             this.docKeys = docKeys;
@@ -115,7 +114,7 @@ public final class WhereClauseOptimizer {
                                               NodeContext nodeCtx) {
             SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
             Symbol boundQuery = binder.apply(query);
-            HashSet<Symbol> clusteredBy = new HashSet<>(clusteredByValues.size());
+            HashSet<Symbol> clusteredBy = HashSet.newHashSet(clusteredByValues.size());
             for (Symbol clusteredByValue : clusteredByValues) {
                 clusteredBy.add(binder.apply(clusteredByValue));
             }
@@ -173,9 +172,9 @@ public final class WhereClauseOptimizer {
                 Collections.singletonList(table.clusteredBy()), query, txnCtx);
             List<List<Symbol>> clusteredBySymbols = clusteredByMatches.matches();
             if (clusteredBySymbols != null) {
-                clusteredBy = new HashSet<>(clusteredBySymbols.size());
+                clusteredBy = HashSet.newHashSet(clusteredBySymbols.size());
                 for (List<Symbol> s : clusteredBySymbols) {
-                    clusteredBy.add(s.get(0));
+                    clusteredBy.add(s.getFirst());
                 }
             }
         }
@@ -183,7 +182,7 @@ public final class WhereClauseOptimizer {
         final DocKeys docKeys;
         final boolean shouldUseDocKeys = table.isPartitioned() == false && (
                 DocSysColumns.ID.equals(table.clusteredBy()) || (
-                    table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().get(0))));
+                    table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().getFirst())));
 
         if (pkMatches.matches() == null && shouldUseDocKeys) {
             pkMatches = eqExtractor.extractMatches(List.of(DocSysColumns.ID), query, txnCtx);
@@ -212,7 +211,6 @@ public final class WhereClauseOptimizer {
             docKeys,
             partitionMatches.matches(),
             clusteredBy,
-            table,
             pkMatches.unknowns().isEmpty()
         );
     }
