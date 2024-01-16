@@ -30,8 +30,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 
-import org.jetbrains.annotations.Nullable;
-
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -46,7 +45,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.MissingHistoryOperationsException;
 import org.elasticsearch.index.seqno.RetentionLease;
@@ -59,6 +57,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
@@ -82,7 +81,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
     public static class TransportAction extends TransportSingleShardAction<Request, Response> {
 
         public static final TimeValue WAIT_FOR_NEW_OPS_TIMEOUT = TimeValue.timeValueMinutes(1);
-        private static final Logger LOGGER = Loggers.getLogger(TransportAction.class);
+        private static final Logger LOGGER = LogManager.getLogger(TransportAction.class);
 
         private final IndicesService indicesService;
 

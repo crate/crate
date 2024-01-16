@@ -22,14 +22,15 @@
 package io.crate.replication.logical.action;
 
 import static io.crate.role.metadata.RolesHelper.userOf;
-import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.logging.Loggers;
@@ -61,13 +62,13 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     public void appendLogger() throws Exception {
         appender = new MockLogAppender();
         appender.start();
-        Loggers.addAppender(Loggers.getLogger(Publication.class), appender);
+        Loggers.addAppender(LogManager.getLogger(Publication.class), appender);
 
     }
 
     @After
     public void removeLogger() {
-        Loggers.removeAppender(Loggers.getLogger(Publication.class), appender);
+        Loggers.removeAppender(LogManager.getLogger(Publication.class), appender);
         appender.stop();
     }
 
@@ -101,7 +102,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
                                  "'soft_deletes.enabled' is set to: false";
         appender.addExpectation(new MockLogAppender.SeenEventExpectation(
             expectedLogMessage,
-            Loggers.getLogger(Publication.class).getName(),
+            LogManager.getLogger(Publication.class).getName(),
             Level.WARN,
             expectedLogMessage
         ));
