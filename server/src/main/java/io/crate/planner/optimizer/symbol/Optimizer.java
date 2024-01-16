@@ -25,11 +25,9 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
 
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.common.collections.Lists;
@@ -56,7 +54,6 @@ public class Optimizer {
         Optimizer optimizer = new Optimizer(
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
-            () -> plannerContext.clusterState().nodes().getMinNodeVersion(),
             List.of(
                 SwapCastsInComparisonOperators::new,
                 SwapCastsInLikeOperators::new,
@@ -73,13 +70,11 @@ public class Optimizer {
     private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
 
     private final List<Rule<?>> rules;
-    private final Supplier<Version> minNodeVersionInCluster;
     private final NodeContext nodeCtx;
     private final Visitor visitor = new Visitor();
 
     public Optimizer(CoordinatorTxnCtx coordinatorTxnCtx,
                      NodeContext nodeCtx,
-                     Supplier<Version> minNodeVersionInCluster,
                      List<Function<FunctionSymbolResolver, Rule<?>>> rules) {
         FunctionSymbolResolver functionResolver =
             (f, args) -> {
@@ -96,7 +91,6 @@ public class Optimizer {
                 }
             };
         this.rules = Lists.map(rules, r -> r.apply(functionResolver));
-        this.minNodeVersionInCluster = minNodeVersionInCluster;
         this.nodeCtx = nodeCtx;
     }
 
@@ -112,11 +106,7 @@ public class Optimizer {
         int numIterations = 0;
         while (!done && numIterations < 10_000) {
             done = true;
-            Version minVersion = minNodeVersionInCluster.get();
             for (Rule<?> rule : rules) {
-                if (minVersion.before(rule.requiredVersion())) {
-                    continue;
-                }
                 Symbol transformed = tryMatchAndApply(rule, node, nodeCtx);
                 if (transformed != null) {
                     if (isTraceEnabled) {

@@ -21,24 +21,16 @@
 
 package io.crate.planner.optimizer.symbol;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import org.elasticsearch.Version;
-
-import org.jetbrains.annotations.Nullable;
 
 public interface Rule<T> {
 
     Pattern<T> pattern();
 
     Symbol apply(T symbol, Captures captures, NodeContext nodeCtx, @Nullable Symbol parentNode);
-
-    /**
-     * @return The version all nodes in the cluster must have to be able to use this optimization.
-     */
-    default Version requiredVersion() {
-        return Version.V_4_0_0;
-    }
 }
