@@ -23,6 +23,7 @@ package io.crate.testing;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.StringJoiner;
@@ -31,7 +32,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Ordering;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
@@ -47,7 +47,7 @@ public class SQLPrinter {
             return print((Symbol) o);
         } else if (o instanceof HashSet<?> set) {
             Object[] elements = set.toArray();
-            Arrays.sort(elements, Ordering.usingToString());
+            Arrays.sort(elements, Comparator.comparing(Object::toString));
             return print(List.of(elements));
         } else if (o instanceof Collection<?> collection) {
             StringJoiner joiner = new StringJoiner(", ");
