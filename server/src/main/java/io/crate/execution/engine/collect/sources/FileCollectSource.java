@@ -53,7 +53,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -126,10 +125,8 @@ public class FileCollectSource implements CollectSource {
         if (targetUri.valueType().id() == DataTypes.STRING.id()) {
             String uri = (String) value;
             return Collections.singletonList(uri);
-        } else if (DataTypes.isArray(targetUri.valueType()) &&
-                   ArrayType.unnest(targetUri.valueType()).id() == DataTypes.STRING.id()) {
-            //noinspection unchecked
-            return (List<String>) value;
+        } else if (DataTypes.STRING_ARRAY.equals(targetUri.valueType())) {
+            return DataTypes.STRING_ARRAY.implicitCast(value);
         }
 
         // this case actually never happens because the check is already done in the analyzer

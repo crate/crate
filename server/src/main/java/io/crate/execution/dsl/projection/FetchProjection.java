@@ -27,13 +27,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
-
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.monitor.jvm.JvmInfo;
 
 import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
@@ -179,11 +179,10 @@ public class FetchProjection extends Projection {
             .map();
     }
 
-    @SuppressWarnings({"rawtypes"})
-    public Map<String, ? extends IntObjectMap<Streamer[]>> generateStreamersGroupedByReaderAndNode() {
-        HashMap<String, IntObjectHashMap<Streamer[]>> streamersByReaderByNode = new HashMap<>();
+    public Map<String, ? extends IntObjectMap<Streamer<?>[]>> generateStreamersGroupedByReaderAndNode() {
+        HashMap<String, IntObjectHashMap<Streamer<?>[]>> streamersByReaderByNode = new HashMap<>();
         for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
-            IntObjectHashMap<Streamer[]> streamersByReaderId = new IntObjectHashMap<>();
+            IntObjectHashMap<Streamer<?>[]> streamersByReaderId = new IntObjectHashMap<>();
             String nodeId = entry.getKey();
             streamersByReaderByNode.put(nodeId, streamersByReaderId);
             for (IntCursor readerIdCursor : entry.getValue()) {

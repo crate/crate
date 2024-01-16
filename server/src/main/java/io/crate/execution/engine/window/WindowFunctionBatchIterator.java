@@ -86,7 +86,7 @@ public final class WindowFunctionBatchIterator {
                                         List<WindowFunction> windowFunctions,
                                         List<? extends CollectExpression<Row, ?>> argsExpressions,
                                         Boolean[] ignoreNulls,
-                                        Input[]... args) {
+                                        Input<?>[] ... args) {
         assert windowFunctions.size() == args.length : "arguments must be defined for each window function";
         assert args.length == ignoreNulls.length : "ignore-nulls option must be defined for each window function";
         // As optimization we use 1 list that acts both as inputs(source) and as outputs.
@@ -137,7 +137,7 @@ public final class WindowFunctionBatchIterator {
         List<WindowFunction> windowFunctions,
         List<? extends CollectExpression<Row, ?>> argsExpressions,
         Boolean[] ignoreNulls,
-        Input[]... args) {
+        Input<?>[]... args) {
 
         Function<List<Object[]>, Iterable<Object[]>> computeWindowsFn = sortedRows -> computeWindowFunctions(
             sortedRows,
@@ -168,7 +168,7 @@ public final class WindowFunctionBatchIterator {
                                                              List<WindowFunction> windowFunctions,
                                                              List<? extends CollectExpression<Row, ?>> argsExpressions,
                                                              Boolean[] ignoreNulls,
-                                                             Input[]... args) {
+                                                             Input<?>[]... args) {
         return () -> new Iterator<>() {
 
             private boolean isTraceEnabled = LOGGER.isTraceEnabled();
@@ -235,7 +235,7 @@ public final class WindowFunctionBatchIterator {
                                                     int idxInPartition,
                                                     List<? extends CollectExpression<Row, ?>> argsExpressions,
                                                     Boolean[] ignoreNulls,
-                                                    Input[]... args) {
+                                                    Input<?>[]... args) {
         Object[] row = rows.get(idx);
         for (int c = 0; c < windowFunctions.size(); c++) {
             WindowFunction windowFunction = windowFunctions.get(c);

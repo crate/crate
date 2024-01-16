@@ -21,11 +21,12 @@
 
 package io.crate.execution.engine.aggregation.impl.average.numeric;
 
-import io.crate.execution.engine.aggregation.impl.util.NumericValueHolder;
-
-import org.jetbrains.annotations.NotNull;
 import java.math.BigDecimal;
 import java.util.Objects;
+
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.execution.engine.aggregation.impl.util.NumericValueHolder;
 
 public class NumericAverageState<T extends NumericValueHolder> implements Comparable<NumericAverageState<T>> {
 
@@ -50,7 +51,7 @@ public class NumericAverageState<T extends NumericValueHolder> implements Compar
     }
 
     @Override
-    public int compareTo(NumericAverageState o) {
+    public int compareTo(NumericAverageState<T> o) {
         if (o == null) {
             return 1;
         } else {
