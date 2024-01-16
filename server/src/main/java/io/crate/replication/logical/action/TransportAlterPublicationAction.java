@@ -21,14 +21,12 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.exceptions.PublicationUnknownException;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.sql.tree.AlterPublication;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -43,20 +41,23 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.exceptions.PublicationUnknownException;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.sql.tree.AlterPublication;
 
 public class TransportAlterPublicationAction extends TransportMasterNodeAction<TransportAlterPublicationAction.Request, AcknowledgedResponse> {
 
     public static final String NAME = "internal:crate:replication/logical/publication/alter";
 
-    private static final Logger LOGGER = Loggers.getLogger(TransportAlterPublicationAction.class);
+    private static final Logger LOGGER = LogManager.getLogger(TransportAlterPublicationAction.class);
 
     @Inject
     public TransportAlterPublicationAction(TransportService transportService,

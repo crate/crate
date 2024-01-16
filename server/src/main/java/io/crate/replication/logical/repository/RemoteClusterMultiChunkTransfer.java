@@ -25,11 +25,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
@@ -45,7 +45,7 @@ import io.crate.replication.logical.action.GetFileChunkAction;
 public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFileMetadata, RemoteClusterRepositoryFileChunk> {
 
     private static final String RESTORE_SHARD_TEMP_FILE_PREFIX = "CLUSTER_REPO_TEMP_";
-    private static final Logger LOGGER = Loggers.getLogger(RemoteClusterMultiChunkTransfer.class);
+    private static final Logger LOGGER = LogManager.getLogger(RemoteClusterMultiChunkTransfer.class);
 
     private final DiscoveryNode remoteNode;
     private final String restoreUUID;

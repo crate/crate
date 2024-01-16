@@ -31,6 +31,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -38,7 +39,6 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -65,7 +65,7 @@ import io.crate.replication.logical.seqno.RetentionLeaseHelper;
  */
 public class ShardReplicationChangesTracker implements Closeable {
 
-    private static final Logger LOGGER = Loggers.getLogger(ShardReplicationChangesTracker.class);
+    private static final Logger LOGGER = LogManager.getLogger(ShardReplicationChangesTracker.class);
 
     private final String subscriptionName;
     private final ShardId shardId;
