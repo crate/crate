@@ -117,7 +117,9 @@ public class EqualityExtractor {
                                      boolean shortCircuitOnMatchPredicateUnknown,
                                      TransactionContext txnCtx) {
         var context = new ProxyInjectingVisitor.Context(columns);
-        Symbol proxiedTree = query.accept(ProxyInjectingVisitor.INSTANCE, context);
+        // Normalize the query so that any casts on literals are evaluated
+        var normalizedQuery = normalizer.normalize(query, txnCtx);
+        Symbol proxiedTree = normalizedQuery.accept(ProxyInjectingVisitor.INSTANCE, context);
 
         // Match cannot execute without Lucene
         if (shortCircuitOnMatchPredicateUnknown && context.unknowns.size() == 1) {
@@ -295,7 +297,7 @@ public class EqualityExtractor {
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             throw new UnsupportedOperationException("writeTo not supported for " +
-                                                    EqProxy.class.getSimpleName());
+                EqProxy.class.getSimpleName());
         }
 
         @Override
@@ -352,7 +354,7 @@ public class EqualityExtractor {
 
         private static class Context {
 
-            private LinkedHashMap<ColumnIdent, Comparison> comparisons;
+            private final LinkedHashMap<ColumnIdent, Comparison> comparisons;
             private boolean proxyBelow;
             private final Set<Symbol> unknowns = new HashSet<>();
 

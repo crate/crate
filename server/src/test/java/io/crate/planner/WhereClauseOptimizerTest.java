@@ -30,9 +30,12 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -46,6 +49,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
+            .addTable("create table t_pk(a string primary key)")
             .addTable("create table bystring (name string primary key, score double) " +
                       "clustered by (name) ")
             .addTable("create table clustered_by_only (x int) clustered by (x)")
@@ -78,8 +82,19 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private WhereClauseOptimizer.DetailedQuery optimize(String statement) {
-        QueriedSelectRelation queriedTable = e.analyze(statement);
-        DocTableRelation table = ((DocTableRelation) queriedTable.from().get(0));
+        AnalyzedStatement stmt = e.analyze(statement);
+        DocTableRelation table;
+        Symbol where;
+        if (stmt instanceof QueriedSelectRelation qsr) {
+            table = (DocTableRelation) qsr.from().getFirst();
+            where = qsr.where();
+        } else if (stmt instanceof AnalyzedDeleteStatement ads) {
+            table = ads.relation();
+            where = ads.query();
+        } else {
+            throw new IllegalArgumentException("Neither a select or a delete statement is provided");
+        }
+
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             e.nodeCtx,
             RowGranularity.CLUSTER,
@@ -88,7 +103,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
         );
         return WhereClauseOptimizer.optimize(
             normalizer,
-            queriedTable.where(),
+            where,
             table.tableInfo(),
             e.getPlannerContext(clusterService.state()).transactionContext(),
             e.nodeCtx
@@ -183,5 +198,21 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(query.query()).isSQL(
             "((doc.partdatebin.ts > 1682899200000::bigint) AND (month >= 1681344000000::bigint))"
         );
+    }
+
+    @Test
+    public void test_filter_on_pk_with_implicit_cast() {
+        WhereClauseOptimizer.DetailedQuery query = optimize("select * from t_pk where a = 10 OR a = true");
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
+        query = optimize("delete from t_pk where a = 10 OR a = true");
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
+    }
+
+    @Test
+    public void test_filter_on_id_with_implicit_cast() {
+        WhereClauseOptimizer.DetailedQuery query = optimize("select * from t_pk where _id = 10 OR _id = true");
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
+        query = optimize("delete from t_pk where _id = 10 OR _id = true");
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
     }
 }

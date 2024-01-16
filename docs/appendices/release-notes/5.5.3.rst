@@ -49,6 +49,13 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue, that led to no results being returned when trying to filter on
+  a :ref:`PRIMARY KEY <constraints-primary-key>` column with an implicit cast.
+  For example::
+
+    CREATE TABLE tbl(a string PRIMARY KEY);
+    SELECT * FROM tbl WHERE a = 10;
+
 - Rejected :ref:`renaming <sql-alter-table-rename-to>` of views and tables if
   the target table or view already exists, and return an error message.
   Previously, such a rename was allowed which caused the existing view or table
