@@ -112,3 +112,9 @@ Fixes
         modification_date TIMESTAMP AS current_timestamp
     )
     INSERT INTO tbl (id, a) VALUES (1, 2) ON CONFLICT (id) DO UPDATE SET a = 3;
+
+- Fixed an issue that caused joins with the join conditions that referred to
+  columns from a single table only from returning invalid results. i.e.::
+
+    SELECT * FROM t1 INNER JOIN t2 ON t1.col = t1.col;
+
