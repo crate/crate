@@ -19,6 +19,10 @@
 
 package org.elasticsearch.action.admin.cluster.health;
 
+import java.io.IOException;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -26,17 +30,15 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
 
-import java.io.IOException;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+import io.crate.common.unit.TimeValue;
 
 public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthRequest> implements IndicesRequest.Replaceable {
 
-    private String[] indices;
+    private String[] indices = Strings.EMPTY_ARRAY;
     private IndicesOptions indicesOptions = IndicesOptions.lenientExpand();
     private TimeValue timeout = new TimeValue(30, TimeUnit.SECONDS);
     private ClusterHealthStatus waitForStatus;
@@ -55,6 +57,7 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
     }
 
     public ClusterHealthRequest(String... indices) {
+        assert indices != null : "Must not set indices to null";
         this.indices = indices;
     }
 
@@ -65,6 +68,7 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
 
     @Override
     public ClusterHealthRequest indices(String... indices) {
+        assert indices != null : "Must not set indices to null";
         this.indices = indices;
         return this;
     }
@@ -236,11 +240,7 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (indices == null) {
-            out.writeVInt(0);
-        } else {
-            out.writeStringArray(indices);
-        }
+        out.writeStringArray(indices);
         out.writeTimeValue(timeout);
         if (waitForStatus == null) {
             out.writeBoolean(false);

@@ -21,7 +21,18 @@
 
 package io.crate.execution.engine.collect;
 
+import java.io.File;
+import java.util.Map;
+
+import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.blob.v2.BlobShard;
+import io.crate.common.collections.Lists;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -38,16 +49,6 @@ import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.CollectionUtils;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import org.jetbrains.annotations.Nullable;
-import java.io.File;
-import java.util.Map;
 
 public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
@@ -99,7 +100,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
         Iterable<File> files = blobShard.blobContainer().getFiles();
         Iterable<Row> rows = RowsTransformer.toRowsIterable(txnCtx, inputFactory, BlobReferenceResolver.INSTANCE, collectPhase, files);
         if (requiresRepeat) {
-            return CollectionUtils.iterableAsArrayList(rows);
+            return Lists.of(rows);
         }
         return rows;
     }
