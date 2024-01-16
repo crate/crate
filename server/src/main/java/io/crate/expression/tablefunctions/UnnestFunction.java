@@ -29,7 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import io.crate.common.collections.Iterators;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.legacy.LegacySettings;
@@ -61,7 +61,7 @@ public class UnnestFunction {
                 .withFeature(Scalar.Feature.NON_NULLABLE)
                 .withVariableArity(),
             (signature, boundSignature) -> {
-                List<DataType<?>> fieldTypes = Lists2.map(boundSignature.argTypes(), ArrayType::unnest);
+                List<DataType<?>> fieldTypes = Lists.map(boundSignature.argTypes(), ArrayType::unnest);
                 Boolean useLegacyName = LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings());
                 List<String> fieldNames = fieldTypes.size() == 1 && !useLegacyName
                     ? List.of(NAME)
@@ -152,7 +152,7 @@ public class UnnestFunction {
                 return Collections.emptyIterator();
             }
             if (type.innerType() instanceof ArrayType) {
-                List<Iterator<Object>> iterators = Lists2.map(
+                List<Iterator<Object>> iterators = Lists.map(
                     objects,
                     x -> createIterator((List<Object>) x, (ArrayType<?>) type.innerType())
                 );

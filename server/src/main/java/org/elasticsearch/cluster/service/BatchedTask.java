@@ -27,7 +27,7 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.ClusterStateTaskListener;
 import org.elasticsearch.common.Priority;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 
 /**
  * Represents a runnable task that supports batching.
@@ -81,7 +81,7 @@ public final class BatchedTask<T> extends SourcePrioritizedRunnable {
     }
 
     public String describeTasks(List<? extends BatchedTask<T>> tasks) {
-        return batchingKey.describeTasks(Lists2.mapLazy(tasks, BatchedTask::getTask));
+        return batchingKey.describeTasks(Lists.mapLazy(tasks, BatchedTask::getTask));
     }
 
     public T getTask() {

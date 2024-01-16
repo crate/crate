@@ -21,7 +21,11 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.common.collections.Lists2;
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -30,15 +34,12 @@ import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-
 public final class SubscriptFunctions {
 
     public static Function makeObjectSubscript(Symbol base, List<String> path) {
         assert base.valueType().id() == ObjectType.ID
             : "makeObjectSubscript only works on base symbols of type `object`, got `" + base.valueType().getName() + '`';
-        List<Symbol> arguments = Lists2.mapTail(base, path, Literal::of);
+        List<Symbol> arguments = Lists.mapTail(base, path, Literal::of);
         DataType<?> returnType = ((ObjectType) base.valueType()).resolveInnerType(path);
         return new Function(
             SubscriptObjectFunction.SIGNATURE,
@@ -58,7 +59,7 @@ public final class SubscriptFunctions {
         var baseType = baseSymbol.valueType();
         switch (baseType.id()) {
             case ObjectType.ID: {
-                List<Symbol> arguments = Lists2.mapTail(baseSymbol, path, Literal::of);
+                List<Symbol> arguments = Lists.mapTail(baseSymbol, path, Literal::of);
                 DataType<?> returnType = ((ObjectType) baseType).resolveInnerType(path);
                 return new Function(
                     SubscriptObjectFunction.SIGNATURE,

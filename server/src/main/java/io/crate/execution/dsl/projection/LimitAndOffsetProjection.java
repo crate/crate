@@ -28,7 +28,7 @@ import java.util.Map;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -110,7 +110,7 @@ public class LimitAndOffsetProjection extends Projection {
             .put("type", "LimitAndOffset")
             .put("limit", limit)
             .put("offset", offset)
-            .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))
+            .put("outputs", Lists.joinOn(", ", outputs, Symbol::toString))
             .map();
     }
 

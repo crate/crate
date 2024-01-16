@@ -28,7 +28,7 @@ import java.util.Locale;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingProvider;
@@ -83,6 +83,6 @@ public class LoadedRules implements SessionSettingProvider {
 
     @Override
     public List<SessionSetting<?>> sessionSettings() {
-        return Lists2.map(RULES, LoadedRules::buildRuleSessionSetting);
+        return Lists.map(RULES, LoadedRules::buildRuleSessionSetting);
     }
 }

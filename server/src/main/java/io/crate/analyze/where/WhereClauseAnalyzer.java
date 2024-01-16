@@ -36,7 +36,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Iterables;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Tuple;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.partitioned.PartitionExpression;
@@ -139,14 +139,14 @@ public class WhereClauseAnalyzer {
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal<?>>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             return new PartitionResult(
-                entry.getKey(), Lists2.map(entry.getValue(), literal -> nullOrString(literal.value())));
+                entry.getKey(), Lists.map(entry.getValue(), literal -> nullOrString(literal.value())));
         } else if (queryPartitionMap.size() > 0) {
             PartitionResult partitionResult = tieBreakPartitionQueries(
                 normalizer, queryPartitionMap, coordinatorTxnCtx);
             return partitionResult == null
                 // if partitionResult is null we can't narrow the partitions and keep the full query + use all partitions
                 // the query will then be evaluated correctly within each partition to see whether it matches or not
-                ? new PartitionResult(query, Lists2.map(tableInfo.partitions(), PartitionName::asIndexName))
+                ? new PartitionResult(query, Lists.map(tableInfo.partitions(), PartitionName::asIndexName))
                 : partitionResult;
         } else {
             return new PartitionResult(Literal.BOOLEAN_FALSE, Collections.emptyList());
@@ -196,7 +196,7 @@ public class WhereClauseAnalyzer {
             Tuple<Symbol, List<Literal<?>>> symbolListTuple = canMatch.get(0);
             return new PartitionResult(
                 symbolListTuple.v1(),
-                Lists2.map(symbolListTuple.v2(), literal -> nullOrString(literal.value()))
+                Lists.map(symbolListTuple.v2(), literal -> nullOrString(literal.value()))
             );
         }
         return null;

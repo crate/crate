@@ -58,7 +58,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.action.FutureActionListener;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
 
 /**
@@ -544,6 +544,6 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
     @Override
     protected void doClose() throws IOException {
         clusterService.removeApplier(this);
-        IOUtils.close(Lists2.concat(internalRepositories.values(), repositories.values()));
+        IOUtils.close(Lists.concat(internalRepositories.values(), repositories.values()));
     }
 }

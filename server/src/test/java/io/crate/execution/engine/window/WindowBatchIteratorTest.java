@@ -42,7 +42,7 @@ import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
@@ -139,7 +139,7 @@ public class WindowBatchIteratorTest {
     @Test
     public void testFrameBoundsForPartitionedWindow() throws Exception {
         var rows = Arrays.asList(-1, 1, 1, 2, 2, 3, 4, 5, null, null);
-        var rowsWithSpare = Lists2.map(rows, i -> new Object[] { i, null });
+        var rowsWithSpare = Lists.map(rows, i -> new Object[] { i, null });
         var result = sortAndComputeWindowFunctions(
             rowsWithSpare,
             getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),

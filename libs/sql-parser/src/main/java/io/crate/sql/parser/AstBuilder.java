@@ -40,7 +40,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.antlr.SqlBaseLexer;
 import io.crate.sql.parser.antlr.SqlBaseParser;
@@ -448,7 +448,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         SqlBaseParser.PartitionedByOrClusteredIntoContext tableOptsCtx = context.partitionedByOrClusteredInto();
         Optional<ClusteredBy> clusteredBy = visitIfPresent(tableOptsCtx.clusteredBy(), ClusteredBy.class);
         Optional<PartitionedBy> partitionedBy = visitIfPresent(tableOptsCtx.partitionedBy(), PartitionedBy.class);
-        var tableElements = Lists2.map(context.tableElement(), x -> (TableElement<Expression>) visit(x));
+        var tableElements = Lists.map(context.tableElement(), x -> (TableElement<Expression>) visit(x));
         return new CreateTable(
             (Table<?>) visit(context.table()),
             tableElements,
@@ -809,7 +809,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                 if (conflictColumns.isEmpty()) {
                     throw new IllegalStateException("ON CONFLICT <conflict_target> <- conflict_target missing");
                 }
-                var assignments = Lists2.map(onConflictContext.assignment(), x -> (Assignment<Expression>) visit(x));
+                var assignments = Lists.map(onConflictContext.assignment(), x -> (Assignment<Expression>) visit(x));
                 return new Insert.DuplicateKeyContext<>(
                     Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET,
                     assignments,
@@ -835,7 +835,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @SuppressWarnings("unchecked")
     @Override
     public Node visitUpdate(SqlBaseParser.UpdateContext context) {
-        var assignments = Lists2.map(context.assignment(), x -> (Assignment<Expression>) visit(x));
+        var assignments = Lists.map(context.assignment(), x -> (Assignment<Expression>) visit(x));
         return new Update(
             (Relation) visit(context.aliasedRelation()),
             assignments,
@@ -864,7 +864,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @SuppressWarnings("unchecked")
     @Override
     public Node visitSetGlobal(SqlBaseParser.SetGlobalContext context) {
-        var assignments = Lists2.map(context.setGlobalAssignment(), x -> (Assignment<Expression>) visit(x));
+        var assignments = Lists.map(context.setGlobalAssignment(), x -> (Assignment<Expression>) visit(x));
         if (context.PERSISTENT() != null) {
             return new SetStatement<>(SetStatement.Scope.GLOBAL,
                 SetStatement.SettingType.PERSISTENT,
@@ -889,7 +889,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitSetTransaction(SetTransactionContext ctx) {
-        List<TransactionMode> modes = Lists2.map(ctx.transactionMode(), AstBuilder::getTransactionMode);
+        List<TransactionMode> modes = Lists.map(ctx.transactionMode(), AstBuilder::getTransactionMode);
         return new SetTransactionStatement(modes);
     }
 
@@ -1345,7 +1345,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitAddColumn(SqlBaseParser.AddColumnContext context) {
-        var columnDefinitions = Lists2.map(context.addColumnDefinition(), x -> (TableElement<Expression>) visit(x));
+        var columnDefinitions = Lists.map(context.addColumnDefinition(), x -> (TableElement<Expression>) visit(x));
         return new AlterTableAddColumn((Table<?>) visit(context.alterTableDefinition()), columnDefinitions);
     }
 
@@ -1361,7 +1361,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitDropColumn(SqlBaseParser.DropColumnContext ctx) {
-        var columnDefinitions = Lists2.map(ctx.dropColumnDefinition(), x -> (TableElement<Expression>) visit(x));
+        var columnDefinitions = Lists.map(ctx.dropColumnDefinition(), x -> (TableElement<Expression>) visit(x));
         return new AlterTableDropColumn((Table<?>) visit(ctx.alterTableDefinition()), columnDefinitions);
     }
 
@@ -2374,7 +2374,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     private List<String> identsToStrings(List<SqlBaseParser.IdentContext> idents) {
-        return Lists2.map(idents, this::getIdentText);
+        return Lists.map(idents, this::getIdentText);
     }
 
     private static boolean isDistinct(SqlBaseParser.SetQuantContext setQuantifier) {

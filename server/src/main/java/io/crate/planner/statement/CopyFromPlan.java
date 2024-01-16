@@ -54,7 +54,7 @@ import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
@@ -164,7 +164,7 @@ public final class CopyFromPlan implements Plan {
             partitionIdent = PartitionPropertiesAnalyzer
                 .toPartitionName(
                     copyFrom.tableInfo(),
-                    Lists2.map(copyFrom.table().partitionProperties(), x -> x.map(eval)))
+                    Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)))
                 .ident();
         } else {
             partitionIdent = null;
@@ -195,7 +195,7 @@ public final class CopyFromPlan implements Plan {
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
-            targetColumns = Lists2.map(copyFrom.tableInfo().columns(), Reference::toString);
+            targetColumns = Lists.map(copyFrom.tableInfo().columns(), Reference::toString);
         }
 
         return new BoundCopyFrom(
@@ -225,7 +225,7 @@ public final class CopyFromPlan implements Plan {
         List<String> partitionValues = Collections.emptyList();
         if (partitionIdent == null) {
             if (table.isPartitioned()) {
-                partitionedByNames = Lists2.map(table.partitionedBy(), ColumnIdent::fqn);
+                partitionedByNames = Lists.map(table.partitionedBy(), ColumnIdent::fqn);
             }
         } else {
             assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";

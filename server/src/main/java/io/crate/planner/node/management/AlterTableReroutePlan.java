@@ -21,6 +21,21 @@
 
 package io.crate.planner.node.management;
 
+import static io.crate.planner.NodeSelection.resolveNodeId;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+
 import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
 import io.crate.analyze.AnalyzedRerouteCancelShard;
@@ -30,7 +45,7 @@ import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -48,21 +63,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Function;
-
-import static io.crate.planner.NodeSelection.resolveNodeId;
 
 public class AlterTableReroutePlan implements Plan {
 
@@ -144,7 +144,7 @@ public class AlterTableReroutePlan implements Plan {
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
-                Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)));
             String toNodeId = resolveNodeId(
                 context.nodes,
                 DataTypes.STRING.sanitizeValue(boundedPromoteReplica.node()));
@@ -166,7 +166,7 @@ public class AlterTableReroutePlan implements Plan {
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
-                Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)));
             String toNodeId = resolveNodeId(
                 context.nodes,
                 DataTypes.STRING.sanitizeValue(boundedMoveShard.toNodeIdOrName()));
@@ -189,7 +189,7 @@ public class AlterTableReroutePlan implements Plan {
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
-                Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)));
             String toNodeId = resolveNodeId(
                 context.nodes,
                 DataTypes.STRING.sanitizeValue(boundedRerouteAllocateReplicaShard.nodeIdOrName()));
@@ -214,7 +214,7 @@ public class AlterTableReroutePlan implements Plan {
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
-                Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)));
             String nodeId = resolveNodeId(
                 context.nodes,
                 DataTypes.STRING.sanitizeValue(boundedRerouteCancelShard.nodeIdOrName()));

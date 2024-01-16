@@ -43,7 +43,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.annotations.NotThreadSafe;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -705,7 +705,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             RefBuilder builder = columns.get(columnIdent);
             builder.indexMethod = indexDefinition.method();
             builder.indexProperties = indexDefinition.properties().map(toSymbol);
-            builder.indexSources = Lists2.map(indexDefinition.columns(), toSymbol);
+            builder.indexSources = Lists.map(indexDefinition.columns(), toSymbol);
             builder.indexType = IndexType.of(builder.indexMethod);
             return null;
         }

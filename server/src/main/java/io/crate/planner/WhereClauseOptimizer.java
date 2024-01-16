@@ -36,7 +36,7 @@ import io.crate.analyze.where.EqualityExtractor;
 import io.crate.analyze.where.EqualityExtractor.EqMatches;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseValidator;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
@@ -152,7 +152,7 @@ public final class WhereClauseOptimizer {
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
             query,
             table.generatedColumns(),
-            Lists2.concat(table.partitionedByColumns(), Lists2.map(table.primaryKey(), table::getReference)),
+            Lists.concat(table.partitionedByColumns(), Lists.map(table.primaryKey(), table::getReference)),
             nodeCtx);
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, txnCtx);

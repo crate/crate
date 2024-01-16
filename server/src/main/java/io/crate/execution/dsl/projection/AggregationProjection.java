@@ -21,7 +21,16 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.common.collections.Lists2;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
@@ -30,14 +39,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * A projection which aggregates all inputs to a single row
@@ -127,7 +128,7 @@ public class AggregationProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return MapBuilder.<String, Object>newMapBuilder()
             .put("type", "HashAggregation")
-            .put("aggregations", '[' + Lists2.joinOn(", ", aggregations, Aggregation::toString) + ']')
+            .put("aggregations", '[' + Lists.joinOn(", ", aggregations, Aggregation::toString) + ']')
             .map();
     }
 }

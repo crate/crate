@@ -31,7 +31,7 @@ import java.util.function.Function;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.dsl.projection.FetchProjection;
@@ -172,7 +172,7 @@ public final class Fetch extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Fetch(replacedOutputs, fetchRefs, fetchSourceByRelation, Lists2.getOnlyElement(sources));
+        return new Fetch(replacedOutputs, fetchRefs, fetchSourceByRelation, Lists.getOnlyElement(sources));
     }
 
     @Override

@@ -35,7 +35,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
@@ -72,11 +72,11 @@ public class Symbols {
     }
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
-        return Lists2.mapLazy(symbols, Symbol::valueType);
+        return Lists.mapLazy(symbols, Symbol::valueType);
     }
 
     public static List<TypeSignature> typeSignatureView(List<? extends Symbol> symbols) {
-        return Lists2.mapLazy(symbols, s -> s.valueType().getTypeSignature());
+        return Lists.mapLazy(symbols, s -> s.valueType().getTypeSignature());
     }
 
     public static Streamer<?>[] streamerArray(Symbol[] symbols) {

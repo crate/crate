@@ -24,7 +24,7 @@ package io.crate.expression.tablefunctions;
 import java.util.List;
 import java.util.Locale;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -78,7 +78,7 @@ public class TableFunctionFactory {
             super(
                 Signature.table(
                     functionImplementation.signature().getName(),
-                    Lists2.concat(
+                    Lists.concat(
                         functionImplementation.signature().getArgumentTypes(),
                         functionImplementation.signature().getReturnType()
                     ).toArray(new TypeSignature[0])

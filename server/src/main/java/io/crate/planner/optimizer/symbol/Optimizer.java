@@ -32,7 +32,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.AliasResolver;
 import io.crate.expression.symbol.FunctionCopyVisitor;
@@ -95,7 +95,7 @@ public class Optimizer {
                     return null;
                 }
             };
-        this.rules = Lists2.map(rules, r -> r.apply(functionResolver));
+        this.rules = Lists.map(rules, r -> r.apply(functionResolver));
         this.minNodeVersionInCluster = minNodeVersionInCluster;
         this.nodeCtx = nodeCtx;
     }

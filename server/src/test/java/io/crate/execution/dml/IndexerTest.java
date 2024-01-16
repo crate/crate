@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
@@ -67,7 +68,7 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.AlterTableTask;
@@ -700,7 +701,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         ArrayList<ColumnIdent> columns = new ArrayList<>();
         ArrayList<Object> values = new ArrayList<>();
-        List<DataType<?>> types = Lists2
+        List<DataType<?>> types = Lists
             .concat(
                 DataTypes.PRIMITIVE_TYPES,
                 List.of(
@@ -749,7 +750,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 new CoordinatorTxnCtx(e.getSessionSettings()),
                 e.nodeCtx,
                 mapperService::getLuceneFieldType,
-                Lists2.map(columns, c -> table.getReference(c)),
+                Lists.map(columns, c -> table.getReference(c)),
                 null
             );
             ParsedDocument doc = indexer.index(item(values.toArray()));

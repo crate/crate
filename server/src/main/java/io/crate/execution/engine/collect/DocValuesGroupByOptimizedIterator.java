@@ -50,7 +50,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -232,7 +232,7 @@ final class DocValuesGroupByOptimizedIterator {
                 minNodeVersion,
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
-                    Lists2.map(keyColumnRefs, Reference::valueType)
+                    Lists.map(keyColumnRefs, Reference::valueType)
                 ),
                 (expressions) -> {
                     ArrayList<Object> key = new ArrayList<>(keyColumnRefs.size());

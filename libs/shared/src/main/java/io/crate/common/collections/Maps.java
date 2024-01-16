@@ -197,7 +197,7 @@ public final class Maps {
      *  - Skip the entry otherwise
      **/
     public static void extendRecursive(Map<String, Object> map, Map<String, Object> additions) {
-        extendRecursive(map, additions, (oldList, newList) -> Lists2.concatUnique(oldList, newList));
+        extendRecursive(map, additions, (oldList, newList) -> Lists.concatUnique(oldList, newList));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

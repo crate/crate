@@ -21,10 +21,10 @@
 
 package io.crate.common.collections;
 
-import static io.crate.common.collections.Lists2.findFirstGTEProbeValue;
-import static io.crate.common.collections.Lists2.findFirstLTEProbeValue;
-import static io.crate.common.collections.Lists2.findFirstNonPeer;
-import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
+import static io.crate.common.collections.Lists.findFirstGTEProbeValue;
+import static io.crate.common.collections.Lists.findFirstLTEProbeValue;
+import static io.crate.common.collections.Lists.findFirstNonPeer;
+import static io.crate.common.collections.Lists.findFirstPreviousPeer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
@@ -46,7 +46,7 @@ class Lists2Test {
 
     @Test
     void testConcatReturnsANewListWithOneItemAdded() {
-        assertThat(Lists2.concat(Arrays.asList(1, 2), 3)).containsExactly(1, 2, 3);
+        assertThat(Lists.concat(Arrays.asList(1, 2), 3)).containsExactly(1, 2, 3);
     }
 
     @Test
@@ -115,20 +115,20 @@ class Lists2Test {
     void test_collections_are_equal() {
         var list = List.of(1, 2, 3);
         var set = new LinkedHashSet<>(List.of(1, 2, 3));
-        assertThat(Lists2.equals(list, set)).isTrue();
+        assertThat(Lists.equals(list, set)).isTrue();
     }
 
     @Test
     void test_collections_different_order_arent_equal() {
         var list = List.of(1, 2, 3);
         var set = new LinkedHashSet<>(List.of(1, 3, 2));
-        assertThat(Lists2.equals(list, set)).isFalse();
+        assertThat(Lists.equals(list, set)).isFalse();
     }
 
     @Test
     void test_collections_different_size_arent_equal() {
         var list = List.of(1, 2, 3);
         var set = new LinkedHashSet<>(List.of(1, 2));
-        assertThat(Lists2.equals(list, set)).isFalse();
+        assertThat(Lists.equals(list, set)).isFalse();
     }
 }

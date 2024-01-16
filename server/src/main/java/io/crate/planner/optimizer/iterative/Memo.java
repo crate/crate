@@ -22,18 +22,18 @@
 package io.crate.planner.optimizer.iterative;
 
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.requireNonNull;
-
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.statistics.Stats;
@@ -265,7 +265,7 @@ public class Memo {
 
         @Override
         public LogicalPlan visitPlan(LogicalPlan node, Void context) {
-            List<LogicalPlan> children = Lists2.mapLazy(node.sources(), child -> child.accept(this, context));
+            List<LogicalPlan> children = Lists.mapLazy(node.sources(), child -> child.accept(this, context));
             return node.replaceSources(children);
         }
 

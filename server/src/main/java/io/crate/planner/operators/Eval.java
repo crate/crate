@@ -32,7 +32,7 @@ import java.util.function.Function;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -96,7 +96,7 @@ public final class Eval extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Eval(Lists2.getOnlyElement(sources), outputs);
+        return new Eval(Lists.getOnlyElement(sources), outputs);
     }
 
     @Override
@@ -140,14 +140,14 @@ public final class Eval extends ForwardingLogicalPlan {
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputs, binder);
         if (orderBy != null) {
             newOrderBy = orderBy.tryMapToNewOutputs(source.outputs(), boundOutputs);
             if (newOrderBy == null) {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists2.map(source.outputs(), binder));
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(source.outputs(), binder));
         EvalProjection projection = new EvalProjection(InputColumns.create(boundOutputs, ctx));
         executionPlan.addProjection(
             projection,

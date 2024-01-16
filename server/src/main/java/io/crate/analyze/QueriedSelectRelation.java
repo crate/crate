@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.AliasSymbol;
@@ -187,9 +187,9 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     @Override
     public String toString() {
         return "SELECT "
-               + Lists2.joinOn(", ", outputs(), x -> Symbols.pathFromSymbol(x).sqlFqn())
+               + Lists.joinOn(", ", outputs(), x -> Symbols.pathFromSymbol(x).sqlFqn())
                + " FROM ("
-               + Lists2.joinOn(", ", from, x -> x.relationName().toString())
+               + Lists.joinOn(", ", from, x -> x.relationName().toString())
                + ')';
     }
 

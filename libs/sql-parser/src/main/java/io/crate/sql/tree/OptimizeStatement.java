@@ -21,11 +21,11 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+
+import io.crate.common.collections.Lists;
 
 public class OptimizeStatement<T> extends Statement {
 
@@ -47,7 +47,7 @@ public class OptimizeStatement<T> extends Statement {
 
     public <U> OptimizeStatement<U> map(Function<? super T, ? extends U> mapper) {
         return new OptimizeStatement<>(
-            Lists2.map(tables, x -> x.map(mapper)),
+            Lists.map(tables, x -> x.map(mapper)),
             properties.map(mapper)
         );
     }

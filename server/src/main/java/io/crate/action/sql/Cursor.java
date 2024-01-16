@@ -30,7 +30,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
@@ -271,7 +271,7 @@ public final class Cursor implements AutoCloseable {
         } else {
             int start = cursorPosition + count;
             assert start < cursorPosition : "count must be negative";
-            List<Object[]> items = Lists2.reverse(rows.subList(Math.max(start - 1, 0), Math.max(cursorPosition - 1, 0)));
+            List<Object[]> items = Lists.reverse(rows.subList(Math.max(start - 1, 0), Math.max(cursorPosition - 1, 0)));
             BatchIterator<Row> bi = biFromItems(items);
             cursorPosition = Math.max(start, 0);
             consumer.accept(bi, null);

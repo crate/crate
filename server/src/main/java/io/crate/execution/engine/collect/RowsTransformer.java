@@ -32,7 +32,7 @@ import org.elasticsearch.common.util.CollectionUtils;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -93,13 +93,13 @@ public final class RowsTransformer {
             }
         }
         items.sort(OrderingByPosition.arrayOrdering(collectPhase));
-        return Lists2.mapLazy(items, Buckets.arrayToSharedRow());
+        return Lists.mapLazy(items, Buckets.arrayToSharedRow());
     }
 
     public static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
         ArrayList<Object[]> objects = CollectionUtils.iterableAsArrayList(rows);
         Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
         objects.sort(ordering);
-        return Lists2.mapLazy(objects, Buckets.arrayToSharedRow());
+        return Lists.mapLazy(objects, Buckets.arrayToSharedRow());
     }
 }

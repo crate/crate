@@ -21,14 +21,15 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.util.List;
+import io.crate.common.collections.Lists;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 
 public final class ProjectSetProjection extends Projection {
 
@@ -43,13 +44,13 @@ public final class ProjectSetProjection extends Projection {
             : "Cannot operate on Reference or Field: " + standaloneWithInputs;
         this.tableFunctionsWithInputs = tableFunctionsWithInputs;
         this.standaloneWithInputs = standaloneWithInputs;
-        this.outputs = Lists2.concat(tableFunctionsWithInputs, standaloneWithInputs);
+        this.outputs = Lists.concat(tableFunctionsWithInputs, standaloneWithInputs);
     }
 
     public ProjectSetProjection(StreamInput in) throws IOException {
         tableFunctionsWithInputs = Symbols.listFromStream(in);
         standaloneWithInputs = Symbols.listFromStream(in);
-        outputs = Lists2.concat(tableFunctionsWithInputs, standaloneWithInputs);
+        outputs = Lists.concat(tableFunctionsWithInputs, standaloneWithInputs);
     }
 
     @Override

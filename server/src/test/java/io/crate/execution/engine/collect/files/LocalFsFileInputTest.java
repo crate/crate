@@ -40,13 +40,13 @@ import java.util.stream.Collectors;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 
 public class LocalFsFileInputTest extends ESTestCase {
 
     private List<String> helper_ListUris(String originalUri) throws Exception {
         URI uri = URI.create(originalUri);
-        return Lists2.map(new LocalFsFileInput(uri).expandUri(), URI::toString);
+        return Lists.map(new LocalFsFileInput(uri).expandUri(), URI::toString);
     }
 
     @Test

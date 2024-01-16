@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 
 public class SetStatement<T> extends Statement {
 
@@ -75,7 +75,7 @@ public class SetStatement<T> extends Statement {
         return new SetStatement<>(
             scope,
             settingType,
-            Lists2.map(assignments, x -> x.map(mapper))
+            Lists.map(assignments, x -> x.map(mapper))
         );
     }
 

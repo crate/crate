@@ -21,12 +21,12 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
-import io.crate.common.concurrent.CompletableFutures;
-import io.crate.common.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.metadata.RelationName;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,12 +41,12 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists;
+import io.crate.common.concurrent.CompletableFutures;
+import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.RelationName;
 
 @Singleton
 public class SysSnapshots {
@@ -101,7 +101,7 @@ public class SysSnapshots {
             snapshotInfo.endTime(),
             version == null ? null : version.toString(),
             snapshotInfo.state().name(),
-            Lists2.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString)
+            Lists.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString)
         );
     }
 

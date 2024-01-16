@@ -53,7 +53,7 @@ import io.crate.analyze.BoundRestoreSnapshot;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -224,7 +224,7 @@ public class RestoreSnapshotPlan implements Plan {
                 if (table.partitionProperties().isEmpty() == false) {
                     partitionName = toPartitionName(
                         docTableInfo,
-                        Lists2.map(table.partitionProperties(), x -> x.map(eval))
+                        Lists.map(table.partitionProperties(), x -> x.map(eval))
                     );
                 }
                 restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
@@ -234,7 +234,7 @@ public class RestoreSnapshotPlan implements Plan {
                 } else {
                     var partitionName = toPartitionName(
                         relationName,
-                        Lists2.map(table.partitionProperties(), x -> x.map(eval)));
+                        Lists.map(table.partitionProperties(), x -> x.map(eval)));
                     restoreTables.add(
                         new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
                 }

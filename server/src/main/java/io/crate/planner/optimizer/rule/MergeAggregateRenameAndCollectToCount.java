@@ -26,7 +26,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.function.Function;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.metadata.NodeContext;
@@ -82,7 +82,7 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
         Rename rename = captures.get(renameCapture);
-        var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
+        var countAggregate = Lists.getOnlyElement(aggregate.aggregates());
         var filter = countAggregate.filter();
         if (filter != null) {
             var mappedFilter = FieldReplacer.replaceFields(filter, rename::resolveField);

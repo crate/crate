@@ -27,7 +27,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -135,7 +135,7 @@ class CopyAnalyzer {
         var uri = expressionAnalyzer.convert(node.targetUri(), exprCtx);
         var table = node.table().map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
         var properties = node.properties().map(x -> expressionAnalyzer.convert(x, exprCtx));
-        var columns = Lists2.map(
+        var columns = Lists.map(
             node.columns(),
             c -> normalizer.normalize(expressionAnalyzer.convert(c, exprCtx), txnCtx));
         var whereClause = node.whereClause().map(

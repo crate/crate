@@ -48,7 +48,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.ConversionException;
@@ -345,7 +345,7 @@ public class LogicalPlanner {
         public LogicalPlan visitAliasedAnalyzedRelation(AliasedAnalyzedRelation relation, List<Symbol> outputs) {
             var child = relation.relation();
             if (child instanceof AbstractTableRelation<?>) {
-                List<Symbol> mappedOutputs = Lists2.map(outputs, FieldReplacer.bind(relation::resolveField));
+                List<Symbol> mappedOutputs = Lists.map(outputs, FieldReplacer.bind(relation::resolveField));
                 var source = child.accept(this, mappedOutputs);
                 return new Rename(outputs, relation.relationName(), relation, source);
             } else {

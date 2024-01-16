@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.FieldResolver;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
@@ -200,7 +200,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Rename(outputs, name, fieldResolver, Lists2.getOnlyElement(sources));
+        return new Rename(outputs, name, fieldResolver, Lists.getOnlyElement(sources));
     }
 
     @Override
@@ -223,7 +223,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     public void print(PrintContext printContext) {
         printContext
             .text("Rename[")
-            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(Lists.joinOn(", ", outputs, Symbol::toString))
             .text("] AS ")
             .text(name.toString());
         printStats(printContext);

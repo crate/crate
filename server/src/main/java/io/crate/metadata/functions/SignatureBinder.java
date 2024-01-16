@@ -35,12 +35,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -126,7 +125,7 @@ public class SignatureBinder {
         TypeSignature boundReturnTypeSignature = applyBoundVariables(declaredSignature.getReturnType(), boundVariables);
 
         return new BoundSignature(
-            Lists2.map(boundArgumentSignatures, TypeSignature::createType),
+            Lists.map(boundArgumentSignatures, TypeSignature::createType),
             boundReturnTypeSignature.createType()
         );
     }
@@ -163,7 +162,7 @@ public class SignatureBinder {
             return boundTS;
         }
 
-        List<TypeSignature> parameters = Lists2.map(
+        List<TypeSignature> parameters = Lists.map(
             typeSignature.getParameters(),
             typeSignatureParameter -> applyBoundVariables(typeSignatureParameter, boundVariables));
 

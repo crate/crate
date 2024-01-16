@@ -34,7 +34,7 @@ import java.util.stream.IntStream;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.expression.operator.OperatorModule;
@@ -44,13 +44,13 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.role.Role;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 
 public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -102,7 +102,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_column_eq_column_uses_approx_distinct_for_selectivity_approximation() {
         SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Symbol query = expressions.asSymbol("x = y");
-        var numbers = Lists2.concat(
+        var numbers = Lists.concat(
             List.of(1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 10, 10, 10, 10, 10, 10, 10, 10),
             IntStream.range(11, 15).boxed().collect(Collectors.toList())
         );
@@ -116,7 +116,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_eq_value_that_is_present_in_mcv_uses_mcv_frequency_as_selectivity() {
         SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Symbol query = expressions.asSymbol("x = ?");
-        var numbers = Lists2.concat(
+        var numbers = Lists.concat(
             List.of(1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 10, 10, 10, 10, 10, 10, 10, 10),
             IntStream.range(11, 15).boxed().collect(Collectors.toList())
         );

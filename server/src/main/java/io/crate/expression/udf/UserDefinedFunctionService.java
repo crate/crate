@@ -51,7 +51,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
@@ -259,7 +259,7 @@ public class UserDefinedFunctionService {
             .name(functionName)
             .kind(FunctionType.SCALAR)
             .argumentTypes(
-                Lists2.map(
+                Lists.map(
                     udf.argumentTypes(),
                     DataType::getTypeSignature))
             .returnType(udf.returnType().getTypeSignature())

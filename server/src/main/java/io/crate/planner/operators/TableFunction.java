@@ -34,7 +34,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -108,7 +108,7 @@ public final class TableFunction implements LogicalPlan {
             plannerContext.handlerNode(),
             relation.functionImplementation(),
             functionArguments,
-            Lists2.map(toCollect, binder),
+            Lists.map(toCollect, binder),
             binder.apply(where.queryOrFallback())
         );
         return new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, toCollect.size(), LimitAndOffset.NO_LIMIT, null);
@@ -164,7 +164,7 @@ public final class TableFunction implements LogicalPlan {
             .text("TableFunction[")
             .text(relation.function().name())
             .text(" | [")
-            .text(Lists2.joinOn(", ", toCollect, Symbol::toString))
+            .text(Lists.joinOn(", ", toCollect, Symbol::toString))
             .text("] | ")
             .text(where.queryOrFallback().toString())
             .text("]");

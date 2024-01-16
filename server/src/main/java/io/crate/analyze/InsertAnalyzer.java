@@ -45,7 +45,7 @@ import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
@@ -208,7 +208,7 @@ class InsertAnalyzer {
         }
 
         ExpressionAnalysisContext ctx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
-        List<Symbol> conflictTargets = Lists2.map(constraintColumns, x -> {
+        List<Symbol> conflictTargets = Lists.map(constraintColumns, x -> {
             try {
                 return expressionAnalyzer.convert(x, ctx);
             } catch (ColumnUnknownException e) {
@@ -251,12 +251,12 @@ class InsertAnalyzer {
         // and need to rely on later runtime failures
         ColumnIdent clusteredByRoot = clusteredBy.getRoot();
 
-        List<ColumnIdent> targetColumns = Lists2.mapLazy(targetColumnRefs, Reference::column);
+        List<ColumnIdent> targetColumns = Lists.mapLazy(targetColumnRefs, Reference::column);
         if (targetColumns.contains(clusteredByRoot)) {
             return;
         }
         if (clusteredByRef instanceof GeneratedReference generatedClusteredBy) {
-            var topLevelDependencies = Lists2.mapLazy(generatedClusteredBy.referencedReferences(), x -> x.column().getRoot());
+            var topLevelDependencies = Lists.mapLazy(generatedClusteredBy.referencedReferences(), x -> x.column().getRoot());
             if (targetColumns.containsAll(topLevelDependencies)) {
                 return;
             }

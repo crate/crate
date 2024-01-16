@@ -32,7 +32,7 @@ import java.util.function.Consumer;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -172,7 +172,7 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        var source = Lists2.getOnlyElement(sources);
+        var source = Lists.getOnlyElement(sources);
         return new LimitDistinct(source, limit, offset, outputs);
     }
 
@@ -189,7 +189,7 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
             .text(";")
             .text(offset.toString())
             .text(" | [")
-            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(Lists.joinOn(", ", outputs, Symbol::toString))
             .text("]]");
         printStats(printContext);
         printContext.nest(source::print);
