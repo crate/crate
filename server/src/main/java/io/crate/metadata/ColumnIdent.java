@@ -40,8 +40,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.StringUtils;
+import io.crate.common.collections.LexicographicalOrdering;
 import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Ordering;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
@@ -50,7 +50,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ColumnIdent.class);
 
-    private static final Comparator<Iterable<String>> ORDERING = Ordering.<String>natural().lexicographical();
+    private static final Comparator<Iterable<String>> ORDERING = new LexicographicalOrdering<>(Comparator.<String>naturalOrder());
 
     private final String name;
     private final List<String> path;
