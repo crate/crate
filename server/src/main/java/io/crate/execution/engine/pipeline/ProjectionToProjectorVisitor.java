@@ -393,7 +393,7 @@ public class ProjectionToProjectorVisitor
         assert resolvedFileName.valueType().id() == StringType.ID :
             "resolvedFileName.valueType() must be " + StringType.INSTANCE;
 
-        String fileName = (String) ((Literal) resolvedFileName).value();
+        String fileName = (String) ((Literal<?>) resolvedFileName).value();
         if (!uri.endsWith("/")) {
             sb.append("/");
         }
@@ -420,9 +420,10 @@ public class ProjectionToProjectorVisitor
         );
     }
 
-    private Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
-                                                       InputFactory.Context symbolContext,
-                                                       TransactionContext txnCtx) {
+    private Map<ColumnIdent, Object> symbolMapToObject(
+            Map<ColumnIdent, Symbol> symbolMap,
+            InputFactory.Context<CollectExpression<Row, ?>> symbolContext,
+            TransactionContext txnCtx) {
         Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
             Symbol symbol = entry.getValue();

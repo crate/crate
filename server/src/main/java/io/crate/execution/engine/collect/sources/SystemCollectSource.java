@@ -95,10 +95,11 @@ public class SystemCollectSource implements CollectSource {
         rowUpdaters = Map.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
     }
 
-    Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,
-                                                                             TransactionContext txnCtx,
-                                                                             ReferenceResolver<?> referenceResolver,
-                                                                             boolean requiresRepeat) {
+    Function<Iterable<?>, Iterable<? extends Row>> toRowsIterableTransformation(
+            RoutedCollectPhase collectPhase,
+            TransactionContext txnCtx,
+            ReferenceResolver<?> referenceResolver,
+            boolean requiresRepeat) {
         return objects -> recordsToRows(collectPhase, txnCtx, referenceResolver, requiresRepeat, objects);
     }
 

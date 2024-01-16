@@ -126,7 +126,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void indexValue(Object value,
                            String storageIdentLeafName,
                            XContentBuilder xcontentBuilder,

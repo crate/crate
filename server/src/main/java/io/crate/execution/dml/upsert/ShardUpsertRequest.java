@@ -110,7 +110,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             }
         }
         int missingAssignmentsColumnsSize = in.readVInt();
-        Streamer[] insertValuesStreamer = null;
+        Streamer<?>[] insertValuesStreamer = null;
         if (missingAssignmentsColumnsSize > 0) {
             insertColumns = new Reference[missingAssignmentsColumnsSize];
             for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
@@ -158,7 +158,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         } else {
             out.writeVInt(0);
         }
-        Streamer[] insertValuesStreamer = null;
+        Streamer<?>[] insertValuesStreamer = null;
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
             for (Reference reference : insertColumns) {
@@ -424,7 +424,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             return version.after(Version.V_4_7_2) && !version.equals(Version.V_4_8_0);
         }
 
-        public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
+        public Item(StreamInput in, @Nullable Streamer<?>[] insertValueStreamers) throws IOException {
             super(in);
             if (in.readBoolean()) {
                 int assignmentsSize = in.readVInt();
@@ -460,6 +460,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             }
         }
 
+        @SuppressWarnings({"unchecked", "rawtypes"})
         public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super.writeTo(out);
             if (updateAssignments != null) {

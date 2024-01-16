@@ -45,13 +45,13 @@ public class TransportFetchOperation implements FetchOperation {
 
     private static final Function<NodeFetchResponse, IntObjectMap<? extends Bucket>> GET_FETCHED = NodeFetchResponse::fetched;
     private final ActionExecutor<NodeFetchRequest, NodeFetchResponse> fetchNodeAction;
-    private final Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers;
+    private final Map<String, ? extends IntObjectMap<Streamer<?>[]>> nodeIdToReaderIdToStreamers;
     private final UUID jobId;
     private final int fetchPhaseId;
     private final RamAccounting ramAccounting;
 
     public TransportFetchOperation(ActionExecutor<NodeFetchRequest, NodeFetchResponse> fetchNodeAction,
-                                   Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers,
+                                   Map<String, ? extends IntObjectMap<Streamer<?>[]>> nodeIdToReaderIdToStreamers,
                                    UUID jobId,
                                    int fetchPhaseId,
                                    RamAccounting ramAccounting) {
