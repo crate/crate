@@ -19,10 +19,11 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.elasticsearch.common.util.CollectionUtils;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.crate.common.collections.Lists;
 
 /**
  * Basic {@link ShardShuffler} implementation that uses an {@link AtomicInteger} to generate seeds and uses a rotation to permute shards.
@@ -42,7 +43,7 @@ public class RotationShardShuffler extends ShardShuffler {
 
     @Override
     public List<ShardRouting> shuffle(List<ShardRouting> shards, int seed) {
-        return CollectionUtils.rotate(shards, seed);
+        return Lists.rotate(shards, seed);
     }
 
 }
