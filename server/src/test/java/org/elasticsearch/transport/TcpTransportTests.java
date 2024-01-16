@@ -391,7 +391,7 @@ public class TcpTransportTests extends ESTestCase {
             final PlainActionFuture<Void> listener = new PlainActionFuture<>();
             channel.addCloseListener(listener);
 
-            var logger = Loggers.getLogger(TcpTransport.class);
+            var logger = LogManager.getLogger(TcpTransport.class);
             var outputHandler = new OutboundHandler(
                 randomAlphaOfLength(10),
                 Version.CURRENT,

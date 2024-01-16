@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -44,7 +45,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
@@ -62,7 +62,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
     public static final String NAME = "internal:crate:replication/logical/publication/state";
     public static final PublicationsStateAction INSTANCE = new PublicationsStateAction();
 
-    private static final Logger LOGGER = Loggers.getLogger(PublicationsStateAction.class);
+    private static final Logger LOGGER = LogManager.getLogger(PublicationsStateAction.class);
 
     public PublicationsStateAction() {
         super(NAME);

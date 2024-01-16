@@ -23,8 +23,7 @@ import static org.elasticsearch.action.support.TransportActions.isShardNotAvaila
 
 import java.io.IOException;
 
-import org.jetbrains.annotations.Nullable;
-
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
@@ -45,7 +44,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.LoggerMessageFormat;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
@@ -54,6 +52,7 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A base class for operations that need to perform a read operation on a single shard copy. If the operation fails,
@@ -70,7 +69,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
     private final String transportShardAction;
     private final String executor;
 
-    protected final Logger logger = Loggers.getLogger(getClass());
+    protected final Logger logger = LogManager.getLogger(getClass());
 
     protected TransportSingleShardAction(String actionName,
                                          ThreadPool threadPool,
