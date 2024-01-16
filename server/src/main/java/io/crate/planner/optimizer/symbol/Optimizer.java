@@ -35,8 +35,8 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.AliasResolver;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -50,10 +50,15 @@ import io.crate.planner.optimizer.symbol.rule.SwapCastsInLikeOperators;
 
 public class Optimizer {
 
-    public static Symbol optimizeCasts(Symbol query, PlannerContext plannerContext) {
+
+    public static Symbol optimizeCasts(Symbol query, PlannerContext plannerCtx) {
+        return optimizeCasts(query, plannerCtx.transactionContext(), plannerCtx.nodeContext());
+    }
+
+    public static Symbol optimizeCasts(Symbol query, TransactionContext txnCtx, NodeContext nodeCtx) {
         Optimizer optimizer = new Optimizer(
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext(),
+            txnCtx,
+            nodeCtx,
             List.of(
                 SwapCastsInComparisonOperators::new,
                 SwapCastsInLikeOperators::new,
@@ -73,7 +78,7 @@ public class Optimizer {
     private final NodeContext nodeCtx;
     private final Visitor visitor = new Visitor();
 
-    public Optimizer(CoordinatorTxnCtx coordinatorTxnCtx,
+    public Optimizer(TransactionContext txnCtx,
                      NodeContext nodeCtx,
                      List<Function<FunctionSymbolResolver, Rule<?>>> rules) {
         FunctionSymbolResolver functionResolver =
@@ -84,7 +89,7 @@ public class Optimizer {
                         args,
                         null,
                         null,
-                        coordinatorTxnCtx,
+                        txnCtx,
                         nodeCtx);
                 } catch (ConversionException e) {
                     return null;
@@ -110,7 +115,7 @@ public class Optimizer {
                 Symbol transformed = tryMatchAndApply(rule, node, nodeCtx);
                 if (transformed != null) {
                     if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the symbol");
+                        LOGGER.trace("Rule '{}' transformed the symbol", rule.getClass().getSimpleName());
                     }
                     node = transformed;
                     done = false;
@@ -127,7 +132,7 @@ public class Optimizer {
         Match<T> match = rule.pattern().accept(node, Captures.empty());
         if (match.isPresent()) {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+                LOGGER.trace("Rule '{}' matched", rule.getClass().getSimpleName());
             }
             return rule.apply(match.value(), match.captures(), nodeCtx, visitor.getParentFunction());
         }

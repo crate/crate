@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.CartesianList;
@@ -67,7 +68,7 @@ public class EqualityExtractor {
     );
     private static final EqProxy NULL_MARKER_PROXY = new EqProxy(NULL_MARKER);
 
-    private EvaluatingNormalizer normalizer;
+    private final EvaluatingNormalizer normalizer;
 
     public EqualityExtractor(EvaluatingNormalizer normalizer) {
         this.normalizer = normalizer;
@@ -107,16 +108,16 @@ public class EqualityExtractor {
      */
     public EqMatches extractMatches(List<ColumnIdent> columns,
                                     Symbol symbol,
-                                    @Nullable TransactionContext transactionContext) {
-        return extractMatches(columns, symbol, true, transactionContext);
+                                    TransactionContext txnCtx) {
+        return extractMatches(columns, symbol, true, txnCtx);
     }
 
     private EqMatches extractMatches(Collection<ColumnIdent> columns,
-                                     Symbol symbol,
+                                     Symbol query,
                                      boolean shortCircuitOnMatchPredicateUnknown,
-                                     @Nullable TransactionContext transactionContext) {
+                                     TransactionContext txnCtx) {
         var context = new ProxyInjectingVisitor.Context(columns);
-        Symbol proxiedTree = symbol.accept(ProxyInjectingVisitor.INSTANCE, context);
+        Symbol proxiedTree = query.accept(ProxyInjectingVisitor.INSTANCE, context);
 
         // Match cannot execute without Lucene
         if (shortCircuitOnMatchPredicateUnknown && context.unknowns.size() == 1) {
@@ -139,7 +140,7 @@ public class EqualityExtractor {
                     anyNull = true;
                 }
             }
-            Symbol normalized = normalizer.normalize(proxiedTree, transactionContext);
+            Symbol normalized = normalizer.normalize(proxiedTree, txnCtx);
             if (normalized == Literal.BOOLEAN_TRUE) {
                 if (anyNull) {
                     return EqMatches.NONE;
@@ -181,7 +182,7 @@ public class EqualityExtractor {
         }
 
         private void initProxies(Map<Function, EqProxy> existingProxies) {
-            Symbol left = origin.arguments().get(0);
+            Symbol left = origin.arguments().getFirst();
             var signature = origin.signature();
             assert signature != null : "Expecting non-null signature while analyzing";
             Literal<?> arrayLiteral = (Literal<?>) origin.arguments().get(1);
@@ -192,14 +193,15 @@ public class EqualityExtractor {
                 EqProxy existingProxy = existingProxies.get(f);
                 if (existingProxy == null) {
                     existingProxy = new ChildEqProxy(f, this);
-                } else if (existingProxy instanceof ChildEqProxy) {
-                    ((ChildEqProxy) existingProxy).addParent(this);
+                } else if (existingProxy instanceof ChildEqProxy childEqProxy) {
+                    childEqProxy.addParent(this);
                 }
                 proxies.put(f, existingProxy);
             }
         }
 
         @Override
+        @NotNull
         public Iterator<EqProxy> iterator() {
             return proxies.values().iterator();
         }
@@ -222,7 +224,7 @@ public class EqualityExtractor {
 
         private static class ChildEqProxy extends EqProxy {
 
-            private List<AnyEqProxy> parentProxies = new ArrayList<>();
+            private final List<AnyEqProxy> parentProxies = new ArrayList<>();
 
             private ChildEqProxy(Function origin, AnyEqProxy parent) {
                 super(origin);
@@ -296,18 +298,6 @@ public class EqualityExtractor {
                                                     EqProxy.class.getSimpleName());
         }
 
-        public String forDisplay() {
-            if (this == NULL_MARKER_PROXY) {
-                return "NULL";
-            }
-            String s = "(" + ((Reference) origin.arguments().get(0)).column().fqn() + "=" +
-                       ((Literal<?>) origin.arguments().get(1)).value() + ")";
-            if (current != origin) {
-                s += " TRUE";
-            }
-            return s;
-        }
-
         @Override
         public String toString(Style style) {
             if (this == NULL_MARKER_PROXY) {
@@ -332,14 +322,13 @@ public class EqualityExtractor {
         }
     }
 
-    static class ProxyInjectingVisitor extends SymbolVisitor<ProxyInjectingVisitor.Context, Symbol> {
+    private static class ProxyInjectingVisitor extends SymbolVisitor<ProxyInjectingVisitor.Context, Symbol> {
 
         public static final ProxyInjectingVisitor INSTANCE = new ProxyInjectingVisitor();
 
-        private ProxyInjectingVisitor() {
-        }
+        private ProxyInjectingVisitor() {}
 
-        static class Comparison {
+        private static class Comparison {
             final HashMap<Function, EqProxy> proxies = new HashMap<>();
 
             public Comparison() {
@@ -356,24 +345,19 @@ public class EqualityExtractor {
                     }
                     return anyEqProxy;
                 }
-                EqProxy proxy = proxies.get(compared);
-                if (proxy == null) {
-                    proxy = new EqProxy(compared);
-                    proxies.put(compared, proxy);
-                }
-                return proxy;
+                return proxies.computeIfAbsent(compared, EqProxy::new);
             }
 
         }
 
-        static class Context {
+        private static class Context {
 
             private LinkedHashMap<ColumnIdent, Comparison> comparisons;
             private boolean proxyBelow;
             private final Set<Symbol> unknowns = new HashSet<>();
 
             private Context(Collection<ColumnIdent> references) {
-                comparisons = new LinkedHashMap<>(references.size());
+                comparisons = LinkedHashMap.newLinkedHashMap(references.size());
                 for (ColumnIdent reference : references) {
                     comparisons.put(reference, new Comparison());
                 }
@@ -407,8 +391,8 @@ public class EqualityExtractor {
             return super.visitReference(ref, context);
         }
 
+        @Override
         public Symbol visitFunction(Function function, Context context) {
-
             String functionName = function.name();
             List<Symbol> arguments = function.arguments();
             Symbol firstArg = arguments.get(0);
