@@ -706,4 +706,33 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(tester.runQuery("a", "a != any(['s'])")).containsExactly("t");
         }
     }
+
+    @Test
+    public void test_neq_operator_on_nullable_and_not_nullable_args_does_not_filter_nulls_from_non_nullable_arg() throws Exception {
+        long[] oid = new long[] {123, 124};
+        int[] oidIdx = new int[]{0};
+        try (QueryTester tester = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int, b int)",
+            () -> oid[oidIdx[0]++]) // oid mapping: a: 123, b: 124
+            .indexValues(List.of("a", "b"), null, null)
+            .indexValues(List.of("a", "b"), null, 2)
+            .indexValues(List.of("a", "b"), 2, null)
+            .indexValues(List.of("a", "b"), 2, 2)
+            .build()) {
+            assertThat(oidIdx[0]).isEqualTo(2);
+            Query query = tester.toQuery("a != b||1"); // where a is nullable and b||1 is not null
+            assertThat(query).hasToString("+(+*:* -(a = concat(b, '1'))) #(NOT (a = concat(b, '1')))");
+            assertThat(tester.runQuery("b", "a != b||1")).containsExactlyInAnyOrder(2, null);
+        }
+    }
+
+    @Test
+    public void test_nested_not_operators() {
+        Query query = convert("not (name is not null)");
+        assertThat(query).hasToString("+(+*:* -FieldExistsQuery [field=name]) #(NOT (NOT (name IS NULL)))");
+    }
 }
