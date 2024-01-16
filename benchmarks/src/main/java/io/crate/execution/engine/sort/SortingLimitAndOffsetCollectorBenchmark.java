@@ -27,7 +27,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -59,15 +58,15 @@ public class SortingLimitAndOffsetCollectorBenchmark {
     private static final List<Input<?>> INPUTS = List.of(INPUT);
     private static final Iterable<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = List.of(INPUT);
 
-    private List<Row> rows;
+    private List<RowN> rows;
     private Collector<Row, ?, Bucket> boundedSortingCollector;
     private Collector<Row, ?, Bucket> unboundedSortingCollector;
 
     @Setup
     public void setUp() {
         rows = IntStream.range(0, 10_000_000)
-            .mapToObj(i -> new RowN(i))
-            .collect(Collectors.toList());
+            .mapToObj(RowN::new)
+            .toList();
         boundedSortingCollector = new BoundedSortingLimitAndOffsetCollector(
             new RowAccounting<Object[]>() {
 

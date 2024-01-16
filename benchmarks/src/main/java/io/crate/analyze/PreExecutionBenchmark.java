@@ -46,6 +46,7 @@ import org.openjdk.jmh.annotations.TearDown;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Cursors;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -96,8 +97,9 @@ public class PreExecutionBenchmark {
 
         String statement = "create table users (id int primary key, name string, date timestamp, text string index using fulltext)";
         var resultReceiver = new BaseResultReceiver();
-        sqlOperations.newSystemSession()
-            .quickExec(statement, resultReceiver, Row.EMPTY);
+        try (Session session = sqlOperations.newSystemSession()) {
+            session.quickExec(statement, resultReceiver, Row.EMPTY);
+        }
         resultReceiver.completionFuture().get(5, TimeUnit.SECONDS);
     }
 
