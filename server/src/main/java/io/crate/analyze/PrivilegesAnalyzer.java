@@ -30,7 +30,7 @@ import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
@@ -165,7 +165,7 @@ class PrivilegesAnalyzer {
                                                  SearchPath searchPath,
                                                  Schemas schemas) {
         if (Securable.SCHEMA.equals(securable)) {
-            List<String> schemaNames = Lists2.map(tableOrSchemaNames, QualifiedName::toString);
+            List<String> schemaNames = Lists.map(tableOrSchemaNames, QualifiedName::toString);
             if (isRevoke) {
                 return schemaNames;
             }
@@ -232,7 +232,7 @@ class PrivilegesAnalyzer {
                                                             SearchPath searchPath,
                                                             Schemas schemas,
                                                             boolean isRevoke) {
-        return Lists2.map(relations, q -> {
+        return Lists.map(relations, q -> {
             try {
                 RelationName relationName = schemas.resolveRelation(q, searchPath);
                 if (!isRevoke) {

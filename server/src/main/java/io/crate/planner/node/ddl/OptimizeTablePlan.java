@@ -43,7 +43,7 @@ import org.elasticsearch.common.settings.Settings;
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -151,7 +151,7 @@ public class OptimizeTablePlan implements Plan {
                 } else {
                     var partitionName = toPartitionName(
                         docTableInfo,
-                        Lists2.map(tableSymbol.partitionProperties(), x -> x.map(eval)));
+                        Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)));
                     if (!docTableInfo.partitions().contains(partitionName)) {
                         throw new PartitionUnknownException(partitionName);
                     }

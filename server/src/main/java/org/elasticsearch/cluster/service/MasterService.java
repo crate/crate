@@ -63,7 +63,7 @@ import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 
 public class MasterService extends AbstractLifecycleComponent {
@@ -425,7 +425,7 @@ public class MasterService extends AbstractLifecycleComponent {
      * Returns the tasks that are pending.
      */
     public List<PendingClusterTask> pendingTasks() {
-        return Lists2.map(
+        return Lists.map(
             threadPoolExecutor.getPending(),
             pending -> {
                 assert pending.task instanceof SourcePrioritizedRunnable :

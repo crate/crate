@@ -21,7 +21,22 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.common.collections.Lists2;
+import static io.crate.metadata.FunctionType.AGGREGATE;
+import static io.crate.metadata.FunctionType.WINDOW;
+import static io.crate.metadata.pgcatalog.PgProcTable.Entry.pgTypeIdFrom;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.FLOAT;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.REGPROC;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
+import java.util.ArrayList;
+import java.util.Set;
+
+import io.crate.common.collections.Lists;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -34,21 +49,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.Regproc;
 import io.crate.types.RowType;
 import io.crate.types.TypeSignature;
-
-import java.util.ArrayList;
-import java.util.Set;
-
-import static io.crate.metadata.FunctionType.AGGREGATE;
-import static io.crate.metadata.FunctionType.WINDOW;
-import static io.crate.metadata.pgcatalog.PgProcTable.Entry.pgTypeIdFrom;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.FLOAT;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.INTEGER_ARRAY;
-import static io.crate.types.DataTypes.REGPROC;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
 
 public final class PgProcTable {
 
@@ -85,7 +85,7 @@ public final class PgProcTable {
             .add("pronargdefaults", SHORT, x -> null)
             .add("prorettype", INTEGER, x -> x.returnTypeId)
             .add("proargtypes", DataTypes.OIDVECTOR, x ->
-                Lists2.map(x.signature.getArgumentTypes(), Entry::pgTypeIdFrom))
+                Lists.map(x.signature.getArgumentTypes(), Entry::pgTypeIdFrom))
             .add("proallargtypes", INTEGER_ARRAY, x -> null)
             .add("proargmodes", STRING_ARRAY, x -> {
                 if (!x.signature.getBindingInfo().isVariableArity()) {

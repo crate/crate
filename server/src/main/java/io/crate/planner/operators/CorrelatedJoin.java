@@ -29,7 +29,7 @@ import java.util.Set;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -76,7 +76,7 @@ public class CorrelatedJoin implements LogicalPlan {
     public CorrelatedJoin(LogicalPlan inputPlan,
                           SelectSymbol selectSymbol,
                           LogicalPlan subQueryPlan) {
-        this(inputPlan, selectSymbol, subQueryPlan, Lists2.concat(inputPlan.outputs(), selectSymbol));
+        this(inputPlan, selectSymbol, subQueryPlan, Lists.concat(inputPlan.outputs(), selectSymbol));
     }
 
     private CorrelatedJoin(LogicalPlan inputPlan,
@@ -147,7 +147,7 @@ public class CorrelatedJoin implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new CorrelatedJoin(
-            Lists2.getOnlyElement(sources),
+            Lists.getOnlyElement(sources),
             selectSymbol,
             subQueryPlan
         );
@@ -197,10 +197,10 @@ public class CorrelatedJoin implements LogicalPlan {
         printContext
             .text(getClass().getSimpleName())
             .text("[")
-            .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
+            .text(Lists.joinOn(", ", outputs(), Symbol::toString))
             .text("]");
         printStats(printContext);
-        printContext.nest(Lists2.map(sources(), x -> x::print))
+        printContext.nest(Lists.map(sources(), x -> x::print))
             .nest(p -> {
                 p.text("SubPlan");
                 p.nest(subQueryPlan::print);

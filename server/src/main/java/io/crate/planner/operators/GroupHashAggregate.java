@@ -36,7 +36,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -111,7 +111,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
         super(source);
         this.aggregates = List.copyOf(new LinkedHashSet<>(aggregates));
-        this.outputs = Lists2.concat(groupKeys, this.aggregates);
+        this.outputs = Lists.concat(groupKeys, this.aggregates);
         this.groupKeys = groupKeys;
         for (Symbol key : groupKeys) {
             if (Symbols.containsCorrelatedSubQuery(key)) {
@@ -271,7 +271,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates);
+        return new GroupHashAggregate(Lists.getOnlyElement(sources), groupKeys, aggregates);
     }
 
     private ExecutionPlan createMerge(PlannerContext plannerContext,
@@ -331,11 +331,11 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     public void print(PrintContext printContext) {
         printContext
             .text("GroupHashAggregate[")
-            .text(Lists2.joinOn(", ", groupKeys, Symbol::toString));
+            .text(Lists.joinOn(", ", groupKeys, Symbol::toString));
         if (!aggregates.isEmpty()) {
             printContext
                 .text(" | ")
-                .text(Lists2.joinOn(", ", aggregates, Symbol::toString));
+                .text(Lists.joinOn(", ", aggregates, Symbol::toString));
         }
         printContext
             .text("]");

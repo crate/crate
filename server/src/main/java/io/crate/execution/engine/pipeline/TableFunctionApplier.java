@@ -21,16 +21,16 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.common.collections.Lists2;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.execution.engine.collect.CollectExpression;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
+
+import io.crate.common.collections.Lists;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.execution.engine.collect.CollectExpression;
 
 public final class TableFunctionApplier implements Function<Row, Iterator<Row>> {
 
@@ -56,7 +56,7 @@ public final class TableFunctionApplier implements Function<Row, Iterator<Row>> 
             expressions.get(i).setNextRow(row);
         }
         mapIncomingValuesToOutgoingCells();
-        List<Iterator<Row>> iterators = Lists2.map(tableFunctions, x -> x.value().iterator());
+        List<Iterator<Row>> iterators = Lists.map(tableFunctions, x -> x.value().iterator());
         return new Iterator<>() {
 
             @Override

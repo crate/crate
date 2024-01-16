@@ -42,7 +42,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.PartitionUnknownException;
@@ -208,7 +208,7 @@ public final class CopyToPlan implements Plan {
         DocTableInfo table = (DocTableInfo) copyTo.tableInfo();
 
         List<String> partitions = resolvePartitions(
-            Lists2.map(copyTo.table().partitionProperties(), x -> x.map(eval)),
+            Lists.map(copyTo.table().partitionProperties(), x -> x.map(eval)),
             table
         );
 

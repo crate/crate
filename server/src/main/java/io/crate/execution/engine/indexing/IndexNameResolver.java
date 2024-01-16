@@ -21,22 +21,23 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.common.collections.Lists2;
-import io.crate.data.Input;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
+import static io.crate.common.StringUtils.nullOrString;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static io.crate.common.StringUtils.nullOrString;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+
+import io.crate.common.collections.Lists;
+import io.crate.data.Input;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class IndexNameResolver {
 
@@ -77,7 +78,7 @@ public class IndexNameResolver {
             });
         return () -> {
             // copy because the values of the inputs are mutable
-            List<String> partitions = Lists2.map(partitionedByInputs, input -> nullOrString(input.value()));
+            List<String> partitions = Lists.map(partitionedByInputs, input -> nullOrString(input.value()));
             return cache.get(partitions);
         };
     }

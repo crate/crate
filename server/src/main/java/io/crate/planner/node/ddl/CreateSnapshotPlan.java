@@ -42,7 +42,7 @@ import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -186,7 +186,7 @@ public class CreateSnapshotPlan implements Plan {
                 } else {
                     var partitionName = toPartitionName(
                         docTableInfo,
-                        Lists2.map(table.partitionProperties(), x -> x.map(eval)));
+                        Lists.map(table.partitionProperties(), x -> x.map(eval)));
                     if (!docTableInfo.partitions().contains(partitionName)) {
                         if (!ignoreUnavailable) {
                             throw new PartitionUnknownException(partitionName);

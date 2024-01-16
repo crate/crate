@@ -26,15 +26,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
-import org.elasticsearch.index.shard.ShardId;
-
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.execution.dsl.phases.AbstractProjectionsPhase;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -129,7 +128,7 @@ public final class PlanPrinter {
         @Override
         public MapBuilder<String, Object> visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
             MapBuilder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
-            builder.put("toCollect", "[" + Lists2.joinOn(", ", phase.toCollect(), Symbol::toString) + "]");
+            builder.put("toCollect", "[" + Lists.joinOn(", ", phase.toCollect(), Symbol::toString) + "]");
             dqlPlanNode(phase, builder);
             builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations()));
             builder.put("where", phase.where().toString());
@@ -143,7 +142,7 @@ public final class PlanPrinter {
         @Override
         public MapBuilder<String, Object> visitPKLookup(PKLookupPhase phase, Void context) {
             MapBuilder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
-            builder.put("toCollect", Lists2.joinOn(", ", phase.toCollect(), Symbol::toString));
+            builder.put("toCollect", Lists.joinOn(", ", phase.toCollect(), Symbol::toString));
             dqlPlanNode(phase, builder);
             Map<String, List<String>> shardsByNode = new HashMap<>();
             for (String nodeId : phase.nodeIds()) {
@@ -159,7 +158,7 @@ public final class PlanPrinter {
         @Override
         public MapBuilder<String, Object> visitCollectPhase(CollectPhase phase, Void context) {
             MapBuilder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
-            builder.put("toCollect", Lists2.joinOn(", ", phase.toCollect(), Symbol::toString));
+            builder.put("toCollect", Lists.joinOn(", ", phase.toCollect(), Symbol::toString));
             return createMap(phase, builder);
         }
 
@@ -174,7 +173,7 @@ public final class PlanPrinter {
         @Override
         public MapBuilder<String, Object> visitFetchPhase(FetchPhase phase, Void context) {
             return createMap(phase, createSubMap(phase)
-                .put("fetchRefs", Lists2.joinOn(", ", phase.fetchRefs(), Reference::toString)));
+                .put("fetchRefs", Lists.joinOn(", ", phase.fetchRefs(), Reference::toString)));
         }
 
         @Override

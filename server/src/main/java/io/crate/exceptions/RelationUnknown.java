@@ -21,18 +21,19 @@
 
 package io.crate.exceptions;
 
-import io.crate.common.collections.Lists2;
-import io.crate.metadata.RelationName;
-import io.crate.sql.Identifiers;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.common.collections.Lists;
+import io.crate.metadata.RelationName;
+import io.crate.sql.Identifiers;
 
 public class RelationUnknown extends ElasticsearchException implements ResourceUnknownException, TableScopeException {
 
@@ -51,7 +52,7 @@ public class RelationUnknown extends ElasticsearchException implements ResourceU
             default: {
                 var name = RelationName.fromIndexName(relation);
                 var msg = "Relation '" + relation + "' unknown. Maybe you meant one of: "
-                          + String.join(", ", Lists2.map(candidates, Identifiers::quoteIfNeeded));
+                          + String.join(", ", Lists.map(candidates, Identifiers::quoteIfNeeded));
                 return new RelationUnknown(name, msg);
             }
         }

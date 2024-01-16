@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
@@ -34,7 +35,7 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
@@ -245,7 +246,7 @@ public class NodeStatsTest extends IntegTestCase {
 
         Map<String, Object> jvmObj = new HashMap<>(4);
         java.lang.Runtime.Version version = Runtime.version();
-        jvmObj.put("version", Lists2.joinOn(".", version.version(), num -> Integer.toString(num)));
+        jvmObj.put("version", Lists.joinOn(".", version.version(), num -> Integer.toString(num)));
         jvmObj.put("vm_name", Constants.JVM_NAME);
         jvmObj.put("vm_vendor", Constants.JVM_VENDOR);
         jvmObj.put("vm_version", version.toString());

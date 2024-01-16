@@ -41,7 +41,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.DocKeys;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -154,7 +154,7 @@ public class Get implements LogicalPlan {
         }
 
         var binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputs, binder);
         var boundQuery = binder.apply(query);
         var toCollect = boundOutputs;
         ArrayList<Projection> projections = new ArrayList<>();
@@ -265,7 +265,7 @@ public class Get implements LogicalPlan {
             .text("Get[")
             .text(tableRelation.tableInfo().ident().toString())
             .text(" | ")
-            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(Lists.joinOn(", ", outputs, Symbol::toString))
             .text(" | ")
             .text(docKeys.toString())
             .text(" | ")

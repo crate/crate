@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.types.DataTypes;
 
 public class DocReferencesTest {
@@ -91,7 +91,7 @@ public class DocReferencesTest {
                 .build(referenceMap);
         long[] oid = new long[1];
         references = DocReferences.applyOid(
-                Lists2.concat(references, indexReference),
+                Lists.concat(references, indexReference),
                 () -> ++oid[0]
         );
         indexReference = (IndexReference) references.get(2);

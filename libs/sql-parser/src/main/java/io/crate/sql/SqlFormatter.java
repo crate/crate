@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterPublication;
@@ -431,7 +431,7 @@ public final class SqlFormatter {
                     }
                 } else {
                     builder.append(' ');
-                    Lists2.getOnlyElement(node.getFrom()).accept(this, indent);
+                    Lists.getOnlyElement(node.getFrom()).accept(this, indent);
                 }
             }
 
@@ -534,7 +534,7 @@ public final class SqlFormatter {
                 }
             } else {
                 builder.append(' ');
-                Lists2.getOnlyElement(node.getSelectItems()).accept(this, indent);
+                Lists.getOnlyElement(node.getSelectItems()).accept(this, indent);
             }
 
             builder.append('\n');

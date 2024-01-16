@@ -37,7 +37,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -183,12 +183,12 @@ public class Union implements LogicalPlan {
 
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
+        return Lists.concat(lhs.baseTables(), rhs.baseTables());
     }
 
     @Override
     public List<RelationName> getRelationNames() {
-        return Lists2.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
+        return Lists.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
     }
 
     @Override

@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.window;
 
-import static io.crate.common.collections.Lists2.findFirstNonPeer;
+import static io.crate.common.collections.Lists.findFirstNonPeer;
 
 import java.util.Arrays;
 import java.util.Comparator;

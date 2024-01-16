@@ -47,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.ValueIndexer;
@@ -239,7 +239,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             return null;
         }
         if (value instanceof Collection<?> values) {
-            return Lists2.map(values, convertInner);
+            return Lists.map(values, convertInner);
         } else if (value instanceof String string) {
             try {
                 return (List<T>) PgArrayParser.parse(
@@ -276,7 +276,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists2.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
+        return Lists.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {

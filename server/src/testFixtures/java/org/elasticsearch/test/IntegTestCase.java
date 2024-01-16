@@ -166,7 +166,7 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -1220,7 +1220,7 @@ public abstract class IntegTestCase extends ESTestCase {
             nodeConfigurationSource,
             getNumClientNodes(),
             nodePrefix,
-            Lists2.concat(mockPlugins, Netty4Plugin.class),
+            Lists.concat(mockPlugins, Netty4Plugin.class),
             forbidPrivateIndexSettings()
         );
     }
@@ -1913,7 +1913,7 @@ public abstract class IntegTestCase extends ESTestCase {
                 FunctionImplementation func = function.get(
                     schema,
                     name,
-                    Lists2.map(argTypes, t -> Literal.of(t, null)),
+                    Lists.map(argTypes, t -> Literal.of(t, null)),
                     searchPath);
                 assertThat(func).isNotNull();
                 assertThat(func.boundSignature().argTypes()).isEqualTo(argTypes);

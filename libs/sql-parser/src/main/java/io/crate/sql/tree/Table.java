@@ -21,11 +21,11 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+
+import io.crate.common.collections.Lists;
 
 public class Table<T> extends QueryBody {
 
@@ -65,7 +65,7 @@ public class Table<T> extends QueryBody {
         if (partitionProperties.isEmpty()) {
             return new Table<>(name, excludePartitions);
         } else {
-            return new Table<>(name, Lists2.map(partitionProperties, x -> x.map(mapper)));
+            return new Table<>(name, Lists.map(partitionProperties, x -> x.map(mapper)));
         }
     }
 

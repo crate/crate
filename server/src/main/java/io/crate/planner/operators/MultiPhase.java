@@ -28,7 +28,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -76,7 +76,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new MultiPhase(Lists2.getOnlyElement(sources), subQueries);
+        return new MultiPhase(Lists.getOnlyElement(sources), subQueries);
     }
 
     @Override
@@ -95,6 +95,6 @@ public class MultiPhase extends ForwardingLogicalPlan {
             .text("MultiPhase");
         printStats(printContext);
         printContext.nest(source::print)
-            .nest(Lists2.map(subQueries.keySet(), x -> x::print));
+            .nest(Lists.map(subQueries.keySet(), x -> x::print));
     }
 }

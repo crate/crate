@@ -21,7 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import static io.crate.common.collections.Lists2.concat;
+import static io.crate.common.collections.Lists.concat;
 
 import java.util.List;
 

@@ -28,9 +28,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReaderContext;
@@ -49,8 +46,10 @@ import org.apache.lucene.search.TopFieldCollector;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -208,7 +207,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         if (scoreDocs.length > 0) {
             lastDoc = (FieldDoc) scoreDocs[scoreDocs.length - 1];
         }
-        return new KeyIterable<>(shardId(), Lists2.mapLazy(Arrays.asList(scoreDocs), rowFunction));
+        return new KeyIterable<>(shardId(), Lists.mapLazy(Arrays.asList(scoreDocs), rowFunction));
     }
 
     private Query query(FieldDoc lastDoc) {

@@ -48,7 +48,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
@@ -373,7 +373,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         if (convertChildColumn == null) {
             return new ObjectColumnType<>(
                 columnPolicy,
-                Lists2.map(innerTypes.entrySet(), e -> new ColumnDefinition<>(
+                Lists.map(innerTypes.entrySet(), e -> new ColumnDefinition<>(
                     e.getKey(),
                     e.getValue().toColumnType(columnPolicy, convertChildColumn),
                     List.of()

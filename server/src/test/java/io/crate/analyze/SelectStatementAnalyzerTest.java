@@ -52,7 +52,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
@@ -180,7 +180,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     private List<String> outputNames(AnalyzedRelation relation) {
-        return Lists2.map(relation.outputs(), x -> Symbols.pathFromSymbol(x).sqlFqn());
+        return Lists.map(relation.outputs(), x -> Symbols.pathFromSymbol(x).sqlFqn());
     }
 
     @Test

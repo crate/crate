@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import static io.crate.common.collections.Lists2.getOnlyElement;
+import static io.crate.common.collections.Lists.getOnlyElement;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -34,14 +34,13 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -324,7 +323,7 @@ public class Functions {
         var function = new io.crate.expression.symbol.Function(
             Signature.builder()
                 .name(new FunctionName(suppliedSchema, name))
-                .argumentTypes(Lists2.map(argumentTypes, DataType::getTypeSignature))
+                .argumentTypes(Lists.map(argumentTypes, DataType::getTypeSignature))
                 .returnType(DataTypes.UNDEFINED.getTypeSignature())
                 .kind(FunctionType.SCALAR)
                 .build(),
@@ -336,17 +335,17 @@ public class Functions {
         if (candidates.isEmpty() == false) {
             if (arguments.isEmpty() == false) {
                 message = message + ", no overload found for matching argument types: "
-                          + "(" + Lists2.joinOn(", ", argumentTypes, DataType::toString) + ").";
+                          + "(" + Lists.joinOn(", ", argumentTypes, DataType::toString) + ").";
             } else {
                 message = message + ".";
             }
             message = message + " Possible candidates: "
-                      + Lists2.joinOn(
+                      + Lists.joinOn(
                           ", ",
                           candidates,
                           c -> c.getSignature().getName().displayName()
                                + "("
-                               + Lists2.joinOn(
+                               + Lists.joinOn(
                               ", ",
                               c.getSignature().getArgumentTypes(),
                               TypeSignature::toString)
@@ -364,7 +363,7 @@ public class Functions {
         }
 
         // Find most specific by number of exact argument type matches
-        List<TypeSignature> argumentTypeSignatures = Lists2.map(arguments, DataType::getTypeSignature);
+        List<TypeSignature> argumentTypeSignatures = Lists.map(arguments, DataType::getTypeSignature);
         List<ApplicableFunction> mostSpecificFunctions = selectMostSpecificFunctions(
             applicableFunctions,
             (l, r) -> hasMoreExactTypeMatches(l, r, argumentTypeSignatures));

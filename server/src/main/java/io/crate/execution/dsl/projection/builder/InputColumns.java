@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import static io.crate.common.collections.Lists2.mapTail;
+import static io.crate.common.collections.Lists.mapTail;
 import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
 
 import java.util.ArrayList;

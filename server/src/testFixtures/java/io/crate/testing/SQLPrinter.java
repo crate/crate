@@ -31,7 +31,7 @@ import java.util.StringJoiner;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
@@ -68,7 +68,7 @@ public class SQLPrinter {
     }
 
     public static String print(Collection<Symbol> symbols) {
-        return Lists2.joinOn(", ", symbols, x -> x.toString(Style.QUALIFIED));
+        return Lists.joinOn(", ", symbols, x -> x.toString(Style.QUALIFIED));
     }
 
 
@@ -88,7 +88,7 @@ public class SQLPrinter {
         StringBuilder sb = new StringBuilder();
 
         sb.append("SELECT ");
-        sb.append(Lists2.joinOn(", ", relation.outputs(), x -> x.toString(Style.QUALIFIED)));
+        sb.append(Lists.joinOn(", ", relation.outputs(), x -> x.toString(Style.QUALIFIED)));
 
         if (relation.where() != Literal.BOOLEAN_TRUE) {
             sb.append(" WHERE ");
@@ -96,7 +96,7 @@ public class SQLPrinter {
         }
         if (!relation.groupBy().isEmpty()) {
             sb.append(" GROUP BY ");
-            sb.append(Lists2.joinOn(", ", relation.groupBy(), x -> x.toString(Style.QUALIFIED)));
+            sb.append(Lists.joinOn(", ", relation.groupBy(), x -> x.toString(Style.QUALIFIED)));
         }
         Symbol having = relation.having();
         if (having != null) {

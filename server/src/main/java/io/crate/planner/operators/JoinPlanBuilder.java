@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
@@ -83,13 +83,13 @@ public class JoinPlanBuilder {
         Iterator<RelationName> it;
         if (optimizeOrder) {
             Collection<RelationName> orderedRelationNames = JoinOrdering.getOrderedRelationNames(
-                Lists2.map(from, AnalyzedRelation::relationName),
+                Lists.map(from, AnalyzedRelation::relationName),
                 joinPairsByRelations.keySet(),
                 queryParts.keySet()
             );
             it = orderedRelationNames.iterator();
         } else {
-            it = Lists2.mapLazy(from, AnalyzedRelation::relationName).iterator();
+            it = Lists.mapLazy(from, AnalyzedRelation::relationName).iterator();
         }
 
         final RelationName lhsName = it.next();

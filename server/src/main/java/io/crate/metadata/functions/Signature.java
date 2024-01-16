@@ -29,16 +29,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.EnumSets;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Sets;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
@@ -385,7 +384,7 @@ public final class Signature implements Writeable, Accountable {
     }
 
     public List<DataType<?>> getArgumentDataTypes() {
-        return Lists2.map(argumentTypes, TypeSignature::createType);
+        return Lists.map(argumentTypes, TypeSignature::createType);
     }
 
     public TypeSignature getReturnType() {
@@ -445,11 +444,11 @@ public final class Signature implements Writeable, Accountable {
     public String toString() {
         List<String> allConstraints = List.of();
         if (bindingInfo != null) {
-            allConstraints = Lists2.map(bindingInfo.getTypeVariableConstraints(), TypeVariableConstraint::toString);
+            allConstraints = Lists.map(bindingInfo.getTypeVariableConstraints(), TypeVariableConstraint::toString);
         }
 
         return name + (allConstraints.isEmpty() ? "" : "<" + String.join(",", allConstraints) + ">") +
-               "(" + Lists2.joinOn(",", argumentTypes, TypeSignature::toString) + "):" + returnType;
+               "(" + Lists.joinOn(",", argumentTypes, TypeSignature::toString) + "):" + returnType;
     }
 
 

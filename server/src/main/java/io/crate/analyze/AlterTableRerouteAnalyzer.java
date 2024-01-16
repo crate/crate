@@ -21,10 +21,15 @@
 
 package io.crate.analyze;
 
+import static io.crate.metadata.RelationName.fromBlobTable;
+
+import java.util.HashMap;
+import java.util.List;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -41,11 +46,6 @@ import io.crate.sql.tree.PromoteReplica;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
 import io.crate.sql.tree.RerouteCancelShard;
 import io.crate.sql.tree.RerouteMoveShard;
-
-import java.util.HashMap;
-import java.util.List;
-
-import static io.crate.metadata.RelationName.fromBlobTable;
 
 public class AlterTableRerouteAnalyzer {
 
@@ -114,7 +114,7 @@ public class AlterTableRerouteAnalyzer {
         public RerouteAnalyzedStatement visitRerouteMoveShard(RerouteMoveShard<?> node, Context context) {
             return new AnalyzedRerouteMoveShard(
                 context.tableInfo,
-                Lists2.map(
+                Lists.map(
                     context.partitionProperties,
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),
@@ -127,7 +127,7 @@ public class AlterTableRerouteAnalyzer {
                                                                          Context context) {
             return new AnalyzedRerouteAllocateReplicaShard(
                 context.tableInfo,
-                Lists2.map(
+                Lists.map(
                     context.partitionProperties,
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),
@@ -139,7 +139,7 @@ public class AlterTableRerouteAnalyzer {
         public RerouteAnalyzedStatement visitRerouteCancelShard(RerouteCancelShard<?> node, Context context) {
             return new AnalyzedRerouteCancelShard(
                 context.tableInfo,
-                Lists2.map(
+                Lists.map(
                     context.partitionProperties,
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),
@@ -160,7 +160,7 @@ public class AlterTableRerouteAnalyzer {
 
             return new AnalyzedPromoteReplica(
                 context.tableInfo,
-                Lists2.map(
+                Lists.map(
                     context.partitionProperties,
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),

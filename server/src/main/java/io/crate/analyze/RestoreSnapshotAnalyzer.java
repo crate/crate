@@ -33,7 +33,7 @@ import org.elasticsearch.common.logging.DeprecationLogger;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -41,13 +41,13 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 class RestoreSnapshotAnalyzer {
 
@@ -125,7 +125,7 @@ class RestoreSnapshotAnalyzer {
                     FieldProvider.TO_LITERAL_VALIDATE_NAME,
                     null
                 );
-                tables = Lists2.map(
+                tables = Lists.map(
                     restoreSnapshot.tables(),
                     table -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx))
                 );

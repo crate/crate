@@ -21,35 +21,6 @@
 
 package io.crate.metadata.information;
 
-import io.crate.Constants;
-import io.crate.common.collections.Lists2;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexMappings;
-import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.ShardedTable;
-import io.crate.metadata.table.StoredTable;
-import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.routing.UnassignedInfo;
-import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.translog.Translog;
-
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
@@ -60,6 +31,36 @@ import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTI
 import static org.elasticsearch.index.MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING;
 import static org.elasticsearch.index.MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.translog.Translog;
+
+import io.crate.Constants;
+import io.crate.common.collections.Lists;
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexMappings;
+import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.ShardedTable;
+import io.crate.metadata.table.StoredTable;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class InformationTablesTableInfo {
 
@@ -106,7 +107,7 @@ public class InformationTablesTableInfo {
                         if (partitionedBy == null || partitionedBy.isEmpty()) {
                             return null;
                         }
-                        return Lists2.map(partitionedBy, ColumnIdent::sqlFqn);
+                        return Lists.map(partitionedBy, ColumnIdent::sqlFqn);
                     }
                     return null;
                 })

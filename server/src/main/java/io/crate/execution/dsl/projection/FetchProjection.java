@@ -37,7 +37,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Paging;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -174,7 +174,7 @@ public class FetchProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return MapBuilder.<String, Object>newMapBuilder()
             .put("type", "Fetch")
-            .put("outputs", Lists2.joinOn(", ", outputSymbols, Symbol::toString))
+            .put("outputs", Lists.joinOn(", ", outputSymbols, Symbol::toString))
             .put("fetchSize", fetchSize)
             .map();
     }

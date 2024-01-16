@@ -34,22 +34,22 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.JoinPlan;
-import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.sql.tree.JoinType;
 
 /**
  * If we can determine that a filter on an OUTER JOIN turns all NULL rows that the join could generate into a NO-MATCH
@@ -129,7 +129,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        var sources = Lists2.map(join.sources(), resolvePlan);
+        var sources = Lists.map(join.sources(), resolvePlan);
         LogicalPlan lhs = sources.get(0);
         LogicalPlan rhs = sources.get(1);
         Set<RelationName> leftName = new HashSet<>(lhs.getRelationNames());

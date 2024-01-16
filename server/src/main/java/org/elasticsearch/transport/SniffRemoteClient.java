@@ -49,7 +49,7 @@ import org.elasticsearch.transport.TransportService.HandshakeResponse;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.FutureActionListener;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 
@@ -72,7 +72,7 @@ public final class SniffRemoteClient extends AbstractClient {
         super(nodeSettings, threadPool);
         this.clusterAlias = clusterAlias;
         this.transportService = transportService;
-        this.seedNodes = Lists2.map(
+        this.seedNodes = Lists.map(
             connectionInfo.hosts(),
             seedNode -> () -> resolveSeedNode(clusterAlias, seedNode)
         );

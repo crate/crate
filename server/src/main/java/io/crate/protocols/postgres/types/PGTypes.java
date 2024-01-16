@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
@@ -170,7 +170,7 @@ public class PGTypes {
             }
 
             case RowType.ID:
-                return new RecordType(Lists2.map(((RowType) type).fieldTypes(), PGTypes::get));
+                return new RecordType(Lists.map(((RowType) type).fieldTypes(), PGTypes::get));
 
             case StringType.ID:
                 return VarCharType.INSTANCE;

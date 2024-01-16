@@ -38,9 +38,9 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class Lists2 {
+public final class Lists {
 
-    private Lists2() {
+    private Lists() {
     }
 
     /**
@@ -345,12 +345,12 @@ public final class Lists2 {
     }
 
     public static <T> List<T> reverse(List<T> list) {
-        if (list instanceof Lists2.ReverseList) {
-            return ((Lists2.ReverseList<T>) list).getForwardList();
+        if (list instanceof Lists.ReverseList) {
+            return ((Lists.ReverseList<T>) list).getForwardList();
         } else if (list instanceof RandomAccess) {
-            return new Lists2.RandomAccessReverseList<>(list);
+            return new Lists.RandomAccessReverseList<>(list);
         } else {
-            return new Lists2.ReverseList<>(list);
+            return new Lists.ReverseList<>(list);
         }
     }
 
@@ -495,7 +495,7 @@ public final class Lists2 {
         }
     }
 
-    private static class RandomAccessReverseList<T> extends Lists2.ReverseList<T> implements RandomAccess {
+    private static class RandomAccessReverseList<T> extends Lists.ReverseList<T> implements RandomAccess {
         RandomAccessReverseList(List<T> forwardList) {
             super(forwardList);
         }
@@ -505,8 +505,8 @@ public final class Lists2 {
         Objects.requireNonNull(list);
         Objects.checkIndex(0, size);
         return (list instanceof RandomAccess)
-            ? new Lists2.RandomAccessPartition<>(list, size)
-            : new Lists2.Partition<>(list, size);
+            ? new Lists.RandomAccessPartition<>(list, size)
+            : new Lists.Partition<>(list, size);
     }
 
     private static class Partition<T> extends AbstractList<List<T>> {
@@ -537,7 +537,7 @@ public final class Lists2 {
         }
     }
 
-    private static class RandomAccessPartition<T> extends Lists2.Partition<T> implements RandomAccess {
+    private static class RandomAccessPartition<T> extends Lists.Partition<T> implements RandomAccess {
         RandomAccessPartition(List<T> list, int size) {
             super(list, size);
         }

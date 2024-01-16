@@ -35,7 +35,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -152,7 +152,7 @@ public record AnalyzedCreateTable(
         optClusteredBy.ifPresent(c -> {
             if (!primaryKeys.isEmpty() && Reference.indexOf(primaryKeys, c) < 0) {
                 throw new IllegalArgumentException(
-                    "Clustered by column `" + c + "` must be part of primary keys: " + Lists2.map(primaryKeys, Reference::column));
+                    "Clustered by column `" + c + "` must be part of primary keys: " + Lists.map(primaryKeys, Reference::column));
             }
         });
         ColumnIdent routingColumn = optClusteredBy.orElse(DocSysColumns.ID);

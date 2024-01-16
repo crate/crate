@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -35,7 +36,7 @@ import org.junit.Before;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -301,7 +302,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
     protected FunctionImplementation getFunction(String functionName, List<DataType<?>> argTypes) {
         return sqlExpressions.nodeCtx.functions().get(
-            null, functionName, Lists2.map(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
+            null, functionName, Lists.map(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @SuppressWarnings("NewClassNamingConvention")
