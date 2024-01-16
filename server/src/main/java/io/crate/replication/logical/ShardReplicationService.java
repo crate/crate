@@ -29,14 +29,12 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jetbrains.annotations.Nullable;
-
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.IndexEventListener;
@@ -44,12 +42,13 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.replication.logical.exceptions.NoSubscriptionForIndexException;
 
 public class ShardReplicationService implements Closeable, IndexEventListener {
 
-    private static final Logger LOGGER = Loggers.getLogger(ShardReplicationService.class);
+    private static final Logger LOGGER = LogManager.getLogger(ShardReplicationService.class);
 
     private final LogicalReplicationService logicalReplicationService;
     private final LogicalReplicationSettings replicationSettings;
