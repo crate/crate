@@ -92,7 +92,7 @@ public class GenericFunctionQuery extends Query {
                     return false;
                 }
                 var fields = new ArrayList<String>();
-                RefVisitor.visitRefs(function, ref -> fields.add(ref.column().fqn()));
+                RefVisitor.visitRefs(function, ref -> fields.add(ref.storageIdent()));
                 return DocValues.isCacheable(ctx, fields.toArray(new String[0]));
             }
 
