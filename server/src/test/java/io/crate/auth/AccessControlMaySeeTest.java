@@ -25,10 +25,10 @@ import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ESTestCase;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -65,7 +65,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
 
             @Override
             public boolean hasAnyPrivilege(Role user, Securable securable, @Nullable String ident) {
-                validationCallArguments.add(CollectionUtils.arrayAsArrayList(securable, ident, user.name()));
+                validationCallArguments.add(Arrays.asList(securable, ident, user.name()));
                 return true;
             }
         };

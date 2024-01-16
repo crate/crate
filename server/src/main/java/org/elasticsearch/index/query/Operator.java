@@ -22,29 +22,19 @@ package org.elasticsearch.index.query;
 import java.util.Locale;
 
 import org.apache.lucene.search.BooleanClause;
-import org.elasticsearch.common.util.CollectionUtils;
 
 public enum Operator {
     OR,
     AND;
 
     public BooleanClause.Occur toBooleanClauseOccur() {
-        switch (this) {
-            case OR:
-                return BooleanClause.Occur.SHOULD;
-            case AND:
-                return BooleanClause.Occur.MUST;
-            default:
-                throw Operator.newOperatorException(this.toString());
-        }
+        return switch (this) {
+            case OR -> BooleanClause.Occur.SHOULD;
+            case AND -> BooleanClause.Occur.MUST;
+        };
     }
 
     public static Operator fromString(String op) {
         return valueOf(op.toUpperCase(Locale.ROOT));
-    }
-
-    private static IllegalArgumentException newOperatorException(String op) {
-        return new IllegalArgumentException("operator needs to be either " +
-                CollectionUtils.arrayAsArrayList(values()) + ", but not [" + op + "]");
     }
 }

@@ -20,7 +20,6 @@ package org.elasticsearch.test;
 
 import static org.apache.lucene.tests.util.TestUtil.nextInt;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -795,8 +794,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
      */
     @SafeVarargs
     public final static <T> List<T> randomSubsetOf(int size, T... values) {
-        List<T> list = arrayAsArrayList(values);
-        return randomSubsetOf(size, list);
+        return randomSubsetOf(size, Arrays.asList(values));
     }
 
     /**
