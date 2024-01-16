@@ -21,6 +21,15 @@
 
 package io.crate.execution.dsl.projection;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -28,14 +37,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public abstract class AbstractIndexWriterProjection extends Projection {
 
@@ -109,7 +110,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     }
 
 
-    public List<? extends Symbol> ids() {
+    public List<Symbol> ids() {
         return idSymbols;
     }
 

@@ -144,8 +144,8 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
         if (function.arguments().size() == 1) {
             Symbol arg = function.arguments().get(0);
-            if (arg instanceof Input) {
-                if (((Input) arg).value() == null) {
+            if (arg instanceof Input<?> input) {
+                if (input.value() == null) {
                     return Literal.of(0L);
                 } else {
                     return new Function(COUNT_STAR_SIGNATURE, List.of(), DataTypes.LONG);

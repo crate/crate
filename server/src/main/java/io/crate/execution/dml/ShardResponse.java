@@ -21,23 +21,25 @@
 
 package io.crate.execution.dml;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.Streamer;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.WriteResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
+
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.Streamer;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 
 public class ShardResponse extends ReplicationResponse implements WriteResponse {
 
@@ -180,7 +182,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
                     Symbol symbol = Symbols.fromStream(in);
                     resultColumns[i] = symbol;
                 }
-                Streamer[] resultRowStreamers = Symbols.streamerArray(resultColumns);
+                Streamer<?>[] resultRowStreamers = Symbols.streamerArray(resultColumns);
                 int resultRowsSize = in.readVInt();
                 if (resultRowsSize > 0) {
                     resultRows = new ArrayList<>(resultRowsSize);
@@ -198,6 +200,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeVInt(locations.size());

@@ -210,7 +210,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked"})
     public CompareBy iterate(RamAccounting ramAccounting,
                              MemoryManager memoryManager,
                              CompareBy state,

@@ -179,11 +179,10 @@ public class FetchProjection extends Projection {
             .map();
     }
 
-    @SuppressWarnings({"rawtypes"})
-    public Map<String, ? extends IntObjectMap<Streamer[]>> generateStreamersGroupedByReaderAndNode() {
-        HashMap<String, IntObjectHashMap<Streamer[]>> streamersByReaderByNode = new HashMap<>();
+    public Map<String, ? extends IntObjectMap<Streamer<?>[]>> generateStreamersGroupedByReaderAndNode() {
+        HashMap<String, IntObjectHashMap<Streamer<?>[]>> streamersByReaderByNode = new HashMap<>();
         for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
-            IntObjectHashMap<Streamer[]> streamersByReaderId = new IntObjectHashMap<>();
+            IntObjectHashMap<Streamer<?>[]> streamersByReaderId = new IntObjectHashMap<>();
             String nodeId = entry.getKey();
             streamersByReaderByNode.put(nodeId, streamersByReaderId);
             for (IntCursor readerIdCursor : entry.getValue()) {

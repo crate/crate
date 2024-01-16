@@ -24,12 +24,11 @@ package io.crate.execution.engine.fetch;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.transport.TransportRequest;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;
@@ -51,7 +50,7 @@ public class NodeFetchRequest extends NodeRequest<NodeFetchRequest.FetchRequest>
                             int fetchPhaseId,
                             boolean closeContext,
                             IntObjectMap<IntArrayList> toFetch,
-                            IntObjectMap<Streamer[]> streamers,
+                            IntObjectMap<Streamer<?>[]> streamers,
                             RamAccounting ramAccounting) {
         super(nodeId, new FetchRequest(jobId, fetchPhaseId, closeContext, toFetch));
         responseReader = in -> new NodeFetchResponse(in, streamers, ramAccounting);

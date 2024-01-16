@@ -50,7 +50,7 @@ import io.crate.types.DataTypes;
 
 public class NodeFetchResponseTest extends ESTestCase {
 
-    private IntObjectMap<Streamer[]> streamers;
+    private IntObjectMap<Streamer<?>[]> streamers;
     private IntObjectMap<StreamBucket> fetched;
 
     @Before

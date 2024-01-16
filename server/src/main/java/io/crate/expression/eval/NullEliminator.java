@@ -21,12 +21,12 @@
 
 package io.crate.expression.eval;
 
+import io.crate.expression.operator.Operators;
+import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.operator.Operators;
-import io.crate.expression.predicate.NotPredicate;
 
 /**
  * Inside a query, NULL values as logical operator arguments can be treated like boolean FALSE.
@@ -111,7 +111,7 @@ public final class NullEliminator {
         }
 
         @Override
-        public Symbol visitLiteral(Literal symbol, Context context) {
+        public Symbol visitLiteral(Literal<?> symbol, Context context) {
             if (context.insideLogicalOperator && symbol.value() == null) {
                 return Literal.of(context.nullReplacement);
             }
