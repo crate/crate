@@ -63,7 +63,7 @@ import io.crate.types.DataTypes;
 @State(Scope.Benchmark)
 public class GroupingStringCollectorBenchmark {
 
-    private GroupingCollector groupByMinCollector;
+    private GroupingCollector<?> groupByMinCollector;
     private BatchIterator<Row> rowsIterator;
     private List<Row> rows;
     private OnHeapMemoryManager memoryManager;
@@ -85,7 +85,8 @@ public class GroupingStringCollectorBenchmark {
         }
     }
 
-    private GroupingCollector createGroupByMinBytesRefCollector(Functions functions) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private GroupingCollector<?> createGroupByMinBytesRefCollector(Functions functions) {
         RowCollectExpression keyInput = new RowCollectExpression(0);
         List<Input<?>> keyInputs = Collections.singletonList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};

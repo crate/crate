@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.Version;
@@ -68,7 +67,7 @@ import io.crate.types.DataTypes;
 @State(Scope.Benchmark)
 public class IntervalAggregationBenchmark {
 
-    private final List<Row> rows = IntStream.range(0, 10_000)
+    private final List<Row1> rows = IntStream.range(0, 10_000)
         .mapToObj(i -> {
             int mod = i % 3;
             if (mod == 0) {
@@ -78,7 +77,7 @@ public class IntervalAggregationBenchmark {
             } else {
                 return new Row1(Period.days(i).withHours(i + 1).withMinutes(i + 2).withSeconds(i + 3));
             }
-        }).collect(Collectors.toList());
+        }).toList();
 
     private OnHeapMemoryManager onHeapMemoryManager;
     private AggregateCollector onHeapCollectorSum;
