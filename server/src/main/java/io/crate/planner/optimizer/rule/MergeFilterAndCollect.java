@@ -21,6 +21,11 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+
+import java.util.function.UnaryOperator;
+
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -32,11 +37,6 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-
-import java.util.function.Function;
 
 public class MergeFilterAndCollect implements Rule<Filter> {
 
@@ -60,7 +60,7 @@ public class MergeFilterAndCollect implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
         WhereClause newWhere = collect.where().add(filter.query());
         return new Collect(

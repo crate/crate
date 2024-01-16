@@ -31,10 +31,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.StreamSupport;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -69,6 +67,7 @@ import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -393,7 +392,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             doDocScores,
             2,
             RamAccounting.NO_ACCOUNTING,
-            new CollectorContext(Set.of(), Function.identity()),
+            new CollectorContext(Set.of(), UnaryOperator.identity()),
             f -> null,
             new Sort(SortField.FIELD_SCORE),
             columnReferences,

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
@@ -62,7 +63,7 @@ public class ProjectionBuilder {
 
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
                                                        Collection<Function> aggregates,
-                                                       java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder,
+                                                       UnaryOperator<Symbol> subQueryAndParamBinder,
                                                        AggregateMode mode,
                                                        RowGranularity granularity,
                                                        SearchPath searchPath) {
@@ -81,7 +82,7 @@ public class ProjectionBuilder {
         Collection<? extends Symbol> inputs,
         Collection<? extends Symbol> keys,
         Collection<Function> values,
-        java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder,
+        UnaryOperator<Symbol> subQueryAndParamBinder,
         AggregateMode mode,
         RowGranularity requiredGranularity,
         SearchPath searchPath) {
@@ -106,7 +107,7 @@ public class ProjectionBuilder {
                                                    AggregateMode mode,
                                                    InputColumns.SourceSymbols sourceSymbols,
                                                    SearchPath searchPath,
-                                                   java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder) {
+                                                   UnaryOperator<Symbol> subQueryAndParamBinder) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
             assert function.signature().getKind() == FunctionType.AGGREGATE :

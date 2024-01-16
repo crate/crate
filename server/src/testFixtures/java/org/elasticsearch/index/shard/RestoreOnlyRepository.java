@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
@@ -115,7 +115,7 @@ public abstract class RestoreOnlyRepository implements Repository {
                                  final Metadata clusterMetadata,
                                  SnapshotInfo snapshotInfo,
                                  Version repositoryMetaVersion,
-                                 Function<ClusterState, ClusterState> stateTransformer,
+                                 UnaryOperator<ClusterState> stateTransformer,
                                  final ActionListener<RepositoryData> listener) {
         listener.onResponse(null);
     }

@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.matcher;
 
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.planner.operators.LogicalPlan;
 
@@ -39,7 +40,7 @@ class WithPattern<T, U, V> extends Pattern<T> {
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures, Function<LogicalPlan, LogicalPlan> resolvePlan) {
+    public Match<T> accept(Object object, Captures captures, UnaryOperator<LogicalPlan> resolvePlan) {
         Match<T> match = firstPattern.accept(object, captures, resolvePlan);
         return match.flatMap(matchedValue -> {
             Optional<?> optProperty = getProperty.apply(matchedValue)

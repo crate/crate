@@ -30,7 +30,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.store.Directory;
@@ -189,7 +189,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
                     new SnapshotInfo(snapshot.getSnapshotId(), shardGenerations.indices().stream()
                         .map(IndexId::getName).collect(Collectors.toList()), 0L, null, 1L, 6,
                         Collections.emptyList(), true),
-                    Version.CURRENT, Function.identity(), f));
+                    Version.CURRENT, UnaryOperator.identity(), f));
             assertThatThrownBy(() -> snapshotShard(shard, snapshotWithSameName, repository))
                 .isExactlyInstanceOf(IndexShardSnapshotFailedException.class)
                 .hasMessageContaining("Duplicate snapshot name");

@@ -38,7 +38,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -172,8 +172,8 @@ public class ServerXContentExtension implements XContentBuilderExtension {
     }
 
     @Override
-    public Map<Class<?>, Function<Object, Object>> getDateTransformers() {
-        Map<Class<?>, Function<Object, Object>> transformers = new HashMap<>();
+    public Map<Class<?>, UnaryOperator<Object>> getDateTransformers() {
+        Map<Class<?>, UnaryOperator<Object>> transformers = new HashMap<>();
         transformers.put(Date.class, d -> DEFAULT_DATE_PRINTER.print(((Date) d).getTime()));
         transformers.put(DateTime.class, d -> DEFAULT_DATE_PRINTER.print((DateTime) d));
         transformers.put(MutableDateTime.class, d -> DEFAULT_DATE_PRINTER.print((MutableDateTime) d));

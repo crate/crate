@@ -24,8 +24,8 @@ package io.crate.planner.optimizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
@@ -95,7 +95,7 @@ public class Optimizer {
         // trying to re-apply the rules as long as at least one plan was transformed.
         boolean done = false;
         int numIterations = 0;
-        Function<LogicalPlan, LogicalPlan> resolvePlan = Function.identity();
+        UnaryOperator<LogicalPlan> resolvePlan = UnaryOperator.identity();
         Version minVersion = minNodeVersionInCluster.get();
         while (!done && numIterations < 10_000) {
             done = true;
@@ -123,7 +123,7 @@ public class Optimizer {
                                                    PlanStats planStats,
                                                    NodeContext nodeCtx,
                                                    TransactionContext txnCtx,
-                                                   Function<LogicalPlan, LogicalPlan> resolvePlan,
+                                                   UnaryOperator<LogicalPlan> resolvePlan,
                                                    OptimizerTracer tracer) {
         Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
         if (match.isPresent()) {

@@ -28,7 +28,7 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
@@ -67,7 +67,7 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         var projectSet = captures.get(projectSetCapture);
 
         var queryParts = AndOperator.split(filter.query());

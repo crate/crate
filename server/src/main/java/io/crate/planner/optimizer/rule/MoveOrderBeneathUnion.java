@@ -21,23 +21,23 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+
+import java.util.List;
+import java.util.function.UnaryOperator;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-
-import java.util.List;
-import java.util.function.Function;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 public final class MoveOrderBeneathUnion implements Rule<Order> {
 
@@ -61,7 +61,7 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         Union union = captures.get(unionCapture);
         List<LogicalPlan> unionSources = union.sources();
         assert unionSources.size() == 2 : "A UNION must have exactly 2 unionSources";

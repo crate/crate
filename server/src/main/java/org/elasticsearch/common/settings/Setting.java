@@ -42,8 +42,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
@@ -59,6 +57,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.Booleans;
 import io.crate.common.StringUtils;
@@ -1234,13 +1233,13 @@ public class Setting<T> implements ToXContentObject {
     }
 
     public static Setting<String> simpleString(String key, Setting<String> fallback, Property... properties) {
-        return simpleString(key, fallback, Function.identity(), properties);
+        return simpleString(key, fallback, UnaryOperator.identity(), properties);
     }
 
     public static Setting<String> simpleString(
             final String key,
             final Setting<String> fallback,
-            final Function<String, String> parser,
+            final UnaryOperator<String> parser,
             final Property... properties) {
         return new Setting<>(key, fallback, parser, DataTypes.STRING, properties);
     }

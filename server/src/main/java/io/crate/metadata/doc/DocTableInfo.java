@@ -37,9 +37,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -601,7 +601,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      *  <li>Internal object keys of the geo shape column, such as "coordinates", "type"</li>
      * </ul>
      */
-    public Function<String, String> lookupNameBySourceKey() {
+    public UnaryOperator<String> lookupNameBySourceKey() {
         if (versionCreated.onOrAfter(Version.V_5_5_0)) {
             return oidOrName -> {
                 if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
@@ -615,7 +615,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 return name;
             };
         } else {
-            return Function.identity();
+            return UnaryOperator.identity();
         }
     }
 
@@ -739,7 +739,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (toDrop.isEmpty()) {
             return this;
         }
-        Function<Symbol, Symbol> updateRef = symbol -> RefReplacer.replaceRefs(symbol, ref -> newReferences.getOrDefault(ref.column(), ref));
+        UnaryOperator<Symbol> updateRef = symbol -> RefReplacer.replaceRefs(symbol, ref -> newReferences.getOrDefault(ref.column(), ref));
         ArrayList<CheckConstraint<Symbol>> newCheckConstraints = new ArrayList<>(checkConstraints.size());
         for (var constraint : checkConstraints) {
             boolean drop = false;
@@ -817,7 +817,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         // add newNames to the inner types of the ancestors
         updateParentsInnerTypes(newName, refToRename.valueType(), oldNameToRenamedRefs);
 
-        Function<Reference, Reference> renameGeneratedRefs = ref -> {
+        UnaryOperator<Reference> renameGeneratedRefs = ref -> {
             if (ref instanceof GeneratedReference genRef) {
                 return new GeneratedReference(
                     genRef.reference(), // already renamed in step 1)
@@ -827,7 +827,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return ref;
         };
 
-        Function<IndexReference, IndexReference> renameIndexRefs = idxRef -> {
+        UnaryOperator<IndexReference> renameIndexRefs = idxRef -> {
             var updatedRef = idxRef.updateColumns(
                 Lists.map(idxRef.columns(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r)));
             if (toBeRenamed.test(idxRef.column())) {
@@ -837,7 +837,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return updatedRef;
         };
 
-        Function<CheckConstraint<Symbol>, CheckConstraint<Symbol>> renameCheckConstraints = check -> {
+        UnaryOperator<CheckConstraint<Symbol>> renameCheckConstraints = check -> {
             var renamed = RefReplacer.replaceRefs(check.expression(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r));
             return new CheckConstraint<>(
                 check.name(),
@@ -853,7 +853,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .map(renameIndexRefs)
             .collect(Collectors.toMap(Reference::column, ref -> ref));
 
-        Function<ColumnIdent, ColumnIdent> renameColumnIfMatch = column -> toBeRenamed.test(column) ? column.replacePrefix(newName) : column;
+        UnaryOperator<ColumnIdent> renameColumnIfMatch = column -> toBeRenamed.test(column) ? column.replacePrefix(newName) : column;
 
         var renamedClusteredBy = renameColumnIfMatch.apply(clusteredBy);
         var renamedPrimaryKeys = Lists.map(primaryKeys, renameColumnIfMatch);

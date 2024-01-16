@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import org.apache.lucene.index.DirectoryReader;
@@ -86,7 +87,7 @@ public class ReadOnlyEngine extends Engine {
      * @param requireCompleteHistory indicates whether this engine permits an incomplete history (i.e. LCP &lt; MSN)
      */
     public ReadOnlyEngine(EngineConfig config, SeqNoStats seqNoStats, TranslogStats translogStats, boolean obtainLock,
-                          Function<DirectoryReader, DirectoryReader> readerWrapperFunction, boolean requireCompleteHistory) {
+                          UnaryOperator<DirectoryReader> readerWrapperFunction, boolean requireCompleteHistory) {
         super(config);
         this.requireCompleteHistory = requireCompleteHistory;
         try {
@@ -161,7 +162,7 @@ public class ReadOnlyEngine extends Engine {
 
 
     protected final ElasticsearchDirectoryReader wrapReader(DirectoryReader reader,
-                                                            Function<DirectoryReader, DirectoryReader> readerWrapperFunction) throws IOException {
+                                                            UnaryOperator<DirectoryReader> readerWrapperFunction) throws IOException {
         if (engineConfig.getIndexSettings().isSoftDeleteEnabled()) {
             reader = new SoftDeletesDirectoryReaderWrapper(reader, Lucene.SOFT_DELETES_FIELD);
         }

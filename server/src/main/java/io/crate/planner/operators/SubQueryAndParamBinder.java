@@ -21,6 +21,9 @@
 
 package io.crate.planner.operators;
 
+import java.util.Locale;
+import java.util.function.UnaryOperator;
+
 import io.crate.data.Row;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.FunctionCopyVisitor;
@@ -32,10 +35,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.Locale;
-
-public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
-    implements java.util.function.Function<Symbol, Symbol> {
+public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void> implements UnaryOperator<Symbol> {
 
     private final Row params;
     private final SubQueryResults subQueryResults;

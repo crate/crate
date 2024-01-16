@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.common.bytes.BytesReference;
@@ -77,9 +77,9 @@ public final class SourceParser {
     public static final String UNKNOWN_COLUMN_PREFIX = "_u_";
     private final Map<String, Object> requiredColumns = new HashMap<>();
     private final Set<String> droppedColumns;
-    private final Function<String, String> lookupNameBySourceKey;
+    private final UnaryOperator<String> lookupNameBySourceKey;
 
-    public SourceParser(Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+    public SourceParser(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
         // Use a Set of string fqn instead of ColumnIdent to avoid creating ColumnIdent objects to call `contains`
         this.droppedColumns = droppedColumns.stream().map(r -> r.column().fqn()).collect(Collectors.toUnmodifiableSet());
         this.lookupNameBySourceKey = lookupNameBySourceKey;
@@ -160,7 +160,7 @@ public final class SourceParser {
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns,
                                      Set<String> droppedColumns,
-                                     Function<String, String> lookupNameBySourceKey,
+                                     UnaryOperator<String> lookupNameBySourceKey,
                                      StringBuilder colPath) throws IOException {
         if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
@@ -189,7 +189,7 @@ public final class SourceParser {
     private static Map<String, Object> parseObject(XContentParser parser,
                                                    @Nullable Map<String, Object> requiredColumns,
                                                    Set<String> droppedColumns,
-                                                   Function<String, String> lookupNameBySourceKey,
+                                                   UnaryOperator<String> lookupNameBySourceKey,
                                                    StringBuilder colPath,
                                                    boolean includeUnknown) throws IOException {
         var parseAllFields = false;
@@ -280,7 +280,7 @@ public final class SourceParser {
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns,
                                      Set<String> droppedColumns,
-                                     Function<String, String> lookupNameBySourceKey,
+                                     UnaryOperator<String> lookupNameBySourceKey,
                                      StringBuilder colPath,
                                      boolean includeUnknown) throws IOException {
         return switch (parser.currentToken()) {

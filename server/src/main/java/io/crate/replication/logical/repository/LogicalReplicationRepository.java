@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -255,7 +256,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                  final Metadata clusterMetadata,
                                  SnapshotInfo snapshotInfo,
                                  Version repositoryMetaVersion,
-                                 Function<ClusterState, ClusterState> stateTransformer,
+                                 UnaryOperator<ClusterState> stateTransformer,
                                  final ActionListener<RepositoryData> listener) {
         throw new UnsupportedOperationException("Operation not permitted");
     }

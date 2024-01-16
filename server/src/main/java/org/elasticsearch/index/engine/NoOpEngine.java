@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
@@ -50,7 +50,7 @@ public final class NoOpEngine extends ReadOnlyEngine {
     private final DocsStats docsStats;
 
     public NoOpEngine(EngineConfig config) {
-        super(config, null, null, true, Function.identity(), true);
+        super(config, null, null, true, UnaryOperator.identity(), true);
         Directory directory = store.directory();
         try (DirectoryReader reader = openDirectory(directory, config.getIndexSettings().isSoftDeleteEnabled())) {
             this.docsStats = docsStats(reader);

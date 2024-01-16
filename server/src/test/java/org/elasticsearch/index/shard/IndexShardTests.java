@@ -57,6 +57,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -4068,7 +4069,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shard.indexSettings.getIndexMetadata(),
             List.of(idxSettings -> Optional.of(
                 engineConfig ->
-                    new ReadOnlyEngine(engineConfig, null, null, true, Function.identity(), true) {
+                    new ReadOnlyEngine(engineConfig, null, null, true, UnaryOperator.identity(), true) {
 
                         @Override
                         protected void ensureMaxSeqNoEqualsToGlobalCheckpoint(SeqNoStats seqNoStats) {

@@ -24,8 +24,8 @@ package io.crate.planner.optimizer.iterative;
 import static io.crate.planner.optimizer.Optimizer.removeExcludedRules;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 
@@ -60,7 +60,7 @@ public class IterativeOptimizer {
         // Memo is used to have a mutable view over the tree so it can change nodes without
         // having to re-build the full tree all the time.`GroupReference` is used as place-holder
         // or proxy that must be resolved to the real plan node
-        Function<LogicalPlan, LogicalPlan> groupReferenceResolver = node -> {
+        UnaryOperator<LogicalPlan> groupReferenceResolver = node -> {
             if (node instanceof GroupReference g) {
                 return memo.resolve(g.groupId());
             }
@@ -166,7 +166,7 @@ public class IterativeOptimizer {
 
     private record Context(
         Memo memo,
-        Function<LogicalPlan, LogicalPlan> groupReferenceResolver,
+        UnaryOperator<LogicalPlan> groupReferenceResolver,
         List<Rule<?>> rules,
         CoordinatorTxnCtx txnCtx,
         PlanStats planStats,

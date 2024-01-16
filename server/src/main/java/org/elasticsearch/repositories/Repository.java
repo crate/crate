@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
@@ -139,8 +140,8 @@ public interface Repository extends LifecycleComponent {
      * @param listener              listener to be invoked with the new {@link RepositoryData} after completing the snapshot
      */
     void finalizeSnapshot(ShardGenerations shardGenerations, long repositoryStateId, Metadata clusterMetadata,
-                          SnapshotInfo snapshotInfo, Version repositoryMetaVersion, Function<ClusterState, ClusterState> stateTransformer,
-                          ActionListener<RepositoryData> listener);
+                          SnapshotInfo snapshotInfo, Version repositoryMetaVersion,
+                          UnaryOperator<ClusterState> stateTransformer, ActionListener<RepositoryData> listener);
 
     /**
      * Deletes snapshots

@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.UUIDs;
 import org.jetbrains.annotations.Nullable;
@@ -226,7 +227,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
 
         public Reference build(Map<ColumnIdent, RefBuilder> columns,
                                RelationName tableName,
-                               Function<Symbol, Symbol> bindParameter,
+                               UnaryOperator<Symbol> bindParameter,
                                Function<Symbol, Object> toValue) {
             if (builtReference != null) {
                 return builtReference;

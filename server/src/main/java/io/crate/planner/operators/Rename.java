@@ -30,7 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.SequencedCollection;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -169,7 +169,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
             }
         }
         LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
-        Function<Symbol, Symbol> convertChildrenToScopedSymbols = s -> MapBackedSymbolReplacer.convert(s, childToParentMap);
+        UnaryOperator<Symbol> convertChildrenToScopedSymbols = s -> MapBackedSymbolReplacer.convert(s, childToParentMap);
         for (var entry : fetchRewrite.replacedOutputs().entrySet()) {
             Symbol key = entry.getKey();
             Symbol value = entry.getValue();

@@ -33,7 +33,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -80,7 +80,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(), engine.getPersistedLocalCheckpoint()));
                 engine.flush();
                 readOnlyEngine = new ReadOnlyEngine(engine.engineConfig, engine.getSeqNoStats(globalCheckpoint.get()),
-                    engine.getTranslogStats(), false, Function.identity(), true);
+                    engine.getTranslogStats(), false, UnaryOperator.identity(), true);
                 lastSeqNoStats = engine.getSeqNoStats(globalCheckpoint.get());
                 lastDocIds = getDocIds(engine, true);
                 assertThat(readOnlyEngine.getPersistedLocalCheckpoint(), equalTo(lastSeqNoStats.getLocalCheckpoint()));
@@ -170,7 +170,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 globalCheckpoint.set(engine.getPersistedLocalCheckpoint());
                 engine.syncTranslog();
                 engine.flushAndClose();
-                readOnlyEngine = new ReadOnlyEngine(engine.engineConfig, null , null, true, Function.identity(), true);
+                readOnlyEngine = new ReadOnlyEngine(engine.engineConfig, null , null, true, UnaryOperator.identity(), true);
                 Engine.CommitId flush = readOnlyEngine.flush(randomBoolean(), true);
                 assertThat(readOnlyEngine.flush(randomBoolean(), true), is(flush));
             } finally {
@@ -199,7 +199,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 engine.flushAndClose();
 
                 assertThatThrownBy(
-                    () -> new ReadOnlyEngine(config, null, null, true, Function.identity(), true) {
+                    () -> new ReadOnlyEngine(config, null, null, true, UnaryOperator.identity(), true) {
                         @Override
                         protected boolean assertMaxSeqNoEqualsToGlobalCheckpoint(final long maxSeqNo,
                                 final long globalCheckpoint) {
@@ -230,7 +230,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 globalCheckpoint::get);
             store.createEmpty(Version.CURRENT.luceneVersion);
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(
-                config, null, new TranslogStats(0, 0, 0, 0), true, Function.identity(), true)
+                config, null, new TranslogStats(0, 0, 0, 0), true, UnaryOperator.identity(), true)
             ) {
                 assertThatThrownBy(() -> readOnlyEngine.index(null))
                     .isExactlyInstanceOf(UnsupportedOperationException.class);
@@ -263,7 +263,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 globalCheckpoint::get
             );
             store.createEmpty(Version.CURRENT.luceneVersion);
-            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null , new TranslogStats(0, 0, 0, 0), true, Function.identity(), true)) {
+            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null , new TranslogStats(0, 0, 0, 0), true, UnaryOperator.identity(), true)) {
                 globalCheckpoint.set(randomNonNegativeLong());
                 try {
                     readOnlyEngine.verifyEngineBeforeIndexClosing();
@@ -317,7 +317,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 engine.syncTranslog();
                 engine.flushAndClose();
             }
-            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, Function.identity(), true)) {
+            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, UnaryOperator.identity(), true)) {
                 TranslogHandler translogHandler = new TranslogHandler(xContentRegistry(), config.getIndexSettings());
                 readOnlyEngine.recoverFromTranslog(translogHandler, randomNonNegativeLong());
                 int opsRecovered = translogHandler.run(
@@ -376,7 +376,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 engine.flush(true, true);
             }
 
-            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, Function.identity(), true)) {
+            try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, UnaryOperator.identity(), true)) {
                 assertThat(readOnlyEngine.getTranslogStats().estimatedNumberOfOperations(), equalTo(softDeletesEnabled ? 0 : numDocs));
                 assertThat(readOnlyEngine.getTranslogStats().getUncommittedOperations(), equalTo(0));
                 assertThat(readOnlyEngine.getTranslogStats().getTranslogSizeInBytes(), greaterThan(0L));

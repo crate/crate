@@ -31,11 +31,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -63,6 +61,7 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 
@@ -142,12 +141,12 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
             threadPool.scheduler());
     }
 
-    class UpdateTask extends SourcePrioritizedRunnable implements Function<ClusterState, ClusterState> {
+    class UpdateTask extends SourcePrioritizedRunnable implements UnaryOperator<ClusterState> {
         final ClusterApplyListener listener;
-        final Function<ClusterState, ClusterState> updateFunction;
+        final UnaryOperator<ClusterState> updateFunction;
 
         UpdateTask(Priority priority, String source, ClusterApplyListener listener,
-                   Function<ClusterState, ClusterState> updateFunction) {
+                   UnaryOperator<ClusterState> updateFunction) {
             super(priority, source);
             this.listener = listener;
             this.updateFunction = updateFunction;
@@ -314,7 +313,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     @Override
     public void onNewClusterState(final String source, final Supplier<ClusterState> clusterStateSupplier,
                                   final ClusterApplyListener listener) {
-        Function<ClusterState, ClusterState> applyFunction = currentState -> {
+        UnaryOperator<ClusterState> applyFunction = currentState -> {
             ClusterState nextState = clusterStateSupplier.get();
             if (nextState != null) {
                 return nextState;
@@ -326,7 +325,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     }
 
     private void submitStateUpdateTask(final String source, final ClusterStateTaskConfig config,
-                                       final Function<ClusterState, ClusterState> executor,
+                                       final UnaryOperator<ClusterState> executor,
                                        final ClusterApplyListener listener) {
         if (!lifecycle.started()) {
             return;

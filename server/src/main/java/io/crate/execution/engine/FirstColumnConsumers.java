@@ -29,6 +29,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 
 import io.crate.data.Row;
@@ -64,8 +65,8 @@ public class FirstColumnConsumers {
         }
 
         @Override
-        public Function<List<Object>, List<Object>> finisher() {
-            return Function.identity();
+        public UnaryOperator<List<Object>> finisher() {
+            return UnaryOperator.identity();
         }
 
         @Override

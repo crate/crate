@@ -19,14 +19,14 @@
 
 package org.elasticsearch.index.analysis;
 
+import java.io.Reader;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
+
 import org.apache.lucene.analysis.CharFilter;
 import org.apache.lucene.analysis.TokenFilter;
 import org.elasticsearch.Version;
 import org.elasticsearch.indices.analysis.PreBuiltCacheFactory.CachingStrategy;
-
-import java.io.Reader;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Provides pre-configured, shared {@link CharFilter}s.
@@ -36,7 +36,7 @@ public class PreConfiguredCharFilter extends PreConfiguredAnalysisComponent<Char
     /**
      * Create a pre-configured char filter that may not vary at all.
      */
-    public static PreConfiguredCharFilter singleton(String name, boolean useFilterForMultitermQueries, Function<Reader, Reader> create) {
+    public static PreConfiguredCharFilter singleton(String name, boolean useFilterForMultitermQueries, UnaryOperator<Reader> create) {
         return new PreConfiguredCharFilter(
             name,
             CachingStrategy.ONE,

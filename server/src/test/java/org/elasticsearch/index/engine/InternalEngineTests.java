@@ -97,6 +97,7 @@ import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToLongBiFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -2004,7 +2005,7 @@ public class InternalEngineTests extends EngineTestCase {
             delete.startTime(),
             seqNo,
             term);
-        Function<Engine.Index, Engine.Index> indexWithCurrentTerm = index -> new Engine.Index(
+        UnaryOperator<Engine.Index> indexWithCurrentTerm = index -> new Engine.Index(
             index.uid(),
             index.parsedDoc(),
             UNASSIGNED_SEQ_NO,
@@ -2017,7 +2018,7 @@ public class InternalEngineTests extends EngineTestCase {
             index.isRetry(),
             index.getIfSeqNo(),
             index.getIfPrimaryTerm());
-        Function<Engine.Delete, Engine.Delete> deleteWithCurrentTerm = delete -> new Engine.Delete(
+        UnaryOperator<Engine.Delete> deleteWithCurrentTerm = delete -> new Engine.Delete(
             delete.id(),
             delete.uid(),
             UNASSIGNED_SEQ_NO,

@@ -28,7 +28,7 @@ import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -121,7 +121,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         final var symbolEvaluator = new NullSymbolEvaluator(txnCtx, nodeCtx);
         JoinPlan join = captures.get(nlCapture);
         Symbol query = filter.query();

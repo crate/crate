@@ -29,7 +29,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.FieldsVisitor;
@@ -83,7 +83,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         NestedLoopJoin nestedLoop = captures.get(nlCapture);
         Set<RelationName> relationsInOrderBy =
             Collections.newSetFromMap(new IdentityHashMap<>());

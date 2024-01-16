@@ -27,7 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists;
@@ -136,15 +136,15 @@ public record JoinGraph(
         return result;
     }
 
-    public static JoinGraph create(LogicalPlan plan, Function<LogicalPlan, LogicalPlan> resolvePlan) {
+    public static JoinGraph create(LogicalPlan plan, UnaryOperator<LogicalPlan> resolvePlan) {
         return plan.accept(new GraphBuilder(resolvePlan), new HashMap<>());
     }
 
     private static class GraphBuilder extends LogicalPlanVisitor<Map<Symbol, LogicalPlan>, JoinGraph> {
 
-        private final Function<LogicalPlan, LogicalPlan> resolvePlan;
+        private final UnaryOperator<LogicalPlan> resolvePlan;
 
-        GraphBuilder(Function<LogicalPlan, LogicalPlan> resolvePlan) {
+        GraphBuilder(UnaryOperator<LogicalPlan> resolvePlan) {
             this.resolvePlan = resolvePlan;
         }
 

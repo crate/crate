@@ -45,7 +45,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -689,7 +689,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
         }
     }
 
-    private static Function<Object, Object> missingResponseGenerator() {
+    private static UnaryOperator<Object> missingResponseGenerator() {
         return input -> new FailureHistoryOutput();
     }
 

@@ -21,6 +21,16 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.rule.Util.transpose;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
+
 import io.crate.analyze.WindowDefinition;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
@@ -36,16 +46,6 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.Util.transpose;
 
 public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
 
@@ -69,7 +69,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
         List<WindowFunction> windowFunctions = windowAgg.windowFunctions();

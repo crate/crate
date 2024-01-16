@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -107,7 +107,7 @@ public class Order extends ForwardingLogicalPlan {
             // e.g. OrderBy [x + y] where the source provides [x, y]
             // We need to extend replacedOutputs in this case because it must always contain entries for all outputs
             LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>(replacedOutputs);
-            Function<Symbol, Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
+            UnaryOperator<Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
             for (int i = newSource.outputs().size(); i < newOrderBy.outputs.size(); i++) {
                 Symbol extraOutput = newOrderBy.outputs.get(i);
                 newReplacedOutputs.put(extraOutput, mapToFetchStubs.apply(extraOutput));

@@ -21,18 +21,18 @@
 
 package io.crate.expression.scalar.string;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Locale;
+import java.util.function.BinaryOperator;
+import java.util.function.UnaryOperator;
+
 import io.crate.common.Hex;
 import io.crate.common.Octal;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.arithmetic.BinaryScalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Locale;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 
 public class EncodeDecodeFunction {
 
@@ -151,10 +151,10 @@ public class EncodeDecodeFunction {
             return Octal.encode(bytea.getBytes(StandardCharsets.UTF_8));
         }, text -> Hex.HEX_FLAG + Hex.encodeHexString(Octal.decode(text)));
 
-        private final Function<String, String> encode;
-        private final Function<String, String> decode;
+        private final UnaryOperator<String> encode;
+        private final UnaryOperator<String> decode;
 
-        Format(Function<String, String> encode, Function<String, String> decode) {
+        Format(UnaryOperator<String> encode, UnaryOperator<String> decode) {
             this.encode = encode;
             this.decode = decode;
         }

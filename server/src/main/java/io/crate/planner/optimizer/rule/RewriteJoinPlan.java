@@ -23,7 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -59,7 +59,7 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
 
         if (txnCtx.sessionSettings().hashJoinsEnabled() &&
             EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {

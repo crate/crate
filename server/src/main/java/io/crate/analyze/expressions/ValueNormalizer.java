@@ -24,7 +24,7 @@ package io.crate.analyze.expressions;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -61,7 +61,7 @@ public final class ValueNormalizer {
     public static Symbol normalizeInputForReference(Symbol valueSymbol,
                                                     Reference reference,
                                                     TableInfo tableInfo,
-                                                    Function<Symbol, Symbol> normalizer) {
+                                                    UnaryOperator<Symbol> normalizer) {
         assert valueSymbol != null : "valueSymbol must not be null";
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);

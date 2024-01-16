@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.bytes.BytesReference;
 
@@ -44,7 +44,7 @@ public final class SourceLookup {
     private Map<String, Object> source;
     private boolean docVisited = false;
 
-    SourceLookup(Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+    SourceLookup(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
         sourceParser = new SourceParser(droppedColumns, lookupNameBySourceKey);
     }
 

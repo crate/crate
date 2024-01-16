@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -75,7 +75,7 @@ public class LuceneBatchIteratorTest {
                 new MatchAllDocsQuery(),
                 null,
                 false,
-                new CollectorContext(Set.of(), Function.identity()),
+                new CollectorContext(Set.of(), UnaryOperator.identity()),
                 columnRefs,
                 columnRefs
             )

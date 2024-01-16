@@ -40,8 +40,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -375,7 +375,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
         assertThat(snapshotsInfoService.numberOfFailedSnapshotShardSizes()).isEqualTo(0);
     }
 
-    private void applyClusterState(final String reason, final Function<ClusterState, ClusterState> applier) {
+    private void applyClusterState(final String reason, final UnaryOperator<ClusterState> applier) {
         TestFutureUtils.get(future -> clusterService.getClusterApplierService().onNewClusterState(reason,
             () -> applier.apply(clusterService.state()),
             new ClusterApplier.ClusterApplyListener() {

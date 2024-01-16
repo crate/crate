@@ -22,7 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.metadata.Reference;
 
@@ -30,15 +30,15 @@ public class CollectorContext {
 
     private final int readerId;
     private final Set<Reference> droppedColumns;
-    private final Function<String, String> lookupNameBySourceKey;
+    private final UnaryOperator<String> lookupNameBySourceKey;
 
     private SourceLookup sourceLookup;
 
-    public CollectorContext(Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+    public CollectorContext(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
         this(-1, droppedColumns, lookupNameBySourceKey);
     }
 
-    public CollectorContext(int readerId, Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+    public CollectorContext(int readerId, Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
         this.readerId = readerId;
         this.droppedColumns = droppedColumns;
         this.lookupNameBySourceKey = lookupNameBySourceKey;

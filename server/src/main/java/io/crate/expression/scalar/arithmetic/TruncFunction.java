@@ -25,7 +25,7 @@ import static io.crate.metadata.functions.Signature.scalar;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -62,7 +62,7 @@ public final class TruncFunction {
                         type,
                         n -> {
                             double val = ((Number) n).doubleValue();
-                            Function<Double, Double> f = val >= 0 ? Math::floor : Math::ceil;
+                            UnaryOperator<Double> f = val >= 0 ? Math::floor : Math::ceil;
                             return (Number) returnType.sanitizeValue(f.apply(val));
                         }
                     )

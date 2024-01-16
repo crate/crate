@@ -25,7 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -78,7 +78,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
                                                  planStats,
                                                  CoordinatorTxnCtx.systemTransactionContext(),
                                                  e.nodeCtx,
-                                                 Function.identity());
+                                                 UnaryOperator.identity());
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }
