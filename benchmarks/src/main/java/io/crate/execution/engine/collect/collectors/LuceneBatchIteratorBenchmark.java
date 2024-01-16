@@ -21,8 +21,12 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.IntegerColumnReference;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -41,11 +45,8 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.IntegerColumnReference;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -70,7 +71,7 @@ public class LuceneBatchIteratorBenchmark {
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
         IntegerColumnReference columnReference = new IntegerColumnReference(columnName);
         columnRefs = Collections.singletonList(columnReference);
-        collectorContext = new CollectorContext(Set.of(), Function.identity());
+        collectorContext = new CollectorContext(Set.of(), UnaryOperator.identity());
     }
 
     @Benchmark

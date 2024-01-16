@@ -25,7 +25,7 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -75,7 +75,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            Function.identity()
+            UnaryOperator.identity()
         );
 
         assertThat(newPlan).isNull();
@@ -103,7 +103,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            Function.identity()
+            UnaryOperator.identity()
         );
 
         assertThat(newPlan).isNull();
@@ -130,7 +130,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            Function.identity()
+            UnaryOperator.identity()
         );
         var expectedPlan =
             """
@@ -164,7 +164,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            Function.identity()
+            UnaryOperator.identity()
         );
         var expectedPlan =
             """
@@ -199,7 +199,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            Function.identity()
+            UnaryOperator.identity()
         );
         assertThat(newPlan).isNull();
     }

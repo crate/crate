@@ -24,7 +24,7 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.common.collections.Lists;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -79,7 +79,7 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
         Rename rename = captures.get(renameCapture);
         var countAggregate = Lists.getOnlyElement(aggregate.aggregates());

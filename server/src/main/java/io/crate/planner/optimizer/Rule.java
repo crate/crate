@@ -21,7 +21,9 @@
 
 package io.crate.planner.optimizer;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
+import org.elasticsearch.Version;
 
 import io.crate.common.StringUtils;
 import io.crate.metadata.NodeContext;
@@ -30,7 +32,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import org.elasticsearch.Version;
 
 public interface Rule<T> {
 
@@ -49,7 +50,7 @@ public interface Rule<T> {
                       PlanStats planStats,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
-                      Function<LogicalPlan, LogicalPlan> resolvePlan);
+                      UnaryOperator<LogicalPlan> resolvePlan);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.

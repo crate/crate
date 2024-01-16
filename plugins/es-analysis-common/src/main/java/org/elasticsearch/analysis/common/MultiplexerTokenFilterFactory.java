@@ -19,6 +19,12 @@
 
 package org.elasticsearch.analysis.common;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.miscellaneous.ConditionalTokenFilter;
@@ -32,11 +38,6 @@ import org.elasticsearch.index.analysis.AbstractTokenFilterFactory;
 import org.elasticsearch.index.analysis.CharFilterFactory;
 import org.elasticsearch.index.analysis.TokenFilterFactory;
 import org.elasticsearch.index.analysis.TokenizerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
 
 public class MultiplexerTokenFilterFactory extends AbstractTokenFilterFactory {
 
@@ -89,7 +90,7 @@ public class MultiplexerTokenFilterFactory extends AbstractTokenFilterFactory {
 
             @Override
             public TokenStream create(TokenStream tokenStream) {
-                List<Function<TokenStream, TokenStream>> functions = new ArrayList<>();
+                List<UnaryOperator<TokenStream>> functions = new ArrayList<>();
                 for (TokenFilterFactory tff : filters) {
                     functions.add(tff::create);
                 }
@@ -139,7 +140,7 @@ public class MultiplexerTokenFilterFactory extends AbstractTokenFilterFactory {
         /**
          * Creates a MultiplexTokenFilter on the given input with a set of filters
          */
-        MultiplexTokenFilter(TokenStream input, List<Function<TokenStream, TokenStream>> filters) {
+        MultiplexTokenFilter(TokenStream input, List<UnaryOperator<TokenStream>> filters) {
             super(input);
             TokenStream source = new MultiplexerFilter(input);
             for (int i = 0; i < filters.size(); i++) {

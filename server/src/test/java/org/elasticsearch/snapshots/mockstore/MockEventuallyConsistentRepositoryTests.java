@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -176,7 +176,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                     Metadata.EMPTY_METADATA,
                     new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 1L, 5, Collections.emptyList(), true),
                     Version.CURRENT,
-                    Function.identity(),
+                    UnaryOperator.identity(),
                     f
                 ));
 
@@ -188,7 +188,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                 Metadata.EMPTY_METADATA,
                 new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 1L, 6, Collections.emptyList(), true),
                 Version.CURRENT,
-                Function.identity(),
+                UnaryOperator.identity(),
                 fut
             );
             assertThat(fut).failsWithin(5, TimeUnit.SECONDS)
@@ -206,7 +206,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                     Metadata.EMPTY_METADATA,
                     new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 2L, 5, Collections.emptyList(), true),
                     Version.CURRENT,
-                    Function.identity(),
+                    UnaryOperator.identity(),
                     f
                 ));
         }

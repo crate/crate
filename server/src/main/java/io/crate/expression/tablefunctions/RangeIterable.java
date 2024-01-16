@@ -22,13 +22,14 @@
 package io.crate.expression.tablefunctions;
 
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
+import io.crate.data.Row;
+import io.crate.data.RowN;
 
 
 public final class RangeIterable<T> implements Iterable<Row> {
@@ -36,7 +37,7 @@ public final class RangeIterable<T> implements Iterable<Row> {
     private final Object [] columns;
     private final RowN row;
     private final T endInclusive;
-    private final Function<T, T> nextValue;
+    private final UnaryOperator<T> nextValue;
     private final Comparator<T> comparator;
     private final Function<T, Object> resultExtractor;
     private final boolean reversed;
@@ -44,7 +45,7 @@ public final class RangeIterable<T> implements Iterable<Row> {
 
     public RangeIterable(T startInclusive,
                          T endInclusive,
-                         Function<T, T> nextValue,
+                         UnaryOperator<T> nextValue,
                          Comparator<T> comparator,
                          Function<T, Object> valueExtractor) {
         columns = new Object[]{ null };

@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -135,7 +135,7 @@ public final class Fetch extends ForwardingLogicalPlan {
             plannerContext
         );
         ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
-        Function<Symbol, Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        UnaryOperator<Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         FetchPhase fetchPhase = new FetchPhase(
             plannerContext.nextExecutionPhaseId(),
             readerAllocations.nodeReaders().keySet(),

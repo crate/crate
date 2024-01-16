@@ -27,7 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.SequencedCollection;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -116,7 +116,7 @@ public final class Eval extends ForwardingLogicalPlan {
             return null;
         }
         LogicalPlan newSource = fetchRewrite.newPlan();
-        Function<Symbol, Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
+        UnaryOperator<Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
         LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>();
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         for (Symbol sourceOutput : newSource.outputs()) {

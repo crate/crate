@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -65,7 +65,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         if (join.getRelationNames().size() >= 3) {
             var joinGraph = JoinGraph.create(join, resolvePlan);
             if (joinGraph.hasCrossJoin()) {

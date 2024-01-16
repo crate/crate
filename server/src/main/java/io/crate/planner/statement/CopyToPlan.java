@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.settings.Settings;
 
@@ -186,7 +187,7 @@ public final class CopyToPlan implements Plan {
                                                          planStats,
                                                          context.transactionContext(),
                                                          context.nodeContext(),
-                                                         Function.identity());
+                                                         UnaryOperator.identity());
             return plan == null ? collect : plan;
         }
         return collect;

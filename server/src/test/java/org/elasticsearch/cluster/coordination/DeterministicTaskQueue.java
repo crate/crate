@@ -31,7 +31,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -200,13 +200,13 @@ public class DeterministicTaskQueue {
      * @return A <code>ExecutorService</code> that uses this task queue.
      */
     public ExecutorService getExecutorService() {
-        return getExecutorService(Function.identity());
+        return getExecutorService(UnaryOperator.identity());
     }
 
     /**
      * @return A <code>ExecutorService</code> that uses this task queue and wraps <code>Runnable</code>s in the given wrapper.
      */
-    public ExecutorService getExecutorService(Function<Runnable, Runnable> runnableWrapper) {
+    public ExecutorService getExecutorService(UnaryOperator<Runnable> runnableWrapper) {
         return new ExecutorService() {
 
             @Override
@@ -280,13 +280,13 @@ public class DeterministicTaskQueue {
      * @return A <code>ThreadPool</code> that uses this task queue.
      */
     public ThreadPool getThreadPool() {
-        return getThreadPool(Function.identity());
+        return getThreadPool(UnaryOperator.identity());
     }
 
     /**
      * @return A <code>ThreadPool</code> that uses this task queue and wraps <code>Runnable</code>s in the given wrapper.
      */
-    public ThreadPool getThreadPool(Function<Runnable, Runnable> runnableWrapper) {
+    public ThreadPool getThreadPool(UnaryOperator<Runnable> runnableWrapper) {
         return new ThreadPool(settings) {
 
             {

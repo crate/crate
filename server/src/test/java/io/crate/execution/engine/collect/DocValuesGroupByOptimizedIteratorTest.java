@@ -37,7 +37,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -165,7 +165,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             new MatchAllDocsQuery(),
-            new CollectorContext(Set.of(), Function.identity())
+            new CollectorContext(Set.of(), UnaryOperator.identity())
         );
 
         var rowConsumer = new TestingRowConsumer();
@@ -244,7 +244,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             new MatchAllDocsQuery(),
-            new CollectorContext(Set.of(), Function.identity())
+            new CollectorContext(Set.of(), UnaryOperator.identity())
         );
 
         var rowConsumer = new TestingRowConsumer();
@@ -372,7 +372,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             (expressions) -> expressions.get(0).value(),
             (key, cells) -> cells[0] = key,
             new MatchAllDocsQuery(),
-            new CollectorContext(Set.of(), Function.identity())
+            new CollectorContext(Set.of(), UnaryOperator.identity())
         );
     }
 }

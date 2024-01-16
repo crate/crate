@@ -26,7 +26,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -88,7 +88,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
                                                 planStats,
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
-                                                Function.identity());
+                                                UnaryOperator.identity());
 
         assertThat(result.joinCondition(), is(nonConstantPart));
         assertThat(result.lhs(), is(c1));

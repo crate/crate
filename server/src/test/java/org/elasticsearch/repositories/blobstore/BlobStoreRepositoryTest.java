@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
@@ -189,7 +189,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
 
     private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) throws Exception {
         TestFutureUtils.<RepositoryData, Exception>get(
-            f -> repository.writeIndexGen(repositoryData, generation, Version.CURRENT, Function.identity(), f));
+            f -> repository.writeIndexGen(repositoryData, generation, Version.CURRENT, UnaryOperator.identity(), f));
     }
 
 
@@ -249,8 +249,8 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
                 builder.put(new IndexId(randomAlphaOfLength(8), UUIDs.randomBase64UUID()), 0, "1");
             }
             final ShardGenerations shardGenerations = builder.build();
-            final Map<IndexId, String> indexLookup = shardGenerations.indices().stream().collect(Collectors.toMap(Function.identity(), ind -> randomAlphaOfLength(256)));
-            final Map<String, String> newIdentifiers = indexLookup.values().stream().collect(Collectors.toMap(Function.identity(), ignored -> UUIDs.randomBase64UUID(random())));
+            final Map<IndexId, String> indexLookup = shardGenerations.indices().stream().collect(Collectors.toMap(UnaryOperator.identity(), ind -> randomAlphaOfLength(256)));
+            final Map<String, String> newIdentifiers = indexLookup.values().stream().collect(Collectors.toMap(UnaryOperator.identity(), ignored -> UUIDs.randomBase64UUID(random())));
             repoData = repoData.addSnapshot(snapshotId,
                                             randomFrom(SnapshotState.SUCCESS, SnapshotState.PARTIAL, SnapshotState.FAILED), Version.CURRENT, shardGenerations,
                                             indexLookup,

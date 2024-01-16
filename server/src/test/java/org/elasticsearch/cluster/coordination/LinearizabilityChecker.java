@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -182,7 +183,7 @@ public class LinearizabilityChecker {
          *
          * @param missingResponseGenerator a function from invocation input to response output, used to generate the corresponding response
          */
-        public void complete(Function<Object, Object> missingResponseGenerator) {
+        public void complete(UnaryOperator<Object> missingResponseGenerator) {
             final Map<Integer, Event> uncompletedInvocations = new HashMap<>();
             for (Event event : events) {
                 if (event.type == EventType.INVOCATION) {
@@ -229,7 +230,7 @@ public class LinearizabilityChecker {
      * @param missingResponseGenerator used to complete the history with missing responses
      * @return true iff the history is linearizable w.r.t. the given spec
      */
-    public boolean isLinearizable(SequentialSpec spec, History history, Function<Object, Object> missingResponseGenerator) {
+    public boolean isLinearizable(SequentialSpec spec, History history, UnaryOperator<Object> missingResponseGenerator) {
         return isLinearizable(spec, history, missingResponseGenerator, () -> false);
     }
 
@@ -244,7 +245,7 @@ public class LinearizabilityChecker {
      */
     public boolean isLinearizable(SequentialSpec spec,
                                   History history,
-                                  Function<Object, Object> missingResponseGenerator,
+                                  UnaryOperator<Object> missingResponseGenerator,
                                   BooleanSupplier terminateEarly) {
         history = history.clone(); // clone history before completing it
         history.complete(missingResponseGenerator); // complete history
@@ -312,7 +313,7 @@ public class LinearizabilityChecker {
     /**
      * Return a visual representation of the history
      */
-    public static String visualize(SequentialSpec spec, History history, Function<Object, Object> missingResponseGenerator) {
+    public static String visualize(SequentialSpec spec, History history, UnaryOperator<Object> missingResponseGenerator) {
         history = history.clone();
         history.complete(missingResponseGenerator);
         final Collection<List<Event>> partitions = spec.partition(history.copyEvents());

@@ -21,6 +21,8 @@
 
 package io.crate.expression.eval;
 
+import java.util.function.UnaryOperator;
+
 import io.crate.expression.operator.Operators;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
@@ -63,17 +65,16 @@ public final class NullEliminator {
      * @param symbol The query symbol to operate on.
      * @param postProcessor A function applied only on function symbols which changed due to NULL replacement.
      */
-    public static Symbol eliminateNullsIfPossible(Symbol symbol,
-                                                  java.util.function.Function<Symbol, Symbol> postProcessor) {
+    public static Symbol eliminateNullsIfPossible(Symbol symbol, UnaryOperator<Symbol> postProcessor) {
         return symbol.accept(VISITOR, new Context(postProcessor));
     }
 
     private static class Context {
-        private final java.util.function.Function<Symbol, Symbol> postProcessor;
+        private final UnaryOperator<Symbol> postProcessor;
         boolean insideLogicalOperator = false;
         boolean nullReplacement = false;
 
-        public Context(java.util.function.Function<Symbol, Symbol> postProcessor) {
+        public Context(UnaryOperator<Symbol> postProcessor) {
             this.postProcessor = postProcessor;
         }
     }

@@ -19,14 +19,14 @@
 
 package org.elasticsearch.index.analysis;
 
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
+
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.elasticsearch.Version;
 import org.elasticsearch.indices.analysis.PreBuiltCacheFactory;
 import org.elasticsearch.indices.analysis.PreBuiltCacheFactory.CachingStrategy;
-
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Provides pre-configured, shared {@link TokenFilter}s.
@@ -35,8 +35,9 @@ public final class PreConfiguredTokenFilter extends PreConfiguredAnalysisCompone
     /**
      * Create a pre-configured token filter that may not vary at all.
      */
-    public static PreConfiguredTokenFilter singleton(String name, boolean useFilterForMultitermQueries,
-            Function<TokenStream, TokenStream> create) {
+    public static PreConfiguredTokenFilter singleton(String name,
+                                                     boolean useFilterForMultitermQueries,
+                                                     UnaryOperator<TokenStream> create) {
         return new PreConfiguredTokenFilter(
             name,
             useFilterForMultitermQueries,

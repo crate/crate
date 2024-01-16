@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 
@@ -209,7 +210,7 @@ public class LogicalPlanner {
         AnalyzedRelation relation = selectSymbol.relation();
 
         final int fetchSize;
-        final java.util.function.Function<LogicalPlan, LogicalPlan> maybeApplySoftLimit;
+        final UnaryOperator<LogicalPlan> maybeApplySoftLimit;
         ResultType resultType = selectSymbol.getResultType();
         switch (resultType) {
             case SINGLE_COLUMN_EXISTS:

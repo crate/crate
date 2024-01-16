@@ -21,6 +21,14 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.rule.Util.transpose;
+
+import java.util.List;
+import java.util.function.UnaryOperator;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -32,14 +40,6 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-
-import java.util.List;
-import java.util.function.Function;
-
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.Util.transpose;
 
 public final class MoveOrderBeneathEval implements Rule<Order> {
 
@@ -63,7 +63,7 @@ public final class MoveOrderBeneathEval implements Rule<Order> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         Eval eval = captures.get(evalCapture);
         List<Symbol> outputsOfSourceOfEval = eval.source().outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();

@@ -21,14 +21,15 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.types.DataType;
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.util.List;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.types.DataType;
 
 public enum AggregateMode {
     ITER_PARTIAL {

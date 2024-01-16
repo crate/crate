@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -243,7 +243,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      */
     public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, @NotNull TransactionContext txnCtx) {
         RoutedCollectPhase result = this;
-        Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, txnCtx);
+        UnaryOperator<Symbol> normalize = s -> normalizer.normalize(s, txnCtx);
         List<Symbol> newToCollect = Lists.map(toCollect, normalize);
         boolean changed = !newToCollect.equals(toCollect);
         Symbol newWhereClause = normalizer.normalize(where, txnCtx);

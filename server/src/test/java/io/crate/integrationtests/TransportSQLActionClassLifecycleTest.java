@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.Build;
@@ -118,7 +118,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
 
         var schemas = cluster().getDataNodeInstance(Schemas.class);
         DocTableInfo table = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "characters"));
-        Function<String, String> mapName = s -> {
+        UnaryOperator<String> mapName = s -> {
             var ref = table.getReference(ColumnIdent.fromPath(s));
             return ref.storageIdent();
         };
@@ -141,7 +141,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
 
         var schemas = cluster().getDataNodeInstance(Schemas.class);
         DocTableInfo table = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "characters"));
-        Function<String, String> mapName = s -> {
+        UnaryOperator<String> mapName = s -> {
             var ref = table.getReference(ColumnIdent.fromPath(s));
             return ref.storageIdent();
         };

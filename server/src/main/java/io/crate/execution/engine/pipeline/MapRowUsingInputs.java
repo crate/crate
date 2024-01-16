@@ -21,14 +21,14 @@
 
 package io.crate.execution.engine.pipeline;
 
+import java.util.List;
+import java.util.RandomAccess;
+import java.util.function.UnaryOperator;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputRow;
-
-import java.util.List;
-import java.util.RandomAccess;
-import java.util.function.Function;
 
 /**
  * Function that transforms a Row using the supplied {@link Input}s and {@link CollectExpression}s.
@@ -46,7 +46,7 @@ import java.util.function.Function;
  *
  * Note that the returned row is a shared object and re-used between calls.
  */
-public final class MapRowUsingInputs implements Function<Row, Row> {
+public final class MapRowUsingInputs implements UnaryOperator<Row> {
 
     private final List<? extends CollectExpression<Row, ?>> expressions;
     private final Row resultRow;

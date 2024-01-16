@@ -22,13 +22,14 @@
 package io.crate.planner.optimizer.iterative;
 
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.planner.operators.LogicalPlan;
 
 /**
  * The GroupReferenceResolver resolves a GroupReference to the referenced LogicalPlan
  */
-public interface GroupReferenceResolver extends Function<LogicalPlan, LogicalPlan> {
+public interface GroupReferenceResolver extends UnaryOperator<LogicalPlan> {
 
     static GroupReferenceResolver from(Function<GroupReference, LogicalPlan> resolver) {
         return node -> {

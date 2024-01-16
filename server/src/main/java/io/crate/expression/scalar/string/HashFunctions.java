@@ -21,18 +21,19 @@
 
 package io.crate.expression.scalar.string;
 
+import java.nio.charset.StandardCharsets;
+import java.security.DigestException;
+import java.security.MessageDigest;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+
+import org.elasticsearch.common.hash.MessageDigests;
+
 import io.crate.common.Hex;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.hash.MessageDigests;
-
-import java.nio.charset.StandardCharsets;
-import java.security.DigestException;
-import java.security.MessageDigest;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public final class HashFunctions {
 
@@ -41,7 +42,7 @@ public final class HashFunctions {
         register(module, "sha1", HashMethod.SHA1::digest);
     }
 
-    private static void register(ScalarFunctionModule module, String name, Function<String, String> func) {
+    private static void register(ScalarFunctionModule module, String name, UnaryOperator<String> func) {
         module.register(
             Signature.scalar(
                 name,

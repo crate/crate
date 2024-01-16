@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.InputColumn;
@@ -108,7 +108,7 @@ public final class FetchRewrite {
     /**
      * @return A function that converts any symbol within a symbol-tree that is present in `replacedOutputs` from the key to the value.
      */
-    public Function<Symbol, Symbol> mapToFetchStubs() {
+    public UnaryOperator<Symbol> mapToFetchStubs() {
         return s -> MapBackedSymbolReplacer.convert(s, replacedOutputs);
     }
 }

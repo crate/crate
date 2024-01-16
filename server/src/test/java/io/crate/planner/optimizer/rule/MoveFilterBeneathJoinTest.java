@@ -24,7 +24,7 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -98,7 +98,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                 planStats,
                                 CoordinatorTxnCtx.systemTransactionContext(),
                                 sqlExpressions.nodeCtx,
-                                Function.identity());
+                                UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[INNER | (a = b)]",
@@ -137,7 +137,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                 planStats,
                                 CoordinatorTxnCtx.systemTransactionContext(),
                                 sqlExpressions.nodeCtx,
-                                Function.identity());
+                                UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[INNER | (b = c)]",
@@ -178,7 +178,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                 planStats,
                                 CoordinatorTxnCtx.systemTransactionContext(),
                                 sqlExpressions.nodeCtx,
-                                Function.identity());
+                                UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[INNER | (b = c)]",
@@ -224,7 +224,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                 planStats,
                                 CoordinatorTxnCtx.systemTransactionContext(),
                                 sqlExpressions.nodeCtx,
-                                Function.identity());
+                                UnaryOperator.identity());
 
         assertThat(result).isNull();
     }
@@ -263,7 +263,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                 planStats,
                                 CoordinatorTxnCtx.systemTransactionContext(),
                                 sqlExpressions.nodeCtx,
-                                Function.identity());
+                                UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Filter[(a > 1)]",
@@ -309,7 +309,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            Function.identity());
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[INNER | (a = c)]",
@@ -344,7 +344,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            Function.identity());
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[LEFT | (a = b)]",
@@ -377,7 +377,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            Function.identity());
+            UnaryOperator.identity());
 
         assertThat(result).isNull();
     }
@@ -405,7 +405,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            Function.identity());
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[RIGHT | (a = b)]",
@@ -438,7 +438,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            Function.identity());
+            UnaryOperator.identity());
 
         assertThat(result).isNull();
     }
@@ -483,7 +483,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            Function.identity());
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[CROSS]",
@@ -520,7 +520,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            Function.identity());
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[LEFT | (a = c)]",
@@ -559,7 +559,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            Function.identity());
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[RIGHT | (b = c)]",

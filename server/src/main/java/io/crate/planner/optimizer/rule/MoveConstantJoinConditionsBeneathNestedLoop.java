@@ -27,7 +27,7 @@ import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
@@ -36,14 +36,14 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.RelationNameCollector;
-import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.sql.tree.JoinType;
 
 public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedLoopJoin> {
 
@@ -67,7 +67,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan) {
         var conditions = nl.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
