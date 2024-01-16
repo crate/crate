@@ -49,6 +49,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.symbol.Optimizer;
 
 /**
  * Used to analyze a query for primaryKey/partition "direct access" possibilities.
@@ -166,11 +167,15 @@ public final class WhereClauseOptimizer {
 
         EqualityExtractor eqExtractor = new EqualityExtractor(normalizer);
 
-        EqMatches pkMatches = eqExtractor.extractMatches(pkCols, query, txnCtx);
+        // ExpressionAnalyzer will "blindly" add cast to the column, to match the datatype of the literal.
+        // To be able to properly extract pkMatches (and therefore dockeys), so that the cast is moved to the literal,
+        // we need to optimize the casts, before the extraction of pkMatches (and the dockeys after that)
+        var optimizedCastsQuery = Optimizer.optimizeCasts(query, txnCtx, nodeCtx);
+        EqMatches pkMatches = eqExtractor.extractMatches(pkCols, optimizedCastsQuery, txnCtx);
         Set<Symbol> clusteredBy = Collections.emptySet();
         if (table.clusteredBy() != null) {
             EqualityExtractor.EqMatches clusteredByMatches = eqExtractor.extractParentMatches(
-                Collections.singletonList(table.clusteredBy()), query, txnCtx);
+                Collections.singletonList(table.clusteredBy()), optimizedCastsQuery, txnCtx);
             List<List<Symbol>> clusteredBySymbols = clusteredByMatches.matches();
             if (clusteredBySymbols != null) {
                 clusteredBy = new HashSet<>(clusteredBySymbols.size());
@@ -186,7 +191,7 @@ public final class WhereClauseOptimizer {
                     table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().get(0))));
 
         if (pkMatches.matches() == null && shouldUseDocKeys) {
-            pkMatches = eqExtractor.extractMatches(List.of(DocSysColumns.ID), query, txnCtx);
+            pkMatches = eqExtractor.extractMatches(List.of(DocSysColumns.ID), optimizedCastsQuery, txnCtx);
         }
 
         if (pkMatches.matches() == null) {
@@ -203,7 +208,7 @@ public final class WhereClauseOptimizer {
                                   partitionIndicesWithinPks);
         }
         EqMatches partitionMatches = table.isPartitioned()
-            ? eqExtractor.extractMatches(table.partitionedBy(), query, txnCtx)
+            ? eqExtractor.extractMatches(table.partitionedBy(), optimizedCastsQuery, txnCtx)
             : EqMatches.NONE;
 
         WhereClauseValidator.validate(query);
