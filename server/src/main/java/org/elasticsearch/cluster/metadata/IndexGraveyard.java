@@ -19,6 +19,14 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Objects;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.NamedDiff;
@@ -35,14 +43,6 @@ import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.Index;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * A collection of tombstones for explicitly marking indices as deleted in the cluster state.
@@ -154,7 +154,6 @@ public final class IndexGraveyard implements Metadata.Custom {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Diff<Metadata.Custom> diff(final Metadata.Custom previous) {
         return new IndexGraveyardDiff((IndexGraveyard) previous, this);
     }
@@ -314,7 +313,7 @@ public final class IndexGraveyard implements Metadata.Custom {
 
         @Override
         public IndexGraveyard apply(final Metadata.Custom previous) {
-            @SuppressWarnings("unchecked") final IndexGraveyard old = (IndexGraveyard) previous;
+            final IndexGraveyard old = (IndexGraveyard) previous;
             if (removedCount > old.tombstones.size()) {
                 throw new IllegalStateException("IndexGraveyardDiff cannot remove [" + removedCount + "] entries from [" +
                                                 old.tombstones.size() + "] tombstones.");
@@ -410,7 +409,7 @@ public final class IndexGraveyard implements Metadata.Custom {
             if (other == null || getClass() != other.getClass()) {
                 return false;
             }
-            @SuppressWarnings("unchecked") Tombstone that = (Tombstone) other;
+            Tombstone that = (Tombstone) other;
             return index.equals(that.index) && deleteDateInMillis == that.deleteDateInMillis;
         }
 

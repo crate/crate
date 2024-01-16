@@ -87,7 +87,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
     private static final ParseField SUPPRESSED = new ParseField("suppressed");
     private static final String STACK_TRACE = "stack_trace";
     private static final String HEADER = "header";
-    private static final String ERROR = "error";
     private static final String ROOT_CAUSE = "root_cause";
 
     private static final Map<Integer, CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException>> ID_TO_SUPPLIER;
