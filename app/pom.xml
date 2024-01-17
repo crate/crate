@@ -15,6 +15,10 @@
     <timestamp>${maven.build.timestamp}</timestamp>
     <maven.build.timestamp.format>yyyy-MM-dd-HH-mm</maven.build.timestamp.format>
     <tarball.version>${project.version}-${timestamp}-${git.commit.id.abbrev}</tarball.version>
+
+    <!-- Use native git instead of jGit to be able to build & release from worktrees (an older version of CrateDB) -->
+    <!-- Open issue: https://github.com/git-commit-id/git-commit-id-maven-plugin/issues/215 -->
+    <maven.gitcommitid.nativegit>true</maven.gitcommitid.nativegit>
   </properties>
 
   <profiles>
