@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
 
@@ -167,7 +166,7 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
                 }
             }
         }
-        ExceptionsHelper.maybeThrowRuntimeAndSuppress(exceptionList);
+        SQLExceptions.maybeThrowRuntimeAndSuppress(exceptionList);
     }
 
     /**
@@ -183,7 +182,7 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
                 exceptionList.add(ex);
             }
         }
-        ExceptionsHelper.maybeThrowRuntimeAndSuppress(exceptionList);
+        SQLExceptions.maybeThrowRuntimeAndSuppress(exceptionList);
     }
 
     /**

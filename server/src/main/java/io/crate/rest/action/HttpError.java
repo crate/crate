@@ -25,7 +25,6 @@ import static io.crate.common.exceptions.Exceptions.userFriendlyMessage;
 
 import java.io.IOException;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -34,6 +33,7 @@ import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.AnalyzerInvalidException;
@@ -56,6 +56,8 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
+import io.crate.exceptions.RoleAlreadyExistsException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.SchemaUnknownException;
@@ -63,10 +65,8 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
-import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.VersioningValidationException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -113,7 +113,7 @@ public class HttpError {
         // @formatter:on
 
         if (includeErrorTrace) {
-            builder.field("error_trace", ExceptionsHelper.stackTrace(t));
+            builder.field("error_trace", Exceptions.stackTrace(t));
         }
         return builder.endObject();
     }

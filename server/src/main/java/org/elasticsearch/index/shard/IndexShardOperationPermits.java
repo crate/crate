@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Assertions;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.common.CheckedRunnable;
@@ -41,6 +40,7 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 
 /**
@@ -340,7 +340,7 @@ final class IndexShardOperationPermits implements Closeable {
      */
     List<String> getActiveOperations() {
         return issuedPermits.values().stream().map(
-            t -> t.v1() + "\n" + ExceptionsHelper.formatStackTrace(t.v2()))
+            t -> t.v1() + "\n" + Exceptions.formatStackTrace(t.v2()))
             .collect(Collectors.toList());
     }
 

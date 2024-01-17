@@ -29,7 +29,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.UnavailableShardsException;
@@ -82,6 +81,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 
 /**
@@ -406,8 +406,7 @@ public abstract class TransportReplicationAction<
                                 primaryShardReference.indexShard.maybeSyncGlobalCheckpoint("post-operation");
                             } catch (final Exception e) {
                                 // only log non-closed exceptions
-                                if (ExceptionsHelper.unwrap(
-                                    e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
+                                if (Exceptions.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
                                     // intentionally swallow, a missed global checkpoint sync should not fail this operation
                                     logger.info(
                                         new ParameterizedMessage(

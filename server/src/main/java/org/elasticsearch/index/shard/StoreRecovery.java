@@ -40,7 +40,6 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -62,6 +61,7 @@ import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.Repository;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 
 /**
@@ -398,7 +398,7 @@ final class StoreRecovery {
                     try {
                         files = Arrays.toString(store.directory().listAll());
                     } catch (Exception inner) {
-                        files += " (failure=" + ExceptionsHelper.stackTrace(inner) + ")";
+                        files += " (failure=" + Exceptions.stackTrace(inner) + ")";
                     }
                     if (indexShouldExists) {
                         throw new IndexShardRecoveryException(shardId,

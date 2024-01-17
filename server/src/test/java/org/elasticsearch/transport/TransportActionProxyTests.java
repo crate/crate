@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -43,6 +42,7 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.netty.NettyBootstrap;
 
@@ -200,7 +200,7 @@ public class TransportActionProxyTests extends ESTestCase {
             @Override
             public void handleException(TransportException exp) {
                 try {
-                    Throwable cause = ExceptionsHelper.unwrap(exp);
+                    Throwable cause = Exceptions.unwrap(exp);
                     assertEquals("greetings from TS_C", cause.getMessage());
                 } finally {
                     latch.countDown();

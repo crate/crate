@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.coordination.LinearizabilityChecker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -70,6 +69,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
 import io.crate.testing.SQLResponse;
@@ -209,7 +209,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
         } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
             logger.error("Timed out, dumping stack traces of all threads:");
             threads.forEach(
-                thread -> logger.info(thread.toString() + ":\n" + ExceptionsHelper.formatStackTrace(thread.getStackTrace())));
+                thread -> logger.info(thread.toString() + ":\n" + Exceptions.formatStackTrace(thread.getStackTrace())));
             throw new RuntimeException(e);
         } finally {
             logger.info("--> terminating test");

@@ -19,25 +19,6 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
-import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.time.DateFormatter;
-import org.elasticsearch.common.time.DateFormatters;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -46,6 +27,26 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
+import org.elasticsearch.cluster.routing.allocation.decider.Decision;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.time.DateFormatter;
+import org.elasticsearch.common.time.DateFormatters;
+import org.elasticsearch.common.xcontent.ToXContentFragment;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.exceptions.Exceptions;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Holds additional information as to why the shard is in unassigned state.
@@ -364,7 +365,7 @@ public final class UnassignedInfo implements ToXContentFragment, Writeable {
         if (message == null) {
             return null;
         }
-        return message + (failure == null ? "" : ", failure " + ExceptionsHelper.stackTrace(failure));
+        return message + (failure == null ? "" : ", failure " + Exceptions.stackTrace(failure));
     }
 
     /**

@@ -64,7 +64,6 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RateLimiter;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
@@ -1235,7 +1234,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         "] because a concurrent operation moved the current generation to [" + latestKnownRepoGen.get() + "]", e);
                     continue;
                 }
-                if (bestEffortConsistency == false && ExceptionsHelper.unwrap(e, NoSuchFileException.class) != null) {
+                if (bestEffortConsistency == false && Exceptions.unwrap(e, NoSuchFileException.class) != null) {
                     // We did not find the expected index-N even though the cluster state continues to point at the missing value
                     // of N so we mark this repository as corrupted.
                     markRepoCorrupted(genToLoad, e,
@@ -1292,7 +1291,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 @Override
                 public void onFailure(String source, Exception e) {
                     listener.onFailure(new RepositoryException(metadata.name(), "Failed marking repository state as corrupted",
-                        ExceptionsHelper.useOrSuppress(e, originalException)));
+                        Exceptions.useOrSuppress(e, originalException)));
                 }
 
                 @Override

@@ -21,11 +21,15 @@
 
 package io.crate.exceptions;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.lucene.index.CorruptIndexException;
 import org.junit.Test;
+
+import io.crate.common.exceptions.Exceptions;
 
 public class SQLExceptionsTest {
 
@@ -36,5 +40,62 @@ public class SQLExceptionsTest {
         Throwable unwrapped = SQLExceptions.unwrap(t);
         assertThat(unwrapped).isExactlyInstanceOf(ClassCastException.class);
         assertThat(unwrapped.getMessage()).isEqualTo(msg);
+    }
+
+    @Test
+    public void testSuppressedCycle() {
+        RuntimeException e1 = new RuntimeException();
+        RuntimeException e2 = new RuntimeException();
+        e1.addSuppressed(e2);
+        e2.addSuppressed(e1);
+        SQLExceptions.unwrapCorruption(e1);
+
+        final CorruptIndexException corruptIndexException = new CorruptIndexException("corrupt", "resource");
+        RuntimeException e3 = new RuntimeException(corruptIndexException);
+        e3.addSuppressed(e1);
+        assertThat(SQLExceptions.unwrapCorruption(e3)).isEqualTo(corruptIndexException);
+
+        RuntimeException e4 = new RuntimeException(e1);
+        e4.addSuppressed(corruptIndexException);
+        assertThat(SQLExceptions.unwrapCorruption(e4)).isEqualTo(corruptIndexException);
+    }
+
+    @Test
+    public void testUnwrapCorruption() {
+        Throwable corruptIndexException = new CorruptIndexException("corrupt", "resource");
+        assertThat(SQLExceptions.unwrapCorruption(corruptIndexException)).isEqualTo(corruptIndexException);
+
+        Throwable corruptionAsCause = new RuntimeException(corruptIndexException);
+        assertThat(SQLExceptions.unwrapCorruption(corruptionAsCause)).isEqualTo(corruptIndexException);
+
+        Throwable corruptionSuppressed = new RuntimeException();
+        corruptionSuppressed.addSuppressed(corruptIndexException);
+        assertThat(SQLExceptions.unwrapCorruption(corruptionSuppressed)).isEqualTo(corruptIndexException);
+
+        Throwable corruptionSuppressedOnCause = new RuntimeException(new RuntimeException());
+        corruptionSuppressedOnCause.getCause().addSuppressed(corruptIndexException);
+        assertThat(SQLExceptions.unwrapCorruption(corruptionSuppressedOnCause)).isEqualTo(corruptIndexException);
+
+        Throwable corruptionCauseOnSuppressed = new RuntimeException();
+        corruptionCauseOnSuppressed.addSuppressed(new RuntimeException(corruptIndexException));
+        assertThat(SQLExceptions.unwrapCorruption(corruptionCauseOnSuppressed)).isEqualTo(corruptIndexException);
+
+        assertThat(SQLExceptions.unwrapCorruption(new RuntimeException())).isNull();
+        assertThat(SQLExceptions.unwrapCorruption(new RuntimeException(new RuntimeException()))).isNull();
+
+        Throwable withSuppressedException = new RuntimeException();
+        withSuppressedException.addSuppressed(new RuntimeException());
+        assertThat(SQLExceptions.unwrapCorruption(withSuppressedException)).isNull();
+    }
+
+
+    @Test
+    public void testCauseCycle() {
+        RuntimeException e1 = new RuntimeException();
+        RuntimeException e2 = new RuntimeException(e1);
+        e1.initCause(e2);
+        Class<?>[] clazzes = { IOException.class };
+        Exceptions.unwrap(e1, clazzes);
+        SQLExceptions.unwrapCorruption(e1);
     }
 }

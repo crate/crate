@@ -29,7 +29,6 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ChannelActionListener;
@@ -57,6 +56,7 @@ import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.recovery.BlobRecoveryHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * The source recovery accepts recovery requests from other peer shards and start the recovery process from this
@@ -279,7 +279,7 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
                         shard.recoveryStats().decCurrentAsSource();
                     }
                 }
-                ExceptionsHelper.maybeThrowRuntimeAndSuppress(failures);
+                SQLExceptions.maybeThrowRuntimeAndSuppress(failures);
             }
         }
 
