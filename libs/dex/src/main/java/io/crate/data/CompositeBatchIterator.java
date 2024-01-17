@@ -227,7 +227,7 @@ public final class CompositeBatchIterator {
                         try {
                             futures.add(it.loadNextBatch().toCompletableFuture());
                         } catch (Exception e) {
-                            return Exceptions.rethrowRuntimeException(e);
+                            throw Exceptions.toRuntimeException(e);
                         }
                     }
                     return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));

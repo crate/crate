@@ -56,10 +56,6 @@ public final class Exceptions {
         Exceptions.rethrow(ex);
     }
 
-    public static <T> T rethrowRuntimeException(Throwable t) {
-        throw toRuntimeException(t);
-    }
-
     public static Exception toException(Throwable t) {
         if (t instanceof CompletionException || t instanceof ExecutionException) {
             var cause = t.getCause();

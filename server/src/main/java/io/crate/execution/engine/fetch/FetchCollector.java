@@ -22,6 +22,7 @@
 package io.crate.execution.engine.fetch;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 
 import org.apache.lucene.codecs.StoredFieldsReader;
@@ -32,7 +33,6 @@ import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Streamer;
-import io.crate.common.exceptions.Exceptions;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
@@ -103,7 +103,7 @@ class FetchCollector {
                     }
                     setNextDocId(readerContext, docId - subReaderContext.docBase);
                 } catch (IOException e) {
-                    Exceptions.rethrowRuntimeException(e);
+                    throw new UncheckedIOException(e);
                 }
                 builder.add(row);
             }
