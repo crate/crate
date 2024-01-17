@@ -48,3 +48,35 @@ Security Fixes
   explicitly enable it via the
   :ref:`auth.trust.http_support_x_real_ip <auth.trust.http_support_x_real_ip>`
   node setting.
+
+Packaging Changes
+=================
+
+- The RPM and DEB packages changed slightly to unify the build process. The most
+  important change is that the ``crate`` service no longer automatically starts
+  after package installation, to allow changing the configuration first.
+
+  Other than that, the structure is now:
+
+    - ``bin``, ``jdk`` and ``lib`` are installed into ``/usr/share/crate``. In the RPM
+      package this used to be in ``/opt/crate``.
+
+    - The home directory of the crate user is ``/usr/share/crate``
+
+    - changes, notice, license are in ``/usr/share/doc/crate``
+
+    - service file is in ``/usr/lib/systemd/system``
+
+    - The ``crate.yml`` configuration file is in ``/etc/crate/``
+
+  If you haven't made any significant configuration changes the new packages
+  should keep working out of the box.
+
+  Important for Debian and Ubuntu users: There is now a `new repository
+  <https://cdn.crate.io/downloads/debian/stable/>`_.
+
+  You'll have to update the repository configuration to install CrateDB newer
+  than 5.5.1.
+
+  This new repository keeps old CrateDB versions in the ``Package`` index and
+  also contains packages for ARM64.
