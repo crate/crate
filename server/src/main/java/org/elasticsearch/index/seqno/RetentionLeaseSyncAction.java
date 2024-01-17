@@ -119,7 +119,7 @@ public class RetentionLeaseSyncAction extends
                 @Override
                 public void handleException(TransportException e) {
                     Class<?>[] clazzes = { IndexNotFoundException.class, AlreadyClosedException.class, IndexShardClosedException.class };
-                    if (Exceptions.unwrap(e, clazzes) == null) {
+                    if (Exceptions.firstCause(e, clazzes) == null) {
                         getLogger().warn(new ParameterizedMessage("{} retention lease sync failed", shardId), e);
                     }
                     listener.onFailure(e);

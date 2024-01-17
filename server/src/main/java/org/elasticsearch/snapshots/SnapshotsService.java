@@ -952,7 +952,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     private void handleFinalizationFailure(Exception e, SnapshotsInProgress.Entry entry, RepositoryData repositoryData) {
         Snapshot snapshot = entry.snapshot();
         Class<?>[] clazzes = { NotMasterException.class, FailedToCommitClusterStateException.class };
-        if (Exceptions.unwrap(e, clazzes) != null) {
+        if (Exceptions.firstCause(e, clazzes) != null) {
             // Failure due to not being master any more, don't try to remove snapshot from cluster state the next master
             // will try ending this snapshot again
             LOGGER.debug(() -> new ParameterizedMessage(
@@ -1340,7 +1340,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     },
                     e -> {
                         Class<?>[] clazzes = { NotMasterException.class, FailedToCommitClusterStateException.class };
-                        if (Exceptions.unwrap(e, clazzes) != null) {
+                        if (Exceptions.firstCause(e, clazzes) != null) {
                             LOGGER.warn("master failover before deleted snapshot could complete", e);
                             // Just pass the exception to the transport handler as is so it is retried on the new master
                             listener.onFailure(e);
@@ -1768,7 +1768,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         LOGGER.debug("Failing all snapshot operation listeners because this node is not master any longer", e);
         synchronized (currentlyFinalizing) {
             Class<?>[] clazzes = { NotMasterException.class, FailedToCommitClusterStateException.class };
-            if (Exceptions.unwrap(e, clazzes) != null) {
+            if (Exceptions.firstCause(e, clazzes) != null) {
                 repositoryOperations.clear();
                 for (Snapshot snapshot : new HashSet<>(snapshotCompletionListeners.keySet())) {
                     failSnapshotCompletionListeners(snapshot, new SnapshotException(snapshot, "no longer master"));

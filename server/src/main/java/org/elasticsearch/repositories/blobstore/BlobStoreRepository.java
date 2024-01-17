@@ -1234,7 +1234,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         "] because a concurrent operation moved the current generation to [" + latestKnownRepoGen.get() + "]", e);
                     continue;
                 }
-                if (bestEffortConsistency == false && Exceptions.unwrap(e, NoSuchFileException.class) != null) {
+                if (bestEffortConsistency == false && Exceptions.firstCause(e, NoSuchFileException.class) != null) {
                     // We did not find the expected index-N even though the cluster state continues to point at the missing value
                     // of N so we mark this repository as corrupted.
                     markRepoCorrupted(genToLoad, e,

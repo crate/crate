@@ -76,7 +76,7 @@ public final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         final Throwable throwable = cause;
         Exceptions.maybeDieOnAnotherThread(throwable);
-        final Throwable unwrapped = Exceptions.unwrap(cause, ElasticsearchException.class);
+        final Throwable unwrapped = Exceptions.firstCause(cause, ElasticsearchException.class);
         final Throwable newCause = unwrapped != null ? unwrapped : cause;
         CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
         if (newCause instanceof Error) {

@@ -846,7 +846,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         } catch (Exception e) {
             assertTrue(wasCancelled.get());
             Class<?>[] clazzes = { CancellableThreads.ExecutionCancelledException.class };
-            assertNotNull(Exceptions.unwrap(e, clazzes));
+            assertNotNull(Exceptions.firstCause(e, clazzes));
         }
         store.close();
     }

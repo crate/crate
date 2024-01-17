@@ -131,14 +131,15 @@ public final class Exceptions {
     }
 
     /**
-     * Looks at the given Throwable and its cause(s) and returns the first Throwable that is of one of the given classes or {@code null}
-     * if no matching Throwable is found. Unlike {@link #unwrapCorruption} this method does only check the given Throwable and its causes
-     * but does not look at any suppressed exceptions.
+     * Returns the first cause that is of one of the given classes,
+     * or {@code null} if no matching Throwable is found
+     *
      * @param t Throwable
      * @param clazzes Classes to look for
      * @return Matching Throwable if one is found, otherwise {@code null}
      */
-    public static Throwable unwrap(Throwable t, Class<?>... clazzes) {
+    @Nullable
+    public static Throwable firstCause(Throwable t, Class<?>... clazzes) {
         if (t != null) {
             final Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
             do {
@@ -156,13 +157,13 @@ public final class Exceptions {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Throwable> Optional<T> unwrapCausesAndSuppressed(Throwable cause, Predicate<Throwable> predicate) {
-        if (predicate.test(cause)) {
-            return Optional.of((T) cause);
+    public static <T extends Throwable> Optional<T> firstCauseOrSuppressed(Throwable t, Predicate<Throwable> predicate) {
+        if (predicate.test(t)) {
+            return Optional.of((T) t);
         }
 
         final Queue<Throwable> queue = new LinkedList<>();
-        queue.add(cause);
+        queue.add(t);
         final Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         while (queue.isEmpty() == false) {
             final Throwable current = queue.remove();
@@ -187,7 +188,7 @@ public final class Exceptions {
      * @return an optional error if one is found suppressed or a root cause in the tree rooted at the specified throwable
      */
     public static Optional<Error> maybeError(final Throwable cause) {
-        return unwrapCausesAndSuppressed(cause, t -> t instanceof Error);
+        return firstCauseOrSuppressed(cause, t -> t instanceof Error);
     }
 
     /**

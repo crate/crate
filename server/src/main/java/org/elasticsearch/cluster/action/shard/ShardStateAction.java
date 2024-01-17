@@ -151,7 +151,7 @@ public class ShardStateAction {
     };
 
     private static boolean isMasterChannelException(TransportException exp) {
-        return Exceptions.unwrap(exp, MASTER_CHANNEL_EXCEPTIONS) != null;
+        return Exceptions.firstCause(exp, MASTER_CHANNEL_EXCEPTIONS) != null;
     }
 
     /**
