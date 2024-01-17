@@ -105,7 +105,7 @@ public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
         try {
             mapper.close();
         } catch (Exception e) {
-            Exceptions.rethrowRuntimeException(e);
+            throw Exceptions.toRuntimeException(e);
         }
     }
 

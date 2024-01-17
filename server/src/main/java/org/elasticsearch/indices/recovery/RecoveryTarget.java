@@ -384,7 +384,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                     if (Assertions.ENABLED && result.getFailure() instanceof MapperException == false) {
                         throw new AssertionError("unexpected failure while replicating translog entry", result.getFailure());
                     }
-                    Exceptions.rethrowRuntimeException(failure);
+                    throw Exceptions.toRuntimeException(failure);
                 }
             }
             // update stats only after all operations completed (to ensure that mapping updates don't mess with stats)

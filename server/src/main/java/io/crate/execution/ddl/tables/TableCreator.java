@@ -142,11 +142,11 @@ public class TableCreator {
             if ("mapping [default]".equals(message) && cause != null) {
                 // this is a generic mapping parse exception,
                 // the cause has usually a better more detailed error message
-                return Exceptions.rethrowRuntimeException(cause);
+                throw Exceptions.toRuntimeException(cause);
             } else if (createTable.ifNotExists() && isTableExistsError(t, templateName)) {
                 return 0L;
             } else {
-                return Exceptions.rethrowRuntimeException(t);
+                throw Exceptions.toRuntimeException(t);
             }
         });
     }
