@@ -33,6 +33,7 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.ValueExtractors;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public final class SourceLookup {
 
@@ -63,7 +64,10 @@ public final class SourceLookup {
 
     public Object get(ColumnIdent columnIdent) {
         ensureSourceParsed();
-        return ValueExtractors.fromMap(source, columnIdent);
+        ColumnIdent column = columnIdent.name().equals(DocSysColumns.Names.DOC)
+            ? columnIdent.shiftRight()
+            : columnIdent;
+        return ValueExtractors.fromMap(source, column);
     }
 
     public Map<String, Object> sourceAsMap() {
