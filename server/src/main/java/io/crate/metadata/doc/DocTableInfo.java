@@ -604,12 +604,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public UnaryOperator<String> lookupNameBySourceKey() {
         if (versionCreated.onOrAfter(Version.V_5_5_0)) {
             return oidOrName -> {
-                if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
-                    assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
-                    return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
-                }
                 String name = leafNamesByOid.get(oidOrName);
                 if (name == null) {
+                    if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
+                        assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
+                        return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
+                    }
                     return oidOrName;
                 }
                 return name;
