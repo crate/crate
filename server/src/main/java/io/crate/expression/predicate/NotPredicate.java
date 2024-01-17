@@ -206,9 +206,13 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         if (ctx.enforceThreeValuedLogic()) {
             // we require strict 3vl logic, therefore we need to add the function as generic function filter
             // which is less efficient
-            return new BooleanQuery.Builder().add(notX, BooleanClause.Occur.MUST).add(
-                Queries.not(isNullFuncToQuery(arg, context)),
-                BooleanClause.Occur.MUST).build();
+            return new BooleanQuery.Builder()
+                .add(notX, Occur.MUST)
+                .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.MUST)
+                .build();
+//            return new BooleanQuery.Builder().add(notX, BooleanClause.Occur.MUST).add(
+//                Queries.not(isNullFuncToQuery(arg, context)),
+//                BooleanClause.Occur.MUST).build();
         } else {
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(notX, BooleanClause.Occur.MUST);
