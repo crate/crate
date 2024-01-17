@@ -78,6 +78,9 @@ public class SQLExceptions {
         throwable instanceof NotSerializableExceptionWrapper ||
         throwable.getClass() == RuntimeException.class;
 
+    /**
+     * Removes wrapper exceptions like {@link CompletionException}
+     */
     public static Throwable unwrap(Throwable t) {
         int counter = 0;
         Throwable result = t;
@@ -136,7 +139,7 @@ public class SQLExceptions {
      * @return Corruption indicating exception if one is found, otherwise {@code null}
      */
     public static IOException unwrapCorruption(Throwable t) {
-        return t == null ? null : Exceptions.<IOException>unwrapCausesAndSuppressed(t, cause -> {
+        return t == null ? null : Exceptions.<IOException>firstCauseOrSuppressed(t, cause -> {
             for (Class<?> clazz : CORRUPTION_EXCEPTIONS) {
                 if (clazz.isInstance(cause)) {
                     return true;

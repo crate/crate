@@ -299,7 +299,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         client.execute(GlobalCheckpointSyncAction.TYPE, new GlobalCheckpointSyncAction.Request(shardId))
             .exceptionally(err -> {
                 Class<?>[] clazzes = { CompletionException.class, AlreadyClosedException.class, IndexShardClosedException.class };
-                if (Exceptions.unwrap(err, clazzes) == null) {
+                if (Exceptions.firstCause(err, clazzes) == null) {
                     getLogger().info(new ParameterizedMessage("{} global checkpoint sync failed", shardId), err);
                 }
                 return null;

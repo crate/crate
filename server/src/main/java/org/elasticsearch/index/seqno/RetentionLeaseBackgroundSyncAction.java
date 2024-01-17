@@ -119,11 +119,11 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
 
                 @Override
                 public void handleException(TransportException e) {
-                    if (Exceptions.unwrap(e, NodeClosedException.class) != null) {
+                    if (Exceptions.firstCause(e, NodeClosedException.class) != null) {
                         // node shutting down
                         return;
                     }
-                    Throwable cause = Exceptions.unwrap(
+                    Throwable cause = Exceptions.firstCause(
                         e,
                         IndexNotFoundException.class,
                         AlreadyClosedException.class,

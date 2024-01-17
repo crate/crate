@@ -200,7 +200,7 @@ public class TransportActionProxyTests extends ESTestCase {
             @Override
             public void handleException(TransportException exp) {
                 try {
-                    Throwable cause = Exceptions.unwrap(exp);
+                    Throwable cause = Exceptions.firstCause(exp);
                     assertEquals("greetings from TS_C", cause.getMessage());
                 } finally {
                     latch.countDown();

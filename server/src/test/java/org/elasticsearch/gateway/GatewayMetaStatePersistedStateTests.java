@@ -465,7 +465,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                     currentTerm = newTerm;
                 }
             } catch (IOError | Exception e) {
-                assertNotNull(Exceptions.unwrap(e, IOException.class));
+                assertNotNull(Exceptions.firstCause(e, IOException.class));
             }
 
             ioExceptionRate.set(0.0d);
@@ -499,7 +499,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             if (ioExceptionRate.get() == 0.0d) {
                 throw e;
             }
-            assertNotNull(Exceptions.unwrap(e, IOException.class));
+            assertNotNull(Exceptions.firstCause(e, IOException.class));
             return;
         }
 

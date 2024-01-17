@@ -406,7 +406,7 @@ public abstract class TransportReplicationAction<
                                 primaryShardReference.indexShard.maybeSyncGlobalCheckpoint("post-operation");
                             } catch (final Exception e) {
                                 // only log non-closed exceptions
-                                if (Exceptions.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
+                                if (Exceptions.firstCause(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
                                     // intentionally swallow, a missed global checkpoint sync should not fail this operation
                                     logger.info(
                                         new ParameterizedMessage(

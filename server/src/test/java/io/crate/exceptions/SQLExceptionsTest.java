@@ -95,7 +95,7 @@ public class SQLExceptionsTest {
         RuntimeException e2 = new RuntimeException(e1);
         e1.initCause(e2);
         Class<?>[] clazzes = { IOException.class };
-        Exceptions.unwrap(e1, clazzes);
+        Exceptions.firstCause(e1, clazzes);
         SQLExceptions.unwrapCorruption(e1);
     }
 }
