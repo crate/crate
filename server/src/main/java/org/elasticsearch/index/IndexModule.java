@@ -82,7 +82,7 @@ public final class IndexModule {
 
     // whether to use the query cache
     public static final Setting<Boolean> INDEX_QUERY_CACHE_ENABLED_SETTING =
-            Setting.boolSetting("index.queries.cache.enabled", true, Property.IndexScope);
+            Setting.boolSetting("index.queries.cache.enabled", false, Property.IndexScope);
 
     // for test purposes only
     public static final Setting<Boolean> INDEX_QUERY_CACHE_EVERYTHING_SETTING =
