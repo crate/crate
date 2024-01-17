@@ -51,6 +51,7 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
 
 import io.crate.common.CheckedFunction;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.exceptions.SQLExceptions;
 
@@ -214,7 +215,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         if (cause == this) {
             return RestStatus.INTERNAL_SERVER_ERROR;
         } else {
-            return ExceptionsHelper.status(cause);
+            return SQLExceptions.status(cause);
         }
     }
 
@@ -339,7 +340,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         }
 
         if (params.paramAsBoolean(REST_EXCEPTION_SKIP_STACK_TRACE, REST_EXCEPTION_SKIP_STACK_TRACE_DEFAULT) == false) {
-            builder.field(STACK_TRACE, ExceptionsHelper.stackTrace(throwable));
+            builder.field(STACK_TRACE, Exceptions.stackTrace(throwable));
         }
 
         Throwable[] allSuppressed = throwable.getSuppressed();

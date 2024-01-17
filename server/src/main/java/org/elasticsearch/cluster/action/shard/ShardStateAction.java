@@ -28,13 +28,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -72,7 +69,9 @@ import org.elasticsearch.transport.TransportRequestDeduplicator;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 
 public class ShardStateAction {
@@ -152,7 +151,7 @@ public class ShardStateAction {
     };
 
     private static boolean isMasterChannelException(TransportException exp) {
-        return ExceptionsHelper.unwrap(exp, MASTER_CHANNEL_EXCEPTIONS) != null;
+        return Exceptions.unwrap(exp, MASTER_CHANNEL_EXCEPTIONS) != null;
     }
 
     /**
@@ -456,7 +455,7 @@ public class ShardStateAction {
             components.add("message [" + message + "]");
             components.add("markAsStale [" + markAsStale + "]");
             if (failure != null) {
-                components.add("failure [" + ExceptionsHelper.stackTrace(failure) + "]");
+                components.add("failure [" + Exceptions.stackTrace(failure) + "]");
             }
             return String.join(", ", components);
         }

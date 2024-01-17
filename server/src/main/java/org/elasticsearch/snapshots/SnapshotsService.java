@@ -48,7 +48,6 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
@@ -952,7 +951,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      */
     private void handleFinalizationFailure(Exception e, SnapshotsInProgress.Entry entry, RepositoryData repositoryData) {
         Snapshot snapshot = entry.snapshot();
-        if (ExceptionsHelper.unwrap(e, NotMasterException.class, FailedToCommitClusterStateException.class) != null) {
+        Class<?>[] clazzes = { NotMasterException.class, FailedToCommitClusterStateException.class };
+        if (Exceptions.unwrap(e, clazzes) != null) {
             // Failure due to not being master any more, don't try to remove snapshot from cluster state the next master
             // will try ending this snapshot again
             LOGGER.debug(() -> new ParameterizedMessage(
@@ -1339,16 +1339,17 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                             createDeleteStateUpdate(outstandingDeletes, repositoryName, result.v1(), Priority.IMMEDIATE, listener));
                     },
                     e -> {
-                       if (ExceptionsHelper.unwrap(e, NotMasterException.class, FailedToCommitClusterStateException.class) != null) {
-                                LOGGER.warn("master failover before deleted snapshot could complete", e);
-                                // Just pass the exception to the transport handler as is so it is retried on the new master
-                                listener.onFailure(e);
-                            } else {
-                                LOGGER.warn("deleted snapshot failed", e);
-                                listener.onFailure(
-                                    new SnapshotMissingException(runningSnapshot.getRepository(), runningSnapshot.getSnapshotId(), e));
-                            }
+                        Class<?>[] clazzes = { NotMasterException.class, FailedToCommitClusterStateException.class };
+                        if (Exceptions.unwrap(e, clazzes) != null) {
+                            LOGGER.warn("master failover before deleted snapshot could complete", e);
+                            // Just pass the exception to the transport handler as is so it is retried on the new master
+                            listener.onFailure(e);
+                        } else {
+                            LOGGER.warn("deleted snapshot failed", e);
+                            listener.onFailure(
+                                new SnapshotMissingException(runningSnapshot.getRepository(), runningSnapshot.getSnapshotId(), e));
                         }
+                    }
                 ));
             }
 
@@ -1766,7 +1767,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     private void failAllListenersOnMasterFailOver(Exception e) {
         LOGGER.debug("Failing all snapshot operation listeners because this node is not master any longer", e);
         synchronized (currentlyFinalizing) {
-            if (ExceptionsHelper.unwrap(e, NotMasterException.class, FailedToCommitClusterStateException.class) != null) {
+            Class<?>[] clazzes = { NotMasterException.class, FailedToCommitClusterStateException.class };
+            if (Exceptions.unwrap(e, clazzes) != null) {
                 repositoryOperations.clear();
                 for (Snapshot snapshot : new HashSet<>(snapshotCompletionListeners.keySet())) {
                     failSnapshotCompletionListeners(snapshot, new SnapshotException(snapshot, "no longer master"));

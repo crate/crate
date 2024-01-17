@@ -78,7 +78,6 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.LatchedActionListener;
@@ -131,8 +130,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.collections.Sets;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 
 public class RecoverySourceHandlerTests extends ESTestCase {
     private static final IndexSettings INDEX_SETTINGS = IndexSettingsModule.newIndexSettings(
@@ -484,7 +485,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), e -> sendFilesError.set(e)), latch));
         latch.await();
         assertThat(sendFilesError.get(), instanceOf(IOException.class));
-        assertNotNull(ExceptionsHelper.unwrapCorruption(sendFilesError.get()));
+        assertNotNull(SQLExceptions.unwrapCorruption(sendFilesError.get()));
         assertTrue(failedEngine.get());
         // ensure all chunk requests have been completed; otherwise some files on the target are left open.
         IOUtils.close(() -> terminate(threadPool), () -> threadPool = null);
@@ -844,7 +845,8 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             phase1Listener.result();
         } catch (Exception e) {
             assertTrue(wasCancelled.get());
-            assertNotNull(ExceptionsHelper.unwrap(e, CancellableThreads.ExecutionCancelledException.class));
+            Class<?>[] clazzes = { CancellableThreads.ExecutionCancelledException.class };
+            assertNotNull(Exceptions.unwrap(e, clazzes));
         }
         store.close();
     }

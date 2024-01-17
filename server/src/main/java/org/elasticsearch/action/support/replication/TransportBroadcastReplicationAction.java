@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
@@ -45,6 +44,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.TransportService;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Base class for requests that should be executed on all shards of an index or several indices.
@@ -98,7 +99,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
                     if (TransportActions.isShardNotAvailableException(e)) {
                         failures = new ReplicationResponse.ShardInfo.Failure[0];
                     } else {
-                        ReplicationResponse.ShardInfo.Failure failure = new ReplicationResponse.ShardInfo.Failure(shardId, null, e, ExceptionsHelper.status(e), true);
+                        ReplicationResponse.ShardInfo.Failure failure = new ReplicationResponse.ShardInfo.Failure(shardId, null, e, SQLExceptions.status(e), true);
                         failures = new ReplicationResponse.ShardInfo.Failure[totalNumCopies];
                         Arrays.fill(failures, failure);
                     }

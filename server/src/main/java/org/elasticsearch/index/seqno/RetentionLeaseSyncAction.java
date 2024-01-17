@@ -26,7 +26,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
@@ -49,6 +48,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+
+import io.crate.common.exceptions.Exceptions;
 
 /**
  * Write action responsible for syncing retention leases to replicas. This action is deliberately a write action so that if a replica misses
@@ -117,10 +118,8 @@ public class RetentionLeaseSyncAction extends
 
                 @Override
                 public void handleException(TransportException e) {
-                    if (ExceptionsHelper.unwrap(e,
-                                            IndexNotFoundException.class,
-                                            AlreadyClosedException.class,
-                                            IndexShardClosedException.class) == null) {
+                    Class<?>[] clazzes = { IndexNotFoundException.class, AlreadyClosedException.class, IndexShardClosedException.class };
+                    if (Exceptions.unwrap(e, clazzes) == null) {
                         getLogger().warn(new ParameterizedMessage("{} retention lease sync failed", shardId), e);
                     }
                     listener.onFailure(e);

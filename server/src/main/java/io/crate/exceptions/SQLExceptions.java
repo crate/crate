@@ -21,7 +21,9 @@
 
 package io.crate.exceptions;
 
+import java.io.IOException;
 import java.net.ConnectException;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -29,13 +31,18 @@ import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.index.CorruptIndexException;
+import org.apache.lucene.index.IndexFormatTooNewException;
+import org.apache.lucene.index.IndexFormatTooOldException;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.ElasticsearchWrapperException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
@@ -45,6 +52,7 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.node.NodeClosedException;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NoSeedNodeLeftException;
 import org.elasticsearch.transport.NodeDisconnectedException;
@@ -53,6 +61,7 @@ import org.elasticsearch.transport.RemoteTransportException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 
@@ -88,6 +97,53 @@ public class SQLExceptions {
             result = cause;
         }
         return result;
+    }
+
+    public static RestStatus status(Throwable t) {
+        if (t != null) {
+            if (t instanceof ElasticsearchException) {
+                return ((ElasticsearchException) t).status();
+            } else if (t instanceof IllegalArgumentException) {
+                return RestStatus.BAD_REQUEST;
+            } else if (t instanceof EsRejectedExecutionException) {
+                return RestStatus.TOO_MANY_REQUESTS;
+            }
+        }
+        return RestStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    /**
+     * Throws a runtime exception with all given exceptions added as suppressed.
+     * If the given list is empty no exception is thrown
+     */
+    public static <T extends Throwable> void maybeThrowRuntimeAndSuppress(List<T> exceptions) {
+        T main = null;
+        for (T ex : exceptions) {
+            main = Exceptions.useOrSuppress(main, ex);
+        }
+        if (main != null) {
+            throw new ElasticsearchException(main);
+        }
+    }
+
+    private static final List<Class<? extends IOException>> CORRUPTION_EXCEPTIONS =
+        List.of(CorruptIndexException.class, IndexFormatTooOldException.class, IndexFormatTooNewException.class);
+
+    /**
+     * Looks at the given Throwable's and its cause(s) as well as any suppressed exceptions on the Throwable as well as its causes
+     * and returns the first corruption indicating exception (as defined by {@link #CORRUPTION_EXCEPTIONS}) it finds.
+     * @param t Throwable
+     * @return Corruption indicating exception if one is found, otherwise {@code null}
+     */
+    public static IOException unwrapCorruption(Throwable t) {
+        return t == null ? null : Exceptions.<IOException>unwrapCausesAndSuppressed(t, cause -> {
+            for (Class<?> clazz : CORRUPTION_EXCEPTIONS) {
+                if (clazz.isInstance(cause)) {
+                    return true;
+                }
+            }
+            return false;
+        }).orElse(null);
     }
 
     public static String messageOf(@Nullable Throwable t) {

@@ -47,7 +47,6 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.NIOFSDirectory;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.lucene.store.IndexOutputOutputStream;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -58,6 +57,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 /**
@@ -416,7 +416,7 @@ public abstract class MetadataStateFormat<T> {
             }
         }
         // if we reach this something went wrong
-        ExceptionsHelper.maybeThrowRuntimeAndSuppress(exceptions);
+        SQLExceptions.maybeThrowRuntimeAndSuppress(exceptions);
         if (stateFiles.size() > 0) {
             // We have some state files but none of them gave us a usable state
             throw new IllegalStateException("Could not find a state file to recover from among " +

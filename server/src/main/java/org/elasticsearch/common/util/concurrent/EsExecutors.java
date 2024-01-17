@@ -32,13 +32,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.common.exceptions.Exceptions;
 
 public class EsExecutors {
 
@@ -130,7 +130,7 @@ public class EsExecutors {
                 assert e instanceof CancellationException
                     || e instanceof InterruptedException
                     || e instanceof ExecutionException : e;
-                final Optional<Error> maybeError = ExceptionsHelper.maybeError(e);
+                final Optional<Error> maybeError = Exceptions.maybeError(e);
                 if (maybeError.isPresent()) {
                     // throw this error where it will propagate to the uncaught exception handler
                     throw maybeError.get();

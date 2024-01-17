@@ -19,16 +19,6 @@
 
 package org.elasticsearch.common.settings;
 
-import io.crate.common.collections.Tuple;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.search.spell.LevenshteinDistance;
-import org.apache.lucene.util.CollectionUtil;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.regex.Regex;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,6 +35,17 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.search.spell.LevenshteinDistance;
+import org.apache.lucene.util.CollectionUtil;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.regex.Regex;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.exceptions.Exceptions;
 
 /**
  * A basic setting service that can be used for per-index and per-cluster settings.
@@ -163,7 +164,7 @@ public abstract class AbstractScopedSettings {
             }
         }
         // here we are exhaustive and record all settings that failed.
-        ExceptionsHelper.rethrowAndSuppress(exceptions);
+        Exceptions.rethrowAndSuppress(exceptions);
         return current;
     }
 
@@ -361,7 +362,7 @@ public abstract class AbstractScopedSettings {
                 exceptions.add(ex);
             }
         }
-        ExceptionsHelper.rethrowAndSuppress(exceptions);
+        Exceptions.rethrowAndSuppress(exceptions);
     }
 
     /**

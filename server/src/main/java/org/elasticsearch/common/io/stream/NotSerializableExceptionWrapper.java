@@ -19,11 +19,12 @@
 
 package org.elasticsearch.common.io.stream;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * This exception can be used to wrap a given, not serializable exception
@@ -40,7 +41,7 @@ public final class NotSerializableExceptionWrapper extends ElasticsearchExceptio
     public NotSerializableExceptionWrapper(Throwable other) {
         super(ElasticsearchException.getExceptionName(other) + ": " + other.getMessage(), other.getCause());
         this.name = ElasticsearchException.getExceptionName(other);
-        this.status = ExceptionsHelper.status(other);
+        this.status = SQLExceptions.status(other);
         setStackTrace(other.getStackTrace());
         for (Throwable otherSuppressed : other.getSuppressed()) {
             addSuppressed(otherSuppressed);
