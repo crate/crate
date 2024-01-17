@@ -69,19 +69,19 @@ public class RowsBatchIteratorBenchmark {
     private final RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
         List.of(DataTypes.INTEGER), RamAccounting.NO_ACCOUNTING, 0);
 
-    private List<Row> rows;
+    private List<RowN> rows;
 
     // used with  RowsBatchIterator without any state/error handling to establish a performance baseline.
-    private final List<Row1> oneThousandRows = IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList());
-    private final List<Row1> tenThousandRows = IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList());
+    private final List<Row1> oneThousandRows = IntStream.range(0, 1000).mapToObj(Row1::new).toList();
+    private final List<Row1> tenThousandRows = IntStream.range(0, 10000).mapToObj(Row1::new).toList();
 
     private WindowFunction lastValueIntFunction;
 
     @Setup
     public void setup() {
         rows = IntStream.range(0, 10_000_000)
-            .mapToObj(i -> new RowN(i))
-            .collect(Collectors.toList());
+            .mapToObj(RowN::new)
+            .toList();
         Functions functions = new ModulesBuilder().add(new ExtraFunctionsModule())
             .createInjector().getInstance(Functions.class);
         lastValueIntFunction = (WindowFunction) functions.getQualified(
@@ -223,7 +223,6 @@ public class RowsBatchIteratorBenchmark {
 
         @Override
         public void release() {
-
         }
     }
 }

@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.Version;
@@ -59,10 +58,11 @@ import io.crate.types.DataTypes;
 @State(Scope.Benchmark)
 public class AggregateCollectorBenchmark {
 
-    private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(Row1::new).collect(Collectors.toList());
+    private final List<Row1> rows = IntStream.range(0, 10_000).mapToObj(Row1::new).toList();
 
     private AggregateCollector collector;
 
+    @SuppressWarnings("unchecked")
     @Setup
     public void setup() {
         RowCollectExpression inExpr0 = new RowCollectExpression(0);

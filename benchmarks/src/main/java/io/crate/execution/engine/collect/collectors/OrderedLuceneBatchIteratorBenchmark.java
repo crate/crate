@@ -90,32 +90,32 @@ public class OrderedLuceneBatchIteratorBenchmark {
 
     @Setup
     public void createLuceneBatchIterator() throws Exception {
-        IndexWriter iw = new IndexWriter(
-            new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer())
-        );
-        dummyShardId = new ShardId("dummy", UUIDs.randomBase64UUID(), 1);
-        columnName = "x";
-        for (int i = 0; i < 10_000_000; i++) {
-            Document doc = new Document();
-            doc.add(new NumericDocValuesField(columnName, i));
-            iw.addDocument(doc);
+        try (IndexWriter iw = new IndexWriter(
+            new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()))) {
+            dummyShardId = new ShardId("dummy", UUIDs.randomBase64UUID(), 1);
+            columnName = "x";
+            for (int i = 0; i < 10_000_000; i++) {
+                Document doc = new Document();
+                doc.add(new NumericDocValuesField(columnName, i));
+                iw.addDocument(doc);
+            }
+            iw.commit();
+            iw.forceMerge(1, true);
+            indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
+            collectorContext = new CollectorContext(Set.of(), Function.identity());
+            reference = new SimpleReference(
+                new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
+                RowGranularity.DOC,
+                DataTypes.INTEGER,
+                1,
+                null
+            );
+            orderBy = new OrderBy(
+                Collections.singletonList(reference),
+                reverseFlags,
+                nullsFirst
+            );
         }
-        iw.commit();
-        iw.forceMerge(1, true);
-        indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
-        collectorContext = new CollectorContext(Set.of(), Function.identity());
-        reference = new SimpleReference(
-            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
-            RowGranularity.DOC,
-            DataTypes.INTEGER,
-            1,
-            null
-        );
-        orderBy = new OrderBy(
-            Collections.singletonList(reference),
-            reverseFlags,
-            nullsFirst
-        );
     }
 
     @Benchmark

@@ -21,6 +21,11 @@
 
 package io.crate.execution;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
+
 import org.joda.time.DateTimeUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -35,11 +40,6 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-
-import java.time.Clock;
-import java.time.Instant;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -57,11 +57,11 @@ public class TimePrecisionIncreaseTest {
 
     @Benchmark
     public void currentTimeMillisNextGen(Blackhole blackhole) {
-        Supplier<Long> currentTimeMillis = () -> {
+        LongSupplier currentTimeMillis = () -> {
             Instant i = Clock.systemUTC().instant();
             return (i.getEpochSecond() * 1000_000_000L + i.getNano()) / 1000_000L;
         };
-        blackhole.consume(currentTimeMillis.get());
+        blackhole.consume(currentTimeMillis.getAsLong());
     }
 
     public static void main(String[] args) throws Exception {
