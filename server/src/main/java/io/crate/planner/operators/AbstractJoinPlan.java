@@ -21,10 +21,16 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -35,12 +41,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.JoinType;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public abstract class AbstractJoinPlan implements LogicalPlan {
 
@@ -74,7 +74,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         if (joinType == JoinType.SEMI) {
             return lhs.outputs();
         } else {
-            return Lists2.concat(lhs.outputs(), rhs.outputs());
+            return Lists.concat(lhs.outputs(), rhs.outputs());
         }
     }
 
@@ -100,12 +100,12 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
 
     @Override
     public List<RelationName> getRelationNames() {
-        return Lists2.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
+        return Lists.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
     }
 
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
+        return Lists.concat(lhs.baseTables(), rhs.baseTables());
     }
 
     @Override

@@ -21,10 +21,19 @@
 
 package io.crate.analyze.where;
 
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.StringUtils;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -32,14 +41,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class DocKeys implements Iterable<DocKeys.DocKey> {
 
@@ -61,7 +62,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
         public String getId(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             return idFunction.apply(
-                Lists2.mapLazy(
+                Lists.mapLazy(
                     key.subList(0, width),
                     s -> StringUtils.nullOrString(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, params, subQueryResults))
                 )
@@ -100,7 +101,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             if (partitionIdx == null || partitionIdx.isEmpty()) {
                 return Collections.emptyList();
             }
-            return Lists2.map(
+            return Lists.map(
                 partitionIdx,
                 pIdx -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(pIdx), params, subQueryResults)));
 
@@ -172,7 +173,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
     @Override
     public String toString() {
         return "DocKeys{" + docKeys.stream()
-            .map(xs -> Lists2.joinOn(", ", xs, Symbol::toString))
+            .map(xs -> Lists.joinOn(", ", xs, Symbol::toString))
             .sorted()
             .collect(Collectors.joining("; ")) + '}';
     }

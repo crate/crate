@@ -66,14 +66,14 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 
 public class RetentionLeaseIT extends IntegTestCase  {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Lists2.concat(super.nodePlugins(), MockTransportService.TestPlugin.class);
+        return Lists.concat(super.nodePlugins(), MockTransportService.TestPlugin.class);
     }
 
     @After

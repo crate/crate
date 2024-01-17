@@ -65,7 +65,7 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -230,7 +230,7 @@ public final class ReservoirSampler {
                     docTable.partitionedByColumns()
                 )
             ).getCtx(coordinatorTxnCtx);
-            ctx.add(Lists2.map(columns, DocReferences::toSourceLookup));
+            ctx.add(Lists.map(columns, DocReferences::toSourceLookup));
             List<Input<?>> inputs = ctx.topLevelInputs();
             List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
             CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());

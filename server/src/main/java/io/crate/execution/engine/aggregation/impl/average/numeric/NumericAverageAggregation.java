@@ -28,14 +28,13 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
@@ -114,9 +113,9 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
     @Override
     public NumericAverageState<?> iterate(RamAccounting ramAccounting,
-                              MemoryManager memoryManager,
-                              NumericAverageState<?> state,
-                              Input<?>[]args) throws CircuitBreakingException {
+                                          MemoryManager memoryManager,
+                                          NumericAverageState<?> state,
+                                          Input<?> ... args) throws CircuitBreakingException {
         if (state != null) {
             BigDecimal value = returnType.implicitCast(args[0].value());
             if (value != null) {

@@ -29,6 +29,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
@@ -36,7 +37,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
@@ -44,7 +44,7 @@ import org.junit.Test;
 
 public class TransportClusterStateActionTests extends ESTestCase {
 
-    private final Logger logger = Loggers.getLogger(getClass());
+    private final Logger logger = LogManager.getLogger(getClass());
 
     private ClusterState clusterState;
 

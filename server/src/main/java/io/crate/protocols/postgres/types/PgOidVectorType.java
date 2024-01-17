@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.StringTokenizer;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.netty.buffer.ByteBuf;
 
 public class PgOidVectorType extends PGType<List<Integer>> {
@@ -73,7 +73,7 @@ public class PgOidVectorType extends PGType<List<Integer>> {
 
     @Override
     byte[] encodeAsUTF8Text(List<Integer> value) {
-        return Lists2.joinOn(" ", value, x -> Integer.toString(x)).getBytes(StandardCharsets.UTF_8);
+        return Lists.joinOn(" ", value, x -> Integer.toString(x)).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

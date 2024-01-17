@@ -29,9 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Sets;
 import io.crate.expression.operator.EqOperator;
@@ -95,9 +94,9 @@ public record JoinGraph(
             assert !edges.containsKey(node) : "LogicalPlan" + node + " can't be in both graphs";
         }
 
-        var newNodes = Lists2.concat(this.nodes, other.nodes);
+        var newNodes = Lists.concat(this.nodes, other.nodes);
         var newEdges = Maps.merge(this.edges, other.edges, Sets::union);
-        var newFilters = Lists2.concat(this.filters, other.filters);
+        var newFilters = Lists.concat(this.filters, other.filters);
         var hasCrossJoin = this.hasCrossJoin || other.hasCrossJoin();
 
         return new JoinGraph(
@@ -117,7 +116,7 @@ public record JoinGraph(
         if (filters.isEmpty()) {
             return this;
         }
-        var newFilters = Lists2.concat(this.filters, filters);
+        var newFilters = Lists.concat(this.filters, filters);
         return new JoinGraph(this.nodes, edges, newFilters, this.hasCrossJoin);
     }
 

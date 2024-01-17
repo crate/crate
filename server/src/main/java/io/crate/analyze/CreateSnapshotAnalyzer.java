@@ -27,7 +27,7 @@ import java.util.Locale;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -67,7 +67,7 @@ class CreateSnapshotAnalyzer {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
 
-        List<Table<Symbol>> tables = Lists2.map(
+        List<Table<Symbol>> tables = Lists.map(
             createSnapshot.tables(),
             (table) -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx)));
         GenericProperties<Symbol> properties = createSnapshot.properties()

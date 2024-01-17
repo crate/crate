@@ -21,8 +21,13 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static org.apache.lucene.util.StringHelper.murmurhash3_x86_32;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationInfo;
@@ -31,11 +36,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.types.TypeSignature;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
-import static org.apache.lucene.util.StringHelper.murmurhash3_x86_32;
 
 public final class OidHash {
 
@@ -81,7 +81,7 @@ public final class OidHash {
     }
 
     public static int primaryKeyOid(RelationName name, List<ColumnIdent> primaryKeys) {
-        var primaryKey = Lists2.joinOn(" ", primaryKeys, ColumnIdent::name);
+        var primaryKey = Lists.joinOn(" ", primaryKeys, ColumnIdent::name);
         return oid(Type.PRIMARY_KEY.toString() + name.fqn() + primaryKey);
     }
 
@@ -95,7 +95,7 @@ public final class OidHash {
     }
 
     public static int publicationOid(String name, Publication publication) {
-        var tables = Lists2.joinOn(" ", publication.tables(), RelationName::fqn);
+        var tables = Lists.joinOn(" ", publication.tables(), RelationName::fqn);
         return oid(Type.PUBLICATION + name + publication.owner() + tables);
     }
 
@@ -110,7 +110,7 @@ public final class OidHash {
 
     @VisibleForTesting
     static String argTypesToStr(List<TypeSignature> typeSignatures) {
-        return Lists2.joinOn(" ", typeSignatures, ts -> {
+        return Lists.joinOn(" ", typeSignatures, ts -> {
             try {
                 return ts.createType().getName();
             } catch (IllegalArgumentException i) {

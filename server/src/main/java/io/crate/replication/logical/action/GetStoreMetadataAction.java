@@ -21,7 +21,9 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.replication.logical.repository.PublisherRestoreService;
+import java.io.IOException;
+
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -35,16 +37,15 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
+
+import io.crate.replication.logical.repository.PublisherRestoreService;
 
 public class GetStoreMetadataAction extends ActionType<GetStoreMetadataAction.Response> {
 
@@ -63,7 +64,7 @@ public class GetStoreMetadataAction extends ActionType<GetStoreMetadataAction.Re
     @Singleton
     public static class TransportAction extends TransportSingleShardAction<Request, Response> {
 
-        private static final Logger LOGGER = Loggers.getLogger(TransportAction.class);
+        private static final Logger LOGGER = LogManager.getLogger(TransportAction.class);
 
         private final PublisherRestoreService publisherRestoreService;
 

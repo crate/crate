@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -60,7 +60,7 @@ public class Optimizer {
                                 OptimizerTracer tracer) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
         LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx, tracer);
-        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, tracer));
+        var optimizedSources = Lists.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, tracer));
         return tryApplyRules(
             applicableRules,
             optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),

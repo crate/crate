@@ -27,17 +27,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.monitor.jvm.JvmInfo;
-
 import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Paging;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -174,16 +174,15 @@ public class FetchProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return MapBuilder.<String, Object>newMapBuilder()
             .put("type", "Fetch")
-            .put("outputs", Lists2.joinOn(", ", outputSymbols, Symbol::toString))
+            .put("outputs", Lists.joinOn(", ", outputSymbols, Symbol::toString))
             .put("fetchSize", fetchSize)
             .map();
     }
 
-    @SuppressWarnings({"rawtypes"})
-    public Map<String, ? extends IntObjectMap<Streamer[]>> generateStreamersGroupedByReaderAndNode() {
-        HashMap<String, IntObjectHashMap<Streamer[]>> streamersByReaderByNode = new HashMap<>();
+    public Map<String, ? extends IntObjectMap<Streamer<?>[]>> generateStreamersGroupedByReaderAndNode() {
+        HashMap<String, IntObjectHashMap<Streamer<?>[]>> streamersByReaderByNode = new HashMap<>();
         for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
-            IntObjectHashMap<Streamer[]> streamersByReaderId = new IntObjectHashMap<>();
+            IntObjectHashMap<Streamer<?>[]> streamersByReaderId = new IntObjectHashMap<>();
             String nodeId = entry.getKey();
             streamersByReaderByNode.put(nodeId, streamersByReaderId);
             for (IntCursor readerIdCursor : entry.getValue()) {

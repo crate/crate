@@ -44,7 +44,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Iterables;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
@@ -159,7 +159,7 @@ public final class QueryTester implements AutoCloseable {
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 mapperService::getLuceneFieldType,
-                Lists2.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
+                Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
                 null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), values, -1L, -1L);

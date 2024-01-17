@@ -20,7 +20,6 @@
 package org.elasticsearch.common.logging;
 
 import static org.elasticsearch.common.settings.AbstractScopedSettings.LOGGER_SETTINGS_PREFIX;
-import static org.elasticsearch.common.util.CollectionUtils.asArrayList;
 
 import java.util.Map;
 
@@ -36,6 +35,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 
+import io.crate.common.collections.Lists;
 import io.crate.types.DataTypes;
 
 /**
@@ -54,7 +54,7 @@ public final class Loggers {
     );
 
     public static Logger getLogger(Class<?> clazz, ShardId shardId, String... prefixes) {
-        return getLogger(clazz, shardId.getIndex(), asArrayList(Integer.toString(shardId.id()), prefixes).toArray(new String[0]));
+        return getLogger(clazz, shardId.getIndex(), Lists.concat(Integer.toString(shardId.id()), prefixes).toArray(new String[0]));
     }
 
     /**
@@ -62,23 +62,24 @@ public final class Loggers {
      * Class and no extra prefixes.
      */
     public static Logger getLogger(String loggerName, ShardId shardId) {
-        return ESLoggerFactory.getLogger(formatPrefix(shardId.getIndexName(), Integer.toString(shardId.id())), loggerName);
+        String prefix = formatPrefix(shardId.getIndexName(), Integer.toString(shardId.id()));
+        return new PrefixLogger(LogManager.getLogger(loggerName), prefix);
     }
 
     public static Logger getLogger(Class<?> clazz, Index index, String... prefixes) {
-        return getLogger(clazz, asArrayList(Loggers.SPACE, index.getName(), prefixes).toArray(new String[0]));
+        return getLogger(clazz, Lists.concat(Loggers.SPACE, index.getName(), prefixes).toArray(new String[0]));
     }
 
     public static Logger getLogger(Class<?> clazz, String... prefixes) {
-        return ESLoggerFactory.getLogger(formatPrefix(prefixes), clazz);
+        return new PrefixLogger(LogManager.getLogger(clazz), formatPrefix(prefixes));
     }
 
     public static Logger getLogger(Logger parentLogger, String s) {
-        String prefix = null;
+        Logger inner = LogManager.getLogger(parentLogger.getName() + s);
         if (parentLogger instanceof PrefixLogger prefixLogger) {
-            prefix = prefixLogger.prefix();
+            return new PrefixLogger(inner, prefixLogger.prefix());
         }
-        return ESLoggerFactory.getLogger(prefix, parentLogger.getName() + s);
+        return inner;
     }
 
     private static String formatPrefix(String... prefixes) {

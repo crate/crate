@@ -214,7 +214,7 @@ public class GatewayAllocator implements ExistingShardsAllocator {
     class InternalAsyncFetch<T extends BaseNodeResponse> extends AsyncShardFetch<T> {
 
         InternalAsyncFetch(Logger logger, String type, ShardId shardId, String customDataPath,
-                           Lister<? extends BaseNodesResponse<T>, T> action) {
+                           Lister<BaseNodesResponse<T>, T> action) {
             super(logger, type, shardId, customDataPath, action);
         }
 

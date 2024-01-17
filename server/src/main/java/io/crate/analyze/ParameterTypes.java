@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
@@ -50,7 +50,7 @@ public class ParameterTypes extends DefaultTraversalSymbolVisitor<Set<ParameterS
         if (!parameterSymbols.isEmpty() && parameterSymbols.last().index() != parameterSymbols.size() - 1) {
             throw new IllegalStateException("The assembled list of ParameterSymbols is invalid. Missing parameters.");
         }
-        return Lists2.map(parameterSymbols, ParameterSymbol::getBoundType);
+        return Lists.map(parameterSymbols, ParameterSymbol::getBoundType);
     }
 
     public static List<DataType<?>> extract(AnalyzedStatement statement) {

@@ -38,7 +38,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -112,7 +112,7 @@ public class HashJoin extends AbstractJoinPlan {
             isDistributed = false;
         }
         if (joinExecutionNodes.size() == 1
-            && Lists2.equals(joinExecutionNodes, rightResultDesc.nodeIds())
+            && Lists.equals(joinExecutionNodes, rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {
             // If the left and the right plan are executed on the same single node the mergePhase
             // should be omitted. This is the case if the left and right table have only one shards which
@@ -134,7 +134,7 @@ public class HashJoin extends AbstractJoinPlan {
             rightMerge = buildMergePhaseForJoin(plannerContext, rightResultDesc, joinExecutionNodes);
         }
 
-        List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
+        List<Symbol> joinOutputs = Lists.concat(leftOutputs, rightOutputs);
         var lhStats = plannerContext.planStats().get(lhs);
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
@@ -303,5 +303,5 @@ public class HashJoin extends AbstractJoinPlan {
     }
 
     record HashSymbols(List<Symbol> lhsHashSymbols, List<Symbol> rhsHashSymbols) { }
-    
+
 }

@@ -25,14 +25,13 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
@@ -106,7 +105,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
     public BigDecimal iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
                               BigDecimal state,
-                              Input<?>[]args) throws CircuitBreakingException {
+                              Input<?> ... args) throws CircuitBreakingException {
         BigDecimal value = returnType.implicitCast(args[0].value());
         if (value != null) {
             if (state != null) {

@@ -21,6 +21,16 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -31,15 +41,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UncheckedObjectType;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class CollectSetAggregation extends AggregationFunction<Map<Object, Object>, List<Object>> {
 

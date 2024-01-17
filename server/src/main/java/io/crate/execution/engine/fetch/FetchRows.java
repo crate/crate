@@ -29,7 +29,7 @@ import java.util.function.IntFunction;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
@@ -113,7 +113,7 @@ public final class FetchRows {
                 return () -> row.get(posInFetchedRow);
             }
         };
-        List<Input<?>> outputExpressions = Lists2.map(outputSymbols, x -> x.accept(visitor, null));
+        List<Input<?>> outputExpressions = Lists.map(outputSymbols, x -> x.accept(visitor, null));
         return new FetchRows(fetchIdPositions, outputExpressions, inputRow, fetchedRows, nullRows);
     }
 

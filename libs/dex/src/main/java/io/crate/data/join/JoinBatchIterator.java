@@ -21,10 +21,11 @@
 
 package io.crate.data.join;
 
-import io.crate.data.BatchIterator;
+import java.util.concurrent.CompletionStage;
 
 import org.jetbrains.annotations.NotNull;
-import java.util.concurrent.CompletionStage;
+
+import io.crate.data.BatchIterator;
 
 /**
  * Basic class for BatchIterators that implement the various types of Joins.
@@ -51,7 +52,7 @@ public abstract class JoinBatchIterator<L, R, C> implements BatchIterator<C> {
     /**
      * points to the batchIterator which will be used on the next {@link #moveNext()} call
      */
-    protected BatchIterator activeIt;
+    protected BatchIterator<?> activeIt;
 
     protected JoinBatchIterator(BatchIterator<L> left, BatchIterator<R> right, ElementCombiner<L, R, C> combiner) {
         this.left = left;

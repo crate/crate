@@ -80,8 +80,8 @@ public class AndOperator extends Operator<Boolean> {
          * false and x  -> false
          * null  and x  -> false or null -> function as is
          */
-        if (left instanceof Input) {
-            Object value = ((Input) left).value();
+        if (left instanceof Input leftInput) {
+            Object value = leftInput.value();
             if (value == null) {
                 return function;
             }
@@ -91,8 +91,8 @@ public class AndOperator extends Operator<Boolean> {
                 return Literal.of(false);
             }
         }
-        if (right instanceof Input) {
-            Object value = ((Input) right).value();
+        if (right instanceof Input<?> rightInput) {
+            Object value = rightInput.value();
             if (value == null) {
                 return function;
             }
@@ -106,7 +106,8 @@ public class AndOperator extends Operator<Boolean> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null && args[1] != null : "1st and 2nd arguments must not be null";

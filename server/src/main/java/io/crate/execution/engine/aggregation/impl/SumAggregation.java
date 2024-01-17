@@ -25,14 +25,13 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.BinaryOperator;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
@@ -141,7 +140,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     public T iterate(RamAccounting ramAccounting,
                      MemoryManager memoryManager,
                      T state,
-                     Input<?>[] args) throws CircuitBreakingException {
+                     Input<?> ... args) throws CircuitBreakingException {
         return reduce(ramAccounting, state, returnType.sanitizeValue(args[0].value()));
     }
 

@@ -21,9 +21,21 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.support.IndicesOptions;
+
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -37,17 +49,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.support.IndicesOptions;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.function.Function;
-
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public class RefreshTablePlan implements Plan {
 
@@ -85,7 +86,7 @@ public class RefreshTablePlan implements Plan {
             } else {
                 var partitionName = toPartitionName(
                     tableInfo,
-                    Lists2.map(tableSymbol.partitionProperties(), p -> p.map(eval)));
+                    Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval)));
                 if (!tableInfo.partitions().contains(partitionName)) {
                     throw new PartitionUnknownException(partitionName);
                 }

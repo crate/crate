@@ -40,7 +40,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -251,7 +251,7 @@ public class Collect implements LogicalPlan {
             Symbol query = GeneratedColumnExpander.maybeExpand(
                 boundWhere.queryOrFallback(),
                 docTable.generatedColumns(),
-                Lists2.concat(docTable.partitionedByColumns(), Lists2.map(docTable.primaryKey(), docTable::getReference)),
+                Lists.concat(docTable.partitionedByColumns(), Lists.map(docTable.primaryKey(), docTable::getReference)),
                 plannerContext.nodeContext()
             );
             if (!query.equals(boundWhere.queryOrFallback())) {
@@ -277,7 +277,7 @@ public class Collect implements LogicalPlan {
         }
 
         var sessionSettings = plannerContext.transactionContext().sessionSettings();
-        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputs, binder);
         return new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -289,7 +289,7 @@ public class Collect implements LogicalPlan {
                 sessionSettings),
             tableInfo.rowGranularity(),
             planHints.contains(PlanHint.PREFER_SOURCE_LOOKUP) && tableInfo instanceof DocTableInfo
-                ? Lists2.map(boundOutputs, DocReferences::toSourceLookup)
+                ? Lists.map(boundOutputs, DocReferences::toSourceLookup)
                 : boundOutputs,
             Collections.emptyList(),
             Optimizer.optimizeCasts(mutableBoundWhere.queryOrFallback(), plannerContext),
@@ -393,7 +393,7 @@ public class Collect implements LogicalPlan {
     public String toString() {
         return "Collect{" +
                tableInfo.ident() +
-               ", [" + Lists2.joinOn(", ", outputs, Symbol::toString) +
+               ", [" + Lists.joinOn(", ", outputs, Symbol::toString) +
                "], " + immutableWhere +
                '}';
     }
@@ -409,7 +409,7 @@ public class Collect implements LogicalPlan {
             .text("Collect[")
             .text(tableInfo.ident().toString())
             .text(" | [")
-            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(Lists.joinOn(", ", outputs, Symbol::toString))
             .text("] | ")
             .text(immutableWhere.queryOrFallback().toString())
             .text("]");

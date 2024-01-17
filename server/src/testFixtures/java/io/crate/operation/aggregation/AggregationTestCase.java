@@ -90,7 +90,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.WhereClause;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
@@ -186,7 +186,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         var aggregationFunction = (AggregationFunction) nodeCtx.functions().get(
             null,
             maybeUnboundSignature.getName().name(),
-            Lists2.map(actualArgumentTypes, t -> new InputColumn(0, t)),
+            Lists.map(actualArgumentTypes, t -> new InputColumn(0, t)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
         Version minNodeVersion = randomBoolean()

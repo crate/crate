@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -35,7 +36,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -472,7 +473,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_graph_with_union() throws Exception {
-        Union union = new Union(a, b, Lists2.concat(a.outputs(), b.outputs()));
+        Union union = new Union(a, b, Lists.concat(a.outputs(), b.outputs()));
         var firstJoin = new JoinPlan(union, c, JoinType.INNER, e.asSymbol("b.y = c.z"));
         var secondJoin = new JoinPlan(firstJoin, d, JoinType.INNER, e.asSymbol("a.x = d.w"));
 

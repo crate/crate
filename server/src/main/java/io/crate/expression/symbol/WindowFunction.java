@@ -21,25 +21,26 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.analyze.FrameBoundDefinition;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WindowDefinition;
-import io.crate.analyze.WindowFrameDefinition;
-import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static io.crate.metadata.FunctionType.AGGREGATE;
+import static io.crate.metadata.FunctionType.WINDOW;
 
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import static io.crate.metadata.FunctionType.AGGREGATE;
-import static io.crate.metadata.FunctionType.WINDOW;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.analyze.FrameBoundDefinition;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.WindowFrameDefinition;
+import io.crate.common.collections.Lists;
+import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 
 public class WindowFunction extends Function {
 
@@ -138,7 +139,7 @@ public class WindowFunction extends Function {
         var partitions = windowDefinition.partitions();
         if (!partitions.isEmpty()) {
             builder.append("PARTITION BY ");
-            builder.append(Lists2.joinOn(", ", partitions, x -> x.toString(style)));
+            builder.append(Lists.joinOn(", ", partitions, x -> x.toString(style)));
         }
         var orderBy = windowDefinition.orderBy();
         if (orderBy != null) {

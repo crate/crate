@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.common.collections.Lists2.getOnlyElement;
+import static io.crate.common.collections.Lists.getOnlyElement;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -38,7 +38,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 
@@ -51,7 +51,7 @@ public class Id {
         return ensureNonNull(getOnlyElement(keyValues));
     };
 
-    private static final Function<List<String>, String> ONLY_ITEM = Lists2::getOnlyElement;
+    private static final Function<List<String>, String> ONLY_ITEM = Lists::getOnlyElement;
 
 
     /**

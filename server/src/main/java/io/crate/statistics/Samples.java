@@ -31,7 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 
@@ -101,7 +101,7 @@ class Samples implements Writeable {
             return s1.records;
         }
         if (s1.records.size() + s2.records.size() <= maxSampleSize) {
-            return Lists2.concat(s1.records, s2.records);
+            return Lists.concat(s1.records, s2.records);
         }
         // https://ballsandbins.wordpress.com/2014/04/13/distributedparallel-reservoir-sampling/
         int s1Size = s1.records.size();

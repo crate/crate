@@ -51,7 +51,7 @@ import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.analyze.where.WhereClauseValidator;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
@@ -850,7 +850,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int c = 0; c < numColumns; c++) {
             DataType<?> targetType = targetTypes.get(c);
             ArrayType<?> arrayType = new ArrayType<>(targetType);
-            List<Symbol> columnValues = Lists2.map(
+            List<Symbol> columnValues = Lists.map(
                 columns.get(c),
                 s -> normalizer.normalize(s.cast(targetType), context.transactionContext())
             );

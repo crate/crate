@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
@@ -170,7 +170,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
             configureExecution(left, right, plannerContext, isDistributed);
 
-        List<Symbol> joinOutputs = Lists2.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
+        List<Symbol> joinOutputs = Lists.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         Symbol joinInput = null;
@@ -213,7 +213,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
 
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
+        return Lists.concat(lhs.baseTables(), rhs.baseTables());
     }
 
     @Override
@@ -321,7 +321,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         MergePhase rightMerge = null;
 
         if (leftResultDesc.nodeIds().size() == 1
-            && Lists2.equals(leftResultDesc.nodeIds(), rightResultDesc.nodeIds())
+            && Lists.equals(leftResultDesc.nodeIds(), rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {
             // if the left and the right plan are executed on the same single node the mergePhase
             // should be omitted. This is the case if the left and right table have only one shards which
@@ -372,7 +372,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     private static boolean isBlockNlPossible(ExecutionPlan left, ExecutionPlan right) {
         return left.resultDescription().orderBy() == null &&
                left.resultDescription().nodeIds().size() <= 1 &&
-               Lists2.equals(left.resultDescription().nodeIds(), right.resultDescription().nodeIds());
+               Lists.equals(left.resultDescription().nodeIds(), right.resultDescription().nodeIds());
     }
 
     public boolean orderByWasPushedDown() {
@@ -391,7 +391,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         }
         printContext.text("]");
         printStats(printContext);
-        printContext.nest(Lists2.map(sources(), x -> x::print));
+        printContext.nest(Lists.map(sources(), x -> x::print));
     }
 
     private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
@@ -399,7 +399,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                                               boolean isDistributed) {
         return isDistributed ||
                resultDescription.hasRemainingLimitOrOffset() ||
-               !Lists2.equals(resultDescription.nodeIds(), executionNodes);
+               !Lists.equals(resultDescription.nodeIds(), executionNodes);
     }
 
     @Override

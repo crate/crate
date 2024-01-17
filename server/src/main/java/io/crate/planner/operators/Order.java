@@ -35,7 +35,7 @@ import java.util.function.Function;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -66,7 +66,7 @@ public class Order extends ForwardingLogicalPlan {
 
     public Order(LogicalPlan source, OrderBy orderBy) {
         super(source);
-        this.outputs = Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols());
+        this.outputs = Lists.concatUnique(source.outputs(), orderBy.orderBySymbols());
         this.orderBy = orderBy;
     }
 
@@ -181,7 +181,7 @@ public class Order extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Order(Lists2.getOnlyElement(sources), orderBy);
+        return new Order(Lists.getOnlyElement(sources), orderBy);
     }
 
     @Override

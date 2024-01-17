@@ -22,11 +22,11 @@
 package io.crate.sql.tree;
 
 
-import io.crate.common.collections.Lists2;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+
+import io.crate.common.collections.Lists;
 
 public final class PartitionedBy<T> extends Node {
 
@@ -41,7 +41,7 @@ public final class PartitionedBy<T> extends Node {
     }
 
     public <U> PartitionedBy<U> map(Function<? super T, ? extends U> mapper) {
-        return new PartitionedBy<>(Lists2.map(columns, mapper));
+        return new PartitionedBy<>(Lists.map(columns, mapper));
     }
 
     @Override

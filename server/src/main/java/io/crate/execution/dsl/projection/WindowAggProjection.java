@@ -32,7 +32,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.analyze.WindowDefinition;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -164,7 +164,7 @@ public class WindowAggProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return MapBuilder.<String, Object>newMapBuilder()
             .put("type", "WindowAggregation")
-            .put("windowFunctions", Lists2.joinOn(", ", windowFunctions, Symbol::toString))
+            .put("windowFunctions", Lists.joinOn(", ", windowFunctions, Symbol::toString))
             .map();
     }
 }

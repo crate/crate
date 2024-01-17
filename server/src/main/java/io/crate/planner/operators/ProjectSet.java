@@ -30,7 +30,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -97,7 +97,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
     private ProjectSet(LogicalPlan source, List<Function> tableFunctions, List<Symbol> standalone) {
         super(source);
-        this.outputs = Lists2.concat(tableFunctions, standalone);
+        this.outputs = Lists.concat(tableFunctions, standalone);
         this.tableFunctions = tableFunctions;
         this.standalone = standalone;
     }
@@ -131,7 +131,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
-        List<Symbol> tableFunctionsWithInputs = InputColumns.create(Lists2.map(this.tableFunctions, paramBinder), sourceSymbols);
+        List<Symbol> tableFunctionsWithInputs = InputColumns.create(Lists.map(this.tableFunctions, paramBinder), sourceSymbols);
         List<Symbol> standaloneWithInputs = InputColumns.create(this.standalone, sourceSymbols);
         sourcePlan.addProjection(new ProjectSetProjection(tableFunctionsWithInputs, standaloneWithInputs));
         return sourcePlan;
@@ -166,7 +166,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new ProjectSet(Lists2.getOnlyElement(sources), tableFunctions, standalone);
+        return new ProjectSet(Lists.getOnlyElement(sources), tableFunctions, standalone);
     }
 
     @Override

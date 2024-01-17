@@ -68,7 +68,7 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.analyze.validator.SemanticSortValidator;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.RelationName;
@@ -1826,7 +1826,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute(createTable.toString());
 
         String insert = "INSERT INTO tbl VALUES ("
-            + String.join(", ", Lists2.map(types, ignored -> "?"))
+            + String.join(", ", Lists.map(types, ignored -> "?"))
             + ")";
         Object[] args = new Object[types.size()];
         for (int i = 0; i < types.size(); i++) {

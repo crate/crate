@@ -21,12 +21,13 @@
 
 package io.crate.action.sql;
 
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationInfo;
 import io.crate.types.DataType;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
 
 /**
  * Encapsulates the result of a DescribePortal or DescribeParameter message.
@@ -35,10 +36,10 @@ public class DescribeResult {
 
     @Nullable
     private final List<Symbol> fields;
-    private final DataType[] parameters;
+    private final DataType<?>[] parameters;
     private final RelationInfo relation;
 
-    DescribeResult(DataType[] parameters,
+    DescribeResult(DataType<?>[] parameters,
                    @Nullable List<Symbol> fields,
                    @Nullable RelationInfo relation) {
         this.fields = fields;
@@ -55,7 +56,7 @@ public class DescribeResult {
      * Returns the described parameters in sorted order ($1, $2, etc.)
      * @return An array containing the parameters, or null if they could not be obtained.
      */
-    public DataType[] getParameters() {
+    public DataType<?>[] getParameters() {
         return parameters;
     }
 

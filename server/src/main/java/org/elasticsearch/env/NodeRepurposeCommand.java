@@ -20,21 +20,7 @@
 
 package org.elasticsearch.env;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.common.io.IOUtils;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cli.Terminal;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.collections.Sets;
-import org.elasticsearch.gateway.PersistedClusterStateService;
-import org.elasticsearch.gateway.MetadataStateFormat;
+import static org.elasticsearch.env.NodeEnvironment.INDICES_FOLDER;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -46,7 +32,23 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.elasticsearch.env.NodeEnvironment.INDICES_FOLDER;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.cli.Terminal;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.gateway.MetadataStateFormat;
+import org.elasticsearch.gateway.PersistedClusterStateService;
+
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.common.collections.Sets;
+import io.crate.common.io.IOUtils;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
 
 public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
 
@@ -219,7 +221,8 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
         return Arrays.stream(paths).flatMap(Collection::stream).map(Path::getParent).collect(Collectors.toSet());
     }
 
+    @Override
     public OptionParser getParser() {
-        return parser;
+        return super.getParser();
     }
 }

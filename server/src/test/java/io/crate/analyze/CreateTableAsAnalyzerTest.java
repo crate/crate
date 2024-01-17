@@ -28,7 +28,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -87,8 +87,8 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
         assertThat(expected.tableName()).isEqualTo(actual.tableName());
         assertThat(expected.columns().keySet()).containsExactlyElementsOf(actual.columns().keySet());
-        List<DataType<?>> expectedTypes = Lists2.map(expected.columns().values(), Symbol::valueType);
-        List<DataType<?>> actualTypes = Lists2.map(actual.columns().values(), Symbol::valueType);
+        List<DataType<?>> expectedTypes = Lists.map(expected.columns().values(), Symbol::valueType);
+        List<DataType<?>> actualTypes = Lists.map(actual.columns().values(), Symbol::valueType);
         assertThat(expectedTypes).containsExactlyElementsOf(actualTypes);
     }
 }

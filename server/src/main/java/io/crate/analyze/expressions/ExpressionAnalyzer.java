@@ -38,7 +38,6 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 import org.joda.time.Period;
 
 import io.crate.analyze.DataTypeAnalyzer;
@@ -56,7 +55,7 @@ import io.crate.analyze.relations.OrderyByAnalyzer;
 import io.crate.analyze.relations.SelectListFieldProvider;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.validator.SemanticSortValidator;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
@@ -908,7 +907,7 @@ public class ExpressionAnalyzer {
                 base = subscript.base();
                 reversedPath.add(subscript.field());
             }
-            List<String> path = Lists2.reverse(reversedPath);
+            List<String> path = Lists.reverse(reversedPath);
             if (base instanceof QualifiedNameReference) {
                 QualifiedName name = ((QualifiedNameReference) base).getName();
                 try {

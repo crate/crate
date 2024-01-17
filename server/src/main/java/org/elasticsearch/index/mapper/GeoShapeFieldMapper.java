@@ -342,14 +342,14 @@ public class GeoShapeFieldMapper extends FieldMapper {
         }
     }
 
-    private void indexShape(ParseContext context, ShapeBuilder shapeBuilder) {
+    private void indexShape(ParseContext context, ShapeBuilder<?, ?> shapeBuilder) {
         Document doc = context.doc();
         Consumer<IndexableField> addField = doc::add;
         createIndexableFields(shapeBuilder, addField);
         createFieldNamesField(context, addField);
     }
 
-    private void createIndexableFields(ShapeBuilder shapeBuilder, Consumer<IndexableField> addField) {
+    private void createIndexableFields(ShapeBuilder<?, ?> shapeBuilder, Consumer<IndexableField> addField) {
         GeoShapeFieldType geoShapeFieldType = fieldType();
         if (Names.TREE_BKD.equals(geoShapeFieldType.tree())) {
             Object shape = shapeBuilder.buildLucene();

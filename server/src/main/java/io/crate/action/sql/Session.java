@@ -54,7 +54,7 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -675,7 +675,7 @@ public class Session implements AutoCloseable {
             StatementClassifier.classify(plan)
         );
 
-        var bulkArgs = Lists2.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
+        var bulkArgs = Lists.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
         List<CompletableFuture<Long>> rowCounts = plan.executeBulk(
             executor,
             plannerContext,
@@ -683,7 +683,7 @@ public class Session implements AutoCloseable {
             SubQueryResults.EMPTY
         );
         CompletableFuture<Void> allRowCounts = CompletableFuture.allOf(rowCounts.toArray(new CompletableFuture[0]));
-        List<CompletableFuture<?>> resultReceiverFutures = Lists2.map(toExec, x -> x.resultReceiver().completionFuture());
+        List<CompletableFuture<?>> resultReceiverFutures = Lists.map(toExec, x -> x.resultReceiver().completionFuture());
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
 
         CompletableFuture<Void> result = allRowCounts

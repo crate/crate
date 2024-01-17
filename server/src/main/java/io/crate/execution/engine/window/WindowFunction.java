@@ -21,13 +21,14 @@
 
 package io.crate.execution.engine.window;
 
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.FunctionImplementation;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
 
 public interface WindowFunction extends FunctionImplementation {
 
@@ -43,5 +44,5 @@ public interface WindowFunction extends FunctionImplementation {
                    WindowFrameState currentFrame,
                    List<? extends CollectExpression<Row, ?>> expressions,
                    @Nullable Boolean ignoreNulls,
-                   Input... args);
+                   Input<?> ... args);
 }

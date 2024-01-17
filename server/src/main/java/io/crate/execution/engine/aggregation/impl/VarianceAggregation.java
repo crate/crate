@@ -24,16 +24,15 @@ package io.crate.execution.engine.aggregation.impl;
 import java.io.IOException;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -66,7 +65,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         DataTypes.register(VarianceStateType.ID, in -> VarianceStateType.INSTANCE);
     }
 
-    static final List<DataType<?>> SUPPORTED_TYPES = Lists2.concat(
+    static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     public static void register(AggregationImplModule mod) {

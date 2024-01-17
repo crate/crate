@@ -41,7 +41,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
@@ -231,7 +231,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private PublicationsMetadata publicationsMetadata(String name, boolean allTables, List<String> tables) {
-        var relationNames = Lists2.map(tables, x -> new RelationName(Schemas.DOC_SCHEMA_NAME, x));
+        var relationNames = Lists.map(tables, x -> new RelationName(Schemas.DOC_SCHEMA_NAME, x));
         var publications = Map.of(name, new Publication("user1", allTables, relationNames));
         return new PublicationsMetadata(publications);
     }

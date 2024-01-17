@@ -21,22 +21,23 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
-import io.crate.common.collections.MapBuilder;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Lists;
+import io.crate.common.collections.MapBuilder;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 
 public class OrderedLimitAndOffsetProjection extends Projection {
 
@@ -171,7 +172,7 @@ public class OrderedLimitAndOffsetProjection extends Projection {
             .put("type", "OrderLimitAndOffset")
             .put("limit", limit)
             .put("offset", offset)
-            .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))
+            .put("outputs", Lists.joinOn(", ", outputs, Symbol::toString))
             .put("orderBy", OrderBy.explainRepresentation(
                 new StringBuilder("["), orderBy, reverseFlags, nullsFirst, Symbol::toString).append("]").toString())
             .map();

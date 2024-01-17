@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -230,10 +230,10 @@ public interface LogicalPlan extends Plan {
         printContext
             .text(getClass().getSimpleName())
             .text("[")
-            .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
+            .text(Lists.joinOn(", ", outputs(), Symbol::toString))
             .text("]");
         printStats(printContext);
-        printContext.nest(Lists2.map(sources(), x -> x::print));
+        printContext.nest(Lists.map(sources(), x -> x::print));
     }
 
     default void printStats(PrintContext printContext) {

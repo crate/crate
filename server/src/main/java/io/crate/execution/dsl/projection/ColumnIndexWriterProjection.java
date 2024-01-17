@@ -21,18 +21,6 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,6 +29,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
@@ -269,7 +270,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             allTargetColumns,
             ignoreDuplicateKeys,
             boundOnDuplicateKeyAssignments,
-            (List<Symbol>) ids(),
+            ids(),
             partitionedBySymbols,
             clusteredByIdent(),
             clusteredBySymbol,

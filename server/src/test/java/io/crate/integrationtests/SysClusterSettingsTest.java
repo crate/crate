@@ -42,7 +42,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
@@ -60,7 +60,7 @@ public class SysClusterSettingsTest extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Lists2.concat(super.nodePlugins(), TestPluginWithArchivedSetting.class);
+        return Lists.concat(super.nodePlugins(), TestPluginWithArchivedSetting.class);
     }
 
     @After

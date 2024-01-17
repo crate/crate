@@ -21,14 +21,14 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import static java.util.Objects.requireNonNull;
+import io.crate.common.collections.Lists;
 
 public class Assignment<T> extends Node {
 
@@ -70,7 +70,7 @@ public class Assignment<T> extends Node {
     }
 
     public <U> Assignment<U> map(Function<? super T, ? extends U> mapper) {
-        return new Assignment<>(mapper.apply(columnName), Lists2.map(expressions, mapper));
+        return new Assignment<>(mapper.apply(columnName), Lists.map(expressions, mapper));
     }
 
     @Override

@@ -21,7 +21,7 @@
 
 package io.crate.analyze.parser;
 
-import static io.crate.common.collections.Lists2.getOnlyElement;
+import static io.crate.common.collections.Lists.getOnlyElement;
 import static io.crate.types.TypeSignature.parse;
 import static org.assertj.core.api.Assertions.assertThat;
 

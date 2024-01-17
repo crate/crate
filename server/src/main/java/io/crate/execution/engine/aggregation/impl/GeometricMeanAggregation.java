@@ -26,8 +26,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.commons.math3.util.FastMath;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -35,9 +33,10 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -69,7 +68,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         DataTypes.register(GeometricMeanStateType.ID, in -> GeometricMeanStateType.INSTANCE);
     }
 
-    static final List<DataType<?>> SUPPORTED_TYPES = Lists2.concat(
+    static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     public static void register(AggregationImplModule mod) {

@@ -69,7 +69,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.CheckedFunction;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
@@ -236,7 +236,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .filter(r -> r.column().isRoot())
             .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
             .toList();
-        this.partitionedByColumns = Lists2.map(partitionedBy, x -> {
+        this.partitionedByColumns = Lists.map(partitionedBy, x -> {
             Reference ref = this.references.get(x);
             assert ref != null : "Column in `partitionedBy` must be present in `references`";
             return ref;
@@ -829,7 +829,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
         Function<IndexReference, IndexReference> renameIndexRefs = idxRef -> {
             var updatedRef = idxRef.updateColumns(
-                Lists2.map(idxRef.columns(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r)));
+                Lists.map(idxRef.columns(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r)));
             if (toBeRenamed.test(idxRef.column())) {
                 return (IndexReference) updatedRef.withReferenceIdent(
                     new ReferenceIdent(idxRef.ident().tableIdent(), idxRef.column().replacePrefix(newName)));
@@ -856,9 +856,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         Function<ColumnIdent, ColumnIdent> renameColumnIfMatch = column -> toBeRenamed.test(column) ? column.replacePrefix(newName) : column;
 
         var renamedClusteredBy = renameColumnIfMatch.apply(clusteredBy);
-        var renamedPrimaryKeys = Lists2.map(primaryKeys, renameColumnIfMatch);
-        var renamedPartitionedBy = Lists2.map(partitionedBy, renameColumnIfMatch);
-        var renamedCheckConstraints = Lists2.map(checkConstraints, renameCheckConstraints);
+        var renamedPrimaryKeys = Lists.map(primaryKeys, renameColumnIfMatch);
+        var renamedPartitionedBy = Lists.map(partitionedBy, renameColumnIfMatch);
+        var renamedCheckConstraints = Lists.map(checkConstraints, renameCheckConstraints);
         var renamedAnalyzers = analyzers.entrySet().stream()
             .collect(Collectors.toMap(e -> renameColumnIfMatch.apply(e.getKey()), Entry::getValue));
 
@@ -915,7 +915,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             allColumns,
             pKeyIndices,
             checkConstraintMap,
-            Lists2.map(partitionedByColumns, BoundCreateTable::toPartitionMapping),
+            Lists.map(partitionedByColumns, BoundCreateTable::toPartitionMapping),
             columnPolicy,
             clusteredBy == DocSysColumns.ID ? null : clusteredBy.fqn()
         ));

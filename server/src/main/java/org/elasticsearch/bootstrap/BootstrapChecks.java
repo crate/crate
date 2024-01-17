@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -91,7 +90,7 @@ final class BootstrapChecks {
         final Settings settings,
         final boolean enforceLimits,
         final List<BootstrapCheck> checks) throws NodeValidationException {
-        check(settings, enforceLimits, checks, Loggers.getLogger(BootstrapChecks.class));
+        check(settings, enforceLimits, checks, LogManager.getLogger(BootstrapChecks.class));
     }
 
     /**

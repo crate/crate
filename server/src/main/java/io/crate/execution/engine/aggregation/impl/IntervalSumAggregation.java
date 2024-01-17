@@ -75,7 +75,7 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
     public Period iterate(RamAccounting ramAccounting,
                           MemoryManager memoryManager,
                           Period state,
-                          Input<?>[] args) throws CircuitBreakingException {
+                          Input<?> ... args) throws CircuitBreakingException {
         return reduce(ramAccounting, state, DataTypes.INTERVAL.sanitizeValue(args[0].value()));
     }
 

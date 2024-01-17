@@ -58,7 +58,7 @@ import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -68,10 +68,10 @@ import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
-import io.crate.role.Role;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -713,7 +713,7 @@ public class PostgresWireProtocol {
                 delayedWrites,
                 session.transactionState(),
                 getAccessControl.apply(session.sessionSettings()),
-                Lists2.map(outputTypes, PGTypes::get),
+                Lists.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
             );
         }
@@ -817,7 +817,7 @@ public class PostgresWireProtocol {
                     delayedWrites,
                     TransactionState.IDLE,
                     accessControl,
-                    Lists2.map(fields, x -> PGTypes.get(x.valueType())),
+                    Lists.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
                 session.execute("", 0, resultSetReceiver);

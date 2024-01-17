@@ -40,7 +40,7 @@ import org.junit.Before;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -63,11 +63,11 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.role.Role;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
-import io.crate.role.Role;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -123,7 +123,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         ReferenceResolver<RowCollectExpression> referenceResolver =
             r -> new RowCollectExpression(rowsColumnDescription.indexOf(r.column()));
 
-        var sourceSymbols = Lists2.map(rowsColumnDescription, x -> sqlExpressions.normalize(sqlExpressions.asSymbol(x.sqlFqn())));
+        var sourceSymbols = Lists.map(rowsColumnDescription, x -> sqlExpressions.normalize(sqlExpressions.asSymbol(x.sqlFqn())));
         ensureInputRowsHaveCorrectType(sourceSymbols, inputRows);
         var argsCtx = inputFactory.ctxForRefs(txnCtx, referenceResolver);
         argsCtx.add(windowFunctionSymbol.arguments());

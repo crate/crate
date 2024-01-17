@@ -29,7 +29,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.DependencyCarrier;
@@ -73,7 +73,7 @@ public class RootRelationBoundary extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new RootRelationBoundary(Lists2.getOnlyElement(sources));
+        return new RootRelationBoundary(Lists.getOnlyElement(sources));
     }
 
     @Override

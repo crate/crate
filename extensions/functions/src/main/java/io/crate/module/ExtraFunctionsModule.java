@@ -28,7 +28,7 @@ import io.crate.window.NthValueFunctions;
 import io.crate.window.OffsetValueFunctions;
 import io.crate.window.RankFunctions;
 
-public class ExtraFunctionsModule extends AbstractFunctionModule<AggregationFunction> {
+public class ExtraFunctionsModule extends AbstractFunctionModule<AggregationFunction<?, ?>> {
 
     @Override
     public void configureFunctions() {

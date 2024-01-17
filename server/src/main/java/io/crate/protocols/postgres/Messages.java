@@ -27,10 +27,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.SortedSet;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
@@ -384,7 +383,7 @@ public class Messages {
      * @param channel The channel to write the parameter description to.
      * @param parameters A {@link SortedSet} containing the parameters from index 1 upwards.
      */
-    static void sendParameterDescription(Channel channel, DataType[] parameters) {
+    static void sendParameterDescription(Channel channel, DataType<?>[] parameters) {
         final int messageByteSize = 4 + 2 + parameters.length * 4;
         ByteBuf buffer = channel.alloc().buffer(messageByteSize);
         buffer.writeByte('t');
@@ -394,7 +393,7 @@ public class Messages {
             throw new IllegalArgumentException("Too many parameters. Max supported: " + Short.MAX_VALUE);
         }
         buffer.writeShort(parameters.length);
-        for (DataType dataType : parameters) {
+        for (DataType<?> dataType : parameters) {
             int pgTypeId = PGTypes.get(dataType).oid();
             buffer.writeInt(pgTypeId);
         }

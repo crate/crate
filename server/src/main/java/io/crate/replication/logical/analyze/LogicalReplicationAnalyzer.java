@@ -29,7 +29,7 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
@@ -75,7 +75,7 @@ public class LogicalReplicationAnalyzer {
         }
 
         var defaultSchema = sessionSettings.searchPath().currentSchema();
-        var tables = Lists2.map(
+        var tables = Lists.map(
             createPublication.tables(),
             q -> {
                 var relation = RelationName.of(q, defaultSchema);
@@ -134,7 +134,7 @@ public class LogicalReplicationAnalyzer {
             );
         }
         var defaultSchema = sessionSettings.searchPath().currentSchema();
-        var tables = Lists2.map(
+        var tables = Lists.map(
             alterPublication.tables(),
             q -> {
                 var relation = RelationName.of(q, defaultSchema);

@@ -25,10 +25,10 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNull;
 
@@ -420,8 +420,8 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("select coolness from test");
         assertThat(response).hasRowCount(1);
-        assertThat(mapToSortedString((Map<String, Object>) response.rows()[0][0]))
-            .isEqualTo("x=3, y=2");
+        assertThat((Map<String, Object>) response.rows()[0][0])
+            .isEqualTo(Map.of("x", "3", "y", "2"));
     }
 
     /**

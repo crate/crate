@@ -54,7 +54,7 @@ public class OffsetValueFunctions implements WindowFunction {
                                                  int offset,
                                                  WindowFrameState currentFrame,
                                                  List<? extends CollectExpression<Row, ?>> expressions,
-                                                 Input[] args) {
+                                                 Input<?> ... args) {
         if (cachedNonNullIndex == null) {
             cachedNonNullIndex = findNonNullOffsetFromCurrentIndex(idxInPartition,
                                                                    offset,
@@ -79,7 +79,7 @@ public class OffsetValueFunctions implements WindowFunction {
 
     private void moveCacheToNextNonNull(WindowFrameState currentFrame,
                                         List<? extends CollectExpression<Row, ?>> expressions,
-                                        Input[] args) {
+                                        Input<?> ... args) {
         if (cachedNonNullIndex == null) {
             return;
         }
@@ -103,7 +103,7 @@ public class OffsetValueFunctions implements WindowFunction {
                                                       int offset,
                                                       WindowFrameState currentFrame,
                                                       List<? extends CollectExpression<Row, ?>> expressions,
-                                                      Input[] args) {
+                                                      Input<?> ... args) {
         /* Search for 'offset' number of non-null elements in 'resolvedDirection' and return the index if found.
            If index goes out of bound, an exception will be thrown and eventually invoke getDefaultOrNull(...) */
         for (int i = 1, counter = 0; ; i++) {
@@ -122,7 +122,7 @@ public class OffsetValueFunctions implements WindowFunction {
                                     WindowFrameState currentFrame,
                                     List<? extends CollectExpression<Row, ?>> expressions,
                                     boolean ignoreNulls,
-                                    Input[] args) {
+                                    Input<?> ... args) {
         if (ignoreNulls == false) {
             var targetIndex = getTargetIndex(idxAtPartition, offset);
             return getValueAtTargetIndex(targetIndex, currentFrame, expressions, args);
@@ -137,7 +137,7 @@ public class OffsetValueFunctions implements WindowFunction {
     private Object getValueAtTargetIndex(@Nullable Integer targetIndex,
                                          WindowFrameState currentFrame,
                                          List<? extends CollectExpression<Row, ?>> expressions,
-                                         Input[] args) {
+                                         Input<?> ... args) {
         if (targetIndex == null) {
             throw new IndexOutOfBoundsException();
         }
@@ -199,7 +199,7 @@ public class OffsetValueFunctions implements WindowFunction {
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
-                          Input[] args) {
+                          Input<?> ... args) {
         boolean ignoreNullsOrFalse = ignoreNulls != null && ignoreNulls;
         final int offset;
         if (args.length > 1) {
@@ -236,7 +236,7 @@ public class OffsetValueFunctions implements WindowFunction {
         }
     }
 
-    private static Object getDefaultOrNull(Input[] args) {
+    private static Object getDefaultOrNull(Input<?> ... args) {
         if (args.length == 3) {
             return args[2].value();
         } else {

@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.common.collections.Iterables;
-import io.crate.common.collections.Lists2;
+import static io.crate.common.concurrent.CompletableFutures.supplyAsync;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import static io.crate.common.concurrent.CompletableFutures.supplyAsync;
-import static java.util.concurrent.CompletableFuture.completedFuture;
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Lists;
 
 public final class Sort {
 
@@ -46,7 +46,7 @@ public final class Sort {
             list.sort(comparator);
             return completedFuture(list);
         }
-        List<List<T>> partitions = Lists2.partition(list, itemsPerThread);
+        List<List<T>> partitions = Lists.partition(list, itemsPerThread);
         ArrayList<CompletableFuture<List<T>>> futures = new ArrayList<>(partitions.size());
         for (List<T> partition : partitions) {
             futures.add(supplyAsync(() -> {

@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -132,7 +132,7 @@ public class Insert implements LogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Insert(Lists2.getOnlyElement(sources), writeToTable, applyCasts);
+        return new Insert(Lists.getOnlyElement(sources), writeToTable, applyCasts);
     }
 
     @Override

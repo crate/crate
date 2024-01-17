@@ -40,7 +40,7 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -50,8 +50,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.parser.SqlParser;
 import io.crate.role.Role;
+import io.crate.sql.parser.SqlParser;
 
 public class SqlExpressions {
 
@@ -83,7 +83,7 @@ public class SqlExpressions {
                           Role sessionUser,
                           List<Role> additionalUsers,
                           AbstractModule... additionalModules) {
-        this.nodeCtx = createNodeContext(Lists2.concat(additionalUsers, sessionUser), additionalModules);
+        this.nodeCtx = createNodeContext(Lists.concat(additionalUsers, sessionUser), additionalModules);
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
         var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? Role.CRATE_USER : sessionUser);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);

@@ -35,7 +35,6 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexClosedException;
@@ -207,7 +206,7 @@ public class IndexNameExpressionResolver {
      * @return the concrete index obtained as a result of the index resolution
      */
     public static Index concreteSingleIndex(ClusterState state, IndicesRequest request) {
-        String indexExpression = CollectionUtils.isEmpty(request.indices()) ? null : request.indices()[0];
+        String indexExpression = request.indices().length == 0 ? null : request.indices()[0];
         String[] indexExpressions = { indexExpression };
         Index[] indices = concreteIndices(state.metadata(), request.indicesOptions(), indexExpressions);
         if (indices.length != 1) {

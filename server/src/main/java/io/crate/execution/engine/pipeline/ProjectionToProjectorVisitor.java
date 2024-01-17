@@ -57,7 +57,7 @@ import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.collections.Iterables;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Input;
 import io.crate.data.Projector;
@@ -267,7 +267,7 @@ public class ProjectionToProjectorVisitor
         ctx.add(projection.orderBy());
 
         int numOutputs = projection.outputs().size();
-        List<DataType<?>> rowTypes = Symbols.typeView(Lists2.concat(projection.outputs(), projection.orderBy()));
+        List<DataType<?>> rowTypes = Symbols.typeView(Lists.concat(projection.outputs(), projection.orderBy()));
         List<Input<?>> inputs = ctx.topLevelInputs();
         int[] orderByIndices = new int[inputs.size() - numOutputs];
         int idx = 0;
@@ -393,7 +393,7 @@ public class ProjectionToProjectorVisitor
         assert resolvedFileName.valueType().id() == StringType.ID :
             "resolvedFileName.valueType() must be " + StringType.INSTANCE;
 
-        String fileName = (String) ((Literal) resolvedFileName).value();
+        String fileName = (String) ((Literal<?>) resolvedFileName).value();
         if (!uri.endsWith("/")) {
             sb.append("/");
         }
@@ -420,9 +420,10 @@ public class ProjectionToProjectorVisitor
         );
     }
 
-    private Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
-                                                       InputFactory.Context symbolContext,
-                                                       TransactionContext txnCtx) {
+    private Map<ColumnIdent, Object> symbolMapToObject(
+            Map<ColumnIdent, Symbol> symbolMap,
+            InputFactory.Context<CollectExpression<Row, ?>> symbolContext,
+            TransactionContext txnCtx) {
         Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
             Symbol symbol = entry.getValue();

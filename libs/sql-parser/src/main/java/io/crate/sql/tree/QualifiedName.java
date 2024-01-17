@@ -30,7 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 
 public class QualifiedName {
 
@@ -66,7 +66,7 @@ public class QualifiedName {
 
     @Override
     public String toString() {
-        return Lists2.joinOn(".", parts, x -> x);
+        return Lists.joinOn(".", parts, x -> x);
     }
 
     /**

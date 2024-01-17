@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
@@ -70,7 +70,7 @@ public record BoundCreateTable(
     }
 
     public List<List<String>> partitionedBy() {
-        return Lists2.map(partitionedByColumns, BoundCreateTable::toPartitionMapping);
+        return Lists.map(partitionedByColumns, BoundCreateTable::toPartitionMapping);
     }
 
     public static List<String> toPartitionMapping(Symbol symbol) {

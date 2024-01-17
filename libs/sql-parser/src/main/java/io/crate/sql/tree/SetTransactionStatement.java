@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 
 public class SetTransactionStatement extends Statement {
 
@@ -85,6 +85,6 @@ public class SetTransactionStatement extends Statement {
 
     @Override
     public String toString() {
-        return "SET TRANSACTION " + Lists2.joinOn(", ", transactionModes, TransactionMode::toString);
+        return "SET TRANSACTION " + Lists.joinOn(", ", transactionModes, TransactionMode::toString);
     }
 }

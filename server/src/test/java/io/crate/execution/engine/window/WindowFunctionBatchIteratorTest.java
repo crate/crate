@@ -38,7 +38,7 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -72,7 +72,7 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
                                       WindowFrameState currentFrame,
                                       List<? extends CollectExpression<Row, ?>> expressions,
                                       Boolean ignoreNulls,
-                                      Input... args) {
+                                      Input<?> ... args) {
                     return idxInPartition + 1;
                 }
 
@@ -119,7 +119,7 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
         assertThat(
             "Expected firstNonPeer position=" + expectedPosition + " for " + numbers + "[" + begin + ":" + end + "]",
             expectedPosition,
-            Matchers.is(Lists2.findFirstNonPeer(numbers, begin, end, comparingInt)
+            Matchers.is(Lists.findFirstNonPeer(numbers, begin, end, comparingInt)
             )
         );
     }
