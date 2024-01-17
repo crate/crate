@@ -22,7 +22,6 @@
 package io.crate.expression.reference.doc.lucene;
 
 import static io.crate.testing.Asserts.assertThat;
-import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 
 import java.util.Arrays;
@@ -32,12 +31,15 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.expression.ValueExtractors;
+import io.crate.metadata.ColumnIdent;
+
 public class SourceLookupTest {
 
     @Test
     public void testExtractValueFromNestedObject() {
         Map<String, Map<String, Integer>> map = singletonMap("x", singletonMap("y", 10));
-        Object o = SourceLookup.extractValue(map, Arrays.asList("x", "y"), 0);
+        Object o = ValueExtractors.fromMap(map, ColumnIdent.fromPath("x.y"));
         assertThat(o).isEqualTo(10);
     }
 
@@ -48,7 +50,7 @@ public class SourceLookupTest {
             singletonMap("y", singletonMap("z", 10)),
             singletonMap("y", singletonMap("z", 20))
         ));
-        Object o = SourceLookup.extractValue(m, Arrays.asList("x", "y", "z"), 0);
+        Object o = ValueExtractors.fromMap(m, ColumnIdent.fromPath("x.y.z"));
         assertThat((Collection<Integer>) o).containsExactly(10, 20);
     }
 
@@ -56,13 +58,13 @@ public class SourceLookupTest {
     @Test
     public void testExtractValueFromNestedObjectWithListAsLeaf() {
         Map<String, List<Integer>> m = singletonMap("x", Arrays.asList(10, 20));
-        Object o = SourceLookup.extractValue(m, singletonList("x"), 0);
+        Object o = ValueExtractors.fromMap(m, ColumnIdent.fromPath("x"));
         assertThat((Collection<Integer>) o).containsExactly(10, 20);
     }
 
     @Test
     public void test_extractValue_from_object_with_unknown_subscript_returns_null() {
         Map<String, Map<String, Integer>> m = singletonMap("x", singletonMap("a", 1)); // such that x['a'] = 1
-        assertThat(SourceLookup.extractValue(m, Arrays.asList("x", "a", "a"), 0)).isNull(); // x['a']['a'] should return null
+        assertThat(ValueExtractors.fromMap(m, ColumnIdent.fromPath("x.a.a"))).isNull(); // x['a']['a'] should return null
     }
 }

@@ -95,7 +95,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         @Override
         public Object value() {
             // correct type detection is ensured by the source parser
-            return sourceLookup.get(ref.column().path());
+            return sourceLookup.get(ref.column());
         }
     }
 }

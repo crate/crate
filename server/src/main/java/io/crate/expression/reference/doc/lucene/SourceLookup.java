@@ -23,16 +23,15 @@ package io.crate.expression.reference.doc.lucene;
 
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.RandomAccess;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.bytes.BytesReference;
 
 import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.ValueExtractors;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public final class SourceLookup {
@@ -62,9 +61,9 @@ public final class SourceLookup {
         this.readerContext = context;
     }
 
-    public Object get(List<String> path) {
+    public Object get(ColumnIdent columnIdent) {
         ensureSourceParsed();
-        return extractValue(source, path, 0);
+        return ValueExtractors.fromMap(source, columnIdent);
     }
 
     public Map<String, Object> sourceAsMap() {
@@ -99,37 +98,6 @@ public final class SourceLookup {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    static Object extractValue(final Map<?, ?> map, List<String> path, int pathStartIndex) {
-        assert path instanceof RandomAccess : "path should support RandomAccess for fast index optimized loop";
-        Map<?, ?> m = map;
-        Object tmp = null;
-        for (int i = pathStartIndex; i < path.size(); i++) {
-            tmp = m.get(path.get(i));
-            if (tmp instanceof Map) {
-                m = (Map<?, ?>) tmp;
-            } else if (tmp instanceof List<?> list) {
-                if (i + 1 == path.size()) {
-                    return list;
-                }
-                ArrayList<Object> newList = new ArrayList<>(list.size());
-                for (Object o : list) {
-                    if (o instanceof Map) {
-                        newList.add(extractValue((Map<?, ?>) o, path, i + 1));
-                    } else {
-                        newList.add(o);
-                    }
-                }
-                return newList;
-            } else {
-                if (i + 1 != path.size()) {
-                    return null;
-                }
-                break;
-            }
-        }
-        return tmp;
     }
 
     public SourceLookup registerRef(Reference ref) {

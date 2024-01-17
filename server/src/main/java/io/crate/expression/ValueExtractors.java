@@ -34,7 +34,7 @@ import io.crate.types.DataType;
 
 public final class ValueExtractors {
 
-    public static Object fromMap(Map<String, Object> map, ColumnIdent column) {
+    public static Object fromMap(Map<String, ?> map, ColumnIdent column) {
         Object o = map.get(column.name());
         if (column.isRoot()) {
             return o;
