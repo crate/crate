@@ -19,8 +19,13 @@
 
 package org.elasticsearch.cluster;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState.Custom;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -32,12 +37,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 /**
  * Meta data about restore processes that are currently executing
@@ -202,7 +203,7 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            @SuppressWarnings("unchecked") Entry entry = (Entry) o;
+            Entry entry = (Entry) o;
             return uuid.equals(entry.uuid) &&
                 snapshot.equals(entry.snapshot) &&
                 state == entry.state &&
@@ -330,7 +331,7 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
                 return false;
             }
 
-            @SuppressWarnings("unchecked") ShardRestoreStatus status = (ShardRestoreStatus) o;
+            ShardRestoreStatus status = (ShardRestoreStatus) o;
             return state == status.state &&
                        Objects.equals(nodeId, status.nodeId) &&
                        Objects.equals(reason, status.reason);

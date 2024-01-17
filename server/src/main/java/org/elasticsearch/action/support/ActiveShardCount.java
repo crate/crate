@@ -19,7 +19,10 @@
 
 package org.elasticsearch.action.support;
 
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
+
+import java.io.IOException;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -28,9 +31,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
-
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 /**
  * A class whose instances represent a value for counting the number
@@ -205,7 +206,7 @@ public final class ActiveShardCount implements Writeable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        @SuppressWarnings("unchecked") ActiveShardCount that = (ActiveShardCount) o;
+        ActiveShardCount that = (ActiveShardCount) o;
         return value == that.value;
     }
 
