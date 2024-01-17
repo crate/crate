@@ -63,7 +63,9 @@ class MinioServer:
 
     MINIO_URLS = {
         'Linux-x86_64': 'https://dl.min.io/server/minio/release/linux-amd64/minio',
-        'Darwin-x86_64': 'https://dl.min.io/server/minio/release/darwin-amd64/minio'
+        'Linux-aarch64': 'https://dl.min.io/server/minio/release/linux-arm64/minio',
+        'Darwin-x86_64': 'https://dl.min.io/server/minio/release/darwin-amd64/minio',
+        'Darwin-arm64': 'https://dl.min.io/server/minio/release/darwin-arm64/minio'
     }
 
     MINIO_ACCESS_KEY = 'minio'
