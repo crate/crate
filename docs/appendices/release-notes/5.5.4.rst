@@ -61,3 +61,14 @@ Fixes
 
     SELECT * FROM t WHERE pk_col = 1 OR pk_col IS NOT NULL;
 
+- Fixed an issue that caused failure of a statement, mixing correlated subquery
+  and sub-select. An example::
+
+    CREATE TABLE tbl(x INT);
+    INSERT INTO tbl(x) VALUES (1);
+    SELECT (
+       SELECT x FROM tbl
+          WHERE t.x = tbl.x
+        AND
+          tbl.x IN (SELECT generate_series from generate_series(1, 1))
+    ) FROM tbl t;
