@@ -86,7 +86,7 @@ The ``<RMI_HOSTNAME>`` and ``<RMI_PORT>`` can be used by JMX clients (e.g.
 
 Here's an example Docker command::
 
-  sh> docker run -d -e CRATE_JAVA_OPTS="\
+  sh> docker run -d --env CRATE_HEAP_SIZE=1g -e CRATE_JAVA_OPTS="\
         -Dcom.sun.management.jmxremote
         -Dcom.sun.management.jmxremote.port=7979 \
         -Dcom.sun.management.jmxremote.ssl=false \
