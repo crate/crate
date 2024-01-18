@@ -62,8 +62,8 @@ and might contain underscores in between.
   Documents with higher scores match the query more closely, allowing the
   score to be used for ranking.
 
-  The score is calculated using Lucene's `BM25Similarity implementation`,
-  based on the widely-used `Okapi BM25` algorithm.  This uses a combination
+  The score is calculated using Lucene's `BM25Similarity implementation`_,
+  based on the widely-used `Okapi BM25`_ algorithm.  This uses a combination
   of partition-level term statistics and the frequencies of particular terms
   within a matching row.  Scores produced by different queries are not
   directly comparable.  Note that, because term statistics are calculated
