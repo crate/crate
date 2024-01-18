@@ -447,4 +447,24 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             """);
         assertThat(response).hasRowCount(24L);
     }
+
+    /**
+     * Tests a bug https://github.com/crate/crate/issues/15398.
+     */
+    @Test
+    public void test_can_mix_correlated_qubquery_and_sub_select() {
+        execute("CREATE TABLE tbl(x int)");
+        execute("INSERT INTO tbl(x) VALUES (1)");
+        refresh();
+        execute(
+            """
+           SELECT (
+               SELECT x FROM tbl
+                  WHERE t.x = tbl.x
+                AND
+                  tbl.x IN (SELECT generate_series from generate_series(1, 1))
+          ) FROM tbl t
+            """);
+        assertThat(response).hasRows("1");
+    }
 }
