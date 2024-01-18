@@ -21,7 +21,6 @@
 
 package io.crate.expression.predicate;
 
-import static io.crate.expression.predicate.IsNullPredicate.isNullFuncToQuery;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -206,14 +205,11 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         if (ctx.enforceThreeValuedLogic()) {
             // we require strict 3vl logic, therefore we need to add the function as generic function filter
             // which is less efficient
-            var query_slow = new BooleanQuery.Builder()
-                .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER).build();
-            var query_fast = new BooleanQuery.Builder()
-                .add(Queries.not(isNullFuncToQuery(arg, context)), BooleanClause.Occur.MUST).build();
-            return new BooleanQuery.Builder()
+            var query = new BooleanQuery.Builder()
                 .add(notX, Occur.MUST)
-                .add(query_fast, Occur.MUST)
+                .add(Queries.not(LuceneQueryBuilder.genericFunctionFilter(input, context)), Occur.MUST)
                 .build();
+            return query;
         } else {
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(notX, BooleanClause.Occur.MUST);
