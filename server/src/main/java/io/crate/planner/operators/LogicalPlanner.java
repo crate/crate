@@ -508,7 +508,15 @@ public class LogicalPlanner {
             MultiPhaseExecutor.execute(logicalPlan.dependencies(), executor, plannerContext, params)
                 .whenComplete((valueBySubQuery, failure) -> {
                     if (failure == null) {
-                        doExecute(logicalPlan, executor, plannerContext, consumer, params, valueBySubQuery, false);
+                        doExecute(
+                            logicalPlan,
+                            executor,
+                            plannerContext,
+                            consumer,
+                            params,
+                            SubQueryResults.merge(subQueryResults, valueBySubQuery),
+                            false
+                        );
                     } else {
                         consumer.accept(null, failure);
                     }
