@@ -96,4 +96,26 @@ public class SubQueryResults {
     public void bindOuterColumnInputRow(Row inputRow) {
         this.inputRow = inputRow;
     }
+
+    public static SubQueryResults merge(SubQueryResults subQueryResults1, SubQueryResults subQueryResults2) {
+        // Correlated subquery related fields.
+        Row mergedRow = subQueryResults1.inputRow;
+        ObjectIntMap<OuterColumn> mergedBoundOuterColumns = subQueryResults1.boundOuterColumns;
+        if (mergedRow.equals(Row.EMPTY)) {
+            mergedRow = subQueryResults2.inputRow;
+        }
+        if (mergedBoundOuterColumns.equals(EMPTY_OUTER_COLUMNS)) {
+            mergedBoundOuterColumns = subQueryResults2.boundOuterColumns;
+        }
+
+        // Regular sub-select field.
+        Map<SelectSymbol, Object> mergedValuesBySubQuery = subQueryResults1.valuesBySubQuery;
+        if (mergedValuesBySubQuery.isEmpty()) {
+            mergedValuesBySubQuery = subQueryResults2.valuesBySubQuery;
+        }
+
+        SubQueryResults combinedSubQueryResults = new SubQueryResults(mergedValuesBySubQuery, mergedBoundOuterColumns);
+        combinedSubQueryResults.bindOuterColumnInputRow(mergedRow);
+        return combinedSubQueryResults;
+    }
 }
