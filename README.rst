@@ -78,7 +78,7 @@ Or spin up the official `Docker image`_:
 
 .. code-block:: console
 
-    sh$ docker run --publish 4200:4200 --publish 5432:5432 crate -Cdiscovery.type=single-node
+    sh$ docker run --publish 4200:4200 --publish 5432:5432 --env CRATE_HEAP_SIZE=1g crate -Cdiscovery.type=single-node
 
 Visit the `installation documentation`_ to see all the available download and
 install options.
