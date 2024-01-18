@@ -33,6 +33,7 @@ import java.util.function.UnaryOperator;
 import org.elasticsearch.common.bytes.BytesReference;
 
 import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public final class SourceLookup {
@@ -101,7 +102,14 @@ public final class SourceLookup {
         }
     }
 
-    static Object extractValue(final Map<?, ?> map, List<String> path, int pathStartIndex) {
+    public static Object extractValue(final Map<?, ?> map, ColumnIdent columnIdent) {
+        List<String> fullPath = new ArrayList<>();
+        fullPath.add(columnIdent.name());
+        fullPath.addAll(columnIdent.path());
+        return SourceLookup.extractValue(map, fullPath, 0);
+    }
+
+    public static Object extractValue(final Map<?, ?> map, List<String> path, int pathStartIndex) {
         assert path instanceof RandomAccess : "path should support RandomAccess for fast index optimized loop";
         Map<?, ?> m = map;
         Object tmp = null;

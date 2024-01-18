@@ -1,7 +1,7 @@
-.. _version_5.6.1:
+.. _version_5.5.4:
 
 ==========================
-Version 5.6.1 - Unreleased
+Version 5.5.4 - Unreleased
 ==========================
 
 
@@ -10,18 +10,18 @@ Version 5.6.1 - Unreleased
 .. comment    (without a NOTE entry, simply starting from col 1 of the line)
 
 .. NOTE::
-    In development. 5.6.1 isn't released yet. These are the release notes for
+    In development. 5.5.4 isn't released yet. These are the release notes for
     the upcoming release.
 
 .. NOTE::
-
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
-    before you upgrade to 5.6.1.
+    before you upgrade to 5.5.4.
 
-    We recommend that you upgrade to the latest 5.5 release before moving to
-    5.6.1.
+    We recommend that you upgrade to the latest 5.4 release before moving to
+    5.5.4.
 
-    A rolling upgrade from 5.5.x to 5.6.1 is supported.
+    A rolling upgrade from 5.4.x to 5.5.4 is supported.
+
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
@@ -33,6 +33,7 @@ Version 5.6.1 - Unreleased
     `inserting the data into a new table`_.
 
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 .. rubric:: Table of contents
@@ -40,20 +41,11 @@ Version 5.6.1 - Unreleased
 .. contents::
    :local:
 
-See the :ref:`version_5.6.0` release notes for a full list of changes in the
-5.6 series.
-
+See the :ref:`version_5.5.0` release notes for a full list of changes in the
+5.5 series.
 
 Fixes
 =====
-
-- Added a workaround for a change in JDK 21.0.2 which caused many operations to
-  get stuck.
-
-- Fixed an issue that led to errors when
-  :ref:`privileges <administration-privileges>` are defined for users, when
-  performing a rolling upgrade of a cluster from a version before
-  :ref:`version_5.6.0` to :ref:`version_5.6.0`.
 
 - Fixed an issue that caused ``SELECT`` statements with ``WHERE``
   clause having an equality condition on a primary key to return ``NULL`` when
