@@ -47,10 +47,13 @@ import org.junit.Test;
 import io.crate.Constants;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.server.xcontent.ParsedXContent;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends IntegTestCase {
@@ -163,11 +166,13 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    // Ensure that PKLookup is hit.
+    @UseRandomizedOptimizerRules(alwaysKeep = {MergeFilterAndCollect.class, OptimizeCollectWhereClauseAccess.class})
     public void testInsertDynamicObjectArray() throws Exception {
-        execute("create table dynamic_table (person object(dynamic)) with (number_of_replicas=0)");
+        execute("create table dynamic_table (id int PRIMARY KEY, person object(dynamic)) with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into dynamic_table (person) values " +
-                "({name='Ford', addresses=[{city='West Country', country='GB'}]})");
+        execute("insert into dynamic_table (id, person) values " +
+                "(1, {name='Ford', addresses=[{city='West Country', country='GB'}]})");
         refresh();
 
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
@@ -182,6 +187,10 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "Ford| [West Country]"
         );
+
+        // Verify that PKLookup can fetch a sub-column, which is array of objects.
+        execute("select person['addresses']['city'] from dynamic_table where id = 1");
+        assertThat(response).hasRows("[West Country]");
     }
 
     @Test

@@ -46,4 +46,7 @@ See the :ref:`version_5.5.0` release notes for a full list of changes in the
 
 Fixes
 =====
-None
+
+- Fixed an issue that caused ``SELECT`` statements with ``WHERE``
+  clause having an equality condition on a primary key to return ``NULL`` when
+  selecting an object sub-column of ``ARRAY(OBJECT)`` type.
