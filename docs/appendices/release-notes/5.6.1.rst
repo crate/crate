@@ -54,3 +54,7 @@ Fixes
   :ref:`privileges <administration-privileges>` are defined for users, when
   performing a rolling upgrade of a cluster from a version before
   :ref:`version_5.6.0` to :ref:`version_5.6.0`.
+
+- Fixed an issue that caused ``SELECT`` statements with ``WHERE``
+  clause having an equality condition on a primary key to return ``NULL`` when
+  selecting an object sub-column of ``ARRAY(OBJECT)`` type.
