@@ -4,7 +4,7 @@
 Version 5.6.0
 =============
 
-Released on 2024-01-18
+Released on 2024-01-19.
 
 .. NOTE::
 
