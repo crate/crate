@@ -23,6 +23,7 @@ package io.crate.common;
 
 public class Hex {
 
+
     /**
      * Hex leading flag for string representations.
      */
@@ -44,6 +45,7 @@ public class Hex {
     public static boolean isHexFormat(String data) {
         return data.startsWith(HEX_FLAG);
     }
+
 
     /**
      * Returns a string with the leading hexadecimal flag removed.
