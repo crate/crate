@@ -27,6 +27,7 @@ import static java.util.Collections.singletonList;
 
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -214,5 +215,29 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
         query = optimize("delete from t_pk where _id = 10 OR _id = true");
         assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/15395
+    @Test
+    public void test_filter_on_pk_with_or_true() {
+        WhereClauseOptimizer.DetailedQuery query = optimize("select * from t_pk where a = 1 or true");
+        assertThat(query.query()).isLiteral(true);
+        assertThat(query.docKeys().isPresent()).isFalse();
+
+        query = optimize("select * from t_pk where a = 1 or a is not null");
+        assertThat(query.query()).isLiteral(true);
+        assertThat(query.docKeys().isPresent()).isFalse();
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/15395
+    @Test
+    public void test_filter_on_pk_with_and_false() {
+        WhereClauseOptimizer.DetailedQuery query = optimize("select * from t_pk where a = 1 and false");
+        assertThat(query.query()).isLiteral(false);
+        assertThat(query.docKeys().isPresent()).isFalse();
+
+        query = optimize("select * from t_pk where not(a != 1 and a is null)");
+        assertThat(query.query()).isLiteral(true);
+        Assertions.assertThat(query.docKeys().isPresent()).isFalse();
     }
 }
