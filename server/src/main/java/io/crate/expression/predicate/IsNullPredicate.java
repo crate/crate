@@ -42,6 +42,7 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.expression.eval.NullabilityVisitor;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -96,6 +97,16 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             && !ref.isNullable()) {
             return Literal.of(false);
         }
+
+        NullabilityVisitor nullabilityVisitor = new NullabilityVisitor();
+        NullabilityVisitor.NullabilityContext ctx = new NullabilityVisitor.NullabilityContext();
+
+        arg.accept(nullabilityVisitor, ctx);
+
+        if (ctx.enforceThreeValuedLogic() == false && ctx.nullableReferences().isEmpty()) {
+            return Literal.of(false);
+        }
+
         return symbol;
     }
 

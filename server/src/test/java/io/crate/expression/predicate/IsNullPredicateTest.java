@@ -135,5 +135,10 @@ public class IsNullPredicateTest extends ScalarTestCase {
     public void test_normalize_not_null_ref_to_false() {
         assertNormalize("b is null", isLiteral(false));
     }
+
+    @Test
+    public void test_normalize_not_null_expr_to_false() {
+        assertNormalize("(abs(b)+(a||1)) is null", isLiteral(false));
+    }
 }
 
