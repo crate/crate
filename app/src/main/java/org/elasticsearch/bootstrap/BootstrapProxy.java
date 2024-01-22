@@ -34,9 +34,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
-import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.StringHelper;
@@ -104,8 +102,6 @@ public class BootstrapProxy {
             }
         }, "crate[keepAlive/" + Version.CURRENT + "]");
         keepAliveThread.setDaemon(false);
-        // keep this thread alive (non daemon thread) until we shutdown
-        Runtime.getRuntime().addShutdownHook(new Thread(keepAliveLatch::countDown));
     }
 
     /**
@@ -134,7 +130,7 @@ public class BootstrapProxy {
                 if (ConsoleCtrlHandler.CTRL_CLOSE_EVENT == code) {
                     logger.info("running graceful exit on windows");
                     try {
-                        BootstrapProxy.stop();
+                        BootstrapProxy.stopInstance();
                     } catch (IOException e) {
                         throw new ElasticsearchException("failed to stop node", e);
                     }
@@ -166,34 +162,20 @@ public class BootstrapProxy {
         JvmInfo.jvmInfo();
     }
 
-    private void setup(boolean addShutdownHook, Environment environment) throws BootstrapException {
+    private void setup(Environment environment) throws BootstrapException {
         Settings settings = environment.settings();
         initializeNatives(
             BootstrapSettings.MEMORY_LOCK_SETTING.get(settings),
             BootstrapSettings.CTRLHANDLER_SETTING.get(settings));
 
-        // initialize probes before the security manager is installed
         initializeProbes();
-
-        if (addShutdownHook) {
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                try {
-                    IOUtils.close(node);
-                    LoggerContext context = (LoggerContext) LogManager.getContext(false);
-                    Configurator.shutdown(context);
-                    if (node != null && node.awaitClose(10, TimeUnit.SECONDS) == false) {
-                        throw new IllegalStateException(
-                            "Node didn't stop within 10 seconds. " +
-                            "Any outstanding requests or tasks might get killed.");
-                    }
-                } catch (IOException ex) {
-                    throw new ElasticsearchException("failed to stop node", ex);
-                } catch (InterruptedException e) {
-                    LogManager.getLogger(BootstrapProxy.class).warn("Thread got interrupted while waiting for the node to shutdown.");
-                    Thread.currentThread().interrupt();
-                }
-            }));
-        }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                stop();
+            } catch (IOException ex) {
+                throw new ElasticsearchException("failed to stop node", ex);
+            }
+        }));
 
         try {
             // look for jar hell
@@ -221,10 +203,14 @@ public class BootstrapProxy {
         keepAliveThread.start();
     }
 
-    public static void stop() throws IOException {
+    public static void stopInstance() throws IOException {
+        INSTANCE.stop();
+    }
+
+    public void stop() throws IOException {
         try {
-            IOUtils.close(INSTANCE.node);
-            if (INSTANCE.node != null && INSTANCE.node.awaitClose(10, TimeUnit.SECONDS) == false) {
+            IOUtils.close(node);
+            if (node != null && node.awaitClose(10, TimeUnit.SECONDS) == false) {
                 throw new IllegalStateException("Node didn't stop within 10 seconds. Any outstanding requests or tasks might get killed.");
             }
         } catch (InterruptedException e) {
@@ -267,8 +253,7 @@ public class BootstrapProxy {
             // setDefaultUncaughtExceptionHandler
             Thread.setDefaultUncaughtExceptionHandler(new ElasticsearchUncaughtExceptionHandler());
 
-            INSTANCE.setup(true, environment);
-
+            INSTANCE.setup(environment);
             INSTANCE.start();
         } catch (NodeValidationException | RuntimeException e) {
             // disable console logging, so user does not see the exception twice (jvm will show it already)

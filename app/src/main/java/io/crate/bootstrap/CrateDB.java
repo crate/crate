@@ -126,6 +126,6 @@ public class CrateDB extends EnvironmentAwareCommand {
      * update crate.bat!
      */
     static void close(String[] args) throws IOException {
-        BootstrapProxy.stop();
+        BootstrapProxy.stopInstance();
     }
 }
