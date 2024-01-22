@@ -43,7 +43,6 @@ import org.apache.lucene.util.StringHelper;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cli.UserException;
-import org.elasticsearch.common.PidFile;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.logging.Loggers;
@@ -250,14 +249,6 @@ public class BootstrapProxy {
         } catch (IOException e) {
             throw new BootstrapException(e);
         }
-        if (environment.pidFile() != null) {
-            try {
-                PidFile.create(environment.pidFile(), true);
-            } catch (IOException e) {
-                throw new BootstrapException(e);
-            }
-        }
-
         try {
             // fail if somebody replaced the lucene jars
             checkLucene();
