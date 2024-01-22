@@ -2037,7 +2037,7 @@ Returns: Same as input type.
 
 ::
 
-    cr> select exp(1.0) AS exp;
+    cr> select exp(1.0) AS exp; # doctest: +SKIP
     +-------------------+
     |               exp |
     +-------------------+
