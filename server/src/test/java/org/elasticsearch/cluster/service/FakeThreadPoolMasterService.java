@@ -19,7 +19,6 @@
 
 package org.elasticsearch.cluster.service;
 
-import static io.crate.lucene.CrateLuceneTestCase.random;
 import static org.elasticsearch.test.ESTestCase.randomInt;
 import static org.mockito.Mockito.mock;
 
@@ -32,9 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ClusterStatePublisher.AckListener;
-import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -115,12 +112,6 @@ public class FakeThreadPoolMasterService extends MasterService {
                 }
             });
         }
-    }
-
-    @Override
-    public ClusterState.Builder incrementVersion(ClusterState clusterState) {
-        // generate cluster UUID deterministically for repeatable tests
-        return ClusterState.builder(clusterState).incrementVersion().stateUUID(UUIDs.randomBase64UUID(random()));
     }
 
     @Override
