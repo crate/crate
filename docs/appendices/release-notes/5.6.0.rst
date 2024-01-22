@@ -1,18 +1,10 @@
 .. _version_5.6.0:
 
-==========================
-Version 5.6.0 - Unreleased
-==========================
+=============
+Version 5.6.0
+=============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-
-.. NOTE::
-
-    In development. 5.6.0 isn't released yet. These are the release notes for
-    the upcoming release.
-
+Released on 2024-01-22.
 
 .. NOTE::
 
@@ -127,7 +119,7 @@ Performance and Resilience Improvements
   nested e.g.::
 
     SELECT * FROM (SELECT * FROM a LEFT JOIN b ON a.a = b.b LEFT JOIN c ON b.b = c.c) t WHERE b > 1;
-  
+
   Now, the above query will result in the following logical plan ::
 
     NestedLoopJoin[LEFT | (b = c)] (rows=unknown)
