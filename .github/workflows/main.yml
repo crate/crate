@@ -36,7 +36,7 @@ jobs:
         run: |
           mvn test \
             -Dtests.crate.run-windows-incompatible=true \
-            -DforkCount=3 \
+            -DforkCount=4 \
             -DthreadCount=4 \
             -Dcheckstyle.skip \
             -Dforbiddenapis.skip=true \
