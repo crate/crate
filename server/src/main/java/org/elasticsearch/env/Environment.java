@@ -58,7 +58,6 @@ public class Environment {
     public static final Setting<List<String>> PATH_REPO_SETTING =
         Setting.listSetting("path.repo", Collections.emptyList(), Function.identity(), STRING_ARRAY, Property.NodeScope);
     public static final Setting<String> PATH_SHARED_DATA_SETTING = Setting.simpleString("path.shared_data", Property.NodeScope);
-    public static final Setting<String> PIDFILE_SETTING = Setting.simpleString("pidfile", Property.NodeScope);
 
     private final Settings settings;
 
@@ -81,9 +80,6 @@ public class Environment {
     private final Path libFile;
 
     private final Path logsFile;
-
-    /** Path to the PID file (can be null if no PID file is configured) **/
-    private final Path pidFile;
 
     /** Path to the temporary file directory used by the JDK */
     private final Path tmpFile;
@@ -149,12 +145,6 @@ public class Environment {
             logsFile = PathUtils.get(PATH_LOGS_SETTING.get(settings)).normalize();
         } else {
             logsFile = homeFile.resolve("logs");
-        }
-
-        if (PIDFILE_SETTING.exists(settings)) {
-            pidFile = PathUtils.get(PIDFILE_SETTING.get(settings)).normalize();
-        } else {
-            pidFile = null;
         }
 
         binFile = homeFile.resolve("bin");
@@ -281,13 +271,6 @@ public class Environment {
         return logsFile;
     }
 
-    /**
-     * The PID file location (can be null if no PID file is configured)
-     */
-    public Path pidFile() {
-        return pidFile;
-    }
-
     /** Path to the default temp directory used by the JDK */
     public Path tmpFile() {
         return tmpFile;
@@ -309,7 +292,6 @@ public class Environment {
         assertEquals(actual.libFile(), expected.libFile(), "libFile");
         assertEquals(actual.modulesFile(), expected.modulesFile(), "modulesFile");
         assertEquals(actual.logsFile(), expected.logsFile(), "logsFile");
-        assertEquals(actual.pidFile(), expected.pidFile(), "pidFile");
         assertEquals(actual.tmpFile(), expected.tmpFile(), "tmpFile");
     }
 
