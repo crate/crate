@@ -61,7 +61,7 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                              NodeContext nodeCtx,
                              UnaryOperator<LogicalPlan> resolvePlan) {
 
-        if (txnCtx.sessionSettings().hashJoinsEnabled() &&
+        if (txnCtx.sessionSettings().hashJoinsEnabled() && join.isOrderPushedThrough() == false &&
             EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
             return new HashJoin(
                 join.lhs(),
@@ -75,8 +75,7 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                 join.joinType(),
                 join.joinCondition(),
                 join.isFiltered(),
-                false,
-                false,
+                join.isOrderPushedThrough(),
                 false
             );
         }

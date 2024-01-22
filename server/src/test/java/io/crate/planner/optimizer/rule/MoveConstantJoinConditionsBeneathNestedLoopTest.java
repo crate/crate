@@ -39,8 +39,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.HashJoin;
-import io.crate.planner.operators.NestedLoopJoin;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -76,14 +75,14 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
         var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
-        NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, false, false, false);
-        var rule = new MoveConstantJoinConditionsBeneathNestedLoop();
-        Match<NestedLoopJoin> match = rule.pattern().accept(nl, Captures.empty());
+        JoinPlan join = new JoinPlan(c1, c2, JoinType.INNER, joinCondition);
+        var rule = new MoveConstantJoinConditionsBeneathJoin();
+        Match<JoinPlan> match = rule.pattern().accept(join, Captures.empty());
 
         assertThat(match.isPresent(), Matchers.is(true));
-        assertThat(match.value(), Matchers.is(nl));
+        assertThat(match.value(), Matchers.is(join));
 
-        HashJoin result = (HashJoin) rule.apply(match.value(),
+        JoinPlan result = (JoinPlan) rule.apply(match.value(),
                                                 match.captures(),
                                                 planStats,
                                                 CoordinatorTxnCtx.systemTransactionContext(),

@@ -94,11 +94,12 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_relationnames_are_based_on_sources_in_nestedloopjoin() {
         var nestedLoopJoin = new NestedLoopJoin(t1Rename,
-                                                t2Rename,
-                                                JoinType.INNER,
-                                                e.asSymbol("x = y"),
-                                                false,
-                                                false);
+            t2Rename,
+            JoinType.INNER,
+            e.asSymbol("x = y"),
+            false,
+            false,
+            false);
         assertThat(nestedLoopJoin.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(nestedLoopJoin.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }

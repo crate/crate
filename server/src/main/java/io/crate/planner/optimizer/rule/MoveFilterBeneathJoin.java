@@ -43,8 +43,8 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
@@ -91,7 +91,7 @@ import io.crate.sql.tree.JoinType;
  */
 public final class MoveFilterBeneathJoin implements Rule<Filter> {
 
-    private final Capture<AbstractJoinPlan> joinCapture;
+    private final Capture<JoinPlan> joinCapture;
     private final Pattern<Filter> pattern;
     private static final Set<JoinType> SUPPORTED_JOIN_TYPES = EnumSet.of(INNER, LEFT, RIGHT, CROSS);
 
@@ -99,7 +99,7 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(),
-                typeOf(AbstractJoinPlan.class)
+                typeOf(JoinPlan.class)
                     .capturedAs(joinCapture)
                     .with(join -> SUPPORTED_JOIN_TYPES.contains(join.joinType()))
             );

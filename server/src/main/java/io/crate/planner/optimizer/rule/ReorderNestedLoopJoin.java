@@ -39,7 +39,7 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
 
     private final Pattern<NestedLoopJoin> pattern = typeOf(NestedLoopJoin.class)
         .with(j -> j.orderByWasPushedDown() == false &&
-                   j.joinType().supportsInversion() == true);
+            j.joinType().supportsInversion() == true);
 
     @Override
     public Pattern<NestedLoopJoin> pattern() {
@@ -70,8 +70,7 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
                         nestedLoop.joinCondition(),
                         nestedLoop.isFiltered(),
                         nestedLoop.orderByWasPushedDown(),
-                        nestedLoop.isJoinConditionOptimised(),
-                        nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
+                        nestedLoop.orderByWasPushedDownDone()
                     ),
                     nestedLoop.outputs());
             }

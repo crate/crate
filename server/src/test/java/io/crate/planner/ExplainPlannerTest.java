@@ -306,6 +306,13 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""},
             new Object[]{
+                "optimizer_move_constant_join_conditions_beneath_join",
+                """
+                HashAggregate[count(x)] (rows=1)
+                  └ Join[INNER | (x = x)] (rows=0)
+                    ├ Collect[doc.a | [x] | true] (rows=100)
+                    └ Collect[doc.b | [x] | true] (rows=100)"""},
+            new Object[]{
                 "optimizer_rewrite_join_plan",
                 """
                 HashAggregate[count(x)] (rows=1)
@@ -332,6 +339,13 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""},
             new Object[]{
+                "optimizer_move_constant_join_conditions_beneath_join",
+                """
+                HashAggregate[count(x)] (rows=1)
+                  └ Join[INNER | (x = x)] (rows=0)
+                    ├ Collect[doc.a | [x] | true] (rows=100)
+                    └ Collect[doc.b | [x] | true] (rows=100)"""},
+            new Object[]{
                 "optimizer_rewrite_join_plan",
                 """
                 HashAggregate[count(x)] (rows=1)
@@ -352,6 +366,13 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(rows).containsExactly(
             new Object[]{
                 "Initial logical plan",
+                """
+                HashAggregate[count(x)]
+                  └ Join[INNER | (x = x)]
+                    ├ Collect[doc.a | [x] | true]
+                    └ Collect[doc.b | [x] | true]"""},
+            new Object[]{
+                "optimizer_move_constant_join_conditions_beneath_join",
                 """
                 HashAggregate[count(x)]
                   └ Join[INNER | (x = x)]

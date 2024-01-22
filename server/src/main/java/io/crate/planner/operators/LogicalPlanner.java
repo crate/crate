@@ -89,7 +89,7 @@ import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathNestedLoop;
+import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathCorrelatedJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
@@ -112,7 +112,6 @@ import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
-import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.types.DataTypes;
@@ -149,19 +148,18 @@ public class LogicalPlanner {
         new MergeFilterAndCollect(),
         new RewriteFilterOnOuterJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
-        new MoveOrderBeneathNestedLoop(),
         new MoveOrderBeneathEval(),
         new MoveOrderBeneathRename(),
         new DeduplicateOrder(),
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
-        new MoveConstantJoinConditionsBeneathNestedLoop(),
+        new MoveConstantJoinConditionsBeneathJoin(),
         new EliminateCrossJoin(),
-        new RewriteJoinPlan(),
-        new RewriteNestedLoopJoinToHashJoin()
-    );
+        new RewriteJoinPlan()
+        );
 
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
+        new MoveOrderBeneathNestedLoop(),
         new ReorderHashJoin(),
         new ReorderNestedLoopJoin()
     );
@@ -268,7 +266,6 @@ public class LogicalPlanner {
         }
         return planBuilder;
     }
-
 
     public LogicalPlan plan(AnalyzedRelation relation,
                             PlannerContext plannerContext,

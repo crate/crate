@@ -66,9 +66,9 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
         this.nlCapture = new Capture<>();
         this.pattern = typeOf(Order.class)
             .with(source(),
-                  typeOf(NestedLoopJoin.class)
-                      .capturedAs(nlCapture)
-                      .with(nl -> !nl.joinType().isOuter())
+                typeOf(NestedLoopJoin.class)
+                    .capturedAs(nlCapture)
+                    .with(nl -> !nl.joinType().isOuter() && nl.orderByWasPushedDownDone() == false)
             );
     }
 
@@ -107,11 +107,18 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                     nestedLoop.joinCondition(),
                     nestedLoop.isFiltered(),
                     true,
-                    false,
-                    nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
+                    true
                 );
             }
         }
-        return null;
+        return new Order(new NestedLoopJoin(
+            nestedLoop.lhs(),
+            nestedLoop.rhs(),
+            nestedLoop.joinType(),
+            nestedLoop.joinCondition(),
+            nestedLoop.isFiltered(),
+            false,
+            true
+        ), orderBy);
     }
 }

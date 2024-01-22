@@ -43,12 +43,14 @@ public class JoinPlan extends AbstractJoinPlan {
 
     private final boolean isFiltered;
     private final boolean rewriteFilterOnOuterJoinToInnerJoinDone;
+    private final boolean orderPushedThrough;
+    private final boolean isJoinConditionOptimized;
 
     public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition) {
-        this(lhs, rhs, joinType, joinCondition, false, false);
+        this(lhs, rhs, joinType, joinCondition, false, false, false, false);
     }
 
     public JoinPlan(LogicalPlan lhs,
@@ -56,14 +58,26 @@ public class JoinPlan extends AbstractJoinPlan {
                     JoinType joinType,
                     @Nullable Symbol joinCondition,
                     boolean isFiltered,
-                    boolean rewriteFilterOnOuterJoinToInnerJoinDone) {
+                    boolean rewriteFilterOnOuterJoinToInnerJoinDone,
+                    boolean orderPushedThrough,
+                    boolean isJoinConditionOptimized) {
         super(lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
+        this.orderPushedThrough = orderPushedThrough;
+        this.isJoinConditionOptimized = isJoinConditionOptimized;
+    }
+
+    public boolean isOrderPushedThrough() {
+        return orderPushedThrough;
     }
 
     public boolean isFiltered() {
         return isFiltered;
+    }
+
+    public boolean isJoinConditionOptimized() {
+        return isJoinConditionOptimized;
     }
 
     public boolean isRewriteFilterOnOuterJoinToInnerJoinDone() {
@@ -113,7 +127,9 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            orderPushedThrough,
+            isJoinConditionOptimized
         );
     }
 
@@ -140,7 +156,9 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            orderPushedThrough,
+            isJoinConditionOptimized
         );
     }
 }

@@ -38,7 +38,6 @@ import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathEval;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
-import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 
 public class SqlTransportExecutorTest {
@@ -48,11 +47,9 @@ public class SqlTransportExecutorTest {
         List<Class<? extends Rule<?>>> allRules = List.of(
             DeduplicateOrder.class,
             MoveFilterBeneathOrder.class,
-            RewriteToQueryThenFetch.class,
             MoveLimitBeneathEval.class,
             MergeFilterAndCollect.class,
             RewriteToQueryThenFetch.class,
-            RewriteNestedLoopJoinToHashJoin.class,
             RewriteFilterOnOuterJoinToInnerJoin.class,
             MoveOrderBeneathEval.class,
             MoveFilterBeneathGroupBy.class
@@ -64,24 +61,22 @@ public class SqlTransportExecutorTest {
         assertThat(buildRandomizedRuleSessionSettings(new Random(1L), 0.3, allRules, List.of()))
             .hasSize(3)
             .containsExactly(
-                "set optimizer_rewrite_nested_loop_join_to_hash_join=false",
-                "set optimizer_move_filter_beneath_group_by=false",
-                "set optimizer_rewrite_filter_on_outer_join_to_inner_join=false"
+                "set optimizer_move_limit_beneath_eval=false",
+                "set optimizer_move_order_beneath_eval=false",
+                "set optimizer_move_filter_beneath_group_by=false"
             );
 
         assertThat(buildRandomizedRuleSessionSettings(new Random(1L), 1.0, allRules, List.of()))
-            .hasSize(10)
+            .hasSize(8)
             .containsExactly(
-                "set optimizer_rewrite_nested_loop_join_to_hash_join=false",
-                "set optimizer_move_filter_beneath_group_by=false",
-                "set optimizer_rewrite_filter_on_outer_join_to_inner_join=false",
-                "set optimizer_move_order_beneath_eval=false",
-                "set optimizer_merge_filter_and_collect=false",
-                "set optimizer_rewrite_to_query_then_fetch=false",
-                "set optimizer_deduplicate_order=false",
                 "set optimizer_move_limit_beneath_eval=false",
+                "set optimizer_move_order_beneath_eval=false",
+                "set optimizer_move_filter_beneath_group_by=false",
+                "set optimizer_deduplicate_order=false",
+                "set optimizer_merge_filter_and_collect=false",
                 "set optimizer_move_filter_beneath_order=false",
-                "set optimizer_rewrite_to_query_then_fetch=false"
+                "set optimizer_rewrite_to_query_then_fetch=false",
+                "set optimizer_rewrite_filter_on_outer_join_to_inner_join=false"
             );
 
         assertThatThrownBy(() -> buildRandomizedRuleSessionSettings(new Random(1L), 1.1, allRules, List.of()))

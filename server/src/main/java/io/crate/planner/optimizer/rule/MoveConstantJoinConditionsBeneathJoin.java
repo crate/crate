@@ -36,39 +36,38 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.RelationNameCollector;
-import io.crate.planner.operators.HashJoin;
-import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.NestedLoopJoin;
-import io.crate.planner.optimizer.Rule;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.sql.tree.JoinType;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.sql.tree.JoinType;
 
-public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedLoopJoin> {
+public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
 
-    private final Pattern<NestedLoopJoin> pattern;
+    private final Pattern<JoinPlan> pattern;
 
-    public MoveConstantJoinConditionsBeneathNestedLoop() {
-        this.pattern = typeOf(NestedLoopJoin.class)
+    public MoveConstantJoinConditionsBeneathJoin() {
+        this.pattern = typeOf(JoinPlan.class)
             .with(nl -> nl.joinType() == JoinType.INNER &&
-                        !nl.isJoinConditionOptimised() &&
+                        !nl.isJoinConditionOptimized() &&
                         nl.joinCondition() != null);
     }
 
     @Override
-    public Pattern<NestedLoopJoin> pattern() {
+    public Pattern<JoinPlan> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(NestedLoopJoin nl,
+    public LogicalPlan apply(JoinPlan join,
                              Captures captures,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              UnaryOperator<LogicalPlan> resolvePlan) {
-        var conditions = nl.joinCondition();
+        var conditions = join.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
         var nonConstantConditions = new HashSet<Symbol>(allConditions.size());
@@ -80,29 +79,34 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             }
         }
         if (constantConditions.isEmpty() || nonConstantConditions.isEmpty()) {
-            // Nothing to optimize, just mark nestedLoopJoin to skip the rule the next time
-            return new NestedLoopJoin(
-                nl.lhs(),
-                nl.rhs(),
-                nl.joinType(),
-                nl.joinCondition(),
-                nl.isFiltered(),
-                nl.orderByWasPushedDown(),
-                true, // Mark joinConditionOptimised = true
-                nl.isRewriteNestedLoopJoinToHashJoinDone()
+            // Nothing to optimize, just mark it to skip the rule the next time
+            return new JoinPlan(
+                join.lhs(),
+                join.rhs(),
+                join.joinType(),
+                join.joinCondition(),
+                join.isFiltered(),
+                join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                join.isOrderPushedThrough(),
+                true
             );
         } else {
             // Push constant join condition down to source
-            var lhs = resolvePlan.apply(nl.lhs());
-            var rhs = resolvePlan.apply(nl.rhs());
+            var lhs = resolvePlan.apply(join.lhs());
+            var rhs = resolvePlan.apply(join.rhs());
             var queryForLhs = constantConditions.remove(new HashSet<>(lhs.getRelationNames()));
             var queryForRhs = constantConditions.remove(new HashSet<>(rhs.getRelationNames()));
             var newLhs = getNewSource(queryForLhs, lhs);
             var newRhs = getNewSource(queryForRhs, rhs);
-            return new HashJoin(
+            return new JoinPlan(
                 newLhs,
                 newRhs,
-                AndOperator.join(nonConstantConditions)
+                join.joinType(),
+                AndOperator.join(nonConstantConditions),
+                join.isFiltered(),
+                join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                join.isOrderPushedThrough(),
+                true
             );
         }
     }
