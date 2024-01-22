@@ -47,6 +47,9 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Added a workaround for a change in JDK 21.0.2 which caused many operations to
+  get stuck.
+
 - Fixed an issue that led to errors when
   :ref:`privileges <administration-privileges>` are defined for users, when
   performing a rolling upgrade of a cluster from a version before
