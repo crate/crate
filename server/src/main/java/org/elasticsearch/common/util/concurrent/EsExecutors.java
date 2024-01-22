@@ -270,6 +270,22 @@ public class EsExecutors {
             }
         }
 
+        // Methods below are due to https://bugs.openjdk.org/browse/JDK-8323659
+
+        @Override
+        public void put(E e) {
+            super.offer(e);
+        }
+
+        @Override
+        public boolean add(E e) {
+            return super.offer(e);
+        }
+
+        @Override
+        public boolean offer(E e, long timeout, TimeUnit unit) {
+            return super.offer(e);
+        }
     }
 
     /**
