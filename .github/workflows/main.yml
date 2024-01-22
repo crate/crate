@@ -36,8 +36,8 @@ jobs:
         run: |
           mvn test \
             -Dtests.crate.run-windows-incompatible=true \
-            -DforkCount=2 \
-            -DthreadCount=2 \
+            -DforkCount=3 \
+            -DthreadCount=4 \
             -Dcheckstyle.skip \
             -Dforbiddenapis.skip=true \
             -Dmaven.javadoc.skip=true \

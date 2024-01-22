@@ -19,6 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
+
 package io.crate.planner;
 
 import java.util.Collections;
@@ -35,12 +36,12 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedAlterBlobTable;
+import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
-import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTableRenameColumn;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.AnalyzedAnalyze;
@@ -53,10 +54,10 @@ import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
+import io.crate.analyze.AnalyzedCreateRole;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
-import io.crate.analyze.AnalyzedCreateRole;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDecommissionNode;
@@ -65,9 +66,9 @@ import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
+import io.crate.analyze.AnalyzedDropRole;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
-import io.crate.analyze.AnalyzedDropRole;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
@@ -102,6 +103,7 @@ import io.crate.planner.consumer.CreateTableAsPlan;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.AlterBlobTablePlan;
+import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.planner.node.ddl.AlterTableDropColumnPlan;
@@ -109,20 +111,19 @@ import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.AlterTableRenameColumnPlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
-import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateFunctionPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
+import io.crate.planner.node.ddl.CreateRolePlan;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
-import io.crate.planner.node.ddl.CreateRolePlan;
 import io.crate.planner.node.ddl.DropAnalyzerPlan;
 import io.crate.planner.node.ddl.DropFunctionPlan;
 import io.crate.planner.node.ddl.DropRepositoryPlan;
+import io.crate.planner.node.ddl.DropRolePlan;
 import io.crate.planner.node.ddl.DropSnapshotPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.DropRolePlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
 import io.crate.planner.node.ddl.ResetSettingsPlan;
@@ -152,9 +153,9 @@ import io.crate.replication.logical.plan.CreatePublicationPlan;
 import io.crate.replication.logical.plan.CreateSubscriptionPlan;
 import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.replication.logical.plan.DropSubscriptionPlan;
+import io.crate.role.RoleManager;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
-import io.crate.role.RoleManager;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
