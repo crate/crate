@@ -37,16 +37,16 @@ public record Subject(Permission permission, Securable securable, @Nullable Stri
 
     Subject(StreamInput in) throws IOException {
         this(
-            in.readEnum(Permission.class),
-            in.readEnum(Securable.class),
+            Permission.VALUES.get(in.readInt()),
+            Securable.VALUES.get(in.readInt()),
             in.readOptionalString()
         );
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(permission);
-        out.writeEnum(securable);
+        out.writeInt(permission.ordinal());
+        out.writeInt(securable.ordinal());
         out.writeOptionalString(ident);
     }
 }
