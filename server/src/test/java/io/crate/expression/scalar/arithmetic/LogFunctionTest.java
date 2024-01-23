@@ -81,7 +81,7 @@ public class LogFunctionTest extends ScalarTestCase {
     @Test(expected = IllegalArgumentException.class)
     public void testLogDivisionByZero() throws Exception {
         // division by zero
-        assertEvaluateNull("log(10.0, 1.0)");
+        assertEvaluateNull("log(10.0, 0)");
     }
 
     @Test
