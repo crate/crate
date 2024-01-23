@@ -79,7 +79,6 @@ import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.InfoStream;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lucene.LoggerInfoStream;
 import org.elasticsearch.common.lucene.Lucene;
@@ -116,6 +115,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.Booleans;
 import io.crate.common.SuppressForbidden;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.lucene.index.ShuffleForcedMergePolicy;
@@ -253,7 +253,7 @@ public class InternalEngine extends Engine {
             } catch (AssertionError e) {
                 // IndexWriter throws AssertionError on init, if asserts are enabled, if any files don't exist, but tests that
                 // randomly throw FNFE/NSFE can also hit this:
-                if (ExceptionsHelper.stackTrace(e).contains("org.apache.lucene.index.IndexWriter.filesExist")) {
+                if (Exceptions.stackTrace(e).contains("org.apache.lucene.index.IndexWriter.filesExist")) {
                     throw new EngineCreationFailureException(shardId, "failed to create engine", e);
                 } else {
                     throw e;
@@ -2482,7 +2482,7 @@ public class InternalEngine extends Engine {
              * If assertions are enabled, IndexWriter throws AssertionError on commit if any files don't exist, but tests that randomly
              * throw FileNotFoundException or NoSuchFileException can also hit this.
              */
-            if (ExceptionsHelper.stackTrace(e).contains("org.apache.lucene.index.IndexWriter.filesExist")) {
+            if (Exceptions.stackTrace(e).contains("org.apache.lucene.index.IndexWriter.filesExist")) {
                 final EngineException engineException = new EngineException(shardId, "failed to commit engine", e);
                 try {
                     failEngine("lucene commit failed", engineException);

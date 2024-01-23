@@ -62,7 +62,6 @@ import java.util.regex.PatternSyntaxException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -99,6 +98,7 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
 import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.http.MainAndStaticFileHandler;
@@ -553,7 +553,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            ExceptionsHelper.maybeDieOnAnotherThread(cause);
+            Exceptions.maybeDieOnAnotherThread(cause);
             super.exceptionCaught(ctx, cause);
         }
     }

@@ -19,10 +19,12 @@
 
 package org.elasticsearch;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Generic security exception
@@ -39,7 +41,7 @@ public class ElasticsearchSecurityException extends ElasticsearchStatusException
      * Build the exception with the status derived from the cause.
      */
     public ElasticsearchSecurityException(String msg, Exception cause, Object... args) {
-        this(msg, ExceptionsHelper.status(cause), cause, args);
+        this(msg, SQLExceptions.status(cause), cause, args);
     }
 
     /**

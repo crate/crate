@@ -27,7 +27,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -50,6 +49,7 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
 import io.crate.auth.Protocol;
 import io.crate.common.SuppressForbidden;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
@@ -242,7 +242,7 @@ public class Netty4Transport extends TcpTransport {
 
         Channel channel = connectFuture.channel();
         if (channel == null) {
-            ExceptionsHelper.maybeDieOnAnotherThread(connectFuture.cause());
+            Exceptions.maybeDieOnAnotherThread(connectFuture.cause());
             throw new IOException(connectFuture.cause());
         }
         addClosedExceptionLogger(channel);
@@ -282,7 +282,7 @@ public class Netty4Transport extends TcpTransport {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            ExceptionsHelper.maybeDieOnAnotherThread(cause);
+            Exceptions.maybeDieOnAnotherThread(cause);
             super.exceptionCaught(ctx, cause);
         }
 
@@ -324,7 +324,7 @@ public class Netty4Transport extends TcpTransport {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            ExceptionsHelper.maybeDieOnAnotherThread(cause);
+            Exceptions.maybeDieOnAnotherThread(cause);
             super.exceptionCaught(ctx, cause);
         }
     }
@@ -342,7 +342,7 @@ public class Netty4Transport extends TcpTransport {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            ExceptionsHelper.maybeDieOnAnotherThread(cause);
+            Exceptions.maybeDieOnAnotherThread(cause);
             CloseableChannel serverChannel = ctx.channel().attr(SERVER_CHANNEL_KEY).get();
             if (cause instanceof Error) {
                 onServerException(serverChannel, new Exception(cause));

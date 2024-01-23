@@ -19,10 +19,10 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.jetbrains.annotations.Nullable;
 
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.cluster.routing.ShardRouting;
+import io.crate.common.exceptions.Exceptions;
 
 /**
  * A class representing a failed shard.
@@ -44,7 +44,7 @@ public class FailedShard {
     @Override
     public String toString() {
         return "failed shard, shard " + routingEntry + ", message [" + message + "], markAsStale [" + markAsStale + "], failure ["
-            + (failure == null ? "null" : ExceptionsHelper.stackTrace(failure)) + "]";
+            + (failure == null ? "null" : Exceptions.stackTrace(failure)) + "]";
     }
 
     /**

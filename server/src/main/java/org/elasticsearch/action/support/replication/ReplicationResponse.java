@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -34,6 +33,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TransportResponse;
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.exceptions.Exceptions;
 
 /**
  * Base class for write action responses.
@@ -186,7 +187,7 @@ public class ReplicationResponse extends TransportResponse {
                            Exception cause,
                            RestStatus status,
                            boolean primary) {
-                super(shardId.getIndexName(), shardId.id(), ExceptionsHelper.stackTrace(cause), status, cause);
+                super(shardId.getIndexName(), shardId.id(), Exceptions.stackTrace(cause), status, cause);
                 this.shardId = shardId;
                 this.nodeId = nodeId;
                 this.primary = primary;

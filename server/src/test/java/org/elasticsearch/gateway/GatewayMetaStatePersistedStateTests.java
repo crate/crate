@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -71,6 +70,7 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 
 public class GatewayMetaStatePersistedStateTests extends ESTestCase {
@@ -465,7 +465,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                     currentTerm = newTerm;
                 }
             } catch (IOError | Exception e) {
-                assertNotNull(ExceptionsHelper.unwrap(e, IOException.class));
+                assertNotNull(Exceptions.firstCause(e, IOException.class));
             }
 
             ioExceptionRate.set(0.0d);
@@ -499,7 +499,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             if (ioExceptionRate.get() == 0.0d) {
                 throw e;
             }
-            assertNotNull(ExceptionsHelper.unwrap(e, IOException.class));
+            assertNotNull(Exceptions.firstCause(e, IOException.class));
             return;
         }
 

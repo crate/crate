@@ -18,17 +18,16 @@
  */
 package org.elasticsearch.test.disruption;
 
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
-
-import io.crate.common.exceptions.Exceptions;
-import io.crate.common.unit.TimeValue;
-
-import org.elasticsearch.test.TestCluster;
-
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.test.TestCluster;
+
+import io.crate.common.exceptions.Exceptions;
+import io.crate.common.unit.TimeValue;
 
 public class SlowClusterStateProcessing extends SingleNodeDisruption {
 
@@ -116,7 +115,7 @@ public class SlowClusterStateProcessing extends SingleNodeDisruption {
                     }
                     countDownLatch.countDown();
                 } catch (InterruptedException e) {
-                    Exceptions.rethrowRuntimeException(e);
+                    throw Exceptions.toRuntimeException(e);
                 }
             }, (source, e) -> countDownLatch.countDown(),
             Priority.IMMEDIATE);

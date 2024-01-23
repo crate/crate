@@ -19,10 +19,11 @@
 
 package org.elasticsearch.index.translog;
 
-import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.ExceptionsHelper;
-
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.lucene.store.AlreadyClosedException;
+
+import io.crate.common.exceptions.Exceptions;
 
 public class TragicExceptionHolder {
     private final AtomicReference<Exception> tragedy = new AtomicReference<>();
@@ -38,7 +39,7 @@ public class TragicExceptionHolder {
         }
         final Exception tragedy = this.tragedy.get();
         // ensure no circular reference
-        if (ExceptionsHelper.unwrapCausesAndSuppressed(ex, e -> e == tragedy).isEmpty()) {
+        if (Exceptions.firstCauseOrSuppressed(ex, e -> e == tragedy).isEmpty()) {
             tragedy.addSuppressed(ex);
         } else {
             assert ex == tragedy || ex instanceof AlreadyClosedException : new AssertionError("must be ACE or tragic exception", ex);
