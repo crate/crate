@@ -117,7 +117,7 @@ public class Privilege implements Writeable, ToXContent {
     }
 
     public Privilege(StreamInput in) throws IOException {
-        policy = in.readEnum(Policy.class);
+        policy = Policy.VALUES.get(in.readInt());
         subject = new Subject(in);
         grantor = in.readString();
     }
@@ -158,7 +158,7 @@ public class Privilege implements Writeable, ToXContent {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(policy);
+        out.writeInt(policy.ordinal());
         subject.writeTo(out);
         out.writeString(grantor);
     }
