@@ -91,6 +91,9 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                 return null;
             }
             double value = value1.doubleValue();
+            if (value == 1) {
+                return 0;
+            }
             double base = value2.doubleValue();
             double baseResult = Math.log(base);
             if (baseResult == 0) {
