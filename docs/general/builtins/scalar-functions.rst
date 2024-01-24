@@ -1983,7 +1983,7 @@ Returns: Same as input type.
 
 ::
 
-    cr> select exp(1.0) AS exp; # doctest: +SKIP
+    > select exp(1.0) AS exp;
     +-------------------+
     |               exp |
     +-------------------+
@@ -1991,6 +1991,8 @@ Returns: Same as input type.
     +-------------------+
     SELECT 1 row in set (... sec)
 
+.. test skipped because java.lang.Math.exp() can return with different
+   precision on different CPUs (e.g.: Apple M1)
 
 .. _scalar-floor:
 
