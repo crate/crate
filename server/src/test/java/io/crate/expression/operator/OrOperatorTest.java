@@ -22,12 +22,23 @@
 package io.crate.expression.operator;
 
 import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 
 public class OrOperatorTest extends ScalarTestCase {
+
+    @Test
+    public void test_normalize_boolean_true_or_reference() throws Exception {
+        assertNormalize("is_awesome or true", isLiteral(true));
+    }
+
+    @Test
+    public void test_normalize_boolean_false_or_reference() throws Exception {
+        assertNormalize("is_awesome or false", isReference("is_awesome"));
+    }
 
     @Test
     public void testNormalize() throws Exception {
