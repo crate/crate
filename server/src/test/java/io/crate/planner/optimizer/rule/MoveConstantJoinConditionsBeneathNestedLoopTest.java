@@ -40,7 +40,6 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
-import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -84,14 +83,14 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         assertThat(match.value(), Matchers.is(join));
 
         Filter filter = (Filter) rule.apply(match.value(),
-                                                match.captures(),
-                                                planStats,
-                                                CoordinatorTxnCtx.systemTransactionContext(),
-                                                sqlExpressions.nodeCtx,
-                                                UnaryOperator.identity());
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            UnaryOperator.identity());
 
         assertThat(filter.query(), is(constantPart));
         JoinPlan joinPlan = (JoinPlan) filter.source();
         assertThat(joinPlan.joinCondition(), is(nonConstantPart));
-   }
+    }
 }

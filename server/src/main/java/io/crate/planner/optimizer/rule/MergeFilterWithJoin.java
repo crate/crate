@@ -27,7 +27,6 @@ import static io.crate.planner.optimizer.rule.ExtractConstantJoinConditionsIntoF
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;

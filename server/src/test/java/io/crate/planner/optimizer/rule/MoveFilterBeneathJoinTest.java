@@ -60,8 +60,8 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
         sources = T3.sources(clusterService);
         sqlExpressions = new SqlExpressions(sources);
         planStats = new PlanStats(sqlExpressions.nodeCtx,
-                                  CoordinatorTxnCtx.systemTransactionContext(),
-                                  new TableStats());
+            CoordinatorTxnCtx.systemTransactionContext(),
+            new TableStats());
 
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (a int)")
@@ -97,11 +97,11 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
         assertThat(match.value()).isEqualTo(filter);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                planStats,
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                sqlExpressions.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[INNER | (a = b)]",
@@ -136,11 +136,11 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
         assertThat(match.value()).isEqualTo(filter);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                planStats,
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                sqlExpressions.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[INNER | (b = c)]",
@@ -177,11 +177,11 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
         assertThat(match.value()).isEqualTo(filter);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                planStats,
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                sqlExpressions.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Join[INNER | (b = c)]",
@@ -223,11 +223,11 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
         assertThat(match.value()).isEqualTo(filter);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                planStats,
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                sqlExpressions.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            UnaryOperator.identity());
 
         assertThat(result).isNull();
     }
@@ -262,11 +262,11 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
         assertThat(match.value()).isEqualTo(filter);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                planStats,
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                sqlExpressions.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            UnaryOperator.identity());
 
         assertThat(result).hasOperators(
             "Filter[(a > 1)]",
@@ -355,14 +355,14 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
         var filter = new Filter(join3, sqlExpressions.asSymbol("doc.t1.a = doc.t2.b AND doc.t2.b = doc.t3.c AND doc.t3.c = doc.t4.id"));
 
         assertThat(filter).isEqualTo(
-        "  Filter[(((a = b) AND (b = c)) AND (c = id))]\n" +
-            "  └ Join[CROSS]\n" +
-            "    ├ Join[CROSS]\n" +
-            "    │  ├ Join[CROSS]\n" +
-            "    │  │  ├ Collect[doc.t1 | [a] | true]\n" +
-            "    │  │  └ Collect[doc.t2 | [b] | true]\n" +
-            "    │  └ Collect[doc.t3 | [c] | true]\n" +
-            "    └ Collect[doc.t4 | [id] | true]"
+            "  Filter[(((a = b) AND (b = c)) AND (c = id))]\n" +
+                "  └ Join[CROSS]\n" +
+                "    ├ Join[CROSS]\n" +
+                "    │  ├ Join[CROSS]\n" +
+                "    │  │  ├ Collect[doc.t1 | [a] | true]\n" +
+                "    │  │  └ Collect[doc.t2 | [b] | true]\n" +
+                "    │  └ Collect[doc.t3 | [c] | true]\n" +
+                "    └ Collect[doc.t4 | [id] | true]"
         );
 
         var rule = new MoveFilterBeneathJoin();
