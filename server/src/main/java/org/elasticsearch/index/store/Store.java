@@ -77,7 +77,6 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.Streams;
@@ -106,6 +105,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 
 import io.crate.common.collections.Iterables;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 
@@ -621,7 +621,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
             }
         }
         if (ex.isEmpty() == false) {
-            ExceptionsHelper.rethrowAndSuppress(ex);
+            Exceptions.rethrowAndSuppress(ex);
         }
     }
 

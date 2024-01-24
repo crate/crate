@@ -28,10 +28,10 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 
 import io.crate.action.FutureActionListener;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.netty.buffer.ByteBuf;
@@ -57,7 +57,7 @@ public class CloseableChannel implements Closeable {
                 Throwable cause = f.cause();
                 closeFuture.completeExceptionally(cause);
                 if (cause instanceof Error) {
-                    ExceptionsHelper.maybeDieOnAnotherThread(cause);
+                    Exceptions.maybeDieOnAnotherThread(cause);
                 }
             }
         });

@@ -122,7 +122,7 @@ public class RemoteCollectorFactory {
                 return collectorProvider.awaitShardSearchActive().thenApply(
                     biFactory -> biFactory.getIterator(collectPhase, requiresScroll, collectTask));
             } catch (Exception e) {
-                return Exceptions.rethrowRuntimeException(e);
+                throw Exceptions.toRuntimeException(e);
             }
         } else {
             return remoteBatchIterator(primaryRouting, collectPhase, collectTask, requiresScroll);

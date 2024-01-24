@@ -28,14 +28,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongSupplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -54,6 +51,7 @@ import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
@@ -224,7 +222,7 @@ public class ReplicationOperation<
                     shard.shardId(), opType, shard, replicaRequest), replicaException);
                 // Only report "critical" exceptions - TODO: Reach out to the master node to get the latest shard state then report.
                 if (TransportActions.isShardNotAvailableException(replicaException) == false) {
-                    RestStatus restStatus = ExceptionsHelper.status(replicaException);
+                    RestStatus restStatus = SQLExceptions.status(replicaException);
                     shardReplicaFailures.add(new ReplicationResponse.ShardInfo.Failure(
                         shard.shardId(), shard.currentNodeId(), replicaException, restStatus, false));
                 }

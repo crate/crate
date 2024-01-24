@@ -83,7 +83,6 @@ import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.tests.util.TestUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
@@ -103,6 +102,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.hamcrest.Matchers;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 
@@ -797,7 +797,7 @@ public class StoreTests extends ESTestCase {
                 exceptions.add(e);
             }
         }
-        ExceptionsHelper.rethrowAndSuppress(exceptions);
+        Exceptions.rethrowAndSuppress(exceptions);
     }
 
     public int numNonExtraFiles(Store store) throws IOException {

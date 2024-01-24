@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
@@ -67,6 +66,7 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.exceptions.Exceptions;
 
 class S3BlobContainer extends AbstractBlobContainer {
 
@@ -211,11 +211,11 @@ class S3BlobContainer extends AbstractBlobContainer {
                     outstanding.removeAll(keysInRequest);
                     outstanding.addAll(
                         e.getErrors().stream().map(MultiObjectDeleteException.DeleteError::getKey).collect(Collectors.toSet()));
-                    aex = ExceptionsHelper.useOrSuppress(aex, e);
+                    aex = Exceptions.useOrSuppress(aex, e);
                 } catch (AmazonClientException e) {
                     // The AWS client threw any unexpected exception and did not execute the request at all so we do not
                     // remove any keys from the outstanding deletes set.
-                    aex = ExceptionsHelper.useOrSuppress(aex, e);
+                    aex = Exceptions.useOrSuppress(aex, e);
                 }
             }
             if (aex != null) {
@@ -261,11 +261,11 @@ class S3BlobContainer extends AbstractBlobContainer {
                     outstanding.removeAll(keysInRequest);
                     outstanding.addAll(
                         e.getErrors().stream().map(MultiObjectDeleteException.DeleteError::getKey).collect(Collectors.toSet()));
-                    aex = ExceptionsHelper.useOrSuppress(aex, e);
+                    aex = Exceptions.useOrSuppress(aex, e);
                 } catch (AmazonClientException e) {
                     // The AWS client threw any unexpected exception and did not execute the request at all so we do not
                     // remove any keys from the outstanding deletes set.
-                    aex = ExceptionsHelper.useOrSuppress(aex, e);
+                    aex = Exceptions.useOrSuppress(aex, e);
                 }
             }
             if (aex != null) {

@@ -277,7 +277,7 @@ public class MasterService extends AbstractLifecycleComponent {
         // TODO: do we want to call updateTask.onFailure here?
     }
 
-    private <T> TaskOutputs<T> calculateTaskOutputs(TaskInputs<T> taskInputs, ClusterState previousClusterState) {
+    private static <T> TaskOutputs<T> calculateTaskOutputs(TaskInputs<T> taskInputs, ClusterState previousClusterState) {
         ClusterTasksResult<T> clusterTasksResult = executeTasks(taskInputs, previousClusterState);
         ClusterState newClusterState = patchVersions(previousClusterState, clusterTasksResult);
         return new TaskOutputs<>(
@@ -288,12 +288,12 @@ public class MasterService extends AbstractLifecycleComponent {
             clusterTasksResult.executionResults);
     }
 
-    private ClusterState patchVersions(ClusterState previousClusterState, ClusterTasksResult<?> executionResult) {
+    private static ClusterState patchVersions(ClusterState previousClusterState, ClusterTasksResult<?> executionResult) {
         ClusterState newClusterState = executionResult.resultingState;
 
         if (previousClusterState != newClusterState) {
             // only the master controls the version numbers
-            Builder builder = incrementVersion(newClusterState);
+            Builder builder = ClusterState.builder(newClusterState).incrementVersion();
             if (previousClusterState.routingTable() != newClusterState.routingTable()) {
                 builder.routingTable(RoutingTable.builder(newClusterState.routingTable())
                     .version(newClusterState.routingTable().version() + 1).build());
@@ -308,9 +308,6 @@ public class MasterService extends AbstractLifecycleComponent {
         return newClusterState;
     }
 
-    public Builder incrementVersion(ClusterState clusterState) {
-        return ClusterState.builder(clusterState).incrementVersion();
-    }
 
     /**
      * Submits a cluster state update task; unlike {@link #submitStateUpdateTask(String, Object, ClusterStateTaskConfig,
@@ -458,7 +455,7 @@ public class MasterService extends AbstractLifecycleComponent {
         return threadPoolExecutor.getMaxTaskWaitTime();
     }
 
-    private SafeClusterStateTaskListener safe(ClusterStateTaskListener listener) {
+    private static SafeClusterStateTaskListener safe(ClusterStateTaskListener listener) {
         if (listener instanceof AckedClusterStateTaskListener ackedListener) {
             return new SafeAckedClusterStateTaskListener(ackedListener, LOGGER);
         } else {
@@ -662,7 +659,7 @@ public class MasterService extends AbstractLifecycleComponent {
         }
     }
 
-    private <T> ClusterTasksResult<T> executeTasks(TaskInputs<T> taskInputs, ClusterState previousClusterState) {
+    private static <T> ClusterTasksResult<T> executeTasks(TaskInputs<T> taskInputs, ClusterState previousClusterState) {
         ClusterTasksResult<T> clusterTasksResult;
         try {
             List<T> inputs = taskInputs.updateTasks.stream().map(tBatchedTask -> tBatchedTask.task).toList();
@@ -702,7 +699,7 @@ public class MasterService extends AbstractLifecycleComponent {
         return clusterTasksResult;
     }
 
-    private <T> List<BatchedTask<T>> getNonFailedTasks(TaskInputs<T> taskInputs,
+    private static <T> List<BatchedTask<T>> getNonFailedTasks(TaskInputs<T> taskInputs,
                                                        ClusterTasksResult<T> clusterTasksResult) {
         return taskInputs.updateTasks.stream().filter(updateTask -> {
             assert clusterTasksResult.executionResults.containsKey(updateTask.task) : "missing " + updateTask;
