@@ -27,7 +27,12 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.joda.time.Period;
 import org.junit.Test;
 
-public class IntervalTypeTest {
+public class IntervalTypeTest extends DataTypeTestCase<Period> {
+
+    @Override
+    public DataType<Period> getType() {
+        return IntervalType.INSTANCE;
+    }
 
     @Test
     public void test_interval_value_streaming_round_trip() throws Exception {

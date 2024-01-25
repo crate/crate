@@ -25,12 +25,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.FloatPoint;
+import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
@@ -162,12 +165,16 @@ public class NumberFieldMapper extends FieldMapper {
                                      boolean indexed,
                                      boolean docValued,
                                      boolean stored) {
-                if (indexed) {
-                    onField.accept(new DoublePoint(name, value.doubleValue()));
-                }
-                if (docValued) {
-                    onField.accept(new SortedNumericDocValuesField(name,
-                        NumericUtils.doubleToSortableLong(value.doubleValue())));
+                if (indexed && docValued) {
+                    onField.accept(new DoubleField(name, value.doubleValue(), Store.NO));
+                } else {
+                    if (indexed) {
+                        onField.accept(new DoublePoint(name, value.doubleValue()));
+                    }
+                    if (docValued) {
+                        onField.accept(new SortedNumericDocValuesField(name,
+                            NumericUtils.doubleToSortableLong(value.doubleValue())));
+                    }
                 }
                 if (stored) {
                     onField.accept(new StoredField(name, value.doubleValue()));
@@ -277,11 +284,15 @@ public class NumberFieldMapper extends FieldMapper {
                                      boolean indexed,
                                      boolean docValued,
                                      boolean stored) {
-                if (indexed) {
-                    onField.accept(new IntPoint(name, value.intValue()));
-                }
-                if (docValued) {
-                    onField.accept(new SortedNumericDocValuesField(name, value.intValue()));
+                if (indexed && docValued) {
+                    onField.accept(new IntField(name, value.intValue(), Store.NO));
+                } else {
+                    if (indexed) {
+                        onField.accept(new IntPoint(name, value.intValue()));
+                    }
+                    if (docValued) {
+                        onField.accept(new SortedNumericDocValuesField(name, value.intValue()));
+                    }
                 }
                 if (stored) {
                     onField.accept(new StoredField(name, value.intValue()));
@@ -322,11 +333,15 @@ public class NumberFieldMapper extends FieldMapper {
                                      boolean indexed,
                                      boolean docValued,
                                      boolean stored) {
-                if (indexed) {
-                    onField.accept(new LongPoint(name, value.longValue()));
-                }
-                if (docValued) {
-                    onField.accept(new SortedNumericDocValuesField(name, value.longValue()));
+                if (indexed && docValued) {
+                    onField.accept(new LongField(name, value.longValue(), Store.NO));
+                } else {
+                    if (indexed) {
+                        onField.accept(new LongPoint(name, value.longValue()));
+                    }
+                    if (docValued) {
+                        onField.accept(new SortedNumericDocValuesField(name, value.longValue()));
+                    }
                 }
                 if (stored) {
                     onField.accept(new StoredField(name, value.longValue()));

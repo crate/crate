@@ -27,10 +27,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.util.Map;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class IntegerTypeTest extends ESTestCase {
+public class IntegerTypeTest extends DataTypeTestCase<Integer> {
+
+    @Override
+    public DataType<Integer> getType() {
+        return IntegerType.INSTANCE;
+    }
 
     @Test
     public void test_cast_text_to_integer() {
@@ -91,4 +95,5 @@ public class IntegerTypeTest extends ESTestCase {
     public void test_cast_numeric_with_fraction_to_integer_looses_fraction() {
         assertThat(IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12))).isEqualTo(12);
     }
+
 }

@@ -28,13 +28,22 @@ import java.util.List;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-public class GeoPointTypeTest extends ESTestCase {
+public class GeoPointTypeTest extends DataTypeTestCase<Point> {
+
+    @Override
+    public DataType<Point> getType() {
+        return GeoPointType.INSTANCE;
+    }
+
+    @Override
+    protected boolean supportsDocValues() {
+        return false;
+    }
 
     @Test
     public void testStreaming() throws Throwable {

@@ -32,13 +32,22 @@ import java.util.Objects;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
 
-public class ObjectTypeTest extends ESTestCase {
+public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
+
+    @Override
+    public DataType<Map<String, Object>> getType() {
+        return ObjectType.UNTYPED;
+    }
+
+    @Override
+    protected boolean supportsDocValues() {
+        return false;
+    }
 
     @Test
     public void testStreamingWithoutInnerTypes() throws IOException {

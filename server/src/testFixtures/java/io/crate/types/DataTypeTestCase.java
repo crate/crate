@@ -24,7 +24,6 @@ package io.crate.types;
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -69,13 +68,20 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
     public abstract DataType<T> getType();
 
+    /**
+     * @return {@code false} if this data type does not support docvalues
+     */
+    protected boolean supportsDocValues() {
+        return true;
+    }
+
     @Test
     public void test_doc_values_write_and_read_roundtrip_inclusive_doc_mapper_parse() throws Exception {
         DataType<T> type = getType();
+        assumeTrue("Data type " + type + " does not support doc values", supportsDocValues());
         StorageSupport<? super T> storageSupport = type.storageSupport();
-        if (storageSupport == null) {
-            return;
-        }
+        assumeTrue("Data type " + type + " does not support storage", storageSupport != null);
+
         var sqlExecutor = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")")
             .build();
@@ -99,15 +105,6 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             IndexWriter writer = indexEnv.writer();
             writer.addDocument(doc.doc().getFields());
             writer.commit();
-
-            // going through the document mapper must create the same fields
-            ParsedDocument parsedDocument = mapperService.documentMapper().parse(new SourceToParse(
-                table.ident().indexNameOrAlias(),
-                doc.id(),
-                doc.source(),
-                XContentType.JSON
-            ));
-            assertThat(parsedDocument).hasSameFieldsWithNameAs(doc, reference.storageIdent());
 
             LuceneReferenceResolver luceneReferenceResolver = indexEnv.luceneReferenceResolver();
             LuceneCollectorExpression<?> docValueImpl = luceneReferenceResolver.getImplementation(reference);
@@ -142,6 +139,42 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             docValueImpl.setNextReader(readerContext);
             docValueImpl.setNextDocId(nextDoc);
             assertThat(docValueImpl.value()).isEqualTo(value);
+        }
+    }
+
+    @Test
+    public void test_translog_streaming_roundtrip() throws Exception {
+        DataType<T> type = getType();
+        assumeTrue("Data type " + type + " does not support storage", type.storageSupport() != null);
+        var sqlExecutor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")")
+            .build();
+
+        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
+        Reference reference = table.getReference(new ColumnIdent("x"));
+        assertThat(reference).isNotNull();
+
+        try (var indexEnv = new IndexEnv(
+            THREAD_POOL,
+            table,
+            clusterService.state(),
+            Version.CURRENT)) {
+            T value = dataGenerator.get();
+
+            MapperService mapperService = indexEnv.mapperService();
+
+            Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), mapperService::getLuceneFieldType, "x");
+            ParsedDocument doc = indexer.index(item(value));
+
+            // going through the document mapper must create the same fields
+            ParsedDocument parsedDocument = mapperService.documentMapper().parse(new SourceToParse(
+                table.ident().indexNameOrAlias(),
+                doc.id(),
+                doc.source(),
+                XContentType.JSON
+            ));
+            assertThat(parsedDocument).hasSameFieldsWithNameAs(doc, reference.storageIdent());
         }
     }
 
