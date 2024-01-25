@@ -23,6 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -38,7 +39,8 @@ public final class RoundFunction {
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);
             assert returnType != null : "Could not get integral type of " + type;
             module.register(
-                scalar(NAME, typeSignature, returnType.getTypeSignature()),
+                scalar(NAME, typeSignature, returnType.getTypeSignature())
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) -> {
                     if (returnType.equals(DataTypes.INTEGER)) {
                         return new UnaryScalar<>(

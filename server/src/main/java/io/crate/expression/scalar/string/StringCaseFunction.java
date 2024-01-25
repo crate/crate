@@ -23,6 +23,7 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -36,7 +37,7 @@ public final class StringCaseFunction {
                 "upper",
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
@@ -50,7 +51,7 @@ public final class StringCaseFunction {
                 "lower",
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

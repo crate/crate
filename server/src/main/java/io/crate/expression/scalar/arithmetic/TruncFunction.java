@@ -50,11 +50,13 @@ public final class TruncFunction {
 
             // trunc(number)
             module.register(
-                scalar(
-                    NAME,
-                    type.getTypeSignature(),
-                    returnType.getTypeSignature()
-                ).withForbiddenCoercion(),
+                Signature.scalar(
+                        NAME,
+                        type.getTypeSignature(),
+                        returnType.getTypeSignature()
+                    )
+                    .withForbiddenCoercion()
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(
                         signature,
@@ -76,7 +78,7 @@ public final class TruncFunction {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             TruncFunction::createTruncWithMode
         );
     }

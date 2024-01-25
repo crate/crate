@@ -23,6 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -35,7 +36,7 @@ public class RadiansDegreesFunctions {
                 "radians",
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toRadians));
 
@@ -44,7 +45,7 @@ public class RadiansDegreesFunctions {
                 "degrees",
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toDegrees));
     }

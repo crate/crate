@@ -45,6 +45,7 @@ import org.joda.time.DurationFieldType;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
 
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataTypes;
@@ -82,7 +83,7 @@ public class ExtractFunctions {
                         functionNameFrom(entry.extractField()),
                         argType.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature()
-                    ),
+                    ).withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) ->
                         new UnaryScalar<Number, Long>(signature, boundSignature, argType, dtf::get)
                 );
@@ -93,7 +94,7 @@ public class ExtractFunctions {
                     functionNameFrom(EPOCH),
                     argType.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()
-                ),
+                ).withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(signature, boundSignature, argType, v -> (double) v / 1000)
             );
@@ -117,7 +118,7 @@ public class ExtractFunctions {
                     functionNameFrom(entry.extractField()),
                     DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
-                ),
+                ).withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<Number, Period>(signature, boundSignature, DataTypes.INTERVAL, function::apply)
             );
@@ -128,7 +129,7 @@ public class ExtractFunctions {
                 functionNameFrom(EPOCH),
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.INTERVAL, ExtractFunctions::toMillis)
         );
