@@ -23,6 +23,7 @@ package io.crate.expression.scalar.geo;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.common.geo.GeoHashUtils;
@@ -38,7 +39,7 @@ public final class GeoHashFunction {
                 "geohash",
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

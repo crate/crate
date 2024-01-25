@@ -24,6 +24,7 @@ package io.crate.expression.scalar.systeminformation;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.arithmetic.BinaryScalar;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
@@ -40,7 +41,7 @@ public class PgGetSerialSequenceFunction {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> new BinaryScalar<>(
                         (table,column) -> null,
                         signature,

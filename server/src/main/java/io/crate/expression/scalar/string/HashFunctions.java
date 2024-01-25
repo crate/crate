@@ -32,6 +32,7 @@ import org.elasticsearch.common.hash.MessageDigests;
 import io.crate.common.Hex;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -48,7 +49,7 @@ public final class HashFunctions {
                 name,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, func)
         );
