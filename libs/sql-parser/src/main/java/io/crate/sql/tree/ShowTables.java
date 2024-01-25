@@ -31,11 +31,11 @@ public class ShowTables extends Statement {
     private final QualifiedName schema;
     @Nullable
     private final String likePattern;
-    private final Optional<Expression> whereExpression;
+    private final Optional<WhereClauseExpression> whereExpression;
 
     public ShowTables(@Nullable QualifiedName schema,
                       @Nullable String likePattern,
-                      Optional<Expression> whereExpression) {
+                      Optional<WhereClauseExpression> whereExpression) {
         this.schema = schema;
         this.whereExpression = whereExpression;
         this.likePattern = likePattern;
@@ -51,7 +51,7 @@ public class ShowTables extends Statement {
         return likePattern;
     }
 
-    public Optional<Expression> whereExpression() {
+    public Optional<WhereClauseExpression> whereExpression() {
         return whereExpression;
     }
 

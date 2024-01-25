@@ -34,11 +34,11 @@ public class ShowColumns extends Statement {
     private final QualifiedName schema;
     @Nullable
     private final String likePattern;
-    private final Optional<Expression> where;
+    private final Optional<WhereClauseExpression> where;
 
     public ShowColumns(QualifiedName table,
                        @Nullable QualifiedName schema,
-                       Optional<Expression> where,
+                       Optional<WhereClauseExpression> where,
                        @Nullable String likePattern) {
         this.table = requireNonNull(table, "table is null");
         this.schema = schema;
@@ -60,7 +60,7 @@ public class ShowColumns extends Statement {
         return likePattern;
     }
 
-    public Optional<Expression> where() {
+    public Optional<WhereClauseExpression> where() {
         return where;
     }
 

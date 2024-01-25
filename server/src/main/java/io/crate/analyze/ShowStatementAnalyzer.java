@@ -32,7 +32,6 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.ShowColumns;
@@ -41,6 +40,7 @@ import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.Table;
 import io.crate.role.Role;
+import io.crate.sql.tree.WhereClauseExpression;
 
 /**
  * Rewrites the SHOW statements into Select queries.
@@ -238,7 +238,7 @@ class ShowStatementAnalyzer {
             }
             sb.append(")");
         }
-        Optional<Expression> whereExpression = node.whereExpression();
+        Optional<WhereClauseExpression> whereExpression = node.whereExpression();
         if (whereExpression.isPresent()) {
             sb.append(" AND (");
             sb.append(whereExpression.get().toString());

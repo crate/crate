@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -22,56 +22,30 @@
 package io.crate.sql.tree;
 
 import java.util.Objects;
-import java.util.Optional;
 
-import static java.util.Objects.requireNonNull;
+public class WhereClauseExpression extends Expression {
 
-public class Delete extends Statement {
+    private final Expression expression;
 
-    private final Relation relation;
-    private final Optional<WhereClauseExpression> where;
-
-    public Delete(Relation relation, Optional<WhereClauseExpression> where) {
-        this.relation = requireNonNull(relation, "relation is null");
-        this.where = where;
-    }
-
-    public Relation getRelation() {
-        return relation;
-    }
-
-    public Optional<WhereClauseExpression> getWhere() {
-        return where;
+    public WhereClauseExpression(Expression expression) {
+        this.expression = expression;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDelete(this, context);
+        return expression.accept(visitor, context);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Delete delete = (Delete) o;
-        return Objects.equals(relation, delete.relation) &&
-               Objects.equals(where, delete.where);
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WhereClauseExpression that = (WhereClauseExpression) o;
+        return Objects.equals(expression, that.expression);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(relation, where);
-    }
-
-    @Override
-    public String toString() {
-        return "Delete{" +
-               "relation=" + relation +
-               ", where=" + where +
-               '}';
+        return Objects.hash(expression);
     }
 }

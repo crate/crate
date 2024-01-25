@@ -31,12 +31,12 @@ public class Update extends Statement {
 
     private final Relation relation;
     private final List<Assignment<Expression>> assignments;
-    private final Optional<Expression> where;
+    private final Optional<WhereClauseExpression> where;
     private final List<SelectItem> returning;
 
     public Update(Relation relation,
                   List<Assignment<Expression>> assignments,
-                  Optional<Expression> where,
+                  Optional<WhereClauseExpression> where,
                   List<SelectItem> returning) {
         this.relation = requireNonNull(relation, "relation is null");
         this.assignments = assignments;
@@ -52,7 +52,7 @@ public class Update extends Statement {
         return assignments;
     }
 
-    public Optional<Expression> whereClause() {
+    public Optional<WhereClauseExpression> whereClause() {
         return where;
     }
 

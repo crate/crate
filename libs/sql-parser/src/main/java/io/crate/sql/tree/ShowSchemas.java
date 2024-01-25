@@ -29,10 +29,10 @@ public class ShowSchemas extends Statement {
 
     @Nullable
     private final String likePattern;
-    private final Optional<Expression> whereExpression;
+    private final Optional<WhereClauseExpression> whereExpression;
 
     public ShowSchemas(@Nullable String likePattern,
-                       Optional<Expression> whereExpr) {
+                       Optional<WhereClauseExpression> whereExpr) {
         this.likePattern = likePattern;
         this.whereExpression = whereExpr;
     }
@@ -42,7 +42,7 @@ public class ShowSchemas extends Statement {
         return likePattern;
     }
 
-    public Optional<Expression> whereExpression() {
+    public Optional<WhereClauseExpression> whereExpression() {
         return whereExpression;
     }
 

@@ -32,7 +32,7 @@ public class QuerySpecification extends QueryBody {
 
     private final Select select;
     private final List<Relation> from;
-    private final Optional<Expression> where;
+    private final Optional<WhereClauseExpression> where;
     private final List<Expression> groupBy;
     private final Optional<Expression> having;
     private final List<SortItem> orderBy;
@@ -42,7 +42,7 @@ public class QuerySpecification extends QueryBody {
 
     public QuerySpecification(Select select,
                               List<Relation> from,
-                              Optional<Expression> where,
+                              Optional<WhereClauseExpression> where,
                               List<Expression> groupBy,
                               Optional<Expression> having,
                               Map<String, Window> windows,
@@ -68,7 +68,7 @@ public class QuerySpecification extends QueryBody {
         return from;
     }
 
-    public Optional<Expression> getWhere() {
+    public Optional<WhereClauseExpression> getWhere() {
         return where;
     }
 

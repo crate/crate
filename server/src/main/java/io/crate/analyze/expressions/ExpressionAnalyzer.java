@@ -157,6 +157,7 @@ import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.WhenClause;
+import io.crate.sql.tree.WhereClauseExpression;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
@@ -250,7 +251,7 @@ public class ExpressionAnalyzer {
         return normalizer.normalize(symbol, coordinatorTxnCtx);
     }
 
-    public Symbol generateQuerySymbol(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
+    public Symbol generateQuerySymbol(Optional<WhereClauseExpression> whereExpression, ExpressionAnalysisContext context) {
         return whereExpression.map(expression -> convert(expression, context)).orElse(Literal.BOOLEAN_TRUE);
     }
 

@@ -244,6 +244,7 @@ import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Values;
 import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.WhenClause;
+import io.crate.sql.tree.WhereClauseExpression;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.sql.tree.With;
@@ -747,7 +748,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new CopyTo(
             (Table<?>) visit(context.tableWithPartition()),
             context.columns() == null ? emptyList() : visitCollection(context.columns().primaryExpression(), Expression.class),
-            visitIfPresent(context.where(), Expression.class),
+            visitIfPresent(context.where(), WhereClauseExpression.class),
             context.DIRECTORY() != null,
             visit(context.path),
             extractGenericProperties(context.withProperties()));
@@ -829,7 +830,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     public Node visitDelete(SqlBaseParser.DeleteContext context) {
         return new Delete(
             (Relation) visit(context.aliasedRelation()),
-            visitIfPresent(context.where(), Expression.class));
+            visitIfPresent(context.where(), WhereClauseExpression.class));
     }
 
     @SuppressWarnings("unchecked")
@@ -839,7 +840,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new Update(
             (Relation) visit(context.aliasedRelation()),
             assignments,
-            visitIfPresent(context.where(), Expression.class),
+            visitIfPresent(context.where(), WhereClauseExpression.class),
             getReturningItems(context.returning())
             );
     }
@@ -1005,14 +1006,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new ShowTables(
             context.qname() == null ? null : getQualifiedName(context.qname()),
             getUnquotedText(context.pattern),
-            visitIfPresent(context.where(), Expression.class));
+            visitIfPresent(context.where(), WhereClauseExpression.class));
     }
 
     @Override
     public Node visitShowSchemas(SqlBaseParser.ShowSchemasContext context) {
         return new ShowSchemas(
             getUnquotedText(context.pattern),
-            visitIfPresent(context.where(), Expression.class));
+            visitIfPresent(context.where(), WhereClauseExpression.class));
     }
 
     @Override
@@ -1020,7 +1021,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new ShowColumns(
             getQualifiedName(context.tableName),
             context.schema == null ? null : getQualifiedName(context.schema),
-            visitIfPresent(context.where(), Expression.class),
+            visitIfPresent(context.where(), WhereClauseExpression.class),
             getUnquotedText(context.pattern));
     }
 
@@ -1514,7 +1515,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new QuerySpecification(
             new Select(isDistinct(context.setQuant()), selectItems),
             visitCollection(context.relation(), Relation.class),
-            visitIfPresent(context.where(), Expression.class),
+            visitIfPresent(context.where(), WhereClauseExpression.class),
             visitCollection(context.expr(), Expression.class),
             visitIfPresent(context.having, Expression.class),
             getWindowDefinitions(context.windows),
