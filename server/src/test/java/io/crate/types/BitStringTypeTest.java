@@ -28,7 +28,6 @@ import java.util.function.Supplier;
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -36,7 +35,12 @@ import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.testing.DataTypeTesting;
 
-public class BitStringTypeTest extends ESTestCase {
+public class BitStringTypeTest extends DataTypeTestCase<BitString> {
+
+    @Override
+    public DataType<BitString> getType() {
+        return BitStringType.INSTANCE_ONE;
+    }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 

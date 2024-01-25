@@ -27,10 +27,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.util.Map;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class LongTypeTest extends ESTestCase {
+public class LongTypeTest extends DataTypeTestCase<Long> {
+
+    @Override
+    public DataType<Long> getType() {
+        return LongType.INSTANCE;
+    }
 
     @Test
     public void test_cast_text_to_bigint() {

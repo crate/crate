@@ -24,10 +24,14 @@ package io.crate.types;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class IpTypeTest extends ESTestCase {
+public class IpTypeTest extends DataTypeTestCase<String> {
+
+    @Override
+    public DataType<String> getType() {
+        return IpType.INSTANCE;
+    }
 
     @Test
     public void test_sanitize_value() {

@@ -31,7 +31,12 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 
-public class RegclassTypeTest {
+public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
+
+    @Override
+    public DataType<Regclass> getType() {
+        return RegclassType.INSTANCE;
+    }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
