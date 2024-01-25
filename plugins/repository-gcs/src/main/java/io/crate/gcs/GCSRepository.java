@@ -2,6 +2,8 @@ package io.crate.gcs;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -35,8 +37,38 @@ public class GCSRepository extends BlobStoreRepository {
     static final Setting<String> ENDPOINT_SETTING =
         Setting.simpleString("endpoint", Property.NodeScope);
 
-    static final Setting<SecureString> SERVICE_ACCOUNT_KEY_SETTING =
-        Setting.maskedString("service_account_key");
+    static final Setting<String> PROJECT_ID_SETTING =
+        Setting.simpleString("project_id");
+
+    static final Setting<String> PRIVATE_KEY_ID_SETTING =
+        Setting.simpleString("private_key_id");
+
+    static final Setting<String> PRIVATE_KEY_SETTING =
+        Setting.simpleString("private_key");
+
+    static final Setting<String> CLIENT_EMAIL_SETTING =
+        Setting.simpleString("client_email");
+
+    static final Setting<String> CLIENT_ID_SETTING =
+        Setting.simpleString("client_id");
+
+    static final Setting<String> AUTH_URI_SETTING =
+        Setting.simpleString("auth_uri");
+
+    static final Setting<String> TOKEN_URI_SETTING =
+        Setting.simpleString("token_uri");
+
+    static final Setting<String> AUTH_PROVIDER_X509_CERT_URL =
+        Setting.simpleString("auth_provider_x509_cert_url");
+
+    static final Setting<String> CLIENT_X509_CERT_URL_SETTING =
+        Setting.simpleString("client_x509_cert_url");
+
+    static final Setting<String> UNIVERSE_DOMAIN_SETTING =
+        Setting.simpleString("universe_domain");
+
+    static final Setting<String> SERVICE_ACCOUNT_KEY_SETTING =
+        Setting.simpleString("service_account_key");
 
     static final Setting<String> BUCKET_SETTING =
         Setting.simpleString("bucket", Property.NodeScope);
@@ -61,19 +93,29 @@ public class GCSRepository extends BlobStoreRepository {
 
     @Override
     protected BlobStore createBlobStore() throws java.io.IOException {
-        final Settings s = metadata.settings();
+        final Settings settings = metadata.settings();
         final StorageOptions.Builder opts = StorageOptions.newBuilder();
 
         // A custom endpoint is only used for locally testing this plugin,
         // e.g. using https://github.com/fsouza/fake-gcs-server.
-        if (ENDPOINT_SETTING.exists(s)) {
-            opts.setHost(ENDPOINT_SETTING.get(s));
+        if (ENDPOINT_SETTING.exists(settings)) {
+            opts.setHost(ENDPOINT_SETTING.get(settings));
         }
 
         // Set service account credentials.
-        final SecureString key_data = SERVICE_ACCOUNT_KEY_SETTING.get(s);
-        final InputStream key_data_is = new ByteArrayInputStream(key_data.toString().getBytes());
-        final ServiceAccountCredentials credentials = ServiceAccountCredentials.fromStream(key_data_is);
+        final URI tokenServiceUrl;
+        try {
+            tokenServiceUrl = new URI(TOKEN_URI_SETTING.get(settings));
+        } catch(URISyntaxException e) {
+            throw new IllegalArgumentException(e.getCause());
+        }
+        final ServiceAccountCredentials credentials = ServiceAccountCredentials.newBuilder()
+            .setProjectId(PROJECT_ID_SETTING.get(settings))
+            .setPrivateKeyId(PRIVATE_KEY_ID_SETTING.get(settings))
+            .setPrivateKeyString(PRIVATE_KEY_SETTING.get(settings))
+            .setClientEmail(CLIENT_EMAIL_SETTING.get(settings))
+            .setClientId(CLIENT_ID_SETTING.get(settings))
+            .setTokenServerUri(tokenServiceUrl).build();
         opts.setCredentials(credentials);
 
         // Get the specified bucket.
