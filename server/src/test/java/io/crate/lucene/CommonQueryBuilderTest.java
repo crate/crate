@@ -708,6 +708,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_is_null_on_not_null_ref() {
+        Query query = convert("x is null");
+        assertThat(query).isExactlyInstanceOf(MatchNoDocsQuery.class);
+    }
+
+    @Test
     public void test_neq_operator_on_nullable_and_not_nullable_args_does_not_filter_nulls_from_non_nullable_arg() throws Exception {
         long[] oid = new long[] {123, 124};
         int[] oidIdx = new int[]{0};
