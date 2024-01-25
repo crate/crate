@@ -35,7 +35,6 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.EqualityExtractor;
 import io.crate.analyze.where.EqualityExtractor.EqMatches;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -210,7 +209,6 @@ public final class WhereClauseOptimizer {
             ? eqExtractor.extractMatches(table.partitionedBy(), optimizedCastsQuery, txnCtx)
             : EqMatches.NONE;
 
-        WhereClauseValidator.validate(query);
         return new DetailedQuery(
             query,
             docKeys,

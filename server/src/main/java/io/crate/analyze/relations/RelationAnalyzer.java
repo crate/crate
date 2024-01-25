@@ -50,7 +50,6 @@ import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
-import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
@@ -419,15 +418,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             GroupAndAggregateSemantics.validate(selectAnalysis.outputSymbols(), groupBy);
         }
 
-        boolean isDistinct = node.getSelect().isDistinct();
-        Symbol where = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
-        WhereClauseValidator.validate(where);
-
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             nodeCtx,
             f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.signature().isDeterministic()
         );
+        Symbol where = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
 
+        boolean isDistinct = node.getSelect().isDistinct();
         QueriedSelectRelation relation = new QueriedSelectRelation(
             isDistinct,
             List.copyOf(context.sources().values()),

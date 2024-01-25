@@ -55,6 +55,7 @@ import io.crate.analyze.relations.OrderyByAnalyzer;
 import io.crate.analyze.relations.SelectListFieldProvider;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.validator.SemanticSortValidator;
+import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
@@ -250,8 +251,20 @@ public class ExpressionAnalyzer {
         return normalizer.normalize(symbol, coordinatorTxnCtx);
     }
 
+    /**
+     * Only difference between {@link ExpressionAnalyzer#convert(Expression, ExpressionAnalysisContext)} is the call to {@link WhereClauseValidator}.
+     */
     public Symbol generateQuerySymbol(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
-        return whereExpression.map(expression -> convert(expression, context)).orElse(Literal.BOOLEAN_TRUE);
+        if (whereExpression.isPresent()) {
+            var whereSymbol = whereExpression.get().accept(innerAnalyzer, context);
+            var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
+                nodeCtx,
+                f -> context.isEagerNormalizationAllowed() && f.signature().isDeterministic()
+            );
+            new WhereClauseValidator(normalizer).validate(whereSymbol);
+            return normalizer.normalize(whereSymbol, coordinatorTxnCtx);
+        }
+        return Literal.BOOLEAN_TRUE;
     }
 
     private Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {

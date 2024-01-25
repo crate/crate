@@ -90,10 +90,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         if (arg instanceof Input<?> input) {
             return Literal.of(input.value() == null);
         }
-        if (arg instanceof Reference ref
-            // allow system columns for further error processing, for example see testSelectWhereVersionIsNullPredicate().
-            && !ref.column().isSystemColumn()
-            && !ref.isNullable()) {
+        if (arg instanceof Reference ref && !ref.isNullable()) {
             return Literal.of(false);
         }
         return symbol;

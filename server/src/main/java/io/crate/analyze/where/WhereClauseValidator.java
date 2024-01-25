@@ -29,6 +29,7 @@ import java.util.Stack;
 import java.util.function.Supplier;
 
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.Operator;
@@ -40,20 +41,21 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.ComparisonExpression;
 
 public final class WhereClauseValidator {
+    private final Visitor visitor;
 
-    private static final Visitor VISITOR = new Visitor();
-
-    private WhereClauseValidator() {
+    public WhereClauseValidator(EvaluatingNormalizer normalizer) {
+        this.visitor = new Visitor(normalizer);
     }
 
-    public static void validate(Symbol query) {
-        query.accept(VISITOR, new Visitor.Context());
+    public void validate(Symbol query) {
+        query.accept(visitor, new Visitor.Context());
     }
 
     private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
@@ -64,6 +66,10 @@ public final class WhereClauseValidator {
 
             private Context() {
             }
+        }
+
+        private Visitor(EvaluatingNormalizer normalizer) {
+            this.normalizer = normalizer;
         }
 
         private static final String SCORE = "_score";
@@ -78,6 +84,8 @@ public final class WhereClauseValidator {
         private static final String SCORE_ERROR = String.format(Locale.ENGLISH,
                                                                 "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
                                                                 SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue());
+
+        private final EvaluatingNormalizer normalizer;
 
         @Override
         public Symbol visitField(ScopedSymbol field, Context context) {
@@ -151,7 +159,7 @@ public final class WhereClauseValidator {
             }
         }
 
-        private static void validateSysReference(Context context, Set<String> requiredFunctionNames, Supplier<RuntimeException> error) {
+        private void validateSysReference(Context context, Set<String> requiredFunctionNames, Supplier<RuntimeException> error) {
             if (context.functions.isEmpty()) {
                 throw error.get();
             }
@@ -162,8 +170,9 @@ public final class WhereClauseValidator {
                 throw error.get();
             }
             assert function.arguments().size() == 2 : "function's number of arguments must be 2";
-            Symbol right = function.arguments().get(1);
-            if (!right.symbolType().isValueSymbol() && right.symbolType() != SymbolType.PARAMETER) {
+            // normalize the right arg to identify `<expr>` in `_version = <expr>` can be normalized to a literal
+            Symbol right = normalizer.normalize(function.arguments().get(1), CoordinatorTxnCtx.systemTransactionContext());
+            if (right == null || (!right.symbolType().isValueSymbol() && right.symbolType() != SymbolType.PARAMETER)) {
                 throw error.get();
             }
         }
