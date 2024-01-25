@@ -310,6 +310,7 @@
     <module>plugins/es-repository-s3</module>
     <module>plugins/es-repository-url</module>
     <module>plugins/es-repository-azure</module>
+    <module>plugins/repository-gcs</module>
     <module>plugins/dns-discovery</module>
     <module>plugins/cr8-copy-s3</module>
     <module>extensions/functions</module>
