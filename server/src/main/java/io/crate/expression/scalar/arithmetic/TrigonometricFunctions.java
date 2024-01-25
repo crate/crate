@@ -47,8 +47,9 @@ public final class TrigonometricFunctions {
                 "atan2",
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeatures(Scalar.DETERMINISTIC_ONLY),
+                DataTypes.DOUBLE.getTypeSignature())
+                .withFeatures(Scalar.DETERMINISTIC_ONLY)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     Math::atan2,
@@ -74,7 +75,7 @@ public final class TrigonometricFunctions {
     private static double checkRange(double value) {
         if (value < -1.0 || value > 1.0) {
             throw new IllegalArgumentException("input value " + value + " is out of range. " +
-                                               "Values must be in range of [-1.0, 1.0]");
+                "Values must be in range of [-1.0, 1.0]");
         }
         return value;
     }

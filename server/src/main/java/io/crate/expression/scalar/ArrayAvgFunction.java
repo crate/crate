@@ -23,6 +23,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.expression.scalar.array.ArraySummationFunctions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -100,7 +101,7 @@ public class ArrayAvgFunction {
                 NAME,
                 new ArrayType(DataTypes.NUMERIC).getTypeSignature(),
                 DataTypes.NUMERIC.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -113,7 +114,7 @@ public class ArrayAvgFunction {
                 NAME,
                 new ArrayType(DataTypes.FLOAT).getTypeSignature(),
                 DataTypes.FLOAT.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -126,7 +127,7 @@ public class ArrayAvgFunction {
                 NAME,
                 new ArrayType(DataTypes.DOUBLE).getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -142,7 +143,7 @@ public class ArrayAvgFunction {
                         NAME,
                         new ArrayType(supportedType).getTypeSignature(),
                         DataTypes.NUMERIC.getTypeSignature()
-                    ),
+                    ).withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) -> new UnaryScalar<>(
                         signature,
                         boundSignature,

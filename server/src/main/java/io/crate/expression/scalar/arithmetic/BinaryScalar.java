@@ -41,6 +41,7 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
                         BoundSignature boundSignature,
                         DataType<T> type) {
         super(signature, boundSignature);
+        assert signature.hasFeature(Feature.NULLABLE) : "A BinaryScalar is NULLABLE by definition";
         assert boundSignature.argTypes().stream().allMatch(t -> t.id() == type.id()) :
             "All bound argument types of the signature must match the type argument";
         this.func = func;

@@ -23,6 +23,7 @@ package io.crate.expression.scalar.geo;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -35,7 +36,7 @@ public final class CoordinateFunction {
                 "latitude",
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
@@ -49,7 +50,7 @@ public final class CoordinateFunction {
                 "longitude",
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

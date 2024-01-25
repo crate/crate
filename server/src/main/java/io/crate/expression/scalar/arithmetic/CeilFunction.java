@@ -23,6 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -42,7 +43,8 @@ public final class CeilFunction {
             assert returnType != null : "Could not get integral type of " + type;
             for (var name : List.of(CEIL, CEILING)) {
                 module.register(
-                    scalar(name, typeSignature, returnType.getTypeSignature()),
+                    scalar(name, typeSignature, returnType.getTypeSignature())
+                        .withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) ->
                         new UnaryScalar<>(
                             signature,
