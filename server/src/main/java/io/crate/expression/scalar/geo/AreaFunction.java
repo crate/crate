@@ -24,6 +24,7 @@ package io.crate.expression.scalar.geo;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -59,7 +60,7 @@ public final class AreaFunction {
                 FUNCTION_NAME,
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
