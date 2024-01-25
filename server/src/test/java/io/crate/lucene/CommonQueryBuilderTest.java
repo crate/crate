@@ -733,6 +733,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query).isExactlyInstanceOf(MatchAllDocsQuery.class);
     }
 
+    @Test
+    public void test_is_null_on_not_null_ref() {
+        Query query = convert("x is null");
+        assertThat(query).isExactlyInstanceOf(MatchNoDocsQuery.class);
+    }
+
     // tracks a bug: https://github.com/crate/crate/issues/15202
     @Test
     public void test_neq_operator_on_nullable_and_not_nullable_args_filters_nulls() throws Exception {
