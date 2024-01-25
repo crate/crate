@@ -130,5 +130,10 @@ public class IsNullPredicateTest extends ScalarTestCase {
     public void testEvaluateWithInputThatReturnsNull() throws Exception {
         assertEvaluate("name is null", true, Literal.of(DataTypes.STRING, null));
     }
+
+    @Test
+    public void test_normalize_not_null_ref_to_false() {
+        assertNormalize("b is null", isLiteral(false));
+    }
 }
 
