@@ -28,10 +28,14 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Map;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class DoubleTypeTest extends ESTestCase {
+public class DoubleTypeTest extends DataTypeTestCase<Double> {
+
+    @Override
+    public DataType<Double> getType() {
+        return DoubleType.INSTANCE;
+    }
 
     @Test
     public void test_cast_text_to_double() {

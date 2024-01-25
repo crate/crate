@@ -30,7 +30,8 @@ import org.junit.jupiter.api.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 
-class JsonTypeTest {
+// TODO convert to DataTypeTestCase and add DataGenerator
+public class JsonTypeTest {
 
     @Test
     void test_can_cast_object_to_json_string() throws Exception {

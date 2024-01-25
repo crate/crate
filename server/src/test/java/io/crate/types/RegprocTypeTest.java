@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import io.crate.metadata.pgcatalog.OidHash;
 
+// TODO convert to DataTypeTestCase and add DataGenerator for regproc type
 public class RegprocTypeTest extends ESTestCase {
 
     @Test

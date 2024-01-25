@@ -23,13 +23,17 @@ package io.crate.types;
 
 import static io.crate.testing.Asserts.assertThat;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.settings.SessionSettings;
 
-public class CharacterTypeTest extends ESTestCase {
+public class CharacterTypeTest extends DataTypeTestCase<String> {
+
+    @Override
+    public DataType<String> getType() {
+        return CharacterType.INSTANCE;
+    }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 

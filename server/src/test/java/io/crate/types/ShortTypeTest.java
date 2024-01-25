@@ -27,11 +27,15 @@ import static org.junit.Assert.assertThat;
 import java.math.BigDecimal;
 import java.util.Map;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 
-public class ShortTypeTest extends ESTestCase {
+public class ShortTypeTest extends DataTypeTestCase<Short> {
+
+    @Override
+    public DataType<Short> getType() {
+        return ShortType.INSTANCE;
+    }
 
     @Test
     public void test_cast_text_to_smallint() {
