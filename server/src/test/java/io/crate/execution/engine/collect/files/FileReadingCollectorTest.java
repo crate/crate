@@ -200,7 +200,7 @@ public class FileReadingCollectorTest extends ESTestCase {
 
     private static FileReadingIterator it(Collection<String> fileUris, String compression) {
         return new FileReadingIterator(
-            fileUris,
+            fileUris.stream().map(FileReadingIterator::toURI).toList(),
             compression,
             Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
