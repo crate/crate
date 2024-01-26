@@ -21,10 +21,18 @@
 
 package io.crate.exceptions;
 
-public class UnauthorizedException extends RuntimeException implements UnscopedException {
+import java.io.IOException;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+public class UnauthorizedException extends ElasticsearchException implements UnscopedException {
 
     public UnauthorizedException(String message) {
         super(message);
     }
 
+    public UnauthorizedException(StreamInput in) throws IOException {
+        super(in);
+    }
 }
