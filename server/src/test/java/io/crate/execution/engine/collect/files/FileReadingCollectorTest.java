@@ -238,7 +238,7 @@ public class FileReadingCollectorTest extends ESTestCase {
             inputs.add(sourceUriFailureInput);
         }
         return FileReadingIterator.newInstance(
-            fileUris,
+            fileUris.stream().map(FileReadingIterator::toURI).toList(),
             inputs,
             ctx.expressions(),
             compression,

@@ -56,6 +56,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import io.crate.user.User;
 
 
 public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUnitTest {
@@ -65,7 +66,12 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testFileUriCollect() throws Exception {
-        FileCollectSource fileCollectSource = new FileCollectSource(createNodeContext(), clusterService, Collections.emptyMap());
+        FileCollectSource fileCollectSource = new FileCollectSource(
+            createNodeContext(),
+            clusterService,
+            Collections.emptyMap(),
+            () -> List.of(User.CRATE_USER)
+        );
 
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {

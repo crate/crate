@@ -969,7 +969,12 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             org.elasticsearch.cluster.coordination.NodeHealthCheckFailureException.class,
             org.elasticsearch.cluster.coordination.NodeHealthCheckFailureException::new,
             175,
-            Version.V_5_2_0);
+            Version.V_5_2_0),
+        UNAUTHORIZED_EXCEPTION(
+            io.crate.exceptions.UnauthorizedException.class,
+            io.crate.exceptions.UnauthorizedException::new,
+            177,
+            Version.V_5_3_9);
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

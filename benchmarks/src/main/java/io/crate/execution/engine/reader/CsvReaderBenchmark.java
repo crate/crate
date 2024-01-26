@@ -141,7 +141,7 @@ public class CsvReaderBenchmark {
 
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
         BatchIterator<Row> batchIterator = FileReadingIterator.newInstance(
-            Collections.singletonList(fileUri),
+            List.of(FileReadingIterator.toURI(fileUri)),
             inputs,
             ctx.expressions(),
             null,
