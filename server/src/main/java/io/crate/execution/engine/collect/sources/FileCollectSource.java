@@ -21,11 +21,27 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static java.util.Objects.requireNonNull;
+
+import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
@@ -40,17 +56,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import io.crate.user.UserLookup;
 
 @Singleton
 public class FileCollectSource implements CollectSource {
@@ -60,17 +66,20 @@ public class FileCollectSource implements CollectSource {
     private final InputFactory inputFactory;
     private final NodeContext nodeCtx;
     private final ThreadPool threadPool;
+    private final UserLookup userLookup;
 
     @Inject
     public FileCollectSource(NodeContext nodeCtx,
                              ClusterService clusterService,
                              Map<String, FileInputFactory> fileInputFactoryMap,
-                             ThreadPool threadPool) {
+                             ThreadPool threadPool,
+                             UserLookup userLookup) {
         this.fileInputFactoryMap = fileInputFactoryMap;
         this.nodeCtx = nodeCtx;
         this.inputFactory = new InputFactory(nodeCtx);
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.userLookup = userLookup;
     }
 
     @Override
@@ -83,7 +92,16 @@ public class FileCollectSource implements CollectSource {
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
-        List<String> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri());
+        var user = requireNonNull(userLookup.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
+        List<URI> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri()).stream()
+            .map(s -> {
+                var uri = FileReadingIterator.toURI(s);
+                if (uri.getScheme().equals("file") && user.isSuperUser() == false) {
+                    throw new UnauthorizedException("Only a superuser can read from the local file system");
+                }
+                return uri;
+            })
+            .toList();
         return CompletableFuture.completedFuture(
             FileReadingIterator.newInstance(
                 fileUris,

@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -67,9 +68,13 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
+import io.crate.action.sql.Sessions;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSchema;
+import io.crate.user.UserLookup;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
@@ -1215,6 +1220,24 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             execute("select x, created from tbl").rows();
             assertThat(response.rows()[0][0]).isEqualTo(x);
             assertThat(response.rows()[0][1]).isEqualTo(created);
+        }
+    }
+
+    @UseRandomizedSchema(random = false)
+    @Test
+    public void test_copy_from_local_file_is_only_allowed_for_superusers() {
+        execute("CREATE TABLE quotes (id INT PRIMARY KEY, " +
+                "quote STRING INDEX USING FULLTEXT) WITH (number_of_replicas = 0)");
+        execute("CREATE USER test_user");
+        execute("GRANT ALL TO test_user");
+
+        var roles = cluster().getInstance(UserLookup.class);
+        var user = roles.findUser("test_user");
+        var sqlOperations = cluster().getInstance(Sessions.class);
+        try (var session = sqlOperations.createSession(null, user)) {
+            assertThatThrownBy(() -> execute("COPY quotes FROM ?", new Object[]{copyFilePath + "test_copy_from.json"}, session))
+                .isExactlyInstanceOf(UnauthorizedException.class)
+                .hasMessage("Only a superuser can read from the local file system");
         }
     }
 }
