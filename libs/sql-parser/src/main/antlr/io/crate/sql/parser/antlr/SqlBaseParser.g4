@@ -584,7 +584,7 @@ createStmt
     : CREATE TABLE (IF NOT EXISTS)? table
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
          partitionedByOrClusteredInto withProperties?                                #createTable
-    | CREATE TABLE table AS insertSource                                             #createTableAs
+    | CREATE TABLE (IF NOT EXISTS)? table AS insertSource                            #createTableAs
     | CREATE FOREIGN TABLE (IF NOT EXISTS)? tableName=qname
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
         SERVER server=ident kvOptions?                                               #createForeignTable

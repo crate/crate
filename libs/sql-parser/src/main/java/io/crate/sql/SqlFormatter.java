@@ -66,6 +66,7 @@ import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
@@ -674,6 +675,22 @@ public final class SqlFormatter {
                 builder.append("\n");
                 node.properties().accept(this, indent);
             }
+            return null;
+        }
+
+        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @Override
+        public Void visitCreateTableAs(CreateTableAs node, Integer indent) {
+            builder.append("CREATE TABLE ");
+            if (node.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+
+            node.name().accept(this, indent);
+            builder.append(" AS ");
+
+            node.query().accept(this, indent);
+
             return null;
         }
 

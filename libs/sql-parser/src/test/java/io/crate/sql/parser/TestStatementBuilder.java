@@ -859,6 +859,12 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateTableAs() {
+        printStatement("create table test as select * from created");
+        printStatement("create table if not exists test  as Select * FROM created");
+    }
+
+    @Test
     public void testBlobTable() {
         printStatement("drop blob table screenshots");
 

@@ -27,10 +27,12 @@ public final class CreateTableAs<T> extends Statement {
 
     private final Table<T> name;
     private final Query query;
+    private final boolean ifNotExists;
 
-    public CreateTableAs(Table<T> name, Query query) {
+    public CreateTableAs(Table<T> name, Query query, boolean ifNotExists) {
         this.name = name;
         this.query = query;
+        this.ifNotExists = ifNotExists;
     }
 
     public Table<T> name() {
@@ -56,7 +58,12 @@ public final class CreateTableAs<T> extends Statement {
         }
         CreateTableAs<?> that = (CreateTableAs<?>) o;
         return name.equals(that.name) &&
-               query.equals(that.query);
+            query.equals(that.query) &&
+            ifNotExists == that.ifNotExists;
+    }
+
+    public boolean ifNotExists() {
+        return ifNotExists;
     }
 
     @Override
