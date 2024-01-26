@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.scalar.arithmetic;
+package io.crate.expression.scalar;
 
 import java.util.function.BinaryOperator;
 
