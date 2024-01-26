@@ -196,7 +196,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier =
             () -> new FileReadingIterator(
-                fileUris,
+                fileUris.stream().map(FileReadingIterator::toURI).toList(),
                 inputs,
                 ctx.expressions(),
                 null,
@@ -255,7 +255,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier =
             () -> new FileReadingIterator(
-                fileUris,
+                fileUris.stream().map(FileReadingIterator::toURI).toList(),
                 inputs,
                 ctx.expressions(),
                 null,
@@ -317,7 +317,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier =
             () -> new FileReadingIterator(
-                fileUris,
+                fileUris.stream().map(FileReadingIterator::toURI).toList(),
                 inputs,
                 ctx.expressions(),
                 null,
@@ -411,7 +411,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
 
         var fi = new FileReadingIterator(
-            fileUris,
+            fileUris.stream().map(FileReadingIterator::toURI).toList(),
             inputs,
             ctx.expressions(),
             null,
@@ -477,7 +477,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
         return FileReadingIterator.newInstance(
-            fileUris,
+            fileUris.stream().map(FileReadingIterator::toURI).toList(),
             inputs,
             ctx.expressions(),
             null,

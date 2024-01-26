@@ -67,7 +67,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     @VisibleForTesting
     static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
 
-    public static BatchIterator<Row> newInstance(Collection<String> fileUris,
+    public static BatchIterator<Row> newInstance(Collection<URI> fileUris,
                                                  List<Input<?>> inputs,
                                                  Iterable<LineCollectorExpression<?>> collectorExpressions,
                                                  String compression,
@@ -125,7 +125,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final Iterator<TimeValue> backOffPolicy;
 
     @VisibleForTesting
-    FileReadingIterator(Collection<String> fileUris,
+    FileReadingIterator(Collection<URI> fileUris,
                         List<? extends Input<?>> inputs,
                         Iterable<LineCollectorExpression<?>> collectorExpressions,
                         String compression,
@@ -360,8 +360,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     @Nullable
-    private FileInput toFileInput(String fileUri, Settings withClauseOptions) {
-        URI uri = toURI(fileUri);
+    private FileInput toFileInput(URI uri, Settings withClauseOptions) {
         FileInputFactory fileInputFactory = fileInputFactories.get(uri.getScheme());
         if (fileInputFactory != null) {
             try {

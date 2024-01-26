@@ -56,6 +56,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
+import io.crate.user.User;
 
 
 public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUnitTest {
@@ -69,7 +70,8 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             createNodeContext(),
             clusterService,
             Collections.emptyMap(),
-            THREAD_POOL
+            THREAD_POOL,
+            () -> List.of(User.CRATE_USER)
             );
 
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
