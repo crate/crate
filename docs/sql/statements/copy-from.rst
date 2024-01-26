@@ -207,6 +207,8 @@ For example:
 
 The files must be accessible on at least one node and the system user running
 the ``crate`` process must have read access to every file specified.
+Additionally, only the ``crate`` superuser is allowed to use the ``file://``
+scheme.
 
 By default, every node will attempt to import every file. If the file is
 accessible on multiple nodes, you can set the `shared`_ option to true in order

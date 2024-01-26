@@ -106,7 +106,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
     private FileReadingIterator createBatchIterator(S3ObjectInputStream inputStream, String ... fileUris) {
         String compression = null;
         return new FileReadingIterator(
-            Arrays.asList(fileUris),
+            Arrays.stream(fileUris).map(FileReadingIterator::toURI).toList(),
             compression,
             Map.of(
                 S3FileInputFactory.NAME,
