@@ -27,7 +27,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.sql.Identifiers;

@@ -30,7 +30,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;

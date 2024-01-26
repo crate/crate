@@ -38,7 +38,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;

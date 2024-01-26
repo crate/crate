@@ -52,7 +52,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.metadata.SearchPath;
 
 public final class GeneratedColumnExpander {

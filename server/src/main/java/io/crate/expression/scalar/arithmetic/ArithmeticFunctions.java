@@ -21,11 +21,11 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.Scalar.DETERMINISTIC_ONLY;
-import static io.crate.metadata.Scalar.Feature.NULLABLE;
+import static io.crate.expression.scalar.Scalar.DETERMINISTIC_ONLY;
+import static io.crate.expression.scalar.Scalar.Feature.NULLABLE;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 

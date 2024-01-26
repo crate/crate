@@ -33,7 +33,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;

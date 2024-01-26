@@ -23,7 +23,7 @@ package io.crate.expression.scalar.geo;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.common.geo.GeoHashUtils;

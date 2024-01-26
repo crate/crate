@@ -26,7 +26,7 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 
 
 public class MatchesFunctionTest extends AbstractTableFunctionsTest {
