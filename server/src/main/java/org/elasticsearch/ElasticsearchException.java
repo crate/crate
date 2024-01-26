@@ -973,7 +973,12 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             io.crate.exceptions.OperationOnInaccessibleRelationException.class,
             io.crate.exceptions.OperationOnInaccessibleRelationException::new,
             176,
-            Version.V_5_6_0);
+            Version.V_5_6_0),
+        UNAUTHORIZED_EXCEPTION(
+            io.crate.exceptions.UnauthorizedException.class,
+            io.crate.exceptions.UnauthorizedException::new,
+            177,
+            Version.V_5_7_0);
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

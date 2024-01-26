@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.SocketTimeoutException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -87,7 +89,9 @@ public class FileReadingIteratorTest extends ESTestCase {
         Path tempFile2 = createTempFile("tempfile2", ".csv");
         List<String> lines2 = List.of("name,id,age", "Trillian,5,33");
         Files.write(tempFile2, lines2);
-        List<String> fileUris = List.of(tempFile1.toUri().toString(), tempFile2.toUri().toString());
+        List<URI> fileUris = Stream.of(tempFile1.toUri().toString(), tempFile2.toUri().toString())
+            .map(FileReadingIterator::toURI)
+            .toList();
 
         Supplier<BatchIterator<LineCursor>> batchIteratorSupplier =
             () -> new FileReadingIterator(
@@ -139,7 +143,8 @@ public class FileReadingIteratorTest extends ESTestCase {
         Path tempFile = createTempFile("tempfile1", ".csv");
         List<String> lines = List.of("id", "1", "2", "3", "4", "5");
         Files.write(tempFile, lines);
-        List<String> fileUris = List.of(tempFile.toUri().toString());
+        List<URI> fileUris = Stream.of(tempFile.toUri().toString())
+            .map(FileReadingIterator::toURI).toList();
 
         Supplier<BatchIterator<LineCursor>> batchIteratorSupplier =
             () -> new FileReadingIterator(
@@ -213,7 +218,8 @@ public class FileReadingIteratorTest extends ESTestCase {
         Files.write(tempFile, List.of("1", "2", "3"));
         Path tempFile2 = createTempFile("tempfile2", ".csv");
         Files.write(tempFile2, List.of("4", "5", "6"));
-        List<String> fileUris = List.of(tempFile.toUri().toString(), tempFile2.toUri().toString());
+        List<URI> fileUris = Stream.of(tempFile.toUri().toString(), tempFile2.toUri().toString())
+            .map(FileReadingIterator::toURI).toList();
 
         var fi = new FileReadingIterator(
             fileUris,

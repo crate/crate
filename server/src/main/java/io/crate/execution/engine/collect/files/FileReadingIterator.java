@@ -175,7 +175,7 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
         }
     }
 
-    public FileReadingIterator(Collection<String> fileUris,
+    public FileReadingIterator(Collection<URI> fileUris,
                                String compression,
                                Map<String, FileInputFactory> fileInputFactories,
                                Boolean shared,
@@ -398,8 +398,7 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
     }
 
     @Nullable
-    private FileInput toFileInput(String fileUri, Settings withClauseOptions) {
-        URI uri = toURI(fileUri);
+    private FileInput toFileInput(URI uri, Settings withClauseOptions) {
         FileInputFactory fileInputFactory = fileInputFactories.get(uri.getScheme());
         if (fileInputFactory != null) {
             try {
