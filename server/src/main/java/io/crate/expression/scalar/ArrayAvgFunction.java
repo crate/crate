@@ -23,7 +23,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.expression.scalar.array.ArraySummationFunctions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;

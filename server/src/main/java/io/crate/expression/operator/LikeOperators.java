@@ -32,7 +32,7 @@ import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyNotLikeOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.lucene.match.CrateRegexQuery;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 

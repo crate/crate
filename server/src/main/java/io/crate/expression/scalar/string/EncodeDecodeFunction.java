@@ -31,7 +31,7 @@ import io.crate.common.Hex;
 import io.crate.common.Octal;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.arithmetic.BinaryScalar;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 

@@ -42,7 +42,7 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.role.Policy;
 import io.crate.sql.tree.ColumnPolicy;
