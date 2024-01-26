@@ -35,12 +35,12 @@ import io.crate.expression.symbol.Symbol;
 public class AndOperatorTest extends ScalarTestCase {
 
     @Test
-    public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
+    public void test_normalize_boolean_true_and_reference() throws Exception {
         assertNormalize("is_awesome and true", isReference("is_awesome"));
     }
 
     @Test
-    public void testNormalizeBooleanFalseAndNonLiteral() throws Exception {
+    public void test_normalize_boolean_false_and_reference() throws Exception {
         assertNormalize("is_awesome and false", isLiteral(false));
     }
 

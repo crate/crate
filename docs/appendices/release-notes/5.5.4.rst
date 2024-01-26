@@ -50,3 +50,14 @@ Fixes
 - Fixed an issue that caused ``SELECT`` statements with ``WHERE``
   clause having an equality condition on a primary key to return ``NULL`` when
   selecting an object sub-column of ``ARRAY(OBJECT)`` type.
+
+- Fixed an issue that caused queries to return invalid results when the
+  ``WHERE`` clause involving ``primary key`` columns have the following
+  form::
+
+    SELECT * FROM t WHERE NOT(pk_col != 1 AND pk_col IS NULL);
+
+  An equivalent query that returned valid results::
+
+    SELECT * FROM t WHERE pk_col = 1 OR pk_col IS NOT NULL;
+
