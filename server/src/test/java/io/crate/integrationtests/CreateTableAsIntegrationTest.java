@@ -126,4 +126,15 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
             .isExactlyInstanceOf(RelationAlreadyExists.class)
             .hasMessage("Relation 'doc.cpy' already exists.");
     }
+
+    @Test
+    public void testCreateTableIfNotExists() {
+        execute("create table tbl (a int, b string)");
+        execute("insert into tbl(a, b) select g, g || 'foo' from generate_series(1, 10, 1) as g");
+        execute("refresh table tbl");
+        execute("create table if not exists cpy as select * from tbl");
+        assertThat(response).hasRowCount(10);
+        execute("create table if not exists cpy as select * from tbl");
+        assertThat(response).hasRowCount(0);
+    }
 }

@@ -126,22 +126,21 @@ public class TableCreator {
                 // this is a generic mapping parse exception,
                 // the cause has usually a better more detailed error message
                 throw Exceptions.toRuntimeException(cause);
-            } else if (createTable.ifNotExists() && isTableExistsError(t, templateName)) {
-                return 0L;
             } else {
                 throw Exceptions.toRuntimeException(t);
             }
         });
     }
 
-    private static boolean isTableExistsError(Throwable e, @Nullable String templateName) {
-        return e instanceof ResourceAlreadyExistsException
-            || e instanceof RelationAlreadyExists
-            || (templateName != null && isTemplateAlreadyExistsException(e));
+    public static boolean isTableExistsError(Throwable t, @Nullable String templateName) {
+        t = SQLExceptions.unwrap(t);
+        return t instanceof ResourceAlreadyExistsException
+            || t instanceof RelationAlreadyExists
+            || (templateName != null && isTemplateAlreadyExistsException(t));
     }
 
-    private static boolean isTemplateAlreadyExistsException(Throwable e) {
-        return e instanceof IllegalArgumentException
-            && e.getMessage() != null && e.getMessage().endsWith("already exists");
+    private static boolean isTemplateAlreadyExistsException(Throwable t) {
+        return t instanceof IllegalArgumentException
+            && t.getMessage() != null && t.getMessage().endsWith("already exists");
     }
 }
