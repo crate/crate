@@ -70,6 +70,7 @@ public class DateTimeFormatter {
         P_M_LOWER("p.m."),
         YEAR_WITH_COMMA("Y,YYY"),
         YEAR_YYYY("YYYY"),
+        YEAR_LOWER_YYYY("yyyy"),
         YEAR_YYY("YYY"),
         YEAR_YY("YY"),
         YEAR_Y("Y"),
@@ -300,7 +301,7 @@ public class DateTimeFormatter {
                 String s = String.valueOf(datetime.getYear());
                 yield s.substring(0, 1) + "," + s.substring(1);
             }
-            case YEAR_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
+            case YEAR_YYYY, YEAR_LOWER_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
             case YEAR_YYY -> {
                 String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 3);
