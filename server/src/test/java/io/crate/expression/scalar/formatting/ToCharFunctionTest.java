@@ -40,6 +40,14 @@ public class ToCharFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_lower_case_yyyy_supported() throws Exception {
+        assertEvaluate("to_char(timestamp '1970-01-01', 'yyyy')", "1970");
+        assertEvaluate("to_char(timestamp '1971-01-01T17:31:12', 'yyyy')", "1971");
+        assertEvaluate("to_char(interval '2 year', 'yyyy')", "0002");
+        assertEvaluate("to_char(INTERVAL '1 year 2 months 3 weeks 5 hours 6 minutes 7 seconds', 'yyyy')", "0001");
+    }
+
+    @Test
     public void testEvaluateTimestampWithNullPattern() {
         assertEvaluateNull("to_char(timestamp '1970-01-01T17:31:12', null)");
     }

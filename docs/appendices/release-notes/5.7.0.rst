@@ -63,7 +63,9 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- Added support for lower case ``yyyy`` format string to
+  :ref:`to_char <scalar-to_char>` scalar function, which behaves exactly the
+  same as uppercase ``YYYY``, to match PostgreSQL behaviour.
 
 Data Types
 ----------
