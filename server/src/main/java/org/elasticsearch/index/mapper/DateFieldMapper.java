@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.time.IsoLocale;
@@ -197,13 +199,17 @@ public class DateFieldMapper extends FieldMapper {
             timestamp = fieldType().parse(dateAsString);
         }
 
-        if (mappedFieldType.isSearchable()) {
-            onField.accept(new LongPoint(fieldType().name(), timestamp));
-        }
-        if (mappedFieldType.hasDocValues()) {
-            onField.accept(new SortedNumericDocValuesField(fieldType().name(), timestamp));
-        } else if (fieldType.stored() || mappedFieldType.isSearchable()) {
-            createFieldNamesField(context, onField);
+        if (mappedFieldType.isSearchable() && mappedFieldType.hasDocValues()) {
+            onField.accept(new LongField(fieldType().name(), timestamp, Field.Store.NO));
+        } else {
+            if (mappedFieldType.isSearchable()) {
+                onField.accept(new LongPoint(fieldType().name(), timestamp));
+            }
+            if (mappedFieldType.hasDocValues()) {
+                onField.accept(new SortedNumericDocValuesField(fieldType().name(), timestamp));
+            } else if (fieldType.stored() || mappedFieldType.isSearchable()) {
+                createFieldNamesField(context, onField);
+            }
         }
         if (fieldType.stored()) {
             onField.accept(new StoredField(fieldType().name(), timestamp));

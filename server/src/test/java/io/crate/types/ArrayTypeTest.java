@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -38,7 +39,11 @@ public class ArrayTypeTest extends DataTypeTestCase<List<Object>> {
     @Override
     @SuppressWarnings("unchecked")
     public DataType<List<Object>> getType() {
-        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomType();
+        // we don't support arrays of float vectors
+        // TODO: maybe make this a property of the DataType itself rather than a check in DataTypeAnalyzer?
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE)
+        );
         return new ArrayType<>(randomType);
     }
 
@@ -47,12 +52,6 @@ public class ArrayTypeTest extends DataTypeTestCase<List<Object>> {
         // skip base class case. It doesn't deal with arrays:
         // - doesn't initialize sources correctly
         // - doesn't expect multi values per field
-    }
-
-    @Override
-    public void test_translog_streaming_roundtrip() throws Exception {
-        // skip base class case.
-        // TODO: fix different number of fields.
     }
 
     @Test
