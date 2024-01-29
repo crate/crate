@@ -19,34 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+public class ForeignDataWrapperITest extends IntegTestCase {
 
     @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows).hasSize(276);
-        Row row = rows.get(0);
-
-        assertThat(row.get(0)).isEqualTo("absolute");
-        assertThat(row.get(1)).isEqualTo("U");
-        assertThat(row.get(2)).isEqualTo("unreserved");
+    public void test_cannot_create_server_if_fdw_is_missing() throws Exception {
+        String stmt = "create server pg foreign data wrapper jdbc options (host 'localhost', dbname 'doc', port '5432')";
+        assertThatThrownBy(() -> execute(stmt))
+            .hasMessageContaining("foreign-data wrapper jdbc does not exist");
     }
 }

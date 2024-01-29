@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collector;
@@ -59,6 +60,7 @@ import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
@@ -175,6 +177,33 @@ public final class SqlFormatter {
             if (!swapTable.properties().isEmpty()) {
                 append(indent, " ");
                 swapTable.properties().accept(this, indent);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateServer(CreateServer createServer, Integer indent) {
+            append(indent, "CREATE SERVER ");
+            if (createServer.ifNotExists()) {
+                append(indent, "IF NOT EXISTS ");
+            }
+            append(indent, createServer.name());
+            append(indent, " FOREIGN DATA WRAPPER ");
+            append(indent, createServer.fdw());
+            Map<String, Expression> options = createServer.options();
+            if (!options.isEmpty()) {
+                append(indent, " OPTIONS (");
+                Iterator<Entry<String, Expression>> it = options.entrySet().iterator();
+                while (it.hasNext()) {
+                    var entry = it.next();
+                    String optionName = entry.getKey();
+                    Expression optionValue = entry.getValue();
+                    append(indent, optionName);
+                    optionValue.accept(this, indent);
+                    if (it.hasNext()) {
+                        append(indent, ", ");
+                    }
+                }
             }
             return null;
         }
