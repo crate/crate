@@ -76,9 +76,4 @@ public class NotPredicateTest extends ScalarTestCase {
             assertThat(result).isEmpty();
         }
     }
-
-    @Test
-    public void test_normalize_not_null_ref_to_true() {
-        assertNormalize("b is not null", isLiteral(true));
-    }
 }

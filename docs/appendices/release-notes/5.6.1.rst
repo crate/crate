@@ -43,6 +43,13 @@ Version 5.6.1 - Unreleased
 See the :ref:`version_5.6.0` release notes for a full list of changes in the
 5.6 series.
 
+Security Fixes
+==============
+
+- Fixed a security issue where any CrateDB user could read/import the content of
+  any file on the host system, the CrateDB process user has read access to, by
+  using the ``COPY FROM`` command with a file URI. This access is now restricted
+  to the ``crate`` superuser only.
 
 Fixes
 =====
@@ -58,16 +65,6 @@ Fixes
 - Fixed an issue that caused ``SELECT`` statements with ``WHERE``
   clause having an equality condition on a primary key to return ``NULL`` when
   selecting an object sub-column of ``ARRAY(OBJECT)`` type.
-
-- Fixed an issue that caused queries to return invalid results when the
-  ``WHERE`` clause involving ``primary key`` columns have the following
-  form::
-
-    SELECT * FROM t WHERE NOT(pk_col != 1 AND pk_col IS NULL);
-
-  An equivalent query that returned valid results::
-
-    SELECT * FROM t WHERE pk_col = 1 OR pk_col IS NOT NULL;
 
 - Fixed an issue that caused failure of a statement, mixing correlated subquery
   and sub-select. An example::

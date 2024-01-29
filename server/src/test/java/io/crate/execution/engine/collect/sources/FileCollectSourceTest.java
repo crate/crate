@@ -92,7 +92,8 @@ public class FileCollectSourceTest extends CrateDummyClusterServiceUnitTest {
             new NodeContext(new Functions(Map.of()), roles),
             clusterService,
             Map.of(),
-            THREAD_POOL
+            THREAD_POOL,
+            () -> List.of(Role.CRATE_USER)
         );
 
         CompletableFuture<BatchIterator<Row>> iterator = fileCollectSource.getIterator(
