@@ -27,6 +27,7 @@ import java.util.Set;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
@@ -186,6 +187,9 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 // Ignored objects have no field names in the index, need function filter fallback
                 if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
                     return null;
+                }
+                if (!ref.isNullable()) {
+                    return new MatchAllDocsQuery();
                 }
                 return IsNullPredicate.refExistsQuery(ref, context, true);
             }
