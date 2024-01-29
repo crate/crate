@@ -45,4 +45,9 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a regression introduced in 5.6.0 that caused
+  :ref:`concat_ws <scalar-concat-ws>` returning the wrong result when used on a
+  column with NULL values in the WHERE-clause combined with a NOT-predicate.
+  An example::
+
+    SELECT * FROM t1 WHERE NOT CONCAT_WS(true, column_with_null_value, false);
