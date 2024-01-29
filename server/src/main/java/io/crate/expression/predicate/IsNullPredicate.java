@@ -89,12 +89,6 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         if (arg instanceof Input<?> input) {
             return Literal.of(input.value() == null);
         }
-        if (arg instanceof Reference ref
-            // allow system columns for further error processing, for example see testSelectWhereVersionIsNullPredicate().
-            && !ref.column().isSystemColumn()
-            && !ref.isNullable()) {
-            return Literal.of(false);
-        }
         return symbol;
     }
 
@@ -110,6 +104,9 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         List<Symbol> arguments = function.arguments();
         assert arguments.size() == 1 : "`<expression> IS NULL` function must have one argument";
         if (arguments.get(0) instanceof Reference ref) {
+            if (!ref.isNullable()) {
+                return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
+            }
             Query refExistsQuery = refExistsQuery(ref, context, true);
             return refExistsQuery == null ? null : Queries.not(refExistsQuery);
         }
