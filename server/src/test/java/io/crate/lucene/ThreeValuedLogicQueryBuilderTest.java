@@ -74,6 +74,13 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_negated_concat_ws_with_three_valued_logic() {
+        // Important, y is nullable column.
+        assertThat(convert("NOT CONCAT_WS('dummy', y, false)")).hasToString(
+            "+(+*:* -concat_ws('dummy', y, 'f')) #(NOT concat_ws('dummy', y, 'f'))");
+    }
+
+    @Test
     public void test_nullif() {
         assertThat(convert("NULLIF(2, x) != 1")).hasToString(
             "+(+*:* -(nullif(2, x) = 1)) #(NOT (nullif(2, x) = 1))");
