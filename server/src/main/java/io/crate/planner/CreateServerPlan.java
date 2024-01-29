@@ -21,20 +21,30 @@
 
 package io.crate.planner;
 
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
+import io.crate.analyze.AnalyzedCreateServer;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.IndexParts;
+import io.crate.fdw.CreateServerRequest;
+import io.crate.fdw.TransportCreateServerAction;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 
-public final class GCDangingArtifactsPlan implements Plan {
+public class CreateServerPlan implements Plan {
+
+    private final AnalyzedCreateServer createServer;
+
+    public CreateServerPlan(AnalyzedCreateServer createServer) {
+        this.createServer = createServer;
+    }
 
     @Override
     public StatementType type() {
-        return StatementType.MANAGEMENT;
+        return StatementType.DDL;
     }
 
     @Override
@@ -42,9 +52,19 @@ public final class GCDangingArtifactsPlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params,
-                              SubQueryResults subQueryResults) {
-        var listener = OneRowActionListener.oneIfAcknowledged(consumer);
-        DeleteIndexRequest deleteRequest = new DeleteIndexRequest(IndexParts.DANGLING_INDICES_PREFIX_PATTERNS.toArray(new String[0]));
-        dependencies.client().execute(DeleteIndexAction.INSTANCE, deleteRequest).whenComplete(listener);
+                              SubQueryResults subQueryResults) throws Exception {
+
+        var subQueryAndParamBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        Map<String, Object> options = createServer.options().entrySet().stream()
+            .collect(Collectors.toMap(Entry::getKey, entry -> subQueryAndParamBinder.apply(entry.getValue())));
+        CreateServerRequest request = new CreateServerRequest(
+            createServer.name(),
+            createServer.fdw(),
+            createServer.ifNotExists(),
+            options
+        );
+        dependencies.client()
+            .execute(TransportCreateServerAction.ACTION, request)
+            .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
     }
 }

@@ -303,4 +303,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitClose(AnalyzedClose close, C context) {
         return visitAnalyzedStatement(close, context);
     }
+
+    public R visitCreateServer(AnalyzedCreateServer analyzedCreateServer, C context) {
+        return visitAnalyzedStatement(analyzedCreateServer, context);
+    }
 }

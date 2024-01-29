@@ -48,6 +48,7 @@ import io.crate.sql.parser.antlr.SqlBaseParser.BitStringContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.CloseContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.ColumnConstraintNullContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.ConflictTargetContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.CreateServerContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareCursorParamsContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DirectionContext;
@@ -112,6 +113,7 @@ import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
@@ -2285,6 +2287,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                 .map(c -> c.getText().toLowerCase(Locale.ENGLISH))
                 .collect(Collectors.joining(" "))
         );
+    }
+
+    @Override
+    public Node visitCreateServer(CreateServerContext ctx) {
+        String name = getIdentText(ctx.name);
+        String fdw = getIdentText(ctx.fdw);
+        Map<String, Expression> options = new HashMap<>();
+        return new CreateServer(name, fdw, ctx.EXISTS() != null, options);
     }
 
     @Nullable

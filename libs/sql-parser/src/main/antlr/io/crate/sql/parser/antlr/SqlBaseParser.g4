@@ -602,6 +602,18 @@ createStmt
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
+    | CREATE SERVER (IF NOT EXISTS)? name=ident
+          FOREIGN DATA WRAPPER fdw=ident
+          (OPTIONS OPEN_ROUND_BRACKET kvOptions CLOSE_ROUND_BRACKET)?                #createServer
+    ;
+
+
+kvOptions
+    : kvOption (COMMA kvOption)*
+    ;
+
+kvOption
+    : ident stringLiteral
     ;
 
 
@@ -869,6 +881,7 @@ nonReserved
     | CURRENT_TIMESTAMP
     | CURSOR
     | DANGLING
+    | DATA
     | DAY
     | DEALLOCATE
     | DECLARE
@@ -889,6 +902,7 @@ nonReserved
     | FILTER
     | FLOAT
     | FOLLOWING
+    | FOREIGN
     | FORMAT
     | FORWARD
     | FULLTEXT
@@ -930,6 +944,7 @@ nonReserved
     | ONLY
     | OPEN
     | OPTIMIZE
+    | OPTIONS
     | OVER
     | PARTITION
     | PARTITIONED
@@ -967,6 +982,7 @@ nonReserved
     | SECOND
     | SEQUENCES
     | SERIALIZABLE
+    | SERVER
     | SESSION
     | SHARD
     | SHARDS
@@ -991,8 +1007,8 @@ nonReserved
     | TIMESTAMP
     | TIMESTAMP
     | TO
-    | TOKEN_FILTERS
     | TOKENIZER
+    | TOKEN_FILTERS
     | TRAILING
     | TRANSACTION
     | TRANSACTION_ISOLATION
@@ -1006,6 +1022,7 @@ nonReserved
     | WINDOW
     | WITHOUT
     | WORK
+    | WRAPPER
     | WRITE
     | YEAR
     | ZONE

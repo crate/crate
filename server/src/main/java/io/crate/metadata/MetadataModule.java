@@ -36,6 +36,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ParseField;
 
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ServersMetadata;
 import io.crate.license.License;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.table.SchemaInfo;
@@ -121,6 +122,18 @@ public class MetadataModule extends AbstractModule {
             SubscriptionsMetadata.TYPE,
             in -> readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
         ));
+
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            ServersMetadata.TYPE,
+            ServersMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ServersMetadata.TYPE,
+            in -> readDiffFrom(Metadata.Custom.class, ServersMetadata.TYPE, in)
+        ));
+
 
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedWriteables());

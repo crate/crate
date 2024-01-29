@@ -715,4 +715,8 @@ public abstract class AstVisitor<R, C> {
     public R visitClose(Close close, C context) {
         return visitStatement(close, context);
     }
+
+    public R visitCreateServer(CreateServer createServer, C context) {
+        return visitStatement(createServer, context);
+    }
 }

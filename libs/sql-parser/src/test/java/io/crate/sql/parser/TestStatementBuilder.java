@@ -51,6 +51,7 @@ import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.DeallocateStatement;
@@ -2120,6 +2121,13 @@ public class TestStatementBuilder {
         printStatement("select 'ab' LIKE 'a%' ESCAPE 't'"); // Regular character
     }
 
+    @Test
+    public void test_create_server() throws Exception {
+        printStatement("create server jarvis foreign data wrapper postgres_fdw");
+        printStatement("create server if not exists jarvis foreign data wrapper postgres_fdw");
+        printStatement("create server jarvis foreign data wrapper postgres_fdw options (host 'foo', dbname 'foodb', port '5432')");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -2162,7 +2170,9 @@ public class TestStatementBuilder {
             statement instanceof With ||
             statement instanceof Declare ||
             statement instanceof Fetch ||
-            statement instanceof Close) {
+            statement instanceof Close ||
+            statement instanceof CreateServer) {
+
 
             println(SqlFormatter.formatSql(statement));
             println("");

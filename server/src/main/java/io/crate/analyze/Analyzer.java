@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.HashMap;
+
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -28,8 +30,12 @@ import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 import io.crate.action.sql.Cursor;
 import io.crate.action.sql.Cursors;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.execution.ddl.RepositoryService;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
@@ -38,6 +44,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
+import io.crate.role.RoleManager;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
@@ -63,6 +70,7 @@ import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
@@ -110,7 +118,6 @@ import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
-import io.crate.role.RoleManager;
 
 @Singleton
 public class Analyzer {
@@ -155,6 +162,7 @@ public class Analyzer {
     private final SetStatementAnalyzer setStatementAnalyzer;
     private final ResetStatementAnalyzer resetStatementAnalyzer;
     private final LogicalReplicationAnalyzer logicalReplicationAnalyzer;
+    private final NodeContext nodeCtx;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -172,6 +180,7 @@ public class Analyzer {
                     SessionSettingRegistry sessionSettingRegistry,
                     LogicalReplicationService logicalReplicationService
     ) {
+        this.nodeCtx = nodeCtx;
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(clusterService, schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
@@ -732,6 +741,30 @@ public class Analyzer {
         public AnalyzedStatement visitFetch(Fetch fetch, Analysis context) {
             Cursor cursor = context.cursors().get(fetch.cursorName());
             return new AnalyzedFetch(fetch, cursor);
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateServer(CreateServer createServer, Analysis context) {
+            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                context.transactionContext(),
+                nodeCtx,
+                context.paramTypeHints(),
+                FieldProvider.UNSUPPORTED,
+                null
+            );
+            ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(context.sessionSettings());
+            HashMap<String, Symbol> options = HashMap.newHashMap(createServer.options().size());
+            for (var entry : createServer.options().entrySet()) {
+                String name = entry.getKey();
+                Expression value = entry.getValue();
+                options.put(name, expressionAnalyzer.convert(value, exprCtx));
+            }
+            return new AnalyzedCreateServer(
+                createServer.name(),
+                createServer.fdw(),
+                createServer.ifNotExists(),
+                options
+            );
         }
     }
 }
