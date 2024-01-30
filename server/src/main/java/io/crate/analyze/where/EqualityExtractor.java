@@ -37,12 +37,15 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
 import io.crate.expression.operator.any.AnyEqOperator;
+import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
@@ -116,6 +119,10 @@ public class EqualityExtractor {
                                      Symbol query,
                                      boolean shortCircuitOnMatchPredicateUnknown,
                                      TransactionContext txnCtx) {
+        if (new ColumnsUnderNotPredicateFinder().find(query, columns)) {
+            return EqMatches.NONE;
+        }
+
         var context = new ProxyInjectingVisitor.Context(columns);
         // Normalize the query so that any casts on literals are evaluated
         var normalizedQuery = normalizer.normalize(query, txnCtx);
@@ -436,6 +443,37 @@ public class EqualityExtractor {
 
             context.unknowns.add(function);
             return Literal.BOOLEAN_TRUE;
+        }
+    }
+
+    @VisibleForTesting
+    static class ColumnsUnderNotPredicateFinder extends DefaultTraversalSymbolVisitor<Collection<ColumnIdent>, Void> {
+
+        private boolean isUnderNotPredicate = false;
+        private boolean foundColumnUnderNotPredicate = false;
+
+        public boolean find(Symbol query, Collection<ColumnIdent> columnIdents) {
+            query.accept(this, columnIdents);
+            return foundColumnUnderNotPredicate;
+        }
+
+        @Override
+        public Void visitFunction(Function symbol, Collection<ColumnIdent> columnIdents) {
+            if (NotPredicate.NAME.equals(symbol.name())) {
+                boolean isAlreadyUnderNotPredicate = isUnderNotPredicate;
+                isUnderNotPredicate = true;
+                symbol.arguments().get(0).accept(this, columnIdents);
+                isUnderNotPredicate = isAlreadyUnderNotPredicate;
+            } else {
+                super.visitFunction(symbol, columnIdents);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, Collection<ColumnIdent> columnIdents) {
+            foundColumnUnderNotPredicate |= columnIdents.contains(symbol.column()) && isUnderNotPredicate;
+            return null;
         }
     }
 }
