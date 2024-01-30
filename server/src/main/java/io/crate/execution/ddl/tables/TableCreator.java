@@ -47,7 +47,6 @@ import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 
@@ -57,11 +56,9 @@ public class TableCreator {
     protected static final Logger LOGGER = LogManager.getLogger(TableCreator.class);
 
     private final TransportCreateTableAction transportCreateTableAction;
-    private final Schemas schemas;
 
     @Inject
-    public TableCreator(Schemas schemas, TransportCreateTableAction transportCreateIndexAction) {
-        this.schemas = schemas;
+    public TableCreator(TransportCreateTableAction transportCreateIndexAction) {
         this.transportCreateTableAction = transportCreateIndexAction;
     }
 
@@ -69,20 +66,6 @@ public class TableCreator {
         var templateName = createTable.templateName();
         var relationName = createTable.tableName();
         CreateTableRequest createTableRequest;
-
-        boolean tableExists = schemas.tableExists(relationName);
-        boolean viewExists = schemas.viewExists(relationName);
-        boolean noOp = false;
-        if (createTable.ifNotExists() && !viewExists) {
-            noOp = tableExists;
-        } else if (tableExists || viewExists) {
-            throw new RelationAlreadyExists(relationName);
-        } else {
-            noOp = false;
-        }
-        if (noOp) {
-            return CompletableFuture.completedFuture(1L);
-        }
 
         Map<ColumnIdent, Reference> references = createTable.columns();
         IntArrayList pKeysIndices = createTable.primaryKeysIndices();
@@ -153,7 +136,8 @@ public class TableCreator {
 
     private static boolean isTableExistsError(Throwable e, @Nullable String templateName) {
         return e instanceof ResourceAlreadyExistsException
-               || (templateName != null && isTemplateAlreadyExistsException(e));
+            || e instanceof RelationAlreadyExists
+            || (templateName != null && isTemplateAlreadyExistsException(e));
     }
 
     private static boolean isTemplateAlreadyExistsException(Throwable e) {

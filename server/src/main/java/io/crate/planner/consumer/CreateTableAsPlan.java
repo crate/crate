@@ -89,12 +89,19 @@ public final class CreateTableAsPlan implements Plan {
             subQueryResults
         );
         tableCreator.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
-            .thenRun(() -> postponedInsertPlan.get().execute(
-                dependencies,
-                plannerContext,
-                consumer,
-                params,
-                subQueryResults));
+            .whenComplete((rowCount, err) -> {
+                if (err == null) {
+                    postponedInsertPlan.get().execute(
+                        dependencies,
+                        plannerContext,
+                        consumer,
+                        params,
+                        subQueryResults
+                    );
+                } else {
+                    consumer.accept(null, err);
+                }
+            });
     }
 }
 
