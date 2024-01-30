@@ -23,7 +23,7 @@ package io.crate.fdw;
 
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -36,16 +36,27 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
-    public static final String TYPE = "servers";
-    public static final ServersMetadata EMPTY = new ServersMetadata(Map.of());
+public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
+
+    public static final String TYPE = "foreign_tables";
+    public static final ForeignTablesMetadata EMPTY = new ForeignTablesMetadata(Map.of());
+
+    private final Map<RelationName, ForeignTable> tables;
 
 
-    record Server(String fdw, Map<String, Object> options) implements Writeable, ToXContent {
+    record ForeignTable(RelationName name,
+                        Map<ColumnIdent, Reference> columns,
+                        String server,
+                        Map<String, Object> options) implements Writeable, ToXContent {
 
-        public Server(StreamInput in) throws IOException {
+        ForeignTable(StreamInput in) throws IOException {
             this(
+                new RelationName(in),
+                in.readMap(LinkedHashMap::new, ColumnIdent::new, Reference::fromStream),
                 in.readString(),
                 in.readMap(StreamInput::readString, StreamInput::readGenericValue)
             );
@@ -53,41 +64,31 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(fdw);
+            name.writeTo(out);
+            out.writeMap(columns, (o, v) -> v.writeTo(o), Reference::toStream);
+            out.writeString(server);
             out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
         }
 
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.field("fdw", fdw);
-            builder.field("options", options);
+            // TODO:
+            //
             return builder;
         }
     }
 
-    private final Map<String, Server> servers;
-
-    private ServersMetadata(Map<String, Server> servers) {
-        this.servers = servers;
+    private ForeignTablesMetadata(Map<RelationName, ForeignTable> tables) {
+        this.tables = tables;
     }
 
-    public ServersMetadata(StreamInput in) throws IOException {
-        this.servers = in.readMap(StreamInput::readString, Server::new);
+    public ForeignTablesMetadata(StreamInput in) throws IOException {
+        this.tables = in.readMap(RelationName::new, ForeignTable::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeMap(servers, StreamOutput::writeString, (o, value) -> value.writeTo(o));
-    }
-
-    public boolean contains(String name) {
-        return servers.containsKey(name);
-    }
-
-    public ServersMetadata add(String name, String fdw, Map<String, Object> options) {
-        HashMap<String, Server> servers = new HashMap<>(this.servers);
-        servers.put(name, new Server(fdw, options));
-        return new ServersMetadata(servers);
+        out.writeMap(tables, (o, v) -> v.writeTo(o), (o, v) -> v.writeTo(o));
     }
 
     @Override
@@ -103,11 +104,11 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(TYPE);
-        for (var entry : servers.entrySet()) {
-            String serverName = entry.getKey();
-            Server server = entry.getValue();
-            builder.startObject(serverName);
-            server.toXContent(builder, params);
+        for (var entry : tables.entrySet()) {
+            RelationName tableName = entry.getKey();
+            ForeignTable table = entry.getValue();
+            builder.startObject(tableName.fqn());
+            table.toXContent(builder, params);
             builder.endObject();
         }
         return builder.endObject();
@@ -116,5 +117,9 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
     @Override
     public EnumSet<XContentContext> context() {
         return EnumSet.of(Metadata.XContentContext.GATEWAY, Metadata.XContentContext.SNAPSHOT);
+    }
+
+    public boolean contains(RelationName tableName) {
+        return tables.containsKey(tableName);
     }
 }

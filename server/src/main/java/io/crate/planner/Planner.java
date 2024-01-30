@@ -51,6 +51,7 @@ import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.AnalyzedCreateBlobTable;
+import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateRole;
@@ -631,6 +632,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitCreateServer(AnalyzedCreateServer createServer, PlannerContext context) {
         return new CreateServerPlan(createServer);
+    }
+
+    @Override
+    public Plan visitCreateForeignTable(AnalyzedCreateForeignTable createTable, PlannerContext context) {
+        return new CreateForeignTablePlan(createTable);
     }
 }
 

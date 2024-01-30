@@ -57,6 +57,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
@@ -204,6 +205,7 @@ public final class SqlFormatter {
                         append(indent, ", ");
                     }
                 }
+                append(indent, ")");
             }
             return null;
         }
@@ -648,6 +650,38 @@ public final class SqlFormatter {
             if (!node.properties().isEmpty()) {
                 builder.append("\n");
                 node.properties().accept(this, indent);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateForeignTable(CreateForeignTable createTable, Integer indent) {
+            builder.append("CREATE FOREIGN TABLE ");
+            if (createTable.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+            builder.append(formatQualifiedName(createTable.name()));
+            builder.append(" ");
+            appendNestedNodeList(createTable.tableElements(), indent);
+
+            builder.append(" SERVER ").append(createTable.server());
+            Map<String, Expression> options = createTable.options();
+            if (!options.isEmpty()) {
+                builder.append(" OPTIONS (");
+                Iterator<Entry<String, Expression>> it = options.entrySet().iterator();
+                while (it.hasNext()) {
+                    var entry = it.next();
+                    String optionName = entry.getKey();
+                    Expression value = entry.getValue();
+                    builder.append(optionName);
+                    builder.append(" ");
+                    value.accept(this, indent);
+
+                    if (it.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(")");
             }
             return null;
         }

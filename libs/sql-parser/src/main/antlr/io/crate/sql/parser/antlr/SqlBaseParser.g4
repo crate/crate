@@ -582,6 +582,9 @@ createStmt
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
          partitionedByOrClusteredInto withProperties?                                #createTable
     | CREATE TABLE table AS insertSource                                             #createTableAs
+    | CREATE FOREIGN TABLE (IF NOT EXISTS)? tableName=qname
+        OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
+        SERVER server=ident kvOptions?                                               #createForeignTable
     | CREATE BLOB TABLE table numShards=blobClusteredInto? withProperties?           #createBlobTable
     | CREATE REPOSITORY name=ident TYPE type=ident withProperties?                   #createRepository
     | CREATE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?        #createSnapshot
@@ -603,14 +606,14 @@ createStmt
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
     | CREATE SERVER (IF NOT EXISTS)? name=ident
-          FOREIGN DATA WRAPPER fdw=ident
-          (OPTIONS OPEN_ROUND_BRACKET kvOptions CLOSE_ROUND_BRACKET)?                #createServer
+          FOREIGN DATA WRAPPER fdw=ident kvOptions?                                  #createServer
     ;
 
 
 kvOptions
-    : kvOption (COMMA kvOption)*
+    : OPTIONS OPEN_ROUND_BRACKET kvOption (COMMA kvOption)* CLOSE_ROUND_BRACKET
     ;
+
 
 kvOption
     : ident stringLiteral
