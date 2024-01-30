@@ -50,10 +50,7 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (authError != null) {
-            ReferenceCountUtil.release(msg);
-            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
-            CloseableChannel.closeChannel(tcpChannel, true);
-            throw authError;
+            closeAndThrowException(ctx, msg, authError);
         }
 
         Channel channel = ctx.channel();
@@ -66,22 +63,23 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
         String userName = Role.CRATE_USER.name();
         var authMethod = authentication.resolveAuthenticationType(userName, connectionProperties);
         if (authMethod == null) {
-            ReferenceCountUtil.release(msg);
             authError = new AuthenticationException("No valid auth.host_based entry found for: " + remoteAddress);
-            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
-            CloseableChannel.closeChannel(tcpChannel, true);
-            throw authError;
+            closeAndThrowException(ctx, msg, authError);
         }
         try {
             authMethod.authenticate(userName, null, connectionProperties);
             ctx.pipeline().remove(this);
             super.channelRead(ctx, msg);
         } catch (Exception e) {
-            ReferenceCountUtil.release(msg);
             authError = e;
-            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
-            CloseableChannel.closeChannel(tcpChannel, true);
-            throw e;
+            closeAndThrowException(ctx, msg, authError);
         }
+    }
+
+    private static void closeAndThrowException(ChannelHandlerContext ctx, Object msg, Exception e) throws Exception {
+        ReferenceCountUtil.release(msg);
+        CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
+        CloseableChannel.closeChannel(tcpChannel, true);
+        throw e;
     }
 }
