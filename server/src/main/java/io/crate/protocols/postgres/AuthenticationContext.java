@@ -28,13 +28,13 @@ import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.role.Role;
 
 class AuthenticationContext implements Closeable {
 
-    private SecureString password;
-    private final String userName;
+    private final Credentials credentials;
     private final Logger logger;
     private final AuthenticationMethod authMethod;
     private final ConnectionProperties connProperties;
@@ -47,20 +47,22 @@ class AuthenticationContext implements Closeable {
      *
      * @param authMethod The method that is used for authentication. {@link AuthenticationMethod}
      * @param connProperties Additional connection properties
-     * @param userName The name of the user to authenticate.
+     * @param credentials credentials of the user to authenticate.
      * @param logger The logger instance from {@link PostgresWireProtocol}
      */
-    AuthenticationContext(AuthenticationMethod authMethod, ConnectionProperties connProperties, String userName, Logger logger) {
+    AuthenticationContext(AuthenticationMethod authMethod,
+                          ConnectionProperties connProperties,
+                          Credentials credentials,
+                          Logger logger) {
         this.authMethod = authMethod;
         this.connProperties = connProperties;
-        this.userName = userName;
+        this.credentials = credentials;
         this.logger = logger;
-        this.password = null;
     }
 
     @Nullable
     Role authenticate() {
-        Role user = authMethod.authenticate(userName, password, connProperties);
+        Role user = authMethod.authenticate(credentials, connProperties);
         if (user != null && logger.isTraceEnabled()) {
             logger.trace("Authentication succeeded user \"{}\" and method \"{}\".", user.name(), authMethod.name());
         }
@@ -68,13 +70,13 @@ class AuthenticationContext implements Closeable {
     }
 
     void setSecurePassword(char[] secureString) {
-        this.password = new SecureString(secureString);
+        credentials.setPassword(new SecureString(secureString));
     }
 
     @Nullable
     @VisibleForTesting
     SecureString password() {
-        return password;
+        return credentials.password();
     }
 
     /**
@@ -83,8 +85,8 @@ class AuthenticationContext implements Closeable {
      */
     @Override
     public void close() {
-        if (password != null) {
-            password.close();
+        if (credentials.password() != null) {
+            credentials.password().close();
         }
     }
 }
