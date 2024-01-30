@@ -121,6 +121,7 @@ import io.crate.types.DataTypes;
  */
 public class LogicalPlanner {
     private final IterativeOptimizer optimizer;
+    private final IterativeOptimizer joinImplementationOptimizer;
     // Join ordering optimization rules have their own optimizer, because these rules have
     // little interaction with the other rules and we want to avoid unnecessary pattern matches on them.
     private final IterativeOptimizer joinOrderOptimizer;
@@ -154,12 +155,15 @@ public class LogicalPlanner {
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
         new MoveConstantJoinConditionsBeneathJoin(),
-        new EliminateCrossJoin(),
-        new RewriteJoinPlan()
+        new EliminateCrossJoin()
         );
 
+    public static final List<Rule<?>> JOIN_IMPLEMENTATION_RULES = List.of(
+        new RewriteJoinPlan(),
+        new MoveOrderBeneathNestedLoop()
+    );
+
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
-        new MoveOrderBeneathNestedLoop(),
         new ReorderHashJoin(),
         new ReorderNestedLoopJoin()
     );
@@ -180,6 +184,11 @@ public class LogicalPlanner {
             nodeCtx,
             minNodeVersionInCluster,
             ITERATIVE_OPTIMIZER_RULES
+        );
+        this.joinImplementationOptimizer = new IterativeOptimizer(
+            nodeCtx,
+            minNodeVersionInCluster,
+            JOIN_IMPLEMENTATION_RULES
         );
         this.joinOrderOptimizer = new IterativeOptimizer(
             nodeCtx,
@@ -237,6 +246,7 @@ public class LogicalPlanner {
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
         LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx, tracer);
+        optimizedPlan = joinImplementationOptimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx, tracer);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
@@ -277,6 +287,7 @@ public class LogicalPlanner {
         var planBuilder = new PlanBuilder(subqueryPlanner, planStats);
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx, tracer);
+        optimizedPlan = joinImplementationOptimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx, tracer);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx, tracer);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
