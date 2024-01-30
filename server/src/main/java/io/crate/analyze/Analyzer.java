@@ -39,6 +39,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -66,6 +67,7 @@ import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
@@ -765,6 +767,23 @@ public class Analyzer {
                 createServer.ifNotExists(),
                 options
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateForeignTable(CreateForeignTable createForeignTable,
+                                                         Analysis context) {
+            RelationName tableName = RelationName.of(
+                createForeignTable.name(),
+                context.sessionSettings().searchPath().currentSchema()
+            );
+            tableName.ensureValidForRelationCreation();
+            var tableElementsAnalyzer = new TableElementsAnalyzer(
+                tableName,
+                context.transactionContext(),
+                nodeCtx,
+                context.paramTypeHints()
+            );
+            return tableElementsAnalyzer.analyze(createForeignTable);
         }
     }
 }

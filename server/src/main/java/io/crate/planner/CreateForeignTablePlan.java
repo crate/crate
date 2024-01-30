@@ -21,27 +21,33 @@
 
 package io.crate.planner;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.crate.analyze.AnalyzedCreateServer;
+import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
-import io.crate.fdw.CreateServerRequest;
-import io.crate.fdw.TransportCreateServerAction;
+import io.crate.fdw.CreateForeignTableRequest;
+import io.crate.fdw.TransportCreateForeignTableAction;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 
-public class CreateServerPlan implements Plan {
+public class CreateForeignTablePlan implements Plan {
 
-    private final AnalyzedCreateServer createServer;
+    private final AnalyzedCreateForeignTable createTable;
 
-    public CreateServerPlan(AnalyzedCreateServer createServer) {
-        this.createServer = createServer;
+    public CreateForeignTablePlan(AnalyzedCreateForeignTable createTable) {
+        this.createTable = createTable;
     }
 
     @Override
@@ -55,22 +61,33 @@ public class CreateServerPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-
-        Function<Symbol, Object> convert = new SymbolEvaluator(
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        Function<Symbol, Object> toValue = new SymbolEvaluator(
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             subQueryResults
         ).bind(params);
-        Map<String, Object> options = createServer.options().entrySet().stream()
-            .collect(Collectors.toMap(Entry::getKey, entry -> convert.apply(entry.getValue())));
-        CreateServerRequest request = new CreateServerRequest(
-            createServer.name(),
-            createServer.fdw(),
-            createServer.ifNotExists(),
+        Map<String, Object> options = createTable.options().entrySet().stream()
+            .collect(Collectors.toMap(Entry::getKey, entry -> toValue.apply(entry.getValue())));
+
+        Map<ColumnIdent, RefBuilder> columns = createTable.columns();
+        Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
+        RelationName tableName = createTable.tableName();
+        for (var entry : columns.entrySet()) {
+            var columnIdent = entry.getKey();
+            var refBuilder = entry.getValue();
+            var reference = refBuilder.build(columns, tableName, paramBinder, toValue);
+            references.put(columnIdent, reference);
+        }
+        CreateForeignTableRequest request = new CreateForeignTableRequest(
+            tableName,
+            createTable.ifNotExists(),
+            references,
+            createTable.server(),
             options
         );
         dependencies.client()
-            .execute(TransportCreateServerAction.ACTION, request)
+            .execute(TransportCreateForeignTableAction.ACTION, request)
             .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
     }
 }

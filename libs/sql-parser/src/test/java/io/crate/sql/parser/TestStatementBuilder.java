@@ -48,6 +48,7 @@ import io.crate.sql.tree.Close;
 import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
@@ -2128,6 +2129,14 @@ public class TestStatementBuilder {
         printStatement("create server jarvis foreign data wrapper postgres_fdw options (host 'foo', dbname 'foodb', port '5432')");
     }
 
+    @Test
+    public void test_create_foreign_table() throws Exception {
+        printStatement("create foreign table tbl (x int) server pg");
+        printStatement("create foreign table if not exists tbl (x int) server pg");
+        printStatement("create foreign table tbl (x int) server pg options (schema_name 'public')");
+        printStatement("create foreign table tbl (x int) server pg options (schema_name 'public', dummy 'xy')");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -2139,6 +2148,7 @@ public class TestStatementBuilder {
         // TODO: support formatting all statement types
         if (statement instanceof Query ||
             statement instanceof CreateTable ||
+            statement instanceof CreateForeignTable ||
             statement instanceof CopyFrom ||
             statement instanceof SwapTable ||
             statement instanceof GCDanglingArtifacts ||

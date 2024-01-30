@@ -21,17 +21,22 @@
 
 package io.crate.fdw;
 
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Singleton
-public class ForeignDataWrappers {
+import org.junit.Test;
 
-    @Inject
-    public ForeignDataWrappers() {
-    }
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-    public boolean contains(String fdw) {
-        return "jdbc".equals(fdw);
+public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitTest {
+
+    @Test
+    public void test_creating_foreign_table_with_invalid_name_fails() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .build();
+
+        assertThatThrownBy(() -> e.plan("create foreign table sys.nope (x int) server pg"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot create relation in read-only schema: sys");
     }
 }

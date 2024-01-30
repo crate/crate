@@ -70,6 +70,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
@@ -1120,7 +1121,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         if (views != null && views.contains(tableName)) {
             return true;
         }
-
+        ForeignTablesMetadata foreignTables = custom(ForeignTablesMetadata.TYPE);
+        if (foreignTables != null && foreignTables.contains(tableName)) {
+            return true;
+        }
         return false;
     }
 }

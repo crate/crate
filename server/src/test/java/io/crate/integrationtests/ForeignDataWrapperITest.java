@@ -30,8 +30,26 @@ public class ForeignDataWrapperITest extends IntegTestCase {
 
     @Test
     public void test_cannot_create_server_if_fdw_is_missing() throws Exception {
-        String stmt = "create server pg foreign data wrapper jdbc options (host 'localhost', dbname 'doc', port '5432')";
+        String stmt = "create server pg foreign data wrapper dummy options (host 'localhost', dbname 'doc', port '5432')";
         assertThatThrownBy(() -> execute(stmt))
-            .hasMessageContaining("foreign-data wrapper jdbc does not exist");
+            .hasMessageContaining("foreign-data wrapper dummy does not exist");
+    }
+
+    @Test
+    public void test_create_foreign_table() throws Exception {
+        execute("create table tbl (x int)");
+        execute(
+            """
+            create server pg foreign data wrapper jdbc
+            options (host 'localhost', dbname 'doc', port '5432')
+            """
+        );
+
+        String stmt = """
+            CREATE FOREIGN TABLE dummy (x int)
+            SERVER pg
+            """;
+
+        execute(stmt);
     }
 }

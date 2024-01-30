@@ -719,4 +719,8 @@ public abstract class AstVisitor<R, C> {
     public R visitCreateServer(CreateServer createServer, C context) {
         return visitStatement(createServer, context);
     }
+
+    public R visitCreateForeignTable(CreateForeignTable createForeignTable, C context) {
+        return visitStatement(createForeignTable, context);
+    }
 }

@@ -30,7 +30,7 @@ import io.crate.expression.symbol.Symbol;
 
 public interface AnalyzedStatement {
 
-    <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context);
+    <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context);
 
     /**
      * Defines whether an operation changes the cluster in any way (write).

@@ -128,6 +128,7 @@ import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.fdw.TransportCreateForeignTableAction;
 import io.crate.fdw.TransportCreateServerAction;
 import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.GetFileChunkAction;
@@ -243,6 +244,7 @@ public class ActionModule extends AbstractModule {
         actions.register(DropSubscriptionAction.INSTANCE, DropSubscriptionAction.TransportAction.class);
 
         actions.register(TransportCreateServerAction.ACTION, TransportCreateServerAction.class);
+        actions.register(TransportCreateForeignTableAction.ACTION, TransportCreateForeignTableAction.class);
 
         return unmodifiableMap(actions.getRegistry());
     }
