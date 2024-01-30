@@ -98,10 +98,17 @@ public final class TypeCompatibility {
                 if (((StringType) fromType).unbound() || ((StringType) toType).unbound()) {
                     return StringType.INSTANCE;
                 }
+            } else if (fromType.id() == NumericType.ID && toType.id() == NumericType.ID) {
+                if (((NumericType) fromType).precision() == null && ((NumericType) toType).precision() != null) {
+                    return toType;
+                }
+                if (((NumericType) fromType).precision() != null && ((NumericType) toType).precision() == null) {
+                    return fromType;
+                }
             }
             return null;
-        } else if (fromType.id() == toType.id() 
-                   && fromType.characterMaximumLength() != null 
+        } else if (fromType.id() == toType.id()
+                   && fromType.characterMaximumLength() != null
                    && toType.characterMaximumLength() != null) {
             if (fromType.characterMaximumLength() > toType.characterMaximumLength()) {
                 return fromType;

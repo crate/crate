@@ -40,6 +40,7 @@ import io.crate.common.annotations.VisibleForTesting;
 
 public class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
 
+    public static final String NAME = "numeric";
     public static final int ID = 22;
     public static final NumericType INSTANCE = new NumericType(null, null); // unscaled
 
@@ -205,11 +206,11 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         if (unscaled()) {
             return List.of();
         } else {
-            if (scale != null) {
-                return List.of(DataTypes.INTEGER);
-            } else {
+//            if (scale != null) {
                 return List.of(DataTypes.INTEGER, DataTypes.INTEGER);
-            }
+//            } else {
+//                return List.of(DataTypes.INTEGER);
+//            }
         }
     }
 

@@ -209,19 +209,19 @@ public class Functions {
             "Resolving/Matching of signatures can only be done with non-null signature's binding info";
 
         // First lets try exact candidates, no generic type variables, no coercion allowed.
-        Iterable<FunctionProvider> exactCandidates = () -> finalCandidates.stream()
-            .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+        Iterable<FunctionProvider> genericCandidates = () -> finalCandidates.stream()
+            .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
-        var match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
+        var match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
         if (match != null) {
             return match;
         }
 
         // Second, try candidates with generic type variables, still no coercion allowed.
-        Iterable<FunctionProvider> genericCandidates = () -> finalCandidates.stream()
-            .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+        Iterable<FunctionProvider> exactCandidates = () -> finalCandidates.stream()
+            .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
-        match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
+        match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
         if (match != null) {
             return match;
         }

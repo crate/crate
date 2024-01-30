@@ -554,7 +554,6 @@ public class SignatureBinder {
             this.actualType = actualType;
             this.coercionType = coercionType;
         }
-
         @Override
         public SolverReturnStatus update(BoundVariables.Builder bindings) {
             for (String variable : typeVariables) {

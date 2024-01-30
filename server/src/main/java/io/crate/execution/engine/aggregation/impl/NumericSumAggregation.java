@@ -47,6 +47,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -56,6 +57,7 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.NumericType;
 import io.crate.types.ShortType;
+import io.crate.types.TypeSignature;
 
 public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDecimal> {
 
@@ -69,6 +71,11 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
     public static void register(AggregationImplModule mod) {
         mod.register(SIGNATURE, NumericSumAggregation::new);
+        mod.register(Signature.aggregate(
+                NAME,
+                TypeSignature.parse("numeric(integer, integer)"),
+                TypeSignature.parse("numeric(integer, integer)")),
+            NumericSumAggregation::new);
     }
 
     private final Signature signature;

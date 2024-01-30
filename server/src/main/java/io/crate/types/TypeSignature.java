@@ -167,6 +167,25 @@ public class TypeSignature implements Writeable, Accountable {
             }
             DataType<?> innerType = parameters.get(0).createType();
             return new ArrayType<>(innerType);
+        } else if (baseTypeName.equalsIgnoreCase(NumericType.NAME)) {
+            if (parameters.isEmpty()) {
+                return NumericType.INSTANCE;
+            }
+            Integer precision = null;
+            Integer scale = null;
+            if (parameters.get(0) instanceof IntegerLiteralTypeSignature ilts) {
+                precision = ilts.value();
+            }
+            if (parameters.get(1) instanceof IntegerLiteralTypeSignature ilts) {
+                scale = ilts.value();
+            }
+            if (precision == null) {
+                return NumericType.INSTANCE;
+            } else if (scale == null) {
+                return NumericType.of(precision);
+            } else {
+                return NumericType.of(precision, scale);
+            }
         } else if (baseTypeName.equalsIgnoreCase(ObjectType.NAME)) {
             var builder = ObjectType.builder();
             // Only build typed objects if we receive parameter key-value pairs which may not exist on generic

@@ -41,13 +41,13 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
     public static final String NAME = "sum";
 
     public static void register(AggregationImplModule mod) {
-        mod.register(
-            Signature.aggregate(
-                NAME,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()),
-            IntervalSumAggregation::new
-        );
+//        mod.register(
+//            Signature.aggregate(
+//                NAME,
+//                DataTypes.INTERVAL.getTypeSignature(),
+//                DataTypes.INTERVAL.getTypeSignature()),
+//            IntervalSumAggregation::new
+//        );
     }
 
     private final Signature signature;

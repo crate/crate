@@ -28,7 +28,27 @@ import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
 
+@IntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
 public class AggregateExpressionIntegrationTest extends IntegTestCase {
+
+    @Test
+    public void test_numeric_agg() {
+        execute("CREATE TABLE IF NOT EXISTS t01 (txt TEXT, val DOUBLE PRECISION)");
+        execute("INSERT INTO t01 VALUES ('a', 1.2345)");
+        execute("REFRESH TABLE t01");
+        execute(
+            """
+                SELECT
+                    txt,
+                    SUM(val) as val1,
+                    SUM(val :: numeric(10, 2)) AS val2
+                FROM t01
+                GROUP BY txt
+            """);
+        assertThat(response).hasRows(
+            "a| 1.2345| 1.23"
+        );
+    }
 
     @Test
     public void test_sum_int() throws Exception {

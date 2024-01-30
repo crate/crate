@@ -68,33 +68,33 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         BinaryOperator<Long> add = Math::addExact;
         BinaryOperator<Long> sub = Math::subtractExact;
 
-        mod.register(
-            Signature.aggregate(
-                NAME,
-                DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()
-            ),
-            getSumAggregationForFloatFactory()
-        );
-        mod.register(
-            Signature.aggregate(
-                NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ),
-            getSumAggregationForDoubleFactory()
-        );
+//        mod.register(
+//            Signature.aggregate(
+//                NAME,
+//                DataTypes.FLOAT.getTypeSignature(),
+//                DataTypes.FLOAT.getTypeSignature()
+//            ),
+//            getSumAggregationForFloatFactory()
+//        );
+//        mod.register(
+//            Signature.aggregate(
+//                NAME,
+//                DataTypes.DOUBLE.getTypeSignature(),
+//                DataTypes.DOUBLE.getTypeSignature()
+//            ),
+//            getSumAggregationForDoubleFactory()
+//        );
 
-        for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
-            mod.register(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()),
-                (signature, boundSignature) ->
-                    new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
-            );
-        }
+//        for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
+//            mod.register(
+//                Signature.aggregate(
+//                    NAME,
+//                    supportedType.getTypeSignature(),
+//                    DataTypes.LONG.getTypeSignature()),
+//                (signature, boundSignature) ->
+//                    new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
+//            );
+//        }
     }
 
     private final Signature signature;
