@@ -25,11 +25,11 @@ import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAUL
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetadata;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -54,12 +54,12 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -132,7 +132,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                                    final ClusterState state,
                                    final ActionListener<CreateTableResponse> listener) {
         final RelationName relationName = createTableRequest.getTableName();
-        if (viewsExists(relationName, state)) {
+        if (state.metadata().contains(relationName)) {
             listener.onFailure(new RelationAlreadyExists(relationName));
             return;
         }
@@ -235,11 +235,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                     wrappedListener.onFailure(e);
                 }
             });
-    }
-
-    private static boolean viewsExists(RelationName relationName, ClusterState state) {
-        ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
-        return views != null && views.contains(relationName);
     }
 
     private static void validateSettings(Settings settings, ClusterState state) {

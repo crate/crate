@@ -37,8 +37,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 
 public final class TransportCreateViewAction extends TransportMasterNodeAction<CreateViewRequest, CreateViewResponse> {
@@ -70,8 +68,8 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
     protected void masterOperation(CreateViewRequest request,
                                    ClusterState state,
                                    ActionListener<CreateViewResponse> listener) {
-        ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
-        if (conflictsWithTable(request.name(), state.metadata()) || conflictsWithView(request, views)) {
+
+        if (!request.replaceExisting() && state.metadata().contains(request.name())) {
             listener.onResponse(new CreateViewResponse(true));
         } else {
             clusterService.submitStateUpdateTask("views/create [" + request.name() + "]",
@@ -82,9 +80,12 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
                     @Override
                     public ClusterState execute(ClusterState currentState) {
                         ViewsMetadata views = currentState.metadata().custom(ViewsMetadata.TYPE);
-                        if (conflictsWithTable(request.name(), currentState.metadata()) || conflictsWithView(request, views)) {
-                            alreadyExitsFailure = true;
-                            return currentState;
+                        if (currentState.metadata().contains(request.name())) {
+                            boolean replacesView = request.replaceExisting() && views != null && views.contains(request.name());
+                            if (!replacesView) {
+                                alreadyExitsFailure = true;
+                                return currentState;
+                            }
                         }
                         return ClusterState.builder(currentState)
                             .metadata(
@@ -107,15 +108,6 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
                     }
                 });
         }
-    }
-
-    private static boolean conflictsWithTable(RelationName viewName, Metadata indexMetadata) {
-        return indexMetadata.hasIndex(viewName.indexNameOrAlias())
-               || indexMetadata.templates().containsKey(PartitionName.templateName(viewName.schema(), viewName.name()));
-    }
-
-    private static boolean conflictsWithView(CreateViewRequest request, ViewsMetadata views) {
-        return !request.replaceExisting() && views != null && views.contains(request.name());
     }
 
     @Override

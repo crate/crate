@@ -70,6 +70,9 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.view.ViewsMetadata;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, ToXContentFragment {
 
@@ -1104,5 +1107,20 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
                 return Builder.fromXContent(parser, preserveUnknownCustoms);
             }
         };
+    }
+
+    public boolean contains(RelationName tableName) {
+        if (indices.containsKey(tableName.indexNameOrAlias())) {
+            return true;
+        }
+        if (templates.containsKey(PartitionName.templateName(tableName.schema(), tableName.name()))) {
+            return true;
+        }
+        ViewsMetadata views = custom(ViewsMetadata.TYPE);
+        if (views != null && views.contains(tableName)) {
+            return true;
+        }
+
+        return false;
     }
 }
