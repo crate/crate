@@ -70,3 +70,6 @@ Fixes
         AND
           tbl.x IN (SELECT generate_series from generate_series(1, 1))
     ) FROM tbl t;
+
+- Fixed an issue that caused filtering by ``primary keys`` under ``NOT``
+  predicate to return invalid results.
