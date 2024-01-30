@@ -77,7 +77,7 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
         return ee.extractMatches(primaryKeys, query, coordinatorTxnCtx).matches();
     }
 
-    private Symbol query(String expression) {
+    protected Symbol query(String expression) {
         return expressions.normalize(expressions.asSymbol(expression));
     }
 
@@ -374,5 +374,23 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
             s -> assertThat(s).satisfiesExactly(isLiteral(1)),
             s -> assertThat(s).satisfiesExactly(isLiteral(2)),
             s -> assertThat(s).satisfiesExactly(isLiteral(3)));
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/15458
+    @Test
+    public void test_no_pk_extraction_from_pk_eq_pk() {
+        List<List<Symbol>> matches = analyzeExactX(query("NOT((i NOT IN (1)) AND (x != 2))"));
+        assertThat(matches).isNull();
+        matches = analyzeExactX(query("(i IN (1)) OR (x = 2)")); // equivalent to above
+        assertThat(matches).isNull();
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/15395
+    @Test
+    public void test_no_pk_extraction_if_the_pk_is_also_under_is_null() {
+        List<List<Symbol>> matches = analyzeExactX(query("NOT(x != 1 AND x IS NULL)"));
+        assertThat(matches).isNull();
+        matches = analyzeExactX(query("(x = 1) OR (x IS NOT NULL)")); // equivalent to above
+        assertThat(matches).isNull();
     }
 }
