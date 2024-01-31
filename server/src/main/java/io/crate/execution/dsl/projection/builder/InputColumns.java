@@ -83,7 +83,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             int i = 0;
             for (Symbol input : inputs) {
                 // only non-literals should be replaced with input columns.
-                // otherwise {@link io.crate.expression.scalar.Scalar#compile} won't do anything which
+                // otherwise {@link io.crate.metadata.Scalar#compile} won't do anything which
                 // results in poor performance of some scalar implementations
                 add(i, input);
 

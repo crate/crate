@@ -41,7 +41,7 @@ import io.crate.common.collections.Lists;
 import io.crate.common.collections.Sets;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
-import io.crate.expression.scalar.Scalar;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;

@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;

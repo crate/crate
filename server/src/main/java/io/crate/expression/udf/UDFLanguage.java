@@ -21,7 +21,7 @@
 
 package io.crate.expression.udf;
 
-import io.crate.expression.scalar.Scalar;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 

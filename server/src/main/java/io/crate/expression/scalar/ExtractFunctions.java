@@ -45,6 +45,7 @@ import org.joda.time.DurationFieldType;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
 
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataTypes;

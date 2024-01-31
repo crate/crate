@@ -43,7 +43,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.expression.scalar.Scalar;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
