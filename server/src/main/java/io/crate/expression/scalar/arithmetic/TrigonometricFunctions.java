@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.BinaryScalar;
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.Scalar;
