@@ -66,4 +66,8 @@ public class ExecutionPhaseVisitor<C, R> {
     public R visitPKLookup(PKLookupPhase pkLookupPhase, C context) {
         return visitCollectPhase(pkLookupPhase, context);
     }
+
+    public R visitForeignCollect(ForeignCollectPhase phase, C context) {
+        return visitCollectPhase(phase, context);
+    }
 }

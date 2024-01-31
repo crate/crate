@@ -128,4 +128,8 @@ public class LogicalPlanVisitor<C, R> {
     public R visitGroupReference(GroupReference apply, C context) {
         return visitPlan(apply, context);
     }
+
+    public R visitForeignCollect(ForeignCollect foreignCollect, C context) {
+        return visitPlan(foreignCollect, context);
+    }
 }

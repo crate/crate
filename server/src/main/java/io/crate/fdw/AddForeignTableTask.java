@@ -26,6 +26,7 @@ import java.util.Locale;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Priority;
 
 import io.crate.exceptions.RelationAlreadyExists;
@@ -48,13 +49,14 @@ final class AddForeignTableTask extends AckedClusterStateUpdateTask<Acknowledged
     @Override
     public ClusterState execute(ClusterState currentState) throws Exception {
         RelationName tableName = request.tableName();
-        if (currentState.metadata().contains(tableName)) {
+        Metadata metadata = currentState.metadata();
+        if (metadata.contains(tableName)) {
             if (request.ifNotExists()) {
                 return currentState;
             }
             throw new RelationAlreadyExists(tableName);
         }
-        ServersMetadata serversMetadata = currentState.metadata().custom(ServersMetadata.TYPE);
+        ServersMetadata serversMetadata = metadata.custom(ServersMetadata.TYPE);
         if (serversMetadata == null) {
             serversMetadata = ServersMetadata.EMPTY;
         }
@@ -65,6 +67,24 @@ final class AddForeignTableTask extends AckedClusterStateUpdateTask<Acknowledged
                 request.server()
                 ));
         }
-        return currentState;
+
+
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
+        if (foreignTables == null) {
+            foreignTables = ForeignTablesMetadata.EMPTY;
+        }
+
+        ForeignTablesMetadata updatedTables = foreignTables.add(
+            tableName,
+            request.columns(),
+            request.server(),
+            request.options()
+        );
+
+        return ClusterState.builder(currentState)
+            .metadata(Metadata.builder(metadata)
+                .putCustom(ForeignTablesMetadata.TYPE, updatedTables)
+            )
+            .build();
     }
 }

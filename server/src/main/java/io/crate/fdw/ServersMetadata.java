@@ -24,8 +24,10 @@ package io.crate.fdw;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
+import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -42,7 +44,7 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
     public static final ServersMetadata EMPTY = new ServersMetadata(Map.of());
 
 
-    record Server(String fdw, Map<String, Object> options) implements Writeable, ToXContent {
+    public record Server(String fdw, Map<String, Object> options) implements Writeable, ToXContent {
 
         public Server(StreamInput in) throws IOException {
             this(
@@ -116,5 +118,20 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
     @Override
     public EnumSet<XContentContext> context() {
         return EnumSet.of(Metadata.XContentContext.GATEWAY, Metadata.XContentContext.SNAPSHOT);
+    }
+
+    /**
+     * @throws ResourceNotFoundException if server is not found
+     */
+    public Server get(String serverName) {
+        Server server = servers.get(serverName);
+        if (server == null) {
+            throw new ResourceNotFoundException(String.format(
+                Locale.ENGLISH,
+                "Server `%s` not found",
+                serverName
+            ));
+        }
+        return server;
     }
 }

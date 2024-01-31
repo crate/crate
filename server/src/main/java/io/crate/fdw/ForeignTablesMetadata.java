@@ -23,7 +23,7 @@ package io.crate.fdw;
 
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -32,9 +32,8 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.Metadata.XContentContext;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -47,36 +46,6 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
 
     private final Map<RelationName, ForeignTable> tables;
 
-
-    record ForeignTable(RelationName name,
-                        Map<ColumnIdent, Reference> columns,
-                        String server,
-                        Map<String, Object> options) implements Writeable, ToXContent {
-
-        ForeignTable(StreamInput in) throws IOException {
-            this(
-                new RelationName(in),
-                in.readMap(LinkedHashMap::new, ColumnIdent::new, Reference::fromStream),
-                in.readString(),
-                in.readMap(StreamInput::readString, StreamInput::readGenericValue)
-            );
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            name.writeTo(out);
-            out.writeMap(columns, (o, v) -> v.writeTo(o), Reference::toStream);
-            out.writeString(server);
-            out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            // TODO:
-            //
-            return builder;
-        }
-    }
 
     private ForeignTablesMetadata(Map<RelationName, ForeignTable> tables) {
         this.tables = tables;
@@ -121,5 +90,19 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
 
     public boolean contains(RelationName tableName) {
         return tables.containsKey(tableName);
+    }
+
+    public ForeignTablesMetadata add(RelationName tableName,
+                                     Map<ColumnIdent, Reference> columns,
+                                     String server,
+                                     Map<String, Object> options) {
+        HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
+        newTables.put(tableName, new ForeignTable(tableName, columns, server, options));
+        return new ForeignTablesMetadata(newTables);
+    }
+
+    @Nullable
+    public ForeignTable get(RelationName name) {
+        return tables.get(name);
     }
 }

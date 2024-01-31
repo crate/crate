@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -36,8 +37,9 @@ public class ForeignDataWrapperITest extends IntegTestCase {
     }
 
     @Test
-    public void test_create_foreign_table() throws Exception {
-        execute("create table tbl (x int)");
+    public void test_full_fdw_flow() throws Exception {
+        execute("create table doc.tbl (x int)");
+        execute("insert into doc.tbl (x) values (1), (2), (42)");
         execute(
             """
             create server pg foreign data wrapper jdbc
@@ -48,8 +50,19 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         String stmt = """
             CREATE FOREIGN TABLE dummy (x int)
             SERVER pg
+            OPTIONS (schema_name 'doc', table_name 'tbl')
             """;
-
         execute(stmt);
+
+        assertThatThrownBy(() -> execute(stmt))
+            .as("Cannot create foreign table with same name again")
+            .hasMessageContaining("already exists.");
+
+        execute("select * from dummy order by x");
+        assertThat(response).hasRows(
+            "1",
+            "2",
+            "42"
+        );
     }
 }

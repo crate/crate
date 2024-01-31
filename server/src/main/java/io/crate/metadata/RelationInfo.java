@@ -39,7 +39,8 @@ public interface RelationInfo extends Iterable<Reference> {
 
     enum RelationType {
         BASE_TABLE("BASE TABLE"),
-        VIEW("VIEW");
+        VIEW("VIEW"),
+        FOREIGN("FOREIGN");
 
         private final String prettyName;
 
