@@ -21,9 +21,11 @@
 
 package io.crate.fdw;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.ResourceNotFoundException;
@@ -33,18 +35,20 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.data.SentinelRow;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.ForeignCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.sources.CollectSource;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ServersMetadata.Server;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataTypes;
 
 @Singleton
 public class ForeignDataWrappers implements CollectSource {
@@ -54,15 +58,18 @@ public class ForeignDataWrappers implements CollectSource {
         "jdbc", new ForeignDataWrapper() {
 
             @Override
-            public CompletableFuture<BatchIterator<Row>> getIterator(Map<String, Object> options,
+            public CompletableFuture<BatchIterator<Row>> getIterator(SessionSettings sessionSettings,
+                                                                     RelationName relationName,
+                                                                     Map<String, Object> options,
                                                                      List<Symbol> collect) {
-
-                List<Row1> items = List.of(
-                    new Row1(1),
-                    new Row1(2),
-                    new Row1(42)
-                );
-                BatchIterator<Row> it = InMemoryBatchIterator.of(items, SentinelRow.SENTINEL, false);
+                String url = DataTypes.STRING.implicitCast(options.getOrDefault("url", "jdbc:postgresql://localhost:5432/"));
+                var properties = new Properties();
+                properties.setProperty("user", sessionSettings.userName());
+                List<Reference> columns = new ArrayList<>(collect.size());
+                for (var symbol : collect) {
+                    RefVisitor.visitRefs(symbol, ref -> columns.add(ref));
+                }
+                var it = new JdbcBatchIterator(url, properties, columns, relationName);
                 return CompletableFuture.completedFuture(it);
             }
         }
@@ -110,6 +117,17 @@ public class ForeignDataWrappers implements CollectSource {
                 foreignTable.server()
             ));
         }
-        return fdw.getIterator(server.options(), collectPhase.toCollect());
+
+        Map<String, Object> options = foreignTable.options();
+        RelationName name = foreignTable.name();
+        String remoteSchema = DataTypes.STRING.implicitCast(options.getOrDefault("schema_name", name.schema()));
+        String remoteTable = DataTypes.STRING.implicitCast(options.getOrDefault("table_name", name.name()));
+        RelationName remoteName = new RelationName(remoteSchema, remoteTable);
+        return fdw.getIterator(
+            txnCtx.sessionSettings(),
+            remoteName,
+            server.options(),
+            collectPhase.toCollect()
+        );
     }
 }

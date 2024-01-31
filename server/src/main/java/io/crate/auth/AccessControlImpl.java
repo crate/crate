@@ -98,6 +98,7 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -229,6 +230,18 @@ public final class AccessControlImpl implements AccessControl {
             }
             // On the other hand, all users should be able to access built-in functions without any privileges.
             // ex) select * from abs(1);
+            return null;
+        }
+
+        @Override
+        public Void visitForeignTable(ForeignTableRelation foreignTableRelation, RelationContext context) {
+            Privileges.ensureUserHasPrivilege(
+                roles,
+                context.user,
+                context.permission,
+                Securable.TABLE,
+                foreignTableRelation.relationName().fqn()
+            );
             return null;
         }
 

@@ -28,8 +28,13 @@ import java.util.concurrent.CompletableFuture;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.SessionSettings;
 
 public interface ForeignDataWrapper {
 
-    CompletableFuture<BatchIterator<Row>> getIterator(Map<String, Object> options, List<Symbol> collect);
+    CompletableFuture<BatchIterator<Row>> getIterator(SessionSettings sessionSettings,
+                                                      RelationName relationName,
+                                                      Map<String, Object> options,
+                                                      List<Symbol> collect);
 }

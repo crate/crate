@@ -24,8 +24,12 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Locale;
+
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.protocols.postgres.PostgresNetty;
 
 public class ForeignDataWrapperITest extends IntegTestCase {
 
@@ -40,12 +44,16 @@ public class ForeignDataWrapperITest extends IntegTestCase {
     public void test_full_fdw_flow() throws Exception {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl (x) values (1), (2), (42)");
-        execute(
-            """
-            create server pg foreign data wrapper jdbc
-            options (host 'localhost', dbname 'doc', port '5432')
-            """
-        );
+        execute("refresh table doc.tbl");
+
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
+        int port = postgresNetty.boundAddress().publishAddress().getPort();
+        String url = "jdbc:postgresql://127.0.0.1:" + port + '/';
+        execute(String.format(
+            Locale.ENGLISH,
+            "create server pg foreign data wrapper jdbc options (url '%s')",
+            url
+        ));
 
         String stmt = """
             CREATE FOREIGN TABLE dummy (x int)
@@ -58,7 +66,12 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             .as("Cannot create foreign table with same name again")
             .hasMessageContaining("already exists.");
 
-        execute("select * from dummy order by x");
+        execute("explain select * from dummy order by x");
+        assertThat(response).hasLines(
+            "OrderBy[x ASC] (rows=unknown)",
+            "  └ ForeignCollect[x] (rows=unknown)"
+        );
+        execute("select * from dummy order by x asc");
         assertThat(response).hasRows(
             "1",
             "2",
