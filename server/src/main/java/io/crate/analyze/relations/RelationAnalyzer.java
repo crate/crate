@@ -65,6 +65,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
+import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
@@ -711,7 +713,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     );
                     relation = new AnalyzedView(viewInfo.ident(), viewInfo.owner(), resolvedView);
                 }
-                case null, default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
+                case ForeignTable table -> relation = new ForeignTableRelation(table);
+                default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
             }
         }
         relationContext.addSourceRelation(relation);

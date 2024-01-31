@@ -21,19 +21,19 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.FLOAT;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.REGCLASS;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
-
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.FLOAT;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.REGCLASS;
 
 public final class PgClassTable {
 
@@ -87,7 +87,8 @@ public final class PgClassTable {
         public enum Type {
             VIEW("v"),
             RELATION("r"),
-            INDEX("i");
+            INDEX("i"),
+            FOREIGN("f");
 
             final String relKind;
 

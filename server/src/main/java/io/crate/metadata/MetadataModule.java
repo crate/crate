@@ -36,6 +36,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ParseField;
 
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.fdw.ServersMetadata;
 import io.crate.license.License;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -123,6 +124,7 @@ public class MetadataModule extends AbstractModule {
             in -> readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
         ));
 
+
         entries.add(new NamedWriteableRegistry.Entry(
             Metadata.Custom.class,
             ServersMetadata.TYPE,
@@ -132,6 +134,16 @@ public class MetadataModule extends AbstractModule {
             NamedDiff.class,
             ServersMetadata.TYPE,
             in -> readDiffFrom(Metadata.Custom.class, ServersMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            ForeignTablesMetadata.TYPE,
+            ForeignTablesMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ForeignTablesMetadata.TYPE,
+            in -> readDiffFrom(Metadata.Custom.class, ForeignTablesMetadata.TYPE, in)
         ));
 
 

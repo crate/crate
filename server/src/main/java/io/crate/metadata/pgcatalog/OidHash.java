@@ -58,6 +58,7 @@ public final class OidHash {
             return switch (type) {
                 case BASE_TABLE -> OidHash.Type.TABLE;
                 case VIEW -> OidHash.Type.VIEW;
+                case FOREIGN -> OidHash.Type.TABLE;
             };
         }
     }
@@ -68,7 +69,7 @@ public final class OidHash {
     }
 
     public static int relationOid(RelationInfo relationInfo) {
-        Type t = relationInfo.relationType() == RelationInfo.RelationType.VIEW ? Type.VIEW : Type.TABLE;
+        Type t = Type.fromRelationType(relationInfo.relationType());
         return oid(t.toString() + relationInfo.ident().fqn());
     }
 

@@ -69,6 +69,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -340,6 +341,11 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitTableRelation(TableRelation relation, List<Symbol> outputs) {
             return new Collect(relation, outputs, WhereClause.MATCH_ALL);
+        }
+
+        @Override
+        public LogicalPlan visitForeignTable(ForeignTableRelation relation, List<Symbol> outputs) {
+            return new ForeignCollect(relation, outputs);
         }
 
         @Override

@@ -232,6 +232,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return switch (type) {
             case BASE_TABLE -> PgClassTable.Entry.Type.RELATION;
             case VIEW -> PgClassTable.Entry.Type.VIEW;
+            case FOREIGN -> PgClassTable.Entry.Type.FOREIGN;
         };
     }
 
