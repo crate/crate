@@ -59,7 +59,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.lucene.match.MatchQueries;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.expression.scalar.Scalar;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.server.xcontent.LoggingDeprecationHandler;

@@ -36,7 +36,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
-import io.crate.expression.scalar.Scalar;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 

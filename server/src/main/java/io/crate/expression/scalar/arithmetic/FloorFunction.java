@@ -23,7 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.expression.scalar.Scalar;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
