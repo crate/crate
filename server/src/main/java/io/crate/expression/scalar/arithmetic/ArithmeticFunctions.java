@@ -24,7 +24,6 @@ package io.crate.expression.scalar.arithmetic;
 import static io.crate.expression.scalar.Scalar.DETERMINISTIC_ONLY;
 import static io.crate.expression.scalar.Scalar.Feature.NULLABLE;
 
-import io.crate.expression.scalar.BinaryScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.Scalar;
 import io.crate.metadata.functions.Signature;
