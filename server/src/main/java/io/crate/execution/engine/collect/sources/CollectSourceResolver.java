@@ -75,7 +75,7 @@ public class CollectSourceResolver {
     private final ClusterService clusterService;
     private final CollectPhaseVisitor visitor;
     private final ProjectorSetupCollectSource tableFunctionSource;
-    private final ForeignDataWrappers foreignDataWrappers;
+    private final CollectSource foreignDataWrappers;
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
@@ -116,7 +116,7 @@ public class CollectSourceResolver {
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);
         this.tableFunctionSource = new ProjectorSetupCollectSource(tableFunctionCollectSource, projectorFactory);
         this.emptyCollectSource = new ProjectorSetupCollectSource(new VoidCollectSource(), projectorFactory);
-        this.foreignDataWrappers = foreignDataWrappers;
+        this.foreignDataWrappers = new ProjectorSetupCollectSource(foreignDataWrappers, projectorFactory);
 
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
         for (TableInfo tableInfo : sysSchemaInfo.getTables()) {
