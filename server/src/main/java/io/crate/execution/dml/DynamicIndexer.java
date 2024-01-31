@@ -84,6 +84,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                                      Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
+            DynamicIndexer.throwOnNestedArray(type);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
                 if (handleEmptyArray(type, value, null, null)) {
@@ -245,6 +246,19 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             return ArrayType.makeArray(upcast(innerType), dimensions);
         }
         return upcast(type);
+    }
+
+    /**
+     * We don't support dynamically-created nested arrays as the MapperParser code
+     * used when reading from the translog can't handle them.  So we also check
+     * here that we're not trying to dynamically create one.
+     */
+    public static void throwOnNestedArray(DataType<?> type) {
+        if (type instanceof ArrayType<?> at) {
+            if (at.innerType() instanceof ArrayType<?>) {
+                throw new IllegalArgumentException("Dynamic nested arrays are not supported");
+            }
+        }
     }
 
     private static DataType<?> upcast(DataType<?> type) {

@@ -91,6 +91,10 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         this.innerMapper = innerMapper;
     }
 
+    public Mapper getInnerMapper() {
+        return innerMapper;
+    }
+
     private static FieldType getFieldType(Mapper.Builder builder) {
         if (builder instanceof FieldMapper.Builder fieldMapperBuilder) {
             return fieldMapperBuilder.fieldType;

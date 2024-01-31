@@ -639,14 +639,14 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         assertThatThrownBy(() -> e.analyze("update t set a['b'][1][1] = 10;"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Nested array access is not supported");
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("cannot use expression \"a\"['b'][1][1] as a left side of an assignment");
         assertThatThrownBy(() -> e.analyze("update t set a[1][1]['b'] = 10;"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Nested array access is not supported");
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("cannot use expression \"a\"[1][1]['b'] as a left side of an assignment");
         assertThatThrownBy(() -> e.analyze("update t set a[1]['b'][1] = 10;"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Nested array access is not supported");
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("cannot use expression \"a\"[1]['b'][1] as a left side of an assignment");
 
         assertThatThrownBy(() -> e.analyze("update t set a['b'][1]::array(integer)[1] = 10;"))
             .isExactlyInstanceOf(IllegalArgumentException.class)

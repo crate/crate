@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -2187,5 +2186,39 @@ public class TransportSQLActionTest extends IntegTestCase {
                 .hasMessageContaining("\"collect: 0\" reached operation memory limit.")
                 .hasMessageEndingWith("Limit: 2b");
         }
+    }
+
+    @Test
+    public void test_nested_arrays() {
+        execute("create table tbl (xs int[][])");
+        execute("insert into tbl (xs) values ([[1, 2], [3, 3, 4]])");
+        execute("refresh table tbl");
+
+        execute("select * from tbl");
+        assertThat(response).hasRows("[[1, 2], [3, 3, 4]]");
+
+        execute("select xs[1][2] from tbl");
+        assertThat(response).hasRows("2");
+
+        execute("select * from tbl where 1 = any(xs)");
+        assertThat(response).hasRows("[[1, 2], [3, 3, 4]]");
+        execute("select * from tbl where 5 = any(xs)");
+        assertThat(response).isEmpty();
+        execute("select * from tbl where [3, 3, 4] = any(xs)");
+        assertThat(response).hasRows("[[1, 2], [3, 3, 4]]");
+        execute("select * from tbl where [3, 4] = any(xs)");
+        assertThat(response).isEmpty();
+        execute("select * from tbl where 1 = any(xs[1])");
+        assertThat(response).hasRows("[[1, 2], [3, 3, 4]]");
+        execute("select * from tbl where 1 = any(xs[2])");
+        assertThat(response).isEmpty();
+        execute("select * from tbl where 1 = any(xs[3])");
+        assertThat(response).isEmpty();
+    }
+
+    @Test
+    public void test_subscripts_on_expressions() {
+        execute("select [0, 1, 2, 3][2] as val");
+        assertThat(response).hasRows("1");
     }
 }

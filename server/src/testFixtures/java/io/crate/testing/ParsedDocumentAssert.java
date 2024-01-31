@@ -23,6 +23,7 @@ package io.crate.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
 import org.assertj.core.api.AbstractAssert;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -34,9 +35,12 @@ public class ParsedDocumentAssert extends AbstractAssert<ParsedDocumentAssert, P
     }
 
     public void hasSameFieldsWithNameAs(ParsedDocument expected, String fieldName) {
-        IndexableField[] expectedFields = expected.doc().getFields(fieldName);
-        IndexableField[] actualFields = actual.doc().getFields(fieldName);
+        hasSameResolvedFields(expected.doc(), fieldName);
+    }
 
+    public void hasSameResolvedFields(Document expected, String fieldName) {
+        IndexableField[] expectedFields = expected.getFields(fieldName);
+        IndexableField[] actualFields = actual.doc().getFields(fieldName);
         assertThat(expectedFields).hasSize(actualFields.length);
         for (int i = 0; i < expectedFields.length; i++) {
             var field1 = expectedFields[i];

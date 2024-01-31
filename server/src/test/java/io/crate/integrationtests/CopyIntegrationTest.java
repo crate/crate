@@ -542,12 +542,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testCopyFromNestedArrayRow() throws Exception {
-        // assert that rows with nested arrays aren't imported
+        // assert that rows with nested arrays are not imported, because they would
+        // dynamically create a new nested array column which is not supported
         execute("create table users (id int, " +
             "name string) with (number_of_replicas=0, column_policy = 'dynamic')");
         execute("copy users from ? with (shared=true)", new Object[]{
             nestedArrayCopyFilePath + "nested_array_copy_from.json"});
-        assertThat(response).hasRowCount(1L); // only 1 document got inserted
+        assertThat(response).hasRowCount(1L);
         refresh();
 
         execute("select * from users");

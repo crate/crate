@@ -48,10 +48,8 @@ public class ArrayTypeTest extends DataTypeTestCase<List<Object>> {
     }
 
     @Override
-    public void test_doc_values_write_and_read_roundtrip_inclusive_doc_mapper_parse() throws Exception {
-        // skip base class case. It doesn't deal with arrays:
-        // - doesn't initialize sources correctly
-        // - doesn't expect multi values per field
+    protected boolean supportsDocValues() {
+        return false;
     }
 
     @Test

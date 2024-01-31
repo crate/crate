@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.Locale;
+
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Cast;
@@ -36,21 +38,28 @@ import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.TryCast;
 
-import java.util.Locale;
-
 /**
- * NOTE: Array index out of bound validation cannot happen here since array index expressions such as
- * `-1` or `x + 1` are not yet evaluated. The actual validation is handled by implicit cast of
- * the array indexes to the target type (integer) of {@link io.crate.expression.scalar.SubscriptFunction}.
- * See {@link io.crate.analyze.expressions.ExpressionAnalyzer#cast}
+ * Utility class to extract index and subscript information from a {@link SubscriptExpression}
  */
-public final class SubscriptValidator {
+public final class SubscriptVisitor {
 
-    private SubscriptValidator() {
+    private SubscriptVisitor() {
     }
 
-    public static void validate(SubscriptExpression node, SubscriptContext subscriptContext) {
+    /**
+     * Extracts index and subscript information from the passed in SubscriptExpression
+     * </p>
+     * Note that array index out of bound validation does not happen here, as index
+     * expressions such as `-1` or `x + 1` are not yet evaluated.  This will happen instead
+     * during the implicit cast of indexes to integers by a {@link io.crate.expression.scalar.SubscriptFunction}
+     *
+     * @param node  the node to analyse
+     * @return      a {@link SubscriptContext} containing the index and subscript information
+     */
+    public static SubscriptContext visit(Expression node) {
+        SubscriptContext subscriptContext = new SubscriptContext();
         node.accept(SubscriptNameVisitor.INSTANCE, subscriptContext);
+        return subscriptContext;
     }
 
     private static class SubscriptNameVisitor extends AstVisitor<Void, SubscriptContext> {
@@ -125,34 +134,26 @@ public final class SubscriptValidator {
 
         @Override
         protected Void visitStringLiteral(StringLiteral node, SubscriptContext context) {
-            context.add(node.getValue());
+            context.addKey(node.getValue());
             return null;
         }
 
         @Override
         protected Void visitLongLiteral(LongLiteral node, SubscriptContext context) {
-            validateNestedArrayAccess(context);
-            context.index(node);
+            context.addIndex(node);
             return null;
         }
 
         @Override
         protected Void visitIntegerLiteral(IntegerLiteral node, SubscriptContext context) {
-            validateNestedArrayAccess(context);
-            context.index(node);
+            context.addIndex(node);
             return null;
         }
 
         @Override
         protected Void visitExpression(Expression node, SubscriptContext context) {
-            context.index(node);
+            context.addIndex(node);
             return null;
-        }
-
-        private void validateNestedArrayAccess(SubscriptContext context) {
-            if (context.index() != null) {
-                throw new UnsupportedOperationException("Nested array access is not supported");
-            }
         }
     }
 }

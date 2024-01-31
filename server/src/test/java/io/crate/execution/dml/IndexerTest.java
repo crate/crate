@@ -23,7 +23,6 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
@@ -1200,6 +1199,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    @Ignore(value = "We don't support dynamic creation of nested arrays due to translog restrictions")
     public void test_index_nested_array() throws Exception {
         SQLExecutor executor = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (x int) with (column_policy = 'dynamic')")

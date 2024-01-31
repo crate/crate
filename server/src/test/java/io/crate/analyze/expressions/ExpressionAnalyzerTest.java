@@ -23,6 +23,7 @@ package io.crate.analyze.expressions;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -118,9 +119,16 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             isLiteral(1)
         );
 
-        assertThatThrownBy(() -> executor.asSymbol("o_arr['o_arr_nested']['y'][1][1]"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Nested array access is not supported");
+        symbol = executor.asSymbol("o_arr['o_arr_nested']['y'][2][1]");
+        assertThat(symbol).isFunction(
+            "subscript",
+            isFunction(
+                "subscript",
+                isReference("o_arr['o_arr_nested']['y']"),
+                isLiteral(2)
+            ),
+            isLiteral(1)
+        );
     }
 
     @Test

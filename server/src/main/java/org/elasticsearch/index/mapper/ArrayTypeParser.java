@@ -42,8 +42,6 @@ public class ArrayTypeParser implements Mapper.TypeParser {
         String typeName = (String) innerNode.get("type");
         if (typeName == null && innerNode.containsKey("properties")) {
             typeName = ObjectMapper.CONTENT_TYPE;
-        } else if (ArrayMapper.CONTENT_TYPE.equalsIgnoreCase(typeName)) {
-            throw new MapperParsingException("nested arrays are not supported");
         }
 
         Mapper.TypeParser innerTypeParser = parserContext.typeParser(typeName);
