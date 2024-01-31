@@ -46,7 +46,7 @@ import io.crate.analyze.NegateLiterals;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.SubscriptContext;
-import io.crate.analyze.SubscriptValidator;
+import io.crate.analyze.SubscriptVisitor;
 import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -671,63 +671,77 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitSubscriptExpression(SubscriptExpression node, ExpressionAnalysisContext context) {
-            SubscriptContext subscriptContext = new SubscriptContext();
-            SubscriptValidator.validate(node, subscriptContext);
-            QualifiedName qualifiedName = subscriptContext.qualifiedName();
-            List<String> parts = subscriptContext.parts();
+            SubscriptContext subscriptContext = SubscriptVisitor.visit(node);
 
-            if (qualifiedName == null) {
+            if (subscriptContext.hasExpression()) {
+                // The left hand side of the expression isn't a column, it's something like a
+                // static array or a cast, so we recurse into it.
                 Symbol base = node.base().accept(this, context);
                 Symbol index = node.index().accept(this, context);
                 return allocateFunction(SubscriptFunction.NAME, List.of(base, index), context);
-            } else {
-                // Detect and process partial quoted subscript expression
-                var columnName = qualifiedName.getSuffix();
-                var maybeQuotedSubscript = detectAndGenerateSubscriptExpressions(columnName);
-                if (maybeQuotedSubscript != null) {
-                    return visitSubscriptExpression(new SubscriptExpression(maybeQuotedSubscript, node.index()), context);
-                }
+            }
 
-                // Ideally the above base+index + subscriptFunction case would be enough
-                // But:
-                // - We want to avoid subscript functions if possible (we've nested object values in a column store)
-                // - In DDL statement we can't turn a `PRIMARY KEY o['x']` into a subscript either
-                // - In DML statements we can have assignments: obj['x'] = 30
-                // We should come up with a design that addresses those and remove the duct-tape logic below.
+            // Detect and process partial quoted subscript expression
+            QualifiedName qualifiedName = subscriptContext.qualifiedName();
+            var columnName = qualifiedName.getSuffix();
+            var maybeQuotedSubscript = detectAndGenerateSubscriptExpressions(columnName);
+            if (maybeQuotedSubscript != null) {
+                return visitSubscriptExpression(new SubscriptExpression(maybeQuotedSubscript, node.index()), context);
+            }
 
-                Symbol name;
-                try {
-                    name = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
-                } catch (ColumnUnknownException e) {
-                    if (operation != Operation.READ) {
-                        throw e;
-                    }
-                    try {
-                        Symbol base = fieldProvider.resolveField(qualifiedName,
-                                                                 List.of(),
-                                                                 operation,
-                                                                 context.errorOnUnknownObjectKey());
-                        if (base instanceof Reference) {
-                            throw e;
-                        }
-                        return allocateFunction(
-                            SubscriptFunction.NAME,
-                            List.of(
-                                node.base().accept(this, context),
-                                node.index().accept(this, context)
-                            ),
-                            context
-                        );
-                    } catch (ColumnUnknownException e2) {
-                        throw e;
-                    }
+            // Ideally the above base+index + subscriptFunction case would be enough
+            // But:
+            // - We want to avoid subscript functions if possible (we've nested object values in a column store)
+            // - In DDL statement we can't turn a `PRIMARY KEY o['x']` into a subscript either
+            // - In DML statements we can have assignments: obj['x'] = 30
+            // We should come up with a design that addresses those and remove the duct-tape logic below.
+
+            Symbol ref;
+            try {
+                List<String> parts = subscriptContext.parts();
+                ref = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
+            } catch (ColumnUnknownException e) {
+                return resolveUnindexedSubscriptExpression(node, context, qualifiedName, e);
+            }
+
+            // If there are any array subscripts, recursively wrap the resolved expression in an
+            // array subscript function for each nested array dereference.
+            for (Expression idx : subscriptContext.index()) {
+                Symbol index = idx.accept(this, context);
+                ref = allocateFunction(SubscriptFunction.NAME, List.of(ref, index), context);
+            }
+            return ref;
+        }
+
+        // If a subscript expression doesn't resolve to an indexed field, try instead
+        // to resolve the base field and use a subscript function to extract the values
+        private Symbol resolveUnindexedSubscriptExpression(
+            SubscriptExpression node,
+            ExpressionAnalysisContext context,
+            QualifiedName qualifiedName,
+            ColumnUnknownException e
+        ) {
+            if (operation != Operation.READ) {
+                throw e;
+            }
+            try {
+                Symbol base = fieldProvider.resolveField(qualifiedName,
+                    List.of(),
+                    operation,
+                    context.errorOnUnknownObjectKey());
+                if (base instanceof Reference) {
+                    throw e;
                 }
-                Expression idxExpression = subscriptContext.index();
-                if (idxExpression != null) {
-                    Symbol index = idxExpression.accept(this, context);
-                    return allocateFunction(SubscriptFunction.NAME, List.of(name, index), context);
-                }
-                return name;
+                return allocateFunction(
+                    SubscriptFunction.NAME,
+                    List.of(
+                        node.base().accept(this, context),
+                        node.index().accept(this, context)
+                    ),
+                    context
+                );
+            } catch (ColumnUnknownException e2) {
+                throw e;
             }
         }
 

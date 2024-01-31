@@ -70,7 +70,7 @@ SQL Standard and PostgreSQL Compatibility
 Data Types
 ----------
 
-None
+- Added support for nested arrays in ``CREATE TABLE`` statements
 
 Scalar and Aggregation Functions
 --------------------------------

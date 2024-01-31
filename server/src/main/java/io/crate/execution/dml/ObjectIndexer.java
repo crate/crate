@@ -237,6 +237,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 continue;
             }
             var type = DynamicIndexer.guessType(innerValue);
+            DynamicIndexer.throwOnNestedArray(type);
             innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {

@@ -179,7 +179,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         return convert(value, innerType, innerType::sanitizeValue, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 
-    public List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
+    public static List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
         if (values == null) {
             return null;
         } else {
@@ -191,7 +191,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
     }
 
-    public List<String> fromAnyArray(List<?> values) throws IllegalArgumentException {
+    public static List<String> fromAnyArray(List<?> values) throws IllegalArgumentException {
         if (values == null) {
             return null;
         } else {
@@ -204,7 +204,7 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @SuppressWarnings("unchecked")
-    private String anyValueToString(Object value) {
+    private static String anyValueToString(Object value) {
         if (value == null) {
             return null;
         }

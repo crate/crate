@@ -22,6 +22,7 @@
 package io.crate.metadata.doc.mappers.array;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -51,9 +52,11 @@ import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
+import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
+import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ObjectArrayMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
@@ -339,10 +342,18 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject()
             .endObject().endObject().endObject());
-
-        expectedException.expect(MapperParsingException.class);
-        expectedException.expectMessage("nested arrays are not supported");
-        mapper(INDEX, mapping);
+        DocumentMapper mapper = mapper(INDEX, mapping);
+        Mapper m = mapper.mappers().getMapper("array_field");
+        assertThat(m.name(), equalTo("array_field"));
+        assertThat(m, instanceOf(ArrayMapper.class));
+        ArrayMapper am = (ArrayMapper) m;
+        m = am.getInnerMapper();
+        assertThat(m.name(), equalTo("array_field"));
+        assertThat(m, instanceOf(ArrayMapper.class));
+        am = (ArrayMapper) m;
+        m = am.getInnerMapper();
+        assertThat(m.name(), equalTo("array_field"));
+        assertThat(m, instanceOf(NumberFieldMapper.class));
     }
 
     @Test

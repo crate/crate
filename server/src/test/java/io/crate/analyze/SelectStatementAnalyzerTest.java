@@ -1715,9 +1715,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION)
             .build();
-        assertThatThrownBy(() -> executor.analyze("select tags[1]['metadata'][2] from deeply_nested"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Nested array access is not supported");
+        AnalyzedRelation relation = executor.analyze("select tags[1]['metadata'][2] from deeply_nested");
+        assertThat(relation.outputs().get(0)).isFunction(SubscriptFunction.NAME);
+        List<Symbol> arguments = ((Function) relation.outputs().get(0)).arguments();
+        assertThat(arguments).hasSize(2);
+        assertThat(arguments.get(0)).isFunction(SubscriptFunction.NAME);
+        assertThat(arguments.get(1)).isLiteral(2);
+        arguments = ((Function) arguments.get(0)).arguments();
+        assertThat(arguments).hasSize(2);
+        assertThat(arguments.get(0)).isReference().hasName("tags['metadata']");
+        assertThat(arguments.get(1)).isLiteral(1);
     }
 
     @Test

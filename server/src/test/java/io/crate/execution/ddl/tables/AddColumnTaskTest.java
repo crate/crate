@@ -22,7 +22,6 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -33,7 +32,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.mapper.MapperParsingException;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -263,7 +261,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_raises_error_on_nested_arrays() throws Exception {
+    public void test_supports_nested_arrays() throws Exception {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (x int)")
             .build();
@@ -291,9 +289,10 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 Map.of(),
                 new IntArrayList()
             );
-            assertThatThrownBy(() -> addColumnTask.execute(state, request))
-                .isExactlyInstanceOf(MapperParsingException.class)
-                .hasMessageContaining("nested arrays are not supported");
+            ClusterState newState = addColumnTask.execute(state, request);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
+            Reference addedColumn = newTable.getReference(newColumn1.column());
+            assertThat(addedColumn).isReference().hasType(new ArrayType<>(new ArrayType<>(DataTypes.LONG)));
         }
     }
 

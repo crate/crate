@@ -2885,16 +2885,14 @@ constant array values.
 Nested arrays
 .............
 
-Nested arrays cannot be used directly in column definitions  (i.e.
-``ARRAY(ARRAY(DOUBLE))`` is not accepted), but multiple arrays can be nested
-as long as there are objects in-between:
+You can directly define nested arrays in column definitions:
 
 ::
 
-    CREATE TABLE SensorData (sensorID char(10), readings ARRAY(OBJECT AS (innerarray ARRAY(DOUBLE))));
+    CREATE TABLE SensorData (sensorID char(10), readings ARRAY(ARRAY(DOUBLE)));
 
 
-Nested arrays can still be used directly in input and output to UDFs:
+Nested arrays can also be used directly in input and output to UDFs:
 
 ::
 
@@ -2934,6 +2932,18 @@ requires an intermediate cast:
     |                       2.0 |
     +---------------------------+
 
+.. NOTE::
+
+    Accessing nested arrays will generally require loading
+    sources directly from disk, and will not be very efficient.  If you find
+    yourself using nested arrays frequently, you may want to consider splitting
+    the data up into multiple tables instead.
+
+.. NOTE::
+
+    Nested arrays cannot be created dynamically, either as a
+    :ref:`top level column <column_policy>`
+    or as part of a :ref:`dynamic object <type-object-columns-dynamic>`
 
 .. _type-float_vector:
 

@@ -556,8 +556,13 @@ public class DocTableInfoFactory {
      * Array types have the mapping for their inner type within `inner`
      **/
     private static Map<String, Object> innerProperties(Map<String, Object> columnProperties) {
-        Map<String, Object> inner = Maps.get(columnProperties, "inner");
-        return inner == null ? columnProperties : inner;
+        var inner = columnProperties;
+        var next = inner;
+        while (next != null) {
+            inner = next;
+            next = Maps.get(inner, "inner");
+        }
+        return inner;
     }
 
     private static List<ColumnIdent> getPrimaryKeys(Map<String, Object> metaMap) {

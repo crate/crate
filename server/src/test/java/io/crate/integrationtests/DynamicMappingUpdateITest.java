@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
@@ -441,5 +442,28 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
                 }
             }
         }
+    }
+
+    @Test
+    public void test_nested_arrays_throw_exception() throws IOException {
+
+        execute(
+            """
+                create table t (
+                    tb array(object(dynamic)),
+                    p int
+                ) with (column_policy = 'dynamic');
+                """
+        );
+
+        // We don't support dynamically creating nested arrays under objects
+        assertThatThrownBy(
+            () -> execute("insert into t (tb) values ([{t1 = [[1, 2], [3, 4]]},{t2 = {}}])")
+        ).hasMessageContaining("Dynamic nested arrays are not supported");
+
+        // We don't support dynamically creating nested arrays as top-level columns
+        assertThatThrownBy(
+            () -> execute("insert into t (n) values ([[1, 2], [3, 4]])")
+        ).hasMessageContaining("Dynamic nested arrays are not supported");
     }
 }

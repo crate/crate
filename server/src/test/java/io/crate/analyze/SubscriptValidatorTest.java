@@ -28,24 +28,19 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.ArrayLiteral;
-import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.SubscriptExpression;
-import io.crate.sql.tree.TryCast;
+import io.crate.sql.tree.IntegerLiteral;
 
 
 public class SubscriptValidatorTest extends ESTestCase {
 
     private SubscriptContext analyzeSubscript(String expressionString) {
-        SubscriptContext context = new SubscriptContext();
         Expression expression = SqlParser.createExpression(expressionString);
-        SubscriptValidator.validate((SubscriptExpression) expression, context);
-        return context;
+        return SubscriptVisitor.visit(expression);
     }
 
     @Test
-    public void testVisitSubscriptExpression() throws Exception {
+    public void testVisitSubscriptExpression() {
         SubscriptContext context = analyzeSubscript("a['x']['y']");
         assertThat(context.qualifiedName().getSuffix()).as("a").isEqualTo("a");
         assertThat(context.parts().get(0)).as("x").isEqualTo("x");
@@ -53,72 +48,72 @@ public class SubscriptValidatorTest extends ESTestCase {
     }
 
     @Test
-    public void testInvalidSubscriptExpressionName() throws Exception {
+    public void testInvalidSubscriptExpressionName() {
         assertThatThrownBy(() -> analyzeSubscript("'a'['x']['y']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("An expression of type StringLiteral cannot have an index accessor ([])");
     }
 
     @Test
-    public void testNestedSubscriptParameter() throws Exception {
+    public void testNestedSubscriptParameter() {
         assertThatThrownBy(() -> analyzeSubscript("a['x'][?]"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Parameter substitution is not supported in subscript index");
     }
 
     @Test
-    public void testArraySubscriptParameter() throws Exception {
+    public void testArraySubscriptParameter() {
         assertThatThrownBy(() -> analyzeSubscript("a[?]"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Parameter substitution is not supported in subscript index");
     }
 
     @Test
-    public void testSubscriptOnArrayLiteral() throws Exception {
+    public void testSubscriptOnArrayLiteral() {
         SubscriptContext context = analyzeSubscript("[1,2,3][1]");
-        assertThat(context.expression()).isNotNull();
-        assertThat(context.expression()).isExactlyInstanceOf(ArrayLiteral.class);
-        assertThat(context.index()).isSQL("1");
+        assertThat(context.hasExpression()).isTrue();
+        assertThat(context.index().get(0)).isSQL("1");
     }
 
     @Test
-    public void testSubscriptOnCast() throws Exception {
+    public void testSubscriptOnCast() {
         SubscriptContext context = analyzeSubscript("cast([1.1,2.1] as array(integer))[2]");
-        assertThat(context.expression()).isExactlyInstanceOf(Cast.class);
-        assertThat(context.index()).isSQL("2");
+        assertThat(context.hasExpression()).isTrue();
+        assertThat(context.index().get(0)).isSQL("2");
     }
 
     @Test
-    public void testSubscriptOnTryCast() throws Exception {
+    public void testSubscriptOnTryCast() {
         SubscriptContext context = analyzeSubscript("try_cast([1] as array(double))[1]");
-        assertThat(context.expression()).isExactlyInstanceOf(TryCast.class);
-        assertThat(context.index()).isSQL("1");
+        assertThat(context.hasExpression()).isTrue();
+        assertThat(context.index().get(0)).isSQL("1");
     }
 
     @Test
-    public void testVisitSubscriptWithIndexExpression() throws Exception {
+    public void testVisitSubscriptWithIndexExpression() {
         SubscriptContext context = analyzeSubscript("a[1+2]");
         assertThat(context.qualifiedName().getSuffix()).isEqualTo("a");
-        assertThat(context.index()).isSQL("1 + 2");
+        assertThat(context.index().get(0)).isSQL("1 + 2");
     }
 
     @SuppressWarnings("ConstantConditions")
     @Test
-    public void testVisitSubscriptWithNestedIndexExpression() throws Exception {
+    public void testVisitSubscriptWithNestedIndexExpression() {
         SubscriptContext context = analyzeSubscript("a[a[abs(2-3)]]");
         assertThat(context.qualifiedName().getSuffix()).isEqualTo("a");
-        context = analyzeSubscript(context.index().toString());
+        context = analyzeSubscript(context.index().get(0).toString());
         assertThat(context.qualifiedName().getSuffix()).isEqualTo("a");
-        assertThat(context.index()).isSQL("abs((2 - 3))");
+        assertThat(context.index().get(0)).isSQL("abs((2 - 3))");
     }
 
     @Test
-    public void testNestedArrayAccess() throws Exception {
-        assertThatThrownBy(() -> analyzeSubscript("a[1][2]"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Nested array access is not supported");
-        assertThatThrownBy(() -> analyzeSubscript("a[2147483648][1]"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Nested array access is not supported");
+    public void testNestedArrayAccess() {
+        SubscriptContext context = analyzeSubscript("a[1][2][3]");
+        assertThat(context.index()).hasSize(3);
+        assertThat(context.index()).containsExactly(
+            new IntegerLiteral(1),
+            new IntegerLiteral(2),
+            new IntegerLiteral(3)
+        );
     }
 }
