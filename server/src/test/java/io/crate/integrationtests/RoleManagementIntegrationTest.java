@@ -277,4 +277,14 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             .hasHTTPError(BAD_REQUEST, 4004)
             .hasMessageContaining("Cannot drop a superuser 'crate'");
     }
+
+    @Test
+    public void test_create_user_jwt_properties_must_be_unique() {
+        execute("CREATE USER user1 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user'})");
+        assertUserIsCreated("user1");
+        Asserts.assertSQLError(() -> execute("CREATE USER user2 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user'})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(CONFLICT, 4099)
+            .hasMessageContaining("Role 'user2' or another role with the same combination of jwt properties already exists");
+    }
 }

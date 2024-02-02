@@ -39,9 +39,14 @@ public interface RoleManager extends Roles {
      * This never raises but always returns a failed future in error cases.
      *
      * @param roleName name of the role to create
+     * @param jwtProperties contains JWK specific properties if user can be authenticated by providing a JWTtoken.
      * @return 1 if the role was created, otherwise a failed future.
      */
-    CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw);
+    CompletableFuture<Long> createRole(String roleName,
+                                       boolean isUser,
+                                       @Nullable SecureHash hashedPw,
+                                       @Nullable JwtProperties jwtProperties
+    );
 
     /**
      * Delete a roles.
