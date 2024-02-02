@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -45,7 +46,9 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
     @Override
     @SuppressWarnings("unchecked")
     public DataType<List<List<Object>>> getType() {
-        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomType();
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE)
+        );
         return new ArrayType<>(new ArrayType<>(randomType));
     }
 
