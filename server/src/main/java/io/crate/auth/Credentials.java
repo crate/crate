@@ -48,7 +48,7 @@ public class Credentials {
         return new Credentials(null, null, jwtToken);
     }
 
-    private Credentials(@Nullable String username, @Nullable SecureString password, @Nullable String jwtToken) {
+    private Credentials(@Nullable String username, @Nullable char[] password, @Nullable char[] jwtToken) {
         this.username = username;
         this.password = password;
         this.jwtToken = jwtToken;
