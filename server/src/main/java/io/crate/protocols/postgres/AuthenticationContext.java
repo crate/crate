@@ -85,8 +85,8 @@ class AuthenticationContext implements Closeable {
      */
     @Override
     public void close() {
-        if (credentials.password() != null) {
-            credentials.password().close();
+        if (credentials != null) {
+            credentials.close();
         }
     }
 }
