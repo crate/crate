@@ -70,7 +70,7 @@ class AuthenticationContext implements Closeable {
     }
 
     void setSecurePassword(char[] secureString) {
-        credentials.setPassword(new SecureString(secureString));
+        credentials.setPassword(secureString);
     }
 
     @Nullable
