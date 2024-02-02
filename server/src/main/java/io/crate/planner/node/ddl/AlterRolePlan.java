@@ -21,6 +21,10 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.planner.node.ddl.CreateRolePlan.parse;
+
+import java.util.Map;
+
 import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.role.RoleManager;
 import io.crate.data.Row;
@@ -54,11 +58,14 @@ public class AlterRolePlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        SecureHash newPassword = UserActions.generateSecureHash(
-                alterRole.properties(),
-                params,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext());
+        Map<String, Object> properties = parse(
+            alterRole.properties(),
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            params,
+            subQueryResults
+        );
+        SecureHash newPassword = UserActions.generateSecureHash(properties);
 
         roleManager.alterRole(alterRole.roleName(), newPassword)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
