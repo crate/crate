@@ -53,7 +53,7 @@ public class AuthenticationContextTest extends ESTestCase {
         AuthenticationContext authContext = new AuthenticationContext(
             authMethod,
             connProperties,
-            Credentials.of(userName, null),
+            new Credentials(userName, null),
             LogManager.getLogger(AuthenticationContextTest.class)
         );
         authContext.setSecurePassword(passwd);

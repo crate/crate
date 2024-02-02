@@ -28,7 +28,6 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpVersion;
-import org.elasticsearch.common.settings.SecureString;
 
 import org.jetbrains.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -38,8 +37,8 @@ import java.util.regex.Pattern;
 public final class Headers {
 
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
-    private static final SecureString EMPTY_PASSWORD = new SecureString(new char[] {});
-    private static final Credentials EMPTY_CREDENTIALS = Credentials.of("", EMPTY_PASSWORD);
+    private static final char[] EMPTY_PASSWORD = new char[] {};
+    private static final Credentials EMPTY_CREDENTIALS = new Credentials("", EMPTY_PASSWORD);
 
     static boolean isBrowser(@Nullable String headerValue) {
         if (headerValue == null) {
@@ -73,7 +72,7 @@ public final class Headers {
             return EMPTY_CREDENTIALS;
         }
         String username;
-        SecureString password = EMPTY_PASSWORD;
+        char[] password = EMPTY_PASSWORD;
         String valueWithoutBasePrefix = authHeaderValue.substring(6);
         String decodedCreds = new String(Base64.getDecoder().decode(valueWithoutBasePrefix), StandardCharsets.UTF_8);
 
@@ -84,9 +83,9 @@ public final class Headers {
             username = decodedCreds.substring(0, idx);
             String passwdStr = decodedCreds.substring(idx + 1);
             if (passwdStr.length() > 0) {
-                password = new SecureString(passwdStr.toCharArray());
+                password = passwdStr.toCharArray();
             }
         }
-        return Credentials.of(username, password);
+        return new Credentials(username, password);
     }
 }

@@ -183,7 +183,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
             }
         }
-        return Credentials.of(username, null);
+        return new Credentials(username, null);
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {

@@ -68,7 +68,7 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
             closeAndThrowException(ctx, msg, authError);
         }
         try {
-            authMethod.authenticate(Credentials.of(userName, null), connectionProperties);
+            authMethod.authenticate(new Credentials(userName, null), connectionProperties);
             ctx.pipeline().remove(this);
             super.channelRead(ctx, msg);
         } catch (Exception e) {

@@ -76,7 +76,8 @@ class AuthenticationContext implements Closeable {
     @Nullable
     @VisibleForTesting
     SecureString password() {
-        return credentials.password();
+        // For PG protocol credentials always holds password.
+        return credentials.passwordOrToken();
     }
 
     /**

@@ -58,9 +58,9 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     public void testTrustAuthentication() throws Exception {
         TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(new CrateOrNullRoles());
         assertThat(trustAuth.name()).isEqualTo("trust");
-        assertThat(trustAuth.authenticate(Credentials.of("crate", null), null).name()).isEqualTo("crate");
+        assertThat(trustAuth.authenticate(new Credentials("crate", null), null).name()).isEqualTo("crate");
 
-        assertThatThrownBy(() -> trustAuth.authenticate(Credentials.of("cr8", null), null))
+        assertThatThrownBy(() -> trustAuth.authenticate(new Credentials("cr8", null), null))
             .hasMessage("trust authentication failed for user \"cr8\"");
     }
 
@@ -70,9 +70,9 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         AuthenticationMethod alwaysOkAuthMethod = alwaysOkAuth.resolveAuthenticationType("crate", null);
 
         assertThat(alwaysOkAuthMethod.name()).isEqualTo("trust");
-        assertThat(alwaysOkAuthMethod.authenticate(Credentials.of("crate", null), null).name()).isEqualTo("crate");
+        assertThat(alwaysOkAuthMethod.authenticate(new Credentials("crate", null), null).name()).isEqualTo("crate");
 
-        assertThatThrownBy(() -> alwaysOkAuthMethod.authenticate(Credentials.of("cr8", null), null))
+        assertThatThrownBy(() -> alwaysOkAuthMethod.authenticate(new Credentials("cr8", null), null))
             .hasMessage("trust authentication failed for user \"cr8\"");
     }
 
@@ -80,7 +80,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullRoles());
         assertThat(pwAuth.name()).isEqualTo("password");
 
-        assertThat(pwAuth.authenticate(Credentials.of("crate", new SecureString("pw".toCharArray())), null).name()).isEqualTo("crate");
+        assertThat(pwAuth.authenticate(new Credentials("crate", "pw".toCharArray()), null).name()).isEqualTo("crate");
     }
 
     @Test
@@ -88,7 +88,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullRoles());
         assertThat(pwAuth.name()).isEqualTo("password");
 
-        assertThatThrownBy(() -> pwAuth.authenticate(Credentials.of("crate", new SecureString("wrong".toCharArray())), null))
+        assertThatThrownBy(() -> pwAuth.authenticate(new Credentials("crate", "wrong".toCharArray()), null))
             .hasMessage("password authentication failed for user \"crate\"");
 
     }
@@ -96,7 +96,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     @Test
     public void testPasswordAuthenticationForNonExistingUser() throws Exception {
         PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullRoles());
-        assertThatThrownBy(() -> pwAuth.authenticate(Credentials.of("cr8", new SecureString("pw".toCharArray())), null))
+        assertThatThrownBy(() -> pwAuth.authenticate(new Credentials("cr8", "pw".toCharArray()), null))
             .hasMessage("password authentication failed for user \"cr8\"");
     }
 }

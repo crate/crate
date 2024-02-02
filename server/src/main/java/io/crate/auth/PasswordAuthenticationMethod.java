@@ -42,9 +42,9 @@ public class PasswordAuthenticationMethod implements AuthenticationMethod {
     public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
         assert credentials.username() != null : "User name must be not null on password authentication method";
         Role user = roles.findUser(credentials.username());
-        if (user != null && credentials.password() != null && credentials.password().length() > 0) {
+        if (user != null && credentials.passwordOrToken() != null && credentials.passwordOrToken().length() > 0) {
             SecureHash secureHash = user.password();
-            if (secureHash != null && secureHash.verifyHash(credentials.password())) {
+            if (secureHash != null && secureHash.verifyHash(credentials.passwordOrToken())) {
                 return user;
             }
         }

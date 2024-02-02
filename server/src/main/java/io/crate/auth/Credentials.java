@@ -21,41 +21,28 @@
 
 package io.crate.auth;
 
+import java.io.Closeable;
 import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Holder for all authentication methods.
- * username is used for password, cert and trust methods and null otherwise.
- * password is used for password method and null otherwise.
- * jwtToken is used for jwt method and null otherwise.
- */
-public class Credentials {
+public class Credentials implements Closeable {
 
     private final String username;
 
     // Non-final as Postgres protocol might inject password later after creation.
-    private SecureString password;
+    private SecureString passwordOrToken;
 
-    private final String jwtToken;
-
-    public static Credentials of(@NotNull String username, @Nullable char[] password) {
-        return new Credentials(username, password, null);
-    }
-
-    public static Credentials of(@NotNull String jwtToken) {
-        return new Credentials(null, null, jwtToken);
-    }
-
-    private Credentials(@Nullable String username, @Nullable char[] password, @Nullable char[] jwtToken) {
+    public Credentials(@Nullable String username, @Nullable char[] passwordOrToken) {
         this.username = username;
-        this.password = password;
-        this.jwtToken = jwtToken;
+        this.passwordOrToken = passwordOrToken != null ? new SecureString(passwordOrToken) : null;
     }
 
+    /**
+     * Only for PG protocol
+     */
     public void setPassword(@NotNull char[] password) {
-        this.password = new SecureString(password);
+        this.passwordOrToken = new SecureString(password);
     }
 
     @Nullable
@@ -64,12 +51,14 @@ public class Credentials {
     }
 
     @Nullable
-    public SecureString password() {
-        return password;
+    public SecureString passwordOrToken() {
+        return passwordOrToken;
     }
 
-    @Nullable
-    public String jwtToken() {
-        return jwtToken;
+    @Override
+    public void close() {
+        if (passwordOrToken != null) {
+            passwordOrToken.close();
+        }
     }
 }

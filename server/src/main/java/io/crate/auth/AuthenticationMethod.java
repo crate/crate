@@ -28,6 +28,11 @@ import io.crate.role.Role;
 
 public interface AuthenticationMethod {
 
+    /**
+     * @param credentials contains username, password or token - depending on the used method.
+     * @return the user or null; null should be handled as if it's a "guest" user
+     * @throws RuntimeException if the authentication failed
+     */
     @Nullable
     Role authenticate(Credentials credentials, ConnectionProperties connProperties);
 

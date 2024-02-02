@@ -51,26 +51,26 @@ public class HeadersTest {
     public void testExtractUsernamePasswordFromHttpBasicAuthHeader() {
         Credentials creds = extractCredentialsFromHttpBasicAuthHeader("");
         assertThat(creds.username(), is(""));
-        assertThat(creds.password().toString(), is(""));
+        assertThat(creds.passwordOrToken().toString(), is(""));
 
         creds = extractCredentialsFromHttpBasicAuthHeader(null);
         assertThat(creds.username(), is(""));
-        assertThat(creds.password().toString(), is(""));
+        assertThat(creds.passwordOrToken().toString(), is(""));
 
         creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
         assertThat(creds.username(), is("Arthur"));
-        assertThat(creds.password().toString(), is("Excalibur"));
+        assertThat(creds.passwordOrToken().toString(), is("Excalibur"));
 
         creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
         assertThat(creds.username(), is("Arthur"));
-        assertThat(creds.password().toString(), is(":test:password:"));
+        assertThat(creds.passwordOrToken().toString(), is(":test:password:"));
 
         creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOg==");
         assertThat(creds.username(), is("Arthur"));
-        assertThat(creds.password().toString(), is(""));
+        assertThat(creds.passwordOrToken().toString(), is(""));
 
         creds = extractCredentialsFromHttpBasicAuthHeader("Basic OnBhc3N3b3Jk");
         assertThat(creds.username(), is(""));
-        assertThat(creds.password().toString(), is("password"));
+        assertThat(creds.passwordOrToken().toString(), is("password"));
     }
 }
