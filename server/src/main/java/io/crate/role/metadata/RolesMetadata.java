@@ -45,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.GrantedRole;
 import io.crate.role.GrantedRolesChange;
+import io.crate.role.JwtProperties;
 import io.crate.role.Policy;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
@@ -82,7 +83,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         RolesMetadata rolesMetadata = new RolesMetadata();
         for (var user : usersMetadata.users().entrySet()) {
             var userName = user.getKey();
-            var role = new Role(userName, true, getPrivileges.apply(userName), Set.of(), user.getValue());
+            var role = new Role(userName, true, getPrivileges.apply(userName), Set.of(), user.getValue(), null);
             rolesMetadata.roles().put(userName, role);
         }
         return rolesMetadata;
@@ -90,6 +91,20 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
     public boolean contains(String name) {
         return roles.containsKey(name);
+    }
+
+    /**
+     * Combination of iss/username must be unique throughout all users.
+     */
+    public boolean contains(JwtProperties jwtProperties) {
+        for (Role role: roles.values()) {
+            if (role.jwtProperties() != null) {
+                if (role.jwtProperties().equals(jwtProperties)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public Role remove(String name) {
@@ -221,7 +236,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
             }
         }
         if (affectedCount > 0) {
-            roles.put(role.name(), new Role(role.name(), role.isUser(), Set.of(), grantedRoles, role.password()));
+            roles.put(role.name(), new Role(role.name(), role.isUser(), Set.of(), grantedRoles, role.password(), role.jwtProperties()));
         }
         return affectedCount;
     }
