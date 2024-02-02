@@ -68,6 +68,10 @@ Packaging Changes
 
     - The ``crate.yml`` configuration file is in ``/etc/crate/``
 
+    - The default environment configuration file at RPM packages changed to
+      ``/etc/default/crate`` to be consistent with the DEB package. The old
+      location at ``/etc/sysconfig/crate`` is not supported anymore.
+
   If you haven't made any significant configuration changes the new packages
   should keep working out of the box.
 
