@@ -36,7 +36,10 @@ public class StubRoleManager implements RoleManager {
     private final List<Role> roles = List.of(Role.CRATE_USER);
 
     @Override
-    public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
+    public CompletableFuture<Long> createRole(String roleName,
+                                              boolean isUser,
+                                              @Nullable SecureHash hashedPw,
+                                              @Nullable JwtProperties jwtProperties) {
         return CompletableFuture.failedFuture(new UnsupportedFeatureException("createRole is not implemented in StubRoleManager"));
     }
 

@@ -29,6 +29,7 @@ import static io.crate.role.metadata.RolesHelper.roleOf;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -52,6 +54,7 @@ import org.junit.Test;
 
 import io.crate.role.GrantedRole;
 import io.crate.role.GrantedRolesChange;
+import io.crate.role.JwtProperties;
 import io.crate.role.Policy;
 import io.crate.role.Role;
 
@@ -74,7 +77,9 @@ public class RolesMetadataTest extends ESTestCase {
             "John",
             Set.of(),
             new HashSet<>(),
-            getSecureHash("johns-pwd")));
+            getSecureHash("johns-pwd"),
+            new JwtProperties("https:dummy.org", "test"))
+        );
         DummyUsersAndRolesWithParentRoles.put("role1", roleOf("role1"));
         DummyUsersAndRolesWithParentRoles.put("role2", roleOf("role2"));
         DummyUsersAndRolesWithParentRoles.put("role3", roleOf("role3"));
@@ -202,5 +207,56 @@ public class RolesMetadataTest extends ESTestCase {
         assertThat(rolesMetadata.roles().get("Ford").grantedRoles()).containsExactlyInAnyOrder(
             new GrantedRole("role2", "theGrantor"));
         assertThat(rolesMetadata.roles().get("John").grantedRoles()).isEmpty();
+    }
+
+    @Test
+    public void test_jwt_properties_from_invalid_x_content() throws IOException {
+        XContentBuilder xContentBuilder = JsonXContent.builder();
+        xContentBuilder.startObject();
+        xContentBuilder.field("iss", 1);
+        xContentBuilder.field("username", "test");
+        xContentBuilder.endObject();
+
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
+            xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            Strings.toString(xContentBuilder));
+
+        XContentParser finalParser = parser;
+        assertThatThrownBy(() -> JwtProperties.fromXContent(finalParser))
+            .isExactlyInstanceOf(ElasticsearchParseException.class)
+            .hasMessage("failed to parse jwt, 'iss' value is not a string [VALUE_NUMBER]");
+
+        xContentBuilder = JsonXContent.builder();
+        xContentBuilder.startObject();
+        xContentBuilder.field("iss", "dummy");
+        xContentBuilder.field("username", 2);
+        xContentBuilder.endObject();
+
+        parser = JsonXContent.JSON_XCONTENT.createParser(
+            xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            Strings.toString(xContentBuilder));
+
+        XContentParser finalParser1 = parser;
+        assertThatThrownBy(() -> JwtProperties.fromXContent(finalParser1))
+            .isExactlyInstanceOf(ElasticsearchParseException.class)
+            .hasMessage("failed to parse jwt, 'username' value is not a string [VALUE_NUMBER]");
+
+        xContentBuilder = JsonXContent.builder();
+        xContentBuilder.startObject();
+        xContentBuilder.field("prop", "dummy");
+        xContentBuilder.endObject();
+
+        parser = JsonXContent.JSON_XCONTENT.createParser(
+            xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            Strings.toString(xContentBuilder));
+
+        XContentParser finalParser3 = parser;
+        assertThatThrownBy(() -> JwtProperties.fromXContent(finalParser3))
+            .isExactlyInstanceOf(ElasticsearchParseException.class)
+            .hasMessage("failed to parse jwt, unknown property 'prop'");
+
     }
 }
