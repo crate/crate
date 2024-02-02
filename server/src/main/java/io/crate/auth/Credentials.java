@@ -40,7 +40,7 @@ public class Credentials {
 
     private final String jwtToken;
 
-    public static Credentials of(@NotNull String username, @Nullable SecureString password) {
+    public static Credentials of(@NotNull String username, @Nullable char[] password) {
         return new Credentials(username, password, null);
     }
 
