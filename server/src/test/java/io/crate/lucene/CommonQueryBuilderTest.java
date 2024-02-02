@@ -786,4 +786,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("not (y is not null)");
         assertThat(query).hasToString("+(+*:* -FieldExistsQuery [field=y])");
     }
+
+    @Test
+    public void test_not_operator_on_query_equivalent_to_null() {
+        Query query = convert("(y % null != 1)");
+        assertThat(query).hasToString("+(+*:* -((y % NULL) = 1)) #(NOT ((y % NULL) = 1))");
+    }
 }
