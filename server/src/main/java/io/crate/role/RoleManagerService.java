@@ -110,8 +110,11 @@ public class RoleManagerService implements RoleManager {
 
 
     @Override
-    public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
-        return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw), r -> {
+    public CompletableFuture<Long> createRole(String roleName,
+                                              boolean isUser,
+                                              @Nullable SecureHash hashedPw,
+                                              @Nullable JwtProperties jwtProperties) {
+        return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties), r -> {
             if (r.doesUserExist()) {
                 throw new RoleAlreadyExistsException(roleName);
             }
