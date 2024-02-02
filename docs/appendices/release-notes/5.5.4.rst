@@ -43,7 +43,10 @@ Security Fixes
 - Fixed a security issue where any CrateDB user could read/import the content of
   any file on the host system, the CrateDB process user has read access to, by
   using the ``COPY FROM`` command with a file URI. This access is now restricted
-  to the ``crate`` superuser only.
+  to the ``crate`` superuser only. See
+  `CVE-2024-24565 <https://www.cve.org/CVERecord?id=CVE-2024-24565>`_ for more
+  details. (Thanks to `@Tu0Laj1 <https://github.com/Tu0Laj1>`_ for reporting
+  this issue)
 
 Fixes
 =====
