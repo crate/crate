@@ -41,7 +41,11 @@ public interface RoleManager extends Roles {
      * @param roleName name of the role to create
      * @return 1 if the role was created, otherwise a failed future.
      */
-    CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw);
+    CompletableFuture<Long> createRole(String roleName,
+                                       boolean isUser,
+                                       @Nullable SecureHash hashedPw,
+                                       @Nullable JwtProperties jwtProperties
+    );
 
     /**
      * Delete a roles.
