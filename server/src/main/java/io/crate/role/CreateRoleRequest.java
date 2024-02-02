@@ -36,10 +36,18 @@ public class CreateRoleRequest extends AcknowledgedRequest<CreateRoleRequest> {
     @Nullable
     private final SecureHash secureHash;
 
-    public CreateRoleRequest(String roleName, boolean isUser, @Nullable SecureHash attributes) {
+    @Nullable
+    private final JwtProperties jwtProperties;
+
+
+    public CreateRoleRequest(String roleName,
+                             boolean isUser,
+                             @Nullable SecureHash attributes,
+                             @Nullable JwtProperties jwtProperties) {
         this.roleName = roleName;
         this.isUser = isUser;
         this.secureHash = attributes;
+        this.jwtProperties = jwtProperties;
     }
 
     public String roleName() {
@@ -55,6 +63,11 @@ public class CreateRoleRequest extends AcknowledgedRequest<CreateRoleRequest> {
         return secureHash;
     }
 
+    @Nullable
+    public JwtProperties jwtProperties() {
+        return jwtProperties;
+    }
+
     public CreateRoleRequest(StreamInput in) throws IOException {
         super(in);
         roleName = in.readString();
@@ -64,6 +77,11 @@ public class CreateRoleRequest extends AcknowledgedRequest<CreateRoleRequest> {
             this.isUser = true;
         }
         secureHash = in.readOptionalWriteable(SecureHash::readFrom);
+        if (in.getVersion().onOrAfter(Version.V_5_7_0)) {
+            this.jwtProperties = in.readOptionalWriteable(JwtProperties::readFrom);
+        } else {
+            this.jwtProperties = null;
+        }
     }
 
     @Override
@@ -74,5 +92,8 @@ public class CreateRoleRequest extends AcknowledgedRequest<CreateRoleRequest> {
             out.writeBoolean(isUser);
         }
         out.writeOptionalWriteable(secureHash);
+        if (out.getVersion().onOrAfter(Version.V_5_7_0)) {
+            out.writeOptionalWriteable(jwtProperties);
+        }
     }
 }
