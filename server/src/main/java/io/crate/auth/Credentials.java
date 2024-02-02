@@ -54,8 +54,8 @@ public class Credentials {
         this.jwtToken = jwtToken;
     }
 
-    public void setPassword(@NotNull SecureString password) {
-        this.password = password;
+    public void setPassword(@NotNull char[] password) {
+        this.password = new SecureString(password);
     }
 
     @Nullable
