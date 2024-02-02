@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -48,14 +49,17 @@ public class Role implements Writeable, ToXContent {
         "crate",
         new RolePrivileges(Set.of()),
         Set.of(),
-        new Properties(true, null),
+        new Properties(true, null, null),
         true);
 
-    public record Properties(boolean login, @Nullable SecureHash password) implements Writeable, ToXContent {
+    public record Properties(boolean login,
+                             @Nullable SecureHash password,
+                             @Nullable JwtProperties jwtProperties) implements Writeable, ToXContent {
 
         public static Properties fromXContent(XContentParser parser) throws IOException {
             boolean login = false;
             SecureHash secureHash = null;
+            JwtProperties jwtProperties = null;
             while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
                 switch (parser.currentName()) {
                     case "login":
@@ -65,17 +69,23 @@ public class Role implements Writeable, ToXContent {
                     case "secure_hash":
                         secureHash = SecureHash.fromXContent(parser);
                         break;
+                    case "jwt":
+                        jwtProperties = JwtProperties.fromXContent(parser);
+                        break;
                     default:
                         throw new ElasticsearchParseException(
                             "failed to parse role properties, unexpected field name: " + parser.currentName()
                         );
                 }
             }
-            return new Properties(login, secureHash);
+            return new Properties(login, secureHash, jwtProperties);
         }
 
         public Properties(StreamInput in) throws IOException {
-            this(in.readBoolean(), in.readOptionalWriteable(SecureHash::readFrom));
+            this(in.readBoolean(),
+                 in.readOptionalWriteable(SecureHash::readFrom),
+                 in.getVersion().onOrAfter(Version.V_5_7_0) ? in.readOptionalWriteable(JwtProperties::readFrom) : null
+            );
         }
 
         @Override
@@ -84,6 +94,9 @@ public class Role implements Writeable, ToXContent {
             if (password != null) {
                 password.toXContent(builder, params);
             }
+            if (jwtProperties != null) {
+                jwtProperties.toXContent(builder, params);
+            }
             return builder;
         }
 
@@ -91,6 +104,9 @@ public class Role implements Writeable, ToXContent {
         public void writeTo(StreamOutput out) throws IOException {
             out.writeBoolean(login);
             out.writeOptionalWriteable(password);
+            if (out.getVersion().onOrAfter(Version.V_5_7_0)) {
+                out.writeOptionalWriteable(jwtProperties);
+            }
         }
     }
 
@@ -105,8 +121,9 @@ public class Role implements Writeable, ToXContent {
                 boolean login,
                 Set<Privilege> privileges,
                 Set<GrantedRole> grantedRoles,
-                @Nullable SecureHash password) {
-        this(name, new RolePrivileges(privileges), grantedRoles, new Properties(login, password), false);
+                @Nullable SecureHash password,
+                @Nullable JwtProperties jwtProperties) {
+        this(name, new RolePrivileges(privileges), grantedRoles, new Properties(login, password, jwtProperties), false);
     }
 
     private Role(String name,
@@ -149,7 +166,7 @@ public class Role implements Writeable, ToXContent {
     }
 
     public Role with(SecureHash password) {
-        return new Role(name, privileges, grantedRoles, new Properties(properties.login, password), false);
+        return new Role(name, privileges, grantedRoles, new Properties(properties.login, password, properties.jwtProperties), false);
     }
 
 
@@ -164,6 +181,11 @@ public class Role implements Writeable, ToXContent {
 
     public boolean isUser() {
         return properties.login();
+    }
+
+    @Nullable
+    public JwtProperties jwtProperties() {
+        return properties.jwtProperties();
     }
 
     public boolean isSuperUser() {
@@ -275,7 +297,11 @@ public class Role implements Writeable, ToXContent {
      *         "iterations": INT,
      *         "hash": BYTE[],
      *         "salt": BYTE[]
-     *       }
+     *       },
+     *       "jwt": {
+     *         "iss": STRING,
+     *         "username": STRING
+     *       },
      *     }
      *   }
      */
