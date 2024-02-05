@@ -597,6 +597,8 @@ createStmt
         RETURNS returnType=dataType
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
+    | CREATE USER MAPPING (IF NOT EXISTS)?
+          FOR mappedUser SERVER server=ident kvOptions?                              #createUserMapping
     | CREATE (USER | ROLE) name=ident ((withProperties | WITH?
         OPEN_ROUND_BRACKET? options=spaceSeparatedIdents CLOSE_ROUND_BRACKET?))?     #createRole
     | CREATE ( OR REPLACE )? VIEW name=qname AS queryOptParens                       #createView
@@ -607,6 +609,14 @@ createStmt
           withProperties?                                                            #createSubscription
     | CREATE SERVER (IF NOT EXISTS)? name=ident
           FOREIGN DATA WRAPPER fdw=ident kvOptions?                                  #createServer
+    ;
+
+
+mappedUser
+    : userName=ident
+    | USER
+    | CURRENT_ROLE
+    | CURRENT_USER
     ;
 
 
@@ -935,6 +945,7 @@ nonReserved
     | LOCAL
     | LOGICAL
     | LONG
+    | MAPPING
     | MATERIALIZED
     | METADATA
     | MINUTE

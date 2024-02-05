@@ -215,16 +215,18 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         String identSchema = schemaName(ident);
         String relation = relationName(ident);
 
-        ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
+        Metadata metadata = clusterService.state().metadata();
+        ViewsMetadata views = metadata.custom(ViewsMetadata.TYPE);
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
         if (identSchema == null) {
             for (String pathSchema : searchPath) {
-                RelationName tableOrViewRelation = getTableOrViewRelation(pathSchema, relation, views);
+                RelationName tableOrViewRelation = getRelation(pathSchema, relation, views, foreignTables);
                 if (tableOrViewRelation != null) {
                     return tableOrViewRelation;
                 }
             }
         } else {
-            RelationName tableOrViewRelation = getTableOrViewRelation(identSchema, relation, views);
+            RelationName tableOrViewRelation = getRelation(identSchema, relation, views, foreignTables);
             if (tableOrViewRelation != null) {
                 return tableOrViewRelation;
             }
@@ -233,20 +235,24 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     @Nullable
-    private RelationName getTableOrViewRelation(String pathSchema, String relation, ViewsMetadata views) {
+    private RelationName getRelation(String pathSchema,
+                                     String relation,
+                                     @Nullable ViewsMetadata views,
+                                     @Nullable ForeignTablesMetadata foreignTables) {
         SchemaInfo schemaInfo = schemas.get(pathSchema);
-        if (schemaInfo != null) {
-            TableInfo tableInfo = schemaInfo.getTableInfo(relation);
-            if (tableInfo != null) {
-                return new RelationName(pathSchema, relation);
-            } else {
-                if (views != null) {
-                    RelationName viewRelation = new RelationName(pathSchema, relation);
-                    if (views.contains(viewRelation)) {
-                        return viewRelation;
-                    }
-                }
-            }
+        if (schemaInfo == null) {
+            return null;
+        }
+        TableInfo tableInfo = schemaInfo.getTableInfo(relation);
+        if (tableInfo != null) {
+            return new RelationName(pathSchema, relation);
+        }
+        RelationName relationName = new RelationName(pathSchema, relation);
+        if (views != null && views.contains(relationName)) {
+            return relationName;
+        }
+        if (foreignTables != null && foreignTables.contains(relationName)) {
+            return relationName;
         }
         return null;
     }

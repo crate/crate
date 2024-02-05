@@ -50,12 +50,14 @@ import io.crate.sql.parser.antlr.SqlBaseParser.ColumnConstraintNullContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.ConflictTargetContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.CreateForeignTableContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.CreateServerContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.CreateUserMappingContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareCursorParamsContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DirectionContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DiscardContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.FetchContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.IsolationLevelContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.MappedUserContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.QueryContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.QueryOptParensContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.SetTransactionContext;
@@ -121,6 +123,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DeallocateStatement;
@@ -476,6 +479,16 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             server,
             getOptions(ctx.kvOptions())
         );
+    }
+
+    @Override
+    public Node visitCreateUserMapping(CreateUserMappingContext ctx) {
+        boolean ifNotExists = ctx.EXISTS() != null;
+        MappedUserContext mappedUser = ctx.mappedUser();
+        String userName = mappedUser.userName == null ? null : getIdentText(mappedUser.userName);
+        String server = getIdentText(ctx.server);
+        Map<String, Expression> options = getOptions(ctx.kvOptions());
+        return new CreateUserMapping(ifNotExists, userName, server, options);
     }
 
     @Override

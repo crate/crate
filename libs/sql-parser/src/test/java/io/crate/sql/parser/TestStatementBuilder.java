@@ -55,6 +55,7 @@ import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -2137,6 +2138,16 @@ public class TestStatementBuilder {
         printStatement("create foreign table tbl (x int) server pg options (schema_name 'public', dummy 'xy')");
     }
 
+    @Test
+    public void test_create_user_mapping() throws Exception {
+        printStatement("create user mapping for crate server pg");
+        printStatement("create user mapping if not exists for crate server pg");
+        printStatement("create user mapping for CURRENT_ROLE server pg");
+        printStatement("create user mapping for USER server pg");
+        printStatement("create user mapping for CURRENT_USER server pg");
+        printStatement("create user mapping if not exists for arthur server pg options (\"username\" 'bob', password 'secret')");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -2181,7 +2192,8 @@ public class TestStatementBuilder {
             statement instanceof Declare ||
             statement instanceof Fetch ||
             statement instanceof Close ||
-            statement instanceof CreateServer) {
+            statement instanceof CreateServer ||
+            statement instanceof CreateUserMapping) {
 
 
             println(SqlFormatter.formatSql(statement));

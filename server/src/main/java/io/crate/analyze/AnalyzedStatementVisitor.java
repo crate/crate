@@ -311,4 +311,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitCreateForeignTable(AnalyzedCreateForeignTable analyzedCreateForeignTable, C context) {
         return visitAnalyzedStatement(analyzedCreateForeignTable, context);
     }
+
+    public R visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, C context) {
+        return visitAnalyzedStatement(createUserMapping, context);
+    }
 }

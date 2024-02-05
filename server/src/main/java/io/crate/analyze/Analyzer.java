@@ -45,6 +45,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
+import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
@@ -77,6 +78,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
@@ -784,6 +786,35 @@ public class Analyzer {
                 context.paramTypeHints()
             );
             return tableElementsAnalyzer.analyze(createForeignTable);
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateUserMapping(CreateUserMapping createUserMapping, Analysis context) {
+            String userName = createUserMapping.userName() == null
+                ? context.sessionSettings().userName()
+                : createUserMapping.userName();
+
+            Role user = roleManager.findUser(userName);
+            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                context.transactionContext(),
+                nodeCtx,
+                context.paramTypeHints(),
+                FieldProvider.UNSUPPORTED,
+                null
+            );
+            ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(context.sessionSettings());
+            HashMap<String, Symbol> options = HashMap.newHashMap(createUserMapping.options().size());
+            for (var entry : createUserMapping.options().entrySet()) {
+                String name = entry.getKey();
+                Expression value = entry.getValue();
+                options.put(name, expressionAnalyzer.convert(value, exprCtx));
+            }
+            return new AnalyzedCreateUserMapping(
+                createUserMapping.ifNotExists(),
+                user,
+                createUserMapping.server(),
+                options
+            );
         }
     }
 }

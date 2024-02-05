@@ -723,4 +723,8 @@ public abstract class AstVisitor<R, C> {
     public R visitCreateForeignTable(CreateForeignTable createForeignTable, C context) {
         return visitStatement(createForeignTable, context);
     }
+
+    public R visitCreateUserMapping(CreateUserMapping createUserMapping, C context) {
+        return visitStatement(createUserMapping, context);
+    }
 }
