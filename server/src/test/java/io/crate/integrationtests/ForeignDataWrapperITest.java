@@ -24,8 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Locale;
-
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -54,11 +52,10 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
         int port = postgresNetty.boundAddress().publishAddress().getPort();
         String url = "jdbc:postgresql://127.0.0.1:" + port + '/';
-        execute(String.format(
-            Locale.ENGLISH,
-            "create server pg foreign data wrapper jdbc options (url '%s')",
-            url
-        ));
+        execute(
+            "create server pg foreign data wrapper jdbc options (url ?)",
+            new Object[] { url }
+        );
 
         String stmt = """
             CREATE FOREIGN TABLE doc.dummy (x int)

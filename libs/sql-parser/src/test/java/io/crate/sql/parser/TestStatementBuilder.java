@@ -2128,6 +2128,7 @@ public class TestStatementBuilder {
         printStatement("create server jarvis foreign data wrapper postgres_fdw");
         printStatement("create server if not exists jarvis foreign data wrapper postgres_fdw");
         printStatement("create server jarvis foreign data wrapper postgres_fdw options (host 'foo', dbname 'foodb', port '5432')");
+        printStatement("create server jarvis foreign data wrapper postgres_fdw options (host ?, xs array[1, 2, 3])");
     }
 
     @Test
