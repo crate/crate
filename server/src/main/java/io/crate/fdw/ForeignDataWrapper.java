@@ -29,12 +29,12 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.settings.SessionSettings;
+import io.crate.metadata.TransactionContext;
 
 public interface ForeignDataWrapper {
 
     CompletableFuture<BatchIterator<Row>> getIterator(Server server,
-                                                      SessionSettings sessionSettings,
+                                                      TransactionContext txnCtx,
                                                       RelationName relationName,
                                                       List<Symbol> collect);
 }
