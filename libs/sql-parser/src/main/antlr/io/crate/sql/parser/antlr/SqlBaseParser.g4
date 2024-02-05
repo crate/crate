@@ -626,7 +626,7 @@ kvOptions
 
 
 kvOption
-    : ident stringLiteral
+    : ident parameterOrLiteral
     ;
 
 

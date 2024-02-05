@@ -62,7 +62,6 @@ import io.crate.sql.parser.antlr.SqlBaseParser.QueryContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.QueryOptParensContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.SetTransactionContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.StatementsContext;
-import io.crate.sql.parser.antlr.SqlBaseParser.StringLiteralContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.TransactionModeContext;
 import io.crate.sql.parser.antlr.SqlBaseParserBaseVisitor;
 import io.crate.sql.tree.AddColumnDefinition;
@@ -1674,8 +1673,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         Map<String, Expression> options = HashMap.newHashMap(ctx.kvOption().size());
         for (var kvOption : ctx.kvOption()) {
             String optionName = getIdentText(kvOption.ident());
-            StringLiteralContext value = kvOption.stringLiteral();
-            options.put(optionName, (StringLiteral) value.accept(this));
+            Expression value = (Expression) kvOption.parameterOrLiteral().accept(this);
+            options.put(optionName, value);
         }
         return options;
     }
