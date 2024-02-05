@@ -19,34 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.analyze;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Map;
+import java.util.function.Consumer;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import io.crate.expression.symbol.Symbol;
+import io.crate.role.Role;
 
-import org.junit.Test;
+public record AnalyzedCreateUserMapping(boolean ifNotExists,
+                                        Role user,
+                                        String serverName,
+                                        Map<String, Symbol> options)
+        implements AnalyzedStatement {
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitCreateUserMapping(this, context);
+    }
 
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 
-    @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows).hasSize(277);
-        Row row = rows.get(0);
-
-        assertThat(row.get(0)).isEqualTo("absolute");
-        assertThat(row.get(1)).isEqualTo("U");
-        assertThat(row.get(2)).isEqualTo("unreserved");
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        options.values().forEach(consumer);
     }
 }

@@ -59,6 +59,7 @@ import io.crate.analyze.AnalyzedCreateServer;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
+import io.crate.analyze.AnalyzedCreateUserMapping;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDecommissionNode;
@@ -637,6 +638,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitCreateForeignTable(AnalyzedCreateForeignTable createTable, PlannerContext context) {
         return new CreateForeignTablePlan(createTable);
+    }
+
+    @Override
+    public Plan visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, PlannerContext context) {
+        return new CreateUserMappingPlan(createUserMapping);
     }
 }
 

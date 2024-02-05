@@ -58,17 +58,28 @@ public class ForeignDataWrappers implements CollectSource {
         "jdbc", new ForeignDataWrapper() {
 
             @Override
-            public CompletableFuture<BatchIterator<Row>> getIterator(SessionSettings sessionSettings,
+            public CompletableFuture<BatchIterator<Row>> getIterator(Server server,
+                                                                     SessionSettings sessionSettings,
                                                                      RelationName relationName,
-                                                                     Map<String, Object> options,
                                                                      List<Symbol> collect) {
-                String url = DataTypes.STRING.implicitCast(options.getOrDefault("url", "jdbc:postgresql://localhost:5432/"));
+                Map<String, Object> userOptions = server.users().get(sessionSettings.userName());
+                if (userOptions == null) {
+                    userOptions = Map.of();
+                }
+                String user = DataTypes.STRING.implicitCast(userOptions.get("user"));
+                String password = DataTypes.STRING.implicitCast(userOptions.get("password"));
                 var properties = new Properties();
-                properties.setProperty("user", sessionSettings.userName());
+                properties.setProperty("user", user == null ? sessionSettings.userName() : user);
+                if (password != null) {
+                    properties.setProperty("password", password);
+                }
                 List<Reference> columns = new ArrayList<>(collect.size());
                 for (var symbol : collect) {
                     RefVisitor.visitRefs(symbol, ref -> columns.add(ref));
                 }
+                Map<String, Object> options = server.options();
+                Object urlObject = options.getOrDefault("url", "jdbc:postgresql://localhost:5432/");
+                String url = DataTypes.STRING.implicitCast(urlObject);
                 var it = new JdbcBatchIterator(url, properties, columns, relationName);
                 return CompletableFuture.completedFuture(it);
             }
@@ -124,9 +135,9 @@ public class ForeignDataWrappers implements CollectSource {
         String remoteTable = DataTypes.STRING.implicitCast(options.getOrDefault("table_name", name.name()));
         RelationName remoteName = new RelationName(remoteSchema, remoteTable);
         return fdw.getIterator(
+            server,
             txnCtx.sessionSettings(),
             remoteName,
-            server.options(),
             collectPhase.toCollect()
         );
     }

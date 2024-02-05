@@ -30,6 +30,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 
 public class ForeignDataWrapperITest extends IntegTestCase {
 
@@ -42,6 +44,9 @@ public class ForeignDataWrapperITest extends IntegTestCase {
 
     @Test
     public void test_full_fdw_flow() throws Exception {
+        execute("create user trillian with (password = 'secret')");
+        execute("create user arthur with (password = 'not-so-secret')");
+
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl (x) values (1), (2), (42)");
         execute("refresh table doc.tbl");
@@ -56,22 +61,30 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         ));
 
         String stmt = """
-            CREATE FOREIGN TABLE dummy (x int)
+            CREATE FOREIGN TABLE doc.dummy (x int)
             SERVER pg
             OPTIONS (schema_name 'doc', table_name 'tbl')
             """;
         execute(stmt);
 
+        execute("grant dql on table doc.tbl to arthur");
+        execute("grant dql on table doc.dummy to trillian");
+
         assertThatThrownBy(() -> execute(stmt))
             .as("Cannot create foreign table with same name again")
             .hasMessageContaining("already exists.");
 
-        execute("explain select * from dummy order by x");
+
+        execute("create user mapping for trillian server pg options (\"user\" 'arthur', password 'not-so-secret')");
+        execute("explain select * from doc.dummy order by x");
         assertThat(response).hasLines(
             "OrderBy[x ASC] (rows=unknown)",
             "  └ ForeignCollect[x] (rows=unknown)"
         );
-        execute("select * from dummy order by x asc");
+
+        var roles = cluster().getInstance(Roles.class);
+        Role trillian = roles.findUser("trillian");
+        var response = sqlExecutor.executeAs("select * from doc.dummy order by x asc", trillian);
         assertThat(response).hasRows(
             "1",
             "2",

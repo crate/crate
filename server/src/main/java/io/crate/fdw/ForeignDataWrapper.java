@@ -22,19 +22,19 @@
 package io.crate.fdw;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
+import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 
 public interface ForeignDataWrapper {
 
-    CompletableFuture<BatchIterator<Row>> getIterator(SessionSettings sessionSettings,
+    CompletableFuture<BatchIterator<Row>> getIterator(Server server,
+                                                      SessionSettings sessionSettings,
                                                       RelationName relationName,
-                                                      Map<String, Object> options,
                                                       List<Symbol> collect);
 }

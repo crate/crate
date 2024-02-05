@@ -65,6 +65,7 @@ import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DefaultConstraint;
@@ -666,6 +667,38 @@ public final class SqlFormatter {
 
             builder.append(" SERVER ").append(createTable.server());
             Map<String, Expression> options = createTable.options();
+            if (!options.isEmpty()) {
+                builder.append(" OPTIONS (");
+                Iterator<Entry<String, Expression>> it = options.entrySet().iterator();
+                while (it.hasNext()) {
+                    var entry = it.next();
+                    String optionName = entry.getKey();
+                    Expression value = entry.getValue();
+                    builder.append(optionName);
+                    builder.append(" ");
+                    value.accept(this, indent);
+
+                    if (it.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(")");
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateUserMapping(CreateUserMapping createUserMapping, Integer indent) {
+            builder.append("CREATE USER MAPPING ");
+            if (createUserMapping.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+            builder.append("FOR ");
+            String userName = createUserMapping.userName();
+            builder.append(userName == null ? "CURRENT_USER" : userName);
+            builder.append(" SERVER ");
+            builder.append(createUserMapping.server());
+            Map<String, Expression> options = createUserMapping.options();
             if (!options.isEmpty()) {
                 builder.append(" OPTIONS (");
                 Iterator<Entry<String, Expression>> it = options.entrySet().iterator();

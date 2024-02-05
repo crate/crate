@@ -44,11 +44,14 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
     public static final ServersMetadata EMPTY = new ServersMetadata(Map.of());
 
 
-    public record Server(String fdw, Map<String, Object> options) implements Writeable, ToXContent {
+    public record Server(String fdw,
+                         Map<String, Map<String, Object>> users,
+                         Map<String, Object> options) implements Writeable, ToXContent {
 
         public Server(StreamInput in) throws IOException {
             this(
                 in.readString(),
+                in.readMap(StreamInput::readString, StreamInput::readMap),
                 in.readMap(StreamInput::readString, StreamInput::readGenericValue)
             );
         }
@@ -56,12 +59,14 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(fdw);
+            out.writeMap(users, StreamOutput::writeString, StreamOutput::writeMap);
             out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
         }
 
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.field("fdw", fdw);
+            builder.field("users", users);
             builder.field("options", options);
             return builder;
         }
@@ -88,8 +93,27 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
 
     public ServersMetadata add(String name, String fdw, Map<String, Object> options) {
         HashMap<String, Server> servers = new HashMap<>(this.servers);
-        servers.put(name, new Server(fdw, options));
+        servers.put(name, new Server(fdw, Map.of(), options));
         return new ServersMetadata(servers);
+    }
+
+    public ServersMetadata addUser(String serverName,
+                                   boolean ifNotExists,
+                                   String userName,
+                                   Map<String, Object> options) {
+        Server server = get(serverName);
+        if (server.users.containsKey(userName)) {
+            if (ifNotExists) {
+                return this;
+            }
+            throw new UserMappingAlreadyExists(userName, serverName);
+        }
+        HashMap<String, Server> newServers = new HashMap<>(this.servers);
+        HashMap<String, Map<String, Object>> newUsers = new HashMap<>(server.users);
+        newUsers.put(userName, options);
+        Server newServer = new Server(server.fdw, newUsers, server.options);
+        newServers.put(serverName, newServer);
+        return new ServersMetadata(newServers);
     }
 
     @Override

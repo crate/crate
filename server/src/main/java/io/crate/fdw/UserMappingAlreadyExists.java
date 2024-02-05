@@ -19,34 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.fdw;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Locale;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import io.crate.exceptions.ClusterScopeException;
+import io.crate.exceptions.ConflictException;
 
-import org.junit.Test;
+public class UserMappingAlreadyExists extends RuntimeException
+    implements ConflictException, ClusterScopeException {
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
-
-    @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows).hasSize(277);
-        Row row = rows.get(0);
-
-        assertThat(row.get(0)).isEqualTo("absolute");
-        assertThat(row.get(1)).isEqualTo("U");
-        assertThat(row.get(2)).isEqualTo("unreserved");
+    public UserMappingAlreadyExists(String userName, String serverName) {
+        super(String.format(
+            Locale.ENGLISH,
+            "CREATE USER MAPPING for '%s' and server '%s' already exists",
+            userName,
+            serverName
+        ));
     }
 }
