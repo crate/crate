@@ -90,5 +90,12 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             "2",
             "42"
         );
+
+        response = sqlExecutor.executeAs("select {x=x} from doc.dummy order by x asc", trillian);
+        assertThat(response).hasRows(
+            "{x=1}",
+            "{x=2}",
+            "{x=42}"
+        );
     }
 }
