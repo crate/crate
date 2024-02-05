@@ -103,6 +103,8 @@ contributions!
 
 See the `developer docs`_ and the `contribution docs`_ for more information.
 
+.. image:: https://contrib.rocks/image?repo=crate/crate
+    :target: https://github.com/crate/crate/graphs/contributors
 
 Security
 ========
