@@ -64,6 +64,7 @@ import io.crate.expression.scalar.postgres.PgEncodingToCharFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
 import io.crate.expression.scalar.postgres.PgPostmasterStartTime;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
+import io.crate.expression.scalar.regex.RegexpMatchScalar;
 import io.crate.expression.scalar.string.AsciiFunction;
 import io.crate.expression.scalar.string.ChrFunction;
 import io.crate.expression.scalar.string.EncodeDecodeFunction;
@@ -113,6 +114,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         FormatFunction.register(this);
         SubstrFunction.register(this);
         RegexpReplaceFunction.register(this);
+        RegexpMatchScalar.register(this);
 
         ArithmeticFunctions.register(this);
         BitwiseFunctions.register(this);
