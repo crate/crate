@@ -130,6 +130,16 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         }
 
         @Override
+        public Void visitLiteral(Literal<?> symbol, NullabilityContext context) {
+            // if an arg is a null literal and all its parents are nullable
+            // then we need to enforce 3vl logic, ex) `<ref> % null != 1`, it is equivalent to a `null`.
+            if (symbol.symbolType().isValueSymbol() && symbol.value() == null && context.isNullable) {
+                context.enforceThreeValuedLogic = true;
+            }
+            return null;
+        }
+
+        @Override
         public Void visitFunction(Function function, NullabilityContext context) {
             String functionName = function.name();
             if (CAST_FUNCTIONS.contains(functionName)) {
