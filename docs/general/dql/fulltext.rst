@@ -335,7 +335,9 @@ columns:
 * use a composite index column on your table. See
   :ref:`sql-ddl-composite-index`.
 
-* use the :ref:`predicates_match` predicate on multiple columns.
+* use the :ref:`predicates_match` predicate on multiple columns. Note, that
+  each of those columns must be indexed using ``FULLTEXT`` to have the same
+  effect as using ``MATCH`` against a composite index.
 
 When querying multiple columns, there are many ways how the relevance a.k.a.
 :ref:`_score <sql_administration_system_column_score>` can be computed. These
