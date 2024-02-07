@@ -27,8 +27,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 
-import io.crate.common.annotations.NotThreadSafe;
-
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -40,15 +38,17 @@ import org.elasticsearch.indices.IndicesService;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.IndexParts;
 
-@NotThreadSafe
 public class SharedShardContexts {
 
     private final IndicesService indicesService;
     private final UnaryOperator<Engine.Searcher> wrapSearcher;
-    private final Map<ShardId, SharedShardContext> allocatedShards = new HashMap<>();
-    private int readerId = 0;
+    @VisibleForTesting
+    final Map<ShardId, SharedShardContext> allocatedShards = new HashMap<>();
+    @VisibleForTesting
+    int readerId = 0;
 
     public SharedShardContexts(IndicesService indicesService, UnaryOperator<Engine.Searcher> wrapSearcher) {
         this.indicesService = indicesService;
@@ -90,11 +90,12 @@ public class SharedShardContexts {
     }
 
     public SharedShardContext createContext(ShardId shardId, int readerId) throws IndexNotFoundException {
-        assert !allocatedShards.containsKey(shardId) : "shardId shouldn't have been allocated yet";
-
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         SharedShardContext sharedShardContext = new SharedShardContext(indexService, shardId, readerId, wrapSearcher);
-        allocatedShards.put(shardId, sharedShardContext);
+        synchronized (this) {
+            assert !allocatedShards.containsKey(shardId) : "shardId shouldn't have been allocated yet";
+            allocatedShards.put(shardId, sharedShardContext);
+        }
         return sharedShardContext;
     }
 
@@ -102,9 +103,14 @@ public class SharedShardContexts {
         SharedShardContext sharedShardContext = allocatedShards.get(shardId);
         if (sharedShardContext == null) {
             IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
-            sharedShardContext = new SharedShardContext(indexService, shardId, readerId, wrapSearcher);
-            allocatedShards.put(shardId, sharedShardContext);
-            readerId++;
+            synchronized (this) {
+                sharedShardContext = allocatedShards.get(shardId);
+                if (sharedShardContext == null) {
+                    sharedShardContext = new SharedShardContext(indexService, shardId, readerId, wrapSearcher);
+                    allocatedShards.put(shardId, sharedShardContext);
+                    readerId++;
+                }
+            }
         }
         return sharedShardContext;
     }

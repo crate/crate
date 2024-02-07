@@ -90,3 +90,6 @@ Fixes
   A ``NULLABLE`` function in this context means a function returning ``NULL``
   if and only if the input is a ``NULL``.
 
+- Fixed a race condition that could lead to ``ShardCollectContext already
+  added`` errors when making a query after a table had been idle without any
+  accesses for a while.
