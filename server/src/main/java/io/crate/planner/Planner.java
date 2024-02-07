@@ -69,6 +69,7 @@ import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropRole;
+import io.crate.analyze.AnalyzedDropServer;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropView;
@@ -643,6 +644,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, PlannerContext context) {
         return new CreateUserMappingPlan(createUserMapping);
+    }
+
+    @Override
+    public Plan visitDropServer(AnalyzedDropServer dropServer, PlannerContext context) {
+        return new DropServerPlan(dropServer);
     }
 }
 

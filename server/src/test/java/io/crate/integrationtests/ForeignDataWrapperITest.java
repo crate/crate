@@ -99,5 +99,16 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             "{x=2}",
             "{x=42}"
         );
+
+        assertThatThrownBy(() -> execute("drop server pg"))
+            .hasMessageContaining("Cannot drop server `pg` because foreign tables depend on it");
+
+        execute("drop server pg cascade");
+        assertThat(execute("select * from information_schema.foreign_servers")).isEmpty();
+
+        assertThatThrownBy(() -> execute("drop server pg"))
+            .hasMessageContaining("Server `pg` not found");
+
+        execute("drop server if exists pg");
     }
 }

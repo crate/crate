@@ -47,6 +47,7 @@ import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.CascadeMode;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.Close;
@@ -76,6 +77,7 @@ import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
@@ -208,6 +210,24 @@ public final class SqlFormatter {
                 }
                 append(indent, ")");
             }
+            return null;
+        }
+
+        @Override
+        public Void visitDropServer(DropServer dropServer, Integer indent) {
+            append(indent, "DROP SERVER ");
+            if (dropServer.ifExists()) {
+                append(indent, "IF EXISTS ");
+            }
+            Iterator<String> namesIt = dropServer.names().iterator();
+            while (namesIt.hasNext()) {
+                append(indent, namesIt.next());
+                if (namesIt.hasNext()) {
+                    append(indent, ", ");
+                }
+            }
+            append(indent, " ");
+            append(indent, dropServer.cascadeMode() == CascadeMode.CASCADE ? "CASCADE" : "RESTRICT");
             return null;
         }
 

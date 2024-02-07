@@ -727,4 +727,8 @@ public abstract class AstVisitor<R, C> {
     public R visitCreateUserMapping(CreateUserMapping createUserMapping, C context) {
         return visitStatement(createUserMapping, context);
     }
+
+    public R visitDropServer(DropServer dropServer, C context) {
+        return visitStatement(dropServer, context);
+    }
 }

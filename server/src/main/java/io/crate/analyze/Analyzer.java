@@ -93,6 +93,7 @@ import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
@@ -815,6 +816,11 @@ public class Analyzer {
                 createUserMapping.server(),
                 options
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitDropServer(DropServer dropServer, Analysis context) {
+            return new AnalyzedDropServer(dropServer.names(), dropServer.ifExists(), dropServer.cascadeMode());
         }
     }
 }
