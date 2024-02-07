@@ -37,6 +37,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -125,8 +126,20 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
         return newTables.size() == tables.size() ? this : new ForeignTablesMetadata(newTables);
     }
 
+    public ForeignTablesMetadata remove(List<RelationName> relations, boolean ifExists) {
+        HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
+        for (var relation : relations) {
+            ForeignTable removed = newTables.remove(relation);
+            if (removed == null && !ifExists) {
+                throw new RelationUnknown(relation);
+            }
+        }
+        return newTables.size() == tables.size() ? this : new ForeignTablesMetadata(newTables);
+    }
+
     @Override
     public Iterator<ForeignTable> iterator() {
         return tables.values().iterator();
     }
+
 }

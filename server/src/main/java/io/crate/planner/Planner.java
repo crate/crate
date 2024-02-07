@@ -66,6 +66,7 @@ import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropAnalyzer;
+import io.crate.analyze.AnalyzedDropForeignTable;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropRole;
@@ -649,6 +650,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitDropServer(AnalyzedDropServer dropServer, PlannerContext context) {
         return new DropServerPlan(dropServer);
+    }
+
+    @Override
+    public Plan visitDropForeignTable(AnalyzedDropForeignTable dropForeignTable, PlannerContext context) {
+        return new DropForeignTablePlan(dropForeignTable);
     }
 }
 

@@ -319,4 +319,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDropServer(AnalyzedDropServer dropServer, C context) {
         return visitAnalyzedStatement(dropServer, context);
     }
+
+    public R visitDropForeignTable(AnalyzedDropForeignTable dropForeignTable, C context) {
+        return visitAnalyzedStatement(dropForeignTable, context);
+    }
 }
