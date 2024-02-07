@@ -24,6 +24,7 @@ package io.crate.fdw;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +41,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
-public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
+public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom>
+        implements Metadata.Custom, Iterable<ForeignTable> {
 
     public static final String TYPE = "foreign_tables";
     public static final ForeignTablesMetadata EMPTY = new ForeignTablesMetadata(Map.of());
@@ -121,5 +123,10 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
             }
         }
         return newTables.size() == tables.size() ? this : new ForeignTablesMetadata(newTables);
+    }
+
+    @Override
+    public Iterator<ForeignTable> iterator() {
+        return tables.values().iterator();
     }
 }

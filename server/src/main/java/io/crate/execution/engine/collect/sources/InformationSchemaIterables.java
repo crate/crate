@@ -48,6 +48,8 @@ import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
@@ -365,6 +367,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
         Metadata metadata = clusterService.state().metadata();
         ServersMetadata servers = metadata.custom(ServersMetadata.TYPE);
         return servers == null ? ServersMetadata.EMPTY : servers;
+    }
+
+    public Iterable<ForeignTable> foreignTables() {
+        Metadata metadata = clusterService.state().metadata();
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
+        return foreignTables == null ? ForeignTablesMetadata.EMPTY : foreignTables;
     }
 
     @Override
