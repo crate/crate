@@ -57,6 +57,11 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             new Object[] { url }
         );
 
+        execute("select foreign_server_name, foreign_data_wrapper_name from information_schema.foreign_servers");
+        assertThat(response).hasRows(
+            "pg| jdbc"
+        );
+
         String stmt = """
             CREATE FOREIGN TABLE doc.dummy (x int)
             SERVER pg

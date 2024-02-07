@@ -24,6 +24,7 @@ package io.crate.fdw;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -38,18 +39,25 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
+import io.crate.fdw.ServersMetadata.Server;
+
+public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
+    implements Metadata.Custom, Iterable<Server> {
 
     public static final String TYPE = "servers";
     public static final ServersMetadata EMPTY = new ServersMetadata(Map.of());
 
 
-    public record Server(String fdw,
+    public record Server(String name,
+                         String fdw,
+                         String owner,
                          Map<String, Map<String, Object>> users,
                          Map<String, Object> options) implements Writeable, ToXContent {
 
         public Server(StreamInput in) throws IOException {
             this(
+                in.readString(),
+                in.readString(),
                 in.readString(),
                 in.readMap(StreamInput::readString, StreamInput::readMap),
                 in.readMap(StreamInput::readString, StreamInput::readGenericValue)
@@ -58,14 +66,18 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(name);
             out.writeString(fdw);
+            out.writeString(owner);
             out.writeMap(users, StreamOutput::writeString, StreamOutput::writeMap);
             out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
         }
 
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.field("name", name);
             builder.field("fdw", fdw);
+            builder.field("owner", owner);
             builder.field("users", users);
             builder.field("options", options);
             return builder;
@@ -91,9 +103,13 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
         return servers.containsKey(name);
     }
 
-    public ServersMetadata add(String name, String fdw, Map<String, Object> options) {
+    public ServersMetadata add(String name,
+                               String fdw,
+                               String owner,
+                               Map<String, Object> options) {
         HashMap<String, Server> servers = new HashMap<>(this.servers);
-        servers.put(name, new Server(fdw, Map.of(), options));
+        Server server = new Server(name, fdw, owner, Map.of(), options);
+        servers.put(name, server);
         return new ServersMetadata(servers);
     }
 
@@ -111,7 +127,7 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
         HashMap<String, Server> newServers = new HashMap<>(this.servers);
         HashMap<String, Map<String, Object>> newUsers = new HashMap<>(server.users);
         newUsers.put(userName, options);
-        Server newServer = new Server(server.fdw, newUsers, server.options);
+        Server newServer = new Server(serverName, server.fdw, server.owner, newUsers, server.options);
         newServers.put(serverName, newServer);
         return new ServersMetadata(newServers);
     }
@@ -157,5 +173,10 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom> impl
             ));
         }
         return server;
+    }
+
+    @Override
+    public Iterator<Server> iterator() {
+        return servers.values().iterator();
     }
 }

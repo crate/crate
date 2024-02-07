@@ -61,7 +61,12 @@ final class AddServerTask extends AckedClusterStateUpdateTask<AcknowledgedRespon
             throw new ServerAlreadyExistsException(serverName);
         }
 
-        ServersMetadata newServersMetadata = serversMetadata.add(serverName, request.fdw(), request.options());
+        var newServersMetadata = serversMetadata.add(
+            serverName,
+            request.fdw(),
+            request.owner(),
+            request.options()
+        );
         return ClusterState.builder(currentState)
             .metadata(
                 Metadata.builder(currentState.metadata())

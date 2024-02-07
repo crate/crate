@@ -48,6 +48,8 @@ import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ServersMetadata;
+import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.FunctionProvider;
@@ -105,6 +107,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<PgProcTable.Entry> pgTypeSendFunctions;
     private final NodeContext nodeCtx;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final ClusterService clusterService;
 
     private Iterable<RoutineInfo> routines;
     private boolean initialClusterStateReceived = false;
@@ -114,6 +117,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
                                       NodeContext nodeCtx,
                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                       ClusterService clusterService) {
+        this.clusterService = clusterService;
         this.schemas = schemas;
         this.nodeCtx = nodeCtx;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
@@ -355,6 +359,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<Void> referentialConstraintsInfos() {
         return referentialConstraints;
+    }
+
+    public Iterable<Server> servers() {
+        Metadata metadata = clusterService.state().metadata();
+        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE);
+        return servers == null ? ServersMetadata.EMPTY : servers;
     }
 
     @Override
