@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -40,6 +41,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import io.crate.fdw.ServersMetadata.Server;
+import io.crate.sql.tree.CascadeMode;
 
 public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
     implements Metadata.Custom, Iterable<Server> {
@@ -178,5 +180,29 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
     @Override
     public Iterator<Server> iterator() {
         return servers.values().iterator();
+    }
+
+    public ServersMetadata remove(List<String> names, boolean ifExists, CascadeMode mode) {
+        Map<String, Server> newServers = new HashMap<>(this.servers);
+        for (String serverName : names) {
+            Server removed = newServers.remove(serverName);
+            if (removed == null) {
+                if (!ifExists) {
+                    throw new ResourceNotFoundException(String.format(
+                        Locale.ENGLISH,
+                        "Server `%s` not found",
+                        serverName
+                    ));
+                }
+            } else if (mode == CascadeMode.RESTRICT && !removed.users().isEmpty()) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Cannot drop server `%s` because mapped users (%s) depend on it",
+                    serverName,
+                    String.join(", ", removed.users().keySet())
+                ));
+            }
+        }
+        return newServers.size() == servers.size() ? this : new ServersMetadata(newServers);
     }
 }

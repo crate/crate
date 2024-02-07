@@ -315,4 +315,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, C context) {
         return visitAnalyzedStatement(createUserMapping, context);
     }
+
+    public R visitDropServer(AnalyzedDropServer dropServer, C context) {
+        return visitAnalyzedStatement(dropServer, context);
+    }
 }

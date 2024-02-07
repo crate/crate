@@ -111,6 +111,7 @@ dropStmt
     | DROP ANALYZER name=ident                                                       #dropAnalyzer
     | DROP PUBLICATION (IF EXISTS)? name=ident                                       #dropPublication
     | DROP SUBSCRIPTION (IF EXISTS)? name=ident                                      #dropSubscription
+    | DROP SERVER (IF EXISTS)? names=idents (CASCADE | RESTRICT)?                    #dropServer
     ;
 
 alterStmt
@@ -873,6 +874,7 @@ nonReserved
     | BOTH
     | BYTE
     | CANCEL
+    | CASCADE
     | CATALOGS
     | CHARACTER
     | CHARACTERISTICS
@@ -984,6 +986,7 @@ nonReserved
     | REROUTE
     | RESPECT
     | RESTORE
+    | RESTRICT
     | RETRY
     | RETURN
     | RETURNING

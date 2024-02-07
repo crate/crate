@@ -55,6 +55,7 @@ import io.crate.sql.parser.antlr.SqlBaseParser.DeclareContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareCursorParamsContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DirectionContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DiscardContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DropServerContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.FetchContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.IsolationLevelContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.MappedUserContext;
@@ -94,6 +95,7 @@ import io.crate.sql.tree.BetweenPredicate;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.CascadeMode;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.CharFilters;
 import io.crate.sql.tree.CheckColumnConstraint;
@@ -142,6 +144,7 @@ import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
@@ -2337,6 +2340,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         String name = getIdentText(ctx.name);
         String fdw = getIdentText(ctx.fdw);
         return new CreateServer(name, fdw, ctx.EXISTS() != null, getOptions(ctx.kvOptions()));
+    }
+
+    @Override
+    public Node visitDropServer(DropServerContext ctx) {
+        CascadeMode cascadeMode = ctx.CASCADE() == null ? CascadeMode.RESTRICT : CascadeMode.CASCADE;
+        List<String> names = identsToStrings(ctx.names.ident());
+        boolean ifExists = ctx.EXISTS() != null;
+        return new DropServer(names, ifExists, cascadeMode);
     }
 
     @Nullable

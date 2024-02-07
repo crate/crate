@@ -66,6 +66,7 @@ import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
@@ -2132,6 +2133,15 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_drop_server() throws Exception {
+        printStatement("drop server jarvis");
+        printStatement("drop server pg1, pg2");
+        printStatement("drop server if exists pg1, pg2");
+        printStatement("drop server if exists pg1, pg2 cascade");
+        printStatement("drop server if exists pg1, pg2 restrict");
+    }
+
+    @Test
     public void test_create_foreign_table() throws Exception {
         printStatement("create foreign table tbl (x int) server pg");
         printStatement("create foreign table if not exists tbl (x int) server pg");
@@ -2194,7 +2204,8 @@ public class TestStatementBuilder {
             statement instanceof Fetch ||
             statement instanceof Close ||
             statement instanceof CreateServer ||
-            statement instanceof CreateUserMapping) {
+            statement instanceof CreateUserMapping ||
+            statement instanceof DropServer) {
 
 
             println(SqlFormatter.formatSql(statement));

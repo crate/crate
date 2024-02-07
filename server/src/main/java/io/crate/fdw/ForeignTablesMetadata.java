@@ -24,6 +24,7 @@ package io.crate.fdw;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -104,5 +105,21 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
     @Nullable
     public ForeignTable get(RelationName name) {
         return tables.get(name);
+    }
+
+    public boolean anyDependOnServer(String serverName) {
+        return tables.values().stream().anyMatch(x -> x.server().equals(serverName));
+    }
+
+    public ForeignTablesMetadata removeAllForServers(List<String> names) {
+        HashMap<RelationName, ForeignTable> newTables = new HashMap<>();
+        for (var entry : tables.entrySet()) {
+            var relationName = entry.getKey();
+            var foreignTable = entry.getValue();
+            if (!names.contains(foreignTable.server())) {
+                newTables.put(relationName, foreignTable);
+            }
+        }
+        return newTables.size() == tables.size() ? this : new ForeignTablesMetadata(newTables);
     }
 }
