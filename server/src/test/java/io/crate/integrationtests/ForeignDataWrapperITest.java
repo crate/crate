@@ -73,6 +73,14 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         assertThat(response).hasRows(
             "doc| dummy"
         );
+        execute("select table_schema, table_name from information_schema.tables where table_type = 'FOREIGN'");
+        assertThat(response).hasRows(
+            "doc| dummy"
+        );
+        execute("select column_name from information_schema.columns where table_name = 'dummy' order by 1");
+        assertThat(response).hasRows(
+            "x"
+        );
 
         execute("grant dql on table doc.tbl to arthur");
         execute("grant dql on table doc.dummy to trillian");
