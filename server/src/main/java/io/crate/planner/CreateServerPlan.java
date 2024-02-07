@@ -34,6 +34,7 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.CreateServerRequest;
 import io.crate.fdw.TransportCreateServerAction;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
 
 public class CreateServerPlan implements Plan {
@@ -56,8 +57,9 @@ public class CreateServerPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
 
+        CoordinatorTxnCtx transactionContext = plannerContext.transactionContext();
         Function<Symbol, Object> convert = new SymbolEvaluator(
-            plannerContext.transactionContext(),
+            transactionContext,
             plannerContext.nodeContext(),
             subQueryResults
         ).bind(params);
@@ -66,6 +68,7 @@ public class CreateServerPlan implements Plan {
         CreateServerRequest request = new CreateServerRequest(
             createServer.name(),
             createServer.fdw(),
+            transactionContext.sessionSettings().sessionUser().name(),
             createServer.ifNotExists(),
             options
         );

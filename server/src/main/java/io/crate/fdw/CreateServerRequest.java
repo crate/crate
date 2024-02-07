@@ -32,15 +32,18 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
 
     private final String name;
     private final String fdw;
+    private final String owner;
     private final boolean ifNotExists;
     private final Map<String, Object> options;
 
     public CreateServerRequest(String name,
                                String fdw,
+                               String owner,
                                boolean ifNotExists,
                                Map<String, Object> options) {
         this.name = name;
         this.fdw = fdw;
+        this.owner = owner;
         this.ifNotExists = ifNotExists;
         this.options = options;
     }
@@ -48,6 +51,7 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
     public CreateServerRequest(StreamInput in) throws IOException {
         this.name = in.readString();
         this.fdw = in.readString();
+        this.owner = in.readString();
         this.ifNotExists = in.readBoolean();
         this.options = in.readMap(StreamInput::readString, StreamInput::readGenericValue);
     }
@@ -56,6 +60,7 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeString(fdw);
+        out.writeString(owner);
         out.writeBoolean(ifNotExists);
         out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
     }
@@ -66,6 +71,10 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
 
     public String fdw() {
         return fdw;
+    }
+
+    public String owner() {
+        return owner;
     }
 
     public Map<String, Object> options() {
