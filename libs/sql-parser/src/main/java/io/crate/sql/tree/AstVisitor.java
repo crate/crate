@@ -731,4 +731,8 @@ public abstract class AstVisitor<R, C> {
     public R visitDropServer(DropServer dropServer, C context) {
         return visitStatement(dropServer, context);
     }
+
+    public R visitDropForeignTable(DropForeignTable dropForeignTable, C context) {
+        return visitStatement(dropForeignTable, context);
+    }
 }

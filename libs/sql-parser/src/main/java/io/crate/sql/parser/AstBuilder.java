@@ -55,6 +55,7 @@ import io.crate.sql.parser.antlr.SqlBaseParser.DeclareContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareCursorParamsContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DirectionContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DiscardContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DropForeignTableContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DropServerContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.FetchContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.IsolationLevelContext;
@@ -140,6 +141,7 @@ import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropColumnDefinition;
+import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
@@ -481,6 +483,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             server,
             getOptions(ctx.kvOptions())
         );
+    }
+
+    @Override
+    public Node visitDropForeignTable(DropForeignTableContext ctx) {
+        List<QualifiedName> names = getIdents(ctx.names.qname());
+        boolean ifExists = ctx.EXISTS() != null;
+        CascadeMode cascadeMode = ctx.CASCADE() == null ? CascadeMode.RESTRICT : CascadeMode.CASCADE;
+        return new DropForeignTable(names, ifExists, cascadeMode);
     }
 
     @Override

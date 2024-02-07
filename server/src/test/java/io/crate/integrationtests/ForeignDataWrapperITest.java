@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.After;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.PostgresNetty;
@@ -32,6 +33,11 @@ import io.crate.role.Role;
 import io.crate.role.Roles;
 
 public class ForeignDataWrapperITest extends IntegTestCase {
+
+    @After
+    public void removeServers() throws Exception {
+        execute("drop server if exists pg");
+    }
 
     @Test
     public void test_cannot_create_server_if_fdw_is_missing() throws Exception {
@@ -126,5 +132,39 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             .hasMessageContaining("Server `pg` not found");
 
         execute("drop server if exists pg");
+    }
+
+    @Test
+    public void test_can_drop_foreign_table() throws Exception {
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
+        int port = postgresNetty.boundAddress().publishAddress().getPort();
+        String url = "jdbc:postgresql://127.0.0.1:" + port + '/';
+        execute(
+            "create server pg foreign data wrapper jdbc options (url ?)",
+            new Object[] { url }
+        );
+
+        String stmt = """
+            CREATE FOREIGN TABLE doc.dummy (x int)
+            SERVER pg
+            OPTIONS (schema_name 'doc', table_name 'tbl')
+            """;
+        execute(stmt);
+
+        execute("select foreign_table_schema, foreign_table_name from information_schema.foreign_tables");
+        assertThat(response).hasRows(
+            "doc| dummy"
+        );
+
+        assertThatThrownBy(() -> execute("drop foreign table doc.dummy cascade"))
+            .hasMessageContaining("DROP FOREIGN TABLE with CASCADE is not supported");
+
+        execute("drop foreign table doc.dummy");
+        execute("select foreign_table_schema, foreign_table_name from information_schema.foreign_tables");
+        assertThat(response).isEmpty();
+
+        assertThatThrownBy(() -> execute("drop foreign table doc.dummy"))
+            .hasMessageContaining("Relation 'doc.dummy' unknown");
+        execute("drop foreign table if exists doc.dummy");
     }
 }

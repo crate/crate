@@ -73,6 +73,7 @@ import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
@@ -704,6 +705,24 @@ public final class SqlFormatter {
                 }
                 builder.append(")");
             }
+            return null;
+        }
+
+        @Override
+        public Void visitDropForeignTable(DropForeignTable dropForeignTable, Integer indent) {
+            append(indent, "DROP FOREIGN TABLE ");
+            if (dropForeignTable.ifExists()) {
+                append(indent, "IF EXISTS ");
+            }
+            Iterator<QualifiedName> namesIt = dropForeignTable.names().iterator();
+            while (namesIt.hasNext()) {
+                append(indent, formatQualifiedName(namesIt.next()));
+                if (namesIt.hasNext()) {
+                    append(indent, ", ");
+                }
+            }
+            append(indent, " ");
+            append(indent, dropForeignTable.cascadeMode() == CascadeMode.CASCADE ? "CASCADE" : "RESTRICT");
             return null;
         }
 

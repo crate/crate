@@ -34,6 +34,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.common.collections.Lists;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -89,6 +90,7 @@ import io.crate.sql.tree.DiscardStatement;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropCheckConstraint;
+import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
@@ -821,6 +823,16 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDropServer(DropServer dropServer, Analysis context) {
             return new AnalyzedDropServer(dropServer.names(), dropServer.ifExists(), dropServer.cascadeMode());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropForeignTable(DropForeignTable dropForeignTable, Analysis context) {
+            String defaultSchema = context.sessionSettings().currentSchema();
+            return new AnalyzedDropForeignTable(
+                Lists.map(dropForeignTable.names(), x -> RelationName.of(x, defaultSchema)),
+                dropForeignTable.ifExists(),
+                dropForeignTable.cascadeMode()
+            );
         }
     }
 }

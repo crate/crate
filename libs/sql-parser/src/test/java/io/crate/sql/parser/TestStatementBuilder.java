@@ -62,6 +62,7 @@ import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
@@ -2150,6 +2151,18 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_drop_foreign_table() throws Exception {
+        printStatement("drop foreign table tbl");
+        printStatement("drop foreign table tbl cascade");
+        printStatement("drop foreign table if exists tbl");
+        printStatement("drop foreign table if exists t1, t2, t3");
+        printStatement("drop foreign table if exists doc.t1, s1.t2, t3");
+        printStatement("drop foreign table if exists t1, t2, t3 cascade");
+        printStatement("drop foreign table if exists t1, t2, t3 restrict");
+    }
+
+
+    @Test
     public void test_create_user_mapping() throws Exception {
         printStatement("create user mapping for crate server pg");
         printStatement("create user mapping if not exists for crate server pg");
@@ -2205,7 +2218,8 @@ public class TestStatementBuilder {
             statement instanceof Close ||
             statement instanceof CreateServer ||
             statement instanceof CreateUserMapping ||
-            statement instanceof DropServer) {
+            statement instanceof DropServer ||
+            statement instanceof DropForeignTable) {
 
 
             println(SqlFormatter.formatSql(statement));
