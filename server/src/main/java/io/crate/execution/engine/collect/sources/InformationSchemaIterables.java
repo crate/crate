@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -125,7 +126,17 @@ public class InformationSchemaIterables implements ClusterStateListener {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         views = () -> viewsStream(schemas).iterator();
         tables = () -> tablesStream(schemas).iterator();
-        relations = () -> concat(tablesStream(schemas), viewsStream(schemas)).iterator();
+        relations = () -> {
+            Metadata metadata = clusterService.state().metadata();
+            ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
+            if (foreignTables == null) {
+                foreignTables = ForeignTablesMetadata.EMPTY;
+            }
+            return concat(
+                concat(tablesStream(schemas), viewsStream(schemas)),
+                StreamSupport.stream(foreignTables.spliterator(), false)
+            ).iterator();
+        };
         primaryKeys = () -> sequentialStream(relations)
             .filter(this::isPrimaryKey)
             .iterator();
