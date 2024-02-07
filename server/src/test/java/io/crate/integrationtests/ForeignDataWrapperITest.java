@@ -69,6 +69,11 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             """;
         execute(stmt);
 
+        execute("select foreign_table_schema, foreign_table_name from information_schema.foreign_tables");
+        assertThat(response).hasRows(
+            "doc| dummy"
+        );
+
         execute("grant dql on table doc.tbl to arthur");
         execute("grant dql on table doc.dummy to trillian");
 
@@ -104,7 +109,10 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             .hasMessageContaining("Cannot drop server `pg` because foreign tables depend on it");
 
         execute("drop server pg cascade");
-        assertThat(execute("select * from information_schema.foreign_servers")).isEmpty();
+        assertThat(execute("select * from information_schema.foreign_servers"))
+            .isEmpty();
+        assertThat(execute("select foreign_table_schema, foreign_table_name from information_schema.foreign_tables"))
+            .isEmpty();
 
         assertThatThrownBy(() -> execute("drop server pg"))
             .hasMessageContaining("Server `pg` not found");
