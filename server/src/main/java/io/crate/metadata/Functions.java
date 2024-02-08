@@ -474,7 +474,8 @@ public class Functions {
                                                 List<TypeSignature> declaredArgumentTypes) {
         int cnt = 0;
         for (int i = 0; i < actualArgumentTypes.size(); i++) {
-            if (declaredArgumentTypes.size() > i && actualArgumentTypes.get(i).equals(declaredArgumentTypes.get(i))) {
+            if (declaredArgumentTypes.size() > i
+                && actualArgumentTypes.get(i).equalsIgnoringParameters(declaredArgumentTypes.get(i))) {
                 cnt++;
             }
         }

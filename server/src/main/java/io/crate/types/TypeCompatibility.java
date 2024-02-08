@@ -52,7 +52,7 @@ public final class TypeCompatibility {
         String toTypeBaseName = toType.getTypeSignature().getBaseTypeName();
         if (fromTypeBaseName.equals(toTypeBaseName)) {
             // If given types share the same base, e.g. arrays, parameter types must be compatible.
-            if (!fromType.getTypeParameters().isEmpty() || !toType.getTypeParameters().isEmpty()) {
+            if (fromType.getTypeParameters().isEmpty() == false || toType.getTypeParameters().isEmpty() == false) {
                 return typeCompatibilityForParametrizedType(fromType, toType);
             }
             return fromType;
@@ -91,6 +91,21 @@ public final class TypeCompatibility {
         List<DataType<?>> fromTypeParameters = fromType.getTypeParameters();
         List<DataType<?>> toTypeParameters = toType.getTypeParameters();
 
+        // TODO this block is a bunch of special casing, can we push this into the
+        // DataType implementations themselves?
+
+        if (fromType.id() == NumericType.ID && toType.id() == NumericType.ID) {
+            var fromPrecision = fromType.numericPrecision();
+            if (fromPrecision == null) {
+                return toType;
+            }
+            var toPrecision = toType.numericPrecision();
+            if (toPrecision == null) {
+                return fromType;
+            }
+            return fromPrecision > toPrecision ? fromType : toType;
+        }
+
         if (fromTypeParameters.size() != toTypeParameters.size()) {
             if (fromType.id() == ObjectType.ID && toType.id() == ObjectType.ID) {
                 return fromTypeParameters.size() > toTypeParameters.size() ? fromType : toType;
@@ -100,8 +115,8 @@ public final class TypeCompatibility {
                 }
             }
             return null;
-        } else if (fromType.id() == toType.id() 
-                   && fromType.characterMaximumLength() != null 
+        } else if (fromType.id() == toType.id()
+                   && fromType.characterMaximumLength() != null
                    && toType.characterMaximumLength() != null) {
             if (fromType.characterMaximumLength() > toType.characterMaximumLength()) {
                 return fromType;

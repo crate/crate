@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
 
+@IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class AggregateExpressionIntegrationTest extends IntegTestCase {
 
     @Test
@@ -91,6 +92,24 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "       sum(z::numeric) " + // overflow
                 "FROM tbl");
         assertThat(response).hasRows("2.6| 3.12| 9223372036854775809");
+    }
+
+    @Test
+    public void test_numeric_agg_with_numeric_cast() {
+        execute("CREATE TABLE IF NOT EXISTS t01 (txt TEXT, val DOUBLE PRECISION)");
+        execute("INSERT INTO t01 VALUES ('a', 1.0)");
+        execute("REFRESH TABLE t01");
+        execute(
+            """
+                SELECT
+                    txt,
+                SUM(val :: NUMERIC(10, 2)) AS val2
+                FROM t01
+                GROUP BY txt
+            """);
+        assertThat(response).hasRows(
+            "a| 1.00"
+        );
     }
 
     @Test
