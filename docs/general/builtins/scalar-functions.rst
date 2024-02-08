@@ -480,6 +480,8 @@ Removes the longest string containing characters from ``str_arg_1`` (``' '`` by
 default) from the start, end, or both ends (``BOTH`` is the default) of
 ``str_arg_2``.
 
+If any of the two strings is ``NULL``, the result is ``NULL``.
+
 Synopsis::
 
     trim([ [ {LEADING | TRAILING | BOTH} ] [ str_arg_1 ] FROM ] str_arg_2)
@@ -523,6 +525,8 @@ Examples::
 Removes set of characters which are matching ``trimmingText`` (``' '`` by
 default) to the left of ``text``.
 
+If any of the arguments is ``NULL``, the result is ``NULL``.
+
 ::
 
     cr> select ltrim('xxxzzzabcba', 'xz') AS ltrim;
@@ -541,6 +545,8 @@ default) to the left of ``text``.
 
 Removes set of characters which are matching ``trimmingText`` (``' '`` by
 default) to the right of ``text``.
+
+If any of the arguments is ``NULL``, the result is ``NULL``.
 
 ::
 
@@ -561,6 +567,8 @@ default) to the right of ``text``.
 A combination of :ref:`ltrim <scalar-ltrim>` and :ref:`rtrim <scalar-rtrim>`,
 removing the longest string matching ``trimmingText`` from both the start and
 end of ``text``.
+
+If any of the arguments is ``NULL``, the result is ``NULL``.
 
 ::
 

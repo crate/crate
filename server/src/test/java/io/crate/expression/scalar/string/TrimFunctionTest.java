@@ -150,8 +150,20 @@ public class TrimFunctionTest extends ScalarTestCase {
         assertEvaluateNull("trim(name)", Literal.of(DataTypes.STRING, null));
         assertEvaluateNull("ltrim(name)", Literal.of(DataTypes.STRING, null));
         assertEvaluateNull("rtrim(name)", Literal.of(DataTypes.STRING, null));
-        assertEvaluateNull("ltrim(name, null)", Literal.of(DataTypes.STRING, null));
-        assertEvaluateNull("rtrim(name, null)", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("btrim(name)", Literal.of(DataTypes.STRING, null));
+
+        assertEvaluateNull("trim('foo' FROM name)", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("ltrim(name, 'foo')", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("rtrim(name, 'foo')", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("btrim(name, 'foo')", Literal.of(DataTypes.STRING, null));
+    }
+
+    @Test
+    public void test_evaluate_null_second_arg_on_nonnull_input() {
+        assertEvaluateNull("trim(NULL FROM name)", Literal.of("foo"));
+        assertEvaluateNull("ltrim(name, null)", Literal.of("foo"));
+        assertEvaluateNull("rtrim(name, null)", Literal.of("foo"));
+        assertEvaluateNull("btrim(name, null)", Literal.of("foo"));
     }
 
     @Test
