@@ -74,15 +74,3 @@ Fixes
           tbl.x IN (SELECT generate_series from generate_series(1, 1))
     ) FROM tbl t;
 
-- Fixed an issue that caused filtering by ``primary keys`` under ``NOT``
-  predicate to return invalid results.
-
-- Fixed an issue that caused ``SELECT`` statements with ``WHERE`` clause having
-  ``NOT`` predicate whose argument consists of ``NULLABLE`` scalar functions
-  with ``NULL`` argument that could evaluate to ``NULL`` to return invalid
-  results. An example ::
-
-    SELECT * FROM t WHERE (col % NULL) != 1;
-
-  A ``NULLABLE`` function in this context means a function returning ``NULL``
-  if and only if the input is a ``NULL``.
