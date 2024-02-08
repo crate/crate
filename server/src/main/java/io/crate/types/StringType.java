@@ -404,6 +404,14 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
+    public String toString() {
+        if (unbound()) {
+            return super.toString();
+        }
+        return "text(" + lengthLimit + ")";
+    }
+
+    @Override
     public long valueBytes(String value) {
         return RamUsageEstimator.sizeOf(value);
     }

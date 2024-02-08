@@ -32,7 +32,6 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -100,6 +99,7 @@ import io.crate.testing.T3;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import io.crate.types.TimeTZ;
 
 @SuppressWarnings("ConstantConditions")
@@ -566,7 +566,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
 
         Symbol symbol = executor.asSymbol("count(distinct name)");
-        assertThat(symbol).isFunction("collection_count", List.of(new ArrayType<>(DataTypes.STRING)));
+        assertThat(symbol).isFunction("collection_count", List.of(new ArrayType<>(StringType.of(10))));
     }
 
     @Test

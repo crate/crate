@@ -263,6 +263,8 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
                Objects.equals(precision, that.precision);
     }
 
+
+
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), scale, precision);
@@ -274,5 +276,16 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
         return size(value);
+    }
+
+    @Override
+    public String toString() {
+        if (getTypeParameters().isEmpty()) {
+            return super.toString();
+        }
+        if (scale == null) {
+            return "numeric(" + precision + ")";
+        }
+        return "numeric(" + precision + "," + scale + ")";
     }
 }
