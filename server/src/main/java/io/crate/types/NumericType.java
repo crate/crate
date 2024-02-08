@@ -162,16 +162,15 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         return NumericType.size(first) - NumericType.size(second);
     }
 
-    @VisibleForTesting
-    @Nullable
-    Integer scale() {
-        return scale;
+    @Override
+    public Integer numericPrecision() {
+        return precision;
     }
 
     @VisibleForTesting
     @Nullable
-    Integer precision() {
-        return precision;
+    Integer scale() {
+        return scale;
     }
 
     private MathContext mathContextOrDefault() {

@@ -47,6 +47,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;
+    public static final int PRECISION = 24;
     public static final int FLOAT_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Float.class);
     private static final StorageSupport<Float> STORAGE = new StorageSupport<>(
         true,
@@ -138,6 +139,11 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     @Override
     public String getName() {
         return "real";
+    }
+
+    @Override
+    public Integer numericPrecision() {
+        return PRECISION;
     }
 
     @Override

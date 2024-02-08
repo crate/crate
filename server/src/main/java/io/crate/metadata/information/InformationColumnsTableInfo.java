@@ -21,6 +21,13 @@
 
 package io.crate.metadata.information;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.TIMESTAMP;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
+
 import io.crate.Constants;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.symbol.Symbol;
@@ -28,22 +35,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.types.ByteType;
 import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
-import io.crate.types.ShortType;
-
-import java.util.Map;
-
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.TIMESTAMP;
-import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 
 public class InformationColumnsTableInfo {
@@ -85,7 +77,7 @@ public class InformationColumnsTableInfo {
             })
             .add("character_maximum_length", INTEGER, r -> r.ref().valueType().characterMaximumLength())
             .add("character_octet_length", INTEGER, ignored -> null)
-            .add("numeric_precision", INTEGER, r -> PRECISION_BY_TYPE_ID.get(r.ref().valueType().id()))
+            .add("numeric_precision", INTEGER, r -> r.ref().valueType().numericPrecision())
             .add("numeric_precision_radix", INTEGER, r -> {
                 if (DataTypes.isNumericPrimitive(r.ref().valueType())) {
                     return NUMERIC_PRECISION_RADIX;
@@ -137,17 +129,4 @@ public class InformationColumnsTableInfo {
 
     private static final Integer NUMERIC_PRECISION_RADIX = 2; // Binary
     private static final Integer DATETIME_PRECISION = 3; // Milliseconds
-
-    /**
-     * For floating point numbers please refer to:
-     * https://en.wikipedia.org/wiki/IEEE_floating_point
-     */
-    private static final Map<Integer, Integer> PRECISION_BY_TYPE_ID = Map.ofEntries(
-        Map.entry(ByteType.ID, 8),
-        Map.entry(ShortType.ID, 16),
-        Map.entry(FloatType.ID, 24),
-        Map.entry(IntegerType.ID, 32),
-        Map.entry(DoubleType.ID, 53),
-        Map.entry(LongType.ID, 64)
-    );
 }
