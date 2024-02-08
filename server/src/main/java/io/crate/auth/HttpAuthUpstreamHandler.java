@@ -36,13 +36,11 @@ import javax.net.ssl.SSLSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Tuple;
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -96,9 +94,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         SSLSession session = getSession(ctx.channel());
-        Tuple<String, SecureString> credentials = credentialsFromRequest(request, session, settings);
-        String username = credentials.v1();
-        SecureString password = credentials.v2();
+        Credentials credentials = credentialsFromRequest(request, session, settings);
+        String username = credentials.username();
         if (username.equals(authorizedUser)) {
             ctx.fireChannelRead(request);
             return;
@@ -115,7 +112,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {
-                Role user = authMethod.authenticate(username, password, connectionProperties);
+                Role user = authMethod.authenticate(username, credentials.password(), connectionProperties);
                 if (user != null && LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
                 }
@@ -127,6 +124,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                                 authMethod.name(), username, connectionProperties.address());
                 }
                 sendUnauthorized(ctx.channel(), e.getMessage());
+            } finally {
+                // Release the password object.
+                credentials.close();
             }
         }
     }
@@ -166,7 +166,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     }
 
     @VisibleForTesting
-    static Tuple<String, SecureString> credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
+    static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
         String username = null;
         if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
             // Prefer Http Basic Auth
@@ -186,7 +186,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
             }
         }
-        return new Tuple<>(username, null);
+        return new Credentials(username, null);
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {

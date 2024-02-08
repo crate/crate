@@ -237,7 +237,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         when(session.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY).v1();
+        String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY).username();
 
         assertThat(userName).isEqualTo("localhost");
     }
