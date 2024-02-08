@@ -25,10 +25,7 @@ import java.util.List;
 
 import io.crate.types.DataType;
 
-public final class BoundSignature {
-
-    private final List<DataType<?>> argTypes;
-    private final DataType<?> returnType;
+public record BoundSignature(List<DataType<?>> argTypes, DataType<?> returnType) {
 
     public static BoundSignature sameAsUnbound(Signature signature) {
         return new BoundSignature(
@@ -37,16 +34,4 @@ public final class BoundSignature {
         );
     }
 
-    public BoundSignature(List<DataType<?>> argTypes, DataType<?> returnType) {
-        this.argTypes = argTypes;
-        this.returnType = returnType;
-    }
-
-    public List<DataType<?>> argTypes() {
-        return argTypes;
-    }
-
-    public DataType<?> returnType() {
-        return returnType;
-    }
 }

@@ -26,17 +26,28 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-class TypeCompatibilityTest {
+public class TypeCompatibilityTest {
 
     @Test
-    void test_get_common_type_for_text_type_return_text_unbound_if_one_of_types_is_unbound() {
-        var commonType = TypeCompatibility.getCommonType(StringType.INSTANCE, StringType.of(1));
-        assertThat(commonType, is(StringType.INSTANCE));
+    public void test_get_common_type_for_text_type_return_text_unbound_if_one_of_types_is_unbound() {
+        assertCommonType(StringType.INSTANCE, StringType.of(1), StringType.INSTANCE);
     }
 
     @Test
-    void test_get_common_type_for_text_with_len_limit_return_text_with_highest_length() {
-        var commonType = TypeCompatibility.getCommonType(StringType.of(2), StringType.of(1));
-        assertThat(commonType, is(StringType.of(2)));
+    public void test_get_common_type_for_text_with_len_limit_return_text_with_highest_length() {
+        assertCommonType(StringType.of(2), StringType.of(1), StringType.of(2));
     }
+
+    @Test
+    public void test_numeric_highest_precision_wins() {
+        assertCommonType(NumericType.INSTANCE, NumericType.of(2, 1), NumericType.of(2, 1));
+        assertCommonType(NumericType.of(2, 1), NumericType.INSTANCE, NumericType.of(2, 1));
+        assertCommonType(NumericType.of(2, 1), NumericType.of(3, 1), NumericType.of(3, 1));
+    }
+
+    private static void assertCommonType(DataType<?> first, DataType<?> second, DataType<?> expected) {
+        var actual = TypeCompatibility.getCommonType(first, second);
+        assertThat(actual, is(expected));
+    }
+
 }

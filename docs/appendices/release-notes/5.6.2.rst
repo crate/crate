@@ -52,6 +52,10 @@ Fixes
 
     SELECT * FROM t1 WHERE NOT CONCAT_WS(true, column_with_null_value, false);
 
+- Fixed a bug (present since at least :ref:`version_5.2.0`) where columns cast to
+  a numeric type with a non-default precision could return the unscaled value in
+  a multi-node cluster
+
 - Fixed an issue that caused ``SELECT`` statements with ``WHERE`` clause having
   ``primary keys`` under ``NOT`` predicate to return invalid results.
 
@@ -64,3 +68,4 @@ Fixes
 
   A ``NULLABLE`` function in this context means a function returning ``NULL``
   if and only if the input is a ``NULL``.
+
