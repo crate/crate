@@ -192,7 +192,7 @@ public final class TrimFunctions {
             }
 
             String charsToTrim = (String) ((Input<?>) charsToTrimSymbol).value();
-            if (charsToTrim.length() == 1) {
+            if (charsToTrim != null && charsToTrim.length() == 1) {
                 return new OneCharTrimFunction(signature, boundSignature, charsToTrim.charAt(0));
             }
             return this;
@@ -208,7 +208,7 @@ public final class TrimFunctions {
 
             String charsToTrimArg = args[1].value();
             if (charsToTrimArg == null) {
-                return target;
+                return null;
             }
 
             TrimMode mode = TrimMode.of(args[2].value());
@@ -257,9 +257,10 @@ public final class TrimFunctions {
 
             if (args.length == 2) {
                 String passedTrimmingText = args[1].value();
-                if (passedTrimmingText != null) {
-                    return trimFunction.apply(target, passedTrimmingText);
+                if (passedTrimmingText == null) {
+                    return null;
                 }
+                return trimFunction.apply(target, passedTrimmingText);
             }
 
             return trimFunction.apply(target, " ");
