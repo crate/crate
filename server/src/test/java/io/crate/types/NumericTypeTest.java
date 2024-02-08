@@ -171,7 +171,7 @@ public class NumericTypeTest extends ESTestCase {
         var in = out.bytes().streamInput();
         NumericType actual = (NumericType) DataTypes.fromStream(in);
 
-        assertThat(actual.precision()).isNull();
+        assertThat(actual.numericPrecision()).isNull();
         assertThat(actual.scale()).isNull();
     }
 
@@ -184,7 +184,7 @@ public class NumericTypeTest extends ESTestCase {
         var in = out.bytes().streamInput();
         NumericType actual = (NumericType) DataTypes.fromStream(in);
 
-        assertThat(actual.precision()).isEqualTo(1);
+        assertThat(actual.numericPrecision()).isEqualTo(1);
         assertThat(actual.scale()).isEqualTo(2);
     }
 }
