@@ -21,13 +21,13 @@
 
 package io.crate.protocols.http;
 
+import io.crate.auth.Credentials;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpVersion;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.SecureString;
 
 import org.jetbrains.annotations.Nullable;
@@ -38,8 +38,6 @@ import java.util.regex.Pattern;
 public final class Headers {
 
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
-    private static final SecureString EMPTY_PASSWORD = new SecureString(new char[] {});
-    private static final Tuple<String, SecureString> EMPTY_CREDENTIALS_TUPLE = new Tuple<>("", EMPTY_PASSWORD);
 
     static boolean isBrowser(@Nullable String headerValue) {
         if (headerValue == null) {
@@ -66,12 +64,14 @@ public final class Headers {
         }
     }
 
-    public static Tuple<String, SecureString> extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
+    public static Credentials extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
         if (authHeaderValue == null || authHeaderValue.isEmpty()) {
-            return EMPTY_CREDENTIALS_TUPLE;
+            // Empty credentials.
+            return new Credentials("", new SecureString(new char[] {}));
         }
         String username;
-        SecureString password = EMPTY_PASSWORD;
+        // Empty password by default.
+        SecureString password = new SecureString(new char[] {});
         String valueWithoutBasePrefix = authHeaderValue.substring(6);
         String decodedCreds = new String(Base64.getDecoder().decode(valueWithoutBasePrefix), StandardCharsets.UTF_8);
 
@@ -85,6 +85,6 @@ public final class Headers {
                 password = new SecureString(passwdStr.toCharArray());
             }
         }
-        return new Tuple<>(username, password);
+        return new Credentials(username, password);
     }
 }

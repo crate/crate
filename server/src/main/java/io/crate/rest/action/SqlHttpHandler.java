@@ -54,6 +54,7 @@ import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
+import io.crate.auth.Credentials;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.breaker.BlockBasedRamAccounting;
@@ -294,12 +295,14 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     Role userFromAuthHeader(@Nullable String authHeaderValue) {
-        String username = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue).v1();
-        // Fallback to trusted user from configuration
-        if (username == null || username.isEmpty()) {
-            username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
+        try (Credentials credentials = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue)) {
+            String username = credentials.username();
+            // Fallback to trusted user from configuration
+            if (username == null || username.isEmpty()) {
+                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
+            }
+            return roles.findUser(username);
         }
-        return roles.findUser(username);
     }
 
     private static boolean bothProvided(@Nullable List<Object> args, @Nullable List<List<Object>> bulkArgs) {
