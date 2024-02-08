@@ -266,6 +266,11 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return null;
     }
 
+    @Nullable
+    public Integer numericPrecision() {
+        return null;
+    }
+
     /**
      * Return the number of bytes used to represent the value
      */

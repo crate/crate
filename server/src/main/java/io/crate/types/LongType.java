@@ -41,6 +41,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
 
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;
+    public static final int PRECISION = 64;
     public static final int LONG_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
     private static final StorageSupport<Long> STORAGE = new StorageSupport<>(
         true,
@@ -70,6 +71,11 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     @Override
     public String getName() {
         return "bigint";
+    }
+
+    @Override
+    public Integer numericPrecision() {
+        return PRECISION;
     }
 
     @Override
