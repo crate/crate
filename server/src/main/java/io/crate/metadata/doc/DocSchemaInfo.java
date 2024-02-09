@@ -189,7 +189,8 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     @Nullable
-    private ViewInfo getViewInfo(String name) {
+    @Override
+    public ViewInfo getViewInfo(String name) {
         return viewInfoFactory.create(new RelationName(schemaName, name), clusterService.state());
     }
 
