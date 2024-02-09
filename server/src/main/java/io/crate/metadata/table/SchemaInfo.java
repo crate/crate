@@ -31,6 +31,11 @@ public interface SchemaInfo extends AutoCloseable {
     @Nullable
     TableInfo getTableInfo(String name);
 
+    @Nullable
+    default ViewInfo getViewInfo(String name) {
+        return null;
+    }
+
     String name();
 
     void invalidateTableCache(String tableName);

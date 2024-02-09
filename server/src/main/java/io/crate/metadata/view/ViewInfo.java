@@ -37,6 +37,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.table.Operation;
 
 public class ViewInfo implements RelationInfo {
@@ -45,13 +46,15 @@ public class ViewInfo implements RelationInfo {
     private final String definition;
     private final List<Reference> columns;
     private final String owner;
+    private final SearchPath searchPath;
 
     @VisibleForTesting
-    public ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner) {
+    public ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner, SearchPath searchPath) {
         this.ident = ident;
         this.definition = definition;
         this.columns = columns;
         this.owner = owner;
+        this.searchPath = searchPath;
     }
 
     @Override
@@ -106,5 +109,9 @@ public class ViewInfo implements RelationInfo {
     @Nullable
     public String owner() {
         return owner;
+    }
+
+    public SearchPath searchPath() {
+        return searchPath;
     }
 }

@@ -26,6 +26,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.collections.Sets;
+import io.crate.metadata.RelationInfo;
 
 import java.util.EnumSet;
 import java.util.Locale;
@@ -116,27 +117,27 @@ public enum Operation {
         return subscriptionName != null && subscriptionName.isEmpty() == false;
     }
 
-    public static void blockedRaiseException(TableInfo tableInfo, Operation operation) {
-        if (!tableInfo.supportedOperations().contains(operation)) {
+    public static void blockedRaiseException(RelationInfo relationInfo, Operation operation) {
+        if (!relationInfo.supportedOperations().contains(operation)) {
             String exceptionMessage;
             // If the only supported operation is open/close, then the table must be closed.
-            if (tableInfo.supportedOperations().equals(CLOSED_OPERATIONS)) {
+            if (relationInfo.supportedOperations().equals(CLOSED_OPERATIONS)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is currently " +
                                    "closed.";
-            } else if (tableInfo.supportedOperations().equals(SUBSCRIBED_IN_LOGICAL_REPLICATION)) {
+            } else if (relationInfo.supportedOperations().equals(SUBSCRIBED_IN_LOGICAL_REPLICATION)) {
                 exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
                                    "logical replication subscription.";
-            } else if (tableInfo.supportedOperations().equals(PUBLISHED_IN_LOGICAL_REPLICATION)) {
+            } else if (relationInfo.supportedOperations().equals(PUBLISHED_IN_LOGICAL_REPLICATION)) {
                 exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
                                    "logical replication publication.";
-            } else if (tableInfo.supportedOperations().equals(SYS_READ_ONLY) ||
-                       tableInfo.supportedOperations().equals(READ_ONLY)) {
+            } else if (relationInfo.supportedOperations().equals(SYS_READ_ONLY) ||
+                relationInfo.supportedOperations().equals(READ_ONLY)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is read-only.";
             } else {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations.";
             }
-            throw new OperationOnInaccessibleRelationException(tableInfo.ident(), String.format(Locale.ENGLISH,
-                exceptionMessage, tableInfo.ident().fqn(), operation));
+            throw new OperationOnInaccessibleRelationException(relationInfo.ident(), String.format(Locale.ENGLISH,
+                exceptionMessage, relationInfo.ident().fqn(), operation));
         }
     }
 

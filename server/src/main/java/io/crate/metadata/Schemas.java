@@ -249,6 +249,53 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return null;
     }
 
+    public RelationInfo resolveRelationInfo(QualifiedName ident, Operation operation, Role user, SearchPath searchPath) {
+        String schemaName = schemaName(ident);
+        String tableName = relationName(ident);
+
+        RelationInfo relationInfo = null;
+        if (schemaName == null) {
+            for (String schema : searchPath) {
+                SchemaInfo schemaInfo = schemas.get(schema);
+                if (schemaInfo != null) {
+                    relationInfo = schemaInfo.getTableInfo(tableName);
+                    if (relationInfo != null) {
+                        break;
+                    }
+                    relationInfo = schemaInfo.getViewInfo(tableName);
+                    if (relationInfo != null) {
+                        break;
+                    }
+                }
+            }
+            if (relationInfo == null) {
+                SchemaInfo currentSchema = schemas.get(searchPath.currentSchema());
+                if (currentSchema == null) {
+                    throw new RelationUnknown(tableName);
+                } else {
+                    throw RelationUnknown.of(
+                        tableName,
+                        getSimilarTables(user, tableName, currentSchema.getTables()));
+                }
+            }
+        } else {
+            SchemaInfo schemaInfo = schemas.get(schemaName);
+            if (schemaInfo == null) {
+                throw SchemaUnknownException.of(schemaName, getSimilarSchemas(user, schemaName));
+            }
+            relationInfo = schemaInfo.getTableInfo(tableName);
+            if (relationInfo == null) {
+                relationInfo = schemaInfo.getViewInfo(tableName);
+                if (relationInfo == null) {
+                    throw RelationUnknown.of(schemaName + "." + tableName,
+                        getSimilarTables(user, tableName, schemaInfo.getTables()));
+                }
+            }
+        }
+        Operation.blockedRaiseException(relationInfo, operation);
+        return relationInfo;
+    }
+
     @Nullable
     private static String schemaName(QualifiedName ident) {
         assert ident.getParts().size() <=

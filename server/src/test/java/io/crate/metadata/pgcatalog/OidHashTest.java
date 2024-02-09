@@ -38,6 +38,7 @@ import org.junit.Test;
 
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -47,7 +48,7 @@ import io.crate.types.TypeSignature;
 
 public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationInfo VIEW_INFO = new ViewInfo(T1, "", Collections.emptyList(), null);
+    private static final RelationInfo VIEW_INFO = new ViewInfo(T1, "", Collections.emptyList(), null, SearchPath.pathWithPGCatalogAndDoc());
     private RelationInfo t1Info;
 
     @Before
