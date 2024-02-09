@@ -39,6 +39,7 @@ import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.ValuesFunction;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -127,5 +128,19 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             () -> executor.analyze("select invalid.doc.t1.a from crate.doc.t1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Unexpected catalog name: invalid. Only available catalog is crate");
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/15516
+    @Test
+    public void test_resolve_relations_by_going_through_each_search_path_at_a_time() throws IOException {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("create table b.t1 (x text);")
+            .addView(new RelationName("a", "t1"), "select 'view'")
+            .setSearchPath("a", "b")
+            .build();
+
+        QueriedSelectRelation relation = executor.analyze("select * from t1");
+        assertThat(relation.from().size()).isEqualTo(1);
+        assertThat(relation.from().get(0)).isInstanceOf(AnalyzedView.class);
     }
 }

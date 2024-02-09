@@ -68,6 +68,7 @@ import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
@@ -75,8 +76,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.metadata.view.View;
-import io.crate.metadata.view.ViewMetadata;
+import io.crate.metadata.view.ViewInfo;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.sql.parser.SqlParser;
@@ -696,38 +696,24 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (withQuery != null) {
             relation = withQuery;
         } else {
-            TableInfo tableInfo;
-            try {
-                tableInfo = schemas.resolveTableInfo(
-                    tableQualifiedName,
-                    context.currentOperation(),
-                    context.sessionSettings().sessionUser(),
-                    searchPath
-                );
-                if (tableInfo instanceof DocTableInfo docTable) {
+            RelationInfo relationInfo = schemas.resolveRelationInfo(
+                tableQualifiedName, context.currentOperation(), context.sessionSettings().sessionUser(), searchPath);
+            switch (relationInfo) {
+                case DocTableInfo docTable ->
                     // Dispatching of doc relations is based on the returned class of the schema information.
                     relation = new DocTableRelation(docTable);
-                } else {
-                    relation = new TableRelation(tableInfo);
+                case TableInfo table -> relation = new TableRelation(table);
+                case ViewInfo viewInfo -> {
+                    Statement viewQuery = SqlParser.createStatement(viewInfo.definition());
+                    AnalyzedRelation resolvedView = context.withSearchPath(
+                            viewInfo.searchPath(),
+                            newContext -> viewQuery.accept(this, newContext)
+                    );
+                    relation = new AnalyzedView(viewInfo.ident(), viewInfo.owner(), resolvedView);
                 }
-            } catch (RelationUnknown e) {
-                View view;
-                try {
-                    view = schemas.resolveView(tableQualifiedName, searchPath);
-                } catch (RelationUnknown e1) {
-                    // don't shadow original exception, as looking for the view is just a fallback
-                    throw e;
-                }
-                ViewMetadata viewMetadata = view.metadata();
-                Statement viewQuery = SqlParser.createStatement(viewMetadata.stmt());
-                AnalyzedRelation resolvedView = context.withSearchPath(
-                    viewMetadata.searchPath(),
-                    newContext -> viewQuery.accept(this, newContext)
-                );
-                relation = new AnalyzedView(view.name(), viewMetadata.owner(), resolvedView);
+                case null, default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
             }
         }
-
         relationContext.addSourceRelation(relation);
         return relation;
     }

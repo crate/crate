@@ -107,3 +107,23 @@ Fixes
 - Fixed a race condition that could lead to ``ShardCollectContext already
   added`` errors when making a query after a table had been idle without any
   accesses for a while.
+
+- Fixed an issue when resolving relations. When resolving an unqualified name
+  (no explicit schema), it first exhausted the search path looking for tables
+  before moving on to views. Now it will correctly look for both table and view
+  in each element of the search path before moving onto the next.
+
+  For example, with a search path set to ``a, b``, a query on ``tbl`` will now
+  look for:
+
+  - table ``a.tbl``
+  - view ``a.tbl``
+  - table ``b.tbl``
+  - view ``b.tbl``
+
+  Instead of:
+
+  - table ``a.tbl``
+  - table ``b.tbl``
+  - view ``a.tbl``
+  - view ``b.tbl``
