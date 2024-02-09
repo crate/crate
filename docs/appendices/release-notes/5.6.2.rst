@@ -45,6 +45,11 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused ``NullPointerException`` to be thrown when
+  attempting to rename a table on cluster which has been upgraded from versions
+  < :ref:`version_5.6.0` to a version >= :ref:`version_5.6.0`, and there were
+  users and privileges defined.
+
 - Fixed :ref:`trim <scalar-trim>`, :ref:`ltrim <scalar-ltrim>`,
   :ref:`rtrim <scalar-rtrim>`, and :ref:`btrim <scalar-btrim>` scalar functions
   to return ``NULL`, instead of the original string, when the ``trimmingText``
