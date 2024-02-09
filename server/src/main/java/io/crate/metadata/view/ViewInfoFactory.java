@@ -89,6 +89,6 @@ public class ViewInfoFactory {
             analyzeError = true;
         }
         String viewDefinition = analyzeError ? String.format(Locale.ENGLISH, "/* Corrupted view, needs fix */\n%s", view.stmt()) : view.stmt();
-        return new ViewInfo(ident, viewDefinition, columns, view.owner());
+        return new ViewInfo(ident, viewDefinition, columns, view.owner(), view.searchPath());
     }
 }
