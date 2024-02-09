@@ -25,6 +25,7 @@ import static io.crate.auth.AuthenticationWithSSLIntegrationTest.getAbsoluteFile
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
@@ -105,6 +106,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         .put("auth.host_based.config.1.protocol", "pg")
         .build();
 
+    private static final Settings HBA_6 = Settings.builder()
+        .put("auth.host_based.config.1.user", "jwt_user")
+        .put("auth.host_based.config.1.method", "jwt")
+        .put("auth.host_based.config.1.protocol", "http")
+        .build();
+
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
     private static final InMemoryDnsResolver IN_MEMORY_RESOLVER = new InMemoryDnsResolver();
 
@@ -158,6 +165,38 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         AuthenticationMethod method =
             authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertThat(method, instanceOf(TrustAuthenticationMethod.class));
+    }
+
+    @Test
+    public void test_resolve_jwt_method() {
+        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_6, null, SystemDefaultDnsResolver.INSTANCE);
+        AuthenticationMethod method =
+            authService.resolveAuthenticationType("jwt_user", new ConnectionProperties(LOCALHOST, Protocol.HTTP, null));
+        assertThat(method, instanceOf(JWTAuthenticationMethod.class));
+    }
+
+    @Test
+    public void test_invalid_jwt_config_throws_error() {
+        // No protocol specified with jwt method ==> cannot enable jwt for all protocols, it's supported only for http.
+        Settings noProtocolSettings = Settings.builder()
+            .put("auth.host_based.config.1.user", "debug")
+            .put("auth.host_based.config.1.method", "jwt")
+            .build();
+        assertThatThrownBy(
+            () -> new HostBasedAuthentication(noProtocolSettings, null, SystemDefaultDnsResolver.INSTANCE)
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage("protocol must be set to http when using jwt auth method");
+
+        // Non-http protocol specified with jwt method ==> it's supported only for http.
+        Settings unsupportedProtocolSettings = Settings.builder()
+            .put("auth.host_based.config.1.user", "debug")
+            .put("auth.host_based.config.1.method", "jwt")
+            .put("auth.host_based.config.1.protocol", "pg")
+            .build();
+        assertThatThrownBy(
+            () -> new HostBasedAuthentication(unsupportedProtocolSettings, null, SystemDefaultDnsResolver.INSTANCE)
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage("protocol must be set to http when using jwt auth method");
     }
 
     @Test
