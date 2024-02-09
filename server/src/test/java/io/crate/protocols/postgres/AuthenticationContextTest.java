@@ -34,6 +34,7 @@ import org.junit.Test;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
 import io.crate.role.Role;
 
@@ -50,7 +51,7 @@ public class AuthenticationContextTest extends ESTestCase {
             InetAddress.getByName("127.0.0.1"), Protocol.POSTGRES, null);
         AuthenticationMethod authMethod = AUTHENTICATION.resolveAuthenticationType(userName, connProperties);
         AuthenticationContext authContext = new AuthenticationContext(
-            authMethod, connProperties, userName, LogManager.getLogger(AuthenticationContextTest.class));
+            authMethod, connProperties, new Credentials(userName, null), LogManager.getLogger(AuthenticationContextTest.class));
         authContext.setSecurePassword(passwd);
         assertThat(authContext.authenticate(), is(Role.CRATE_USER));
         assertThat(authContext.password().getChars(), is(passwd));
