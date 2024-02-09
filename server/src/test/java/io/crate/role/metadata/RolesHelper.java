@@ -47,6 +47,41 @@ import io.crate.role.SecureHash;
 
 public final class RolesHelper {
 
+
+    /**
+     * Base64 encoded token, which represents header/payload shown below (signed by RsaKeys.PRIVATE_KEY_256).
+     * Header:
+     * {
+     *   "alg": "RS256",
+     *   "typ": "JWT",
+     *   "kid": "1"
+     * }
+     * Payload:
+     * {
+     *   "iss": "https://console.cratedb-dev.cloud/api/v2/meta/jwk/",
+     *   "username": "cloud_user"
+     * }
+     */
+    public static final String JWT_TOKEN = """
+        eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpc3MiOiJod\
+        HRwczovL2NvbnNvbGUuY3JhdGVkYi1kZXYuY2xvdWQvYXBpL3YyL21ldGEvandrL\
+        yIsInVzZXJuYW1lIjoiY2xvdWRfdXNlciJ9.sbawfydZA66n6T8hCvioLYpBrqov\
+        p0BuMCIhStrqGKpDiw2JLeB6e3Tb3a9T9nuMF0S7HHMXHKXrypPCuBxeJsR4jck9m\
+        DeVyPZ1i4daNK-wezF0n-OLPJAV_lOvgv_exi2mpi2Ws7tfS3Ht3ZY8aQIOtnZjwW\
+        1O2GAljToLfRopUzJ8f6MZtZw2UKfkHvWZUalCcA5WWTqqzBx8hELswJ_VkUyYWYq\
+        wFgjaHsn2xF8nrS7_qF8OhD59_gCEUOzqIN0z2ctjSxRbFQ6VUewqQwMYVJTP7Lyl\
+        c89wlemQGx6JVk7wqejbLeCJqiHJXZFUe69A5MsWK8SZXDTfQoGWow\
+        """;
+
+    public static Role JWT_USER = userOf(
+        "John",
+        Set.of(),
+        new HashSet<>(),
+        getSecureHash("johns-pwd"),
+        new JwtProperties("https://console.cratedb-dev.cloud/api/v2/meta/jwk/", "cloud_user")
+    );
+
+
     public static final Map<String, Role> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", userOf("Arthur"));
 
     public static final Map<String, Role> DUMMY_USERS = Map.of(

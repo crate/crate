@@ -22,6 +22,7 @@
 package io.crate.auth;
 
 import io.crate.netty.channel.PipelineRegistry;
+import io.crate.role.Roles;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -36,11 +37,12 @@ public class AuthenticationHttpAuthHandlerRegistry {
     @Inject
     public AuthenticationHttpAuthHandlerRegistry(Settings settings,
                                                  PipelineRegistry pipelineRegistry,
-                                                 Authentication authentication) {
+                                                 Authentication authentication,
+                                                 Roles roles) {
         PipelineRegistry.ChannelPipelineItem pipelineItem = new PipelineRegistry.ChannelPipelineItem(
             "blob_handler",
             "auth_handler",
-            ignored -> new HttpAuthUpstreamHandler(settings, authentication)
+            ignored -> new HttpAuthUpstreamHandler(settings, authentication, roles)
         );
         pipelineRegistry.addBefore(pipelineItem);
     }
