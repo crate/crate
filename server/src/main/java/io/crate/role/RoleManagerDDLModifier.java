@@ -24,6 +24,7 @@ package io.crate.role;
 import java.util.List;
 import java.util.Objects;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 
@@ -56,7 +57,11 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
                                       boolean isPartitionedTable) {
         Metadata currentMetadata = currentState.metadata();
         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-        if (transferTablePrivileges(mdBuilder, sourceRelationName, targetRelationName)) {
+        if (transferTablePrivileges(
+            currentState.nodes().getMinNodeVersion(),
+            mdBuilder,
+            sourceRelationName,
+            targetRelationName)) {
             return ClusterState.builder(currentState).metadata(mdBuilder).build();
         }
         return currentState;
@@ -72,6 +77,7 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
         if (oldPrivilegesMetadata == null && oldRolesMetadata == null) {
             return currentState;
         }
+        validateMigrationToRolesMetadata(currentState.nodes().getMinNodeVersion(), "swap tables");
 
         var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
@@ -88,7 +94,7 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
         Metadata currentMetadata = currentState.metadata();
         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
 
-        if (dropPrivileges(mdBuilder, relationName) == false) {
+        if (dropPrivileges(currentState.nodes().getMinNodeVersion(), mdBuilder, relationName) == false) {
             // if nothing is affected, don't modify the state and just return the given currentState
             return currentState;
         }
@@ -96,12 +102,13 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
         return ClusterState.builder(currentState).metadata(mdBuilder).build();
     }
 
-    private static boolean dropPrivileges(Metadata.Builder mdBuilder, RelationName relationName) {
+    private static boolean dropPrivileges(Version minNodeVersion, Metadata.Builder mdBuilder, RelationName relationName) {
         UsersPrivilegesMetadata oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         if (oldPrivilegesMetadata == null && oldRolesMetadata == null) {
             return false;
         }
+        validateMigrationToRolesMetadata(minNodeVersion, "drop tables or views");
 
         var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
@@ -111,7 +118,8 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
     }
 
     @VisibleForTesting
-    static boolean transferTablePrivileges(Metadata.Builder mdBuilder,
+    static boolean transferTablePrivileges(Version minNodeVersion,
+                                           Metadata.Builder mdBuilder,
                                            RelationName sourceRelationName,
                                            RelationName targetRelationName) {
         UsersPrivilegesMetadata oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
@@ -119,6 +127,7 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
         if (oldPrivilegesMetadata == null && oldRolesMetadata == null) {
             return false;
         }
+        validateMigrationToRolesMetadata(minNodeVersion, "rename tables or views");
 
         var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         RolesMetadata migratedMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
@@ -134,5 +143,11 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
             return true;
         }
         return false;
+    }
+
+    private static void validateMigrationToRolesMetadata(Version minNodeVersion, String msg) {
+        if (minNodeVersion.onOrAfter(Version.V_5_6_0) == false) {
+            throw new IllegalStateException("Cannot " + msg + " until all nodes are upgraded to 5.6");
+        }
     }
 }
