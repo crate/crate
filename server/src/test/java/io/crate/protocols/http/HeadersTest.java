@@ -21,7 +21,7 @@
 
 package io.crate.protocols.http;
 
-import static io.crate.protocols.http.Headers.extractCredentialsFromHttpBasicAuthHeader;
+import static io.crate.protocols.http.Headers.extractCredentialsFromHttpAuthHeader;
 import static io.crate.protocols.http.Headers.isAcceptJson;
 import static io.crate.protocols.http.Headers.isBrowser;
 import static org.hamcrest.Matchers.is;
@@ -49,27 +49,27 @@ public class HeadersTest {
 
     @Test
     public void testExtractUsernamePasswordFromHttpBasicAuthHeader() {
-        Credentials creds = extractCredentialsFromHttpBasicAuthHeader("");
+        Credentials creds = extractCredentialsFromHttpAuthHeader("");
         assertThat(creds.username(), is(""));
         assertThat(creds.password().toString(), is(""));
 
-        creds = extractCredentialsFromHttpBasicAuthHeader(null);
+        creds = extractCredentialsFromHttpAuthHeader(null);
         assertThat(creds.username(), is(""));
         assertThat(creds.password().toString(), is(""));
 
-        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
         assertThat(creds.username(), is("Arthur"));
         assertThat(creds.password().toString(), is("Excalibur"));
 
-        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
         assertThat(creds.username(), is("Arthur"));
         assertThat(creds.password().toString(), is(":test:password:"));
 
-        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOg==");
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOg==");
         assertThat(creds.username(), is("Arthur"));
         assertThat(creds.password().toString(), is(""));
 
-        creds = extractCredentialsFromHttpBasicAuthHeader("Basic OnBhc3N3b3Jk");
+        creds = extractCredentialsFromHttpAuthHeader("Basic OnBhc3N3b3Jk");
         assertThat(creds.username(), is(""));
         assertThat(creds.password().toString(), is("password"));
     }

@@ -127,6 +127,8 @@ public class HostBasedAuthentication implements Authentication {
                 return new ClientCertAuth(roles);
             case (PasswordAuthenticationMethod.NAME):
                 return new PasswordAuthenticationMethod(roles);
+            case (JWTAuthenticationMethod.NAME):
+                return new JWTAuthenticationMethod(roles);
             default:
                 return null;
         }

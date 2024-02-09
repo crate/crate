@@ -169,8 +169,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
         String username = null;
         if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
-            // Prefer Http Basic Auth
-            return Headers.extractCredentialsFromHttpBasicAuthHeader(
+            // Prefer Http Auth (Basic or JWT, depedning on header)
+            return Headers.extractCredentialsFromHttpAuthHeader(
                 request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user

@@ -63,15 +63,33 @@ public final class Headers {
         }
     }
 
-    public static Credentials extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
+    /**
+     * An entry point for HTTP authentication, forwards to either Basic or JWT, depending on header.
+     * @param authHeaderValue contains authentication schema (basic or bearer) and auth payload (token or password) separated by space.
+     * Authentication schema is case-insensitive: https://datatracker.ietf.org/doc/html/rfc7235?ref=blog.teknkl.com#section-2.1
+     */
+    public static Credentials extractCredentialsFromHttpAuthHeader(String authHeaderValue) {
         if (authHeaderValue == null || authHeaderValue.isEmpty()) {
             // Empty credentials.
             return new Credentials("", new char[] {});
         }
+        if (authHeaderValue.substring(0, 5).equalsIgnoreCase("basic")) {
+            // Account to space
+            return extractCredentialsFromHttpBasicAuthHeader(authHeaderValue.substring(6));
+        } else {
+            if (authHeaderValue.substring(0, 6).equalsIgnoreCase("bearer")) {
+                // Account to space
+                return new Credentials(authHeaderValue.substring(7));
+            } else {
+                throw new IllegalArgumentException("Only basic or bearer HTTP Authentication schemas are allowed.");
+            }
+        }
+    }
+
+    private static Credentials extractCredentialsFromHttpBasicAuthHeader(String valueWithoutBasePrefix) {
         String username;
         // Empty password by default.
         char[] password = new char[] {};
-        String valueWithoutBasePrefix = authHeaderValue.substring(6);
         String decodedCreds = new String(Base64.getDecoder().decode(valueWithoutBasePrefix), StandardCharsets.UTF_8);
 
         int idx = decodedCreds.indexOf(':');
