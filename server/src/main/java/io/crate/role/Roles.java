@@ -28,6 +28,7 @@ import static io.crate.role.Policy.REVOKE;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -57,6 +58,20 @@ public interface Roles {
         Role role = findRole(userName);
         if (role != null && role.isUser()) {
             return role;
+        }
+        return null;
+    }
+
+    /**
+     * Finds a user by given predicate
+     */
+    @Nullable
+    default Role findUser(Predicate<Role> predicate) {
+        for (var role : roles()) {
+            if (role.isUser() && predicate.test(role)) {
+                return role;
+            }
+
         }
         return null;
     }

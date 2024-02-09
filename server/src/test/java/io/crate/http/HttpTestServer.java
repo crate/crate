@@ -118,6 +118,15 @@ public class HttpTestServer {
         channel = bootstrap.bind(new InetSocketAddress(port)).sync().channel();
     }
 
+    /**
+     * @return actual port, assigned by kernel.
+     * Can be different from "port" property if "port = 0"
+     */
+    public int boundPort() {
+        InetSocketAddress localAddress = (InetSocketAddress) channel.localAddress();
+        return localAddress.getPort();
+    }
+
     public void shutDown() {
         channel.close().awaitUninterruptibly();
         if (group != null) {
