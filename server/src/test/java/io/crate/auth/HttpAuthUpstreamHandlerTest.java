@@ -22,8 +22,14 @@
 package io.crate.auth;
 
 import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
+import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
+import static io.crate.role.metadata.RolesHelper.JWT_USER;
 import static io.crate.testing.Asserts.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
@@ -39,7 +45,10 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.StubRoleManager;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -62,6 +71,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     // Roles always returns null, so there are no users (even no default crate superuser)
     private final Authentication authService = new HostBasedAuthentication(hbaEnabled, List::of, SystemDefaultDnsResolver.INSTANCE);
+    private final HttpAuthUpstreamHandler handlerWithHBA = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, new StubRoleManager());
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
@@ -122,7 +132,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testAuthorized() throws Exception {
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(
-            Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)));
+            Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)), new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -134,15 +144,14 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testNotNoHbaConfig() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         ch.writeInbound(request);
         ch.releaseInbound();
-        assertThat(handler.authorized()).isFalse();
+        assertThat(handlerWithHBA.authorized()).isFalse();
 
         assertUnauthorized(
             ch.readOutbound(),
@@ -155,8 +164,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
      */
     @Test
     public void test_real_ip_header_is_ignored_by_default() {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
@@ -165,7 +173,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
         ch.writeInbound(request);
         ch.releaseInbound();
-        assertThat(handler.authorized()).isFalse();
+        assertThat(handlerWithHBA.authorized()).isFalse();
 
         assertUnauthorized(
             ch.readOutbound(),
@@ -177,7 +185,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         var settings = Settings.builder()
             .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
             .build();
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -199,7 +207,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         var settings = Settings.builder()
             .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
             .build();
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -218,15 +226,14 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testUnauthorizedUser() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
 
         ch.writeInbound(request);
         ch.releaseInbound();
 
-        assertThat(handler.authorized()).isFalse();
+        assertThat(handlerWithHBA.authorized()).isFalse();
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"crate\"\n");
     }
 
@@ -246,7 +253,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
 
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -260,7 +267,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testUnauthorizedUserWithDisabledHBA() throws Exception {
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(List::of);
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -272,4 +279,66 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         assertThat(handler.authorized()).isFalse();
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"Aladdin\"\n");
     }
+
+    @Test
+    public void test_user_authentication_with_jwt_token() throws Exception {
+        Roles roles = () -> List.of(JWT_USER);
+        Authentication authentication = mock(Authentication.class);
+        AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
+        when(authentication.resolveAuthenticationType(eq(JWT_USER.name()), any(ConnectionProperties.class)))
+            .thenReturn(jwtAuth);
+        when(jwtAuth.authenticate(any(Credentials.class),any(ConnectionProperties.class))).thenReturn(JWT_USER);
+
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+
+        assertThat(handler.authorized()).isTrue();
+    }
+
+    @Test
+    public void test_user_authentication_with_jwt_token_user_not_found() throws Exception {
+        EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+
+        assertThat(handlerWithHBA.authorized()).isFalse();
+    }
+
+    @Test
+    public void test_user_authentication_with_jwt_token_verified_per_request() throws Exception {
+        Roles roles = () -> List.of(JWT_USER);
+        Authentication authentication = mock(Authentication.class);
+        AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
+        when(authentication.resolveAuthenticationType(eq(JWT_USER.name()), any(ConnectionProperties.class)))
+            .thenReturn(jwtAuth);
+        when(jwtAuth.authenticate(any(Credentials.class),any(ConnectionProperties.class))).thenReturn(JWT_USER);
+
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+
+        assertThat(handler.authorized()).isTrue();
+
+        HttpRequest request2 = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request2.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
+        ch.writeInbound(request2);
+        ch.releaseInbound();
+        verify(jwtAuth, times(2)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
+    }
+
 }

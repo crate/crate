@@ -22,9 +22,17 @@
 package io.crate.auth;
 
 import java.io.Closeable;
+import java.util.function.Predicate;
+
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
+
+import io.crate.role.Role;
 
 /**
  * Holder for all authentication methods.
@@ -34,21 +42,29 @@ import org.jetbrains.annotations.Nullable;
  */
 public class Credentials implements Closeable {
 
+    // Reusable, as internally uses reusable ObjectMapper.
+    private static final JWT JWT = new JWT();
+
     // Non-final as we set it up one we resolve CrateDB user.
     private String username;
 
     // Non-final as Postgres protocol might inject password later after creation.
     private SecureString password;
 
-    private final String jwtToken;
+    private final DecodedJWT decodedToken;
 
     private Credentials(@Nullable String username, @Nullable char[] password, @Nullable String jwtToken) {
         this.username = username;
         this.password = password != null ? new SecureString(password) : null;
-        this.jwtToken = jwtToken;
+        if (jwtToken != null) {
+            this.decodedToken = JWT.decodeJwt(jwtToken);
+            validateToken(decodedToken);
+        } else {
+            this.decodedToken = null;
+        }
     }
 
-    public Credentials(@NotNull String username, @Nullable char[] password) {
+    public Credentials(String username, @Nullable char[] password) {
         this(username, password, null);
     }
 
@@ -82,8 +98,8 @@ public class Credentials implements Closeable {
     }
 
     @Nullable
-    public String jwtToken() {
-        return jwtToken;
+    public DecodedJWT decodedToken() {
+        return decodedToken;
     }
 
     @Override
@@ -91,5 +107,42 @@ public class Credentials implements Closeable {
         if (password != null) {
             password.close();
         }
+    }
+
+    private static void validateToken(@NotNull DecodedJWT decodedToken) {
+        if (Strings.isNullOrEmpty(decodedToken.getKeyId())) {
+            // kid is optional: https://datatracker.ietf.org/doc/html/rfc7517#section-4.5
+            // but for JWK it's required (JwkProvider uses it to fetch correct public key from JWK endpoint).
+            throw new IllegalArgumentException("The JWT token must contain a public key id (kid)");
+        }
+        if (Strings.isNullOrEmpty(decodedToken.getIssuer())) {
+            // Optional: https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1
+            // but required for CrateDB user lookup
+            throw new IllegalArgumentException("The JWT token must contain an issuer (iss)");
+        }
+        if (Strings.isNullOrEmpty(decodedToken.getClaim("username").asString())) {
+            // custom claim, required for CrateDB user lookup
+            throw new IllegalArgumentException("The JWT token must contain a 'username' claim");
+        }
+    }
+
+    /**
+     * Matches only on jwt properites.
+     * @return NULL if no lookup is needed (Basic auth).
+     */
+    @Nullable
+    public Predicate<Role> jwtPropertyMatch() {
+        if (decodedToken != null) {
+            return role -> {
+                var jwtProperties = role.jwtProperties();
+                if (role.isUser() && jwtProperties != null) {
+                    assert jwtProperties.iss() != null && jwtProperties.username() != null :
+                        "If user has jwt properties, 'iss' and 'username' must be not null";
+                    return decodedToken.getIssuer().equals(jwtProperties.iss()) && decodedToken.getClaim("username").asString().equals(jwtProperties.username());
+                }
+                return false;
+            };
+        }
+        return null;
     }
 }
