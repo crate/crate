@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,12 +21,32 @@
 
 package io.crate.auth;
 
-import io.crate.protocols.postgres.ConnectionProperties;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 
-import org.jetbrains.annotations.Nullable;
+import com.auth0.jwt.interfaces.RSAKeyProvider;
 
-public interface Authentication {
+public class LoadedRSAKeyProvider implements RSAKeyProvider {
 
-    @Nullable
-    AuthenticationMethod resolveAuthenticationType(@Nullable String user, ConnectionProperties connectionProperties);
+    private final RSAPublicKey rsaPublicKey;
+
+
+    public LoadedRSAKeyProvider(RSAPublicKey rsaPublicKey) {
+        this.rsaPublicKey = rsaPublicKey;
+    }
+
+    @Override
+    public RSAPublicKey getPublicKeyById(String keyId) {
+        return rsaPublicKey;
+    }
+
+    @Override
+    public RSAPrivateKey getPrivateKey() {
+        return null;
+    }
+
+    @Override
+    public String getPrivateKeyId() {
+        return null;
+    }
 }

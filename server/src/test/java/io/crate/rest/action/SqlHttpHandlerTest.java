@@ -21,6 +21,8 @@
 
 package io.crate.rest.action;
 
+import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
+import static io.crate.role.metadata.RolesHelper.JWT_USER;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -136,6 +138,21 @@ public class SqlHttpHandlerTest {
         session = handler.ensureSession(mockedRequest);
         assertFalse(session.sessionSettings().hashJoinsEnabled());
         assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("dummy_path"));
+    }
+
+    @Test
+    public void test_resolve_user_from_jwt_token() {
+        SqlHttpHandler handler = new SqlHttpHandler(
+            Settings.EMPTY,
+            mock(Sessions.class),
+            (s) -> new NoopCircuitBreaker("dummy"),
+            () -> List.of(JWT_USER),
+            sessionSettings -> AccessControl.DISABLED,
+            Netty4CorsConfigBuilder.forAnyOrigin().build()
+        );
+
+        Role resolvedUser = handler.userFromAuthHeader("bearer " + JWT_TOKEN);
+        assertThat(resolvedUser.name(), is(JWT_USER.name()));
     }
 }
 

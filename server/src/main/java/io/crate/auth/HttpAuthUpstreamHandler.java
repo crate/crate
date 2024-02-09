@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
@@ -45,6 +46,7 @@ import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -70,13 +72,16 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private final Authentication authService;
     private final Settings settings;
+
+    private final Roles roles;
     private String authorizedUser = null;
 
-    public HttpAuthUpstreamHandler(Settings settings, Authentication authService) {
+    public HttpAuthUpstreamHandler(Settings settings, Authentication authService, Roles roles) {
         // do not auto-release reference counted messages which are just in transit here
         super(false);
         this.settings = settings;
         this.authService = authService;
+        this.roles = roles;
     }
 
     @Override
@@ -95,8 +100,20 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         SSLSession session = getSession(ctx.channel());
         Credentials credentials = credentialsFromRequest(request, session, settings);
+
+        Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+        if (rolePredicate != null) {
+            Role role = roles.findUser(rolePredicate);
+            if (role != null) {
+                credentials.setUsername(role.name());
+            }
+        }
+
         String username = credentials.username();
-        if (username.equals(authorizedUser)) {
+        if (username != null && username.equals(authorizedUser) && credentials.decodedToken() == null) {
+            // Don't short circuit authentication and force token verification for JWT.
+            // Token can contain an expiration date, and it has to be checked on each request
+            // to avoid situation when expired token can be used throughout the lifetime of the connection.
             ctx.fireChannelRead(request);
             return;
         }
@@ -169,8 +186,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
         String username = null;
         if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
-            // Prefer Http Basic Auth
-            return Headers.extractCredentialsFromHttpBasicAuthHeader(
+            // Prefer Http Auth (Basic or JWT, depending on header).
+            return Headers.extractCredentialsFromHttpAuthHeader(
                 request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
