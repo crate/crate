@@ -62,6 +62,23 @@ public interface Roles {
     }
 
     /**
+     * Finds a user by JWT token payload (issuer and username).
+     */
+    @Nullable
+    default Role findUser(String issuer, String username) {
+        for (var role : roles()) {
+            if (role.isUser() && role.jwtProperties() != null) {
+                assert role.jwtProperties().iss() != null && role.jwtProperties().username() != null :
+                    "If user has jwt properties, 'iss' and 'username' must be not null";
+                if (issuer.equals(role.jwtProperties().iss()) && username.equals(role.jwtProperties().username())) {
+                    return role;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * finds a user by OID
      */
     @Nullable
@@ -167,4 +184,6 @@ public interface Roles {
         }
         return result;
     }
+
+
 }

@@ -21,6 +21,8 @@
 
 package io.crate.rest.action;
 
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -31,7 +33,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
@@ -43,6 +47,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.role.JwtProperties;
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
@@ -136,6 +141,51 @@ public class SqlHttpHandlerTest {
         session = handler.ensureSession(mockedRequest);
         assertFalse(session.sessionSettings().hashJoinsEnabled());
         assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("dummy_path"));
+    }
+
+    @Test
+    public void test_resolve_user_from_jwt_token() {
+        Role user = userOf(
+            "John",
+            Set.of(),
+            new HashSet<>(),
+            getSecureHash("johns-pwd"),
+            new JwtProperties("https://console.cratedb-dev.cloud/api/v2/meta/jwk/", "cloud_user")
+        );
+        SqlHttpHandler handler = new SqlHttpHandler(
+            Settings.EMPTY,
+            mock(Sessions.class),
+            (s) -> new NoopCircuitBreaker("dummy"),
+            () -> List.of(user),
+            sessionSettings -> AccessControl.DISABLED,
+            Netty4CorsConfigBuilder.forAnyOrigin().build()
+        );
+
+        /*
+        Created by https://jwt.io/#debugger-io. Represents token:
+        Header:
+        {
+            "alg": "RS256",
+            "typ": "JWT"
+        }
+        Payload:
+        {
+            "iss": "https://console.cratedb-dev.cloud/api/v2/meta/jwk/",
+            "username": "cloud_user"
+        }
+        */
+        String rsa256Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHR" +
+            "wczovL2NvbnNvbGUuY3JhdGVkYi1kZXYuY2xvdWQvYXBpL3YyL21ldGEvandrLyIsInVzZXJu" +
+            "YW1lIjoiY2xvdWRfdXNlciJ9.iDcLh-lJPQ7KgCCGuqDztPRrwH-4qMSQ3Wivi9Rm7BDZSWcHxo" +
+            "iJe26qA4gjnL022bIqJgDDJT9uwYY4_I2iBgkMRu6Y61cY_tZtBCVIaPLsBQVrhc8Jv3Skr6O7zz" +
+            "kc_LPzLdRi-1jHsYemxnq--VXRujFfbdeXoi3laiA-NkFmw6PIXqOLvnXfGVwZxMdyzD_p" +
+            "XpKjoPszrv8Dg-dmJl5MWZO8mysrCqh9JYj" +
+            "DqAMVEbVKn5KU__KRHUFcA7ZQSOvfmTlmcenlVEzOCFz" +
+            "6mfm5Z7tafmnMNG8IbX2HgbmwJAvk9ZYniSIKJHXB7K7q-clOZf26VBKdXxDG6TzyQg";
+
+
+        Role resolvedUser = handler.userFromAuthHeader("bearer " + rsa256Token);
+        assertThat(resolvedUser.name(), is(user.name()));
     }
 }
 

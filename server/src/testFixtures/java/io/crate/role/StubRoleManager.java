@@ -77,6 +77,11 @@ public class StubRoleManager implements RoleManager {
     }
 
     @Override
+    public Role findUser(String issuer, String username) {
+        return Role.CRATE_USER;
+    }
+
+    @Override
     public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
         return AccessControl.DISABLED;
     }

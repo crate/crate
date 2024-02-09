@@ -46,6 +46,9 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jetbrains.annotations.Nullable;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
+
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.Session;
@@ -82,6 +85,9 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private static final Logger LOGGER = LogManager.getLogger(SqlHttpHandler.class);
     private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
+
+    // Reusable, as internally uses reusable ObjectMapper.
+    private static final JWT JWT = new JWT();
 
     private final Settings settings;
     private final Sessions sqlOperations;
@@ -296,12 +302,19 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     Role userFromAuthHeader(@Nullable String authHeaderValue) {
         try (Credentials credentials = Headers.extractCredentialsFromHttpAuthHeader(authHeaderValue)) {
-            String username = credentials.username();
-            // Fallback to trusted user from configuration
-            if (username == null || username.isEmpty()) {
-                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
+            String username;
+            if (credentials.jwtToken() != null) {
+                DecodedJWT decodedJWT = JWT.decodeJwt(credentials.jwtToken());
+                // validate(decodedJWT) TODO: Implement, throw 409 error code with hint about missing claims and reuse in HttpAuthUpstreamHandler
+                return roles.findUser(decodedJWT.getIssuer(), decodedJWT.getClaim("username").asString());
+            } else {
+                username = credentials.username();
+                // Fallback to trusted user from configuration
+                if (username == null || username.isEmpty()) {
+                    username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
+                }
+                return roles.findUser(username);
             }
-            return roles.findUser(username);
         }
     }
 
