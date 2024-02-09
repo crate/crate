@@ -112,7 +112,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {
-                Role user = authMethod.authenticate(username, credentials.password(), connectionProperties);
+                Role user = authMethod.authenticate(credentials, connectionProperties);
                 if (user != null && LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
                 }
