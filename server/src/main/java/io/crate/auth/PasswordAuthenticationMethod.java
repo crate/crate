@@ -21,7 +21,6 @@
 
 package io.crate.auth;
 
-import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -40,15 +39,18 @@ public class PasswordAuthenticationMethod implements AuthenticationMethod {
 
     @Nullable
     @Override
-    public Role authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
-        Role user = roles.findUser(userName);
-        if (user != null && passwd != null && passwd.length() > 0) {
+    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
+        var username = credentials.username();
+        var password = credentials.password();
+        assert username != null : "User name must be not null on password authentication method";
+        Role user = roles.findUser(username);
+        if (user != null && password!= null && password.length() > 0) {
             SecureHash secureHash = user.password();
-            if (secureHash != null && secureHash.verifyHash(passwd)) {
+            if (secureHash != null && secureHash.verifyHash(password)) {
                 return user;
             }
         }
-        throw new RuntimeException("password authentication failed for user \"" + userName + "\"");
+        throw new RuntimeException("password authentication failed for user \"" + username + "\"");
     }
 
     @Override

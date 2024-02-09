@@ -21,7 +21,6 @@
 
 package io.crate.auth;
 
-import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -30,13 +29,12 @@ import io.crate.role.Role;
 public interface AuthenticationMethod {
 
     /**
-     * @param userName the userName sent with the startup message
-     * @param passwd the password in clear-text or null
+     * @param credentials contains username, password or token - depending on the used method.
      * @return the user or null; null should be handled as if it's a "guest" user
      * @throws RuntimeException if the authentication failed
      */
     @Nullable
-    Role authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties);
+    Role authenticate(Credentials credentials, ConnectionProperties connProperties);
 
     /**
      * @return unique name of the authentication method
