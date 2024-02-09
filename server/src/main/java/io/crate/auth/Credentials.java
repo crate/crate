@@ -23,9 +23,68 @@ package io.crate.auth;
 
 import java.io.Closeable;
 import org.elasticsearch.common.settings.SecureString;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public record Credentials(@Nullable String username, @Nullable SecureString password) implements Closeable {
+/**
+ * Holder for all authentication methods.
+ * username is CrateDB user. Set up directly on password, cert and trust methods and resolved later on jwt.
+ * password is used only for password method and null otherwise.
+ * jwtToken is used only for jwt method and null otherwise.
+ */
+public class Credentials implements Closeable {
+
+    // Non-final as we set it up one we resolve CrateDB user.
+    private String username;
+
+    // Non-final as Postgres protocol might inject password later after creation.
+    private SecureString password;
+
+    private final String jwtToken;
+
+    private Credentials(@Nullable String username, @Nullable char[] password, @Nullable String jwtToken) {
+        this.username = username;
+        this.password = password != null ? new SecureString(password) : null;
+        this.jwtToken = jwtToken;
+    }
+
+    public Credentials(@NotNull String username, @Nullable char[] password) {
+        this(username, password, null);
+    }
+
+    public Credentials(@NotNull String jwtToken) {
+        this(null, null, jwtToken);
+    }
+
+    /**
+     * Only for PG protocol
+     */
+    public void setPassword(@NotNull char[] password) {
+        this.password = new SecureString(password);
+    }
+
+    /**
+     * @param username is CrateDB username.
+     * Resolved from iss/username of the JWT token.
+     */
+    public void setUsername(@NotNull String username) {
+        this.username = username;
+    }
+
+    @Nullable
+    public String username() {
+        return username;
+    }
+
+    @Nullable
+    public SecureString password() {
+        return password;
+    }
+
+    @Nullable
+    public String jwtToken() {
+        return jwtToken;
+    }
 
     @Override
     public void close() {
