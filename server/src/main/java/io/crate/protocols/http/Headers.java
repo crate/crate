@@ -28,7 +28,6 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpVersion;
-import org.elasticsearch.common.settings.SecureString;
 
 import org.jetbrains.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -67,11 +66,11 @@ public final class Headers {
     public static Credentials extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
         if (authHeaderValue == null || authHeaderValue.isEmpty()) {
             // Empty credentials.
-            return new Credentials("", new SecureString(new char[] {}));
+            return new Credentials("", new char[] {});
         }
         String username;
         // Empty password by default.
-        SecureString password = new SecureString(new char[] {});
+        char[] password = new char[] {};
         String valueWithoutBasePrefix = authHeaderValue.substring(6);
         String decodedCreds = new String(Base64.getDecoder().decode(valueWithoutBasePrefix), StandardCharsets.UTF_8);
 
@@ -82,7 +81,7 @@ public final class Headers {
             username = decodedCreds.substring(0, idx);
             String passwdStr = decodedCreds.substring(idx + 1);
             if (passwdStr.length() > 0) {
-                password = new SecureString(passwdStr.toCharArray());
+                password = passwdStr.toCharArray();
             }
         }
         return new Credentials(username, password);
