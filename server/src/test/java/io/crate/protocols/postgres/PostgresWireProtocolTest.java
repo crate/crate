@@ -48,7 +48,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
@@ -65,6 +64,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -537,7 +537,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 (user, connectionProperties) -> new AuthenticationMethod() {
                     @Override
-                    public Role authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties) {
+                    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
                         return RolesHelper.userOf("dummy");
                     }
 

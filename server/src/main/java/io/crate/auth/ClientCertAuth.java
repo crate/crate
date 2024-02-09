@@ -24,7 +24,6 @@ package io.crate.auth;
 import java.security.cert.Certificate;
 import java.util.Objects;
 
-import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.protocols.SSL;
@@ -43,21 +42,22 @@ public class ClientCertAuth implements AuthenticationMethod {
 
     @Nullable
     @Override
-    public Role authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
+    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
+        assert credentials.username() != null : "User name must be not null on cert authentication method";
         Certificate clientCert = connProperties.clientCert();
         if (clientCert != null) {
             String commonName = SSL.extractCN(clientCert);
-            if (Objects.equals(userName, commonName) || connProperties.protocol() == Protocol.TRANSPORT) {
-                Role user = roles.findUser(userName);
+            if (Objects.equals(credentials.username(), commonName) || connProperties.protocol() == Protocol.TRANSPORT) {
+                Role user = roles.findUser(credentials.username());
                 if (user != null) {
                     return user;
                 }
             } else {
                 throw new RuntimeException(
-                    "Common name \"" + commonName + "\" in client certificate doesn't match username \"" + userName + "\"");
+                    "Common name \"" + commonName + "\" in client certificate doesn't match username \"" + credentials.username() + "\"");
             }
         }
-        throw new RuntimeException("Client certificate authentication failed for user \"" + userName + "\"");
+        throw new RuntimeException("Client certificate authentication failed for user \"" + credentials.username() + "\"");
     }
 
     @Override
