@@ -22,10 +22,12 @@
 package io.crate.role;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateModifier;
 import io.crate.role.metadata.RolesMetadata;
@@ -108,9 +110,10 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
         return affectedRows > 0L;
     }
 
-    private static boolean transferTablePrivileges(Metadata.Builder mdBuilder,
-                                                   RelationName sourceRelationName,
-                                                   RelationName targetRelationName) {
+    @VisibleForTesting
+    static boolean transferTablePrivileges(Metadata.Builder mdBuilder,
+                                           RelationName sourceRelationName,
+                                           RelationName targetRelationName) {
         UsersPrivilegesMetadata oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         if (oldPrivilegesMetadata == null && oldRolesMetadata == null) {
@@ -123,8 +126,11 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
         // create a new instance of the metadata if privileges were changed, to guarantee the cluster changed action.
         RolesMetadata newMetadata = PrivilegesModifier.maybeCopyAndReplaceTableIdents(migratedMetadata, sourceRelationName.fqn(), targetRelationName.fqn());
 
-        if (newMetadata != null || oldRolesMetadata.equals(migratedMetadata) == false) {
+        if (newMetadata != null) {
             mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
+            return true;
+        } else if (Objects.equals(oldRolesMetadata, migratedMetadata) == false) {
+            mdBuilder.putCustom(RolesMetadata.TYPE, migratedMetadata);
             return true;
         }
         return false;
