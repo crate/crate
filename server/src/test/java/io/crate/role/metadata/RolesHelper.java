@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.assertThat;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -85,10 +86,26 @@ public final class RolesHelper {
     public static UsersMetadata usersMetadataOf(Map<String, Role> users) {
         Map<String, SecureHash> map = new HashMap<>(users.size());
         for (var user : users.entrySet()) {
-            if (user.getValue().isUser())
+            if (user.getValue().isUser()) {
                 map.put(user.getKey(), user.getValue().password());
+            }
         }
         return new UsersMetadata(Collections.unmodifiableMap(map));
+    }
+
+    public static UsersPrivilegesMetadata usersPrivilegesMetadataOf(Map<String, Role> users) {
+        Map<String, Set<Privilege>> map = new HashMap<>(users.size());
+        for (var user : users.entrySet()) {
+            if (user.getValue().isUser()) {
+                var iterator = user.getValue().privileges().iterator();
+                Set<Privilege> privs = new HashSet<>();
+                while (iterator.hasNext()) {
+                    privs.add(iterator.next());
+                }
+                map.put(user.getKey(), privs);
+            }
+        }
+        return new UsersPrivilegesMetadata(map);
     }
 
     public static SecureHash getSecureHash(String password) {
