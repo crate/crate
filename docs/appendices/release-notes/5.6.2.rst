@@ -45,6 +45,17 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that can cause errors during a rolling upgrade to >=
+  :ref:`version_5.6.0` if one of the following command is executed on relations
+  with existing privileges:
+
+  - :ref:`DROP TABLE <drop-table>`
+  - :ref:`DROP VIEW <sql-drop-view>`
+  - :ref:`RENAME TABLE <sql-alter-table-rename-to>`
+  - :ref:`SWAP TABLE <alter_cluster_swap_table>`
+
+  These commands are now rejected until all nodes are upgraded.
+
 - Fixed an issue that caused ``NullPointerException`` to be thrown when
   attempting to rename a table on cluster which has been upgraded from versions
   < :ref:`version_5.6.0` to a version >= :ref:`version_5.6.0`, and there were

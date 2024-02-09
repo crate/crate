@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -56,6 +57,7 @@ public class RoleManagerDDLModifierTest extends ESTestCase {
 
         // when
         boolean result = RoleManagerDDLModifier.transferTablePrivileges(
+            Version.CURRENT,
             mdBuilder,
             new RelationName("mySchema", "oldName"),
             new RelationName("mySchema", "newName"));
