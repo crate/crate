@@ -687,9 +687,9 @@ Negating the same query with a preceding ``not`` returns all rows where
 
 This behaviour applies to:
 
- - ``LIKE`` and ``NOT LIKE``
+- ``LIKE`` and ``NOT LIKE``
 
- - All other comparison operators (excluding ``IS NULL`` and ``IS NOT NULL``)
+- All other comparison operators (excluding ``IS NULL`` and ``IS NOT NULL``)
 
 .. NOTE::
 

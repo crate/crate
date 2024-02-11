@@ -38,5 +38,5 @@ Changelog
 Fixes
 -----
 
- - Fixed an issue that caused the ``cluster.name`` setting in the ``crate.yml``
-   settings file to be ignored.
+- Fixed an issue that caused the ``cluster.name`` setting in the ``crate.yml``
+  settings file to be ignored.

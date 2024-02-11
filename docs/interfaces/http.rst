@@ -316,9 +316,9 @@ A bulk operation can be expressed simply as an SQL statement.
 
 Supported bulk SQL statements are:
 
- - Insert
- - Update
- - Delete
+- Insert
+- Update
+- Delete
 
 Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
 ``bulk_args``. This allows to specify a list of lists, containing all the

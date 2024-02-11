@@ -36,26 +36,26 @@ Changelog
 Changes
 -------
 
- - Improved error handling when using ``LIMIT``/``OFFSET`` that exceed
-   ``Integer`` range.
+- Improved error handling when using ``LIMIT``/``OFFSET`` that exceed
+  ``Integer`` range.
 
 Fixes
 -----
 
- - Fixed issue which prevents blob directories from being removed after a
-   ``drop blob table`` command when a custom blob location is configured.
+- Fixed issue which prevents blob directories from being removed after a
+  ``drop blob table`` command when a custom blob location is configured.
 
- - Fixed an issue that caused conditions like ``not x = any( )`` to not find
-   empty lists when used in WHERE clauses.
+- Fixed an issue that caused conditions like ``not x = any( )`` to not find
+  empty lists when used in WHERE clauses.
 
- - Fixed a race condition in an unsorted right outer join with one empty table
-   that could lead to incorrect results.
+- Fixed a race condition in an unsorted right outer join with one empty table
+  that could lead to incorrect results.
 
- - Division by aggregation that resulted in 0. e.g.
-   ``SELECT max(long_col) / min(long_col) from t)`` now correctly returns
-   ``ArtithmeticException`` and does not hang.
+- Division by aggregation that resulted in 0. e.g.
+  ``SELECT max(long_col) / min(long_col) from t)`` now correctly returns
+  ``ArtithmeticException`` and does not hang.
 
- - Fixed a race condition in ``KILL`` statements which lead to a memory leak.
+- Fixed a race condition in ``KILL`` statements which lead to a memory leak.
 
- - Fixed an issue that prevent a node from starting on Windows if the
-   sigar-plugin is removed.
+- Fixed an issue that prevent a node from starting on Windows if the
+  sigar-plugin is removed.

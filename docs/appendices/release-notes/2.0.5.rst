@@ -58,11 +58,11 @@ Changelog
 Fixes
 -----
 
- - Fixed an issue that caused an exception to be thrown when using ``COUNT(*)``
-   with a ``JOIN`` on 3 or more tables.
+- Fixed an issue that caused an exception to be thrown when using ``COUNT(*)``
+  with a ``JOIN`` on 3 or more tables.
 
- - Fixed a regression that caused queries with a ``GROUP BY`` on array columns,
-   which are wrapped in a :ref:`scalar function <scalar-functions>` to fail.
+- Fixed a regression that caused queries with a ``GROUP BY`` on array columns,
+  which are wrapped in a :ref:`scalar function <scalar-functions>` to fail.
 
- - Fixed an issue that caused an exception if a table that has been created
-   with CrateDB version <= 1.1 is modified using ``ALTER TABLE``.
+- Fixed an issue that caused an exception if a table that has been created
+  with CrateDB version <= 1.1 is modified using ``ALTER TABLE``.

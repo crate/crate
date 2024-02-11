@@ -23,49 +23,49 @@ Changelog
 Fixes
 -----
 
- - Fixed an issue that caused an exception to be thrown when applying
-   aggregations on generated columns of a table.
+- Fixed an issue that caused an exception to be thrown when applying
+  aggregations on generated columns of a table.
 
- - Fixed a bug in the memory accounting of the circuit breaker for HTTP
-   results when querying for columns of undefined type.
+- Fixed a bug in the memory accounting of the circuit breaker for HTTP
+  results when querying for columns of undefined type.
 
- - Fixed wrong results when querying ``IS NULL`` on an array of objects.
+- Fixed wrong results when querying ``IS NULL`` on an array of objects.
 
- - Fixed issue that caused an exception when querying the ``_id`` column using
-   all defined primary keys inside the ``WHERE`` clause over the HTTP API.
+- Fixed issue that caused an exception when querying the ``_id`` column using
+  all defined primary keys inside the ``WHERE`` clause over the HTTP API.
 
- - Fixed an issue that caused an Exception to be thrown on ``JOIN`` queries
-   with 4 or more tables when an ``ORDER BY`` is also applied.
+- Fixed an issue that caused an Exception to be thrown on ``JOIN`` queries
+  with 4 or more tables when an ``ORDER BY`` is also applied.
 
- - Fixed an issue that resulted in rows being unable to be queried by primary
-   keys, when the order of the primary key columns on insert differed from
-   the order of the primary key columns on the table definition.
-   Note: If records are already inserted by using a different primary key
-   column order, they must be re-inserted, otherwise queries will still fail
-   for these rows.
+- Fixed an issue that resulted in rows being unable to be queried by primary
+  keys, when the order of the primary key columns on insert differed from
+  the order of the primary key columns on the table definition.
+  Note: If records are already inserted by using a different primary key
+  column order, they must be re-inserted, otherwise queries will still fail
+  for these rows.
 
- - Fixed an issue that could cause ``DELETE`` by query  and ``UPDATE``
-   statements to fail on datasets larger than 10,000 rows.
+- Fixed an issue that could cause ``DELETE`` by query  and ``UPDATE``
+  statements to fail on datasets larger than 10,000 rows.
 
- - Improved the resiliency of queries on ``sys.nodes``: If a node disconnects
-   during the execution of a query it will no longer fail.
+- Improved the resiliency of queries on ``sys.nodes``: If a node disconnects
+  during the execution of a query it will no longer fail.
 
- - Added proper handling when memory requirements of a ``JOIN`` query exceeds
-   the available memory. Instead of having OutOfMemoryException thrown which
-   led to killed nodes in the cluster, the issue is detected and the query is
-   killed without affecting the cluster.
+- Added proper handling when memory requirements of a ``JOIN`` query exceeds
+  the available memory. Instead of having OutOfMemoryException thrown which
+  led to killed nodes in the cluster, the issue is detected and the query is
+  killed without affecting the cluster.
 
- - Fixed an issue that could cause ``DELETE`` statements to fail instead of
-   "not matching" if there was a ``_version`` column in the ``WHERE`` clause.
+- Fixed an issue that could cause ``DELETE`` statements to fail instead of
+  "not matching" if there was a ``_version`` column in the ``WHERE`` clause.
 
- - Fixed an error handling issue that could lead to the termination of a node
-   in very rare cases. (Usually if a user invoked the ``KILL`` statement)
+- Fixed an error handling issue that could lead to the termination of a node
+  in very rare cases. (Usually if a user invoked the ``KILL`` statement)
 
- - Fixed issue where bulk operations like ``INSERT`` from dynamic queries and
-   ``COPY FROM`` did not stop after being killed.
+- Fixed issue where bulk operations like ``INSERT`` from dynamic queries and
+  ``COPY FROM`` did not stop after being killed.
 
- - ``CREATE USER`` and ``DROP USER`` statements will now only respond after all
-   nodes in the cluster have processed the change.
+- ``CREATE USER`` and ``DROP USER`` statements will now only respond after all
+  nodes in the cluster have processed the change.
 
- - Fixed an issue that caused an exception to be thrown when using ``unnest``
-   with 10 or more columns.
+- Fixed an issue that caused an exception to be thrown when using ``unnest``
+  with 10 or more columns.
