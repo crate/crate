@@ -28,129 +28,129 @@ Changelog
 Breaking Changes
 ----------------
 
- - Removed multicast discovery.
+- Removed multicast discovery.
 
- - The ``ordinal`` column at the ``information_schema.columns`` will return
-   ``NULL`` now for all sub-columns (all non top-level columns) as the order of
-   object columns is not guaranteed.
+- The ``ordinal`` column at the ``information_schema.columns`` will return
+  ``NULL`` now for all sub-columns (all non top-level columns) as the order of
+  object columns is not guaranteed.
 
- - The ``TableFunctionImplementation`` interface was streamlined with other
-   function implementation semantics. This requires function implementation
-   plugins to be adapted to the new interface.
+- The ``TableFunctionImplementation`` interface was streamlined with other
+  function implementation semantics. This requires function implementation
+  plugins to be adapted to the new interface.
 
- - Removed deprecated setting ``indices.fielddata.breaker`` that have been used
-   as an alias for ``indices.breaker.fielddata``.
+- Removed deprecated setting ``indices.fielddata.breaker`` that have been used
+  as an alias for ``indices.breaker.fielddata``.
 
 
 Changes
 -------
 
- - Serve Admin UI from ``/``. Previously used URIs will direct to ``/``.
+- Serve Admin UI from ``/``. Previously used URIs will direct to ``/``.
 
- - Added the subscript function support for object literals.
+- Added the subscript function support for object literals.
 
- - Added cluster checks that warn if some tables need to be recreated or
-   upgraded for compatibility with future versions of CrateDB.
+- Added cluster checks that warn if some tables need to be recreated or
+  upgraded for compatibility with future versions of CrateDB.
 
- - Added functionality to monitor query runtime statistics via JMX. This
-   feature can only be used with an enterprise license.
+- Added functionality to monitor query runtime statistics via JMX. This
+  feature can only be used with an enterprise license.
 
- - Added a new parameter ``upgrade_segments`` to the ``OPTIMIZE`` statement
-   which enables the upgrade of tables and tables partitions to the current
-   version of the storage engine.
+- Added a new parameter ``upgrade_segments`` to the ``OPTIMIZE`` statement
+  which enables the upgrade of tables and tables partitions to the current
+  version of the storage engine.
 
- - Added new column ``min_lucene_version`` to ``sys.shards`` table, which shows
-   the oldest Lucene segment version used in the shard.
+- Added new column ``min_lucene_version`` to ``sys.shards`` table, which shows
+  the oldest Lucene segment version used in the shard.
 
- - Remove restriction to run ``OPTIMIZE`` on blob tables.
+- Remove restriction to run ``OPTIMIZE`` on blob tables.
 
- - UDC: add the ``enterprise`` field to the ``UDC`` ping. The field identifies
-   whether a user uses the enterprise version.
+- UDC: add the ``enterprise`` field to the ``UDC`` ping. The field identifies
+  whether a user uses the enterprise version.
 
- - Added the ``license.enterprise`` setting to the cluster settings.
+- Added the ``license.enterprise`` setting to the cluster settings.
 
- - It is now supported to order and group by predicate functions in general
-   with the exception of the ``match`` predicate.
+- It is now supported to order and group by predicate functions in general
+  with the exception of the ``match`` predicate.
 
- - Selecting ``os['timestamp'] from ``sys.nodes`` returns the actual timestamp
-   of each node clock at the time of collecting the metric instead of the
-   timestamp on the handler node.
+- Selecting ``os['timestamp'] from ``sys.nodes`` returns the actual timestamp
+  of each node clock at the time of collecting the metric instead of the
+  timestamp on the handler node.
 
- - Added :ref:`scalar function <scalar-functions>` ``geohash`` that returns a
-   GeoHash representation of a ``geo_point``
+- Added :ref:`scalar function <scalar-functions>` ``geohash`` that returns a
+  GeoHash representation of a ``geo_point``
 
- - Added support for casting JSON strings to object columns.
+- Added support for casting JSON strings to object columns.
 
- - The array comparison no longer requires extra parentheses for
-   :ref:`subselects <gloss-subquery>`.  Now it's possible to use ``= ANY
-   (SELECT ...)`` instead of ``= ANY ((SELECT ...))``.
+- The array comparison no longer requires extra parentheses for
+  :ref:`subselects <gloss-subquery>`.  Now it's possible to use ``= ANY
+  (SELECT ...)`` instead of ``= ANY ((SELECT ...))``.
 
- - Allow semi-colon (``;``) in the end of simple SQL statements.
+- Allow semi-colon (``;``) in the end of simple SQL statements.
 
- - Enhanced performance optimisation of full joins by rewriting them to left,
-   right or inner joins when conditions in ``WHERE`` exclude null values.
+- Enhanced performance optimisation of full joins by rewriting them to left,
+  right or inner joins when conditions in ``WHERE`` exclude null values.
 
- - Added support for filtering and ordering on ``ignored`` object columns.
+- Added support for filtering and ordering on ``ignored`` object columns.
 
- - Added support for the double colon (``::``) cast :ref:`operator
-   <gloss-operator>`.
+- Added support for the double colon (``::``) cast :ref:`operator
+  <gloss-operator>`.
 
- - Upgraded the parser from ANTLR3 to ANTLR4.
+- Upgraded the parser from ANTLR3 to ANTLR4.
 
- - Added monitoring plugin for the Enterprise edition in the Admin UI.
+- Added monitoring plugin for the Enterprise edition in the Admin UI.
 
- - Added Lazy loading of the stylesheet and plugins depending on the Enterprise
-   settings.
+- Added Lazy loading of the stylesheet and plugins depending on the Enterprise
+  settings.
 
- - Added buttons to collapse and expand all schemas in the tables view.
+- Added buttons to collapse and expand all schemas in the tables view.
 
- - The console now expands vertically to show the whole query if its size is
-   larger than the standard size of the console.
+- The console now expands vertically to show the whole query if its size is
+  larger than the standard size of the console.
 
- - SQL console keywords are now CrateDB specific.
+- SQL console keywords are now CrateDB specific.
 
- - Improved formatted results of the ``geo_area`` data type to include an
-   external link to a visualisation of that ``geo_area``.
+- Improved formatted results of the ``geo_area`` data type to include an
+  external link to a visualisation of that ``geo_area``.
 
- - Keywords in the SQL console are capitalised.
+- Keywords in the SQL console are capitalised.
 
- - Added node number to the status bar.
+- Added node number to the status bar.
 
- - Relocated the help resources section to be underneath the tweet import
-   tutorial.
+- Relocated the help resources section to be underneath the tweet import
+  tutorial.
 
- - Improved console results table, including data type based colorization,
-   alternating row colorization, structured object/array formatting,
-   human-readable timestamps, Google Maps link on geo-point results & lazy
-   loading on result sets larger than 100 rows.
+- Improved console results table, including data type based colorization,
+  alternating row colorization, structured object/array formatting,
+  human-readable timestamps, Google Maps link on geo-point results & lazy
+  loading on result sets larger than 100 rows.
 
 
 Fixes
 -----
 
- - Fixed an issue that prevent a node from starting on Windows if the
-   sigar-plugin is removed.
+- Fixed an issue that prevent a node from starting on Windows if the
+  sigar-plugin is removed.
 
- - Fixed validation of known configuration file settings. The settings are also
-   validated upon start-up.
+- Fixed validation of known configuration file settings. The settings are also
+  validated upon start-up.
 
- - Show loading indicator in the console interface when ``Execute Query`` is in
-   progress.
+- Show loading indicator in the console interface when ``Execute Query`` is in
+  progress.
 
- - Fixed issue that caused ``Cluster Offline`` message to not be displayed.
+- Fixed issue that caused ``Cluster Offline`` message to not be displayed.
 
- - Fixed a console results issue that caused the results table not to be
-   visible after horizontal scrolling.
+- Fixed a console results issue that caused the results table not to be
+  visible after horizontal scrolling.
 
- - Fixed styling issue that caused the last element in the side bar list to be
-   hidden.
+- Fixed styling issue that caused the last element in the side bar list to be
+  hidden.
 
- - Fixed an issue that caused the notification date to be ``null`` in Safari.
+- Fixed an issue that caused the notification date to be ``null`` in Safari.
 
- - Fixed a console results issue that caused the results table not to be
-   displayed after horizontal scrolling.
+- Fixed a console results issue that caused the results table not to be
+  displayed after horizontal scrolling.
 
- - Fixed an issue that caused the Admin UI to load only one plugin.
+- Fixed an issue that caused the Admin UI to load only one plugin.
 
- - Display warning in the console view when the query result contains an unsafe
-   integer.
+- Display warning in the console view when the query result contains an unsafe
+  integer.

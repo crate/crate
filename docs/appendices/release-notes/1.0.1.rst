@@ -36,55 +36,55 @@ Changelog
 Changes
 -------
 
- - ``INSERT`` statements now support ``SELECT`` statements without parentheses.
+- ``INSERT`` statements now support ``SELECT`` statements without parentheses.
 
- - Updated crate-admin to 1.0.2 which includes the following changes:
+- Updated crate-admin to 1.0.2 which includes the following changes:
 
-   - Removed pepper widget, support links are now in a Help section along with
-     the Get Started tutorial.
+  - Removed pepper widget, support links are now in a Help section along with
+    the Get Started tutorial.
 
-   - Changed read notification behaviour so that all items are marked as read
-     upon opening the settings.
+  - Changed read notification behaviour so that all items are marked as read
+    upon opening the settings.
 
-   - Lowered opacity of placeholder query in the console.
+  - Lowered opacity of placeholder query in the console.
 
-   - Fix intercom support that disappeared during the implementation of the new
-     Admin UI layout.
+  - Fix intercom support that disappeared during the implementation of the new
+    Admin UI layout.
 
-   - Fix Radio button position in load overview.
+  - Fix Radio button position in load overview.
 
-   - Made schema tabs more distinguishable from tables in the table list.
+  - Made schema tabs more distinguishable from tables in the table list.
 
-   - Updated link to support website in contact widget.
+  - Updated link to support website in contact widget.
 
 
 Fixes
 -----
 
- - Fixed scalar signature registration, ``NULL`` literals are now supported.
+- Fixed scalar signature registration, ``NULL`` literals are now supported.
 
- - Fixed usage of aggregations with ``NULL`` values, no exception will be
-   thrown anymore but instead ``NULL`` values are properly processed.
+- Fixed usage of aggregations with ``NULL`` values, no exception will be
+  thrown anymore but instead ``NULL`` values are properly processed.
 
- - The ``chunk_size`` and ``buffer_size`` settings for creating repositories of
-   type ``S3`` are now parsed correctly.
+- The ``chunk_size`` and ``buffer_size`` settings for creating repositories of
+  type ``S3`` are now parsed correctly.
 
- - CrateDB no longer throws an error when ``ANY`` or ``ALL`` array comparison
-   :ref:`expressions <gloss-expression>` are used in ``SELECT`` list. e.g.::
+- CrateDB no longer throws an error when ``ANY`` or ``ALL`` array comparison
+  :ref:`expressions <gloss-expression>` are used in ``SELECT`` list. e.g.::
 
-       select 'foo' = any(some_array)
+      select 'foo' = any(some_array)
 
- - Fixed an issue that could lead to incorrect results if the ``WHERE`` clause
-   contains primary key comparisons together with other :ref:`functions
-   <gloss-function>` like match.
+- Fixed an issue that could lead to incorrect results if the ``WHERE`` clause
+  contains primary key comparisons together with other :ref:`functions
+  <gloss-function>` like match.
 
- - Fixed an issue that caused select queries with bulk arguments to hang
-   instead of throwing the proper error.
+- Fixed an issue that caused select queries with bulk arguments to hang
+  instead of throwing the proper error.
 
- - Fixed a rare race condition that could happen on select queries during a
-   shard relocation leading to a ``ArrayIndexOutOfBoundsException`` or a wrong
-   result.
+- Fixed a rare race condition that could happen on select queries during a
+  shard relocation leading to a ``ArrayIndexOutOfBoundsException`` or a wrong
+  result.
 
- - Creating new partitions could have failed if the partitioned table was
-   created prior to CrateDB version 0.55.0 and the table contained a ``object``
-   column. This issue has been fixed.
+- Creating new partitions could have failed if the partitioned table was
+  created prior to CrateDB version 0.55.0 and the table contained a ``object``
+  column. This issue has been fixed.

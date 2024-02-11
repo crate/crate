@@ -41,31 +41,31 @@ Changes
 Fixes
 -----
 
- - Various Admin UI improvements.
+- Various Admin UI improvements.
 
- - Fixed an issue that resulted in aliases overriding column names when a
-   :ref:`subselect <gloss-subquery>` is used and a column appears in the outer
-   SELECT multiple times, without an alias and with alias or with multiple
-   aliases. E.g.::
+- Fixed an issue that resulted in aliases overriding column names when a
+  :ref:`subselect <gloss-subquery>` is used and a column appears in the outer
+  SELECT multiple times, without an alias and with alias or with multiple
+  aliases. E.g.::
 
-     SELECT a, a AS newcol FROM (SELECT a FROM t WHERE a > 1)
-     SELECT a AS newcol1, a AS newcol2 FROM (SELECT a FROM t WHERE a > 1)
+    SELECT a, a AS newcol FROM (SELECT a FROM t WHERE a > 1)
+    SELECT a AS newcol1, a AS newcol2 FROM (SELECT a FROM t WHERE a > 1)
 
- - Fixed an issue that caused ``INSERT`` statements using a subquery on the
-   ``sys.shards`` system table to fail.
+- Fixed an issue that caused ``INSERT`` statements using a subquery on the
+  ``sys.shards`` system table to fail.
 
- - Fixed race condition in COPY FROM that could display incorrect row count
-   when inserting into table partition that does not exist upfront.
+- Fixed race condition in COPY FROM that could display incorrect row count
+  when inserting into table partition that does not exist upfront.
 
- - Fixed a bug that caused incorrect results to be returned for JOIN queries
-   when the table stats indicated that the left table of a join is smaller
-   than the right.
+- Fixed a bug that caused incorrect results to be returned for JOIN queries
+  when the table stats indicated that the left table of a join is smaller
+  than the right.
 
- - Fixed passing arguments that contain spaces in the ``crate`` shell script.
+- Fixed passing arguments that contain spaces in the ``crate`` shell script.
 
- - Fixed an issue that caused a table that is not part of the ``doc`` schema to
-   be unavailable/hidden if it gets closed using ``ALTER TABLE``.
+- Fixed an issue that caused a table that is not part of the ``doc`` schema to
+  be unavailable/hidden if it gets closed using ``ALTER TABLE``.
 
- - Fixed an issue where the query circuit breaker would be tripped after
-   running several queries due to incorrect memory tracking. Subsequent
-   operations would've failed due to the lack of circuit breaker cleanup.
+- Fixed an issue where the query circuit breaker would be tripped after
+  running several queries due to incorrect memory tracking. Subsequent
+  operations would've failed due to the lack of circuit breaker cleanup.

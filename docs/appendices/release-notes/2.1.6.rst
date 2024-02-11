@@ -38,37 +38,37 @@ Changelog
 Fixes
 -----
 
- - Fixed issue that caused the Monitoring tab to redirect to ``/401`` when
-   the user didn't have privileges for ``sys.cluster`` or ``sys.jobs_log``.
+- Fixed issue that caused the Monitoring tab to redirect to ``/401`` when
+  the user didn't have privileges for ``sys.cluster`` or ``sys.jobs_log``.
 
- - Fix issue where a ``DROP TABLE`` statement would return before the table
-   privileges are dropped.
+- Fix issue where a ``DROP TABLE`` statement would return before the table
+  privileges are dropped.
 
- - Fixed a bug which returned a malformed response for PSQL queries containing
-   whitespace characters.
+- Fixed a bug which returned a malformed response for PSQL queries containing
+  whitespace characters.
 
- - Fixed a bug in the detection of correlated :ref:`subqueries
-   <gloss-subquery>` which are currently unsupported.
+- Fixed a bug in the detection of correlated :ref:`subqueries
+  <gloss-subquery>` which are currently unsupported.
 
- - Fix display of redundant parenthesis around :ref:`expressions
-   <gloss-expression>` visible in ``SHOW CREATE`` and ``EXPLAIN`` statements.
+- Fix display of redundant parenthesis around :ref:`expressions
+  <gloss-expression>` visible in ``SHOW CREATE`` and ``EXPLAIN`` statements.
 
- - Updated Crash to ``0.21.5`` which removes a deprecation warning logged in
-   CrateDB server on every REST request.
+- Updated Crash to ``0.21.5`` which removes a deprecation warning logged in
+  CrateDB server on every REST request.
 
- - Fixed an issue that caused ``path.logs`` setting in ``crate.yml`` to be
-   ignored.
+- Fixed an issue that caused ``path.logs`` setting in ``crate.yml`` to be
+  ignored.
 
- - Fixed column name in output by removing new lines when select list contains
-   subquery. E.g.::
+- Fixed column name in output by removing new lines when select list contains
+  subquery. E.g.::
 
-     SELECT 1 =
-         (SELECT 1)
+    SELECT 1 =
+        (SELECT 1)
 
- - Fixed an issue that prevents CrateDB from bootstrap on Windows hosts.
+- Fixed an issue that prevents CrateDB from bootstrap on Windows hosts.
 
- - Fixed an issue that caused queries with ``IS NULL`` or ``IS NOT NULL`` on
-   columns of type ``geo_point`` to fail.
+- Fixed an issue that caused queries with ``IS NULL`` or ``IS NOT NULL`` on
+  columns of type ``geo_point`` to fail.
 
- - Changed ``crate`` Unix/Linux startup script to use standard ``sh`` syntax
-   instead of ``bash`` specific syntax.
+- Changed ``crate`` Unix/Linux startup script to use standard ``sh`` syntax
+  instead of ``bash`` specific syntax.
