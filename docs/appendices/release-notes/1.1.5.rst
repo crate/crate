@@ -38,27 +38,27 @@ Changelog
 Fixes
 -----
 
- - Fixed an issue that leads to an exception if the statement :ref:`evaluates
-   <gloss-evaluation>` on arrays that are provided in an :ref:`aggregation
-   function <aggregation-functions>`.
+- Fixed an issue that leads to an exception if the statement :ref:`evaluates
+  <gloss-evaluation>` on arrays that are provided in an :ref:`aggregation
+  function <aggregation-functions>`.
 
- - Fixed a performance regression that could cause ``JOIN`` queries to execute
-   slower than they used to.
+- Fixed a performance regression that could cause ``JOIN`` queries to execute
+  slower than they used to.
 
- - Return proper exception when group by is used on :ref:`scalar functions
-   <scalar-functions>` that are applied to an aggregation.
+- Return proper exception when group by is used on :ref:`scalar functions
+  <scalar-functions>` that are applied to an aggregation.
 
- - Fixed an issue that causes aliases used in the select list to get lost on
-   :ref:`subselect <gloss-subquery>` queries.
+- Fixed an issue that causes aliases used in the select list to get lost on
+  :ref:`subselect <gloss-subquery>` queries.
 
- - The correct error messages and codes are now thrown for REST actions.
+- The correct error messages and codes are now thrown for REST actions.
 
- - Fixed an issue that could cause non-grouping aggregations on virtual tables
-   to return the wrong result.
+- Fixed an issue that could cause non-grouping aggregations on virtual tables
+  to return the wrong result.
 
- - Fixed a bug in the memory accounting of the circuit breaker for HTTP results
-   when querying ``GEO_SHAPE`` columns.
+- Fixed a bug in the memory accounting of the circuit breaker for HTTP results
+  when querying ``GEO_SHAPE`` columns.
 
- - Reflect internally used default size for ``translog.flush_threshold_size``
-   also in documentation and expose the correct default value in table
-   settings.
+- Reflect internally used default size for ``translog.flush_threshold_size``
+  also in documentation and expose the correct default value in table
+  settings.

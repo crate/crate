@@ -36,52 +36,52 @@ Changelog
 Fixes
 -----
 
- - Admin UI improvements.
+- Admin UI improvements.
 
- - Improved the accuracy of results if :ref:`arithmetic operators <arithmetic>`
-   (``+``, ``-``, ``*``, and ``/``) are used in :ref:`expressions
-   <gloss-expression>` that contain only float-type values.
+- Improved the accuracy of results if :ref:`arithmetic operators <arithmetic>`
+  (``+``, ``-``, ``*``, and ``/``) are used in :ref:`expressions
+  <gloss-expression>` that contain only float-type values.
 
- - Fixed ``COPY FROM`` to be able to copy data into a partitioned table with a
-   generated column as both the primary key and a :ref:`partition column
-   <gloss-partition-column>`.
+- Fixed ``COPY FROM`` to be able to copy data into a partitioned table with a
+  generated column as both the primary key and a :ref:`partition column
+  <gloss-partition-column>`.
 
- - Fixed a ``NullPointerException`` which occurred when selecting
-   ``routing_hash_function`` or ``version`` columns from ``sys.shards`` for
-   blob tables.
+- Fixed a ``NullPointerException`` which occurred when selecting
+  ``routing_hash_function`` or ``version`` columns from ``sys.shards`` for
+  blob tables.
 
- - Fixed error thrown when applying filtering, ordering or limit on joins with
-   more than 2 tables.
+- Fixed error thrown when applying filtering, ordering or limit on joins with
+  more than 2 tables.
 
- - Fixed issue which lead to an object's column policy being changed to the
-   default ``DYNAMIC`` when adding a nested object column using the ``ALTER
-   TABLE`` statement.
+- Fixed issue which lead to an object's column policy being changed to the
+  default ``DYNAMIC`` when adding a nested object column using the ``ALTER
+  TABLE`` statement.
 
- - Fixed an issue with ``regexp_replace``: In some cases it used the third
-   argument as flags parameter instead of the fourth argument.
+- Fixed an issue with ``regexp_replace``: In some cases it used the third
+  argument as flags parameter instead of the fourth argument.
 
- - Improved error message when trying to update an element of an array.
+- Improved error message when trying to update an element of an array.
 
- - Fixed a regression that lead to ``ArrayIndexOutOfBoundsException`` if a
-   ``JOIN`` query was made with a WHERE clause on :ref:`partition columns
-   <gloss-partition-column>`.
+- Fixed a regression that lead to ``ArrayIndexOutOfBoundsException`` if a
+  ``JOIN`` query was made with a WHERE clause on :ref:`partition columns
+  <gloss-partition-column>`.
 
- - Fixed a ``NullPointerException`` which could occur if an attempt was made to
-   use ``match`` on two different relations within an explicit join condition.
-   This now raises a proper error stating that it's not supported.
+- Fixed a ``NullPointerException`` which could occur if an attempt was made to
+  use ``match`` on two different relations within an explicit join condition.
+  This now raises a proper error stating that it's not supported.
 
- - Wrong results were returned from queries with more than one level of nested
-   :ref:`subselects <gloss-subquery>`.
+- Wrong results were returned from queries with more than one level of nested
+  :ref:`subselects <gloss-subquery>`.
 
- - ``ORDER BY`` on joins caused incorrect order of values when having multiple
-   non-distinct values on the left part of the join. Now ``ORDER BY`` is
-   correctly applied.
+- ``ORDER BY`` on joins caused incorrect order of values when having multiple
+  non-distinct values on the left part of the join. Now ``ORDER BY`` is
+  correctly applied.
 
- - The usage of ``DISTINCT`` in a query with a ``GROUP BY`` was producing wrong
-   results and was changed to throw ``UnsupportedOperationException``. E.g.::
+- The usage of ``DISTINCT`` in a query with a ``GROUP BY`` was producing wrong
+  results and was changed to throw ``UnsupportedOperationException``. E.g.::
 
-       SELECT DISTINCT col1 FROM t1 GROUP BY col2, col1
+      SELECT DISTINCT col1 FROM t1 GROUP BY col2, col1
 
- - An error was thrown when using ``ORDER BY COUNT(*)`` on ``JOINS``. E.g.::
+- An error was thrown when using ``ORDER BY COUNT(*)`` on ``JOINS``. E.g.::
 
-       SELECT COUNT(*) FROM t1, t2 ORDER BY 1
+      SELECT COUNT(*) FROM t1, t2 ORDER BY 1

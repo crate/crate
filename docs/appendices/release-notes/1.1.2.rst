@@ -36,24 +36,24 @@ Changelog
 Fixes
 -----
 
- - Fixed a bug which caused non-grouping aggregations on a join with explicit
-   ``CROSS JOIN`` syntax to fail.
+- Fixed a bug which caused non-grouping aggregations on a join with explicit
+  ``CROSS JOIN`` syntax to fail.
 
- - Correctly expose ``stats.service.interval`` in the ``sys.cluster``
-   table.
+- Correctly expose ``stats.service.interval`` in the ``sys.cluster``
+  table.
 
- - Re-added compatibility layer that was removed in 1.1 and resulted in
-   exception thrown when trying to run aggregations on tables created with
-   CrateDB < 0.52.0.
+- Re-added compatibility layer that was removed in 1.1 and resulted in
+  exception thrown when trying to run aggregations on tables created with
+  CrateDB < 0.52.0.
 
- - Fixed a race condition which could cause a memory leak.
+- Fixed a race condition which could cause a memory leak.
 
- - Updated documentation to indicate that it's not possible to use ``object``,
-   ``geo_point``, ``geo_shape`` or ``array`` in the ``ORDER BY`` clause.
+- Updated documentation to indicate that it's not possible to use ``object``,
+  ``geo_point``, ``geo_shape`` or ``array`` in the ``ORDER BY`` clause.
 
- - Fixed cluster check, which warns about tables that need upgrade for future
-   compatibility, to include only tables that differ from current storage engine
-   major version number.
+- Fixed cluster check, which warns about tables that need upgrade for future
+  compatibility, to include only tables that differ from current storage engine
+  major version number.
 
- - Fixed issue which prevents blob directories from being removed after a
-   ``drop blob table`` command when a custom blob location is configured.
+- Fixed issue which prevents blob directories from being removed after a
+  ``drop blob table`` command when a custom blob location is configured.

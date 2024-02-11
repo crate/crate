@@ -36,39 +36,39 @@ Changelog
 Changes
 -------
 
- - Removed limitation which didn't allow ordering on :ref:`partition columns
-   <gloss-partition-column>` in a ``GROUP BY`` query.
+- Removed limitation which didn't allow ordering on :ref:`partition columns
+  <gloss-partition-column>` in a ``GROUP BY`` query.
 
- - Updated crate-admin to 1.0.5 which includes the following change:
+- Updated crate-admin to 1.0.5 which includes the following change:
 
-    - Fixed a console results issue that caused the results table not to be
-      displayed after horizontal scrolling.
+  - Fixed a console results issue that caused the results table not to be
+    displayed after horizontal scrolling.
 
-    - Fixed an issue that caused the Admin UI to load only one plugin.
+  - Fixed an issue that caused the Admin UI to load only one plugin.
 
-    - Display warning in the console view when the query result contains an
-      unsafe integer.
+  - Display warning in the console view when the query result contains an
+    unsafe integer.
 
-    - Relocated the help resources section to be underneath the tweet import
-      tutorial.
+  - Relocated the help resources section to be underneath the tweet import
+    tutorial.
 
-    - Show loading indicator when ``Execute Query`` is in progress.
+  - Show loading indicator when ``Execute Query`` is in progress.
 
 Fixes
 -----
 
- - Fixed an issue which caused restoring a whole partitioned table from a
-   snapshot to fail.
+- Fixed an issue which caused restoring a whole partitioned table from a
+  snapshot to fail.
 
- - Fixed the low/high disk-based :ref:`shard allocation
-   <gloss-shard-allocation>` watermark settings. When a percentage value is
-   provided for either of settings, it won't be converted to an absolute byte
-   value.
+- Fixed the low/high disk-based :ref:`shard allocation
+  <gloss-shard-allocation>` watermark settings. When a percentage value is
+  provided for either of settings, it won't be converted to an absolute byte
+  value.
 
- - Index columns based on string arrays are correctly populated with values.
+- Index columns based on string arrays are correctly populated with values.
 
- - Fixed :ref:`evaluation <gloss-evaluation>` on ``UPDATE`` of generated
-   columns without referenced columns, e.g., generated columns with a
-   ``CURRENT_TIMESTAMP`` :ref:`expression <gloss-expression>`.
+- Fixed :ref:`evaluation <gloss-evaluation>` on ``UPDATE`` of generated
+  columns without referenced columns, e.g., generated columns with a
+  ``CURRENT_TIMESTAMP`` :ref:`expression <gloss-expression>`.
 
- - Fixed global aggregations on JOINs with 3 or more tables.
+- Fixed global aggregations on JOINs with 3 or more tables.

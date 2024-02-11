@@ -116,37 +116,37 @@ Metrics can be accessed using the JMX MBean object name
 
 Statements total count since the node was started:
 
- - ``SelectQueryTotalCount``
- - ``InsertQueryTotalCount``
- - ``UpdateQueryTotalCount``
- - ``DeleteQueryTotalCount``
- - ``ManagementQueryTotalCount``
- - ``DDLQueryTotalCount``
- - ``CopyQueryTotalCount``
- - ``UndefinedQueryTotalCount``
+- ``SelectQueryTotalCount``
+- ``InsertQueryTotalCount``
+- ``UpdateQueryTotalCount``
+- ``DeleteQueryTotalCount``
+- ``ManagementQueryTotalCount``
+- ``DDLQueryTotalCount``
+- ``CopyQueryTotalCount``
+- ``UndefinedQueryTotalCount``
 
 Statements failed count since the node was started:
 
- - ``SelectQueryFailedCount``
- - ``InsertQueryFailedCount``
- - ``UpdateQueryFailedCount``
- - ``DeleteQueryFailedCount``
- - ``ManagementQueryFailedCount``
- - ``DDLQueryFailedCount``
- - ``CopyQueryFailedCount``
- - ``UndefinedQueryFailedCount``
+- ``SelectQueryFailedCount``
+- ``InsertQueryFailedCount``
+- ``UpdateQueryFailedCount``
+- ``DeleteQueryFailedCount``
+- ``ManagementQueryFailedCount``
+- ``DDLQueryFailedCount``
+- ``CopyQueryFailedCount``
+- ``UndefinedQueryFailedCount``
 
 The sum of the durations, in milliseconds, since the node was started, of all
 statement executions grouped by type:
 
- - ``SelectQuerySumOfDurations``
- - ``InsertQuerySumOfDurations``
- - ``UpdateQuerySumOfDurations``
- - ``DeleteQuerySumOfDurations``
- - ``ManagementQuerySumOfDurations``
- - ``DDLQuerySumOfDurations``
- - ``CopyQuerySumOfDurations``
- - ``UndefinedQuerySumOfDurations``
+- ``SelectQuerySumOfDurations``
+- ``InsertQuerySumOfDurations``
+- ``UpdateQuerySumOfDurations``
+- ``DeleteQuerySumOfDurations``
+- ``ManagementQuerySumOfDurations``
+- ``DDLQuerySumOfDurations``
+- ``CopyQuerySumOfDurations``
+- ``UndefinedQuerySumOfDurations``
 
 NodeStatus MBean
 ----------------
@@ -156,9 +156,9 @@ The ``NodeStatus`` JMX MBean exposes the status of the current node as boolean v
 NodeStatus can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=NodeStatus`` and the following attributes:
 
- - ``Ready``
+- ``Ready``
 
-   Defines if the node is able to process SQL statements.
+  Defines if the node is able to process SQL statements.
 
 .. _node_info_mxbean:
 

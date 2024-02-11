@@ -155,35 +155,35 @@ Canceling requests
 For improved compatibility, the ``pg_catalog`` schema is implemented containing
 following tables:
 
- - `pg_am`_
- - `pg_attrdef <pgsql_pg_attrdef_>`__
- - `pg_attribute <pgsql_pg_attribute_>`__
- - `pg_class <pgsql_pg_class_>`__
- - `pg_constraint <pgsql_pg_constraint_>`__
- - `pg_cursors <pgsql_pg_cursors_>`__
- - `pg_database <pgsql_pg_database_>`__
- - `pg_depend`_
- - `pg_description`_
- - `pg_enum`_
- - `pg_event_trigger`_
- - `pg_index <pgsql_pg_index_>`__
- - `pg_indexes <pgsql_pg_indexes_>`__
- - `pg_locks <pgsql_pg_locks_>`__
- - `pg_namespace <pgsql_pg_namespace_>`__
- - `pg_proc <pgsql_pg_proc_>`__
- - `pg_publication <pgsql_pg_publication_>`__
- - `pg_publication_tables <pgsql_pg_publication_tables_>`__
- - `pg_range`_
- - `pg_roles`_
- - `pg_settings <pgsql_pg_settings_>`__
- - `pg_shdescription`_
- - `pg_stats`_
- - `pg_subscription <pgsql_pg_subscription_>`__
- - `pg_subscription_rel <pgsql_pg_subscription_rel_>`__
- - `pg_tables`_
- - `pg_tablespace`_
- - `pg_type`_
- - `pg_views`_
+- `pg_am`_
+- `pg_attrdef <pgsql_pg_attrdef_>`__
+- `pg_attribute <pgsql_pg_attribute_>`__
+- `pg_class <pgsql_pg_class_>`__
+- `pg_constraint <pgsql_pg_constraint_>`__
+- `pg_cursors <pgsql_pg_cursors_>`__
+- `pg_database <pgsql_pg_database_>`__
+- `pg_depend`_
+- `pg_description`_
+- `pg_enum`_
+- `pg_event_trigger`_
+- `pg_index <pgsql_pg_index_>`__
+- `pg_indexes <pgsql_pg_indexes_>`__
+- `pg_locks <pgsql_pg_locks_>`__
+- `pg_namespace <pgsql_pg_namespace_>`__
+- `pg_proc <pgsql_pg_proc_>`__
+- `pg_publication <pgsql_pg_publication_>`__
+- `pg_publication_tables <pgsql_pg_publication_tables_>`__
+- `pg_range`_
+- `pg_roles`_
+- `pg_settings <pgsql_pg_settings_>`__
+- `pg_shdescription`_
+- `pg_stats`_
+- `pg_subscription <pgsql_pg_subscription_>`__
+- `pg_subscription_rel <pgsql_pg_subscription_rel_>`__
+- `pg_tables`_
+- `pg_tablespace`_
+- `pg_type`_
+- `pg_views`_
 
 
 .. _postgres-pg_type:

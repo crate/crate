@@ -59,16 +59,16 @@ Packaging Changes
 
   Other than that, the structure is now:
 
-    - ``bin``, ``jdk`` and ``lib`` are installed into ``/usr/share/crate``. In the RPM
-      package this used to be in ``/opt/crate``.
+  - ``bin``, ``jdk`` and ``lib`` are installed into ``/usr/share/crate``. In the RPM
+    package this used to be in ``/opt/crate``.
 
-    - The home directory of the crate user is ``/usr/share/crate``
+  - The home directory of the crate user is ``/usr/share/crate``
 
-    - changes, notice, license are in ``/usr/share/doc/crate``
+  - changes, notice, license are in ``/usr/share/doc/crate``
 
-    - service file is in ``/usr/lib/systemd/system``
+  - service file is in ``/usr/lib/systemd/system``
 
-    - The ``crate.yml`` configuration file is in ``/etc/crate/``
+  - The ``crate.yml`` configuration file is in ``/etc/crate/``
 
     - The default environment configuration file at RPM packages changed to
       ``/etc/default/crate`` to be consistent with the DEB package. The old

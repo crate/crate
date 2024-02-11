@@ -23,12 +23,12 @@ Changelog
 Fixes
 -----
 
- - Fixed support for range queries on the ``_id`` and ``_uid`` columns. These
-   queries were not working since version 2.0.0 (Issue: `#5845`_).
+- Fixed support for range queries on the ``_id`` and ``_uid`` columns. These
+  queries were not working since version 2.0.0 (Issue: `#5845`_).
 
- - Fixed an issue when ``RENAME`` is used on a partitioned table, which would
-   result in data loss if a new table was created with the old name, and then
-   afterwards was dropped (Issue: `#5823`_).
+- Fixed an issue when ``RENAME`` is used on a partitioned table, which would
+  result in data loss if a new table was created with the old name, and then
+  afterwards was dropped (Issue: `#5823`_).
 
 .. _#5845: https://github.com/crate/crate/issues/5845
 .. _#5823: https://github.com/crate/crate/issues/5823

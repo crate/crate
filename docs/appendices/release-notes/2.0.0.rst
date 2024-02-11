@@ -25,222 +25,222 @@ Changelog
 Breaking Changes
 ----------------
 
- - To accommodate :ref:`user-defined functions <user-defined-functions>`, some
-   new reserved keywords have been added to the CrateDB SQL dialect:
-   ``RETURNS``, ``CALLED``, ``REPLACE``, ``FUNCTION``, ``LANGUAGE``, ``INPUT``
+- To accommodate :ref:`user-defined functions <user-defined-functions>`, some
+  new reserved keywords have been added to the CrateDB SQL dialect:
+  ``RETURNS``, ``CALLED``, ``REPLACE``, ``FUNCTION``, ``LANGUAGE``, ``INPUT``
 
- - The ``license.enterprise`` setting is set to ``true`` by default. This
-   enables the CrateDB Enterprise Edition.
+- The ``license.enterprise`` setting is set to ``true`` by default. This
+  enables the CrateDB Enterprise Edition.
 
-   Enabling this setting requires a valid enterprise license for production
-   use.
+  Enabling this setting requires a valid enterprise license for production
+  use.
 
-   If you disable this setting, CrateDB will run with the standard feature set.
+  If you disable this setting, CrateDB will run with the standard feature set.
 
- - All custom ``node.*`` style attributes must now be written as
-   ``node.attr.*`` to distinguish them from attributes that CrateDB uses
-   internally. Consult the :ref:`node attribute <conf-node-attributes>` docs
-   for information.
+- All custom ``node.*`` style attributes must now be written as
+  ``node.attr.*`` to distinguish them from attributes that CrateDB uses
+  internally. Consult the :ref:`node attribute <conf-node-attributes>` docs
+  for information.
 
- - The ``node.client`` setting has been removed.
+- The ``node.client`` setting has been removed.
 
- - The default value of the ``node.attr.max_local_storage_nodes`` node setting
-   has been changed to ``1`` to prevent running multiple nodes on the same data
-   path by default.
+- The default value of the ``node.attr.max_local_storage_nodes`` node setting
+  has been changed to ``1`` to prevent running multiple nodes on the same data
+  path by default.
 
-   Previous versions of CrateDB defaulted to allowing up to 50 nodes running on
-   the same data path. This was confusing where users accidentally started
-   multiple nodes and ended up thinking they have lost data because the second
-   node will start with an empty directory.
+  Previous versions of CrateDB defaulted to allowing up to 50 nodes running on
+  the same data path. This was confusing where users accidentally started
+  multiple nodes and ended up thinking they have lost data because the second
+  node will start with an empty directory.
 
-   Running multiple nodes on the same data path tends to be an exception, so
-   this is a safer default.
+  Running multiple nodes on the same data path tends to be an exception, so
+  this is a safer default.
 
- - Parsing support of time values has been changed:
+- Parsing support of time values has been changed:
 
-   - The unit ``w`` representing weeks is no longer supported.
+  - The unit ``w`` representing weeks is no longer supported.
 
-   - Fractional time values (e.g. ``0.5s``) are no longer supported. For
-     example, this means when setting timeouts, ``0.5s`` will be rejected and
-     should instead be input as ``500ms``.
+  - Fractional time values (e.g. ``0.5s``) are no longer supported. For
+    example, this means when setting timeouts, ``0.5s`` will be rejected and
+    should instead be input as ``500ms``.
 
- - The already unused ``path.work`` node setting has been removed.
+- The already unused ``path.work`` node setting has been removed.
 
- - The node setting ``bootstrap.mlockall`` has been renamed to
-   ``bootstrap.memory_lock``.
+- The node setting ``bootstrap.mlockall`` has been renamed to
+  ``bootstrap.memory_lock``.
 
- - The ``keyword_repeat`` and ``type_as_payload`` built-in token filter have
-   been removed.
+- The ``keyword_repeat`` and ``type_as_payload`` built-in token filter have
+  been removed.
 
- - The ``classic`` built-in analyzer has been removed.
+- The ``classic`` built-in analyzer has been removed.
 
- - The shard balance related cluster settings
-   ``cluster.routing.allocation.balance.primary`` and
-   ``cluster.routing.allocation.balance.replica`` have been removed.
+- The shard balance related cluster settings
+  ``cluster.routing.allocation.balance.primary`` and
+  ``cluster.routing.allocation.balance.replica`` have been removed.
 
- - Some ``recovery`` related cluster settings have been removed or replaced:
+- Some ``recovery`` related cluster settings have been removed or replaced:
 
-   - The ``indices.recovery.concurrent_streams`` cluster setting is now
-     superseded by ``cluster.routing.allocation.node_concurrent_recoveries``.
+  - The ``indices.recovery.concurrent_streams`` cluster setting is now
+    superseded by ``cluster.routing.allocation.node_concurrent_recoveries``.
 
-   - The ``indices.recovery.activity_timeout`` cluster setting have been
-     renamed to ``indices.recovery.recovery_activity_timeout``.
+  - The ``indices.recovery.activity_timeout`` cluster setting have been
+    renamed to ``indices.recovery.recovery_activity_timeout``.
 
-   - Following ``recovery`` cluster settings have been removed:
+  - Following ``recovery`` cluster settings have been removed:
 
-     - ``indices.recovery.file_chunk_size``
+    - ``indices.recovery.file_chunk_size``
 
-     - ``indices.recovery.translog_ops``
+    - ``indices.recovery.translog_ops``
 
-     - ``indices.recovery.translog_size``
+    - ``indices.recovery.translog_size``
 
-     - ``indices.recovery.compress``
+    - ``indices.recovery.compress``
 
- - Logging is now configured by ``log4j2.properties`` instead of
-   ``logging.yml``.
+- Logging is now configured by ``log4j2.properties`` instead of
+  ``logging.yml``.
 
- - The plugin interface has changed, injecting classes on ``shard`` or
-   ``index`` levels is no longer supported.
+- The plugin interface has changed, injecting classes on ``shard`` or
+  ``index`` levels is no longer supported.
 
- - It's no longer possible to run CrateDB as the Unix ``root`` user.
+- It's no longer possible to run CrateDB as the Unix ``root`` user.
 
- - Some translog related table settings have been removed or replaced:
+- Some translog related table settings have been removed or replaced:
 
-   - The ``index.translog.interval``, ``translog.disable_flush`` and
-     ``translog.flush_threshold_period`` table settings have been removed.
+  - The ``index.translog.interval``, ``translog.disable_flush`` and
+    ``translog.flush_threshold_period`` table settings have been removed.
 
-   - The ``index.translog.sync_interval`` table setting doesn't accept a value
-     less than ``100ms`` which prevents fsyncing too often if ``async``
-     durability is enabled. The special value ``0`` is no longer supported.
+  - The ``index.translog.sync_interval`` table setting doesn't accept a value
+    less than ``100ms`` which prevents fsyncing too often if ``async``
+    durability is enabled. The special value ``0`` is no longer supported.
 
-   - The ``index.translog.flush_threshold_ops`` table setting is not supported
-     anymore. In order to control flushes based on the transaction log growth
-     use ``index.translog.flush_threshold_size`` instead.
+  - The ``index.translog.flush_threshold_ops`` table setting is not supported
+    anymore. In order to control flushes based on the transaction log growth
+    use ``index.translog.flush_threshold_size`` instead.
 
- - The ``COPY FROM`` statement now requires column names to be quoted in the
-   JSON file being imported.
+- The ``COPY FROM`` statement now requires column names to be quoted in the
+  JSON file being imported.
 
- - Queries on columns with ``INDEX OFF`` will now fail instead of always
-   resulting in an empty result.
+- Queries on columns with ``INDEX OFF`` will now fail instead of always
+  resulting in an empty result.
 
- - Configuration support using system properties has been dropped.
+- Configuration support using system properties has been dropped.
 
- - It's no longer possible to use ``Hadoop 1.x`` as a ``repository`` for
-   snapshots.
+- It's no longer possible to use ``Hadoop 1.x`` as a ``repository`` for
+  snapshots.
 
- - Changed default bind and publish address from ``0.0.0.0`` to the system
-   ``loopback`` addresses which will result in CrateDB listening only to local
-   ports.
+- Changed default bind and publish address from ``0.0.0.0`` to the system
+  ``loopback`` addresses which will result in CrateDB listening only to local
+  ports.
 
- - The ``discovery.ec2.ping_timeout`` setting has been removed and the
-   ``discovery.zen.ping_timeout`` setting is now also used for EC2 discovery.
+- The ``discovery.ec2.ping_timeout`` setting has been removed and the
+  ``discovery.zen.ping_timeout`` setting is now also used for EC2 discovery.
 
- - The ``monitor.jvm.gc.[old|young].[debug|info|warn]`` settings used to
-   configure logging of garbage collection have been renamed (adding
-   ``collector``) to
-   ``monitor.jvm.gc.collector.[old|young].[debug|info|warn]``.
+- The ``monitor.jvm.gc.[old|young].[debug|info|warn]`` settings used to
+  configure logging of garbage collection have been renamed (adding
+  ``collector``) to
+  ``monitor.jvm.gc.collector.[old|young].[debug|info|warn]``.
 
- - Recovery timeout settings changes:
+- Recovery timeout settings changes:
 
-     - ``indices.recovery.retry_internal_action_timeout`` has been renamed to
-       ``indices.recovery.internal_action_timeout``
+  - ``indices.recovery.retry_internal_action_timeout`` has been renamed to
+    ``indices.recovery.internal_action_timeout``
 
-     - ``indices.recovery.retry_internal_long_action_timeout`` has been renamed
-       to ``indices.recovery.internal_action_long_timeout``
+  - ``indices.recovery.retry_internal_long_action_timeout`` has been renamed
+    to ``indices.recovery.internal_action_long_timeout``
 
-     - ``indices.recovery.retry_activity_timeout`` has been renamed to
-       ``indices.recovery.recovery_activity_timeout``
+  - ``indices.recovery.retry_activity_timeout`` has been renamed to
+    ``indices.recovery.recovery_activity_timeout``
 
- - Thread pool settings prefix have been changed from ``threadpool`` to
-   ``thread_pool``. E.g.: ``thread_pool.<name>.type``.
+- Thread pool settings prefix have been changed from ``threadpool`` to
+  ``thread_pool``. E.g.: ``thread_pool.<name>.type``.
 
- - The ``cluster name`` is not part of the effective path where data is stored
-   anymore.
+- The ``cluster name`` is not part of the effective path where data is stored
+  anymore.
 
- - The blobs data directory layout has changed.
+- The blobs data directory layout has changed.
 
 
 Changes
 -------
 
- - Extended the :ref:`subselect <sql-select-sub-select>` support.
+- Extended the :ref:`subselect <sql-select-sub-select>` support.
 
- - Added support for :ref:`host based authentication <admin_hba>` (HBA).
+- Added support for :ref:`host based authentication <admin_hba>` (HBA).
 
- - Added support for renaming tables using the ``ALTER ... RENAME TO ...``
-   statement.
+- Added support for renaming tables using the ``ALTER ... RENAME TO ...``
+  statement.
 
- - Added support for ``CREATE USER`` and ``DROP USER``.
+- Added support for ``CREATE USER`` and ``DROP USER``.
 
- - Added support for opening and closing a table or single partition.
+- Added support for opening and closing a table or single partition.
 
- - Information on the state of tables/partitions is now exposed by a new column
-   ``closed`` on the ``information_schema.tables`` and
-   ``information_schema.table_partitions`` tables.
+- Information on the state of tables/partitions is now exposed by a new column
+  ``closed`` on the ``information_schema.tables`` and
+  ``information_schema.table_partitions`` tables.
 
- - Added full support for ``DISTINCT`` on queries where ``GROUP BY`` is
-   present.
+- Added full support for ``DISTINCT`` on queries where ``GROUP BY`` is
+  present.
 
- - UDC pings will send ``licence.ident`` if defined from now on.
+- UDC pings will send ``licence.ident`` if defined from now on.
 
- - Added support for ``GROUP BY`` in combination with subselect. E.g.::
+- Added support for ``GROUP BY`` in combination with subselect. E.g.::
 
-     SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) AS tt GROUP BY x;
+    SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) AS tt GROUP BY x;
 
- - Implemented hash sum :ref:`scalar functions <scalar-functions>` (MD5, SHA1).
-   Please see :ref:`sha1 <scalar-sha1>`.
+- Implemented hash sum :ref:`scalar functions <scalar-functions>` (MD5, SHA1).
+  Please see :ref:`sha1 <scalar-sha1>`.
 
- - Various Admin UI improvements.
+- Various Admin UI improvements.
 
- - Added support for ``GROUP BY`` on joins.
+- Added support for ``GROUP BY`` on joins.
 
- - Added support for :ref:`user-defined functions <user-defined-functions>`.
+- Added support for :ref:`user-defined functions <user-defined-functions>`.
 
- - Added JavaScript language for user-defined functions.
+- Added JavaScript language for user-defined functions.
 
- - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
+- Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
 
- - Added built-in ``fingerprint``, ``keep_types``, ``min_hash`` and
-   ``serbian_normalization`` token filter.
+- Added built-in ``fingerprint``, ``keep_types``, ``min_hash`` and
+  ``serbian_normalization`` token filter.
 
- - Added a ``fingerprint`` built-in analyzer.
+- Added a ``fingerprint`` built-in analyzer.
 
- - Upgraded to Elasticsearch 5.0.2.
+- Upgraded to Elasticsearch 5.0.2.
 
- - Improved performance of blob stats computation by calculating them in an
-   incremental manner.
+- Improved performance of blob stats computation by calculating them in an
+  incremental manner.
 
- - Optimized performance of negation queries on ``NOT NULL`` columns.  E.g.::
+- Optimized performance of negation queries on ``NOT NULL`` columns.  E.g.::
 
-     SELECT * FROM t WHERE not_null_col != 10
+    SELECT * FROM t WHERE not_null_col != 10
 
- - Updated documentation to indicate that it's not possible to use ``object``,
-   ``geo_point``, ``geo_shape``, or ``array`` in the ``ORDER BY`` clause.
+- Updated documentation to indicate that it's not possible to use ``object``,
+  ``geo_point``, ``geo_shape``, or ``array`` in the ``ORDER BY`` clause.
 
- - Removed ``psql.enabled`` and ``psql.port`` settings from ``sys.cluster``
-   because they where wrongly exposed in this table.
+- Removed ``psql.enabled`` and ``psql.port`` settings from ``sys.cluster``
+  because they where wrongly exposed in this table.
 
- - Use the region of the EC2 instance for EC2 discovery when neither
-   ``cloud.aws.ec2.endpoint`` nor ``cloud.aws.region`` are specified or do not
-   resolve in a valid service endpoint.
+- Use the region of the EC2 instance for EC2 discovery when neither
+  ``cloud.aws.ec2.endpoint`` nor ``cloud.aws.region`` are specified or do not
+  resolve in a valid service endpoint.
 
- - It is now possible to restore an empty partitioned table.
+- It is now possible to restore an empty partitioned table.
 
- - Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
-   list when ``DISTINCT`` is used.
+- Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
+  list when ``DISTINCT`` is used.
 
 
 Fixes
 -----
 
- - Fixed an issue which could result in queries being stuck if the thread pools
-   are exhausted.
+- Fixed an issue which could result in queries being stuck if the thread pools
+  are exhausted.
 
- - Fixed an issue which caused failing ``sys.snapshot`` queries if the
-   ``data.path`` of an existing fs repository was not configured anymore.
+- Fixed an issue which caused failing ``sys.snapshot`` queries if the
+  ``data.path`` of an existing fs repository was not configured anymore.
 
- - Fixed that ``sys.snapshot`` queries hung instead of throwing an error if
-   something went wrong.
+- Fixed that ``sys.snapshot`` queries hung instead of throwing an error if
+  something went wrong.
 
 
 .. _version_2.0.0_upgrade_notes:
