@@ -58,51 +58,51 @@ Changelog
 Changes
 -------
 
- - Enabled ``mapping.total_fields.limit`` setting for tables in order to be
-   able to increase the maximum number of columns higher than the default of
-   ``1000``.
+- Enabled ``mapping.total_fields.limit`` setting for tables in order to be
+  able to increase the maximum number of columns higher than the default of
+  ``1000``.
 
 
 Fixes
 -----
 
- - Fixed an issue where ``COPY FROM``, ``INSERT-BY-SUBQUERY`` or bulk
-   ``INSERT`` statements could not be killed when high pressure is put on data
-   node thread pools.
+- Fixed an issue where ``COPY FROM``, ``INSERT-BY-SUBQUERY`` or bulk
+  ``INSERT`` statements could not be killed when high pressure is put on data
+  node thread pools.
 
- - Fixed the error message to be more descriptive when the condition in a
-   ``CASE/WHEN`` :ref:`expression <gloss-expression>` is not a boolean.
+- Fixed the error message to be more descriptive when the condition in a
+  ``CASE/WHEN`` :ref:`expression <gloss-expression>` is not a boolean.
 
- - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
-   statement that uses the ``ANY (array_expression)`` :ref:`operator
-   <gloss-operator>`.
+- Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
+  statement that uses the ``ANY (array_expression)`` :ref:`operator
+  <gloss-operator>`.
 
- - Allow support of conditional expressions with different return types that
-   can be converted to a single return type.
+- Allow support of conditional expressions with different return types that
+  can be converted to a single return type.
 
- - Fixed support for negate on null in conditional expressions.
+- Fixed support for negate on null in conditional expressions.
 
- - Fixed support for setting ``write.wait_for_active_shards`` on a partitioned
-   table.
+- Fixed support for setting ``write.wait_for_active_shards`` on a partitioned
+  table.
 
- - Optimized the algorithm that determines the best ordering of the tables in a
-   ``JOIN``.
+- Optimized the algorithm that determines the best ordering of the tables in a
+  ``JOIN``.
 
- - Fixed a regression causing incorrect results for queries with ``DISTINCT``
-   on :ref:`scalar functions <scalar-functions>`. E.g.::
+- Fixed a regression causing incorrect results for queries with ``DISTINCT``
+  on :ref:`scalar functions <scalar-functions>`. E.g.::
 
-     SELECT DISTINCT upper(name) FROM t
+    SELECT DISTINCT upper(name) FROM t
 
- - Fixed a null pointer exception when running ``SELECT port FROM sys.nodes``
-   while ``psql.enabled: false`` was set.
+- Fixed a null pointer exception when running ``SELECT port FROM sys.nodes``
+  while ``psql.enabled: false`` was set.
 
- - Implemented ``NOT NULL`` constraint validation for nested object columns,
-   which was previously ignored. E.g.::
+- Implemented ``NOT NULL`` constraint validation for nested object columns,
+  which was previously ignored. E.g.::
 
-     CREATE TABLE test (
-       stuff object(dynamic) AS (
-         level1 object(dynamic) AS (
-           level2 string not null
-         ) NOT NULL
-       ) NOT NULL
-     )
+    CREATE TABLE test (
+      stuff object(dynamic) AS (
+        level1 object(dynamic) AS (
+          level2 string not null
+        ) NOT NULL
+      ) NOT NULL
+    )

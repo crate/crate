@@ -7,10 +7,10 @@ Users and roles management
 Users and roles account information is stored in the cluster metadata of CrateDB
 and supports the following statements to create, alter and drop users and roles:
 
-    * `CREATE USER`_
-    * `CREATE ROLE`_
-    * `ALTER USER`_ or `ALTER ROLE`_
-    * `DROP USER`_ or `DROP ROLE`_
+* `CREATE USER`_
+* `CREATE ROLE`_
+* `ALTER USER`_ or `ALTER ROLE`_
+* `DROP USER`_ or `DROP ROLE`_
 
 These statements are database management statements that can be invoked by
 superusers that already exist in the CrateDB cluster. The `CREATE USER`_,

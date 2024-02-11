@@ -36,55 +36,55 @@ Changelog
 Changes
 -------
 
- - Improved the resiliency of the retrieval of large results via HTTP. Queries
-   are now aborted and result in an error if they consume too much memory.
+- Improved the resiliency of the retrieval of large results via HTTP. Queries
+  are now aborted and result in an error if they consume too much memory.
 
- - Changed the ``QueryStats`` JMX MBean to deliver node-based values instead of
-   cluster-based values.
+- Changed the ``QueryStats`` JMX MBean to deliver node-based values instead of
+  cluster-based values.
 
-   This makes it possible to spot performance discrepancies between nodes more
-   easily.
+  This makes it possible to spot performance discrepancies between nodes more
+  easily.
 
 Fixes
 -----
 
- - Fixed a ``COPY FROM`` issue that caused imports into tables with certain
-   combinations of ``PARTITIONED BY``, ``PRIMARY KEY`` and
-   ``GENERATED COLUMNS`` to fail.
+- Fixed a ``COPY FROM`` issue that caused imports into tables with certain
+  combinations of ``PARTITIONED BY``, ``PRIMARY KEY`` and
+  ``GENERATED COLUMNS`` to fail.
 
- - Fixed an issue with algorithm that tries to reorder the joined tables using
-   the optimum ordering. The issue caused an exception to be thrown when join
-   conditions contain table(s) which are not part of the adjacent joined
-   tables. E.g.::
+- Fixed an issue with algorithm that tries to reorder the joined tables using
+  the optimum ordering. The issue caused an exception to be thrown when join
+  conditions contain table(s) which are not part of the adjacent joined
+  tables. E.g.::
 
-     SELECT * FROM t1 JOIN t2 JOIN t3 JOIN t4 ON t4.id = t2.id
+    SELECT * FROM t1 JOIN t2 JOIN t3 JOIN t4 ON t4.id = t2.id
 
- - Fixed an issue that led to ``ArrayIndexOutOfBoundsException`` on
-   ``DISTINCT`` or ``GROUP BY`` queries on the ``sys.shards`` table.
+- Fixed an issue that led to ``ArrayIndexOutOfBoundsException`` on
+  ``DISTINCT`` or ``GROUP BY`` queries on the ``sys.shards`` table.
 
- - Fixed an issue that could cause ``sys.operations`` entries to remain even
-   after the operation has finished.
+- Fixed an issue that could cause ``sys.operations`` entries to remain even
+  after the operation has finished.
 
- - Optimized the JMX ``QueryStats`` MBean to prevent it from putting too much
-   load on the cluster.
+- Optimized the JMX ``QueryStats`` MBean to prevent it from putting too much
+  load on the cluster.
 
- - Fixed the calculation of the ``OverallQueryAverageDuration`` ``QueryStats``
-   MBean.
+- Fixed the calculation of the ``OverallQueryAverageDuration`` ``QueryStats``
+  MBean.
 
- - The internal ``fetchSize`` is now dynamic based on configured heap and has
-   an upper bound to prevent ``OutOfMemory`` errors if a PostgreSQL client
-   retrieves a large result set without setting a ``fetchSize``, or setting a
-   ``fetchSize`` which is too large.
+- The internal ``fetchSize`` is now dynamic based on configured heap and has
+  an upper bound to prevent ``OutOfMemory`` errors if a PostgreSQL client
+  retrieves a large result set without setting a ``fetchSize``, or setting a
+  ``fetchSize`` which is too large.
 
- - Fixed a race condition that could lead to ``KILL (ALL)`` causing queries to
-   get stuck instead of interrupting them.
+- Fixed a race condition that could lead to ``KILL (ALL)`` causing queries to
+  get stuck instead of interrupting them.
 
- - Fix an issued that cause a ``NullPointerException`` when ordering by system
-   columns.
+- Fix an issued that cause a ``NullPointerException`` when ordering by system
+  columns.
 
- - Fixed validation so that ``SELECT DISTINCT`` can be used only if there is no
-   ``GROUP BY`` present or if the set of ``GROUP BY`` :ref:`expressions
-   <gloss-expression>` is the same as the set ``SELECT`` expressions.
+- Fixed validation so that ``SELECT DISTINCT`` can be used only if there is no
+  ``GROUP BY`` present or if the set of ``GROUP BY`` :ref:`expressions
+  <gloss-expression>` is the same as the set ``SELECT`` expressions.
 
- - Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
-   list when ``DISTINCT`` is used.
+- Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
+  list when ``DISTINCT`` is used.

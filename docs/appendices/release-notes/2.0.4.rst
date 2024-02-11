@@ -58,28 +58,28 @@ Changelog
 Changes
 -------
 
- - The ``recovery_after_time`` node check now fails if it would prevent the
-   ``gateway.expected_nodes`` setting from having any effect.
+- The ``recovery_after_time`` node check now fails if it would prevent the
+  ``gateway.expected_nodes`` setting from having any effect.
 
 
 Fixes
 -----
 
- - Fixed ``SELECT settings['gateway']['recover_after_time'] FROM sys.cluster``
-   so it returns the correct value.
+- Fixed ``SELECT settings['gateway']['recover_after_time'] FROM sys.cluster``
+  so it returns the correct value.
 
- - Fixed an issue that caused blob data to be deleted upon node shutdown.
+- Fixed an issue that caused blob data to be deleted upon node shutdown.
 
- - Fix thread-safety issue for :ref:`scalar functions <scalar-functions>`
-   ``md5`` and ``sha1``.
+- Fix thread-safety issue for :ref:`scalar functions <scalar-functions>`
+  ``md5`` and ``sha1``.
 
- - ``information.schema.tables`` now returns the default routing hash function
-   if none is present in the table metadata.
+- ``information.schema.tables`` now returns the default routing hash function
+  if none is present in the table metadata.
 
- - Fixed an issue that caused an exception to be thrown when using ``COUNT(*)``
-   with :ref:`subselects <gloss-subquery>` that return one row, e.g.::
+- Fixed an issue that caused an exception to be thrown when using ``COUNT(*)``
+  with :ref:`subselects <gloss-subquery>` that return one row, e.g.::
 
-     SELECT count(*) FROM t1 WHERE id > (SELECT max(col1) FROM t2)
+    SELECT count(*) FROM t1 WHERE id > (SELECT max(col1) FROM t2)
 
- - Throw proper exception when using the ``_raw`` column inside the where
-   clause instead of silently ignoring it.
+- Throw proper exception when using the ``_raw`` column inside the where
+  clause instead of silently ignoring it.

@@ -51,10 +51,10 @@ Supported data types
 Controlling if values are stored into a `Column Store`_ is only supported on
 following data types:
 
- - :ref:`type-text`
- - :ref:`data-types-numeric`
- - :ref:`type-timestamp`
- - :ref:`type-timestamp-with-tz`
+- :ref:`type-text`
+- :ref:`data-types-numeric`
+- :ref:`type-timestamp`
+- :ref:`type-timestamp-with-tz`
 
 For all other :ref:`data-types-primitive` and :ref:`data-types-geo-point` it is
 enabled by default and cannot be disabled. :ref:`data-types-container` and

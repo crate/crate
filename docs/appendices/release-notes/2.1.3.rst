@@ -38,7 +38,7 @@ Changelog
 Fixes
 -----
 
- - Fixed a single insert only related memory leak.
+- Fixed a single insert only related memory leak.
 
- - Improved displaying of error messages if multiple errors are occur on
-   ``ALTER TABLE`` statements.
+- Improved displaying of error messages if multiple errors are occur on
+  ``ALTER TABLE`` statements.
