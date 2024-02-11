@@ -71,7 +71,7 @@ Fixes
     -- selecting 'a' from 't2' is ambiguous since there are 'a' and 'b AS a'
 
 - Fixed a regression introduced with CrateDB :ref:`version_5.3.0` that may
-  cause ``INSERT INTO ... ON CONFLICT .. `` queries to fail with unexpected
+  cause ``INSERT INTO ... ON CONFLICT ..`` queries to fail with unexpected
   errors or even updating wrong sub-columns when using a sub-column expression
   in the ``ON CONFLICT`` clause.
 
