@@ -205,4 +205,25 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
         }
         return newServers.size() == servers.size() ? this : new ServersMetadata(newServers);
     }
+
+    public ServersMetadata dropUser(String serverName, String userName, boolean ifExists) {
+        Server server = get(serverName);
+        HashMap<String, Map<String, Object>> newUsers = new HashMap<>(server.users);
+        Map<String, Object> removed = newUsers.remove(userName);
+        if (removed == null && !ifExists) {
+            throw new ResourceNotFoundException(String.format(
+                Locale.ENGLISH,
+                "No user mapping found for user `%s` and server `%s`",
+                userName,
+                serverName
+            ));
+        }
+        if (newUsers.size() == server.users.size()) {
+            return this;
+        }
+        HashMap<String, Server> newServers = new HashMap<>(servers);
+        Server newServer = new Server(serverName, server.fdw, server.owner, newUsers, server.options);
+        newServers.replace(serverName, newServer);
+        return new ServersMetadata(newServers);
+    }
 }

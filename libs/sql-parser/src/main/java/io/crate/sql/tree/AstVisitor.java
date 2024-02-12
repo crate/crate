@@ -735,4 +735,8 @@ public abstract class AstVisitor<R, C> {
     public R visitDropForeignTable(DropForeignTable dropForeignTable, C context) {
         return visitStatement(dropForeignTable, context);
     }
+
+    public R visitDropUserMapping(DropUserMapping dropUserMapping, C context) {
+        return visitStatement(dropUserMapping, context);
+    }
 }

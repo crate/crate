@@ -113,6 +113,7 @@ dropStmt
     | DROP SUBSCRIPTION (IF EXISTS)? name=ident                                      #dropSubscription
     | DROP SERVER (IF EXISTS)? names=idents (CASCADE | RESTRICT)?                    #dropServer
     | DROP FOREIGN TABLE (IF EXISTS)? names=qnames (CASCADE | RESTRICT)?             #dropForeignTable
+    | DROP USER MAPPING (IF EXISTS)? FOR mappedUser SERVER server=ident              #dropUserMapping
     ;
 
 alterStmt

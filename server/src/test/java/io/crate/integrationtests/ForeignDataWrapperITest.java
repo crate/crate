@@ -36,7 +36,9 @@ public class ForeignDataWrapperITest extends IntegTestCase {
 
     @After
     public void removeServers() throws Exception {
-        execute("drop server if exists pg");
+        execute("drop server if exists pg cascade");
+        execute("drop user if exists trillian");
+        execute("drop user if exists arthur");
     }
 
     @Test
@@ -166,5 +168,42 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         assertThatThrownBy(() -> execute("drop foreign table doc.dummy"))
             .hasMessageContaining("Relation 'doc.dummy' unknown");
         execute("drop foreign table if exists doc.dummy");
+    }
+
+    @Test
+    public void test_can_drop_user_mapping() throws Exception {
+        execute("create user trillian with (password = 'secret')");
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
+        int port = postgresNetty.boundAddress().publishAddress().getPort();
+        String url = "jdbc:postgresql://127.0.0.1:" + port + '/';
+        execute(
+            "create server pg foreign data wrapper jdbc options (url ?)",
+            new Object[] { url }
+        );
+
+        String stmt = """
+            CREATE FOREIGN TABLE doc.summits (mountain text, height int)
+            SERVER pg
+            OPTIONS (schema_name 'sys', table_name 'summits')
+            """;
+        execute(stmt);
+
+        execute("create user mapping for current_user server pg options (\"user\" 'trillian', password 'secret')");
+        String selectQuery = "select mountain from doc.summits order by height desc limit 3";
+        assertThatThrownBy(() -> execute(selectQuery))
+            .as("Cannot access table with user mapped to trillian")
+            .hasMessageContaining("Schema 'sys' unknown");
+
+        execute("drop user mapping for current_user server pg");
+        assertThatThrownBy(() -> execute("drop user mapping for current_user server pg"))
+            .hasMessageContaining("No user mapping found for user `crate` and server `pg`");
+        execute("drop user mapping if exists for current_user server pg");
+
+        execute(selectQuery);
+        assertThat(response).hasRows(
+            "Mont Blanc",
+            "Monte Rosa",
+            "Dom"
+        );
     }
 }
