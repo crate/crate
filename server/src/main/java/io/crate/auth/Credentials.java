@@ -22,38 +22,67 @@
 package io.crate.auth;
 
 import java.io.Closeable;
+import java.util.function.BiFunction;
+
 import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
+
+import io.crate.role.Role;
+
 /**
  * Holder for all authentication methods.
- * username is CrateDB user. Set up directly on password, cert and trust methods and resolved later on jwt.
+ * username is CrateDB user.
  * password is used only for password method and null otherwise.
  * jwtToken is used only for jwt method and null otherwise.
  */
 public class Credentials implements Closeable {
 
-    // Non-final as we set it up one we resolve CrateDB user.
-    private String username;
+    // Reusable, as internally uses reusable ObjectMapper.
+    private static final JWT JWT = new JWT();
+
+    private final String username;
 
     // Non-final as Postgres protocol might inject password later after creation.
     private SecureString password;
 
     private final String jwtToken;
 
-    private Credentials(@Nullable String username, @Nullable char[] password, @Nullable String jwtToken) {
-        this.username = username;
+    /**
+     * @param roleLookup is used to resolve CrateDB user from JWT token.
+     */
+    private Credentials(@Nullable String username,
+                        @Nullable char[] password,
+                        @Nullable String jwtToken,
+                        @Nullable BiFunction<String, String, Role> roleLookup) {
         this.password = password != null ? new SecureString(password) : null;
         this.jwtToken = jwtToken;
+        if (username != null) {
+            // Basic auth, username is provided or empty in case of null/empty header but not null.
+            this.username = username;
+        } else {
+            assert jwtToken != null && roleLookup != null
+                : "If user is not provided, it looked up using JWT token, token and lookup function must be not null.";
+            DecodedJWT decodedJWT = JWT.decodeJwt(jwtToken);
+            // validate(decodedJWT) TODO: Check that it contains all required fields, throw an error with hints otherwise.
+            Role role = roleLookup.apply(decodedJWT.getIssuer(), decodedJWT.getClaim("username").asString());
+            if (role != null) {
+                this.username = role.name();
+            } else {
+                this.username = null;
+            }
+        }
     }
 
-    public Credentials(@NotNull String username, @Nullable char[] password) {
-        this(username, password, null);
+    public static Credentials fromNameAndPassword(@NotNull String username, @Nullable char[] password) {
+        return new Credentials(username, password, null, null);
     }
 
-    public Credentials(@NotNull String jwtToken) {
-        this(null, null, jwtToken);
+    public static Credentials fromToken(@NotNull String jwtToken, @NotNull BiFunction<String, String, Role> roleLookup) {
+        return new Credentials(null, null, jwtToken, roleLookup);
     }
 
     /**
@@ -64,14 +93,12 @@ public class Credentials implements Closeable {
     }
 
     /**
-     * @param username is CrateDB username.
-     * Resolved from iss/username of the JWT token.
+     * @return one of:
+     * - Empty string in case of empty/null auth header
+     * - Basic header's username "as is"
+     * - CrateDB user, resolved from JWT token
      */
-    public void setUsername(@NotNull String username) {
-        this.username = username;
-    }
-
-    @Nullable
+    @NotNull
     public String username() {
         return username;
     }

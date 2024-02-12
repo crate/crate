@@ -49,27 +49,27 @@ public class HeadersTest {
 
     @Test
     public void testExtractUsernamePasswordFromHttpBasicAuthHeader() {
-        Credentials creds = extractCredentialsFromHttpAuthHeader("");
+        Credentials creds = extractCredentialsFromHttpAuthHeader("", null);
         assertThat(creds.username(), is(""));
         assertThat(creds.password().toString(), is(""));
 
-        creds = extractCredentialsFromHttpAuthHeader(null);
+        creds = extractCredentialsFromHttpAuthHeader(null, null);
         assertThat(creds.username(), is(""));
         assertThat(creds.password().toString(), is(""));
 
-        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==", null);
         assertThat(creds.username(), is("Arthur"));
         assertThat(creds.password().toString(), is("Excalibur"));
 
-        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==", null);
         assertThat(creds.username(), is("Arthur"));
         assertThat(creds.password().toString(), is(":test:password:"));
 
-        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOg==");
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOg==", null);
         assertThat(creds.username(), is("Arthur"));
         assertThat(creds.password().toString(), is(""));
 
-        creds = extractCredentialsFromHttpAuthHeader("Basic OnBhc3N3b3Jk");
+        creds = extractCredentialsFromHttpAuthHeader("Basic OnBhc3N3b3Jk", null);
         assertThat(creds.username(), is(""));
         assertThat(creds.password().toString(), is("password"));
     }

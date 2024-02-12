@@ -22,14 +22,18 @@
 package io.crate.auth;
 
 import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import javax.net.ssl.SSLSession;
 
@@ -39,7 +43,9 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.crate.role.JwtProperties;
 import io.crate.role.Role;
+import io.crate.role.StubRoleManager;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -55,13 +61,44 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
+    public static Role JWT_USER = userOf(
+        "John",
+        Set.of(),
+        new HashSet<>(),
+        getSecureHash("johns-pwd"),
+        new JwtProperties("https://console.cratedb-dev.cloud/api/v2/meta/jwk/", "cloud_user")
+    );
+
+    /*
+    Created by https://jwt.io/#debugger-io. Represents token:
+    Header:
+    {
+        "alg": "RS256",
+        "typ": "JWT"
+    }
+    Payload:
+    {
+        "iss": "https://console.cratedb-dev.cloud/api/v2/meta/jwk/",
+        "username": "cloud_user"
+    }
+    */
+    public static String JWT_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHR" +
+        "wczovL2NvbnNvbGUuY3JhdGVkYi1kZXYuY2xvdWQvYXBpL3YyL21ldGEvandrLyIsInVzZXJu" +
+        "YW1lIjoiY2xvdWRfdXNlciJ9.iDcLh-lJPQ7KgCCGuqDztPRrwH-4qMSQ3Wivi9Rm7BDZSWcHxo" +
+        "iJe26qA4gjnL022bIqJgDDJT9uwYY4_I2iBgkMRu6Y61cY_tZtBCVIaPLsBQVrhc8Jv3Skr6O7zz" +
+        "kc_LPzLdRi-1jHsYemxnq--VXRujFfbdeXoi3laiA-NkFmw6PIXqOLvnXfGVwZxMdyzD_p" +
+        "XpKjoPszrv8Dg-dmJl5MWZO8mysrCqh9JYj" +
+        "DqAMVEbVKn5KU__KRHUFcA7ZQSOvfmTlmcenlVEzOCFz" +
+        "6mfm5Z7tafmnMNG8IbX2HgbmwJAvk9ZYniSIKJHXB7K7q-clOZf26VBKdXxDG6TzyQg";
+
     private final Settings hbaEnabled = Settings.builder()
         .put("auth.host_based.enabled", true)
         .put("auth.host_based.config.0.user", "crate")
+        .put("auth.host_based.config.1.user", "John")
+        .put("auth.host_based.config.1.method", "jwt")
         .build();
 
-    // Roles always returns null, so there are no users (even no default crate superuser)
-    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, List::of, SystemDefaultDnsResolver.INSTANCE);
+    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, () -> List.of(JWT_USER), SystemDefaultDnsResolver.INSTANCE);
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
@@ -122,7 +159,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testAuthorized() throws Exception {
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(
-            Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)));
+            Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)), new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -134,7 +171,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testNotNoHbaConfig() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -155,7 +192,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
      */
     @Test
     public void test_real_ip_header_is_ignored_by_default() {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -177,7 +214,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         var settings = Settings.builder()
             .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
             .build();
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -199,7 +236,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         var settings = Settings.builder()
             .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
             .build();
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -218,7 +255,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testUnauthorizedUser() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -237,7 +274,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         when(session.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY).username();
+        String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY, null).username();
 
         assertThat(userName).isEqualTo("localhost");
     }
@@ -246,7 +283,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
 
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -260,7 +297,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testUnauthorizedUserWithDisabledHBA() throws Exception {
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(List::of);
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -271,5 +308,19 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
         assertThat(handler.authorized()).isFalse();
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"Aladdin\"\n");
+    }
+
+    @Test
+    public void test_user_authnetication_with_jwt_token() throws Exception {
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, () -> List.of(JWT_USER));
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+
+        assertThat(handler.authorized()).isTrue();
     }
 }

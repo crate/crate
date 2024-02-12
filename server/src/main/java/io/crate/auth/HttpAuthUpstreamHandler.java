@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BiFunction;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
@@ -45,6 +46,7 @@ import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -71,12 +73,14 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     private final Authentication authService;
     private final Settings settings;
     private String authorizedUser = null;
+    private BiFunction<String, String, Role> roleLookup;
 
-    public HttpAuthUpstreamHandler(Settings settings, Authentication authService) {
+    public HttpAuthUpstreamHandler(Settings settings, Authentication authService, Roles roles) {
         // do not auto-release reference counted messages which are just in transit here
         super(false);
         this.settings = settings;
         this.authService = authService;
+        this.roleLookup = (issuer, username) -> roles.findUser(issuer, username);
     }
 
     @Override
@@ -94,7 +98,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         SSLSession session = getSession(ctx.channel());
-        Credentials credentials = credentialsFromRequest(request, session, settings);
+        Credentials credentials = credentialsFromRequest(request, session, settings, roleLookup);
         String username = credentials.username();
         if (username.equals(authorizedUser)) {
             ctx.fireChannelRead(request);
@@ -166,12 +170,15 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     }
 
     @VisibleForTesting
-    static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
+    static Credentials credentialsFromRequest(HttpRequest request,
+                                              @Nullable SSLSession session,
+                                              Settings settings,
+                                              BiFunction<String, String, Role> roleLookup) {
         String username = null;
         if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
             // Prefer Http Auth (Basic or JWT, depedning on header)
             return Headers.extractCredentialsFromHttpAuthHeader(
-                request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
+                request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()), roleLookup);
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
             if (session != null) {
@@ -186,7 +193,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
             }
         }
-        return new Credentials(username, null);
+        return Credentials.fromNameAndPassword(username, null);
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {

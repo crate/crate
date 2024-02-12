@@ -21,6 +21,8 @@
 
 package io.crate.rest.action;
 
+import static io.crate.auth.HttpAuthUpstreamHandlerTest.JWT_TOKEN;
+import static io.crate.auth.HttpAuthUpstreamHandlerTest.JWT_USER;
 import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -156,35 +158,12 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(user),
+            () -> List.of(JWT_USER),
             sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
-        /*
-        Created by https://jwt.io/#debugger-io. Represents token:
-        Header:
-        {
-            "alg": "RS256",
-            "typ": "JWT"
-        }
-        Payload:
-        {
-            "iss": "https://console.cratedb-dev.cloud/api/v2/meta/jwk/",
-            "username": "cloud_user"
-        }
-        */
-        String rsa256Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHR" +
-            "wczovL2NvbnNvbGUuY3JhdGVkYi1kZXYuY2xvdWQvYXBpL3YyL21ldGEvandrLyIsInVzZXJu" +
-            "YW1lIjoiY2xvdWRfdXNlciJ9.iDcLh-lJPQ7KgCCGuqDztPRrwH-4qMSQ3Wivi9Rm7BDZSWcHxo" +
-            "iJe26qA4gjnL022bIqJgDDJT9uwYY4_I2iBgkMRu6Y61cY_tZtBCVIaPLsBQVrhc8Jv3Skr6O7zz" +
-            "kc_LPzLdRi-1jHsYemxnq--VXRujFfbdeXoi3laiA-NkFmw6PIXqOLvnXfGVwZxMdyzD_p" +
-            "XpKjoPszrv8Dg-dmJl5MWZO8mysrCqh9JYj" +
-            "DqAMVEbVKn5KU__KRHUFcA7ZQSOvfmTlmcenlVEzOCFz" +
-            "6mfm5Z7tafmnMNG8IbX2HgbmwJAvk9ZYniSIKJHXB7K7q-clOZf26VBKdXxDG6TzyQg";
-
-
-        Role resolvedUser = handler.userFromAuthHeader("bearer " + rsa256Token);
+        Role resolvedUser = handler.userFromAuthHeader("bearer " + JWT_TOKEN);
         assertThat(resolvedUser.name(), is(user.name()));
     }
 }

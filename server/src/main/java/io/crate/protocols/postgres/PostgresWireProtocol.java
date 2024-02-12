@@ -427,7 +427,7 @@ public class PostgresWireProtocol {
             authContext = new AuthenticationContext(
                 authMethod,
                 connProperties,
-                new Credentials(userName, null),
+                Credentials.fromNameAndPassword(userName, null),
                 LOGGER
             );
             if (PASSWORD_AUTH_NAME.equals(authMethod.name())) {

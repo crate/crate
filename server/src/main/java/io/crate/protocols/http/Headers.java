@@ -22,6 +22,7 @@
 package io.crate.protocols.http;
 
 import io.crate.auth.Credentials;
+import io.crate.role.Role;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -32,6 +33,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import org.jetbrains.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
 public final class Headers {
@@ -68,10 +70,11 @@ public final class Headers {
      * @param authHeaderValue contains authentication schema (basic or bearer) and auth payload (token or password) separated by space.
      * Authentication schema is case-insensitive: https://datatracker.ietf.org/doc/html/rfc7235?ref=blog.teknkl.com#section-2.1
      */
-    public static Credentials extractCredentialsFromHttpAuthHeader(String authHeaderValue) {
+    public static Credentials extractCredentialsFromHttpAuthHeader(String authHeaderValue,
+                                                                   @Nullable BiFunction<String, String, Role> roleLookup) {
         if (authHeaderValue == null || authHeaderValue.isEmpty()) {
             // Empty credentials.
-            return new Credentials("", new char[] {});
+            return Credentials.fromNameAndPassword("", new char[] {});
         }
         if (authHeaderValue.substring(0, 5).equalsIgnoreCase("basic")) {
             // Account to space
@@ -79,7 +82,7 @@ public final class Headers {
         } else {
             if (authHeaderValue.substring(0, 6).equalsIgnoreCase("bearer")) {
                 // Account to space
-                return new Credentials(authHeaderValue.substring(7));
+                return Credentials.fromToken(authHeaderValue.substring(7), roleLookup);
             } else {
                 throw new IllegalArgumentException("Only basic or bearer HTTP Authentication schemas are allowed.");
             }
@@ -102,6 +105,6 @@ public final class Headers {
                 password = passwdStr.toCharArray();
             }
         }
-        return new Credentials(username, password);
+        return Credentials.fromNameAndPassword(username, password);
     }
 }

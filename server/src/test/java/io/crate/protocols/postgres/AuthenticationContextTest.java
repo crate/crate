@@ -51,7 +51,7 @@ public class AuthenticationContextTest extends ESTestCase {
             InetAddress.getByName("127.0.0.1"), Protocol.POSTGRES, null);
         AuthenticationMethod authMethod = AUTHENTICATION.resolveAuthenticationType(userName, connProperties);
         AuthenticationContext authContext = new AuthenticationContext(
-            authMethod, connProperties, new Credentials(userName, null), LogManager.getLogger(AuthenticationContextTest.class));
+            authMethod, connProperties, Credentials.fromNameAndPassword(userName, null), LogManager.getLogger(AuthenticationContextTest.class));
         authContext.setSecurePassword(passwd);
         assertThat(authContext.authenticate(), is(Role.CRATE_USER));
         assertThat(authContext.password().getChars(), is(passwd));
