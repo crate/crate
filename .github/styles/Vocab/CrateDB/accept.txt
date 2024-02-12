@@ -58,6 +58,7 @@ lookups
 loopback
 lowercased
 Lucene
+MBean
 Meridiem
 mmap
 mmapfs
