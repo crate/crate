@@ -64,6 +64,9 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added initial support for foreign data wrappers, including a ``jdbc``
+  :ref:`foreign data wrapper <administration-fdw>`.
+
 - Added support for lower case ``yyyy`` format string to
   :ref:`to_char <scalar-to_char>` scalar function, which behaves exactly the
   same as uppercase ``YYYY``, to match PostgreSQL behaviour.
