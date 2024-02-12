@@ -99,6 +99,7 @@ import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
@@ -832,6 +833,20 @@ public class Analyzer {
                 Lists.map(dropForeignTable.names(), x -> RelationName.of(x, defaultSchema)),
                 dropForeignTable.ifExists(),
                 dropForeignTable.cascadeMode()
+            );
+        }
+
+        @Override
+        public AnalyzedStatement visitDropUserMapping(DropUserMapping dropUserMapping, Analysis context) {
+            String userName = dropUserMapping.userName();
+            String resolvedUserName = userName == null
+                ? context.sessionSettings().userName()
+                : userName;
+            Role user = roleManager.findUser(resolvedUserName);
+            return new AnalyzedDropUserMapping(
+                user,
+                dropUserMapping.ifExists(),
+                dropUserMapping.server()
             );
         }
     }

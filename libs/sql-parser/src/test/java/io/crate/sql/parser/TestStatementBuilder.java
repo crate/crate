@@ -71,6 +71,7 @@ import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
@@ -2172,6 +2173,15 @@ public class TestStatementBuilder {
         printStatement("create user mapping if not exists for arthur server pg options (\"username\" 'bob', password 'secret')");
     }
 
+    @Test
+    public void test_drop_user_mapping() throws Exception {
+        printStatement("drop user mapping for crate server pg");
+        printStatement("drop user mapping if exists for crate server pg");
+        printStatement("drop user mapping for current_role server pg");
+        printStatement("drop user mapping for current_user server pg");
+        printStatement("drop user mapping for user server pg");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -2219,7 +2229,8 @@ public class TestStatementBuilder {
             statement instanceof CreateServer ||
             statement instanceof CreateUserMapping ||
             statement instanceof DropServer ||
-            statement instanceof DropForeignTable) {
+            statement instanceof DropForeignTable ||
+            statement instanceof DropUserMapping) {
 
 
             println(SqlFormatter.formatSql(statement));

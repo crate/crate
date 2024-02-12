@@ -57,6 +57,7 @@ import io.crate.sql.parser.antlr.SqlBaseParser.DirectionContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DiscardContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DropForeignTableContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DropServerContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DropUserMappingContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.FetchContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.IsolationLevelContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.MappedUserContext;
@@ -150,6 +151,7 @@ import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Except;
@@ -501,6 +503,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         String server = getIdentText(ctx.server);
         Map<String, Expression> options = getOptions(ctx.kvOptions());
         return new CreateUserMapping(ifNotExists, userName, server, options);
+    }
+
+    @Override
+    public Node visitDropUserMapping(DropUserMappingContext ctx) {
+        boolean ifExists = ctx.EXISTS() != null;
+        MappedUserContext mappedUser = ctx.mappedUser();
+        String userName = mappedUser.userName == null ? null : getIdentText(mappedUser.userName);
+        String server = getIdentText(ctx.server);
+        return new DropUserMapping(userName, ifExists, server);
     }
 
     @Override

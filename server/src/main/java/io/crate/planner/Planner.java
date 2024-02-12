@@ -73,6 +73,7 @@ import io.crate.analyze.AnalyzedDropRole;
 import io.crate.analyze.AnalyzedDropServer;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
+import io.crate.analyze.AnalyzedDropUserMapping;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
@@ -655,6 +656,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitDropForeignTable(AnalyzedDropForeignTable dropForeignTable, PlannerContext context) {
         return new DropForeignTablePlan(dropForeignTable);
+    }
+
+    @Override
+    public Plan visitDropUserMapping(AnalyzedDropUserMapping dropUserMapping, PlannerContext context) {
+        return new DropUserMappingPlan(dropUserMapping);
     }
 }
 
