@@ -68,6 +68,7 @@ public class Credentials implements Closeable {
                 : "If user is not provided, it looked up using JWT token, token and lookup function must be not null.";
             DecodedJWT decodedJWT = JWT.decodeJwt(jwtToken);
             // validate(decodedJWT) TODO: Check that it contains all required fields, throw an error with hints otherwise.
+            // kid must be there - for endpoint lookup, see getPublicKeyById(String kid) in JWTAuthenticationMethod
             Role role = roleLookup.apply(decodedJWT.getIssuer(), decodedJWT.getClaim("username").asString());
             if (role != null) {
                 this.username = role.name();

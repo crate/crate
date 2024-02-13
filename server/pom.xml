@@ -417,5 +417,12 @@
       <version>${versions.jwt}</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.auth0</groupId>
+      <artifactId>jwks-rsa</artifactId>
+      <version>${versions.jwks-rsa}</version>
+
+    </dependency>
+
   </dependencies>
 </project>

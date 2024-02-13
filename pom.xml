@@ -262,6 +262,7 @@
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
     <versions.graalvm>23.0.2</versions.graalvm>
     <versions.jwt>4.4.0</versions.jwt>
+    <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>4.11.0</versions.mockito>
