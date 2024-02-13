@@ -190,6 +190,18 @@ public class MetadataModule extends AbstractModule {
             SubscriptionsMetadata::fromXContent
         ));
 
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(ServersMetadata.TYPE),
+            ServersMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(ForeignTablesMetadata.TYPE),
+            ForeignTablesMetadata::fromXContent
+        ));
+
+
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedXContent());
         return entries;

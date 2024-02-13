@@ -40,7 +40,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -60,7 +60,7 @@ public final class MappingUtil {
         /**
          * Important: The table must be based on the _latest_ cluster state, retrieved from within a clusterState update routine.
          */
-        public static AllocPosition forTable(DocTableInfo table) {
+        public static AllocPosition forTable(TableInfo table) {
             return new AllocPosition(table.maxPosition(), column -> {
                 var reference = table.getReference(column);
                 if (reference == null) {

@@ -21,6 +21,11 @@
 
 package io.crate.fdw;
 
+import static java.util.Objects.requireNonNull;
+import static org.elasticsearch.common.xcontent.XContentParser.Token.END_OBJECT;
+import static org.elasticsearch.common.xcontent.XContentParser.Token.FIELD_NAME;
+import static org.elasticsearch.common.xcontent.XContentParser.Token.START_OBJECT;
+
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -39,22 +44,23 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.sql.tree.CascadeMode;
 
-public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
+public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
     implements Metadata.Custom, Iterable<Server> {
 
     public static final String TYPE = "servers";
     public static final ServersMetadata EMPTY = new ServersMetadata(Map.of());
-
 
     public record Server(String name,
                          String fdw,
                          String owner,
                          Map<String, Map<String, Object>> users,
                          Map<String, Object> options) implements Writeable, ToXContent {
+
 
         public Server(StreamInput in) throws IOException {
             this(
@@ -75,6 +81,52 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
             out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
         }
 
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        public static Server fromXContent(XContentParser parser) throws IOException {
+            String name = null;
+            String fdw = null;
+            String owner = null;
+            Map<String, Map<String, Object>> users = null;
+            Map<String, Object> options = null;
+            while (parser.nextToken() != END_OBJECT) {
+                if (parser.currentToken() == FIELD_NAME) {
+                    String fieldName = parser.currentName();
+                    parser.nextToken();
+                    switch (fieldName) {
+                        case "name":
+                            name = parser.text();
+                            break;
+
+                        case "fdw":
+                            fdw = parser.text();
+                            break;
+
+                        case "owner":
+                            owner = parser.text();
+                            break;
+
+                        case "users":
+                            users = (Map<String, Map<String, Object>>)(Map) parser.map();
+                            break;
+
+                        case "options":
+                            options = parser.map();
+                            break;
+
+                        default:
+                            // skip over unknown fields for forward compatibility
+                            parser.skipChildren();
+                    }
+                }
+            }
+            return new Server(
+                requireNonNull(name),
+                requireNonNull(fdw),
+                requireNonNull(owner),
+                requireNonNull(users),
+                requireNonNull(options));
+        }
+
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.field("name", name);
@@ -88,7 +140,7 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
 
     private final Map<String, Server> servers;
 
-    private ServersMetadata(Map<String, Server> servers) {
+    ServersMetadata(Map<String, Server> servers) {
         this.servers = servers;
     }
 
@@ -100,6 +152,41 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
     public void writeTo(StreamOutput out) throws IOException {
         out.writeMap(servers, StreamOutput::writeString, (o, value) -> value.writeTo(o));
     }
+
+    public static ServersMetadata fromXContent(XContentParser parser) throws IOException {
+        Map<String, Server> servers = new HashMap<>();
+        if (parser.currentToken() == START_OBJECT) {
+            parser.nextToken();
+        }
+        if (parser.currentToken() == FIELD_NAME) {
+            assert parser.currentName().endsWith(TYPE) : "toXContent starts with startObject(TYPE)";
+            parser.nextToken();
+        }
+        while (parser.nextToken() != END_OBJECT) {
+            if (parser.currentToken() == FIELD_NAME) {
+                String serverName = parser.currentName();
+                parser.nextToken();
+                Server server = Server.fromXContent(parser);
+                servers.put(serverName, server);
+            }
+        }
+        parser.nextToken();
+        return new ServersMetadata(servers);
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject(TYPE);
+        for (var entry : servers.entrySet()) {
+            String serverName = entry.getKey();
+            Server server = entry.getValue();
+            builder.startObject(serverName);
+            server.toXContent(builder, params);
+            builder.endObject();
+        }
+        return builder.endObject();
+    }
+
 
     public boolean contains(String name) {
         return servers.containsKey(name);
@@ -142,19 +229,6 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
     @Override
     public Version getMinimalSupportedVersion() {
         return Version.V_5_7_0;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(TYPE);
-        for (var entry : servers.entrySet()) {
-            String serverName = entry.getKey();
-            Server server = entry.getValue();
-            builder.startObject(serverName);
-            server.toXContent(builder, params);
-            builder.endObject();
-        }
-        return builder.endObject();
     }
 
     @Override
@@ -225,5 +299,16 @@ public class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
         Server newServer = new Server(serverName, server.fdw, server.owner, newUsers, server.options);
         newServers.replace(serverName, newServer);
         return new ServersMetadata(newServers);
+    }
+
+    @Override
+    public int hashCode() {
+        return servers.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ServersMetadata other
+            && servers.equals(other.servers);
     }
 }

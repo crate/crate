@@ -107,7 +107,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
 
         var roles = cluster().getInstance(Roles.class);
         Role trillian = roles.findUser("trillian");
-        var response = sqlExecutor.executeAs("select * from doc.dummy order by x asc", trillian);
+        response = sqlExecutor.executeAs("select * from doc.dummy order by x asc", trillian);
         assertThat(response).hasRows(
             "1",
             "2",
@@ -119,6 +119,28 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             "{x=1}",
             "{x=2}",
             "{x=42}"
+        );
+
+
+        // information is persisted and survives restart
+        cluster().fullRestart();
+        assertBusy(() -> {
+            execute("select foreign_server_name, foreign_data_wrapper_name from information_schema.foreign_servers");
+            assertThat(response).hasRows(
+                "pg| jdbc"
+            );
+        });
+        execute("select foreign_table_schema, foreign_table_name from information_schema.foreign_tables");
+        assertThat(response).hasRows(
+            "doc| dummy"
+        );
+        execute("select table_schema, table_name from information_schema.tables where table_type = 'FOREIGN'");
+        assertThat(response).hasRows(
+            "doc| dummy"
+        );
+        execute("select column_name from information_schema.columns where table_name = 'dummy' order by 1");
+        assertThat(response).hasRows(
+            "x"
         );
 
         assertThatThrownBy(() -> execute("drop server pg"))

@@ -142,7 +142,7 @@ public interface Reference extends Symbol {
      * We identify references by FQN and store tree as a map(ident -> list(reference)).
      * NULL node is a root which is an entry point for any traversing method utilizing the tree.
      */
-    static HashMap<ColumnIdent, List<Reference>> buildTree(List<Reference> references) {
+    static HashMap<ColumnIdent, List<Reference>> buildTree(Iterable<Reference> references) {
         HashMap<ColumnIdent, List<Reference>> tree = new LinkedHashMap<>();
         for (Reference treeNode: references) {
             // To build an "adjacency list" we add each edge only once, thus we add only direct neighbor node (parent).

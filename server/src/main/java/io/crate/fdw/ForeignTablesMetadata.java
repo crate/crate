@@ -21,6 +21,10 @@
 
 package io.crate.fdw;
 
+import static org.elasticsearch.common.xcontent.XContentParser.Token.END_OBJECT;
+import static org.elasticsearch.common.xcontent.XContentParser.Token.FIELD_NAME;
+import static org.elasticsearch.common.xcontent.XContentParser.Token.START_OBJECT;
+
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -35,6 +39,7 @@ import org.elasticsearch.cluster.metadata.Metadata.XContentContext;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.RelationUnknown;
@@ -42,7 +47,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
-public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom>
+public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom>
         implements Metadata.Custom, Iterable<ForeignTable> {
 
     public static final String TYPE = "foreign_tables";
@@ -50,8 +55,7 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
 
     private final Map<RelationName, ForeignTable> tables;
 
-
-    private ForeignTablesMetadata(Map<RelationName, ForeignTable> tables) {
+    ForeignTablesMetadata(Map<RelationName, ForeignTable> tables) {
         this.tables = tables;
     }
 
@@ -64,14 +68,25 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
         out.writeMap(tables, (o, v) -> v.writeTo(o), (o, v) -> v.writeTo(o));
     }
 
-    @Override
-    public String getWriteableName() {
-        return TYPE;
-    }
-
-    @Override
-    public Version getMinimalSupportedVersion() {
-        return Version.V_5_7_0;
+    public static ForeignTablesMetadata fromXContent(XContentParser parser) throws IOException {
+        HashMap<RelationName, ForeignTable> tables = new HashMap<>();
+        if (parser.currentToken() == START_OBJECT) {
+            parser.nextToken();
+        }
+        if (parser.currentToken() == FIELD_NAME) {
+            assert parser.currentName().endsWith(TYPE) : "toXContent starts with startObject(TYPE)";
+            parser.nextToken();
+        }
+        while (parser.nextToken() != END_OBJECT) {
+            if (parser.currentToken() == FIELD_NAME) {
+                RelationName name = RelationName.fromIndexName(parser.currentName());
+                parser.nextToken();
+                ForeignTable table = ForeignTable.fromXContent(name, parser);
+                tables.put(name, table);
+            }
+        }
+        parser.nextToken();
+        return new ForeignTablesMetadata(tables);
     }
 
     @Override
@@ -80,11 +95,21 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
         for (var entry : tables.entrySet()) {
             RelationName tableName = entry.getKey();
             ForeignTable table = entry.getValue();
-            builder.startObject(tableName.fqn());
+            builder.startObject(tableName.indexNameOrAlias());
             table.toXContent(builder, params);
             builder.endObject();
         }
         return builder.endObject();
+    }
+
+    @Override
+    public String getWriteableName() {
+        return TYPE;
+    }
+
+    @Override
+    public Version getMinimalSupportedVersion() {
+        return Version.V_5_7_0;
     }
 
     @Override
@@ -142,4 +167,14 @@ public class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom
         return tables.values().iterator();
     }
 
+    @Override
+    public int hashCode() {
+        return tables.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ForeignTablesMetadata other
+            && tables.equals(other.tables);
+    }
 }
