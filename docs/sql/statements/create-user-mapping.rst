@@ -37,6 +37,8 @@ the username of the current CrateDB user. How exactly is specific to the
 concrete foreign data wrapper implementation. See :ref:`administration-fdw` for
 more details.
 
+Creating a user mapping requires ``AL`` permission on cluster level.
+
 Parameters
 ==========
 

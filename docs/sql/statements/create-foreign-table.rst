@@ -40,6 +40,8 @@ relations like user tables or views.
 Foreign tables are listed in the ``information_schema.tables`` view and
 ``information_schema.foreign_tables``.
 
+Creating a foreign table requires ``AL`` permission on schema or cluster level.
+
 Clauses
 =======
 
