@@ -62,6 +62,14 @@ public interface RelationInfo extends Iterable<Reference> {
         return List.of();
     }
 
+    default int maxPosition() {
+        return columns().stream()
+            .filter(ref -> !ref.column().isSystemColumn())
+            .mapToInt(Reference::position)
+            .max()
+            .orElse(0);
+    }
+
     RowGranularity rowGranularity();
 
     RelationName ident();

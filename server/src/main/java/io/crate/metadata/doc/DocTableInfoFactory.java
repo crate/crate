@@ -201,6 +201,7 @@ public class DocTableInfoFactory {
         Map<ColumnIdent, String> analyzers = new HashMap<>();
 
         parseColumns(
+            expressionAnalyzer,
             relation,
             null,
             indicesMap,
@@ -303,20 +304,22 @@ public class DocTableInfoFactory {
     }
 
     @SuppressWarnings("unchecked")
-    private void parseColumns(RelationName relationName,
-                              @Nullable ColumnIdent parent,
-                              Map<String, Object> indicesMap,
-                              Set<ColumnIdent> notNullColumns,
-                              List<ColumnIdent> primaryKeys,
-                              List<ColumnIdent> partitionedBy,
-                              Map<String, Object> properties,
-                              Map<ColumnIdent, IndexReference.Builder> indexColumns,
-                              Map<ColumnIdent, String> analyzers,
-                              Map<ColumnIdent, Reference> references) {
+    public static void parseColumns(@Nullable ExpressionAnalyzer expressionAnalyzer,
+                                    RelationName relationName,
+                                    @Nullable ColumnIdent parent,
+                                    Map<String, Object> indicesMap,
+                                    Set<ColumnIdent> notNullColumns,
+                                    List<ColumnIdent> primaryKeys,
+                                    List<ColumnIdent> partitionedBy,
+                                    Map<String, Object> properties,
+                                    Map<ColumnIdent, IndexReference.Builder> indexColumns,
+                                    Map<ColumnIdent, String> analyzers,
+                                    Map<ColumnIdent, Reference> references) {
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         for (Entry<String,Object> entry : properties.entrySet()) {
             String columnName = entry.getKey();
             Map<String, Object> columnProperties = (Map<String, Object>) entry.getValue();
-            DataType<?> type = getColumnDataType(columnProperties);
+            final DataType<?> type = getColumnDataType(columnProperties);
             ColumnIdent column = parent == null ? new ColumnIdent(columnName) : parent.getChild(columnName);
             ReferenceIdent refIdent = new ReferenceIdent(relationName, column);
             columnProperties = innerProperties(columnProperties);
@@ -326,7 +329,18 @@ public class DocTableInfoFactory {
                 analyzers.put(column, analyzer);
             }
 
-            Symbol defaultExpression = parseExpression(Maps.get(columnProperties, "default_expr"));
+            String defaultExpressionString = Maps.get(columnProperties, "default_expr");
+            Symbol defaultExpression = null;
+            if (defaultExpressionString != null) {
+                if (expressionAnalyzer == null) {
+                    throw new UnsupportedOperationException(
+                        "Cannot analyze default expression without ExpressionAnalyzer");
+                }
+                defaultExpression = expressionAnalyzer.convert(
+                    SqlParser.createExpression(defaultExpressionString),
+                    new ExpressionAnalysisContext(txnCtx.sessionSettings())
+                );
+            }
             boolean isPartitionColumn = partitionedBy.contains(column);
             IndexType indexType = isPartitionColumn
                 ? IndexType.PLAIN
@@ -392,6 +406,7 @@ public class DocTableInfoFactory {
                 Map<String, Object> nestedProperties = Maps.get(columnProperties, "properties");
                 if (nestedProperties != null) {
                     parseColumns(
+                        expressionAnalyzer,
                         relationName,
                         column,
                         indicesMap,
@@ -484,17 +499,6 @@ public class DocTableInfoFactory {
         }
     }
 
-
-    @Nullable
-    private Symbol parseExpression(@Nullable String expression) {
-        if (expression == null) {
-            return null;
-        }
-        return expressionAnalyzer.convert(
-            SqlParser.createExpression(expression),
-            new ExpressionAnalysisContext(systemTransactionContext.sessionSettings())
-        );
-    }
 
     /**
      * Get the IndexType from columnProperties.
@@ -613,7 +617,7 @@ public class DocTableInfoFactory {
      * @return dataType of the column with columnProperties
      */
     @SuppressWarnings("unchecked")
-    private static DataType<?> getColumnDataType(Map<String, Object> columnProperties) {
+    public static DataType<?> getColumnDataType(Map<String, Object> columnProperties) {
         String typeName = (String) columnProperties.get("type");
 
         if (typeName == null || ObjectType.NAME.equals(typeName)) {
