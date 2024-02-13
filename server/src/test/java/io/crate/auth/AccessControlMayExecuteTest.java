@@ -798,4 +798,41 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze("close c1");
     }
 
+
+    @Test
+    public void test_create_server_requires_al() throws Exception {
+        analyze("create server pg foreign data wrapper jdbc", normalUser);
+        assertAskedForCluster(Permission.AL);
+    }
+
+    @Test
+    public void test_drop_server_requires_al() throws Exception {
+        analyze("drop server pg", normalUser);
+        assertAskedForCluster(Permission.AL);
+    }
+
+    @Test
+    public void test_create_foreign_table_requires_al_permission() throws Exception {
+        analyze("create foreign table s.tbl (x int) server pg", normalUser);
+        assertAskedForTable(Permission.AL, new RelationName("s", "tbl").fqn());
+    }
+
+    @Test
+    public void test_drop_foreign_table_requires_al() throws Exception {
+        analyze("create foreign table s.tbl (x int) server pg", normalUser);
+        assertAskedForTable(Permission.AL, new RelationName("s", "tbl").fqn());
+    }
+
+    @Test
+    public void test_create_user_mapping_requires_al_permission() throws Exception {
+        analyze("create user mapping for current_user server pg", normalUser);
+        assertAskedForCluster(Permission.AL);
+    }
+
+    @Test
+    public void test_drop_user_mapping_requires_al() throws Exception {
+        analyze("drop user mapping for current_user server pg", normalUser);
+        assertAskedForCluster(Permission.AL);
+    }
+
 }

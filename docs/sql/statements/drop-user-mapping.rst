@@ -25,6 +25,7 @@ Description
 ``DROP USER MAPPING`` is a DDL statement that removes a user mapping for a
 foreign server.
 
+Dropping a user mapping requires ``AL`` permission on cluster level.
 
 Parameters
 ==========

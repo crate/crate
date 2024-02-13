@@ -24,6 +24,8 @@ Description
 
 ``DROP FOREIGN TABLE`` is a DDL statement that removes a foreign table.
 
+Dropping a foreign table requires ``AL`` permission on the table, the schema or
+cluster level.
 
 Parameters
 ==========

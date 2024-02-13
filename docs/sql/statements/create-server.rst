@@ -29,6 +29,7 @@ Description
 Servers created via ``CREATE SERVER`` are visible in
 ``information_schema.foreign_servers``.
 
+Creating a server requires ``AL`` permission on cluster level.
 
 Parameters
 ==========

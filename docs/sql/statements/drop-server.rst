@@ -25,6 +25,8 @@ Description
 
 ``DROP SERVER`` is a DDL statement that drops one or more foreign servers.
 
+Dropping a server requires ``AL`` permission on cluster level.
+
 Parameters
 ==========
 
