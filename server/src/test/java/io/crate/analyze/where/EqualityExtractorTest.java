@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -27,42 +27,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 
-public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
+public class EqualityExtractorTest extends EqualityExtractorBaseTest {
 
     private static final ColumnIdent x = new ColumnIdent("x");
     private static final ColumnIdent i = new ColumnIdent("i");
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
-    private SqlExpressions expressions;
-    private EqualityExtractor ee;
-
-    @Before
-    public void prepare() throws Exception {
-        Map<RelationName, AnalyzedRelation> sources = T3.sources(List.of(T3.T1), clusterService);
-
-        DocTableRelation tr1 = (DocTableRelation) sources.get(T3.T1);
-        expressions = new SqlExpressions(sources, tr1);
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(expressions.nodeCtx);
-        ee = new EqualityExtractor(normalizer);
-    }
-
     private List<List<Symbol>> analyzeParentX(Symbol query) {
-        return ee.extractParentMatches(List.of(x), query, coordinatorTxnCtx).matches();
+        return analyzeParent(query, List.of(x));
     }
 
     private List<List<Symbol>> analyzeExactX(Symbol query) {
@@ -71,14 +52,6 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
 
     private List<List<Symbol>> analyzeExactXI(Symbol query) {
         return analyzeExact(query, List.of(x, i));
-    }
-
-    private List<List<Symbol>> analyzeExact(Symbol query, List<ColumnIdent> primaryKeys) {
-        return ee.extractMatches(primaryKeys, query, coordinatorTxnCtx).matches();
-    }
-
-    protected Symbol query(String expression) {
-        return expressions.normalize(expressions.asSymbol(expression));
     }
 
     @Test
