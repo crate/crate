@@ -28,13 +28,13 @@ import java.util.function.ToLongFunction;
 import io.crate.data.Row;
 import io.crate.types.DataType;
 
-public final class EstimateRowSize implements ToLongFunction<Row> {
+public final class RowSizeEstimator implements ToLongFunction<Row> {
 
     @SuppressWarnings("rawtypes")
     private final List<? extends DataType> columnTypes;
 
     @SuppressWarnings("rawtypes")
-    public EstimateRowSize(List<? extends DataType> columnTypes) {
+    public RowSizeEstimator(List<? extends DataType> columnTypes) {
         this.columnTypes = columnTypes;
     }
 

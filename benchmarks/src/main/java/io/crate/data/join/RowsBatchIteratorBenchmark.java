@@ -41,7 +41,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -66,7 +66,7 @@ import io.crate.types.TypeSignature;
 @State(Scope.Benchmark)
 public class RowsBatchIteratorBenchmark {
 
-    private final RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
+    private final TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
         List.of(DataTypes.INTEGER), RamAccounting.NO_ACCOUNTING, 0);
 
     private List<RowN> rows;

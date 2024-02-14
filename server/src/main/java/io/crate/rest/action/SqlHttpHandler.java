@@ -55,7 +55,7 @@ import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
@@ -249,7 +249,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 JsonXContent.builder(),
                 resultFields,
                 startTimeInNs,
-                new RowAccountingWithEstimators(
+                new TypedRowAccounting(
                     Symbols.typeView(resultFields),
                     ramAccounting
                 ),

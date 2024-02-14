@@ -27,7 +27,7 @@ import java.util.function.Predicate;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
@@ -180,7 +180,7 @@ public class NestedLoopOperation implements CompletionListenable {
                 circuitBreaker,
                 estimatedRowsSizeLeft
             );
-            var rowAccounting = new RowCellsAccountingWithEstimators(leftSideColumnTypes, ramAccounting, 0);
+            var rowAccounting = new TypedCellsAccounting(leftSideColumnTypes, ramAccounting, 0);
             return new CrossJoinBlockNLBatchIterator(left, right, combiner, blockSizeCalculator, rowAccounting);
         } else {
             return new CrossJoinNLBatchIterator<>(left, right, combiner);

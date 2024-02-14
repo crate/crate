@@ -41,7 +41,7 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
 
     @Test
     public void testCircuitBreakingWorks() throws Exception {
-        RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(
+        TypedRowAccounting rowAccounting = new TypedRowAccounting(
             Collections.singletonList(DataTypes.INTEGER),
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
@@ -58,7 +58,7 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
 
     @Test
     public void testRowCellsAccountingCircuitBreakingWorks() throws Exception {
-        RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
+        TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
             Collections.singletonList(DataTypes.INTEGER),
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
@@ -74,7 +74,7 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
 
     @Test
     public void testCircuitBreakingWorksWithExtraSizePerRow() throws Exception {
-        RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(
+        TypedRowAccounting rowAccounting = new TypedRowAccounting(
             Collections.singletonList(DataTypes.INTEGER),
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",

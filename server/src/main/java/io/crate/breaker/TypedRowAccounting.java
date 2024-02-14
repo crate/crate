@@ -21,18 +21,28 @@
 
 package io.crate.breaker;
 
+import java.util.Collection;
 import java.util.List;
 
+import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.types.DataType;
 
-public class RowCellsAccountingWithEstimators implements RowAccounting<Object[]> {
+public class TypedRowAccounting implements RowAccounting<Row> {
 
     private final RamAccounting ramAccounting;
-    private final int extraSizePerRow;
-    private final List<? extends DataType<?>> columnTypes;
+    private final RowSizeEstimator estimateRowSize;
+    private int extraSizePerRow = 0;
+
+    /**
+     * See {@link TypedRowAccounting#RowAccountingWithEstimators(Collection, RamAccounting, int)}
+     */
+    public TypedRowAccounting(List<? extends DataType<?>> columnTypes, RamAccounting ramAccounting) {
+        this.estimateRowSize = new RowSizeEstimator(columnTypes);
+        this.ramAccounting = ramAccounting;
+    }
 
     /**
      * @param columnTypes     Column types are needed to use the correct {@link SizeEstimator} per column
@@ -40,37 +50,25 @@ public class RowCellsAccountingWithEstimators implements RowAccounting<Object[]>
      * @param extraSizePerRow Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
      *                        might instantiate an ArrayList per row used for the internal hash->row buffer
      */
-    public RowCellsAccountingWithEstimators(List<? extends DataType<?>> columnTypes,
-                                            RamAccounting ramAccounting,
-                                            int extraSizePerRow) {
-        this.columnTypes = columnTypes;
-        this.ramAccounting = ramAccounting;
+    public TypedRowAccounting(List<? extends DataType<?>> columnTypes,
+                              RamAccounting ramAccounting,
+                              int extraSizePerRow) {
+        this(columnTypes, ramAccounting);
         this.extraSizePerRow = extraSizePerRow;
     }
 
     /**
-     * Account for the size of the values of the row cells (this can include all the output cells, not just the source
-     * row).
-     * <p>
+     * Account for the size of the values of the row.
+     *
      * This should only be used if the values are stored/buffered in another in-memory data structure.
      */
     @Override
-    public long accountForAndMaybeBreak(Object[] rowCells) {
-        long rowBytes = accountRowBytes(rowCells);
-        ramAccounting.addBytes(rowBytes);
-        return rowBytes;
-    }
-
-    @SuppressWarnings("unchecked")
-    public long accountRowBytes(Object[] rowCells) {
-        assert rowCells.length == columnTypes.size() : "Size of row must match the number of estimators";
-        long size = 0;
-        for (int i = 0; i < rowCells.length; i++) {
-            DataType<Object> dataType = (DataType<Object>) columnTypes.get(i);
-            Object object = rowCells[i];
-            size += (dataType.valueBytes(object) + extraSizePerRow);
-        }
-        return size;
+    public long accountForAndMaybeBreak(Row row) {
+        // Container size of the row is excluded because here it's unknown where the values will be saved to.
+        // As size estimation is generally "best-effort" this should be good enough.
+        long bytes = estimateRowSize.applyAsLong(row) + extraSizePerRow;
+        ramAccounting.addBytes(bytes);
+        return bytes;
     }
 
     @Override
