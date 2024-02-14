@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
 
-public class ColumnsUnderNotPredicateFinderTest extends EqualityExtractorTest {
+public class ColumnsUnderNotPredicateFinderTest extends EqualityExtractorBaseTest {
 
     @Test
     public void test_can_find_x_from_x_neq_1() {
