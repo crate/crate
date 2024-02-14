@@ -45,7 +45,8 @@ Version 5.7.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Added ``CURRENT_ROLE`` as a reserved keyword. If you have a column or table
+  named ``CURRENT_ROLE``, you must escape it using double quotes.
 
 Deprecations
 ============
@@ -66,6 +67,9 @@ SQL Standard and PostgreSQL Compatibility
 - Added support for lower case ``yyyy`` format string to
   :ref:`to_char <scalar-to_char>` scalar function, which behaves exactly the
   same as uppercase ``YYYY``, to match PostgreSQL behaviour.
+
+- Added the :ref:`scalar-current_role` scalar function as an alias for
+  :ref:`scalar-current_user`.
 
 Data Types
 ----------

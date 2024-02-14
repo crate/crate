@@ -42,7 +42,7 @@ public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
             rows.add(new RowN(it.next().materialize()));
         }
         rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows).hasSize(270);
+        assertThat(rows).hasSize(271);
         Row row = rows.get(0);
 
         assertThat(row.get(0)).isEqualTo("absolute");

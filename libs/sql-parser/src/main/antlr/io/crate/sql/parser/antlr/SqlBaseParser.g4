@@ -339,7 +339,7 @@ explicitFunction
     | name=CURRENT_TIMESTAMP
         (OPEN_ROUND_BRACKET precision=integerLiteral CLOSE_ROUND_BRACKET)?           #specialDateTimeFunction
     | CURRENT_SCHEMA                                                                 #currentSchema
-    | (CURRENT_USER | USER)                                                          #currentUser
+    | (CURRENT_USER | CURRENT_ROLE | USER)                                           #currentUser
     | SESSION_USER                                                                   #sessionUser
     | LEFT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET   #left
     | RIGHT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET  #right
