@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -39,6 +40,14 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         execute("drop server if exists pg cascade");
         execute("drop user if exists trillian");
         execute("drop user if exists arthur");
+    }
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+            .put(super.nodeSettings(nodeOrdinal))
+            .put("fdw.allow_local", true)
+            .build();
     }
 
     @Test

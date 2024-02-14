@@ -161,6 +161,8 @@ information about the currently applied cluster settings.
     | settings['cluster']['routing']['allocation']['total_shards_per_node']             | integer      |
     | settings['cluster']['routing']['rebalance']                                       | object       |
     | settings['cluster']['routing']['rebalance']['enable']                             | text         |
+    | settings['fdw']                                                                   | object       |
+    | settings['fdw']['allow_local']                                                    | boolean      |
     | settings['gateway']                                                               | object       |
     | settings['gateway']['expected_data_nodes']                                        | integer      |
     | settings['gateway']['expected_nodes']                                             | integer      |
