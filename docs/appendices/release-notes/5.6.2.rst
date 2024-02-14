@@ -45,6 +45,20 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause no results being returned when filtering on a
+  :ref:`PRIMARY KEY <constraints-primary-key>` column, wrapped with a
+  :ref:`CAST <sql-type-cast>`, e.g.::
+
+    CREATE TABLE tbl(a INTEGER, PRIMARY KEY(a), b INTEGER);
+    INSERT INTO tbl(a) VALUES (1, 11);
+    REFRESH TABLE tbl;
+    SELECT * FROM tbl WHERE CAST(t.a AS BOOLEAN)= true;
+
+  Same issue, previously, would cause no rows to be updated or deleted, e.g. ::
+
+    UPDATE tbl SET b = b + 1 WHERE CAST(t.a AS BOOLEAN)= true;
+    DELETE FROM tbl WHERE CAST(t.a AS BOOLEAN)= true;
+
 - Fixed an issue that can cause errors during a rolling upgrade to >=
   :ref:`version_5.6.0` if one of the following command is executed on relations
   with existing privileges:
