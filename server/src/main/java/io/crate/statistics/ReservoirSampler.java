@@ -63,7 +63,7 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
 import io.crate.Streamer;
-import io.crate.breaker.TypedCellsAccounting;
+import io.crate.breaker.CellsSizeEstimator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
@@ -263,8 +263,8 @@ public final class ReservoirSampler {
             }
         }
 
-        var rowAccounting = new TypedCellsAccounting(Symbols.typeView(columns), ramAccounting, 0);
-        ArrayList<Row> records = createRecords(fetchIdSamples.samples(), docIdToRowsFunctionPerReader, ramAccounting, rowAccounting, maxSamples);
+        var sizeEstimator = new CellsSizeEstimator(Symbols.typeView(columns));
+        ArrayList<Row> records = createRecords(fetchIdSamples.samples(), docIdToRowsFunctionPerReader, ramAccounting, sizeEstimator, maxSamples);
         return new Samples(records, streamers, totalNumDocs, totalSizeInBytes);
     }
 
@@ -272,7 +272,7 @@ public final class ReservoirSampler {
     ArrayList<Row> createRecords(LongArrayList samples,
                                  List<DocIdToRow> docIdToRowsFunctionPerReader,
                                  RamAccounting ramAccounting,
-                                 TypedCellsAccounting rowAccounting,
+                                 CellsSizeEstimator sizeEstimator,
                                  int maxSamples) {
         ArrayList<Row> records = new ArrayList<>();
         long bytesSinceLastPause = 0;
@@ -284,7 +284,7 @@ public final class ReservoirSampler {
             Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
 
             try {
-                long bytesRead = rowAccounting.accountRowBytes(row);
+                long bytesRead = sizeEstimator.applyAsLong(row);
                 ramAccounting.addBytes(bytesRead);
                 bytesSinceLastPause = maybePause(bytesRead, bytesSinceLastPause);
             } catch (CircuitBreakingException e) {
