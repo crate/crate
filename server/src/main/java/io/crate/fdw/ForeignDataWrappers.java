@@ -21,11 +21,8 @@
 
 package io.crate.fdw;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.ResourceNotFoundException;
@@ -39,21 +36,13 @@ import io.crate.data.Row;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.ForeignCollectPhase;
-import io.crate.execution.dsl.projection.builder.InputColumns;
-import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.sources.CollectSource;
-import io.crate.execution.engine.pipeline.InputRowProjector;
 import io.crate.expression.InputFactory;
-import io.crate.expression.InputFactory.Context;
-import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -61,55 +50,15 @@ public class ForeignDataWrappers implements CollectSource {
 
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
-
-    private final Map<String, ForeignDataWrapper> wrappers = Map.of(
-        "jdbc", new ForeignDataWrapper() {
-
-            @Override
-            public CompletableFuture<BatchIterator<Row>> getIterator(Server server,
-                                                                     TransactionContext txnCtx,
-                                                                     RelationName relationName,
-                                                                     List<Symbol> collect) {
-                SessionSettings sessionSettings = txnCtx.sessionSettings();
-                Map<String, Object> userOptions = server.users().get(sessionSettings.userName());
-                if (userOptions == null) {
-                    userOptions = Map.of();
-                }
-                String user = DataTypes.STRING.implicitCast(userOptions.get("user"));
-                String password = DataTypes.STRING.implicitCast(userOptions.get("password"));
-                var properties = new Properties();
-                properties.setProperty("user", user == null ? sessionSettings.userName() : user);
-                if (password != null) {
-                    properties.setProperty("password", password);
-                }
-
-                // It's unknown if/what kind of scalars are supported by the remote.
-                // Evaluate them locally and only fetch columns
-                List<Reference> refs = new ArrayList<>(collect.size());
-                for (var symbol : collect) {
-                    RefVisitor.visitRefs(symbol, ref -> refs.add(ref));
-                }
-
-                Map<String, Object> options = server.options();
-                Object urlObject = options.getOrDefault("url", "jdbc:postgresql://localhost:5432/");
-                String url = DataTypes.STRING.implicitCast(urlObject);
-                BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, relationName);
-                if (!refs.containsAll(collect)) {
-                    var sourceRefs = new InputColumns.SourceSymbols(refs);
-                    List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);
-                    Context<CollectExpression<Row, ?>> inputCtx = inputFactory.ctxForInputColumns(txnCtx, inputColumns);
-                    InputRowProjector inputRowProjector = new InputRowProjector(inputCtx.topLevelInputs(), inputCtx.expressions());
-                    it = inputRowProjector.apply(it);
-                }
-                return CompletableFuture.completedFuture(it);
-            }
-        }
-    );
+    private final Map<String, ForeignDataWrapper> wrappers;
 
     @Inject
     public ForeignDataWrappers(ClusterService clusterService, NodeContext nodeContext) {
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(nodeContext);
+        this.wrappers = Map.of(
+            "jdbc", new JdbcForeignDataWrapper(inputFactory)
+        );
     }
 
     public boolean contains(String fdw) {
