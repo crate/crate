@@ -45,7 +45,7 @@ class ReaderBucket {
 
     ReaderBucket(RamAccounting ramAccounting, FetchSource fetchSource) {
         this.ramAccounting = ramAccounting;
-        this.estimateCellsSize = new CellsSizeEstimator(Symbols.typeView(fetchSource.references()));
+        this.estimateCellsSize = CellsSizeEstimator.forColumns(Symbols.typeView(fetchSource.references()));
     }
 
     void require(int doc) {
@@ -91,7 +91,7 @@ class ReaderBucket {
     }
 
     private long accountMemory(Object[] cells) {
-        long bytes = estimateCellsSize.applyAsLong(cells);
+        long bytes = estimateCellsSize.estimateSize(cells);
         ramAccounting.addBytes(bytes);
         return bytes;
     }

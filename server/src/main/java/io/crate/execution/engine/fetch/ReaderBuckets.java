@@ -25,7 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
-import java.util.function.ToLongFunction;
+
+import org.apache.lucene.util.Accountable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -34,8 +35,7 @@ import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
-import org.apache.lucene.util.Accountable;
-
+import io.crate.breaker.CellsSizeEstimator;
 import io.crate.data.Bucket;
 import io.crate.data.CloseableIterator;
 import io.crate.data.Row;
@@ -61,7 +61,7 @@ public class ReaderBuckets implements Accountable {
     private final IntObjectHashMap<ReaderBucket> readerBuckets = new IntObjectHashMap<>();
     private final ArrayList<Object[]> rows = new ArrayList<>();
     private final FetchRows fetchRows;
-    private final ToLongFunction<Object[]> estimateRow;
+    private final CellsSizeEstimator estimateRow;
     private final RamAccounting ramAccounting;
     private final IntFunction<FetchSource> getFetchSource;
 
@@ -69,7 +69,7 @@ public class ReaderBuckets implements Accountable {
 
     public ReaderBuckets(FetchRows fetchRows,
                          IntFunction<FetchSource> getFetchSource,
-                         ToLongFunction<Object[]> estimateRow,
+                         CellsSizeEstimator estimateRow,
                          RamAccounting ramAccounting) {
         this.fetchRows = fetchRows;
         this.getFetchSource = getFetchSource;
@@ -79,7 +79,7 @@ public class ReaderBuckets implements Accountable {
 
     public void add(Row row) {
         Object[] cells = row.materialize();
-        long size = estimateRow.applyAsLong(cells);
+        long size = estimateRow.estimateSize(cells);
         ramAccounting.addBytes(size);
         usedMemoryEstimateInBytes += size;
         rows.add(cells);

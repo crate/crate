@@ -64,7 +64,7 @@ public final class FetchProjector {
             projection.fetchSources(),
             projection.outputSymbols()
         );
-        CellsSizeEstimator estimateRowSize = new CellsSizeEstimator(projection.inputTypes());
+        CellsSizeEstimator estimateRowSize = CellsSizeEstimator.forColumns(projection.inputTypes());
         return (BatchIterator<Row> source) -> {
             final long maxBucketsSizeInBytes = getBucketsBytesThreshold.getAsLong();
             BatchIterator<ReaderBuckets> buckets = BatchIterators.chunks(

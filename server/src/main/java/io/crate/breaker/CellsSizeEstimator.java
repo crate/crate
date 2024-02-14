@@ -22,30 +22,71 @@
 package io.crate.breaker;
 
 import java.util.List;
-import java.util.function.ToLongFunction;
+import java.util.function.IntFunction;
 
+import io.crate.data.Row;
 import io.crate.types.DataType;
 
-public final class CellsSizeEstimator implements ToLongFunction<Object[]> {
+/**
+ * Estimates the memory footprint of a row represented as an array of java objects
+ */
+public abstract class CellsSizeEstimator {
 
-    private final List<? extends DataType<?>> columnTypes;
+    protected CellsSizeEstimator() { }
 
-    public CellsSizeEstimator(List<? extends DataType<?>> columnTypes) {
-        this.columnTypes = columnTypes;
+    /**
+     * Create a CellsSizeEstimator instance that uses an ordered list of column types
+     * to estimate the memory footprint of a row, represented as an array of java objects
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static CellsSizeEstimator forColumns(List<? extends DataType<?>> columnTypes) {
+        return new CellsSizeEstimator() {
+            @Override
+            protected long estimateSize(int valueCount, IntFunction<Object> values) {
+                assert columnTypes.size() == valueCount
+                    : "Size of incoming cells must match number of estimators. "
+                    + "Cells=" + valueCount
+                    + " estimators=" + columnTypes.size();
+                long size = 0;
+                for (int i = 0; i < valueCount; i++) {
+                    DataType dataType = columnTypes.get(i);
+                    size += dataType.valueBytes(values.apply(i));
+                }
+                return size;
+            }
+        };
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Override
-    public long applyAsLong(Object[] cells) {
-        assert columnTypes.size() == cells.length
-            : "Size of incoming cells must match number of estimators. "
-                + "Cells=" + cells.length
-                + " estimators=" + columnTypes.size();
-        long size = 0;
-        for (int i = 0; i < cells.length; i++) {
-            DataType dataType = columnTypes.get(i);
-            size += dataType.valueBytes(cells[i]);
-        }
-        return size;
+    /**
+     * Create a CellSizeEstimator instance that always returns a constant value
+     */
+    public static CellsSizeEstimator constant(long value) {
+        return new CellsSizeEstimator() {
+            @Override
+            protected long estimateSize(int valueCount, IntFunction<Object> values) {
+                return value;
+            }
+        };
+    }
+
+    /**
+     * Estimate the memory footprint of a set of values
+     * @param valueCount    the number of values
+     * @param values        a mapping from the value index to the value object
+     */
+    protected abstract long estimateSize(int valueCount, IntFunction<Object> values);
+
+    /**
+     * Estimate the memory footprint of a {@link Row}
+     */
+    public final long estimateSize(Row row) {
+        return estimateSize(row.numColumns(), row::get);
+    }
+
+    /**
+     * Estimate the memory footprint of a row, represented as an array of java objects
+     */
+    public final long estimateSize(Object[] cells) {
+        return estimateSize(cells.length, i -> cells[i]);
     }
 }

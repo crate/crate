@@ -78,7 +78,7 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
         var readerBuckets = new ReaderBuckets(
             fetchRows,
             reader -> fetchSource,
-            new CellsSizeEstimator(List.of(DataTypes.LONG, DataTypes.INTEGER)),
+            CellsSizeEstimator.forColumns(List.of(DataTypes.LONG, DataTypes.INTEGER)),
             ramAccounting
         );
         long fetchId = FetchId.encode(readerId, 1);

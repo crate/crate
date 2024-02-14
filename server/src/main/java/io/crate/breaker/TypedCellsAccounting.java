@@ -47,7 +47,7 @@ public class TypedCellsAccounting implements RowAccounting<Object[]> {
     public TypedCellsAccounting(List<? extends DataType<?>> columnTypes,
                                 RamAccounting ramAccounting,
                                 int extraSizePerRow) {
-        this.sizeEstimator = new CellsSizeEstimator(columnTypes);
+        this.sizeEstimator = CellsSizeEstimator.forColumns(columnTypes);
         this.ramAccounting = ramAccounting;
         this.extraSizePerRow = extraSizePerRow;
     }
@@ -60,7 +60,7 @@ public class TypedCellsAccounting implements RowAccounting<Object[]> {
      */
     @Override
     public long accountForAndMaybeBreak(Object[] rowCells) {
-        long rowBytes = sizeEstimator.applyAsLong(rowCells) + extraSizePerRow;
+        long rowBytes = sizeEstimator.estimateSize(rowCells) + extraSizePerRow;
         ramAccounting.addBytes(rowBytes);
         return rowBytes;
     }
