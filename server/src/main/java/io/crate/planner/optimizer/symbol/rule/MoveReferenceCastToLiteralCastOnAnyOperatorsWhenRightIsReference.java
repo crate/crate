@@ -53,7 +53,7 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference im
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
-            .with(f -> f.arguments().get(0).symbolType() == SymbolType.LITERAL)
+            .with(f -> f.arguments().get(0).symbolType().isValueOrParameterSymbol())
             .with(f -> Optional.of(f.arguments().get(1)), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast())
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
@@ -70,7 +70,7 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference im
                         Captures captures,
                         NodeContext nodeCtx,
                         Symbol parentNode) {
-        var literal = operator.arguments().get(0);
+        var literalOrParam = operator.arguments().get(0);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = reference.valueType();
@@ -81,14 +81,14 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference im
 
         var operatorName = operator.name();
         if (List.of(AnyEqOperator.NAME, AnyNeqOperator.NAME).contains(operatorName) == false
-            && literal.valueType().id() == ArrayType.ID) {
+            && literalOrParam.valueType().id() == ArrayType.ID) {
             // this is not supported and will fail later on with more verbose error than a cast error
             return null;
         }
 
         return functionResolver.apply(
             operator.name(),
-            List.of(literal.cast(targetType), reference)
+            List.of(literalOrParam.cast(targetType), reference)
         );
     }
 }

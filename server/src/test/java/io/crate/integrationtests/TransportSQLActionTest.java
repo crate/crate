@@ -1821,7 +1821,7 @@ public class TransportSQLActionTest extends IntegTestCase {
                 createTable.append(", ");
             }
         }
-        createTable.append(")");
+        createTable.append(") WITH (refresh_interval = 0)");
         execute(createTable.toString());
 
         String insert = "INSERT INTO tbl VALUES ("
@@ -1862,12 +1862,12 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute(selectParams.toString(), args);
         assertThat(response)
-            .as(selectParams.toString() + " with values " + Arrays.toString(args) + " must return a record")
+            .as(selectParams + " with values " + Arrays.toString(args) + " must return a record")
             .hasRowCount(1L);
 
         execute(selectInlineValues.toString());
         assertThat(response)
-            .as(selectInlineValues.toString() + " must return a record")
+            .as(selectInlineValues + " must return a record")
             .hasRowCount(1L);
     }
 

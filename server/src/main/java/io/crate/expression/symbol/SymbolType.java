@@ -21,16 +21,17 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
+
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.SimpleReference;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.List;
 
 public enum SymbolType {
 
@@ -74,5 +75,9 @@ public enum SymbolType {
 
     public boolean isValueSymbol() {
         return ordinal() == LITERAL.ordinal();
+    }
+
+    public boolean isValueOrParameterSymbol() {
+        return ordinal() == LITERAL.ordinal() || ordinal() == PARAMETER.ordinal();
     }
 }
