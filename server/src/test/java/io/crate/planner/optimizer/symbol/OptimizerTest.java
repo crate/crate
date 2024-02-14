@@ -24,9 +24,11 @@ package io.crate.planner.optimizer.symbol;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 
 import org.junit.Test;
 
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -52,5 +54,17 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
         Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("strCol::bigint > 3"), e.getPlannerContext(clusterService.state()));
 
         assertThat(symbol).isFunction(GtOperator.NAME, isFunction("cast"), isLiteral(3L));
+    }
+
+    @Test
+    public void test_implicit_cast_is_swapped_between_column_and_parameter() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (bytecol byte)")
+            .build();
+
+        // The symbol to optimize, because of ExpressionAnalyzer cast logic is
+        // _cast(bytcol, smallint) = 3
+        Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("bytecol = 3::short"), e.getPlannerContext(clusterService.state()));
+        assertThat(symbol).isFunction(EqOperator.NAME, isReference("bytecol"), isFunction("_cast"));
     }
 }
