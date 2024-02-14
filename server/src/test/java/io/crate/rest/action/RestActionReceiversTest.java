@@ -33,7 +33,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
@@ -93,7 +93,7 @@ public class RestActionReceiversTest extends ESTestCase {
             JsonXContent.builder(),
             fields,
             0L,
-            new RowAccountingWithEstimators(Symbols.typeView(fields), RamAccounting.NO_ACCOUNTING),
+            new TypedRowAccounting(Symbols.typeView(fields), RamAccounting.NO_ACCOUNTING),
             true
         );
         for (Row row : rows) {

@@ -67,8 +67,8 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -732,7 +732,7 @@ public class JobSetup {
                         phase.inputTypes(),
                         projectingRowConsumer.requiresScroll(),
                         phase.orderByPositions(),
-                        () -> new RowAccountingWithEstimators(
+                        () -> new TypedRowAccounting(
                             phase.inputTypes(),
                             new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes))),
                     phase.numUpstreams());
@@ -949,7 +949,7 @@ public class JobSetup {
                 //    96 bytes for each ArrayList +
                 //    7 bytes per key for the IntHashObjectHashMap  (should be 4 but the map pre-allocates more)
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
-                new RowCellsAccountingWithEstimators(phase.leftOutputTypes(), ramAccountingOfOperation, 110),
+                new TypedCellsAccounting(phase.leftOutputTypes(), ramAccountingOfOperation, 110),
                 context.transactionContext,
                 inputFactory,
                 breaker(),
@@ -1026,7 +1026,7 @@ public class JobSetup {
                     mergePhase.inputTypes(),
                     rowConsumer.requiresScroll(),
                     mergePhase.orderByPositions(),
-                    () -> new RowAccountingWithEstimators(
+                    () -> new TypedRowAccounting(
                         mergePhase.inputTypes(),
                         ramAccounting)),
                 mergePhase.numUpstreams());

@@ -45,7 +45,7 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.LongArrayList;
 
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -75,7 +75,7 @@ public class ReservoirSamplerTest extends CrateDummyClusterServiceUnitTest {
         ReservoirSampler.DocIdToRow docIdToRow = mock(ReservoirSampler.DocIdToRow.class);
         when(docIdToRow.apply(anyInt())).thenReturn(new Object[]{});
 
-        RowCellsAccountingWithEstimators rowAccounting = mock(RowCellsAccountingWithEstimators.class);
+        TypedCellsAccounting rowAccounting = mock(TypedCellsAccounting.class);
 
         // FetchId.decodeReaderId(123) returns 0, second List should have an element with index 0.
         LongArrayList fetchIds = new LongArrayList();
@@ -94,7 +94,7 @@ public class ReservoirSamplerTest extends CrateDummyClusterServiceUnitTest {
         ReservoirSampler.DocIdToRow docIdToRow = mock(ReservoirSampler.DocIdToRow.class);
         when(docIdToRow.apply(anyInt())).thenReturn(new Object[]{});
 
-        RowCellsAccountingWithEstimators rowAccounting = mock(RowCellsAccountingWithEstimators.class);
+        TypedCellsAccounting rowAccounting = mock(TypedCellsAccounting.class);
         long rowSize = bytesPerSec + 1; // ensure 1 pause
         when(rowAccounting.accountRowBytes(any())).thenReturn(rowSize);
 

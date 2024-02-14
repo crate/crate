@@ -26,11 +26,11 @@ import java.util.function.ToLongFunction;
 
 import io.crate.types.DataType;
 
-public final class EstimateCellsSize implements ToLongFunction<Object[]> {
+public final class CellsSizeEstimator implements ToLongFunction<Object[]> {
 
     private final List<? extends DataType<?>> columnTypes;
 
-    public EstimateCellsSize(List<? extends DataType<?>> columnTypes) {
+    public CellsSizeEstimator(List<? extends DataType<?>> columnTypes) {
         this.columnTypes = columnTypes;
     }
 

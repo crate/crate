@@ -52,7 +52,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
@@ -74,7 +74,7 @@ import io.crate.types.LongType;
 @State(Scope.Benchmark)
 public class OrderedLuceneBatchIteratorBenchmark {
 
-    private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(
+    private static final TypedRowAccounting ROW_ACCOUNTING = new TypedRowAccounting(
         List.of(LongType.INSTANCE),
         RamAccounting.NO_ACCOUNTING
     );

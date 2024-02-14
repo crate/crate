@@ -28,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.ArrayRow;
@@ -79,7 +79,7 @@ public final class Cursor implements AutoCloseable {
         this.queryIterator = queryIterator;
         this.finalResult = finalResult;
         this.outputs = outputs;
-        this.rowAccounting = new RowCellsAccountingWithEstimators(
+        this.rowAccounting = new TypedCellsAccounting(
             Symbols.typeView(outputs),
             new BlockBasedRamAccounting(
                 bytes -> circuitBreaker.addEstimateBytesAndMaybeBreak(bytes, "cursor-scroll"),

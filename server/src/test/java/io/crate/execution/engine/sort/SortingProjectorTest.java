@@ -36,7 +36,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Projector;
@@ -112,8 +112,8 @@ public class SortingProjectorTest extends ESTestCase {
                                                                        1,
                                                                        LogManager.getLogger(SortingProjectorTest.class)
         );
-        RowCellsAccountingWithEstimators rowAccounting =
-            new RowCellsAccountingWithEstimators(
+        TypedCellsAccounting rowAccounting =
+            new TypedCellsAccounting(
                 List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
                 ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
                 0);
