@@ -21,6 +21,8 @@
 
 package io.crate.fdw;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -30,6 +32,9 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -43,22 +48,35 @@ import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 
 @Singleton
 public class ForeignDataWrappers implements CollectSource {
 
+    public static Setting<Boolean> ALLOW_LOCAL = Setting.boolSetting(
+        "fdw.allow_local",
+        false,
+        Property.NodeScope,
+        Property.Exposed
+    );
+
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
     private final Map<String, ForeignDataWrapper> wrappers;
+    private final Roles roles;
 
     @Inject
-    public ForeignDataWrappers(ClusterService clusterService, NodeContext nodeContext) {
+    public ForeignDataWrappers(Settings settings,
+                               ClusterService clusterService,
+                               NodeContext nodeContext,
+                               Roles roles) {
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(nodeContext);
         this.wrappers = Map.of(
-            "jdbc", new JdbcForeignDataWrapper(inputFactory)
+            "jdbc", new JdbcForeignDataWrapper(settings, inputFactory)
         );
+        this.roles = roles;
     }
 
     public boolean contains(String fdw) {
@@ -105,6 +123,7 @@ public class ForeignDataWrappers implements CollectSource {
         String remoteTable = DataTypes.STRING.implicitCast(options.getOrDefault("table_name", name.name()));
         RelationName remoteName = new RelationName(remoteSchema, remoteTable);
         return fdw.getIterator(
+            requireNonNull(roles.findUser(txnCtx.sessionSettings().userName()), "current user must exit"),
             server,
             txnCtx,
             remoteName,

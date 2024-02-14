@@ -30,10 +30,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.role.Role;
 
 public interface ForeignDataWrapper {
 
-    CompletableFuture<BatchIterator<Row>> getIterator(Server server,
+    CompletableFuture<BatchIterator<Row>> getIterator(Role user,
+                                                      Server server,
                                                       TransactionContext txnCtx,
                                                       RelationName relationName,
                                                       List<Symbol> collect);

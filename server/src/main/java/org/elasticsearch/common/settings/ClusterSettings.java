@@ -106,6 +106,7 @@ import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.jobs.NodeLimits;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.legacy.LegacySettings;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.settings.AnalyzerSettings;
@@ -453,6 +454,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING,
         FsHealthService.ENABLED_SETTING,
         FsHealthService.REFRESH_INTERVAL_SETTING,
-        FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING
+        FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING,
+        ForeignDataWrappers.ALLOW_LOCAL
     );
 }

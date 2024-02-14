@@ -21,11 +21,17 @@
 
 package io.crate.fdw;
 
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -41,18 +47,22 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.role.Role;
 import io.crate.types.DataTypes;
 
 final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
     private final InputFactory inputFactory;
+    private final Settings settings;
 
-    JdbcForeignDataWrapper(InputFactory inputFactory) {
+    JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory) {
+        this.settings = settings;
         this.inputFactory = inputFactory;
     }
 
     @Override
-    public CompletableFuture<BatchIterator<Row>> getIterator(Server server,
+    public CompletableFuture<BatchIterator<Row>> getIterator(Role currentUser,
+                                                             Server server,
                                                              TransactionContext txnCtx,
                                                              RelationName relationName,
                                                              List<Symbol> collect) {
@@ -79,6 +89,25 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         Map<String, Object> options = server.options();
         Object urlObject = options.getOrDefault("url", "jdbc:postgresql://localhost:5432/");
         String url = DataTypes.STRING.implicitCast(urlObject);
+        URI uri;
+        try {
+            uri = new URI(url);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        InetAddress host;
+        try {
+            host = InetAddress.getByName(uri.getHost());
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+        if ((host.isAnyLocalAddress() || host.isLoopbackAddress())
+                && !currentUser.isSuperUser()
+                && !ForeignDataWrappers.ALLOW_LOCAL.get(settings)) {
+            throw new UnsupportedOperationException(
+                "Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
+        }
         BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, relationName);
         if (!refs.containsAll(collect)) {
             var sourceRefs = new InputColumns.SourceSymbols(refs);

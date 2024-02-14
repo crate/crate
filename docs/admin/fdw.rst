@@ -58,6 +58,15 @@ The JDBC foreign data wrapper supports the following ``OPTIONS`` for use with
   You should avoid specifying user and password information in the URL, and
   instead make use of the :ref:`ref-create-user-mapping` feature.
 
+.. note::
+
+  The default of ``127.0.0.1:5432`` only works for the ``crate`` super user. Any
+  other user is by default not allowed to connect to instances running on the
+  same host as CrateDB.
+
+  This is a security measure to prevent users from by-passing
+  :ref:`admin_hba` restrictions. See :ref:`fdw.allow_local`.
+
 Example::
 
   CREATE SERVER my_postgresql FOREIGN DATA WRAPPER jdbc

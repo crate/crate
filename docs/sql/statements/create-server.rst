@@ -61,7 +61,7 @@ For example, for the ``jdbc`` foreign data wrapper you can define a ``url``
 property to define the connection string::
 
     CREATE SERVER pg FOREIGN DATA WRAPPER jdbc
-    OPTIONS (url 'jdbc:postgresql://127.0.0.1:5432')
+    OPTIONS (url 'jdbc:postgresql://example.com:5432')
 
 See :ref:`administration-fdw` for the foreign data wrapper specific options.
 
