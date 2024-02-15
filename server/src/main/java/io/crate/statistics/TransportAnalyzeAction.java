@@ -25,7 +25,6 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -46,20 +45,16 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.concurrent.CompletableFutures;
-import io.crate.data.Row;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -161,7 +156,7 @@ public final class TransportAnalyzeAction {
                 futures.add(fetchSamples(
                     table.ident(),
                     primitiveColumns
-                ).thenApply(samples -> Map.entry(table.ident(), createTableStats(samples, primitiveColumns))));
+                ).thenApply(samples -> Map.entry(table.ident(), samples.createTableStats(primitiveColumns))));
             }
         }
         return CompletableFutures.allAsList(futures)
@@ -189,37 +184,6 @@ public final class TransportAnalyzeAction {
             transportService.sendRequest(node, RECEIVE_TABLE_STATS, request, responseHandler);
         }
         return listener;
-    }
-
-    @VisibleForTesting
-    static Stats createTableStats(Samples samples, List<Reference> primitiveColumns) {
-        List<Row> records = samples.records;
-        List<Object> columnValues = new ArrayList<>(records.size());
-        Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>();
-        for (int i = 0; i < primitiveColumns.size(); i++) {
-            Reference primitiveColumn = primitiveColumns.get(i);
-            columnValues.clear();
-            int nullCount = 0;
-            for (Row row : records) {
-                Object value = row.get(i);
-                if (value == null) {
-                    nullCount++;
-                } else {
-                    columnValues.add(value);
-                }
-            }
-            @SuppressWarnings("unchecked")
-            DataType<Object> dataType = (DataType<Object>) primitiveColumn.valueType();
-            columnValues.sort(dataType);
-            ColumnStats<?> columnStats = ColumnStats.fromSortedValues(
-                columnValues,
-                dataType,
-                nullCount,
-                samples.numTotalDocs
-            );
-            statsByColumn.put(primitiveColumn.column(), columnStats);
-        }
-        return new Stats(samples.numTotalDocs, samples.numTotalSizeInBytes, statsByColumn);
     }
 
     @SuppressWarnings("rawtypes")
