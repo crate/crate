@@ -23,7 +23,9 @@ package io.crate.statistics;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -34,6 +36,9 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.types.DataType;
 
 class Samples implements Writeable {
 
@@ -41,9 +46,9 @@ class Samples implements Writeable {
 
     @SuppressWarnings("rawtypes")
     private final List<Streamer> recordStreamer;
-    final List<Row> records;
-    final long numTotalDocs;
-    final long numTotalSizeInBytes;
+    private final List<Row> records;
+    private final long numTotalDocs;
+    private final long numTotalSizeInBytes;
 
     @SuppressWarnings("rawtypes")
     Samples(List<Row> records, List<Streamer> recordStreamer, long numTotalDocs, long numTotalSizeInBytes) {
@@ -117,5 +122,34 @@ class Samples implements Writeable {
             }
         }
         return newSamples;
+    }
+
+    public Stats createTableStats(List<Reference> primitiveColumns) {
+        List<Object> columnValues = new ArrayList<>(records.size());
+        Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>();
+        for (int i = 0; i < primitiveColumns.size(); i++) {
+            Reference primitiveColumn = primitiveColumns.get(i);
+            columnValues.clear();
+            int nullCount = 0;
+            for (Row row : records) {
+                Object value = row.get(i);
+                if (value == null) {
+                    nullCount++;
+                } else {
+                    columnValues.add(value);
+                }
+            }
+            @SuppressWarnings("unchecked")
+            DataType<Object> dataType = (DataType<Object>) primitiveColumn.valueType();
+            columnValues.sort(dataType);
+            ColumnStats<?> columnStats = ColumnStats.fromSortedValues(
+                columnValues,
+                dataType,
+                nullCount,
+                numTotalDocs
+            );
+            statsByColumn.put(primitiveColumn.column(), columnStats);
+        }
+        return new Stats(numTotalDocs, numTotalSizeInBytes, statsByColumn);
     }
 }
