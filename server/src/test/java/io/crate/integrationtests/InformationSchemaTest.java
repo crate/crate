@@ -565,7 +565,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(981);
+        assertThat(response.rowCount()).isEqualTo(984);
     }
 
     @Test

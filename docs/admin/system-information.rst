@@ -2175,6 +2175,12 @@ The ``sys.users`` table contains all existing database users in the cluster.
 | ``granted_roles[grantor]`` | The name of user who granted the | ``TEXT``    |
 |                            | role to the user                 |             |
 +----------------------------+----------------------------------+-------------+
+| ``jwt``                    | JWT authentication properties    | ``OBJECT``  |
++----------------------------+----------------------------------+-------------+
+| ``jwt[iss]``               | JWK endpoint URL                 | ``TEXT``    |
++----------------------------+----------------------------------+-------------+
+| ``jwt[username]``          | User name in a third party app   | ``TEXT``    |
++----------------------------+----------------------------------+-------------+
 
 .. _sys-roles:
 
