@@ -101,6 +101,9 @@ Administration and Operations
   :ref:`use_path_style_access <sql-create-repo-s3-use_path_style_access>` for
   S3 repositories.
 
+- Added ``jwt`` column to :ref:`sys.users<sys-users>` table which lists JWT
+  authentication specific properties of the user.
+
 User Interface
 --------------
 
