@@ -116,7 +116,7 @@ public class RoleManagerService implements RoleManager {
                                               @Nullable JwtProperties jwtProperties) {
         return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties), r -> {
             if (r.doesUserExist()) {
-                throw new RoleAlreadyExistsException(roleName);
+                throw RoleAlreadyExistsException.of(roleName, jwtProperties);
             }
             return 1L;
         });

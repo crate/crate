@@ -23,9 +23,25 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.role.JwtProperties;
+
 public class RoleAlreadyExistsException extends RuntimeException implements ConflictException, UnscopedException {
 
-    public RoleAlreadyExistsException(String roleName) {
-        super(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
+    private RoleAlreadyExistsException(String message) {
+        super(message);
+    }
+
+    public static RoleAlreadyExistsException of(String roleName, @Nullable JwtProperties jwtProperties) {
+        if (jwtProperties == null) {
+            return new RoleAlreadyExistsException(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
+        } else {
+            return new RoleAlreadyExistsException(String.format(
+                Locale.ENGLISH,
+                "Role '%s' or another role with the same combination of jwt properties already exists",
+                roleName
+            ));
+        }
     }
 }

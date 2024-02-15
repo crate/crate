@@ -67,6 +67,23 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_create_user_with_matching_jwt_props_exists() throws Exception {
+        Metadata.Builder mdBuilder = new Metadata.Builder();
+        TransportCreateRoleAction.putRole(mdBuilder,
+            "user1",
+            true,
+            null,
+            new JwtProperties("https:dummy.org", "test"));
+
+        boolean exists = TransportCreateRoleAction.putRole(mdBuilder,
+            "user2",
+            true,
+            null,
+            new JwtProperties("https:dummy.org", "test"));
+        assertThat(exists).isTrue();
+    }
+
+    @Test
     public void testCreateUserAlreadyExists() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));

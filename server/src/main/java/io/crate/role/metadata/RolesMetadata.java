@@ -45,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.GrantedRole;
 import io.crate.role.GrantedRolesChange;
+import io.crate.role.JwtProperties;
 import io.crate.role.Policy;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
@@ -90,6 +91,20 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
     public boolean contains(String name) {
         return roles.containsKey(name);
+    }
+
+    /**
+     * Combination of iss/username must be unique throughout all users.
+     */
+    public boolean contains(JwtProperties jwtProperties) {
+        for (Role role: roles.values()) {
+            if (role.jwtProperties() != null) {
+                if (role.jwtProperties().equals(jwtProperties)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public Role remove(String name) {

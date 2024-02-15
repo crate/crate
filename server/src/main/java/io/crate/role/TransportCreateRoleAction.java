@@ -120,7 +120,7 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
         UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         boolean exists = true;
-        if (newMetadata.contains(roleName) == false) {
+        if (newMetadata.contains(roleName) == false && newMetadata.contains(jwtProperties) == false) {
             newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash, jwtProperties));
             exists = false;
         } else if (newMetadata.equals(oldRolesMetadata)) {
