@@ -101,9 +101,13 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             "granted_roles| object_array",
             "granted_roles['grantor']| text_array",
             "granted_roles['role']| text_array",
+            "jwt| object",
+            "jwt['iss']| text",
+            "jwt['username']| text",
             "name| text",
             "password| text",
-            "superuser| boolean");
+            "superuser| boolean"
+        );
     }
 
     @Test
@@ -281,7 +285,8 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     @Test
     public void test_create_user_jwt_properties_must_be_unique() {
         execute("CREATE USER user1 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user'})");
-        assertUserIsCreated("user1");
+        execute("SELECT name, jwt from sys.users WHERE name = 'user1'");
+        assertThat(response).hasRows("user1| {iss=dummy.org/keys, username=app_user}");
         Asserts.assertSQLError(() -> execute("CREATE USER user2 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user'})"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(CONFLICT, 4099)
