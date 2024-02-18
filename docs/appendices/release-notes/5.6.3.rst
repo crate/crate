@@ -47,4 +47,5 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed ``NullPointerException`` thrown when joining tables with ``USING``
+  clause which contained columns not known to one side of the tables.

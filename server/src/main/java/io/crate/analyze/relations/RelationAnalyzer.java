@@ -313,9 +313,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         for (var joinColumn : joinUsing.getColumns()) {
 
+            boolean usingColumnExistsInLeft = false;
             for (var leftOutput : leftOutputs) {
                 var columnIdent = Symbols.pathFromSymbol(leftOutput);
                 if (columnIdent.name().equals(joinColumn)) {
+                    usingColumnExistsInLeft = true;
                     if (lhsOutputs.put(joinColumn, leftOutput) != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                          "common column name %s appears more than once in left table", joinColumn));
@@ -323,14 +325,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
             }
 
-            if (lhsOutputs.isEmpty()) {
+            if (!usingColumnExistsInLeft) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "column %s specified in USING clause does not exist in left table", joinColumn));
             }
 
+            boolean usingColumnExistsInRight = false;
             for (Symbol rightOutput : rightOutputs) {
                 var columnIdent = Symbols.pathFromSymbol(rightOutput);
                 if (columnIdent.name().equals(joinColumn)) {
+                    usingColumnExistsInRight = true;
                     if (rhsOutputs.put(joinColumn, rightOutput) != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                          "common column name %s appears more than once in right table", joinColumn));
@@ -346,7 +350,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
             }
 
-            if (rhsOutputs.isEmpty()) {
+            if (!usingColumnExistsInRight) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "column %s specified in USING clause does not exist in right table", joinColumn));
             }

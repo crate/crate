@@ -986,6 +986,40 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     }
 
+    @Test
+    public void test_using_clause_specifying_multiple_columns_with_a_non_existing_column_raises_error() throws IOException {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("CREATE TABLE j1 (x INT, y INT)")
+            .addTable("CREATE TABLE j2 (x INT)")
+            .build();
+
+        assertThatThrownBy(() -> executor.analyze(
+            """
+            SELECT * FROM j1 JOIN j2 USING(x, y);
+            """
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("column y specified in USING clause does not exist in right table");
+
+        // left and right sides swapped
+        assertThatThrownBy(() -> executor.analyze(
+            """
+            SELECT * FROM j2 JOIN j1 USING(x, y);
+            """
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("column y specified in USING clause does not exist in left table");
+
+        // column unknown from both sides
+        assertThatThrownBy(() -> executor.analyze(
+            """
+            SELECT * FROM j2 JOIN j1 USING(x, z);
+            """
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("column z specified in USING clause does not exist in left table");
+    }
+
     /**
      * Verifies a bug fix (and regression that was introduced with 5.2.4)
      * See https://github.com/crate/crate/issues/13808
