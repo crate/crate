@@ -22,11 +22,11 @@
 package io.crate.fdw;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 
 public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest> {
 
@@ -34,13 +34,13 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
     private final String fdw;
     private final String owner;
     private final boolean ifNotExists;
-    private final Map<String, Object> options;
+    private final Settings options;
 
     public CreateServerRequest(String name,
                                String fdw,
                                String owner,
                                boolean ifNotExists,
-                               Map<String, Object> options) {
+                               Settings options) {
         this.name = name;
         this.fdw = fdw;
         this.owner = owner;
@@ -53,7 +53,7 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
         this.fdw = in.readString();
         this.owner = in.readString();
         this.ifNotExists = in.readBoolean();
-        this.options = in.readMap(StreamInput::readString, StreamInput::readGenericValue);
+        this.options = Settings.readSettingsFromStream(in);
     }
 
     @Override
@@ -62,7 +62,7 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
         out.writeString(fdw);
         out.writeString(owner);
         out.writeBoolean(ifNotExists);
-        out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
+        Settings.writeSettingsToStream(options, out);
     }
 
     public String name() {
@@ -77,7 +77,7 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
         return owner;
     }
 
-    public Map<String, Object> options() {
+    public Settings options() {
         return options;
     }
 

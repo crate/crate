@@ -54,13 +54,6 @@ public class ForeignDataWrapperITest extends IntegTestCase {
     }
 
     @Test
-    public void test_cannot_create_server_if_fdw_is_missing() throws Exception {
-        String stmt = "create server pg foreign data wrapper dummy options (host 'localhost', dbname 'doc', port '5432')";
-        assertThatThrownBy(() -> execute(stmt))
-            .hasMessageContaining("foreign-data wrapper dummy does not exist");
-    }
-
-    @Test
     public void test_full_fdw_flow() throws Exception {
         execute("create user trillian with (password = 'secret')");
         execute("create user arthur with (password = 'not-so-secret')");

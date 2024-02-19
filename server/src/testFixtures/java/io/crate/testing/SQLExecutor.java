@@ -132,6 +132,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -425,7 +426,8 @@ public class SQLExecutor {
                         tableStats,
                         null,
                         null,
-                    roleManager,
+                        roleManager,
+                        new ForeignDataWrappers(Settings.EMPTY, clusterService, nodeCtx),
                         sessionSettingRegistry
                     ),
                 relationAnalyzer,

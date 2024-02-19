@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -871,6 +872,25 @@ public final class Settings implements ToXContentFragment {
          */
         public Builder put(String setting, int value) {
             put(setting, String.valueOf(value));
+            return this;
+        }
+
+        public Builder put(String setting, Object value) {
+            switch (value) {
+                case Integer i -> put(setting, i.intValue());
+                case Long l -> put(setting, l.longValue());
+                case String l -> put(setting, l);
+                case Float f -> put(setting, f.floatValue());
+                case Double d -> put(setting, d.doubleValue());
+                case Boolean b -> put(setting, b.booleanValue());
+                case List<?> l -> putList(setting, l);
+                default -> throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Unsupported value: `%s`",
+                    setting,
+                    value
+                ));
+            }
             return this;
         }
 

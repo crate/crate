@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.metadata.Metadata.XContentContext;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -60,7 +61,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                          String fdw,
                          String owner,
                          Map<String, Map<String, Object>> users,
-                         Map<String, Object> options) implements Writeable, ToXContent {
+                         Settings options) implements Writeable, ToXContent {
 
 
         public Server(StreamInput in) throws IOException {
@@ -69,7 +70,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                 in.readString(),
                 in.readString(),
                 in.readMap(StreamInput::readString, StreamInput::readMap),
-                in.readMap(StreamInput::readString, StreamInput::readGenericValue)
+                Settings.readSettingsFromStream(in)
             );
         }
 
@@ -79,7 +80,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             out.writeString(fdw);
             out.writeString(owner);
             out.writeMap(users, StreamOutput::writeString, StreamOutput::writeMap);
-            out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
+            Settings.writeSettingsToStream(options, out);
         }
 
         @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -88,7 +89,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             String fdw = null;
             String owner = null;
             Map<String, Map<String, Object>> users = null;
-            Map<String, Object> options = null;
+            Settings options = null;
             while (parser.nextToken() != END_OBJECT) {
                 if (parser.currentToken() == FIELD_NAME) {
                     String fieldName = parser.currentName();
@@ -111,7 +112,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                             break;
 
                         case "options":
-                            options = parser.map();
+                            options = Settings.fromXContent(parser);
                             break;
 
                         default:
@@ -134,7 +135,9 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             builder.field("fdw", fdw);
             builder.field("owner", owner);
             builder.field("users", users);
-            builder.field("options", options);
+            builder.startObject("options");
+            options.toXContent(builder, params);
+            builder.endObject();
             return builder;
         }
     }
@@ -196,7 +199,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
     public ServersMetadata add(String name,
                                String fdw,
                                String owner,
-                               Map<String, Object> options) {
+                               Settings options) {
         HashMap<String, Server> servers = new HashMap<>(this.servers);
         Server server = new Server(name, fdw, owner, Map.of(), options);
         servers.put(name, server);
