@@ -69,18 +69,26 @@ public class ForeignDataWrappers implements CollectSource {
     @Inject
     public ForeignDataWrappers(Settings settings,
                                ClusterService clusterService,
-                               NodeContext nodeContext,
-                               Roles roles) {
+                               NodeContext nodeContext) {
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(nodeContext);
         this.wrappers = Map.of(
             "jdbc", new JdbcForeignDataWrapper(settings, inputFactory)
         );
-        this.roles = roles;
+        this.roles = nodeContext.roles();
     }
 
     public boolean contains(String fdw) {
         return wrappers.containsKey(fdw);
+    }
+
+    public ForeignDataWrapper get(String fdw) {
+        var foreignDataWrapper = wrappers.get(fdw);
+        if (foreignDataWrapper == null) {
+            throw new IllegalArgumentException(
+                "foreign-data wrapper " + fdw + " does not exist");
+        }
+        return foreignDataWrapper;
     }
 
     @Override

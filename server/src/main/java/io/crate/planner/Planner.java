@@ -102,6 +102,7 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.execution.ddl.tables.TableCreator;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.consumer.CreateTableAsPlan;
@@ -173,9 +174,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
     private final RoleManager roleManager;
+    private final ForeignDataWrappers foreignDataWrappers;
     private final SessionSettingRegistry sessionSettingRegistry;
 
     private List<String> awarenessAttributes;
+
 
     @Inject
     public Planner(Settings settings,
@@ -185,6 +188,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
                    RoleManager roleManager,
+                   ForeignDataWrappers foreignDataWrappers,
                    SessionSettingRegistry sessionSettingRegistry) {
         this.clusterService = clusterService;
         this.tableStats = tableStats;
@@ -192,6 +196,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
         this.roleManager = roleManager;
+        this.foreignDataWrappers = foreignDataWrappers;
         this.sessionSettingRegistry = sessionSettingRegistry;
         initAwarenessAttributes(settings);
     }
@@ -635,7 +640,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitCreateServer(AnalyzedCreateServer createServer, PlannerContext context) {
-        return new CreateServerPlan(createServer);
+        return new CreateServerPlan(foreignDataWrappers, createServer);
     }
 
     @Override

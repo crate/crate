@@ -24,6 +24,8 @@ package io.crate.fdw;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.common.settings.Setting;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
@@ -33,6 +35,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.role.Role;
 
 public interface ForeignDataWrapper {
+
+    default List<Setting<?>> mandatoryServerOptions() {
+        return List.of();
+    }
 
     CompletableFuture<BatchIterator<Row>> getIterator(Role user,
                                                       Server server,

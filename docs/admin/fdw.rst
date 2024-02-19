@@ -53,7 +53,7 @@ The JDBC foreign data wrapper supports the following ``OPTIONS`` for use with
 
 :url:
 
-  A JDBC connection string. Defaults to ``'jdbc:postgresql://127.0.0.1:5432/'``.
+  A JDBC connection string. This option is required.
 
   You should avoid specifying user and password information in the URL, and
   instead make use of the :ref:`ref-create-user-mapping` feature.

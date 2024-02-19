@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.data.BatchIterator;
@@ -54,10 +55,17 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
     private final InputFactory inputFactory;
     private final Settings settings;
+    private final Setting<String> urlSetting = Setting.simpleString("url");
+    private final List<Setting<?>> mandatoryServerOptions = List.of(urlSetting);
 
     JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory) {
         this.settings = settings;
         this.inputFactory = inputFactory;
+    }
+
+    @Override
+    public List<Setting<?>> mandatoryServerOptions() {
+        return mandatoryServerOptions;
     }
 
     @Override
@@ -86,9 +94,8 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
             RefVisitor.visitRefs(symbol, ref -> refs.add(ref));
         }
 
-        Map<String, Object> options = server.options();
-        Object urlObject = options.getOrDefault("url", "jdbc:postgresql://localhost:5432/");
-        String url = DataTypes.STRING.implicitCast(urlObject);
+        Settings options = server.options();
+        String url = urlSetting.get(options);
         URI uri;
         try {
             uri = new URI(url);

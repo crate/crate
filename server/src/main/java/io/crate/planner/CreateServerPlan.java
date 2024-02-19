@@ -21,10 +21,13 @@
 
 package io.crate.planner;
 
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedCreateServer;
 import io.crate.analyze.SymbolEvaluator;
@@ -33,15 +36,19 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.CreateServerRequest;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.TransportCreateServerAction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
 
 public class CreateServerPlan implements Plan {
 
+    private final ForeignDataWrappers foreignDataWrappers;
     private final AnalyzedCreateServer createServer;
 
-    public CreateServerPlan(AnalyzedCreateServer createServer) {
+    public CreateServerPlan(ForeignDataWrappers foreignDataWrappers,
+                            AnalyzedCreateServer createServer) {
+        this.foreignDataWrappers = foreignDataWrappers;
         this.createServer = createServer;
     }
 
@@ -63,14 +70,40 @@ public class CreateServerPlan implements Plan {
             plannerContext.nodeContext(),
             subQueryResults
         ).bind(params);
-        Map<String, Object> options = createServer.options().entrySet().stream()
-            .collect(Collectors.toMap(Entry::getKey, entry -> convert.apply(entry.getValue())));
+
+        Settings.Builder optionsBuilder = Settings.builder();
+        Map<String, Symbol> options = new HashMap<>(createServer.options());
+        var foreignDataWrapper = foreignDataWrappers.get(createServer.fdw());
+        for (var option : foreignDataWrapper.mandatoryServerOptions()) {
+            String optionName = option.getKey();
+            Symbol symbol = options.remove(optionName);
+            if (symbol == null) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Mandatory server option `%s` for foreign data wrapper `%s` is missing",
+                    optionName,
+                    createServer.fdw()
+                ));
+            }
+            optionsBuilder.put(optionName, convert.apply(symbol));
+        }
+        if (!options.isEmpty()) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Unsupported server options for foreign data wrapper `%s`: %s. Valid options are: %s",
+                createServer.fdw(),
+                String.join(", ", options.keySet()),
+                foreignDataWrapper.mandatoryServerOptions().stream()
+                    .map(x -> x.getKey())
+                    .collect(Collectors.joining(", "))
+            ));
+        }
         CreateServerRequest request = new CreateServerRequest(
             createServer.name(),
             createServer.fdw(),
             transactionContext.sessionSettings().sessionUser().name(),
             createServer.ifNotExists(),
-            options
+            optionsBuilder.build()
         );
         dependencies.client()
             .execute(TransportCreateServerAction.ACTION, request)

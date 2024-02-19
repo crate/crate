@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -47,9 +48,11 @@ public class ServersMetadataTest extends ESTestCase {
                 "password", "secret"
             )
         );
-        Map<String, Object> pg1Options = Map.of("url", "jdbc:postgresql://localhost:5432");
+        Settings pg1Options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432")
+            .build();
         Server pg1 = new Server("pg1", "jdbc", "crate", pg1Users, pg1Options);
-        Server pg2 = new Server("pg2", "jdbc", "arthur", Map.of(), Map.of());
+        Server pg2 = new Server("pg2", "jdbc", "arthur", Map.of(), Settings.EMPTY);
         var servers = new ServersMetadata(Map.of(pg1.name(), pg1, pg2.name(), pg2));
 
         XContentBuilder builder = JsonXContent.builder();

@@ -54,7 +54,9 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         Roles roles = () -> List.of(arthur);
         NodeContext nodeCtx = new NodeContext(functions, roles);
         var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
-        Map<String, Object> options = Map.of("url", "jdbc:postgresql://localhost:5432");
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432")
+            .build();
         Server server = new ServersMetadata.Server("self", "jdbc", "crate", Map.of(), options);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         RelationName relationName = new RelationName("secret", "documents");
