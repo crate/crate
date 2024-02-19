@@ -21,7 +21,8 @@
 
 package io.crate.planner;
 
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -71,13 +72,12 @@ public class CreateForeignTablePlan implements Plan {
             .collect(Collectors.toMap(Entry::getKey, entry -> toValue.apply(entry.getValue())));
 
         Map<ColumnIdent, RefBuilder> columns = createTable.columns();
-        Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
+        List<Reference> references = new ArrayList<>();
         RelationName tableName = createTable.tableName();
         for (var entry : columns.entrySet()) {
-            var columnIdent = entry.getKey();
             var refBuilder = entry.getValue();
             var reference = refBuilder.build(columns, tableName, paramBinder, toValue);
-            references.put(columnIdent, reference);
+            references.add(reference);
         }
         CreateForeignTableRequest request = new CreateForeignTableRequest(
             tableName,

@@ -24,6 +24,7 @@ package io.crate.fdw;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -41,7 +42,7 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
         CreateForeignTableRequest request = new CreateForeignTableRequest(
             new RelationName("doc", "brown"),
             false,
-            Map.of(),
+            List.of(),
             "myserver",
             Map.of()
         );
@@ -61,7 +62,7 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
         var addT1Conflict = new AddForeignTableTask(new CreateForeignTableRequest(
             new RelationName("doc", "t1"),
             false,
-            Map.of(),
+            List.of(),
             "myserver",
             Map.of()
         ));
@@ -73,7 +74,7 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
         var addV1Conflict = new AddForeignTableTask(new CreateForeignTableRequest(
             new RelationName("doc", "v1"),
             false,
-            Map.of(),
+            List.of(),
             "myserver",
             Map.of()
         ));
@@ -84,7 +85,7 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
         var addIfNotExists = new AddForeignTableTask(new CreateForeignTableRequest(
             new RelationName("doc", "v1"),
             true,
-            Map.of(),
+            List.of(),
             "myserver",
             Map.of()
         ));

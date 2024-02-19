@@ -26,11 +26,13 @@ import static org.elasticsearch.common.xcontent.XContentParser.Token.FIELD_NAME;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.START_OBJECT;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -43,7 +45,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -122,11 +123,17 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     }
 
     public ForeignTablesMetadata add(RelationName tableName,
-                                     Map<ColumnIdent, Reference> columns,
+                                     Collection<Reference> columns,
                                      String server,
                                      Map<String, Object> options) {
         HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
-        newTables.put(tableName, new ForeignTable(tableName, columns, server, options));
+        ForeignTable value = new ForeignTable(
+            tableName,
+            columns.stream().collect(Collectors.toMap(Reference::column, x -> x)),
+            server,
+            options
+        );
+        newTables.put(tableName, value);
         return new ForeignTablesMetadata(newTables);
     }
 
