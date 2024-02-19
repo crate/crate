@@ -42,7 +42,7 @@ public class GCSSnapshotIntegrationTest extends IntegTestCase {
     // This is an arbitrary rsa key in pkcs8 format for testing
     // which is not used in the real world. It can be generated with
     // the command `openssl genrsa -out keypair.pem 2048`
-    private static final String PKCS8_PRIVATE_KEY = """
+    static final String PKCS8_PRIVATE_KEY = """
         -----BEGIN PRIVATE KEY-----
         MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC9iMiyCPtIJz8a
         tYrijSfRaCAmGAJQ2SZYrOQ7OSta+fbsvgtmYkKpy0HS1RuLpS5j1pTKqwWtxkJp

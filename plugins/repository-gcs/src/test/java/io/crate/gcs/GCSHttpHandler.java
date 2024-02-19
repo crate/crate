@@ -391,7 +391,7 @@ public class GCSHttpHandler implements HttpHandler {
         };
     }
 
-    public static List<String> readAllLines(InputStream input) throws IOException {
+    static List<String> readAllLines(InputStream input) throws IOException {
         final List<String> lines = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
             String line;
@@ -402,7 +402,7 @@ public class GCSHttpHandler implements HttpHandler {
         return lines;
     }
 
-    private static Map<String, String> decodeQueryString(URI uri) {
+    static Map<String, String> decodeQueryString(URI uri) {
         var result = new HashMap<String, String>();
         for (var entry : new QueryStringDecoder(uri).parameters().entrySet()) {
             result.put(entry.getKey(), entry.getValue().get(0));
