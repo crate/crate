@@ -21,118 +21,86 @@
 
 package io.crate.gcs;
 
-import java.net.URI;
+import static org.elasticsearch.common.settings.Setting.Property;
+import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
+import static org.elasticsearch.common.settings.Setting.simpleString;
+
+
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.BlobStore;
-import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 
-import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
-
 /**
- * Google Cloud Storage implementation of the BlobStoreRepository
- * <p>
- * This repository supports the following settings
- * <dl>
- * <dt>{@code bucket}</dt><dd>Bucket name</dd>
- * <dt>{@code base_path}</dt><dd>Base path (blob name prefix) in the bucket</dd>
- * <dt>{@code private_key_id}</dt><dd>Private key in PKCS 8 format from the google service account credentials.</dd>
- * <dt>{@code private_key}</dt><dd>Private key from the google service account credentials.</dd>
- * <dt>{@code client_id}</dt><dd>client id from the google service account credentials.</dd>
- * <dt>{@code client_email}</dt><dd>client email from the google service account credentials.</dd>
- * <dt>{@code token_uri}</dt><dd>Endpoint oauth token URI, only used for testing to connect to an alternative oauth provider.</dd>
- * <dt>{@code endpoint}</dt><dd>Endpoint root URL, only used for testing to connect to an alternative storage.</dd>
- * </dl>
+ * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStorageRepository.java
  */
 public class GCSRepository extends BlobStoreRepository {
+    // package private for testing
+    static final ByteSizeValue MIN_CHUNK_SIZE = new ByteSizeValue(1, ByteSizeUnit.BYTES);
 
-    static final Setting<String> BUCKET_SETTING =
-        Setting.simpleString("bucket", Property.NodeScope);
+    /**
+     * Maximum allowed object size in GCS.
+     *
+     * @see <a href="https://cloud.google.com/storage/quotas#objects">GCS documentation</a> for details.
+     */
+    static final ByteSizeValue MAX_CHUNK_SIZE = new ByteSizeValue(5, ByteSizeUnit.TB);
 
-    static final Setting<String> BASE_PATH_SETTING =
-        Setting.simpleString("base_path", "", Property.NodeScope);
+    static final Setting<String> BUCKET_SETTING = simpleString("bucket", Property.NodeScope, Property.Dynamic);
 
-    static final Setting<SecureString> PROJECT_ID_SETTING =
-        Setting.maskedString("project_id");
+    static final Setting<String> BASE_PATH_SETTING = simpleString("base_path", Property.NodeScope, Property.Dynamic);
 
-    static final Setting<SecureString> PRIVATE_KEY_ID_SETTING =
-        Setting.maskedString("private_key_id");
+    static final Setting<ByteSizeValue> CHUNK_SIZE_SETTING = byteSizeSetting(
+        "chunk_size",
+        MAX_CHUNK_SIZE,
+        MIN_CHUNK_SIZE,
+        MAX_CHUNK_SIZE,
+        Property.NodeScope,
+        Property.Dynamic
+    );
 
-    static final Setting<SecureString> PRIVATE_KEY_SETTING =
-        Setting.maskedString("private_key");
+    private final GCSService service;
+    private final ByteSizeValue chunkSize;
+    private final String bucket;
 
-    static final Setting<SecureString> CLIENT_EMAIL_SETTING =
-        Setting.maskedString("client_email");
 
-    static final Setting<SecureString> CLIENT_ID_SETTING =
-        Setting.maskedString("client_id");
-
-    static final Setting<String> ENDPOINT_SETTING =
-        Setting.simpleString("endpoint", Property.NodeScope);
-
-    static final Setting<String> TOKEN_URI_SETTING =
-        Setting.simpleString("token_uri", "https://oauth2.googleapis.com/token", Property.NodeScope);
-
-    public GCSRepository(RepositoryMetadata metadata,
-                         NamedXContentRegistry namedXContentRegistry,
-                         ClusterService clusterService,
-                         RecoverySettings recoverySettings) {
-        super(metadata, namedXContentRegistry, clusterService,
-            recoverySettings, buildBasePath(metadata));
-    }
-
-    private static BlobPath buildBasePath(RepositoryMetadata metadata) {
-        final String basePath = BASE_PATH_SETTING.get(metadata.settings());
-        return Strings.hasLength(basePath)
-            ? new BlobPath().add(basePath)
-            : BlobPath.cleanPath();
+    public GCSRepository(
+        final RepositoryMetadata metadata,
+        final NamedXContentRegistry namedXContentRegistry,
+        final ClusterService clusterService,
+        final GCSService service,
+        final RecoverySettings recoverySettings) {
+        super(metadata, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
+        this.service = service;
+        this.chunkSize = CHUNK_SIZE_SETTING.get(metadata.settings());
+        this.bucket = BUCKET_SETTING.get(metadata.settings());
     }
 
     @Override
-    protected BlobStore createBlobStore() throws Exception {
-        Settings settings = metadata.settings();
+    protected GCSBlobStore createBlobStore() {
+        return new GCSBlobStore(bucket, service, metadata, bufferSize);
+    }
 
-        var credentials = ServiceAccountCredentials
-            .newBuilder()
-            .setClientId(CLIENT_ID_SETTING.get(settings).toString())
-            .setClientEmail(CLIENT_EMAIL_SETTING.get(settings).toString())
-            .setPrivateKeyId(PRIVATE_KEY_ID_SETTING.get(settings).toString())
-            .setPrivateKeyString(privateKey())
-            .setTokenServerUri(tokenUri())
-            .setProjectId(PROJECT_ID_SETTING.get(settings).toString())
-            .build();
-
-        StorageOptions.Builder storageBuilder = StorageOptions
-            .newBuilder()
-            .setCredentials(credentials);
-
-        if (ENDPOINT_SETTING.exists(settings)) {
-            storageBuilder.setHost(ENDPOINT_SETTING.get(settings));
+    private static BlobPath buildBasePath(RepositoryMetadata metadata) {
+        String basePath = BASE_PATH_SETTING.get(metadata.settings());
+        if (Strings.hasLength(basePath)) {
+            BlobPath path = new BlobPath();
+            for (String elem : basePath.split("/")) {
+                path = path.add(elem);
+            }
+            return path;
+        } else {
+            return BlobPath.cleanPath();
         }
-
-        Storage storage = storageBuilder.setCredentials(credentials)
-                .build()
-                .getService();
-
-        return new GCSBlobStore(storage, BUCKET_SETTING.get(settings));
     }
 
-    private String privateKey() {
-        SecureString secureString = PRIVATE_KEY_SETTING.get(metadata.settings());
-        return secureString.toString().replaceAll("\\\\n", "\n");
-    }
-
-    private URI tokenUri() {
-        return URI.create(TOKEN_URI_SETTING.get(metadata.settings()));
+    @Override
+    protected ByteSizeValue chunkSize() {
+        return chunkSize;
     }
 }

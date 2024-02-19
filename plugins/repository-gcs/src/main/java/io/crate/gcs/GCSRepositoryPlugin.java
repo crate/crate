@@ -38,22 +38,32 @@ import io.crate.analyze.repositories.TypeSettings;
 
 
 /**
- * A plugin to add Google Cloud Storage as a repository.
+ * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStoragePlugin.java
  */
 public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
+
+    private final GCSService service;
+
+    public GCSRepositoryPlugin() {
+        this.service = new GCSService();
+    }
 
     @Override
     public List<Setting<?>> getSettings() {
         return List.of(
+            GCSRepository.COMPRESS_SETTING,
             GCSRepository.BUCKET_SETTING,
             GCSRepository.BASE_PATH_SETTING,
-            GCSRepository.PROJECT_ID_SETTING,
-            GCSRepository.PRIVATE_KEY_ID_SETTING,
-            GCSRepository.PRIVATE_KEY_SETTING,
-            GCSRepository.CLIENT_EMAIL_SETTING,
-            GCSRepository.CLIENT_ID_SETTING,
-            GCSRepository.ENDPOINT_SETTING,
-            GCSRepository.TOKEN_URI_SETTING
+            GCSRepository.CHUNK_SIZE_SETTING,
+            GCSClientSettings.PROJECT_ID_SETTING,
+            GCSClientSettings.PRIVATE_KEY_ID_SETTING,
+            GCSClientSettings.PRIVATE_KEY_SETTING,
+            GCSClientSettings.CLIENT_EMAIL_SETTING,
+            GCSClientSettings.CLIENT_ID_SETTING,
+            GCSClientSettings.ENDPOINT_SETTING,
+            GCSClientSettings.TOKEN_URI_SETTING,
+            GCSClientSettings.CONNECT_TIMEOUT_SETTING,
+            GCSClientSettings.READ_TIMEOUT_SETTING
             );
     }
 
@@ -69,24 +79,28 @@ public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
                         // Required settings
                         List.of(
                             GCSRepository.BUCKET_SETTING,
-                            GCSRepository.PROJECT_ID_SETTING,
-                            GCSRepository.PRIVATE_KEY_ID_SETTING,
-                            GCSRepository.PRIVATE_KEY_SETTING,
-                            GCSRepository.CLIENT_ID_SETTING,
-                            GCSRepository.CLIENT_EMAIL_SETTING
+                            GCSClientSettings.PROJECT_ID_SETTING,
+                            GCSClientSettings.PRIVATE_KEY_ID_SETTING,
+                            GCSClientSettings.PRIVATE_KEY_SETTING,
+                            GCSClientSettings.CLIENT_ID_SETTING,
+                            GCSClientSettings.CLIENT_EMAIL_SETTING
                         ),
                         // Optional settings
                         List.of(
+                            GCSRepository.CHUNK_SIZE_SETTING,
+                            GCSRepository.COMPRESS_SETTING,
                             GCSRepository.BASE_PATH_SETTING,
-                            GCSRepository.ENDPOINT_SETTING,
-                            GCSRepository.TOKEN_URI_SETTING
+                            GCSClientSettings.ENDPOINT_SETTING,
+                            GCSClientSettings.TOKEN_URI_SETTING,
+                            GCSClientSettings.CONNECT_TIMEOUT_SETTING,
+                            GCSClientSettings.READ_TIMEOUT_SETTING
                         )
                     );
                 }
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) {
-                    return new GCSRepository(metadata, namedXContentRegistry, clusterService, recoverySettings);
+                    return new GCSRepository(metadata, namedXContentRegistry, clusterService, service, recoverySettings);
                 }
             }
         );
