@@ -21,20 +21,40 @@
 
 package io.crate.fdw;
 
+import java.io.IOException;
 import java.util.Locale;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
 
 import io.crate.exceptions.ClusterScopeException;
 import io.crate.exceptions.ConflictException;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpErrorStatus;
 
-public class UserMappingAlreadyExists extends RuntimeException
+public class UserMappingAlreadyExists extends ElasticsearchException
     implements ConflictException, ClusterScopeException {
 
     public UserMappingAlreadyExists(String userName, String serverName) {
         super(String.format(
             Locale.ENGLISH,
-            "CREATE USER MAPPING for '%s' and server '%s' already exists",
+            "USER MAPPING for '%s' and server '%s' already exists",
             userName,
             serverName
         ));
+    }
+
+    public UserMappingAlreadyExists(StreamInput in) throws IOException {
+        super(in);
+    }
+
+    @Override
+    public PGErrorStatus pgErrorStatus() {
+        return PGErrorStatus.DUPLICATE_OBJECT;
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.DUPLICATE_OBJECT;
     }
 }

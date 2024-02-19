@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -29,9 +30,11 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class ForeignDataWrapperITest extends IntegTestCase {
 
@@ -69,10 +72,11 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
         int port = postgresNetty.boundAddress().publishAddress().getPort();
         String url = "jdbc:postgresql://127.0.0.1:" + port + '/';
-        execute(
-            "create server pg foreign data wrapper jdbc options (url ?)",
-            new Object[] { url }
-        );
+        String createServerStmt = "create server pg foreign data wrapper jdbc options (url ?)";
+        execute(createServerStmt, new Object[] { url });
+        assertSQLError(() -> execute(createServerStmt, new Object[] { url }))
+            .hasPGError(PGErrorStatus.DUPLICATE_OBJECT)
+            .hasHTTPError(HttpResponseStatus.CONFLICT, 4100);
 
         execute("select foreign_server_name, foreign_data_wrapper_name from information_schema.foreign_servers");
         assertThat(response).hasRows(
@@ -107,7 +111,14 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             .hasMessageContaining("already exists.");
 
 
-        execute("create user mapping for trillian server pg options (\"user\" 'arthur', password 'not-so-secret')");
+        String createUserMappingStmt =
+            "create user mapping for trillian server pg options (\"user\" 'arthur', password 'not-so-secret')";
+        execute(createUserMappingStmt);
+        assertSQLError(() -> execute(createUserMappingStmt))
+            .hasPGError(PGErrorStatus.DUPLICATE_OBJECT)
+            .hasHTTPError(HttpResponseStatus.CONFLICT, 4100)
+            .hasMessageContaining("USER MAPPING for 'trillian' and server 'pg' already exists");
+
         execute("explain select * from doc.dummy order by x");
         assertThat(response).hasLines(
             "OrderBy[x ASC] (rows=unknown)",

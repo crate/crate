@@ -21,6 +21,11 @@
 
 package io.crate.protocols.postgres;
 
+import java.nio.charset.StandardCharsets;
+
+import org.elasticsearch.ElasticsearchException;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
@@ -31,9 +36,6 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-
-import org.jetbrains.annotations.Nullable;
-import java.nio.charset.StandardCharsets;
 
 
 public class PGError {
@@ -98,6 +100,8 @@ public class PGError {
             status = PGErrorStatus.AMBIGUOUS_ALIAS;
         } else if (throwable instanceof UserDefinedFunctionUnknownException) {
             status = PGErrorStatus.UNDEFINED_FUNCTION;
+        } else if (throwable instanceof ElasticsearchException ex) {
+            status = ex.pgErrorStatus();
         }
         return new PGError(status, SQLExceptions.messageOf(throwable), throwable);
     }
