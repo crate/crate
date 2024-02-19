@@ -49,10 +49,7 @@ public class DropForeignTableTask extends AckedClusterStateUpdateTask<Acknowledg
             throw new UnsupportedOperationException("DROP FOREIGN TABLE with CASCADE is not supported");
         }
         Metadata metadata = currentState.metadata();
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
-        if (foreignTables == null) {
-            foreignTables = ForeignTablesMetadata.EMPTY;
-        }
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
         var updatedTables = foreignTables.remove(request.names(), request.ifExists());
         if (foreignTables == updatedTables) {
             return currentState;

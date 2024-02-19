@@ -49,10 +49,10 @@ final class AddServerTask extends AckedClusterStateUpdateTask<AcknowledgedRespon
             throw new IllegalArgumentException(
                 "foreign-data wrapper " + request.fdw() + " does not exist");
         }
-        ServersMetadata serversMetadata = currentState.metadata().custom(ServersMetadata.TYPE);
-        if (serversMetadata == null) {
-            serversMetadata = ServersMetadata.EMPTY;
-        }
+        ServersMetadata serversMetadata = currentState.metadata().custom(
+            ServersMetadata.TYPE,
+            ServersMetadata.EMPTY
+        );
         String serverName = request.name();
         if (serversMetadata.contains(serverName)) {
             if (request.ifNotExists()) {

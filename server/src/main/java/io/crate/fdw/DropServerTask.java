@@ -47,15 +47,9 @@ public class DropServerTask extends AckedClusterStateUpdateTask<AcknowledgedResp
 
     @Override
     public ClusterState execute(ClusterState currentState) throws Exception {
-        ServersMetadata servers = currentState.metadata().custom(ServersMetadata.TYPE);
-        if (servers == null) {
-            servers = ServersMetadata.EMPTY;
-        }
-        ForeignTablesMetadata foreignTables = currentState.metadata().custom(ForeignTablesMetadata.TYPE);
-        if (foreignTables == null) {
-            foreignTables = ForeignTablesMetadata.EMPTY;
-        }
-
+        Metadata metadata = currentState.metadata();
+        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
         ForeignTablesMetadata updatedForeignTables = foreignTables;
         if (request.mode() == CascadeMode.RESTRICT) {
             for (String serverName : request.names()) {
@@ -81,7 +75,7 @@ public class DropServerTask extends AckedClusterStateUpdateTask<AcknowledgedResp
         }
         return ClusterState.builder(currentState)
             .metadata(
-                Metadata.builder(currentState.metadata())
+                Metadata.builder(metadata)
                     .putCustom(ServersMetadata.TYPE, updatedServers)
                     .putCustom(ForeignTablesMetadata.TYPE, updatedForeignTables)
             )
