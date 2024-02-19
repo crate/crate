@@ -25,6 +25,7 @@ import static io.crate.common.exceptions.Exceptions.userFriendlyMessage;
 
 import java.io.IOException;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -203,6 +204,8 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.QUERY_KILLED_BY_STATEMENT;
         } else if (throwable instanceof UnavailableShardsException) {
             httpErrorStatus = HttpErrorStatus.ONE_OR_MORE_SHARDS_NOT_AVAILABLE;
+        } else if (throwable instanceof ElasticsearchException ex) {
+            httpErrorStatus = ex.httpErrorStatus();
         }
         // Missing GroupByOnArrayUnsupportedException, SchemaScopeException, TaskMissing, UnhandledServerException
         // will be handled as UNHANDLED_SERVER_ERROR
