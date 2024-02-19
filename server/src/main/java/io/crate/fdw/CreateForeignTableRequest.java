@@ -22,14 +22,14 @@
 package io.crate.fdw;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
+import java.util.Collection;
 import java.util.Map;
+import java.util.SequencedCollection;
 
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -37,13 +37,13 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
 
     private final RelationName tableName;
     private boolean ifNotExists;
-    private final Map<ColumnIdent, Reference> columns;
+    private final Collection<Reference> columns;
     private final String server;
     private final Map<String, Object> options;
 
     public CreateForeignTableRequest(RelationName tableName,
                                      boolean ifNotExists,
-                                     Map<ColumnIdent, Reference> columns,
+                                     SequencedCollection<Reference> columns,
                                      String server,
                                      Map<String, Object> options) {
         this.tableName = tableName;
@@ -56,7 +56,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
     public CreateForeignTableRequest(StreamInput in) throws IOException {
         this.tableName = new RelationName(in);
         this.ifNotExists = in.readBoolean();
-        this.columns = in.readMap(LinkedHashMap::new, ColumnIdent::new, Reference::fromStream);
+        this.columns = in.readList(Reference::fromStream);
         this.server = in.readString();
         this.options = in.readMap(StreamInput::readString, StreamInput::readGenericValue);
     }
@@ -65,7 +65,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
     public void writeTo(StreamOutput out) throws IOException {
         tableName.writeTo(out);
         out.writeBoolean(ifNotExists);
-        out.writeMap(columns, (o, v) -> v.writeTo(o), Reference::toStream);
+        out.writeCollection(columns, Reference::toStream);
         out.writeString(server);
         out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
     }
@@ -78,7 +78,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
         return ifNotExists;
     }
 
-    public Map<ColumnIdent, Reference> columns() {
+    public Collection<Reference> columns() {
         return columns;
     }
 
