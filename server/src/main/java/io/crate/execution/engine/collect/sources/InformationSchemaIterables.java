@@ -128,10 +128,10 @@ public class InformationSchemaIterables implements ClusterStateListener {
         tables = () -> tablesStream(schemas).iterator();
         relations = () -> {
             Metadata metadata = clusterService.state().metadata();
-            ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
-            if (foreignTables == null) {
-                foreignTables = ForeignTablesMetadata.EMPTY;
-            }
+            ForeignTablesMetadata foreignTables = metadata.custom(
+                ForeignTablesMetadata.TYPE,
+                ForeignTablesMetadata.EMPTY
+            );
             return concat(
                 concat(tablesStream(schemas), viewsStream(schemas)),
                 StreamSupport.stream(foreignTables.spliterator(), false)
@@ -376,14 +376,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<Server> servers() {
         Metadata metadata = clusterService.state().metadata();
-        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE);
-        return servers == null ? ServersMetadata.EMPTY : servers;
+        return metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
     }
 
     public Iterable<ForeignTable> foreignTables() {
         Metadata metadata = clusterService.state().metadata();
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
-        return foreignTables == null ? ForeignTablesMetadata.EMPTY : foreignTables;
+        return metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
     }
 
     @Override

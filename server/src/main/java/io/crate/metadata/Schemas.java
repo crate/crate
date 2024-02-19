@@ -217,7 +217,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
         Metadata metadata = clusterService.state().metadata();
         ViewsMetadata views = metadata.custom(ViewsMetadata.TYPE);
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
         if (identSchema == null) {
             for (String pathSchema : searchPath) {
                 RelationName tableOrViewRelation = getRelation(pathSchema, relation, views, foreignTables);
@@ -238,7 +238,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private RelationName getRelation(String pathSchema,
                                      String relation,
                                      @Nullable ViewsMetadata views,
-                                     @Nullable ForeignTablesMetadata foreignTables) {
+                                     ForeignTablesMetadata foreignTables) {
         SchemaInfo schemaInfo = schemas.get(pathSchema);
         if (schemaInfo == null) {
             return null;
@@ -251,7 +251,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (views != null && views.contains(relationName)) {
             return relationName;
         }
-        if (foreignTables != null && foreignTables.contains(relationName)) {
+        if (foreignTables.contains(relationName)) {
             return relationName;
         }
         return null;

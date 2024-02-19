@@ -56,10 +56,7 @@ final class AddForeignTableTask extends AckedClusterStateUpdateTask<Acknowledged
             }
             throw new RelationAlreadyExists(tableName);
         }
-        ServersMetadata serversMetadata = metadata.custom(ServersMetadata.TYPE);
-        if (serversMetadata == null) {
-            serversMetadata = ServersMetadata.EMPTY;
-        }
+        ServersMetadata serversMetadata = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
         if (!serversMetadata.contains(request.server())) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
@@ -69,11 +66,7 @@ final class AddForeignTableTask extends AckedClusterStateUpdateTask<Acknowledged
         }
 
 
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
-        if (foreignTables == null) {
-            foreignTables = ForeignTablesMetadata.EMPTY;
-        }
-
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
         ForeignTablesMetadata updatedTables = foreignTables.add(
             tableName,
             request.columns(),

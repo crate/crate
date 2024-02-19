@@ -357,6 +357,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return (T) customs.get(type);
     }
 
+    @SuppressWarnings("unchecked")
+    public <T extends Custom> T custom(String type, T defaultValue) {
+        return (T) customs.getOrDefault(type, defaultValue);
+    }
 
     /**
      * Gets the total number of shards from all indices, including replicas and
@@ -1121,8 +1125,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         if (views != null && views.contains(tableName)) {
             return true;
         }
-        ForeignTablesMetadata foreignTables = custom(ForeignTablesMetadata.TYPE);
-        if (foreignTables != null && foreignTables.contains(tableName)) {
+        ForeignTablesMetadata foreignTables = custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
+        if (foreignTables.contains(tableName)) {
             return true;
         }
         return false;
