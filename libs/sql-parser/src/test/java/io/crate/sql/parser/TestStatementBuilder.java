@@ -1226,6 +1226,7 @@ public class TestStatementBuilder {
         printStatement("select * from information_schema.tables where table_schema = pg_catalog.current_schema()");
 
         printStatement("select current_user");
+        printStatement("select current_role");
         printStatement("select user");
         printStatement("select session_user");
     }
