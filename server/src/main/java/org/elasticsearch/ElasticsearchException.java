@@ -54,6 +54,10 @@ import io.crate.common.CheckedFunction;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.fdw.ServerAlreadyExistsException;
+import io.crate.fdw.UserMappingAlreadyExists;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * A base class for all elasticsearch exceptions.
@@ -155,6 +159,14 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             throw new IllegalArgumentException("exception metadata must start with [es.], found [" + key + "] instead");
         }
         this.metadata.put(key, values);
+    }
+
+    public PGErrorStatus pgErrorStatus() {
+        return PGErrorStatus.INTERNAL_ERROR;
+    }
+
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.UNHANDLED_SERVER_ERROR;
     }
 
     /**
@@ -978,7 +990,17 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             io.crate.exceptions.UnauthorizedException.class,
             io.crate.exceptions.UnauthorizedException::new,
             177,
-            Version.V_5_7_0);
+            Version.V_5_7_0),
+        SERVER_ALREADY_EXISTS(
+            ServerAlreadyExistsException.class,
+            ServerAlreadyExistsException::new,
+            178,
+            Version.V_5_7_0),
+        USER_MAPPING_ALREADY_EXISTS(
+            UserMappingAlreadyExists.class,
+            UserMappingAlreadyExists::new,
+            179,
+            Version.V_5_7_0) ;
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

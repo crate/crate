@@ -42,7 +42,8 @@ public class InformationSchemaTableDefinitions {
     private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions;
 
     @Inject
-    public InformationSchemaTableDefinitions(Roles roles, InformationSchemaIterables informationSchemaIterables) {
+    public InformationSchemaTableDefinitions(Roles roles,
+                                             InformationSchemaIterables informationSchemaIterables) {
         tableDefinitions = HashMap.newHashMap(11);
         tableDefinitions.put(InformationSchemataTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
@@ -101,6 +102,17 @@ public class InformationSchemaTableDefinitions {
             () -> completedFuture(Arrays.asList(new Void[]{null})),
             InformationCharacterSetsTable.create().expressions(),
             false));
+
+        tableDefinitions.put(ForeignServerTableInfo.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::servers,
+            (user, t) -> user.isSuperUser() || t.owner().equals(user.name()),
+            ForeignServerTableInfo.create().expressions()
+        ));
+        tableDefinitions.put(ForeignTableTableInfo.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::foreignTables,
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.name().fqn()),
+            ForeignTableTableInfo.create().expressions()
+        ));
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {

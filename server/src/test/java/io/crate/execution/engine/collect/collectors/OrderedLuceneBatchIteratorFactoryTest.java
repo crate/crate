@@ -61,7 +61,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
@@ -78,7 +78,7 @@ import io.crate.types.LongType;
 
 public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
-    private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(
+    private static final TypedRowAccounting ROW_ACCOUNTING = new TypedRowAccounting(
         List.of(LongType.INSTANCE),
         RamAccounting.NO_ACCOUNTING
     );

@@ -48,24 +48,30 @@ import io.crate.sql.tree.Close;
 import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
@@ -1226,6 +1232,7 @@ public class TestStatementBuilder {
         printStatement("select * from information_schema.tables where table_schema = pg_catalog.current_schema()");
 
         printStatement("select current_user");
+        printStatement("select current_role");
         printStatement("select user");
         printStatement("select session_user");
     }
@@ -2119,6 +2126,62 @@ public class TestStatementBuilder {
         printStatement("select 'ab' LIKE 'a%' ESCAPE 't'"); // Regular character
     }
 
+    @Test
+    public void test_create_server() throws Exception {
+        printStatement("create server jarvis foreign data wrapper postgres_fdw");
+        printStatement("create server if not exists jarvis foreign data wrapper postgres_fdw");
+        printStatement("create server jarvis foreign data wrapper postgres_fdw options (host 'foo', dbname 'foodb', port '5432')");
+        printStatement("create server jarvis foreign data wrapper postgres_fdw options (host ?, xs array[1, 2, 3])");
+    }
+
+    @Test
+    public void test_drop_server() throws Exception {
+        printStatement("drop server jarvis");
+        printStatement("drop server pg1, pg2");
+        printStatement("drop server if exists pg1, pg2");
+        printStatement("drop server if exists pg1, pg2 cascade");
+        printStatement("drop server if exists pg1, pg2 restrict");
+    }
+
+    @Test
+    public void test_create_foreign_table() throws Exception {
+        printStatement("create foreign table tbl (x int) server pg");
+        printStatement("create foreign table if not exists tbl (x int) server pg");
+        printStatement("create foreign table tbl (x int) server pg options (schema_name 'public')");
+        printStatement("create foreign table tbl (x int) server pg options (schema_name 'public', dummy 'xy')");
+    }
+
+    @Test
+    public void test_drop_foreign_table() throws Exception {
+        printStatement("drop foreign table tbl");
+        printStatement("drop foreign table tbl cascade");
+        printStatement("drop foreign table if exists tbl");
+        printStatement("drop foreign table if exists t1, t2, t3");
+        printStatement("drop foreign table if exists doc.t1, s1.t2, t3");
+        printStatement("drop foreign table if exists t1, t2, t3 cascade");
+        printStatement("drop foreign table if exists t1, t2, t3 restrict");
+    }
+
+
+    @Test
+    public void test_create_user_mapping() throws Exception {
+        printStatement("create user mapping for crate server pg");
+        printStatement("create user mapping if not exists for crate server pg");
+        printStatement("create user mapping for CURRENT_ROLE server pg");
+        printStatement("create user mapping for USER server pg");
+        printStatement("create user mapping for CURRENT_USER server pg");
+        printStatement("create user mapping if not exists for arthur server pg options (\"username\" 'bob', password 'secret')");
+    }
+
+    @Test
+    public void test_drop_user_mapping() throws Exception {
+        printStatement("drop user mapping for crate server pg");
+        printStatement("drop user mapping if exists for crate server pg");
+        printStatement("drop user mapping for current_role server pg");
+        printStatement("drop user mapping for current_user server pg");
+        printStatement("drop user mapping for user server pg");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -2130,6 +2193,7 @@ public class TestStatementBuilder {
         // TODO: support formatting all statement types
         if (statement instanceof Query ||
             statement instanceof CreateTable ||
+            statement instanceof CreateForeignTable ||
             statement instanceof CopyFrom ||
             statement instanceof SwapTable ||
             statement instanceof GCDanglingArtifacts ||
@@ -2161,7 +2225,13 @@ public class TestStatementBuilder {
             statement instanceof With ||
             statement instanceof Declare ||
             statement instanceof Fetch ||
-            statement instanceof Close) {
+            statement instanceof Close ||
+            statement instanceof CreateServer ||
+            statement instanceof CreateUserMapping ||
+            statement instanceof DropServer ||
+            statement instanceof DropForeignTable ||
+            statement instanceof DropUserMapping) {
+
 
             println(SqlFormatter.formatSql(statement));
             println("");

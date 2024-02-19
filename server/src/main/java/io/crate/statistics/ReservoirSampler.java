@@ -63,7 +63,7 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
 import io.crate.Streamer;
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.CellsSizeEstimator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
@@ -207,7 +207,7 @@ public final class ReservoirSampler {
                                RamAccounting ramAccounting) {
         ramAccounting.addBytes(DataTypes.LONG.fixedSize() * (long) maxSamples);
         Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
-        ArrayList<DocIdToRow> docIdToRowsFunctionPerReader = new ArrayList<>();
+        ArrayList<IntFunction<Object[]>> docIdToRowsFunctionPerReader = new ArrayList<>();
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
@@ -263,16 +263,16 @@ public final class ReservoirSampler {
             }
         }
 
-        var rowAccounting = new RowCellsAccountingWithEstimators(Symbols.typeView(columns), ramAccounting, 0);
-        ArrayList<Row> records = createRecords(fetchIdSamples.samples(), docIdToRowsFunctionPerReader, ramAccounting, rowAccounting, maxSamples);
+        var sizeEstimator = CellsSizeEstimator.forColumns(Symbols.typeView(columns));
+        ArrayList<Row> records = createRecords(fetchIdSamples.samples(), docIdToRowsFunctionPerReader, ramAccounting, sizeEstimator, maxSamples);
         return new Samples(records, streamers, totalNumDocs, totalSizeInBytes);
     }
 
     @VisibleForTesting
     ArrayList<Row> createRecords(LongArrayList samples,
-                                 List<DocIdToRow> docIdToRowsFunctionPerReader,
+                                 List<IntFunction<Object[]>> docIdToRowsFunctionPerReader,
                                  RamAccounting ramAccounting,
-                                 RowCellsAccountingWithEstimators rowAccounting,
+                                 CellsSizeEstimator sizeEstimator,
                                  int maxSamples) {
         ArrayList<Row> records = new ArrayList<>();
         long bytesSinceLastPause = 0;
@@ -280,11 +280,11 @@ public final class ReservoirSampler {
         for (LongCursor cursor : samples) {
             long fetchId = cursor.value;
             int readerId = FetchId.decodeReaderId(fetchId);
-            DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
+            IntFunction<Object[]> docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
             Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
 
             try {
-                long bytesRead = rowAccounting.accountRowBytes(row);
+                long bytesRead = sizeEstimator.estimateSize(row);
                 ramAccounting.addBytes(bytesRead);
                 bytesSinceLastPause = maybePause(bytesRead, bytesSinceLastPause);
             } catch (CircuitBreakingException e) {

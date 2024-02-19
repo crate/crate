@@ -21,8 +21,7 @@
 
 package io.crate.statistics;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,7 +62,7 @@ public class TransportAnalyzeActionTest extends ESTestCase {
                 0,
                 null)
         );
-        var stats = TransportAnalyzeAction.createTableStats(samples, references);
-        assertThat(stats.numDocs, is(2L));
+        var stats = samples.createTableStats(references);
+        assertThat(stats.numDocs).isEqualTo(2L);
     }
 }

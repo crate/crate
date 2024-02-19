@@ -13,3 +13,14 @@ path.repo: ../sandbox/crate/repo # working dir is ${PROJEC_DIR}/app
 
 http.cors.enabled: true
 http.cors.allow-origin: "*"
+
+auth.host_based.enabled: true
+auth:
+  host_based:
+    config:
+      0:
+        user: crate
+        address: _local_
+        method: trust
+      99:
+        method: password

@@ -62,7 +62,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.common.Suppliers;
 import io.crate.common.collections.Iterables;
 import io.crate.common.concurrent.CompletableFutures;
@@ -363,7 +363,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         return CompletableFutures.allAsList(orderedDocCollectors).thenApply(collectors -> OrderedLuceneBatchIteratorFactory.newInstance(
             collectors,
             OrderingByPosition.rowOrdering(orderBy, collectPhase.toCollect()),
-            new RowAccountingWithEstimators(columnTypes, collectTask.getRamAccounting()),
+            new TypedRowAccounting(columnTypes, collectTask.getRamAccounting()),
             executor,
             availableThreads,
             supportMoveToStart

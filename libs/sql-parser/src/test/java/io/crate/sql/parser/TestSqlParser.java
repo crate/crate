@@ -425,6 +425,7 @@ public class TestSqlParser {
     @Test
     public void testUserFunctions() {
         assertInstanceOf("CURRENT_USER", FunctionCall.class);
+        assertInstanceOf("CURRENT_ROLE", FunctionCall.class);
         assertInstanceOf("SESSION_USER", FunctionCall.class);
         assertInstanceOf("USER", FunctionCall.class);
     }

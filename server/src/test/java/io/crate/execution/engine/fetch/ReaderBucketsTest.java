@@ -33,7 +33,7 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
-import io.crate.breaker.EstimateCellsSize;
+import io.crate.breaker.CellsSizeEstimator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.RowN;
@@ -78,7 +78,7 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
         var readerBuckets = new ReaderBuckets(
             fetchRows,
             reader -> fetchSource,
-            new EstimateCellsSize(List.of(DataTypes.LONG, DataTypes.INTEGER)),
+            CellsSizeEstimator.forColumns(List.of(DataTypes.LONG, DataTypes.INTEGER)),
             ramAccounting
         );
         long fetchId = FetchId.encode(readerId, 1);

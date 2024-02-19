@@ -303,4 +303,28 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitClose(AnalyzedClose close, C context) {
         return visitAnalyzedStatement(close, context);
     }
+
+    public R visitCreateServer(AnalyzedCreateServer analyzedCreateServer, C context) {
+        return visitAnalyzedStatement(analyzedCreateServer, context);
+    }
+
+    public R visitCreateForeignTable(AnalyzedCreateForeignTable analyzedCreateForeignTable, C context) {
+        return visitAnalyzedStatement(analyzedCreateForeignTable, context);
+    }
+
+    public R visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, C context) {
+        return visitAnalyzedStatement(createUserMapping, context);
+    }
+
+    public R visitDropServer(AnalyzedDropServer dropServer, C context) {
+        return visitAnalyzedStatement(dropServer, context);
+    }
+
+    public R visitDropForeignTable(AnalyzedDropForeignTable dropForeignTable, C context) {
+        return visitAnalyzedStatement(dropForeignTable, context);
+    }
+
+    public R visitDropUserMapping(AnalyzedDropUserMapping dropUserMapping, C context) {
+        return visitAnalyzedStatement(dropUserMapping, context);
+    }
 }

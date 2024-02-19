@@ -22,13 +22,13 @@
 package io.crate.execution.dsl.phases;
 
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.Writeable;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 
 public interface ExecutionPhase extends Writeable {
 
@@ -48,7 +48,8 @@ public interface ExecutionPhase extends Writeable {
         HASH_JOIN(HashJoinPhase::new),
         TABLE_FUNCTION_COLLECT(in -> {
             throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
-        PKLookup(PKLookupPhase::new);
+        PKLookup(PKLookupPhase::new),
+        FOREIGN_COLLECT(ForeignCollectPhase::new);
 
         public static final List<Type> VALUES = List.of(values());
 

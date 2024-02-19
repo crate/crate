@@ -19,33 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.metadata.information;
 
-import java.util.List;
-import java.util.function.ToLongFunction;
+import io.crate.Constants;
+import io.crate.fdw.ForeignTable;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.types.DataTypes;
 
-import io.crate.types.DataType;
+public class ForeignTableTableInfo {
 
-public final class EstimateCellsSize implements ToLongFunction<Object[]> {
+    public static final String NAME = "foreign_tables";
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    private final List<? extends DataType<?>> columnTypes;
-
-    public EstimateCellsSize(List<? extends DataType<?>> columnTypes) {
-        this.columnTypes = columnTypes;
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Override
-    public long applyAsLong(Object[] cells) {
-        assert columnTypes.size() == cells.length
-            : "Size of incoming cells must match number of estimators. "
-                + "Cells=" + cells.length
-                + " estimators=" + columnTypes.size();
-        long size = 0;
-        for (int i = 0; i < cells.length; i++) {
-            DataType dataType = columnTypes.get(i);
-            size += dataType.valueBytes(cells[i]);
-        }
-        return size;
+    public static SystemTable<ForeignTable> create() {
+        return SystemTable.<ForeignTable>builder(IDENT)
+            .add("foreign_table_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+            .add("foreign_table_schema", DataTypes.STRING, table -> table.name().schema())
+            .add("foreign_table_name", DataTypes.STRING, table -> table.name().name())
+            .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+            .add("foreign_server_name", DataTypes.STRING, ForeignTable::server)
+            .build();
     }
 }

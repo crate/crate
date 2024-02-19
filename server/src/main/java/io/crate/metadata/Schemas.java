@@ -56,6 +56,8 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -213,16 +215,18 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         String identSchema = schemaName(ident);
         String relation = relationName(ident);
 
-        ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
+        Metadata metadata = clusterService.state().metadata();
+        ViewsMetadata views = metadata.custom(ViewsMetadata.TYPE);
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
         if (identSchema == null) {
             for (String pathSchema : searchPath) {
-                RelationName tableOrViewRelation = getTableOrViewRelation(pathSchema, relation, views);
+                RelationName tableOrViewRelation = getRelation(pathSchema, relation, views, foreignTables);
                 if (tableOrViewRelation != null) {
                     return tableOrViewRelation;
                 }
             }
         } else {
-            RelationName tableOrViewRelation = getTableOrViewRelation(identSchema, relation, views);
+            RelationName tableOrViewRelation = getRelation(identSchema, relation, views, foreignTables);
             if (tableOrViewRelation != null) {
                 return tableOrViewRelation;
             }
@@ -231,20 +235,24 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     @Nullable
-    private RelationName getTableOrViewRelation(String pathSchema, String relation, ViewsMetadata views) {
+    private RelationName getRelation(String pathSchema,
+                                     String relation,
+                                     @Nullable ViewsMetadata views,
+                                     @Nullable ForeignTablesMetadata foreignTables) {
         SchemaInfo schemaInfo = schemas.get(pathSchema);
-        if (schemaInfo != null) {
-            TableInfo tableInfo = schemaInfo.getTableInfo(relation);
-            if (tableInfo != null) {
-                return new RelationName(pathSchema, relation);
-            } else {
-                if (views != null) {
-                    RelationName viewRelation = new RelationName(pathSchema, relation);
-                    if (views.contains(viewRelation)) {
-                        return viewRelation;
-                    }
-                }
-            }
+        if (schemaInfo == null) {
+            return null;
+        }
+        TableInfo tableInfo = schemaInfo.getTableInfo(relation);
+        if (tableInfo != null) {
+            return new RelationName(pathSchema, relation);
+        }
+        RelationName relationName = new RelationName(pathSchema, relation);
+        if (views != null && views.contains(relationName)) {
+            return relationName;
+        }
+        if (foreignTables != null && foreignTables.contains(relationName)) {
+            return relationName;
         }
         return null;
     }
@@ -256,16 +264,21 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         RelationInfo relationInfo = null;
         if (schemaName == null) {
             for (String schema : searchPath) {
+                relationInfo = resolveForeignTable(schema, tableName);
+                if (relationInfo != null) {
+                    break;
+                }
                 SchemaInfo schemaInfo = schemas.get(schema);
-                if (schemaInfo != null) {
-                    relationInfo = schemaInfo.getTableInfo(tableName);
-                    if (relationInfo != null) {
-                        break;
-                    }
-                    relationInfo = schemaInfo.getViewInfo(tableName);
-                    if (relationInfo != null) {
-                        break;
-                    }
+                if (schemaInfo == null) {
+                    continue;
+                }
+                relationInfo = schemaInfo.getTableInfo(tableName);
+                if (relationInfo != null) {
+                    break;
+                }
+                relationInfo = schemaInfo.getViewInfo(tableName);
+                if (relationInfo != null) {
+                    break;
                 }
             }
             if (relationInfo == null) {
@@ -279,16 +292,21 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 }
             }
         } else {
-            SchemaInfo schemaInfo = schemas.get(schemaName);
-            if (schemaInfo == null) {
-                throw SchemaUnknownException.of(schemaName, getSimilarSchemas(user, schemaName));
-            }
-            relationInfo = schemaInfo.getTableInfo(tableName);
             if (relationInfo == null) {
-                relationInfo = schemaInfo.getViewInfo(tableName);
+                relationInfo = resolveForeignTable(schemaName, tableName);
+            }
+            if (relationInfo == null) {
+                SchemaInfo schemaInfo = schemas.get(schemaName);
+                if (schemaInfo == null) {
+                    throw SchemaUnknownException.of(schemaName, getSimilarSchemas(user, schemaName));
+                }
+                relationInfo = schemaInfo.getTableInfo(tableName);
                 if (relationInfo == null) {
-                    throw RelationUnknown.of(schemaName + "." + tableName,
-                        getSimilarTables(user, tableName, schemaInfo.getTables()));
+                    relationInfo = schemaInfo.getViewInfo(tableName);
+                    if (relationInfo == null) {
+                        throw RelationUnknown.of(schemaName + "." + tableName,
+                            getSimilarTables(user, tableName, schemaInfo.getTables()));
+                    }
                 }
             }
         }
@@ -481,6 +499,17 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     @Override
     protected void doClose() {
+    }
+
+
+    @Nullable
+    public ForeignTable resolveForeignTable(String schemaName, String tableName) {
+        Metadata metadata = clusterService.state().metadata();
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
+        if (foreignTables == null) {
+            return null;
+        }
+        return foreignTables.get(new RelationName(schemaName, tableName));
     }
 
     /**

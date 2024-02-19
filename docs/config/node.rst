@@ -925,6 +925,35 @@ JavaScript language
   Setting to enable or disable :ref:`JavaScript UDF <udf-js>` support.
 
 
+.. _conf-fdw:
+
+Foreign Data Wrappers
+=====================
+
+
+.. _fdw.allow_local:
+
+**fdw.allow_local**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Allow access to local addresses via :ref:`Foreign data wrappers
+  <administration-fdw>` for all users.
+
+  By default, only the ``crate`` superuser is allowed to access foreign servers
+  that point to ``localhost``.
+
+.. warning::
+
+  Changing this to ``true`` can pose a security risk if you do not trust the
+  users with ``AL`` permissions on the system. They can create foreign servers,
+  foreign tables and user mappings that allow them to access services running on
+  the same machine as CrateDB as if connected locally - effectively bypassing
+  any restrictions set up via :ref:`admin_hba`.
+
+  Do **not** change this if you don't understand the implications.
+
+
 .. _conf-node-attributes:
 
 Custom attributes

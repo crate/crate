@@ -19,34 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.analyze;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.function.ToLongFunction;
+import java.util.Map;
+import java.util.function.Consumer;
 
-import io.crate.data.Row;
-import io.crate.types.DataType;
+import io.crate.expression.symbol.Symbol;
+import io.crate.role.Role;
 
-public final class EstimateRowSize implements ToLongFunction<Row> {
+public record AnalyzedCreateUserMapping(boolean ifNotExists,
+                                        Role user,
+                                        String serverName,
+                                        Map<String, Symbol> options)
+        implements AnalyzedStatement {
 
-    @SuppressWarnings("rawtypes")
-    private final List<? extends DataType> columnTypes;
-
-    @SuppressWarnings("rawtypes")
-    public EstimateRowSize(List<? extends DataType> columnTypes) {
-        this.columnTypes = columnTypes;
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitCreateUserMapping(this, context);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public long applyAsLong(Row row) {
-        assert row.numColumns() == columnTypes.size()
-            : String.format(Locale.ENGLISH, "row.numColumns=%d estimators.size=%d - the number must match. ", row.numColumns(), columnTypes.size());
-        long size = 0;
-        for (int i = 0; i < row.numColumns(); i++) {
-            size += columnTypes.get(i).valueBytes(row.get(i));
-        }
-        return size;
+    public boolean isWriteOperation() {
+        return true;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        options.values().forEach(consumer);
     }
 }

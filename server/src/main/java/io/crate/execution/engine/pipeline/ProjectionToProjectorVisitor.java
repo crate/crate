@@ -55,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
@@ -276,7 +276,7 @@ public class ProjectionToProjectorVisitor
         }
 
         int rowMemoryOverhead = 32; // priority queues implementation are backed by an arrayList
-        RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
+        TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
             rowTypes,
             context.ramAccounting,
             rowMemoryOverhead
@@ -305,7 +305,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitLimitDistinct(LimitDistinctProjection limitDistinct, Context context) {
-        var rowAccounting = new RowCellsAccountingWithEstimators(
+        var rowAccounting = new TypedCellsAccounting(
             Symbols.typeView(limitDistinct.outputs()),
             context.ramAccounting,
             0

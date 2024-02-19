@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collector;
@@ -46,6 +47,7 @@ import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.CascadeMode;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.Close;
@@ -56,25 +58,31 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
@@ -176,6 +184,52 @@ public final class SqlFormatter {
                 append(indent, " ");
                 swapTable.properties().accept(this, indent);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateServer(CreateServer createServer, Integer indent) {
+            append(indent, "CREATE SERVER ");
+            if (createServer.ifNotExists()) {
+                append(indent, "IF NOT EXISTS ");
+            }
+            append(indent, createServer.name());
+            append(indent, " FOREIGN DATA WRAPPER ");
+            append(indent, createServer.fdw());
+            Map<String, Expression> options = createServer.options();
+            if (!options.isEmpty()) {
+                append(indent, " OPTIONS (");
+                Iterator<Entry<String, Expression>> it = options.entrySet().iterator();
+                while (it.hasNext()) {
+                    var entry = it.next();
+                    String optionName = entry.getKey();
+                    Expression optionValue = entry.getValue();
+                    append(indent, optionName);
+                    optionValue.accept(this, indent);
+                    if (it.hasNext()) {
+                        append(indent, ", ");
+                    }
+                }
+                append(indent, ")");
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDropServer(DropServer dropServer, Integer indent) {
+            append(indent, "DROP SERVER ");
+            if (dropServer.ifExists()) {
+                append(indent, "IF EXISTS ");
+            }
+            Iterator<String> namesIt = dropServer.names().iterator();
+            while (namesIt.hasNext()) {
+                append(indent, namesIt.next());
+                if (namesIt.hasNext()) {
+                    append(indent, ", ");
+                }
+            }
+            append(indent, " ");
+            append(indent, dropServer.cascadeMode() == CascadeMode.CASCADE ? "CASCADE" : "RESTRICT");
             return null;
         }
 
@@ -620,6 +674,102 @@ public final class SqlFormatter {
                 builder.append("\n");
                 node.properties().accept(this, indent);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateForeignTable(CreateForeignTable createTable, Integer indent) {
+            builder.append("CREATE FOREIGN TABLE ");
+            if (createTable.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+            builder.append(formatQualifiedName(createTable.name()));
+            builder.append(" ");
+            appendNestedNodeList(createTable.tableElements(), indent);
+
+            builder.append(" SERVER ").append(createTable.server());
+            Map<String, Expression> options = createTable.options();
+            if (!options.isEmpty()) {
+                builder.append(" OPTIONS (");
+                Iterator<Entry<String, Expression>> it = options.entrySet().iterator();
+                while (it.hasNext()) {
+                    var entry = it.next();
+                    String optionName = entry.getKey();
+                    Expression value = entry.getValue();
+                    builder.append(optionName);
+                    builder.append(" ");
+                    value.accept(this, indent);
+
+                    if (it.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(")");
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDropForeignTable(DropForeignTable dropForeignTable, Integer indent) {
+            append(indent, "DROP FOREIGN TABLE ");
+            if (dropForeignTable.ifExists()) {
+                append(indent, "IF EXISTS ");
+            }
+            Iterator<QualifiedName> namesIt = dropForeignTable.names().iterator();
+            while (namesIt.hasNext()) {
+                append(indent, formatQualifiedName(namesIt.next()));
+                if (namesIt.hasNext()) {
+                    append(indent, ", ");
+                }
+            }
+            append(indent, " ");
+            append(indent, dropForeignTable.cascadeMode() == CascadeMode.CASCADE ? "CASCADE" : "RESTRICT");
+            return null;
+        }
+
+        @Override
+        public Void visitCreateUserMapping(CreateUserMapping createUserMapping, Integer indent) {
+            builder.append("CREATE USER MAPPING ");
+            if (createUserMapping.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+            builder.append("FOR ");
+            String userName = createUserMapping.userName();
+            builder.append(userName == null ? "CURRENT_USER" : userName);
+            builder.append(" SERVER ");
+            builder.append(createUserMapping.server());
+            Map<String, Expression> options = createUserMapping.options();
+            if (!options.isEmpty()) {
+                builder.append(" OPTIONS (");
+                Iterator<Entry<String, Expression>> it = options.entrySet().iterator();
+                while (it.hasNext()) {
+                    var entry = it.next();
+                    String optionName = entry.getKey();
+                    Expression value = entry.getValue();
+                    builder.append(optionName);
+                    builder.append(" ");
+                    value.accept(this, indent);
+
+                    if (it.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(")");
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDropUserMapping(DropUserMapping dropUserMapping, Integer indent) {
+            append(indent, "DROP USER MAPPING ");
+            if (dropUserMapping.ifExists()) {
+                append(indent, "IF EXISTS ");
+            }
+            builder.append("FOR ");
+            String userName = dropUserMapping.userName();
+            builder.append(userName == null ? "CURRENT_USER" : userName);
+            builder.append(" SERVER ");
+            builder.append(dropUserMapping.server());
             return null;
         }
 

@@ -36,6 +36,8 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ParseField;
 
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ForeignTablesMetadata;
+import io.crate.fdw.ServersMetadata;
 import io.crate.license.License;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.table.SchemaInfo;
@@ -122,6 +124,29 @@ public class MetadataModule extends AbstractModule {
             in -> readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
         ));
 
+
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            ServersMetadata.TYPE,
+            ServersMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ServersMetadata.TYPE,
+            in -> readDiffFrom(Metadata.Custom.class, ServersMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            ForeignTablesMetadata.TYPE,
+            ForeignTablesMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ForeignTablesMetadata.TYPE,
+            in -> readDiffFrom(Metadata.Custom.class, ForeignTablesMetadata.TYPE, in)
+        ));
+
+
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedWriteables());
         return entries;
@@ -164,6 +189,18 @@ public class MetadataModule extends AbstractModule {
             new ParseField(SubscriptionsMetadata.TYPE),
             SubscriptionsMetadata::fromXContent
         ));
+
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(ServersMetadata.TYPE),
+            ServersMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(ForeignTablesMetadata.TYPE),
+            ForeignTablesMetadata::fromXContent
+        ));
+
 
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedXContent());

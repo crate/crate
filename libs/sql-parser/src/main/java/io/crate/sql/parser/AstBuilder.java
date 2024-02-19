@@ -48,12 +48,19 @@ import io.crate.sql.parser.antlr.SqlBaseParser.BitStringContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.CloseContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.ColumnConstraintNullContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.ConflictTargetContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.CreateForeignTableContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.CreateServerContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.CreateUserMappingContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareCursorParamsContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DirectionContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DiscardContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DropForeignTableContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DropServerContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DropUserMappingContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.FetchContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.IsolationLevelContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.MappedUserContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.QueryContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.QueryOptParensContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.SetTransactionContext;
@@ -90,6 +97,7 @@ import io.crate.sql.tree.BetweenPredicate;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.CascadeMode;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.CharFilters;
 import io.crate.sql.tree.CheckColumnConstraint;
@@ -108,14 +116,17 @@ import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DeallocateStatement;
@@ -131,13 +142,16 @@ import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropColumnDefinition;
+import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Except;
@@ -456,6 +470,48 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             clusteredBy,
             extractGenericProperties(context.withProperties()),
             notExists);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Node visitCreateForeignTable(CreateForeignTableContext ctx) {
+        QualifiedName name = getQualifiedName(ctx.tableName);
+        var tableElements = Lists.map(ctx.tableElement(), x -> (TableElement<Expression>) visit(x));
+        String server = getIdentText(ctx.server);
+        return new CreateForeignTable(
+            name,
+            ctx.EXISTS() != null,
+            tableElements,
+            server,
+            getOptions(ctx.kvOptions())
+        );
+    }
+
+    @Override
+    public Node visitDropForeignTable(DropForeignTableContext ctx) {
+        List<QualifiedName> names = getIdents(ctx.names.qname());
+        boolean ifExists = ctx.EXISTS() != null;
+        CascadeMode cascadeMode = ctx.CASCADE() == null ? CascadeMode.RESTRICT : CascadeMode.CASCADE;
+        return new DropForeignTable(names, ifExists, cascadeMode);
+    }
+
+    @Override
+    public Node visitCreateUserMapping(CreateUserMappingContext ctx) {
+        boolean ifNotExists = ctx.EXISTS() != null;
+        MappedUserContext mappedUser = ctx.mappedUser();
+        String userName = mappedUser.userName == null ? null : getIdentText(mappedUser.userName);
+        String server = getIdentText(ctx.server);
+        Map<String, Expression> options = getOptions(ctx.kvOptions());
+        return new CreateUserMapping(ifNotExists, userName, server, options);
+    }
+
+    @Override
+    public Node visitDropUserMapping(DropUserMappingContext ctx) {
+        boolean ifExists = ctx.EXISTS() != null;
+        MappedUserContext mappedUser = ctx.mappedUser();
+        String userName = mappedUser.userName == null ? null : getIdentText(mappedUser.userName);
+        String server = getIdentText(ctx.server);
+        return new DropUserMapping(userName, ifExists, server);
     }
 
     @Override
@@ -1634,6 +1690,19 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return null;
     }
 
+    public Map<String, Expression> getOptions(@Nullable SqlBaseParser.KvOptionsContext ctx) {
+        if (ctx == null) {
+            return Map.of();
+        }
+        Map<String, Expression> options = HashMap.newHashMap(ctx.kvOption().size());
+        for (var kvOption : ctx.kvOption()) {
+            String optionName = getIdentText(kvOption.ident());
+            Expression value = (Expression) kvOption.parameterOrLiteral().accept(this);
+            options.put(optionName, value);
+        }
+        return options;
+    }
+
     @Override
     public Node visitTableName(SqlBaseParser.TableNameContext ctx) {
         return new Table<>(getQualifiedName(ctx.qname()), false);
@@ -2285,6 +2354,21 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                 .map(c -> c.getText().toLowerCase(Locale.ENGLISH))
                 .collect(Collectors.joining(" "))
         );
+    }
+
+    @Override
+    public Node visitCreateServer(CreateServerContext ctx) {
+        String name = getIdentText(ctx.name);
+        String fdw = getIdentText(ctx.fdw);
+        return new CreateServer(name, fdw, ctx.EXISTS() != null, getOptions(ctx.kvOptions()));
+    }
+
+    @Override
+    public Node visitDropServer(DropServerContext ctx) {
+        CascadeMode cascadeMode = ctx.CASCADE() == null ? CascadeMode.RESTRICT : CascadeMode.CASCADE;
+        List<String> names = identsToStrings(ctx.names.ident());
+        boolean ifExists = ctx.EXISTS() != null;
+        return new DropServer(names, ifExists, cascadeMode);
     }
 
     @Nullable

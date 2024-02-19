@@ -41,7 +41,7 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
@@ -344,7 +344,7 @@ public class WindowBatchIteratorTest {
         RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"), 0);
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
-            new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccounting, 32),
+            new TypedRowAccounting(List.of(DataTypes.INTEGER), ramAccounting, 32),
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             null,

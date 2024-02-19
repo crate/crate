@@ -25,23 +25,54 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.net.URLDecoder;
+import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 
 import io.crate.http.HttpTestServer;
 import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.QueryStringDecoder;
 
 public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
     private ExtendedNodeInfo extendedNodeInfo;
 
     private HttpTestServer testServer;
+
+    private static final BiConsumer<HttpRequest, JsonGenerator> PING_REQUEST_HANDLER =
+        (HttpRequest msg, JsonGenerator generator) -> {
+            try {
+                String uri = msg.uri();
+                QueryStringDecoder decoder = new QueryStringDecoder(uri);
+                generator.writeStartObject();
+                for (Map.Entry<String, List<String>> entry : decoder.parameters().entrySet()) {
+                    if (entry.getValue().size() == 1) {
+                        generator.writeStringField(entry.getKey(), URLDecoder.decode(entry.getValue().get(0), "UTF-8"));
+                    } else {
+                        generator.writeArrayFieldStart(entry.getKey());
+                        for (String value : entry.getValue()) {
+                            generator.writeString(URLDecoder.decode(value, "UTF-8"));
+                        }
+                        generator.writeEndArray();
+                    }
+                }
+                generator.writeEndObject();
+                generator.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
 
     private PingTask createPingTask(String pingUrl) {
         return new PingTask(clusterService, extendedNodeInfo, pingUrl);
@@ -72,7 +103,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSuccessfulPingTaskRunWhenLicenseIsNotNull() throws Exception {
-        testServer = new HttpTestServer(18080, false);
+        testServer = new HttpTestServer(18080, false, PING_REQUEST_HANDLER);
         testServer.run();
 
         PingTask task = createPingTask("http://localhost:18080/");
@@ -105,7 +136,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnsuccessfulPingTaskRun() throws Exception {
-        testServer = new HttpTestServer(18081, true);
+        testServer = new HttpTestServer(18081, true, PING_REQUEST_HANDLER);
         testServer.run();
         PingTask task = createPingTask("http://localhost:18081/");
         task.run();

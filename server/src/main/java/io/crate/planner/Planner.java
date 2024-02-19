@@ -35,12 +35,12 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedAlterBlobTable;
+import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
-import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTableRenameColumn;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.AnalyzedAnalyze;
@@ -51,23 +51,29 @@ import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.AnalyzedCreateBlobTable;
+import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
+import io.crate.analyze.AnalyzedCreateRole;
+import io.crate.analyze.AnalyzedCreateServer;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
-import io.crate.analyze.AnalyzedCreateRole;
+import io.crate.analyze.AnalyzedCreateUserMapping;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropAnalyzer;
+import io.crate.analyze.AnalyzedDropForeignTable;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
+import io.crate.analyze.AnalyzedDropRole;
+import io.crate.analyze.AnalyzedDropServer;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
-import io.crate.analyze.AnalyzedDropRole;
+import io.crate.analyze.AnalyzedDropUserMapping;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
@@ -102,6 +108,7 @@ import io.crate.planner.consumer.CreateTableAsPlan;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.AlterBlobTablePlan;
+import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.planner.node.ddl.AlterTableDropColumnPlan;
@@ -109,20 +116,19 @@ import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.AlterTableRenameColumnPlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
-import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateFunctionPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
+import io.crate.planner.node.ddl.CreateRolePlan;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
-import io.crate.planner.node.ddl.CreateRolePlan;
 import io.crate.planner.node.ddl.DropAnalyzerPlan;
 import io.crate.planner.node.ddl.DropFunctionPlan;
 import io.crate.planner.node.ddl.DropRepositoryPlan;
+import io.crate.planner.node.ddl.DropRolePlan;
 import io.crate.planner.node.ddl.DropSnapshotPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.DropRolePlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
 import io.crate.planner.node.ddl.ResetSettingsPlan;
@@ -152,9 +158,9 @@ import io.crate.replication.logical.plan.CreatePublicationPlan;
 import io.crate.replication.logical.plan.CreateSubscriptionPlan;
 import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.replication.logical.plan.DropSubscriptionPlan;
+import io.crate.role.RoleManager;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
-import io.crate.role.RoleManager;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
@@ -625,6 +631,36 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitClose(AnalyzedClose close, PlannerContext context) {
         return new ClosePlan(close);
+    }
+
+    @Override
+    public Plan visitCreateServer(AnalyzedCreateServer createServer, PlannerContext context) {
+        return new CreateServerPlan(createServer);
+    }
+
+    @Override
+    public Plan visitCreateForeignTable(AnalyzedCreateForeignTable createTable, PlannerContext context) {
+        return new CreateForeignTablePlan(createTable);
+    }
+
+    @Override
+    public Plan visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, PlannerContext context) {
+        return new CreateUserMappingPlan(createUserMapping);
+    }
+
+    @Override
+    public Plan visitDropServer(AnalyzedDropServer dropServer, PlannerContext context) {
+        return new DropServerPlan(dropServer);
+    }
+
+    @Override
+    public Plan visitDropForeignTable(AnalyzedDropForeignTable dropForeignTable, PlannerContext context) {
+        return new DropForeignTablePlan(dropForeignTable);
+    }
+
+    @Override
+    public Plan visitDropUserMapping(AnalyzedDropUserMapping dropUserMapping, PlannerContext context) {
+        return new DropUserMappingPlan(dropUserMapping);
     }
 }
 

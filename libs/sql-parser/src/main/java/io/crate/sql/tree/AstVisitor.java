@@ -715,4 +715,28 @@ public abstract class AstVisitor<R, C> {
     public R visitClose(Close close, C context) {
         return visitStatement(close, context);
     }
+
+    public R visitCreateServer(CreateServer createServer, C context) {
+        return visitStatement(createServer, context);
+    }
+
+    public R visitCreateForeignTable(CreateForeignTable createForeignTable, C context) {
+        return visitStatement(createForeignTable, context);
+    }
+
+    public R visitCreateUserMapping(CreateUserMapping createUserMapping, C context) {
+        return visitStatement(createUserMapping, context);
+    }
+
+    public R visitDropServer(DropServer dropServer, C context) {
+        return visitStatement(dropServer, context);
+    }
+
+    public R visitDropForeignTable(DropForeignTable dropForeignTable, C context) {
+        return visitStatement(dropForeignTable, context);
+    }
+
+    public R visitDropUserMapping(DropUserMapping dropUserMapping, C context) {
+        return visitStatement(dropUserMapping, context);
+    }
 }

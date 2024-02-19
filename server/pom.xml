@@ -307,6 +307,11 @@
       <artifactId>jaxb-api</artifactId>
       <version>${versions.jaxb_api}</version>
     </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${versions.jdbc}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.assertj</groupId>
@@ -381,13 +386,6 @@
       <type>test-jar</type>
       <scope>test</scope>
       <classifier>tests</classifier>
-    </dependency>
-
-    <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <version>${versions.jdbc}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>

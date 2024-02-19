@@ -21,7 +21,6 @@
 
 package io.crate.breaker;
 
-import java.util.Collection;
 import java.util.List;
 
 import io.crate.data.Row;
@@ -30,29 +29,35 @@ import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.types.DataType;
 
-public class RowAccountingWithEstimators implements RowAccounting<Row> {
+/**
+ * A {@link RowAccounting} implementation that uses a fixed set of column types
+ * to estimate the memory footprint of a {@link Row}
+ */
+public class TypedRowAccounting implements RowAccounting<Row> {
 
     private final RamAccounting ramAccounting;
-    private final EstimateRowSize estimateRowSize;
+    private final CellsSizeEstimator estimateRowSize;
     private int extraSizePerRow = 0;
 
     /**
-     * See {@link RowAccountingWithEstimators#RowAccountingWithEstimators(Collection, RamAccounting, int)}
+     * See {@link TypedRowAccounting#TypedRowAccounting(List, RamAccounting, int)}
      */
-    public RowAccountingWithEstimators(List<? extends DataType<?>> columnTypes, RamAccounting ramAccounting) {
-        this.estimateRowSize = new EstimateRowSize(columnTypes);
+    public TypedRowAccounting(List<? extends DataType<?>> columnTypes, RamAccounting ramAccounting) {
+        this.estimateRowSize = CellsSizeEstimator.forColumns(columnTypes);
         this.ramAccounting = ramAccounting;
     }
 
     /**
-     * @param columnTypes     Column types are needed to use the correct {@link SizeEstimator} per column
+     * Create a new instance over a set of column types
+     *
+     * @param columnTypes     The column types to use for size estimation
      * @param ramAccounting   {@link RamAccounting} implementing the CircuitBreaker logic
      * @param extraSizePerRow Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
      *                        might instantiate an ArrayList per row used for the internal hash->row buffer
      */
-    public RowAccountingWithEstimators(List<? extends DataType<?>> columnTypes,
-                                       RamAccounting ramAccounting,
-                                       int extraSizePerRow) {
+    public TypedRowAccounting(List<? extends DataType<?>> columnTypes,
+                              RamAccounting ramAccounting,
+                              int extraSizePerRow) {
         this(columnTypes, ramAccounting);
         this.extraSizePerRow = extraSizePerRow;
     }
@@ -66,7 +71,7 @@ public class RowAccountingWithEstimators implements RowAccounting<Row> {
     public long accountForAndMaybeBreak(Row row) {
         // Container size of the row is excluded because here it's unknown where the values will be saved to.
         // As size estimation is generally "best-effort" this should be good enough.
-        long bytes = estimateRowSize.applyAsLong(row) + extraSizePerRow;
+        long bytes = estimateRowSize.estimateSize(row) + extraSizePerRow;
         ramAccounting.addBytes(bytes);
         return bytes;
     }

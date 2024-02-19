@@ -23,6 +23,7 @@ database administrator.
     jobs-management
     monitoring
     snapshots
+    fdw
     logical-replication
     discovery
     udc

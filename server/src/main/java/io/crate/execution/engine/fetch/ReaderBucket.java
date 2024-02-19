@@ -28,7 +28,7 @@ import java.util.Locale;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
-import io.crate.breaker.EstimateCellsSize;
+import io.crate.breaker.CellsSizeEstimator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
@@ -39,13 +39,13 @@ class ReaderBucket {
 
     private final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
     private final RamAccounting ramAccounting;
-    private final EstimateCellsSize estimateCellsSize;
+    private final CellsSizeEstimator estimateCellsSize;
 
     private IntArrayList sortedDocs;
 
     ReaderBucket(RamAccounting ramAccounting, FetchSource fetchSource) {
         this.ramAccounting = ramAccounting;
-        this.estimateCellsSize = new EstimateCellsSize(Symbols.typeView(fetchSource.references()));
+        this.estimateCellsSize = CellsSizeEstimator.forColumns(Symbols.typeView(fetchSource.references()));
     }
 
     void require(int doc) {
@@ -91,7 +91,7 @@ class ReaderBucket {
     }
 
     private long accountMemory(Object[] cells) {
-        long bytes = estimateCellsSize.applyAsLong(cells);
+        long bytes = estimateCellsSize.estimateSize(cells);
         ramAccounting.addBytes(bytes);
         return bytes;
     }

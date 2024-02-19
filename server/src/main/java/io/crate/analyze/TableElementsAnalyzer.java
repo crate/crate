@@ -80,6 +80,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -181,7 +182,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         this.toSymbol = x -> expressionAnalyzer.convert(x, expressionContext);
     }
 
-    static class RefBuilder {
+    public static class RefBuilder {
 
         private final ColumnIdent name;
         private DataType<?> type;
@@ -207,7 +208,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
          **/
         private Reference builtReference;
 
-        public RefBuilder(ColumnIdent name, DataType<?> type) {
+        RefBuilder(ColumnIdent name, DataType<?> type) {
             this.name = name;
             this.type = type;
         }
@@ -408,6 +409,28 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             properties,
             partitionedBy,
             clusteredBy
+        );
+    }
+
+    public AnalyzedCreateForeignTable analyze(CreateForeignTable createTable) {
+        for (var tableElement : createTable.tableElements()) {
+            tableElement.accept(peekColumns, null);
+        }
+        for (var tableElement : createTable.tableElements()) {
+            tableElement.accept(columnAnalyzer, null);
+        }
+        HashMap<String, Symbol> options = HashMap.newHashMap(createTable.options().size());
+        for (var entry : createTable.options().entrySet()) {
+            String name = entry.getKey();
+            Expression value = entry.getValue();
+            options.put(name, expressionAnalyzer.convert(value, expressionContext));
+        }
+        return new AnalyzedCreateForeignTable(
+            tableName,
+            createTable.ifNotExists(),
+            columns,
+            createTable.server(),
+            options
         );
     }
 

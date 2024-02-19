@@ -36,7 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -127,7 +127,7 @@ public class CursorTest extends ESTestCase {
         RamAccounting ramAccounting = new BlockBasedRamAccounting(bytes -> {}, 1) ;
         result.whenComplete((v, e) -> ramAccounting.release());
 
-        RowAccounting<Row> rowAccounting = new RowAccountingWithEstimators(
+        RowAccounting<Row> rowAccounting = new TypedRowAccounting(
             List.of(IntegerType.INSTANCE, IntegerType.INSTANCE),
             ramAccounting
         );

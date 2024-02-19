@@ -69,4 +69,9 @@ public class UserFunctionTest extends ScalarTestCase {
         f = sqlExpressions.asSymbol("user");
         assertThat(f).hasToString("CURRENT_USER");
     }
+
+    @Test
+    public void test_current_role() {
+        assertNormalize("current_role", isLiteral("testUser"), false);
+    }
 }

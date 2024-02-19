@@ -839,7 +839,7 @@ Example::
 
 Returns: ``object``
 
-Parses the given URI string and returns an object containing the various 
+Parses the given URI string and returns an object containing the various
 components of the URI. The returned object has the following properties::
 
     "uri" OBJECT AS (
@@ -875,7 +875,7 @@ Synopsis::
 
 Example::
 
-    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432/doc?sslmode=verify-full') as uri;                                                                               
+    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432/doc?sslmode=verify-full') as uri;
     +------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | uri                                                                                                                                                        |
     +------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -883,10 +883,10 @@ Example::
     +------------------------------------------------------------------------------------------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
-If you just want to select a specific URI component, you can use the bracket 
+If you just want to select a specific URI component, you can use the bracket
 notation on the returned object::
 
-    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432')['hostname'] as uri_hostname;                                                                                  
+    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432')['hostname'] as uri_hostname;
     +------------------+
     | uri_hostname     |
     +------------------+
@@ -902,7 +902,7 @@ notation on the returned object::
 
 Returns: ``object``
 
-Parses the given URL string and returns an object containing the various 
+Parses the given URL string and returns an object containing the various
 components of the URL. The returned object has the following properties::
 
     "url" OBJECT AS (
@@ -914,7 +914,7 @@ components of the URL. The returned object has the following properties::
         "query" TEXT,
         "parameters" OBJECT AS (
             "key1" ARRAY(TEXT),
-            "key2" ARRAY(TEXT)   
+            "key2" ARRAY(TEXT)
         ),
         "fragment" TEXT
     )
@@ -951,7 +951,7 @@ Example::
     +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
-If you just want to select a specific URL component, you can use the bracket 
+If you just want to select a specific URL component, you can use the bracket
 notation on the returned object::
 
     cr> SELECT parse_url('https://my_user@cluster.crate.io:5432')['hostname'] as url_hostname;
@@ -962,7 +962,7 @@ notation on the returned object::
     +------------------+
     SELECT 1 row in set (... sec)
 
-Parameter values are always treated as ``text``. There is no conversion of 
+Parameter values are always treated as ``text``. There is no conversion of
 comma-separated parameter values into arrays::
 
     cr> SELECT parse_url('http://crate.io?p1=1,2,3&p1=a&p2[]=1,2,3')['parameters'] as params;
@@ -3318,10 +3318,10 @@ Returns: ``array(text)``
 ``concat(object, object)``
 --------------------------
 
-The ``concat(object, object)`` function combines two objects into a new object 
-containing the union of their first level properties, taking the second 
-object's values for duplicate properties.  If one of the objects is ``NULL``, 
-the function returns the non-``NULL`` object. If both objects are ``NULL``, 
+The ``concat(object, object)`` function combines two objects into a new object
+containing the union of their first level properties, taking the second
+object's values for duplicate properties.  If one of the objects is ``NULL``,
+the function returns the non-``NULL`` object. If both objects are ``NULL``,
 the function returns ``NULL``.
 
 Returns: ``object``
@@ -3352,11 +3352,11 @@ objects::
 
 .. NOTE::
 
-    ``concat(object, object)`` does not operate recursively: only the 
+    ``concat(object, object)`` does not operate recursively: only the
     top-level object structure is merged::
-        
+
         cr> SELECT
-        ...     concat({a = {b = 4}}, {a = {c = 2}}) as object_concat;                                                                                                                                                                                                                            
+        ...     concat({a = {b = 4}}, {a = {c = 2}}) as object_concat;
         +-----------------+
         | object_concat   |
         +-----------------+
@@ -3738,6 +3738,29 @@ Example::
     +-------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-current_role:
+
+``CURRENT_ROLE``
+----------------
+
+Equivalent to `CURRENT_USER`_.
+
+Returns: ``text``
+
+Synopsis::
+
+    CURRENT_ROLE
+
+Example::
+
+    cr> select current_role AS name;
+    +-------+
+    | name  |
+    +-------+
+    | crate |
+    +-------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-user:
 

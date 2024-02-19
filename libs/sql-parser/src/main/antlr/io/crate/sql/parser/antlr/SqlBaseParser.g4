@@ -111,6 +111,9 @@ dropStmt
     | DROP ANALYZER name=ident                                                       #dropAnalyzer
     | DROP PUBLICATION (IF EXISTS)? name=ident                                       #dropPublication
     | DROP SUBSCRIPTION (IF EXISTS)? name=ident                                      #dropSubscription
+    | DROP SERVER (IF EXISTS)? names=idents (CASCADE | RESTRICT)?                    #dropServer
+    | DROP FOREIGN TABLE (IF EXISTS)? names=qnames (CASCADE | RESTRICT)?             #dropForeignTable
+    | DROP USER MAPPING (IF EXISTS)? FOR mappedUser SERVER server=ident              #dropUserMapping
     ;
 
 alterStmt
@@ -339,7 +342,7 @@ explicitFunction
     | name=CURRENT_TIMESTAMP
         (OPEN_ROUND_BRACKET precision=integerLiteral CLOSE_ROUND_BRACKET)?           #specialDateTimeFunction
     | CURRENT_SCHEMA                                                                 #currentSchema
-    | (CURRENT_USER | USER)                                                          #currentUser
+    | (CURRENT_USER | CURRENT_ROLE | USER)                                           #currentUser
     | SESSION_USER                                                                   #sessionUser
     | LEFT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET   #left
     | RIGHT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET  #right
@@ -582,6 +585,9 @@ createStmt
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
          partitionedByOrClusteredInto withProperties?                                #createTable
     | CREATE TABLE table AS insertSource                                             #createTableAs
+    | CREATE FOREIGN TABLE (IF NOT EXISTS)? tableName=qname
+        OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
+        SERVER server=ident kvOptions?                                               #createForeignTable
     | CREATE BLOB TABLE table numShards=blobClusteredInto? withProperties?           #createBlobTable
     | CREATE REPOSITORY name=ident TYPE type=ident withProperties?                   #createRepository
     | CREATE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?        #createSnapshot
@@ -594,6 +600,8 @@ createStmt
         RETURNS returnType=dataType
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
+    | CREATE USER MAPPING (IF NOT EXISTS)?
+          FOR mappedUser SERVER server=ident kvOptions?                              #createUserMapping
     | CREATE (USER | ROLE) name=ident ((withProperties | WITH?
         OPEN_ROUND_BRACKET? options=spaceSeparatedIdents CLOSE_ROUND_BRACKET?))?     #createRole
     | CREATE ( OR REPLACE )? VIEW name=qname AS queryOptParens                       #createView
@@ -602,6 +610,26 @@ createStmt
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
+    | CREATE SERVER (IF NOT EXISTS)? name=ident
+          FOREIGN DATA WRAPPER fdw=ident kvOptions?                                  #createServer
+    ;
+
+
+mappedUser
+    : userName=ident
+    | USER
+    | CURRENT_ROLE
+    | CURRENT_USER
+    ;
+
+
+kvOptions
+    : OPTIONS OPEN_ROUND_BRACKET kvOption (COMMA kvOption)* CLOSE_ROUND_BRACKET
+    ;
+
+
+kvOption
+    : ident parameterOrLiteral
     ;
 
 
@@ -848,6 +876,7 @@ nonReserved
     | BOTH
     | BYTE
     | CANCEL
+    | CASCADE
     | CATALOGS
     | CHARACTER
     | CHARACTERISTICS
@@ -869,6 +898,7 @@ nonReserved
     | CURRENT_TIMESTAMP
     | CURSOR
     | DANGLING
+    | DATA
     | DAY
     | DEALLOCATE
     | DECLARE
@@ -889,6 +919,7 @@ nonReserved
     | FILTER
     | FLOAT
     | FOLLOWING
+    | FOREIGN
     | FORMAT
     | FORWARD
     | FULLTEXT
@@ -918,6 +949,7 @@ nonReserved
     | LOCAL
     | LOGICAL
     | LONG
+    | MAPPING
     | MATERIALIZED
     | METADATA
     | MINUTE
@@ -930,6 +962,7 @@ nonReserved
     | ONLY
     | OPEN
     | OPTIMIZE
+    | OPTIONS
     | OVER
     | PARTITION
     | PARTITIONED
@@ -955,6 +988,7 @@ nonReserved
     | REROUTE
     | RESPECT
     | RESTORE
+    | RESTRICT
     | RETRY
     | RETURN
     | RETURNING
@@ -967,6 +1001,7 @@ nonReserved
     | SECOND
     | SEQUENCES
     | SERIALIZABLE
+    | SERVER
     | SESSION
     | SHARD
     | SHARDS
@@ -991,8 +1026,8 @@ nonReserved
     | TIMESTAMP
     | TIMESTAMP
     | TO
-    | TOKEN_FILTERS
     | TOKENIZER
+    | TOKEN_FILTERS
     | TRAILING
     | TRANSACTION
     | TRANSACTION_ISOLATION
@@ -1006,6 +1041,7 @@ nonReserved
     | WINDOW
     | WITHOUT
     | WORK
+    | WRAPPER
     | WRITE
     | YEAR
     | ZONE

@@ -42,21 +42,27 @@ import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.AnalyzedCreateBlobTable;
+import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateRole;
+import io.crate.analyze.AnalyzedCreateServer;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
+import io.crate.analyze.AnalyzedCreateUserMapping;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
+import io.crate.analyze.AnalyzedDropForeignTable;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropRole;
+import io.crate.analyze.AnalyzedDropServer;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
+import io.crate.analyze.AnalyzedDropUserMapping;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
@@ -98,6 +104,7 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -229,6 +236,18 @@ public final class AccessControlImpl implements AccessControl {
             }
             // On the other hand, all users should be able to access built-in functions without any privileges.
             // ex) select * from abs(1);
+            return null;
+        }
+
+        @Override
+        public Void visitForeignTable(ForeignTableRelation foreignTableRelation, RelationContext context) {
+            Privileges.ensureUserHasPrivilege(
+                roles,
+                context.user,
+                context.permission,
+                Securable.TABLE,
+                foreignTableRelation.relationName().fqn()
+            );
             return null;
         }
 
@@ -948,6 +967,80 @@ public final class AccessControlImpl implements AccessControl {
                 Securable.CLUSTER,
                 null
             );
+            return null;
+        }
+
+        @Override
+        public Void visitCreateServer(AnalyzedCreateServer createServer, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.AL,
+                Securable.CLUSTER,
+                null
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitDropServer(AnalyzedDropServer dropServer, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.AL,
+                Securable.CLUSTER,
+                null
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.AL,
+                Securable.CLUSTER,
+                null
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitDropUserMapping(AnalyzedDropUserMapping dropUserMapping, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.AL,
+                Securable.CLUSTER,
+                null
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitCreateForeignTable(AnalyzedCreateForeignTable createForeignTable, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.AL,
+                Securable.TABLE,
+                createForeignTable.tableName().fqn()
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitDropForeignTable(AnalyzedDropForeignTable dropForeignTable, Role user) {
+            for (RelationName name : dropForeignTable.names()) {
+                Privileges.ensureUserHasPrivilege(
+                    relationVisitor.roles,
+                    user,
+                    Permission.AL,
+                    Securable.TABLE,
+                    name.fqn()
+                );
+            }
             return null;
         }
     }
