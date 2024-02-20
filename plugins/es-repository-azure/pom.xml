@@ -52,6 +52,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${versions.guava}</version>
+    </dependency>
+
+    <dependency>
       <groupId>io.crate</groupId>
       <artifactId>crate-server</artifactId>
       <version>${project.version}</version>
