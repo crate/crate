@@ -21,6 +21,7 @@
 
 package io.crate.protocols.postgres;
 
+import static io.crate.protocols.postgres.PostgresWireProtocol.PG_SERVER_VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -37,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -487,7 +489,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCrateServerVersionIsReceivedOnStartup() throws Exception {
+    public void test_all_parameter_status_is_received_on_startup() throws Exception {
         PostgresWireProtocol ctx = new PostgresWireProtocol(
             sqlOperations,
             new SessionSettingRegistry(Set.of()),
@@ -511,17 +513,30 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             respBuf.release();
         }
 
-        respBuf = channel.readOutbound();
-        try {
-            assertThat((char) respBuf.readByte(), is('S')); // ParameterStatus
-            respBuf.readInt(); // length
-            String key = PostgresWireProtocol.readCString(respBuf);
-            String value = PostgresWireProtocol.readCString(respBuf);
+        Map<String, String> parameterStatus = new LinkedHashMap<>();
+        parameterStatus.put("crate_version", Version.CURRENT.externalNumber());
+        parameterStatus.put("server_version", PG_SERVER_VERSION);
+        parameterStatus.put("server_encoding", "UTF8");
+        parameterStatus.put("client_encoding", "UTF8");
+        parameterStatus.put("datestyle", executor.createSession().sessionSettings().dateStyle());
+        parameterStatus.put("TimeZone", "UTC");
+        parameterStatus.put("integer_datetimes", "on");
+        parameterStatus.put("standard_conforming_strings", "on");
 
-            assertThat(key, is("crate_version"));
-            assertThat(value, is(Version.CURRENT.externalNumber()));
-        } finally {
-            respBuf.release();
+        for (var expected : parameterStatus.entrySet()) {
+            try {
+                respBuf = channel.readOutbound();
+
+                assertThat((char) respBuf.readByte(), is('S')); // ParameterStatus
+                respBuf.readInt(); // length
+                String key = PostgresWireProtocol.readCString(respBuf);
+                String value = PostgresWireProtocol.readCString(respBuf);
+
+                assertThat(key, is(expected.getKey()));
+                assertThat(value, is(expected.getValue()));
+            } finally {
+                respBuf.release();
+            }
         }
     }
 

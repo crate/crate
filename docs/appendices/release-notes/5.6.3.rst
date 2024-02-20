@@ -63,5 +63,11 @@ Fixes
 
      SELECT '1 yeAR 2 WeeKs 3 DAYS'::INTERVAL
 
+- Fixed an issue that caused ``CrateDB`` to fail to notify client applications
+  connecting via :ref:`PostgreSQL Wire Protocol <interface-postgresql>` that
+  :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>`
+  is set to ``on`` which caused the clients to treat all query strings as non
+  standard conforming.
+
 - Fixed ``NullPointerException`` thrown when joining tables with ``USING``
   clause which contains columns not existing in either or both tables.
