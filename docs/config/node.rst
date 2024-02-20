@@ -601,10 +601,10 @@ The meaning of the fields of the are as follows:
   | *Runtime:* ``no``
 
   | The authentication method to use when a connection matches this entry.
-  | Valid values are ``trust``, ``cert``, and ``password``. If no method is
-  | specified, the ``trust`` method is used by default.
-  | See :ref:`auth_trust`, :ref:`auth_cert` and :ref:`auth_password` for more
-  | information about these methods.
+  | Valid values are ``trust``, ``cert``, ``password`` and ``jwt``. If no
+  | method is specified, the ``trust`` method is used by default.
+  | See :ref:`auth_trust`, :ref:`auth_cert`, :ref:`auth_password` and
+  | :ref:`auth_jwt` for more information about these methods.
 
 .. _auth.host_based.config.${order}.protocol:
 
