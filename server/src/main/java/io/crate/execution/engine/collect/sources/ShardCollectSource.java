@@ -400,6 +400,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
                 throw Exceptions.toRuntimeException(err);
             }
+            assert collectTask.completionFuture().isDone() == false : "Cannot resume a collect task that is completed";
             return remoteCollectorFactory.createCollector(
                 shardId,
                 collectPhase,
