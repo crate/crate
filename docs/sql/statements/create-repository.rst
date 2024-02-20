@@ -584,6 +584,107 @@ Parameters
   The port number of the proxy.
 
 
+.. _sql-create-repo-gcs:
+
+``gcs``
+-------
+
+A ``gcs`` repository stores snapshots on the `Google Cloud Storage`_ service.
+
+Parameters
+''''''''''
+
+.. _sql-create-repo-gcs-account:
+
+**bucket**
+  | *Type:* ``text``
+  | *Required*
+
+  Name of the `Google Cloud Storage`_ bucket used for storing snapshots.
+  The bucket must already exist before the repository is created.
+
+
+.. _sql-create-repo-gcs-private_key_id:
+
+**private_key_id**
+  | *Type:* ``text``
+  | *Required*
+
+  The Private key id for the `Google Service account`_ from the json
+  `Google Service account credentials`_.
+
+  .. NOTE::
+
+    This parameter will be masked (shown as ``[xxxxx]``) when querying
+    :ref:`sys.repositories <sys-repositories>` table.
+
+
+.. _sql-create-repo-gcs-private_key:
+
+**private_key**
+  | *Type:* ``text``
+  | *Required*
+
+  The private key in `PKCS 8`_ format for the `Google Service account`_ from
+  the json `Google Service account credentials`_.
+
+  .. NOTE::
+
+    This parameter will be masked (shown as ``[xxxxx]``) when querying
+    :ref:`sys.repositories <sys-repositories>` table.
+
+.. _sql-create-repo-gcs-client_id:
+
+**client_id**
+  | *Type:* ``text``
+  | *Required*
+
+  The client id for the `Google Service account`_ from the json
+  `Google Service account credentials`_.
+
+  .. NOTE::
+
+    This parameter will be masked (shown as ``[xxxxx]``) when querying
+    :ref:`sys.repositories <sys-repositories>` table.
+
+.. _sql-create-repo-gcs-client_email:
+
+**client_email**
+  | *Type:* ``text``
+  | *Required*
+
+  The client email for the `Google Service account`_ from the json
+  `Google Service account credentials`_.
+
+  .. NOTE::
+
+    This parameter will be masked (shown as ``[xxxxx]``) when querying
+    :ref:`sys.repositories <sys-repositories>` table.
+
+.. _sql-create-repo-gcs-base_path:
+
+**base_path**
+  | *Type:* ``text``
+  | *Default:* ``root directory``
+
+  The container path to use for snapshots.
+
+.. _sql-create-repo-gcs-endpoint:
+
+**endpoint**
+ | *Type:* ``text``
+ | *Required:* ``false``
+
+ Endpoint root url to connect to an alternative storage provider.
+
+.. _sql-create-repo-gcs-token_uri:
+
+**token_uri**
+ | *Type:* ``text``
+ | *Required:* ``false``
+
+ Endpoint oauth token URI to connect to an alternative oauth provider.
+
 .. _sql-create-repo-url:
 
 ``url``
@@ -630,3 +731,7 @@ Parameters
 .. _IAM roles: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 .. _regional endpoint: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
+.. _Google Cloud Storage: https://cloud.google.com/storage/
+.. _Google Service account: https://cloud.google.com/iam/docs/overview#service_account
+.. _Google Service account credentials: https://cloud.google.com/storage/docs/authentication?hl=en
+.. _PKCS 8: https://en.wikipedia.org/wiki/PKCS_8

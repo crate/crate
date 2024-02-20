@@ -100,3 +100,10 @@ User Interface
 --------------
 
 None
+
+External contributions
+----------------------
+
+- `Herman Bergwerf <https://github.com/bergwerf>`_ added support for
+  :ref:`Google Cloud Storage repositories <sql-create-repo-gcs>` to write and
+  restore snapshots on Google Cloud Storage.

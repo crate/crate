@@ -95,6 +95,10 @@
       <source>../plugins/es-repository-azure/src/main/resources/plugin-descriptor.properties</source>
       <outputDirectory>plugins/es-repository-azure</outputDirectory>
     </file>
+    <file>
+      <source>../plugins/repository-gcs/src/main/resources/plugin-descriptor.properties</source>
+      <outputDirectory>plugins/repository-gcs</outputDirectory>
+    </file>
   </files>
   <dependencySets>
     <dependencySet>
@@ -119,6 +123,7 @@
 
         <exclude>io.crate:es-repository-azure</exclude>
         <exclude>com.microsoft.azure:*</exclude>
+        <exclude>io.crate:repository-gcs</exclude>
       </excludes>
     </dependencySet>
   </dependencySets>
@@ -206,6 +211,20 @@
         <includeDependencies>true</includeDependencies>
         <unpack>false</unpack>
         <outputDirectory>plugins/es-repository-azure</outputDirectory>
+      </binaries>
+    </moduleSet>
+    <moduleSet>
+      <useAllReactorProjects>true</useAllReactorProjects>
+      <includes>
+        <include>io.crate:repository-gcs</include>
+      </includes>
+      <binaries>
+        <includes>
+          <include>io.crate:repository-gcs</include>
+        </includes>
+        <includeDependencies>true</includeDependencies>
+        <unpack>false</unpack>
+        <outputDirectory>plugins/repository-gcs</outputDirectory>
       </binaries>
     </moduleSet>
     <moduleSet>
