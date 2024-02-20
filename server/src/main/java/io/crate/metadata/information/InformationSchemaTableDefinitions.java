@@ -33,6 +33,7 @@ import org.elasticsearch.common.inject.Singleton;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;
+import io.crate.role.Permission;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
 
@@ -112,6 +113,11 @@ public class InformationSchemaTableDefinitions {
             informationSchemaIterables::foreignTables,
             (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.name().fqn()),
             ForeignTableTableInfo.create().expressions()
+        ));
+        tableDefinitions.put(UserMappingsTableInfo.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::userMappings,
+            (user, t) -> roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null),
+            UserMappingsTableInfo.create().expressions()
         ));
     }
 

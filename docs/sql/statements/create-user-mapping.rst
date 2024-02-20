@@ -39,6 +39,8 @@ more details.
 
 Creating a user mapping requires ``AL`` permission on cluster level.
 
+User mappings are visible in the :ref:`user_mappings` table.
+
 Parameters
 ==========
 
