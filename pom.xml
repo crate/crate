@@ -239,8 +239,8 @@
     <versions.jdk>21.0.2</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
     <versions.log4j>2.22.0</versions.log4j>
-    <versions.assertj>3.25.1</versions.assertj>
-    <versions.junit5>5.10.1</versions.junit5>
+    <versions.assertj>3.25.3</versions.assertj>
+    <versions.junit5>5.10.2</versions.junit5>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
     <versions.jackson>2.16.1</versions.jackson>
