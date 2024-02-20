@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.action.ActionListener;
@@ -40,8 +41,7 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mockito;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -73,14 +73,11 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
     private TransportKillJobsNodeAction transportKillJobsNodeAction;
     private RemoteCollector remoteCollector;
     private TestingRowConsumer consumer;
-
-    @Captor
-    public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
     private AtomicInteger numBroadcastCalls;
+    private CompletableFuture<JobResponse> response = new CompletableFuture<>();
 
     @Before
     public void prepare() {
-        MockitoAnnotations.initMocks(this);
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             jobId,
@@ -94,6 +91,8 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             DistributionInfo.DEFAULT_BROADCAST
         );
         transportJobAction = mock(TransportJobAction.class);
+        Mockito.when(transportJobAction.execute(any())).thenReturn(response);
+
         TasksService tasksService = new TasksService(
             clusterService,
             new JobsLogs(() -> true));
@@ -133,8 +132,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.kill(new InterruptedException("KILLED"));
         remoteCollector.doCollect();
 
-        //noinspection unchecked
-        verify(transportJobAction, times(0)).doExecute(any(NodeRequest.class), any(ActionListener.class));
+        verify(transportJobAction, times(0)).execute(any());
 
         assertThatThrownBy(() -> consumer.getResult())
             .isExactlyInstanceOf(InterruptedException.class);
@@ -147,8 +145,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.kill(new InterruptedException());
         remoteCollector.createRemoteContext();
 
-        //noinspection unchecked
-        verify(transportJobAction, times(0)).doExecute(any(NodeRequest.class), any(ActionListener.class));
+        verify(transportJobAction, times(0)).execute(any());
         assertThatThrownBy(() -> consumer.getResult())
             .isExactlyInstanceOf(JobKilledException.class);
     }
@@ -157,13 +154,12 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
     public void testKillRequestsAreMadeIfCollectorIsKilledAfterRemoteContextCreation() throws Exception {
         remoteCollector.doCollect();
         ArgumentCaptor<NodeRequest<JobRequest>> argumentCaptor = ArgumentCaptor.forClass(NodeRequest.class);
-        verify(transportJobAction, times(1)).doExecute(argumentCaptor.capture(), listenerCaptor.capture());
+        verify(transportJobAction, times(1)).execute(argumentCaptor.capture());
         assertThat(argumentCaptor.getValue().nodeId()).isEqualTo("remoteNode");
 
         remoteCollector.kill(new InterruptedException());
 
-        ActionListener<JobResponse> listener = listenerCaptor.getValue();
-        listener.onResponse(new JobResponse(List.of()));
+        response.complete(new JobResponse(List.of()));
 
         assertThat(numBroadcastCalls).hasValue(1);
     }
