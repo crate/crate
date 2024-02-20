@@ -82,6 +82,7 @@ number of replicas.
     | information_schema | table_constraints       | BASE TABLE |             NULL | NULL               |
     | information_schema | table_partitions        | BASE TABLE |             NULL | NULL               |
     | information_schema | tables                  | BASE TABLE |             NULL | NULL               |
+    | information_schema | user_mappings           | BASE TABLE |             NULL | NULL               |
     | information_schema | views                   | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_am                   | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_attrdef              | BASE TABLE |             NULL | NULL               |
@@ -133,7 +134,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 66 rows in set (... sec)
+    SELECT 67 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
@@ -880,3 +881,27 @@ In CrateDB there is always a single entry listing `UTF8`::
     * - ``default_collate_name``
       - ``TEXT``
       - Name of the default collation (Always ``NULL``)
+
+.. _user_mappings:
+
+``user_mappings``
+-----------------
+
+Lists user mappings created for foreign servers.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``authorization_identifier``
+     - ``TEXT``
+     - Name of the user being mapped
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database of the foreign server. Always ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server for this user mapping

@@ -47,6 +47,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.fdw.ServersMetadata.Server;
+import io.crate.metadata.information.UserMappingsTableInfo.UserMapping;
 import io.crate.sql.tree.CascadeMode;
 
 public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
@@ -310,5 +311,14 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
     public boolean equals(Object obj) {
         return obj instanceof ServersMetadata other
             && servers.equals(other.servers);
+    }
+
+    public Iterable<UserMapping> getUserMappings() {
+        return () ->
+            servers.values().stream()
+                .map(server -> server)
+                .flatMap(server -> server.users.keySet().stream()
+                    .map(userName -> new UserMapping(userName, server.name()))
+                ).iterator();
     }
 }
