@@ -21,10 +21,9 @@
 
 package io.crate.execution.engine.distribution;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,19 +31,19 @@ import static org.mockito.Mockito.verify;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
+import org.mockito.Mockito;
 
 import io.crate.Streamer;
 import io.crate.data.CollectionBucket;
@@ -102,7 +101,7 @@ public class DistributingConsumerTest extends ESTestCase {
                    "4\n");
 
             // pageSize=2 and 5 rows causes 3x pushResult
-            verify(distributedResultAction, times(3)).doExecute(any(), any());
+            verify(distributedResultAction, times(3)).execute(any());
         } finally {
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.SECONDS);
@@ -199,24 +198,23 @@ public class DistributingConsumerTest extends ESTestCase {
     @SuppressWarnings("unchecked")
     private TransportDistributedResultAction createFakeTransport(Streamer<?>[] streamers, DistResultRXTask distResultRXTask) {
         TransportDistributedResultAction distributedResultAction = mock(TransportDistributedResultAction.class);
-        doAnswer((InvocationOnMock invocationOnMock) -> {
-            Object[] args = invocationOnMock.getArguments();
+        Mockito.when(distributedResultAction.execute(any())).then(invocation -> {
+            Object[] args = invocation.getArguments();
             DistributedResultRequest resultRequest = ((NodeRequest<DistributedResultRequest>) args[0]).innerRequest();
-            ActionListener<DistributedResultResponse> listener = (ActionListener<DistributedResultResponse>) args[1];
             Throwable throwable = resultRequest.throwable();
             PageBucketReceiver bucketReceiver = distResultRXTask.getBucketReceiver(resultRequest.executionPhaseInputId());
-            assertThat(bucketReceiver).isNotNull();
+            CompletableFuture<DistributedResultResponse> result = new CompletableFuture<>();
             if (throwable == null) {
                 bucketReceiver.setBucket(
                     resultRequest.bucketIdx(),
                     resultRequest.readRows(streamers),
                     resultRequest.isLast(),
-                    needMore -> listener.onResponse(new DistributedResultResponse(needMore)));
+                    needMore -> result.complete(new DistributedResultResponse(needMore)));
             } else {
                 bucketReceiver.kill(throwable);
             }
-            return null;
-        }).when(distributedResultAction).doExecute(any(), any());
+            return result;
+        });
         return distributedResultAction;
     }
 }
