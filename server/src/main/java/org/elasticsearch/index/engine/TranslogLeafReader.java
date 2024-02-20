@@ -57,10 +57,10 @@ final class TranslogLeafReader extends LeafReader {
     private final Translog.Index operation;
     private static final FieldInfo FAKE_SOURCE_FIELD
         = new FieldInfo(SourceFieldMapper.NAME, 1, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
-        0, 0, 0, 0, VectorEncoding.BYTE, VectorSimilarityFunction.EUCLIDEAN, false);
+        0, 0, 0, 0, VectorEncoding.BYTE, VectorSimilarityFunction.EUCLIDEAN, false, false);
     private static final FieldInfo FAKE_ID_FIELD
         = new FieldInfo(IdFieldMapper.NAME, 3, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
-        0, 0, 0, 0, VectorEncoding.BYTE, VectorSimilarityFunction.EUCLIDEAN, false);
+        0, 0, 0, 0, VectorEncoding.BYTE, VectorSimilarityFunction.EUCLIDEAN, false, false);
 
     TranslogLeafReader(Translog.Index operation) {
         this.operation = operation;
