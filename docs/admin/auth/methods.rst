@@ -108,6 +108,45 @@ applies to the PostgreSQL wire protocol, as there the username isn't optional.
 Please consult the relevant client documentations for instructions on how to
 connect using SSL with client certificate.
 
+.. _auth_jwt:
+
+JWT authentication method
+=========================
+
+JWT authentication allows to delegate part of the authentication process to an
+external service.
+
+The external service is responsible for issuing a `JWT`_ access token for the
+user. The user then provides this token, prefixed with ``Bearer`` in the
+``Authorization`` HTTP header to CrateDB.
+CrateDB will validate the token and match it to a user created with ``CREATE
+USER`` with ``JWT`` properties that match those of the provided ``JWT`` token.
+
+Token must contain the following claims:
+``kid`` - `Key ID`_.
+``iss`` - URL of the `JWK endpoint`_.
+``username`` - user name in a third party app.
+
+``iss`` and  ``username`` values must match the values created by
+``CREATE USER`` statement. See :ref:`create-user-jwt` for details.
+
+It's recommended to have ``exp`` (`expiration date`_ as epoch seconds) in the
+header. If it's provided, the token's expiration date will be checked against
+the local system's time in UTC.
+
+Supported signing algorithms are RSA-256, RSA-384 and RSA-512.
+The algorithm to verify the signature is decided on the JWK endpoint's ``alg``
+value. If the ``alg`` value is not provided, RSA-256 is used (default).
+
+It's recommended to have the ``alg`` (`Algorithm parameter`_)  in the header.
+If it's provided both in the token and in the response from the JWK endpoint,
+both values are compared and in case of a mismatch the token is rejected.
+
+.. NOTE::
+
+   JWT is supported only for the HTTP protocol. An :ref:`HBA <admin_hba>` entry
+   for ``jwt`` MUST be combined with ``protocol: http``.
+
 .. SEEALSO::
 
   :ref:`admin_hba`
@@ -117,4 +156,9 @@ connect using SSL with client certificate.
 .. _PBKDF2: https://en.wikipedia.org/wiki/PBKDF2
 .. _SHA-512 hash algorithm: https://en.wikipedia.org/wiki/SHA-2
 .. _HTTP Basic Authentication: https://en.wikipedia.org/wiki/Basic_access_authentication
+.. _JWK endpoint: https://datatracker.ietf.org/doc/html/rfc7517
 .. _BASE64: https://en.wikipedia.org/wiki/Base64
+.. _JWT: https://datatracker.ietf.org/doc/html/rfc7519
+.. _Key ID: https://datatracker.ietf.org/doc/html/rfc7517#section-4.5
+.. _expiration date: https://www.rfc-editor.org/rfc/rfc7519#section-4.1.4
+.. _Algorithm parameter: https://datatracker.ietf.org/doc/html/rfc7517#section-4.4
