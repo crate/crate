@@ -104,6 +104,8 @@ Administration and Operations
 - Added ``jwt`` column to :ref:`sys.users<sys-users>` table which lists JWT
   authentication specific properties of the user.
 
+- Added support for :ref:`JWT token authentication <auth_jwt>`.
+
 User Interface
 --------------
 
