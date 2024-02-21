@@ -22,11 +22,16 @@
 package io.crate.planner;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.SymbolEvaluator;
@@ -36,6 +41,9 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.CreateForeignTableRequest;
+import io.crate.fdw.ForeignDataWrappers;
+import io.crate.fdw.ServersMetadata;
+import io.crate.fdw.ServersMetadata.Server;
 import io.crate.fdw.TransportCreateForeignTableAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -45,9 +53,12 @@ import io.crate.planner.operators.SubQueryResults;
 
 public class CreateForeignTablePlan implements Plan {
 
+    private final ForeignDataWrappers foreignDataWrappers;
     private final AnalyzedCreateForeignTable createTable;
 
-    public CreateForeignTablePlan(AnalyzedCreateForeignTable createTable) {
+    public CreateForeignTablePlan(ForeignDataWrappers foreignDataWrappers,
+                                  AnalyzedCreateForeignTable createTable) {
+        this.foreignDataWrappers = foreignDataWrappers;
         this.createTable = createTable;
     }
 
@@ -68,8 +79,34 @@ public class CreateForeignTablePlan implements Plan {
             plannerContext.nodeContext(),
             subQueryResults
         ).bind(params);
-        Map<String, Object> options = createTable.options().entrySet().stream()
-            .collect(Collectors.toMap(Entry::getKey, entry -> toValue.apply(entry.getValue())));
+
+        Metadata metadata = plannerContext.clusterState().metadata();
+        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        Server server = servers.get(createTable.server());
+        var foreignDataWrapper = foreignDataWrappers.get(server.fdw());
+
+        Settings.Builder optionsBuilder = Settings.builder();
+        Map<String, Symbol> options = new HashMap<>(createTable.options());
+        for (Setting<?> option : foreignDataWrapper.optionalTableOptions()) {
+            String optionName = option.getKey();
+            Symbol symbol = options.remove(optionName);
+            if (symbol == null) {
+                continue;
+            }
+            optionsBuilder.put(optionName, toValue.apply(symbol));
+        }
+        if (!options.isEmpty()) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Unsupported options for foreign table %s using fdw `%s`: %s. Valid options are: %s",
+                createTable.tableName().sqlFqn(),
+                server.fdw(),
+                String.join(", ", options.keySet()),
+                foreignDataWrapper.optionalTableOptions().stream()
+                    .map(x -> x.getKey())
+                    .collect(Collectors.joining(", "))
+            ));
+        }
 
         Map<ColumnIdent, RefBuilder> columns = createTable.columns();
         List<Reference> references = new ArrayList<>();
@@ -84,7 +121,7 @@ public class CreateForeignTablePlan implements Plan {
             createTable.ifNotExists(),
             references,
             createTable.server(),
-            options
+            optionsBuilder.build()
         );
         dependencies.client()
             .execute(TransportCreateForeignTableAction.ACTION, request)

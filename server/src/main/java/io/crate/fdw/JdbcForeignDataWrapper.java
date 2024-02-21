@@ -58,6 +58,14 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     private final Setting<String> urlSetting = Setting.simpleString("url");
     private final List<Setting<?>> mandatoryServerOptions = List.of(urlSetting);
 
+    private final Setting<String> schemaName = Setting.simpleString("schema_name");
+    private final Setting<String> tableName = Setting.simpleString("table_name");
+    private final List<Setting<?>> optionalTableOptions = List.of(
+        schemaName,
+        tableName
+    );
+
+
     JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory) {
         this.settings = settings;
         this.inputFactory = inputFactory;
@@ -69,10 +77,15 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     }
 
     @Override
+    public List<Setting<?>> optionalTableOptions() {
+        return optionalTableOptions;
+    }
+
+    @Override
     public CompletableFuture<BatchIterator<Row>> getIterator(Role currentUser,
                                                              Server server,
+                                                             ForeignTable foreignTable,
                                                              TransactionContext txnCtx,
-                                                             RelationName relationName,
                                                              List<Symbol> collect) {
         SessionSettings sessionSettings = txnCtx.sessionSettings();
         Map<String, Object> userOptions = server.users().get(sessionSettings.userName());
@@ -115,7 +128,12 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
             throw new UnsupportedOperationException(
                 "Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
         }
-        BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, relationName);
+        String remoteSchema = schemaName.get(foreignTable.options());
+        String remoteTable = tableName.get(foreignTable.options());
+        RelationName remoteName = new RelationName(
+            remoteSchema.isEmpty() ? foreignTable.name().schema() : remoteSchema,
+            remoteTable.isEmpty() ? foreignTable.name().name() : remoteTable);
+        BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, remoteName);
         if (!refs.containsAll(collect)) {
             var sourceRefs = new InputColumns.SourceSymbols(refs);
             List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);

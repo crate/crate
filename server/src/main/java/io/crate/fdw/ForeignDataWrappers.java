@@ -46,10 +46,8 @@ import io.crate.execution.engine.collect.sources.CollectSource;
 import io.crate.expression.InputFactory;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.role.Roles;
-import io.crate.types.DataTypes;
 
 @Singleton
 public class ForeignDataWrappers implements CollectSource {
@@ -124,17 +122,11 @@ public class ForeignDataWrappers implements CollectSource {
                 foreignTable.server()
             ));
         }
-
-        Map<String, Object> options = foreignTable.options();
-        RelationName name = foreignTable.name();
-        String remoteSchema = DataTypes.STRING.implicitCast(options.getOrDefault("schema_name", name.schema()));
-        String remoteTable = DataTypes.STRING.implicitCast(options.getOrDefault("table_name", name.name()));
-        RelationName remoteName = new RelationName(remoteSchema, remoteTable);
         return fdw.getIterator(
             requireNonNull(roles.findUser(txnCtx.sessionSettings().userName()), "current user must exit"),
             server,
+            foreignTable,
             txnCtx,
-            remoteName,
             collectPhase.toCollect()
         );
     }

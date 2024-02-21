@@ -208,6 +208,7 @@ public class SQLExecutor {
     public final DependencyCarrier dependencyMock;
     private final PlanStats planStats;
     private final TableStats tableStats;
+    public final ForeignDataWrappers foreignDataWrappers;
 
     public TransactionState transactionState = TransactionState.IDLE;
     public boolean jobsLogsEnabled;
@@ -262,6 +263,7 @@ public class SQLExecutor {
 
         @Nullable
         private LongSupplier columnOidSupplier;
+        private ForeignDataWrappers foreignDataWrappers;
 
         private Builder(ClusterService clusterService,
                         int numNodes,
@@ -345,6 +347,7 @@ public class SQLExecutor {
                 logicalReplicationSettings
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
+            foreignDataWrappers = new ForeignDataWrappers(Settings.EMPTY, clusterService, nodeCtx);
 
             publishInitialClusterState();
         }
@@ -427,7 +430,7 @@ public class SQLExecutor {
                         null,
                         null,
                         roleManager,
-                        new ForeignDataWrappers(Settings.EMPTY, clusterService, nodeCtx),
+                        foreignDataWrappers,
                         sessionSettingRegistry
                     ),
                 relationAnalyzer,
@@ -436,7 +439,8 @@ public class SQLExecutor {
                 random,
                 fulltextAnalyzerResolver,
                 udfService,
-                tableStats
+                tableStats,
+                foreignDataWrappers
             );
         }
 
@@ -792,7 +796,8 @@ public class SQLExecutor {
                         Random random,
                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
                         UserDefinedFunctionService udfService,
-                        TableStats tableStats) {
+                        TableStats tableStats,
+                        ForeignDataWrappers foreignDataWrappers) {
         this.jobsLogsEnabled = false;
         this.jobsLogs = new JobsLogs(() -> SQLExecutor.this.jobsLogsEnabled);
         this.dependencyMock = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
@@ -820,6 +825,7 @@ public class SQLExecutor {
         this.udfService = udfService;
         this.tableStats = tableStats;
         this.planStats = new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats);
+        this.foreignDataWrappers = foreignDataWrappers;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
