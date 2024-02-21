@@ -40,6 +40,8 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
     private final RelationName relationName;
     private final List<Symbol> toCollect;
 
+    private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
+
     public ForeignCollectPhase(UUID jobId,
                                int phaseId,
                                String handlerNode,
@@ -58,6 +60,7 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
         this.relationName = new RelationName(in);
         this.toCollect = Symbols.listFromStream(in);
         this.outputTypes = extractOutputTypes(toCollect, projections);
+        this.distributionInfo = new DistributionInfo(in);
     }
 
     @Override
@@ -66,16 +69,17 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
         out.writeString(handlerNode);
         relationName.writeTo(out);
         Symbols.toStream(toCollect, out);
+        distributionInfo.writeTo(out);
     }
 
     @Override
     public DistributionInfo distributionInfo() {
-        return DistributionInfo.DEFAULT_BROADCAST;
+        return distributionInfo;
     }
 
     @Override
     public void distributionInfo(DistributionInfo distributionInfo) {
-        throw new UnsupportedOperationException("Cannot set distributionInfo on ForeignCollectPhase");
+        this.distributionInfo = distributionInfo;
     }
 
     @Override
