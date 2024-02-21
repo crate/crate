@@ -47,5 +47,21 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
+  caused weeks to be ignored if days are also present in the string, e.g.::
+
+     SELECT '1 year 2 weeks 3 days'::INTERVAL
+
+- Fixed parsing of PostgreSQL style :ref:`INTERVALs <type-interval>`, by
+  restricting the tokens allowed for the interval units. For example,
+  previously, the following string would be parsed correctly::
+
+     SELECT '1 yearrrrrr 2 weekend 10dayyyyyy'::INTERVAL
+
+- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
+  didn't allow the interval units to be upper or mixed case, e.g.::
+
+     SELECT '1 yeAR 2 WeeKs 3 DAYS'::INTERVAL
+
 - Fixed ``NullPointerException`` thrown when joining tables with ``USING``
   clause which contains columns not existing in either or both tables.

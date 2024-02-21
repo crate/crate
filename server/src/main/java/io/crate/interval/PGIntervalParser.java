@@ -21,17 +21,20 @@
 
 package io.crate.interval;
 
-import org.joda.time.Period;
-
-import org.jetbrains.annotations.Nullable;
-import java.math.BigDecimal;
-import java.util.StringTokenizer;
-
 import static io.crate.interval.IntervalParser.nullSafeIntGet;
 import static io.crate.interval.IntervalParser.parseMilliSeconds;
 import static io.crate.interval.IntervalParser.roundToPrecision;
 
+import java.math.BigDecimal;
+import java.util.Locale;
+import java.util.StringTokenizer;
+
+import org.jetbrains.annotations.Nullable;
+import org.joda.time.Period;
+
 final class PGIntervalParser {
+
+    private PGIntervalParser() {}
 
     static Period apply(String value,
                         @Nullable IntervalParser.Precision start,
@@ -88,36 +91,40 @@ final class PGIntervalParser {
                     }
                     valueToken = null;
                 } else {
+                    var type = token.toLowerCase(Locale.ENGLISH);
                     // This handles years, months, days for both, ISO and
                     // Non-ISO intervals. Hours, minutes, seconds and microseconds
                     // are handled for Non-ISO intervals here.
-                    if (token.startsWith("year")) {
+                    if (type.equals("year") || type.equals("years")) {
                         years = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("mon")) {
+                    } else if (type.equals("month") || type.equals("months") || type.equals("mon")
+                               || type.equals("mons")) {
                         months = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("day")) {
-                        days = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("week")) {
-                        days = nullSafeIntGet(valueToken) * 7;
-                    } else if (token.startsWith("hour")) {
+                    } else if (type.equals("day") || type.equals("days")) {
+                        days += nullSafeIntGet(valueToken);
+                    } else if (type.equals("week") || type.equals("weeks")) {
+                        days += nullSafeIntGet(valueToken) * 7;
+                    } else if (type.equals("hour") || type.equals("hours")) {
                         hours = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("min")) {
+                    } else if (type.equals("min") || type.equals("mins") || type.equals("minute")
+                               || type.equals("minutes")) {
                         minutes = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("sec")) {
+                    } else if (type.equals("sec") || type.equals("secs") || type.equals("second")
+                               || type.equals("seconds")) {
                         seconds = parseInteger(valueToken);
                         milliSeconds = parseMilliSeconds(valueToken);
                     } else {
-                        throw new IllegalArgumentException("Invalid interval format " + value);
+                        throw new IllegalArgumentException("Invalid interval format: " + value);
                     }
                     dataParsed = true;
                 }
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid interval format " + value);
+            throw new IllegalArgumentException("Invalid interval format: " + value);
         }
 
         if (!dataParsed) {
-            throw new IllegalArgumentException("Invalid interval format " + value);
+            throw new IllegalArgumentException("Invalid interval format: " + value);
         }
 
         Period period = new Period(years, months, 0, days, hours, minutes, seconds, milliSeconds);

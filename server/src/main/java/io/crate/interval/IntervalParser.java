@@ -76,7 +76,7 @@ public final class IntervalParser {
      */
     public static Period apply(String value, @Nullable Precision start, @Nullable Precision end) {
         if (value == null || value.isEmpty() || value.isBlank()) {
-            throw new IllegalArgumentException("Invalid interval format  " + value);
+            throw new IllegalArgumentException("Invalid interval format:  " + value);
         }
 
         Period result;
