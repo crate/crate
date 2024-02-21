@@ -137,6 +137,11 @@ public class SessionSettings implements Writeable {
         return memoryLimit;
     }
 
+    public Boolean insertFailFast() {
+        // Only available on coordinator
+        return false;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

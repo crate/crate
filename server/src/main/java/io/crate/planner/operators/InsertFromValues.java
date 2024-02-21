@@ -250,13 +250,15 @@ public class InsertFromValues implements LogicalPlan {
 
         List<Symbol> returnValues = this.writerProjection.returnValues();
 
+        // If INSERT FROM VALUES inserts only 1 row, we throw an error regardless of insert_fail_fast setting value.
+        boolean continueOnError = !plannerContext.transactionContext().sessionSettings().insertFailFast() && rows.size() > 1;
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            rows.size() > 1, // continueOnErrors
+            continueOnError,
             onConflictColumns,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
@@ -653,6 +655,7 @@ public class InsertFromValues implements LogicalPlan {
                 if (throwable == null) {
                     result.complete(compressedResult);
                 } else {
+                    // check: session setting should work here as well
                     throwable = SQLExceptions.unwrap(throwable);
                     // we want to report duplicate key exceptions
                     if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&

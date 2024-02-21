@@ -69,6 +69,8 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
     }
 
     private static void onResponse(ShardResponse.CompressedResult result, ShardResponse response) {
+
+        // ??? check this scenario
         Exception failure = response.failure();
         if (failure == null) {
             result.update(response);

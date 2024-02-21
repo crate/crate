@@ -53,12 +53,14 @@ import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
@@ -344,7 +346,7 @@ public class ShardingUpsertExecutor
         public void onResponse(ShardResponse shardResponse) {
             nodeLimit.onSample(startTime, false);
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
-            maybeSetInterrupt(shardResponse.failure());
+            maybeSetFailure(shardResponse.failure());
             countdown();
         }
 
@@ -365,9 +367,10 @@ public class ShardingUpsertExecutor
             }
         }
 
-        private void maybeSetInterrupt(@Nullable Exception failure) {
-            if (failure instanceof InterruptedException) {
-                interrupt.set(failure);
+        private void maybeSetFailure(@Nullable Exception failure) {
+            if (failure != null) {
+                Throwable t = SQLExceptions.unwrap(failure);
+                interrupt.set(Exceptions.toRuntimeException(t));
             }
         }
     }

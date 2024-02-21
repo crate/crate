@@ -233,5 +233,13 @@ releases.
   Experimental session settings might be removed in the future even in minor
   feature releases.
 
+.. _conf-session-insert-fail-fast:
+
+**insert_fail_fast**
+  | *Default:* ``false``
+  | *Modifiable:* ``yes``
+
+   This setting enables partial failures of ``INSERT`` and ``UPDATE``
+   statements. First error encountered gets propagated.
 
 .. _search_path: https://www.postgresql.org/docs/10/static/ddl-schemas.html#DDL-SCHEMAS-PATH

@@ -167,6 +167,13 @@ public class SessionSettingRegistryTest extends ESTestCase {
         statementTimeout.apply(SESSION_SETTINGS, List.of(Literal.of(200)), EVAL);
     }
 
+    @Test
+    public void test_statement_insert_fail_fast() throws Exception {
+        var insertFailFast = SessionSettingRegistry.INSERT_FAIL_FAST;
+        insertFailFast.apply(SESSION_SETTINGS, generateInput("true"), EVAL);
+        assertThat(SESSION_SETTINGS.insertFailFast()).isTrue();
+    }
+
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,
                                               SessionSetting<?> sessionSetting,
                                               boolean defaultValue) {

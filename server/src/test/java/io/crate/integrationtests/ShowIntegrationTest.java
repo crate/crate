@@ -403,6 +403,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "datestyle| ISO| Display format for date and time values.",
             "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.",
             "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.",
+            "insert_fail_fast| false| Allows partial failure of 'INSERT' and 'UPDATE' statements",
             "max_identifier_length| 255| Shows the maximum length of identifiers in bytes.",
             "max_index_keys| 32| Shows the maximum number of index keys.",
             "memory.operation_limit| 0| Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits",

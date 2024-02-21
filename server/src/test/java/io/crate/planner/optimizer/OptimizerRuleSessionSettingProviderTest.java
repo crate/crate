@@ -69,7 +69,8 @@ public class OptimizerRuleSessionSettingProviderTest {
             true,
             Set.of(MergeFilters.class),
             true,
-            0
+            0,
+            false
         );
 
         assertThat(sessionSetting.getValue(mergefilterSettings), is("false"));

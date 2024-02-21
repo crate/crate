@@ -107,7 +107,7 @@ public class ColumnIndexWriterProjector implements Projector {
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
             ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
-            true, // continueOnErrors
+            txnCtx.sessionSettings().insertFailFast() ? false : true, // continueOnErrors
             onConflictColumns,
             columnReferences.toArray(new Reference[columnReferences.size()]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),

@@ -60,6 +60,9 @@ public class SessionSettingRegistry {
     static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
     static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     static final String DATE_STYLE_KEY = "datestyle";
+
+    static final String INSERT_FAIL_FAST_KEY = "insert_fail_fast";
+
     static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<>(
         "application_name",
         inputs -> {},
@@ -119,6 +122,17 @@ public class SessionSettingRegistry {
         () -> "0",
         "Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits",
         DataTypes.INTEGER
+    );
+
+    static final SessionSetting<Boolean> INSERT_FAIL_FAST = new SessionSetting<>(
+        INSERT_FAIL_FAST_KEY,
+        inputs -> {},
+        inputs -> DataTypes.BOOLEAN.implicitCast(inputs[0]),
+        CoordinatorSessionSettings::insertFailFast,
+        settings -> Boolean.toString(settings.insertFailFast()),
+        () -> "false",
+        "Allows partial failure of 'INSERT' and 'UPDATE' statements",
+        DataTypes.BOOLEAN
     );
 
     private final Map<String, SessionSetting<?>> settings;
@@ -237,7 +251,8 @@ public class SessionSettingRegistry {
             .put(APPLICATION_NAME.name(), APPLICATION_NAME)
             .put(DATE_STYLE.name(), DATE_STYLE)
             .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT)
-            .put(MEMORY_LIMIT.name(), MEMORY_LIMIT);
+            .put(MEMORY_LIMIT.name(), MEMORY_LIMIT)
+            .put(INSERT_FAIL_FAST.name(), INSERT_FAIL_FAST);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {

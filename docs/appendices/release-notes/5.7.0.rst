@@ -108,6 +108,9 @@ Administration and Operations
 
 - Added support for :ref:`JWT token authentication <auth_jwt>`.
 
+- Added a :ref:`insert_fail_fast <conf-session-insert-fail-fast>` session
+  setting that allows partial failures of ``INSERT`` and ``UPDATE`` statements.
+
 User Interface
 --------------
 

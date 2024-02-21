@@ -118,7 +118,8 @@ public class StatementAnalysisContext {
                     sessionSettings.hashJoinsEnabled(),
                     sessionSettings.excludedOptimizerRules(),
                     sessionSettings.errorOnUnknownObjectKey(),
-                    sessionSettings.memoryLimitInBytes()
+                    sessionSettings.memoryLimitInBytes(),
+                    sessionSettings.insertFailFast()
                 )),
             parentOutputColumns
         );

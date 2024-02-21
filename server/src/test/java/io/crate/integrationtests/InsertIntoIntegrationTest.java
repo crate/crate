@@ -2057,4 +2057,29 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
         assertThat(response).hasRows("0"); // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
     }
+
+    @Test
+    public void test_insert_from_values_fail() throws Exception {
+        execute("create table t (a int primary key, b int)");
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().insertFailFast(true);
+            assertSQLError(() -> execute("insert into t (a,b) values (1, 1),  (1, 2)", session))
+                .hasPGError(UNIQUE_VIOLATION)
+                .hasHTTPError(CONFLICT, 4091)
+                .hasMessageContaining("A document with the same primary key exists already");
+        }
+    }
+
+    @Test
+    public void test_insert_from_select_fail_fast() throws Exception {
+        execute("create table t (a int NOT NULL, b int)");
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().insertFailFast(true);
+            assertSQLError(() -> execute("insert into t (a,b) select NULL, 1", session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"a\" must not be null");
+
+        }
+    }
 }
