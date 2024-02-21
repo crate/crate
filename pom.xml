@@ -262,10 +262,10 @@
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
     <versions.graalvm>23.0.2</versions.graalvm>
 
-    <versions.google.gax>2.29.0</versions.google.gax>
-    <versions.google.auth>1.17.0</versions.google.auth>
-    <versions.google.oauth2>1.17.0</versions.google.oauth2>
-    <versions.google.cloud>2.22.4</versions.google.cloud>
+    <versions.google.gax>2.43.0</versions.google.gax>
+    <versions.google.auth>1.23.0</versions.google.auth>
+    <versions.google.oauth2>1.23.0</versions.google.oauth2>
+    <versions.google.cloud>2.34.0</versions.google.cloud>
 
     <versions.guava>32.0.1-jre</versions.guava>
     <versions.google.gson>1.43.1</versions.google.gson>
