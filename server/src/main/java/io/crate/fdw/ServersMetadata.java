@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
@@ -48,8 +49,10 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.fdw.ServersMetadata.Server;
+import io.crate.fdw.ServersMetadata.Server.Option;
 import io.crate.metadata.information.UserMappingsTableInfo.UserMapping;
 import io.crate.sql.tree.CascadeMode;
+import io.crate.types.DataTypes;
 
 public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom>
     implements Metadata.Custom, Iterable<Server> {
@@ -139,6 +142,17 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             options.toXContent(builder, params);
             builder.endObject();
             return builder;
+        }
+
+        public record Option(String serverName,
+                             String serverOwner,
+                             String name,
+                             String value) {
+        }
+
+        public Stream<Option> getOptions() {
+            return options.getAsStructuredMap().entrySet().stream()
+                .map(x -> new Option(name, owner, x.getKey(), DataTypes.STRING.implicitCast(x.getValue())));
         }
     }
 
@@ -323,5 +337,11 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                 .flatMap(server -> server.users.keySet().stream()
                     .map(userName -> new UserMapping(userName, server.name()))
                 ).iterator();
+    }
+
+    public Iterable<Option> getOptions() {
+        return () -> servers.values().stream()
+            .flatMap(server -> server.getOptions())
+            .iterator();
     }
 }

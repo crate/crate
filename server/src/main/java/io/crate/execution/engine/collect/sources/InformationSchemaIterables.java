@@ -380,6 +380,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
     }
 
+    public Iterable<Server.Option> serverOptions() {
+        Metadata metadata = clusterService.state().metadata();
+        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        return servers.getOptions();
+    }
+
     public Iterable<UserMapping> userMappings() {
         Metadata metadata = clusterService.state().metadata();
         ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
