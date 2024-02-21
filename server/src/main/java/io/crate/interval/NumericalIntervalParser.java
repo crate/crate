@@ -42,7 +42,7 @@ final class NumericalIntervalParser {
         try {
             return roundToPrecision(parseInteger(value), parseMilliSeconds(value), start, end);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid interval format " + value);
+            throw new IllegalArgumentException("Invalid interval format: " + value);
         }
     }
 
