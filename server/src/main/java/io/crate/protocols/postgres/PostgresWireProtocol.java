@@ -501,6 +501,7 @@ public class PostgresWireProtocol {
         Messages.sendParameterStatus(channel, "datestyle", sessionSettings.dateStyle());
         Messages.sendParameterStatus(channel, "TimeZone", "UTC");
         Messages.sendParameterStatus(channel, "integer_datetimes", "on");
+        Messages.sendParameterStatus(channel, "standard_conforming_strings", "on");
     }
 
     /**
