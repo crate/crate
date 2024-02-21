@@ -185,4 +185,10 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
         return obj instanceof ForeignTablesMetadata other
             && tables.equals(other.tables);
     }
+
+    public Iterable<ForeignTable.Option> tableOptions() {
+        return () -> tables.values().stream()
+            .flatMap(table -> table.getOptions())
+            .iterator();
+    }
 }

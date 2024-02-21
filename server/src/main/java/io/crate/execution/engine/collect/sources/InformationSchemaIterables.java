@@ -391,6 +391,15 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
     }
 
+    public Iterable<ForeignTable.Option> foreignTableOptions() {
+        Metadata metadata = clusterService.state().metadata();
+        ForeignTablesMetadata foreignTables = metadata.custom(
+            ForeignTablesMetadata.TYPE,
+            ForeignTablesMetadata.EMPTY
+        );
+        return foreignTables.tableOptions();
+    }
+
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (initialClusterStateReceived) {
