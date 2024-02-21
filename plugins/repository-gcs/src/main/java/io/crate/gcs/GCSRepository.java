@@ -57,31 +57,31 @@ import com.google.cloud.storage.StorageOptions;
 public class GCSRepository extends BlobStoreRepository {
 
     static final Setting<String> BUCKET_SETTING =
-        Setting.simpleString("bucket", Property.NodeScope);
+        Setting.simpleString("bucket");
 
     static final Setting<String> BASE_PATH_SETTING =
-        Setting.simpleString("base_path", "", Property.NodeScope);
+        Setting.simpleString("base_path", "");
 
     static final Setting<SecureString> PROJECT_ID_SETTING =
-        Setting.maskedString("project_id");
+        Setting.secureString("project_id", Property.Masked);
 
     static final Setting<SecureString> PRIVATE_KEY_ID_SETTING =
-        Setting.maskedString("private_key_id");
+        Setting.secureString("private_key_id", Property.Masked);
 
     static final Setting<SecureString> PRIVATE_KEY_SETTING =
-        Setting.maskedString("private_key");
+        Setting.secureString("private_key", Property.Masked);
 
     static final Setting<SecureString> CLIENT_EMAIL_SETTING =
-        Setting.maskedString("client_email");
+        Setting.secureString("client_email", Property.Masked);
 
     static final Setting<SecureString> CLIENT_ID_SETTING =
-        Setting.maskedString("client_id");
+        Setting.secureString("client_id", Property.Masked);
 
     static final Setting<String> ENDPOINT_SETTING =
-        Setting.simpleString("endpoint", Property.NodeScope);
+        Setting.simpleString("endpoint");
 
     static final Setting<String> TOKEN_URI_SETTING =
-        Setting.simpleString("token_uri", "https://oauth2.googleapis.com/token", Property.NodeScope);
+        Setting.simpleString("token_uri", "https://oauth2.googleapis.com/token");
 
     public GCSRepository(RepositoryMetadata metadata,
                          NamedXContentRegistry namedXContentRegistry,

@@ -1245,7 +1245,11 @@ public class Setting<T> implements ToXContentObject {
     }
 
     public static Setting<SecureString> maskedString(String name) {
-        return new Setting<>(name, "", SecureString::new, DataTypes.STRING, Property.Masked, Property.NodeScope);
+        return secureString(name, Property.Masked, Property.NodeScope);
+    }
+
+    public static Setting<SecureString> secureString(String name, Property... properties) {
+        return new Setting<>(name, "", SecureString::new, DataTypes.STRING, properties);
     }
 
     /**
