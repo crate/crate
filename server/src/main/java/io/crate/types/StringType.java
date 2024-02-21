@@ -51,6 +51,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.FulltextIndexer;
 import io.crate.execution.dml.StringIndexer;
@@ -123,7 +124,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
                     return new TermInSetQuery(field, nonNullValues.stream().map(BytesRefs::toBytesRef).toList());
                 }
                 if (hasDocValues) {
-                    return SortedSetDocValuesField.newSlowSetQuery(field, nonNullValues.stream().map(BytesRefs::toBytesRef).toArray(BytesRef[]::new));
+                    return SortedSetDocValuesField.newSlowSetQuery(field, Lists.map(nonNullValues, BytesRefs::toBytesRef));
                 }
                 return null;
             }

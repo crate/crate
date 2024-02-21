@@ -57,8 +57,6 @@ import java.util.function.Supplier;
 import java.util.function.ToLongBiFunction;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.Codec;
@@ -83,7 +81,6 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Bits;
@@ -128,6 +125,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
@@ -844,9 +842,8 @@ public abstract class EngineTestCase extends ESTestCase {
             engine.refresh("test");
         }
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            final TotalHitCountCollector collector = new TotalHitCountCollector();
-            searcher.search(new MatchAllDocsQuery(), collector);
-            assertThat(collector.getTotalHits(), equalTo(numDocs));
+            int totalHits = searcher.count(new MatchAllDocsQuery());
+            assertThat(totalHits, equalTo(numDocs));
         }
     }
 
@@ -1036,9 +1033,8 @@ public abstract class EngineTestCase extends ESTestCase {
         assertVisibleCount(replicaEngine, lastFieldValue == null ? 0 : 1);
         if (lastFieldValue != null) {
             try (Engine.Searcher searcher = replicaEngine.acquireSearcher("test")) {
-                final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
-                assertThat(collector.getTotalHits(), equalTo(1));
+                int totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValue)));
+                assertThat(totalHits, equalTo(1));
             }
         }
     }

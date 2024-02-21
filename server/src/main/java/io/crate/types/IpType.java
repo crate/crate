@@ -37,6 +37,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists;
 import io.crate.execution.dml.IpIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -107,7 +108,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
                 } else {
                     assert hasDocValues == true : "hasDocValues must be true for Ip types since 'columnstore=false' is not supported.";
                     return SortedSetDocValuesField.newSlowSetQuery(
-                        field, nonNullValues.stream().map(v -> new BytesRef(InetAddressPoint.encode(InetAddresses.forString(v)))).toArray(BytesRef[]::new));
+                        field, Lists.map(nonNullValues, v -> new BytesRef(InetAddressPoint.encode(InetAddresses.forString(v)))));
                 }
             }
         }
