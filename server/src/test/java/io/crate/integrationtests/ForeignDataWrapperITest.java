@@ -281,4 +281,39 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             "Dom"
         );
     }
+
+    @Test
+    public void test_can_use_joins_on_foreign_tables() throws Exception {
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
+        int port = postgresNetty.boundAddress().publishAddress().getPort();
+        String url = "jdbc:postgresql://127.0.0.1:" + port + '/';
+        String createServerStmt = "create server pg foreign data wrapper jdbc options (url ?)";
+        execute(createServerStmt, new Object[] { url });
+
+        String stmt = """
+            CREATE FOREIGN TABLE doc.summits (mountain text, height int)
+            SERVER pg
+            OPTIONS (schema_name 'sys', table_name 'summits')
+            """;
+        execute(stmt);
+
+        execute(
+            """
+            SELECT
+                f_summits.mountain,
+                sys_summits.country
+            FROM
+                doc.summits f_summits
+                INNER JOIN sys.summits sys_summits ON f_summits.mountain = sys_summits.mountain
+            ORDER BY
+                f_summits.height DESC
+            LIMIT 3
+            """
+        );
+        assertThat(response).hasRows(
+            "Mont Blanc| FR/IT",
+            "Monte Rosa| CH",
+            "Dom| CH"
+        );
+    }
 }
