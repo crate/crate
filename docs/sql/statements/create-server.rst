@@ -27,7 +27,8 @@ Description
 ``CREATE SERVER`` is a DDL statement that creates a foreign server.
 
 Servers created via ``CREATE SERVER`` are visible in
-``information_schema.foreign_servers``.
+:ref:`information_schema.foreign_servers <foreign_servers>` and their options in
+:ref:`information_schema.foreign_table_options <foreign_server_options>`.
 
 Creating a server requires ``AL`` permission on cluster level.
 

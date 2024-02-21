@@ -75,6 +75,18 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         assertThat(response).hasRows(
             "pg| jdbc"
         );
+        execute(
+            """
+            SELECT
+                foreign_server_name,
+                option_name,
+                option_value
+            FROM
+                information_schema.foreign_server_options
+            ORDER BY
+                option_name DESC
+            """);
+        assertThat(response).hasRows(new Object[] { "pg", "url", url });
 
         String stmt = """
             CREATE FOREIGN TABLE doc.dummy (x int)
@@ -103,6 +115,8 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             "doc| dummy| table_name| tbl",
             "doc| dummy| schema_name| doc"
         );
+
+
         execute("select table_schema, table_name from information_schema.tables where table_type = 'FOREIGN'");
         assertThat(response).hasRows(
             "doc| dummy"

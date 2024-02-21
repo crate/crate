@@ -72,6 +72,7 @@ number of replicas.
     | doc                | quotes                  | BASE TABLE |                2 | 0                  |
     | information_schema | character_sets          | BASE TABLE |             NULL | NULL               |
     | information_schema | columns                 | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_server_options  | BASE TABLE |             NULL | NULL               |
     | information_schema | foreign_servers         | BASE TABLE |             NULL | NULL               |
     | information_schema | foreign_table_options   | BASE TABLE |             NULL | NULL               |
     | information_schema | foreign_tables          | BASE TABLE |             NULL | NULL               |
@@ -135,7 +136,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 68 rows in set (... sec)
+    SELECT 69 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
@@ -920,6 +921,33 @@ See :ref:`administration-fdw`.
    * - ``authorization_identifier``
      - ``TEXT``
      - Name of the user who created the server.
+
+.. _foreign_server_options:
+
+``foreign_server_options``
+--------------------------
+
+Lists options of foreign servers created using :ref:`ref-create-server`.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database that the foreign server is defined in. Always ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server.
+   * - ``option_name``
+     - ``TEXT``
+     - Name of an option.
+   * - ``option_value``
+     - ``TEXT``
+     - Value of the option cast to string.
 
 .. _foreign_tables:
 

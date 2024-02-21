@@ -55,6 +55,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .put(InformationSqlFeaturesTableInfo.NAME, InformationSqlFeaturesTableInfo.create())
             .put(InformationCharacterSetsTable.NAME, InformationCharacterSetsTable.create())
             .put(ForeignServerTableInfo.NAME, ForeignServerTableInfo.create())
+            .put(ForeignServerOptionsTableInfo.NAME, ForeignServerOptionsTableInfo.create())
             .put(ForeignTableTableInfo.NAME, ForeignTableTableInfo.create())
             .put(ForeignTableOptionsTableInfo.NAME, ForeignTableOptionsTableInfo.create())
             .put(UserMappingsTableInfo.NAME, UserMappingsTableInfo.create())

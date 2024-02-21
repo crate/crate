@@ -109,6 +109,11 @@ public class InformationSchemaTableDefinitions {
             (user, t) -> user.isSuperUser() || t.owner().equals(user.name()),
             ForeignServerTableInfo.create().expressions()
         ));
+        tableDefinitions.put(ForeignServerOptionsTableInfo.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::serverOptions,
+            (user, t) -> user.isSuperUser() || t.serverOwner().equals(user.name()),
+            ForeignServerOptionsTableInfo.create().expressions()
+        ));
         tableDefinitions.put(ForeignTableTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::foreignTables,
             (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.name().fqn()),
