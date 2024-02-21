@@ -40,6 +40,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists;
 import io.crate.execution.dml.BooleanIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -133,7 +134,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         @Override
         public Query termsQuery(String field, List<Boolean> nonNullValues, boolean hasDocValues, boolean isIndexed) {
             if (isIndexed) {
-                return new TermInSetQuery(field, nonNullValues.stream().map(v -> indexedValue(v)).toArray(BytesRef[]::new));
+                return new TermInSetQuery(field, Lists.map(nonNullValues, v -> indexedValue(v)));
             } else {
                 assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
                 return SortedNumericDocValuesField.newSlowSetQuery(

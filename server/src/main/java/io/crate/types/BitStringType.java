@@ -29,20 +29,21 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.search.TermInSetQuery;
-import org.jetbrains.annotations.Nullable;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.core.Base64Variants;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists;
 import io.crate.execution.dml.BitStringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -95,7 +96,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
                     return new TermInSetQuery(field, nonNullValues.stream().map(v -> new BytesRef(v.bitSet().toByteArray())).toList());
                 } else {
                     assert hasDocValues == true : "hasDocValues must be true for BitString types since 'columnstore=false' is not supported.";
-                    return SortedSetDocValuesField.newSlowSetQuery(field, nonNullValues.stream().map(v -> new BytesRef(v.bitSet().toByteArray())).toArray(BytesRef[]::new));
+                    return SortedSetDocValuesField.newSlowSetQuery(field, Lists.map(nonNullValues, v -> new BytesRef(v.bitSet().toByteArray())));
                 }
             }
         }
