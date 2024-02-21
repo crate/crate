@@ -87,6 +87,22 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         assertThat(response).hasRows(
             "doc| dummy"
         );
+        execute(
+            """
+            SELECT
+                foreign_table_schema,
+                foreign_table_name,
+                option_name,
+                option_value
+            FROM
+                information_schema.foreign_table_options
+            ORDER BY
+                option_name DESC
+            """);
+        assertThat(response).hasRows(
+            "doc| dummy| table_name| tbl",
+            "doc| dummy| schema_name| doc"
+        );
         execute("select table_schema, table_name from information_schema.tables where table_type = 'FOREIGN'");
         assertThat(response).hasRows(
             "doc| dummy"
