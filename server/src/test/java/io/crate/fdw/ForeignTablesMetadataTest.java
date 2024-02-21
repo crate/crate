@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -48,8 +49,13 @@ public class ForeignTablesMetadataTest extends ESTestCase {
     public void test_xcontent_serialization() throws Exception {
         RelationName rel1 = new RelationName("s1", "t1");
         RelationName rel2 = new RelationName("s2", "t2");
-        Map<String, Object> options1 = Map.of("schema_name", "public");
-        Map<String, Object> options2 = Map.of("schema_name", "public", "table_name", "tbl2");
+        Settings options1 = Settings.builder()
+            .put("schema_name", "public")
+            .build();
+        Settings options2 = Settings.builder()
+            .put("schema_name", "public")
+            .put("table_name", "tbl2")
+            .build();
         Map<ColumnIdent, Reference> references1 = Map.of(
             new ColumnIdent("x"),
             new SimpleReference(

@@ -23,12 +23,12 @@ package io.crate.fdw;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.SequencedCollection;
 
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -39,13 +39,13 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
     private boolean ifNotExists;
     private final Collection<Reference> columns;
     private final String server;
-    private final Map<String, Object> options;
+    private final Settings options;
 
     public CreateForeignTableRequest(RelationName tableName,
                                      boolean ifNotExists,
                                      SequencedCollection<Reference> columns,
                                      String server,
-                                     Map<String, Object> options) {
+                                     Settings options) {
         this.tableName = tableName;
         this.ifNotExists = ifNotExists;
         this.columns = columns;
@@ -58,7 +58,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
         this.ifNotExists = in.readBoolean();
         this.columns = in.readList(Reference::fromStream);
         this.server = in.readString();
-        this.options = in.readMap(StreamInput::readString, StreamInput::readGenericValue);
+        this.options = Settings.readSettingsFromStream(in);
     }
 
     @Override
@@ -67,7 +67,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
         out.writeBoolean(ifNotExists);
         out.writeCollection(columns, Reference::toStream);
         out.writeString(server);
-        out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
+        Settings.writeSettingsToStream(options, out);
     }
 
     public RelationName tableName() {
@@ -86,7 +86,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
         return server;
     }
 
-    public Map<String, Object> options() {
+    public Settings options() {
         return options;
     }
 }

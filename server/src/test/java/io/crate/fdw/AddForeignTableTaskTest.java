@@ -25,8 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import java.util.Map;
 
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.exceptions.RelationAlreadyExists;
@@ -44,7 +44,7 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
             false,
             List.of(),
             "myserver",
-            Map.of()
+            Settings.EMPTY
         );
         var addForeignTableTask = new AddForeignTableTask(request);
         assertThatThrownBy(() -> addForeignTableTask.execute(clusterService.state()))
@@ -64,7 +64,7 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
             false,
             List.of(),
             "myserver",
-            Map.of()
+            Settings.EMPTY
         ));
         assertThatThrownBy(() -> addT1Conflict.execute(clusterService.state()))
             .isExactlyInstanceOf(RelationAlreadyExists.class)
@@ -76,7 +76,7 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
             false,
             List.of(),
             "myserver",
-            Map.of()
+            Settings.EMPTY
         ));
         assertThatThrownBy(() -> addV1Conflict.execute(clusterService.state()))
             .isExactlyInstanceOf(RelationAlreadyExists.class)
@@ -87,7 +87,7 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
             true,
             List.of(),
             "myserver",
-            Map.of()
+            Settings.EMPTY
         ));
         var state = clusterService.state();
         assertThat(addIfNotExists.execute(state)).isSameAs(state);
