@@ -50,7 +50,7 @@ final class SQLStandardIntervalParser {
         String[] values = value.split(" ");
 
         if (values.length > 3 || values.length == 0) {
-            throw new IllegalArgumentException("Invalid interval format " + value);
+            throw new IllegalArgumentException("Invalid interval format: " + value);
         }
 
         ParserState state = ParserState.NOTHING_PARSED;
@@ -91,7 +91,7 @@ final class SQLStandardIntervalParser {
                     } else if (hms.length == 1) {
                         seconds = nullSafeIntGet(hms[0]);
                     } else {
-                        throw new IllegalArgumentException("Invalid interval format " + value);
+                        throw new IllegalArgumentException("Invalid interval format: " + value);
                     }
                     if (negative) {
                         hours = -hours;
@@ -107,7 +107,7 @@ final class SQLStandardIntervalParser {
                         years = nullSafeIntGet(ym[0]);
                         months = nullSafeIntGet(ym[1]);
                     } else {
-                        throw new IllegalArgumentException("Invalid interval format " + value);
+                        throw new IllegalArgumentException("Invalid interval format: " + value);
                     }
                     if (negative) {
                         years = -years;
@@ -130,7 +130,7 @@ final class SQLStandardIntervalParser {
                             state = ParserState.DAYS_PARSED;
                         } else {
                             //Invalid day/second only combination
-                            throw new IllegalArgumentException("Invalid interval format " + value);
+                            throw new IllegalArgumentException("Invalid interval format: " + value);
                         }
                     } else {
                         seconds = number;
@@ -149,15 +149,15 @@ final class SQLStandardIntervalParser {
                     state = ParserState.DAYS_PARSED;
                 } else if (state == ParserState.SECOND_PARSED) {
                     //Invalid day second combination
-                    throw new IllegalArgumentException("Invalid interval format " + value);
+                    throw new IllegalArgumentException("Invalid interval format: " + value);
                 }
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid interval format " + value);
+            throw new IllegalArgumentException("Invalid interval format: " + value);
         }
 
         if (ParserState.NOTHING_PARSED == state) {
-            throw new IllegalArgumentException("Invalid interval format " + value);
+            throw new IllegalArgumentException("Invalid interval format: " + value);
         }
 
         return new Period(years, months, 0, days, hours, minutes, seconds, 0);

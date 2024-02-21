@@ -26,11 +26,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import io.crate.data.Row;
 import io.crate.data.testing.TestingRowConsumer;
+import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.CreateServerPlan;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.operators.SubQueryResults;
@@ -109,5 +112,36 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
             .withThrowableThat()
             .havingRootCause()
             .withMessageContaining("foreign-data wrapper dummy does not exist");
+    }
+
+    @Test
+    public void test_cannot_add_foreign_table_with_invalid_options() throws Exception {
+        var e = SQLExecutor.builder(clusterService).build();
+        CreateServerRequest request = new CreateServerRequest(
+            "pg",
+            "jdbc",
+            "crate",
+            true,
+            Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build()
+        );
+        AddServerTask addServerTask = new AddServerTask(e.foreignDataWrappers, request);
+        ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterService.state()));
+
+        String stmt = "create foreign table tbl (x int) server pg options (invalid 42)";
+        CreateForeignTablePlan plan = e.plan(stmt);
+        var testingRowConsumer = new TestingRowConsumer();
+        plan.execute(
+            Mockito.mock(DependencyCarrier.class),
+            e.getPlannerContext(clusterService.state()),
+            testingRowConsumer,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+        assertThat(testingRowConsumer.completionFuture())
+            .failsWithin(0, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .havingRootCause()
+            .withMessageContaining(
+                "Unsupported options for foreign table doc.tbl using fdw `jdbc`: invalid. Valid options are: schema_name, table_name");
     }
 }

@@ -882,6 +882,76 @@ In CrateDB there is always a single entry listing `UTF8`::
       - ``TEXT``
       - Name of the default collation (Always ``NULL``)
 
+
+.. _foreign_servers:
+
+``foreign_servers``
+-------------------
+
+Lists foreign servers created using :ref:`ref-create-server`.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database of the foreign server. Always ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server
+   * - ``foreign_data_wrapper_catalog``
+     - ``TEXT``
+     - Name of the database that contains the foreign-data wrapper. Always
+       ``crate``.
+   * - ``foreign_data_wrapper_name``
+     - ``TEXT``
+     - Name of the foreign-data wrapper used by the foreign server.
+   * - ``foreign_server_type``
+     - ``TEXT``
+     - Foreign server type information. Always ``null``.
+   * - ``foreign_server_version``
+     - ``TEXT``
+     - Foreign server version information. Always ``null``.
+   * - ``authorization_identifier``
+     - ``TEXT``
+     - Name of the user who created the server.
+
+.. _foreign_tables:
+
+``foreign_tables``
+------------------
+
+Lists foreign tables created using :ref:`ref-create-foreign-table`.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``foreign_table_catalog``
+     - ``TEXT``
+     - Name of the database where the foreign table is defined in. Always
+       ``crate``.
+   * - ``foreign_table_schema``
+     - ``TEXT``
+     - Name of the schema that contains the foreign table.
+   * - ``foreign_table_name``
+     - ``TEXT``
+     - Name of the foreign table.
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database where the foreign server is defined in. Always
+       ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server
+
 .. _user_mappings:
 
 ``user_mappings``

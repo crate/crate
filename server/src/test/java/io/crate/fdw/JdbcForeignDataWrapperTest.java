@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import io.crate.expression.InputFactory;
 import io.crate.fdw.ServersMetadata.Server;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -67,7 +68,9 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
             1,
             null
         );
-        assertThatThrownBy(() -> fdw.getIterator(arthur, server, txnCtx, relationName, List.of(nameRef)))
+        Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
+        ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
+        assertThatThrownBy(() -> fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef)))
             .hasMessage("Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
     }
 }

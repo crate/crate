@@ -63,14 +63,14 @@ import io.crate.metadata.table.TableInfo;
 public record ForeignTable(RelationName name,
                            Map<ColumnIdent, Reference> references,
                            String server,
-                           Map<String, Object> options) implements Writeable, ToXContent, TableInfo {
+                           Settings options) implements Writeable, ToXContent, TableInfo {
 
     ForeignTable(StreamInput in) throws IOException {
         this(
             new RelationName(in),
             in.readMap(LinkedHashMap::new, ColumnIdent::new, Reference::fromStream),
             in.readString(),
-            in.readMap(StreamInput::readString, StreamInput::readGenericValue)
+            Settings.readSettingsFromStream(in)
         );
     }
 
@@ -79,13 +79,13 @@ public record ForeignTable(RelationName name,
         name.writeTo(out);
         out.writeMap(references, (o, v) -> v.writeTo(o), Reference::toStream);
         out.writeString(server);
-        out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
+        Settings.writeSettingsToStream(options, out);
     }
 
     public static ForeignTable fromXContent(RelationName name, XContentParser parser) throws IOException {
         Map<ColumnIdent, Reference> references = null;
         String server = null;
-        Map<String, Object> options = null;
+        Settings options = null;
 
         while (parser.nextToken() != END_OBJECT) {
             if (parser.currentToken() == FIELD_NAME) {
@@ -97,7 +97,7 @@ public record ForeignTable(RelationName name,
                         break;
 
                     case "options":
-                        options = parser.map();
+                        options = Settings.fromXContent(parser);
                         break;
 
                     case "references":
@@ -138,7 +138,9 @@ public record ForeignTable(RelationName name,
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.field("server", server);
-        builder.field("options", options);
+        builder.startObject("options");
+        options.toXContent(builder, params);
+        builder.endObject();
 
         Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
             AllocPosition.forTable(this),

@@ -40,6 +40,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.Metadata.XContentContext;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
@@ -125,7 +126,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     public ForeignTablesMetadata add(RelationName tableName,
                                      Collection<Reference> columns,
                                      String server,
-                                     Map<String, Object> options) {
+                                     Settings options) {
         HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
         ForeignTable value = new ForeignTable(
             tableName,

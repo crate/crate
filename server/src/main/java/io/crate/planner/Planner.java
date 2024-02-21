@@ -645,7 +645,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitCreateForeignTable(AnalyzedCreateForeignTable createTable, PlannerContext context) {
-        return new CreateForeignTablePlan(createTable);
+        return new CreateForeignTablePlan(foreignDataWrappers, createTable);
     }
 
     @Override
