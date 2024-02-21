@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -59,6 +60,7 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataTypes;
 
 public record ForeignTable(RelationName name,
                            Map<ColumnIdent, Reference> references,
@@ -203,5 +205,17 @@ public record ForeignTable(RelationName name,
                               ShardSelection shardSelection,
                               CoordinatorSessionSettings sessionSettings) {
         return Routing.forTableOnSingleNode(name, state.nodes().getLocalNodeId());
+    }
+
+    public record Option(RelationName relationName, String name, String value) {
+    }
+
+    public Stream<Option> getOptions() {
+        return options.getAsStructuredMap().entrySet().stream()
+            .map(entry -> new Option(
+                name,
+                entry.getKey(),
+                DataTypes.STRING.implicitCast(entry.getValue())
+            ));
     }
 }

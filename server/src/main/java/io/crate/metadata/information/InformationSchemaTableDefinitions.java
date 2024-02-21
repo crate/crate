@@ -114,6 +114,11 @@ public class InformationSchemaTableDefinitions {
             (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.name().fqn()),
             ForeignTableTableInfo.create().expressions()
         ));
+        tableDefinitions.put(ForeignTableOptionsTableInfo.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::foreignTableOptions,
+            (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relationName().fqn()),
+            ForeignTableOptionsTableInfo.create().expressions()
+        ));
         tableDefinitions.put(UserMappingsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::userMappings,
             (user, t) -> roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null),
