@@ -24,7 +24,6 @@ package io.crate.execution.engine.collect.collectors;
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,11 +38,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 
 import io.crate.analyze.OrderBy;
@@ -82,7 +81,7 @@ public class NodeStatsTest extends ESTestCase {
 
     @Before
     public void prepare() {
-        nodeStatsAction = mock(TransportNodeStatsAction.class);
+        nodeStatsAction = mock(TransportNodeStatsAction.class, Answers.RETURNS_MOCKS);
         nodeStatesExecutor = req -> nodeStatsAction.execute(req);
 
         idRef = new SimpleReference(
@@ -172,7 +171,7 @@ public class NodeStatsTest extends ESTestCase {
         ArgumentCaptor<NodeStatsRequest> req = ArgumentCaptor.forClass(NodeStatsRequest.class);
         // Hostnames needs to be collected so requests need to be performed
         //noinspection unchecked
-        verify(nodeStatsAction, times(2)).doExecute(req.capture(), any(ActionListener.class));
+        verify(nodeStatsAction, times(2)).execute(req.capture());
         var capturedReq1 = req.getAllValues().get(0);
         var capturedReq2 = req.getAllValues().get(1);
 

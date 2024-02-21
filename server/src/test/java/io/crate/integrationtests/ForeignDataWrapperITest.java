@@ -114,6 +114,10 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         String createUserMappingStmt =
             "create user mapping for trillian server pg options (\"user\" 'arthur', password 'not-so-secret')";
         execute(createUserMappingStmt);
+        execute("select authorization_identifier, foreign_server_name from information_schema.user_mappings");
+        assertThat(response).hasRows(
+            "trillian| pg"
+        );
         assertSQLError(() -> execute(createUserMappingStmt))
             .hasPGError(PGErrorStatus.DUPLICATE_OBJECT)
             .hasHTTPError(HttpResponseStatus.CONFLICT, 4100)
@@ -162,6 +166,10 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         assertThat(response).hasRows(
             "x"
         );
+        execute("select authorization_identifier, foreign_server_name from information_schema.user_mappings");
+        assertThat(response).hasRows(
+            "trillian| pg"
+        );
 
         assertThatThrownBy(() -> execute("drop server pg"))
             .hasMessageContaining("Cannot drop server `pg` because foreign tables depend on it");
@@ -171,6 +179,8 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             .isEmpty();
         assertThat(execute("select foreign_table_schema, foreign_table_name from information_schema.foreign_tables"))
             .isEmpty();
+        execute("select * from information_schema.user_mappings");
+        assertThat(response).isEmpty();
 
         assertThatThrownBy(() -> execute("drop server pg"))
             .hasMessageContaining("Server `pg` not found");

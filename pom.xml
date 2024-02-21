@@ -249,7 +249,7 @@
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
     <versions.netty>4.1.107.Final</versions.netty>
-    <versions.lucene>9.9.1</versions.lucene>
+    <versions.lucene>9.10.0</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>
     <versions.jna>5.13.0</versions.jna>
@@ -275,7 +275,7 @@
     <versions.grpc>1.55.1</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>4.11.0</versions.mockito>
+    <versions.mockito>5.10.0</versions.mockito>
     <versions.jdbc>42.7.1</versions.jdbc>
     <versions.jsonassert>1.5.1</versions.jsonassert>
 
