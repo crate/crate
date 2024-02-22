@@ -64,6 +64,11 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Allow shortcut one-char names for PostgreSQL style
+  :ref:`INTERVALs <type-interval>`, e.g.::
+
+    SELECT '1y 2w 3d 4h 5m 6s'::INTERVAL
+
 - Added initial support for foreign data wrappers, including a ``jdbc``
   :ref:`foreign data wrapper <administration-fdw>`.
 
