@@ -48,6 +48,11 @@ Fixes
 =====
 
 - Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
+  allowed duplicate unit definitions, e.g.::
+
+     SELECT '1 year 3 days 2 years'::INTERVAL
+
+- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
   didn't allow units next to values without whitespace separation, e.g.::
 
      SELECT '1year 2weeks 3day'::INTERVAL

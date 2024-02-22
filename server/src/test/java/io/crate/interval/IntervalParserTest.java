@@ -233,6 +233,22 @@ public class IntervalParserTest extends ESTestCase {
     }
 
     @Test
+    public void test_invalid_duplicate_units() {
+        assertThatThrownBy(() -> IntervalParser.apply("1 week 2 mons 3 days 4w"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 1 week 2 mons 3 days 4w");
+        assertThatThrownBy(() -> IntervalParser.apply("1y 11:22:33 11:22:33"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 1y 11:22:33 11:22:33");
+        assertThatThrownBy(() -> IntervalParser.apply("2sec 11:22:33"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 2sec 11:22:33");
+        assertThatThrownBy(() -> IntervalParser.apply("1 years 2 mons 3 days 2 years"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 1 years 2 mons 3 days 2 years");
+    }
+
+    @Test
     public void test_normalization() {
         var expected = new Period(1, 2, 0, 827, 4, 40, 43, 0)
             .withPeriodType(PeriodType.yearMonthDayTime());

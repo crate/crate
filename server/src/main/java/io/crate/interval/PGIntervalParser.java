@@ -63,10 +63,13 @@ final class PGIntervalParser {
         int minutes = 0;
         int seconds = 0;
         int milliSeconds = 0;
+        boolean weeksParsed = false;
+        boolean daysParsed = false;
 
         try {
             String unitToken = null;
-            String valueToken = null;
+            String valueToken;
+            boolean timeParsed = false;
             final StringTokenizer st = new StringTokenizer(strInterval);
             while (st.hasMoreTokens()) {
                 String token = st.nextToken();
@@ -84,6 +87,10 @@ final class PGIntervalParser {
 
                 int endHours = token.indexOf(':');
                 if (endHours > 0) {
+                    if (timeParsed) {
+                        throw new IllegalArgumentException("Invalid interval format: " + value);
+                    }
+
                     // This handles hours, minutes, seconds and microseconds for
                     // ISO intervals
                     int offset = (token.charAt(0) == '-') ? 1 : 0;
@@ -101,6 +108,7 @@ final class PGIntervalParser {
                         seconds = -seconds;
                         milliSeconds = -milliSeconds;
                     }
+                    timeParsed = true;
                 } else {
                     if (unitToken == null) {
                         throw new IllegalArgumentException("Invalid interval format: " + value);
@@ -112,15 +120,53 @@ final class PGIntervalParser {
                 // are handled for Non-ISO intervals here.
                 if (unitToken != null) {
                     switch (unitToken) {
-                        case "year", "years", "y" -> years = nullSafeIntGet(valueToken);
-                        case "month", "months", "mon", "mons" -> months = nullSafeIntGet(valueToken);
-                        case "day", "days", "d" -> days += nullSafeIntGet(valueToken);
-                        case "week", "weeks", "w" -> days += nullSafeIntGet(valueToken) * 7;
-                        case "hour", "hours", "h" -> hours = nullSafeIntGet(valueToken);
-                        case "min", "mins", "minute", "minutes", "m" -> minutes = nullSafeIntGet(valueToken);
+                        case "year", "years", "y" -> {
+                            if (years > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            years = nullSafeIntGet(valueToken);
+                        }
+                        case "month", "months", "mon", "mons" -> {
+                            if (months > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            months = nullSafeIntGet(valueToken);
+                        }
+                        case "day", "days", "d" -> {
+                            if (daysParsed) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            days += nullSafeIntGet(valueToken);
+                            daysParsed = true;
+                        }
+                        case "week", "weeks", "w" -> {
+                            if (weeksParsed) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            days += nullSafeIntGet(valueToken) * 7;
+                            weeksParsed = true;
+                        }
+                        case "hour", "hours", "h" -> {
+                            if (hours > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            hours = nullSafeIntGet(valueToken);
+                            timeParsed = true;
+                        }
+                        case "min", "mins", "minute", "minutes", "m" -> {
+                            if (minutes > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            minutes = nullSafeIntGet(valueToken);
+                            timeParsed = true;
+                        }
                         case "sec", "secs", "second", "seconds", "s" -> {
+                            if (seconds > 0 || milliSeconds > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
                             seconds = parseInteger(valueToken);
                             milliSeconds = parseMilliSeconds(valueToken);
+                            timeParsed = true;
                         }
                         default -> throw new IllegalArgumentException("Invalid interval format: " + value);
                     }
