@@ -43,13 +43,19 @@ final class PGIntervalParser {
     }
 
     static Period apply(String value) {
-        final boolean ISOFormat = !value.startsWith("@");
+        String strInterval = value.trim().toLowerCase(Locale.ENGLISH);
+        final boolean ISOFormat = !strInterval.startsWith("@");
+        final boolean hasAgo = strInterval.endsWith("ago");
+        strInterval = strInterval
+            .replace("+", "")
+            .replace("@", "")
+            .replace("ago", "")
+            .trim();
 
         // Just a simple '0'
         if (!ISOFormat && value.length() == 3 && value.charAt(2) == '0') {
             return new Period();
         }
-        boolean dataParsed = false;
         int years = 0;
         int months = 0;
         int days = 0;
@@ -59,19 +65,25 @@ final class PGIntervalParser {
         int milliSeconds = 0;
 
         try {
+            String unitToken = null;
             String valueToken = null;
-
-            value = value.replace('+', ' ').replace('@', ' ');
-            final StringTokenizer st = new StringTokenizer(value);
-            for (int i = 1; st.hasMoreTokens(); i++) {
+            final StringTokenizer st = new StringTokenizer(strInterval);
+            while (st.hasMoreTokens()) {
                 String token = st.nextToken();
 
-                if ((i & 1) == 1) {
-                    int endHours = token.indexOf(':');
-                    if (endHours == -1) {
-                        valueToken = token;
-                        continue;
+                int firstCharIdx = firstCharacterInStr(token);
+                if (firstCharIdx > 0) { // value next to unit, e.g.: '1year'
+                    valueToken = token.substring(0, firstCharIdx);
+                    unitToken = token.substring(firstCharIdx);
+                } else { // value and unit separated with whitespace, e.g.: '1  year'
+                    valueToken = token;
+                    if (st.hasMoreTokens()) {
+                        unitToken = st.nextToken();
                     }
+                }
+
+                int endHours = token.indexOf(':');
+                if (endHours > 0) {
                     // This handles hours, minutes, seconds and microseconds for
                     // ISO intervals
                     int offset = (token.charAt(0) == '-') ? 1 : 0;
@@ -89,53 +101,53 @@ final class PGIntervalParser {
                         seconds = -seconds;
                         milliSeconds = -milliSeconds;
                     }
-                    valueToken = null;
                 } else {
-                    var type = token.toLowerCase(Locale.ENGLISH);
-                    // This handles years, months, days for both, ISO and
-                    // Non-ISO intervals. Hours, minutes, seconds and microseconds
-                    // are handled for Non-ISO intervals here.
-                    if (type.equals("year") || type.equals("years")) {
-                        years = nullSafeIntGet(valueToken);
-                    } else if (type.equals("month") || type.equals("months") || type.equals("mon")
-                               || type.equals("mons")) {
-                        months = nullSafeIntGet(valueToken);
-                    } else if (type.equals("day") || type.equals("days")) {
-                        days += nullSafeIntGet(valueToken);
-                    } else if (type.equals("week") || type.equals("weeks")) {
-                        days += nullSafeIntGet(valueToken) * 7;
-                    } else if (type.equals("hour") || type.equals("hours")) {
-                        hours = nullSafeIntGet(valueToken);
-                    } else if (type.equals("min") || type.equals("mins") || type.equals("minute")
-                               || type.equals("minutes")) {
-                        minutes = nullSafeIntGet(valueToken);
-                    } else if (type.equals("sec") || type.equals("secs") || type.equals("second")
-                               || type.equals("seconds")) {
-                        seconds = parseInteger(valueToken);
-                        milliSeconds = parseMilliSeconds(valueToken);
-                    } else {
+                    if (unitToken == null) {
                         throw new IllegalArgumentException("Invalid interval format: " + value);
                     }
-                    dataParsed = true;
                 }
+
+                // This handles years, months, days for both, ISO and
+                // Non-ISO intervals. Hours, minutes, seconds and microseconds
+                // are handled for Non-ISO intervals here.
+                if (unitToken != null) {
+                    switch (unitToken) {
+                        case "year", "years" -> years = nullSafeIntGet(valueToken);
+                        case "month", "months", "mon", "mons" -> months = nullSafeIntGet(valueToken);
+                        case "day", "days" -> days += nullSafeIntGet(valueToken);
+                        case "week", "weeks" -> days += nullSafeIntGet(valueToken) * 7;
+                        case "hour", "hours" -> hours = nullSafeIntGet(valueToken);
+                        case "min", "mins", "minute", "minutes" -> minutes = nullSafeIntGet(valueToken);
+                        case "sec", "secs", "second", "seconds" -> {
+                            seconds = parseInteger(valueToken);
+                            milliSeconds = parseMilliSeconds(valueToken);
+                        }
+                        default -> throw new IllegalArgumentException("Invalid interval format: " + value);
+                    }
+                }
+                unitToken = null;
             }
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid interval format: " + value);
         }
 
-        if (!dataParsed) {
-            throw new IllegalArgumentException("Invalid interval format: " + value);
-        }
-
         Period period = new Period(years, months, 0, days, hours, minutes, seconds, milliSeconds);
 
-        if (!ISOFormat && value.endsWith("ago")) {
+        if (!ISOFormat && hasAgo) {
             // Inverse the leading sign
             period = period.negated();
         }
         return period;
     }
 
+    private static int firstCharacterInStr(String token) {
+        for (int i = 0; i < token.length(); i++) {
+            if (Character.isLetter(token.charAt(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
     private static int parseInteger(String value) {
         return new BigDecimal(value).intValue();
