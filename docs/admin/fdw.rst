@@ -118,7 +118,7 @@ The JDBC foreign data wrapper supports the following ``OPTIONS`` for use with
 
 Example::
 
-  CREATE USER MAPPING USER SERVER my_postgresql OPTIONS ("user" 'trillian', password 'secret');
+  CREATE USER MAPPING FOR USER SERVER my_postgresql OPTIONS ("user" 'trillian', password 'secret');
 
 
 .. seealso::

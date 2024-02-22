@@ -26,6 +26,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -128,6 +129,25 @@ public class InformationSchemaTableDefinitions {
             informationSchemaIterables::userMappings,
             (user, t) -> roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null),
             UserMappingsTableInfo.create().expressions()
+        ));
+        tableDefinitions.put(UserMappingOptionsTableInfo.IDENT, new StaticTableDefinition<>(
+            (txnCtx, user) -> completedFuture(
+                () -> StreamSupport.stream(informationSchemaIterables.userMappingOptions().spliterator(), false)
+                    .filter(userMappingOptions -> roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
+                    .map(userMappingOptions -> {
+                        if ((user.name().equals(userMappingOptions.userName()) || user.isSuperUser()) == false) {
+                            return new UserMappingOptionsTableInfo.UserMappingOptions(
+                                userMappingOptions.userName(),
+                                userMappingOptions.serverName(),
+                                userMappingOptions.optionName(),
+                                null); // mask
+                        }
+                        return userMappingOptions;
+                    })
+                    .iterator()
+            ),
+            UserMappingOptionsTableInfo.create().expressions(),
+            true
         ));
     }
 

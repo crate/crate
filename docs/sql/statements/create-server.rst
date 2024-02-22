@@ -56,10 +56,9 @@ Do not raise an error if the server already exists.
 -----------
 
 :option value:
-
-Key value pairs defining foreign data wrapper specific options for the server.
-For example, for the ``jdbc`` foreign data wrapper you can define a ``url``
-property to define the connection string::
+  Key value pairs defining foreign data wrapper specific options for the server
+  .For example, for the ``jdbc`` foreign data wrapper you can define a ``url``
+  property to define the connection string::
 
     CREATE SERVER pg FOREIGN DATA WRAPPER jdbc
     OPTIONS (url 'jdbc:postgresql://example.com:5432')

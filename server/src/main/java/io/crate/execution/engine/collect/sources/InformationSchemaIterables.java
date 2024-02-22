@@ -67,6 +67,7 @@ import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.UserMappingOptionsTableInfo;
 import io.crate.metadata.information.UserMappingsTableInfo.UserMapping;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -375,6 +376,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
         Metadata metadata = clusterService.state().metadata();
         ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
         return servers.getUserMappings();
+    }
+
+    public Iterable<UserMappingOptionsTableInfo.UserMappingOptions> userMappingOptions() {
+        Metadata metadata = clusterService.state().metadata();
+        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        return servers.getUserMappingOptions();
     }
 
     public Iterable<ForeignTable> foreignTables() {
