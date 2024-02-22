@@ -238,13 +238,13 @@ public class IntervalParserTest extends ESTestCase {
             .withPeriodType(PeriodType.yearMonthDayTime());
 
 
-        var year = randomWhiteSpaces() + randomFrom("year", "years");
+        var year = randomWhiteSpaces() + randomFrom("year", "years", "y");
         var month = randomWhiteSpaces() + randomFrom("month", "months", "mon", "mons");
-        var week = randomWhiteSpaces() + randomFrom("week", "weeks");
-        var day = randomWhiteSpaces() + randomFrom("day", "days");
-        var hour = randomWhiteSpaces() + randomFrom("hour", "hours");
-        var minute = randomWhiteSpaces() + randomFrom("minute", "minutes", "min", "mins");
-        var second = randomWhiteSpaces() + randomFrom("second", "seconds", "sec", "secs");
+        var week = randomWhiteSpaces() + randomFrom("week", "weeks", "w");
+        var day = randomWhiteSpaces() + randomFrom("day", "days", "d");
+        var hour = randomWhiteSpaces() + randomFrom("hour", "hours", "h");
+        var minute = randomWhiteSpaces() + randomFrom("minute", "minutes", "min", "mins", "m");
+        var second = randomWhiteSpaces() + randomFrom("second", "seconds", "sec", "secs", "s");
 
         year = randomBoolean() ? year : year.toUpperCase(Locale.ENGLISH);
         month = randomBoolean() ? month : month.toUpperCase(Locale.ENGLISH);

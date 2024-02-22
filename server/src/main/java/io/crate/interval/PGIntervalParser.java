@@ -112,13 +112,13 @@ final class PGIntervalParser {
                 // are handled for Non-ISO intervals here.
                 if (unitToken != null) {
                     switch (unitToken) {
-                        case "year", "years" -> years = nullSafeIntGet(valueToken);
+                        case "year", "years", "y" -> years = nullSafeIntGet(valueToken);
                         case "month", "months", "mon", "mons" -> months = nullSafeIntGet(valueToken);
-                        case "day", "days" -> days += nullSafeIntGet(valueToken);
-                        case "week", "weeks" -> days += nullSafeIntGet(valueToken) * 7;
-                        case "hour", "hours" -> hours = nullSafeIntGet(valueToken);
-                        case "min", "mins", "minute", "minutes" -> minutes = nullSafeIntGet(valueToken);
-                        case "sec", "secs", "second", "seconds" -> {
+                        case "day", "days", "d" -> days += nullSafeIntGet(valueToken);
+                        case "week", "weeks", "w" -> days += nullSafeIntGet(valueToken) * 7;
+                        case "hour", "hours", "h" -> hours = nullSafeIntGet(valueToken);
+                        case "min", "mins", "minute", "minutes", "m" -> minutes = nullSafeIntGet(valueToken);
+                        case "sec", "secs", "second", "seconds", "s" -> {
                             seconds = parseInteger(valueToken);
                             milliSeconds = parseMilliSeconds(valueToken);
                         }
