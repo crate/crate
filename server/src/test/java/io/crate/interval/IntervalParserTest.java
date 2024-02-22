@@ -176,13 +176,13 @@ public class IntervalParserTest extends ESTestCase {
 
     @Test
     public void test_psql_format_from_string() {
-        Period period = PGIntervalParser.apply("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs");
+        Period period = PGIntervalParser.apply("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs  ");
         assertThat(period).isEqualTo(new Period().withYears(1).withMonths(1).withDays(1).withHours(1).withMinutes(1).withSeconds(1));
     }
 
     @Test
     public void test_psql_verbose_format_from_string_with_ago() {
-        Period period = IntervalParser.apply("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs ago");
+        Period period = IntervalParser.apply("  @ 1 year 1 mon 1 day 1 hour 1 minute 1 secs ago  ");
         assertThat(period).isEqualTo(
             new Period().withYears(-1).withMonths(-1).withDays(-1).withHours(-1).withMinutes(-1).withSeconds(-1)
                 .withPeriodType(PeriodType.yearMonthDayTime()));
@@ -198,7 +198,7 @@ public class IntervalParserTest extends ESTestCase {
 
     @Test
     public void test_psql_verbose_format_from_string_with_negative_values_and_ago() {
-        Period period = IntervalParser.apply("@ 1 year -23 hours -3 mins -3.30 secs ago");
+        Period period = IntervalParser.apply("@ 1 year -23 hours -3 mins -3.30 secs AGO");
         assertThat(period).isEqualTo(
             new Period().withYears(-1).withHours(23).withMinutes(3).withSeconds(3).withMillis(300)
                 .withPeriodType(PeriodType.yearMonthDayTime()));
@@ -237,13 +237,14 @@ public class IntervalParserTest extends ESTestCase {
         var expected = new Period(1, 2, 0, 827, 4, 40, 43, 0)
             .withPeriodType(PeriodType.yearMonthDayTime());
 
-        var year = " " + randomFrom("year", "years");
-        var month = " " + randomFrom("month", "months", "mon", "mons");
-        var week = " " + randomFrom("week", "weeks");
-        var day = " " + randomFrom("day", "days");
-        var hour = " " + randomFrom("hour", "hours");
-        var minute = " " + randomFrom("minute", "minutes", "min", "mins");
-        var second = " " + randomFrom("second", "seconds", "sec", "secs");
+
+        var year = randomWhiteSpaces() + randomFrom("year", "years");
+        var month = randomWhiteSpaces() + randomFrom("month", "months", "mon", "mons");
+        var week = randomWhiteSpaces() + randomFrom("week", "weeks");
+        var day = randomWhiteSpaces() + randomFrom("day", "days");
+        var hour = randomWhiteSpaces() + randomFrom("hour", "hours");
+        var minute = randomWhiteSpaces() + randomFrom("minute", "minutes", "min", "mins");
+        var second = randomWhiteSpaces() + randomFrom("second", "seconds", "sec", "secs");
 
         year = randomBoolean() ? year : year.toUpperCase(Locale.ENGLISH);
         month = randomBoolean() ? month : month.toUpperCase(Locale.ENGLISH);
@@ -255,5 +256,14 @@ public class IntervalParserTest extends ESTestCase {
 
         assertThat(IntervalParser.apply("1" + year + " 2" + month + " 3" + week + " 763" + day + " 1024" + hour +
                                         " 642" + minute + " 7123" + second)).isEqualTo(expected);
+    }
+
+    private static String randomWhiteSpaces() {
+        var numWhitespaces = randomInt(5);
+        StringBuilder whiteSpaces = new StringBuilder();
+        for (int i = 0; i < numWhitespaces; i++) {
+            whiteSpaces.append(randomFrom(" ", "\t"));
+        }
+        return whiteSpaces.toString();
     }
 }
