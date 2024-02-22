@@ -50,7 +50,9 @@ import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.fdw.ServersMetadata.Server.Option;
+import io.crate.metadata.information.UserMappingOptionsTableInfo;
 import io.crate.metadata.information.UserMappingsTableInfo.UserMapping;
+import io.crate.server.xcontent.XContentParserUtils;
 import io.crate.sql.tree.CascadeMode;
 import io.crate.types.DataTypes;
 
@@ -63,7 +65,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
     public record Server(String name,
                          String fdw,
                          String owner,
-                         Map<String, Map<String, Object>> users,
+                         Map<String, Settings> users,
                          Settings options) implements Writeable, ToXContent {
 
 
@@ -72,7 +74,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                 in.readString(),
                 in.readString(),
                 in.readString(),
-                in.readMap(StreamInput::readString, StreamInput::readMap),
+                in.readMap(StreamInput::readString, Settings::readSettingsFromStream),
                 Settings.readSettingsFromStream(in)
             );
         }
@@ -82,7 +84,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             out.writeString(name);
             out.writeString(fdw);
             out.writeString(owner);
-            out.writeMap(users, StreamOutput::writeString, StreamOutput::writeMap);
+            out.writeMap(users, StreamOutput::writeString, Settings::writeSettingsToStream);
             Settings.writeSettingsToStream(out, options);
         }
 
@@ -91,7 +93,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             String name = null;
             String fdw = null;
             String owner = null;
-            Map<String, Map<String, Object>> users = null;
+            Map<String, Settings> users = new HashMap<>();
             Settings options = null;
             while (parser.nextToken() != END_OBJECT) {
                 if (parser.currentToken() == FIELD_NAME) {
@@ -111,7 +113,17 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                             break;
 
                         case "users":
-                            users = (Map<String, Map<String, Object>>)(Map) parser.map();
+                            XContentParserUtils.ensureExpectedToken(START_OBJECT, parser.currentToken(), parser);
+                            parser.nextToken();
+                            while (parser.currentToken() == FIELD_NAME) {
+                                parser.nextToken();
+                                String key = parser.currentName();
+                                Settings settings = Settings.fromXContent(parser);
+                                users.put(key, settings);
+                                XContentParserUtils.ensureExpectedToken(END_OBJECT, parser.currentToken(), parser);
+                                parser.nextToken();
+                            }
+                            XContentParserUtils.ensureExpectedToken(END_OBJECT, parser.currentToken(), parser);
                             break;
 
                         case "options":
@@ -137,10 +149,19 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             builder.field("name", name);
             builder.field("fdw", fdw);
             builder.field("owner", owner);
-            builder.field("users", users);
+
+            builder.startObject("users");
+            for (var user : users.entrySet()) {
+                builder.startObject(user.getKey());
+                user.getValue().toXContent(builder, params);
+                builder.endObject();
+            }
+            builder.endObject();
+
             builder.startObject("options");
             options.toXContent(builder, params);
             builder.endObject();
+
             return builder;
         }
 
@@ -223,7 +244,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
     public ServersMetadata addUser(String serverName,
                                    boolean ifNotExists,
                                    String userName,
-                                   Map<String, Object> options) {
+                                   Settings options) {
         Server server = get(serverName);
         if (server.users.containsKey(userName)) {
             if (ifNotExists) {
@@ -232,7 +253,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             throw new UserMappingAlreadyExists(userName, serverName);
         }
         HashMap<String, Server> newServers = new HashMap<>(this.servers);
-        HashMap<String, Map<String, Object>> newUsers = new HashMap<>(server.users);
+        HashMap<String, Settings> newUsers = new HashMap<>(server.users);
         newUsers.put(userName, options);
         Server newServer = new Server(serverName, server.fdw, server.owner, newUsers, server.options);
         newServers.put(serverName, newServer);
@@ -300,8 +321,8 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
 
     public ServersMetadata dropUser(String serverName, String userName, boolean ifExists) {
         Server server = get(serverName);
-        HashMap<String, Map<String, Object>> newUsers = new HashMap<>(server.users);
-        Map<String, Object> removed = newUsers.remove(userName);
+        HashMap<String, Settings> newUsers = new HashMap<>(server.users);
+        Settings removed = newUsers.remove(userName);
         if (removed == null && !ifExists) {
             throw new ResourceNotFoundException(String.format(
                 Locale.ENGLISH,
@@ -337,6 +358,17 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                 .flatMap(server -> server.users.keySet().stream()
                     .map(userName -> new UserMapping(userName, server.name()))
                 ).iterator();
+    }
+
+    public Iterable<UserMappingOptionsTableInfo.UserMappingOptions> getUserMappingOptions() {
+        return () ->
+            servers.values().stream()
+                .map(server -> server)
+                .flatMap(server -> server.users.entrySet().stream()
+                    .flatMap(e -> e.getValue().getAsStructuredMap().entrySet().stream()
+                        .map(setting -> new UserMappingOptionsTableInfo.UserMappingOptions(
+                            e.getKey(), server.name(), setting.getKey(), setting.getValue().toString())
+                ))).iterator();
     }
 
     public Iterable<Option> getOptions() {

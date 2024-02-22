@@ -84,6 +84,7 @@ number of replicas.
     | information_schema | table_constraints       | BASE TABLE |             NULL | NULL               |
     | information_schema | table_partitions        | BASE TABLE |             NULL | NULL               |
     | information_schema | tables                  | BASE TABLE |             NULL | NULL               |
+    | information_schema | user_mapping_options    | BASE TABLE |             NULL | NULL               |
     | information_schema | user_mappings           | BASE TABLE |             NULL | NULL               |
     | information_schema | views                   | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_am                   | BASE TABLE |             NULL | NULL               |
@@ -136,7 +137,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 69 rows in set (... sec)
+    SELECT 70 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
@@ -867,22 +868,22 @@ In CrateDB there is always a single entry listing `UTF8`::
       - Not implemented, this column is always null.
     * - ``character_set_name``
       - ``TEXT``
-      - Name of the character set
+      - Name of the character set.
     * - ``character_repertoire``
       - ``TEXT``
-      - Character repertoire
+      - Character repertoire.
     * - ``form_of_use``
       - ``TEXT``
-      - Character encoding form, same as ``character_set_name``
+      - Character encoding form, same as ``character_set_name``.
     * - ``default_collate_catalog``
       - ``TEXT``
-      - Name of the database containing the default collation (Always ``crate``)
+      - Name of the database containing the default collation (Always ``crate``).
     * - ``default_collate_schema``
       - ``TEXT``
-      - Name of the schema containing the default collation (Always ``NULL``)
+      - Name of the schema containing the default collation (Always ``NULL``).
     * - ``default_collate_name``
       - ``TEXT``
-      - Name of the default collation (Always ``NULL``)
+      - Name of the default collation (Always ``NULL``).
 
 
 .. _foreign_servers:
@@ -904,7 +905,7 @@ See :ref:`administration-fdw`.
      - Name of the database of the foreign server. Always ``crate``.
    * - ``foreign_server_name``
      - ``TEXT``
-     - Name of the foreign server
+     - Name of the foreign server.
    * - ``foreign_data_wrapper_catalog``
      - ``TEXT``
      - Name of the database that contains the foreign-data wrapper. Always
@@ -979,7 +980,7 @@ See :ref:`administration-fdw`.
        ``crate``.
    * - ``foreign_server_name``
      - ``TEXT``
-     - Name of the foreign server
+     - Name of the foreign server.
 
 .. _foreign_table_options:
 
@@ -1009,7 +1010,7 @@ See :ref:`administration-fdw`.
      - Name of an option.
    * - ``option_value``
      - ``TEXT``
-     - Value of the option cast to string
+     - Value of the option cast to string.
 
 .. _user_mappings:
 
@@ -1027,10 +1028,41 @@ See :ref:`administration-fdw`.
      - Description
    * - ``authorization_identifier``
      - ``TEXT``
-     - Name of the user being mapped
+     - Name of the user being mapped.
    * - ``foreign_server_catalog``
      - ``TEXT``
      - Name of the database of the foreign server. Always ``crate``.
    * - ``foreign_server_name``
      - ``TEXT``
-     - Name of the foreign server for this user mapping
+     - Name of the foreign server for this user mapping.
+
+.. _user_mapping_options:
+
+``user_mapping_options``
+------------------------
+
+Lists the options for user mappings created for foreign servers.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``authorization_identifier``
+     - ``TEXT``
+     - Name of the user being mapped.
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database of the foreign server. Always ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server for this user mapping.
+   * - ``option_name``
+     - ``TEXT``
+     - Name of an option.
+   * - ``option_value``
+     - ``TEXT``
+     - Value of the option. The value is visible only to the user being mapped
+       and to superusers otherwise it will show as a ``NULL``.

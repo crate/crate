@@ -22,23 +22,23 @@
 package io.crate.fdw;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 
 public class CreateUserMappingRequest extends AcknowledgedRequest<CreateUserMappingRequest> {
 
     private final boolean ifNotExists;
     private final String userName;
     private final String server;
-    private final Map<String, Object> options;
+    private final Settings options;
 
     public CreateUserMappingRequest(boolean ifNotExists,
                                     String userName,
                                     String server,
-                                    Map<String, Object> options) {
+                                    Settings options) {
         this.ifNotExists = ifNotExists;
         this.userName = userName;
         this.server = server;
@@ -49,7 +49,7 @@ public class CreateUserMappingRequest extends AcknowledgedRequest<CreateUserMapp
         this.ifNotExists = in.readBoolean();
         this.userName = in.readString();
         this.server = in.readString();
-        this.options = in.readMap(StreamInput::readString, StreamInput::readGenericValue);
+        this.options = Settings.readSettingsFromStream(in);
     }
 
     @Override
@@ -57,7 +57,7 @@ public class CreateUserMappingRequest extends AcknowledgedRequest<CreateUserMapp
         out.writeBoolean(ifNotExists);
         out.writeString(userName);
         out.writeString(server);
-        out.writeMap(options, StreamOutput::writeString, StreamOutput::writeGenericValue);
+        Settings.writeSettingsToStream(out, options);
     }
 
     public boolean ifNotExists() {
@@ -72,7 +72,7 @@ public class CreateUserMappingRequest extends AcknowledgedRequest<CreateUserMapp
         return server;
     }
 
-    public Map<String, Object> options() {
+    public Settings options() {
         return options;
     }
 }

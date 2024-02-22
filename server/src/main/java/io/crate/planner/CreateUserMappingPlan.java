@@ -22,13 +22,11 @@
 package io.crate.planner;
 
 import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedCreateUserMapping;
 import io.crate.analyze.SymbolEvaluator;
@@ -69,32 +67,33 @@ public class CreateUserMappingPlan implements Plan {
         ServersMetadata serversMetadata = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
         ServersMetadata.Server server = serversMetadata.get(createUserMapping.serverName());
         var supportedUserOptions = Lists.map(foreignDataWrappers.get(server.fdw()).optionalUserOptions(), Setting::getKey);
-        createUserMapping.options().keySet().forEach(
-            option -> {
-                if (!supportedUserOptions.contains(option.toLowerCase(Locale.ROOT))) {
-                    throw new IllegalArgumentException(
-                        String.format(
-                            Locale.ENGLISH,
-                            "Invalid option '%s' provided, the supported options are: %s",
-                            option,
-                            supportedUserOptions)
-                    );
-                }
-            });
 
         Function<Symbol, Object> toValue = new SymbolEvaluator(
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             subQueryResults
         ).bind(params);
-        Map<String, Object> options = createUserMapping.options().entrySet().stream()
-            .collect(Collectors.toMap(Entry::getKey, entry -> toValue.apply(entry.getValue())));
+        Settings.Builder optionsBuilder = Settings.builder();
+        createUserMapping.options().forEach((optionName, option) -> {
+            optionName = optionName.toLowerCase(Locale.ROOT);
+            if (supportedUserOptions.contains(optionName)) {
+                optionsBuilder.put(optionName, toValue.apply(option));
+            } else {
+                throw new IllegalArgumentException(
+                        String.format(
+                                Locale.ENGLISH,
+                                "Invalid option '%s' provided, the supported options are: %s",
+                                optionName,
+                                supportedUserOptions)
+                );
+            }
+        });
 
         var request = new CreateUserMappingRequest(
             createUserMapping.ifNotExists(),
             createUserMapping.user().name(),
             createUserMapping.serverName(),
-            options
+            optionsBuilder.build()
         );
         dependencies.client()
             .execute(TransportCreateUserMappingAction.ACTION, request)
