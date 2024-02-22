@@ -48,6 +48,21 @@ Fixes
 =====
 
 - Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
+  didn't allow units next to values without whitespace separation, e.g.::
+
+     SELECT '1year 2weeks 3day'::INTERVAL
+
+- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
+  caused issues for interval strings with extra white spaces, e.g.::
+
+     SELECT ' @ 1 year 2 weeks 3 days ago '::INTERVAL
+
+- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
+  didn't recognize the ``ago`` keyword when in mixed-case or uppercase, e.g.::
+
+     SELECT '@ 1 year 2 weeks 3 days AGO'::INTERVAL
+
+- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
   caused weeks to be ignored if days are also present in the string, e.g.::
 
      SELECT '1 year 2 weeks 3 days'::INTERVAL
