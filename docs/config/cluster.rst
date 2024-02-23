@@ -261,7 +261,7 @@ about its usage.
 
   The interval a UDC ping is sent.
 
- This field expects a time value either as a ``bigint`` or
+  This field expects a time value either as a ``bigint`` or
   ``double precision`` or alternatively as a string literal with a time suffix
   (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
