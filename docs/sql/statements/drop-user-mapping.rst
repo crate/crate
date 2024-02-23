@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-drop-user-mapping:
 
-=================
-DROP USER MAPPING
-=================
+=====================
+``DROP USER MAPPING``
+=====================
 
 Drops a user mapping for a foreign server.
 

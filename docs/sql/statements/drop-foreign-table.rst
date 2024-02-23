@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-drop-foreign-table:
 
-==================
-DROP FOREIGN TABLE
-==================
+======================
+``DROP FOREIGN TABLE``
+======================
 
 Drops a foreign table.
 
