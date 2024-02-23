@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-create-user-mapping:
 
-===================
-CREATE USER MAPPING
-===================
+=======================
+``CREATE USER MAPPING``
+=======================
 
 Create a user mapping for a foreign server.
 

@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-drop-server:
 
-===========
-DROP SERVER
-===========
+===============
+``DROP SERVER``
+===============
 
 Drop a foreign server.
 
