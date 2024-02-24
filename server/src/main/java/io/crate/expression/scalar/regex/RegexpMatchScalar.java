@@ -15,7 +15,7 @@ import org.apache.lucene.util.automaton.RegExp;
 
 import io.crate.data.Input;
 import io.crate.expression.RegexpFlags;
-import io.crate.expression.operator.Operator;
+import java.util.regex.PatternSyntaxException;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.CrateRegexQuery;
@@ -27,8 +27,9 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-public class RegexpMatchScalar extends Scalar<String[], String> {
-    public static final String NAME = "regexp_match_scalar";
+public class RegexpMatchScalar extends Scalar<List<String>, String> {
+    private Pattern pattern;
+    public static final String NAME = "regexp_match";
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -36,7 +37,7 @@ public class RegexpMatchScalar extends Scalar<String[], String> {
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
+                DataTypes.STRING_ARRAY.getTypeSignature()
             ),
             RegexpMatchScalar::new
         );
@@ -47,7 +48,7 @@ public class RegexpMatchScalar extends Scalar<String[], String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
+                DataTypes.STRING_ARRAY.getTypeSignature()
             ),
             RegexpMatchScalar::new
         );
@@ -57,8 +58,18 @@ public class RegexpMatchScalar extends Scalar<String[], String> {
         super(signature, boundSignature);
     }
 
+    public RegexpMatchScalar(Signature signature, BoundSignature boundSignature, String patternString, int flags) throws PatternSyntaxException {
+        super(signature, boundSignature);
+        compilePattern(patternString, flags);
+    }
+
+    private void compilePattern(String patternString, int flags) throws PatternSyntaxException {
+        this.pattern = Pattern.compile(patternString, flags);
+    }
+
+
     @Override
-    public String[] evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
+    public List<String> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) throws IllegalArgumentException{
         assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
         String source = args[0].value();
         if (source == null) {
@@ -76,6 +87,8 @@ public class RegexpMatchScalar extends Scalar<String[], String> {
             flags = args[2].value();
             if (!isGlobal(flags)) {
                 pattern = Pattern.compile(pattern, parseFlags(flags)).pattern();
+            } else{
+                throw new IllegalArgumentException("Unsupported flag: 'g'. Global flag is not supported.");
             }
         }
 
@@ -84,31 +97,33 @@ public class RegexpMatchScalar extends Scalar<String[], String> {
         while (matcher.find()) {
             matches.add(matcher.group());
         }
-        return matches.toArray(new String[0]);
+        return matches;
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal) {
+    public Query toQuery(Reference ref, Literal<?> literal) throws IllegalArgumentException {
         String pattern = (String) literal.value();
         int flags = 0;
 
+        // Check if the pattern contains flags
         String flagsStr = null;
         int flagSeparatorIndex = pattern.lastIndexOf('/');
         if (flagSeparatorIndex != -1 && flagSeparatorIndex < pattern.length() - 1) {
-            pattern = pattern.substring(0, flagSeparatorIndex);
             flagsStr = pattern.substring(flagSeparatorIndex + 1);
+            pattern = pattern.substring(0, flagSeparatorIndex);
             flags = parseFlags(flagsStr);
         }
 
         Term term = new Term(ref.storageIdent(), pattern);
         if (RegexpFlags.isPcrePattern(pattern)) {
-            if(!isGlobal(flagsStr)) {
-                return new CrateRegexQuery(term, flags);
+            if (isGlobal(flagsStr)) {
+                throw new IllegalArgumentException("Unsupported flag: 'g'. Global flag is not supported.");
             } else {
-                return new CrateRegexQuery(term);
+                return new CrateRegexQuery(term, flags);
             }
         } else {
             return new ConstantScoreQuery(new RegexpQuery(term, RegExp.ALL));
         }
     }
+
 }
