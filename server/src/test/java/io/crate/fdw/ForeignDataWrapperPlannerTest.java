@@ -35,6 +35,7 @@ import io.crate.data.Row;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.CreateServerPlan;
+import io.crate.planner.CreateUserMappingPlan;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -143,5 +144,36 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
             .havingRootCause()
             .withMessageContaining(
                 "Unsupported options for foreign table doc.tbl using fdw `jdbc`: invalid. Valid options are: schema_name, table_name");
+    }
+
+    @Test
+    public void test_cannot_create_user_mapping_with_invalid_options() throws Exception {
+        var e = SQLExecutor.builder(clusterService).build();
+        CreateServerRequest request = new CreateServerRequest(
+            "pg",
+            "jdbc",
+            "crate",
+            true,
+            Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build()
+        );
+        AddServerTask addServerTask = new AddServerTask(e.foreignDataWrappers, request);
+        ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterService.state()));
+
+        String stmt = "CREATE USER MAPPING FOR crate SERVER pg OPTIONS (\"option1\" 'abc');";
+        CreateUserMappingPlan plan = e.plan(stmt);
+        var testingRowConsumer = new TestingRowConsumer();
+        plan.execute(
+            Mockito.mock(DependencyCarrier.class),
+            e.getPlannerContext(clusterService.state()),
+            testingRowConsumer,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+        assertThat(testingRowConsumer.completionFuture())
+            .failsWithin(0, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .havingRootCause()
+            .withMessageContaining(
+                "Invalid option 'option1' provided, the supported options are: [user, password]");
     }
 }
