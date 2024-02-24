@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -67,7 +68,7 @@ import io.crate.role.Privilege;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.RoleManagerService;
-import io.crate.role.RolesService;
+import io.crate.role.Roles;
 import io.crate.role.Securable;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -82,7 +83,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     private Role ddlOnlyUser;
     private SQLExecutor e;
     private RoleManager roleManager;
-    private Role superUser = Role.CRATE_USER;
+    private final Role superUser = Role.CRATE_USER;
 
     @Before
     public void setUpSQLExecutor() throws Exception {
@@ -110,15 +111,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                        null);
         ddlOnlyUser = userOf("ddlOnly");
 
-        RolesService rolesService = new RolesService(clusterService) {
-
-            @Nullable
+        Roles roles = new Roles() {
             @Override
-            public Role findUser(String userName) {
-                if ("crate".equals(userName)) {
-                    return superUser;
-                }
-                return super.findUser(userName);
+            public Collection<Role> roles() {
+                return List.of(superUser, normalUser, ddlOnlyUser);
             }
 
             @Override
@@ -130,13 +126,14 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 return true;
             }
         };
+
         roleManager = new RoleManagerService(
             null,
             null,
             null,
             null,
             mock(SysTableRegistry.class),
-            rolesService,
+            roles,
             new DDLClusterStateService());
 
         e = SQLExecutor.builder(clusterService)
