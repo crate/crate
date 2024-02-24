@@ -21,26 +21,36 @@
 
 package io.crate.planner;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Setting;
+
 import io.crate.analyze.AnalyzedCreateUserMapping;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.CreateUserMappingRequest;
+import io.crate.fdw.ForeignDataWrappers;
+import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.TransportCreateUserMappingAction;
 import io.crate.planner.operators.SubQueryResults;
 
 public class CreateUserMappingPlan implements Plan {
 
+    private final ForeignDataWrappers foreignDataWrappers;
     private final AnalyzedCreateUserMapping createUserMapping;
 
-    public CreateUserMappingPlan(AnalyzedCreateUserMapping createUserMapping) {
+    public CreateUserMappingPlan(ForeignDataWrappers foreignDataWrappers,
+                                 AnalyzedCreateUserMapping createUserMapping) {
+        this.foreignDataWrappers = foreignDataWrappers;
         this.createUserMapping = createUserMapping;
     }
 
@@ -55,6 +65,23 @@ public class CreateUserMappingPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
+        Metadata metadata = plannerContext.clusterState().metadata();
+        ServersMetadata serversMetadata = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        ServersMetadata.Server server = serversMetadata.get(createUserMapping.serverName());
+        var supportedUserOptions = Lists.map(foreignDataWrappers.get(server.fdw()).optionalUserOptions(), Setting::getKey);
+        createUserMapping.options().keySet().forEach(
+            option -> {
+                if (!supportedUserOptions.contains(option.toLowerCase(Locale.ROOT))) {
+                    throw new IllegalArgumentException(
+                        String.format(
+                            Locale.ENGLISH,
+                            "Invalid option '%s' provided, the supported options are: %s",
+                            option,
+                            supportedUserOptions)
+                    );
+                }
+            });
+
         Function<Symbol, Object> toValue = new SymbolEvaluator(
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),

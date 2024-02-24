@@ -65,6 +65,13 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         tableName
     );
 
+    private final Setting<String> foreignUser = Setting.simpleString("user");
+    private final Setting<String> foreignPw = Setting.simpleString("password");
+    private final List<Setting<?>> optionalUserOptions = List.of(
+        foreignUser,
+        foreignPw
+    );
+
 
     JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory) {
         this.settings = settings;
@@ -79,6 +86,11 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     @Override
     public List<Setting<?>> optionalTableOptions() {
         return optionalTableOptions;
+    }
+
+    @Override
+    public List<Setting<?>> optionalUserOptions() {
+        return optionalUserOptions;
     }
 
     @Override
