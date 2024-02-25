@@ -40,9 +40,11 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
+import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
@@ -120,6 +122,9 @@ public class EqualityExtractor {
                                      boolean shortCircuitOnMatchPredicateUnknown,
                                      TransactionContext txnCtx) {
         if (new ColumnsUnderNotPredicateFinder().find(query, columns)) {
+            return EqMatches.NONE;
+        }
+        if (new ColumnsUnderOrOperatorFinder().find(query, columns)) {
             return EqMatches.NONE;
         }
 
@@ -448,11 +453,11 @@ public class EqualityExtractor {
     static class ColumnsUnderNotPredicateFinder extends DefaultTraversalSymbolVisitor<Collection<ColumnIdent>, Void> {
 
         private boolean isUnderNotPredicate = false;
-        private boolean foundColumnUnderNotPredicate = false;
+        private boolean foundColumnUnderOrPredicate = false;
 
         public boolean find(Symbol query, Collection<ColumnIdent> columnIdents) {
             query.accept(this, columnIdents);
-            return foundColumnUnderNotPredicate;
+            return foundColumnUnderOrPredicate;
         }
 
         @Override
@@ -470,8 +475,55 @@ public class EqualityExtractor {
 
         @Override
         public Void visitReference(Reference symbol, Collection<ColumnIdent> columnIdents) {
-            foundColumnUnderNotPredicate |= columnIdents.contains(symbol.column()) && isUnderNotPredicate;
+            foundColumnUnderOrPredicate |= columnIdents.contains(symbol.column()) && isUnderNotPredicate;
             return null;
+        }
+    }
+
+    @VisibleForTesting
+    static class ColumnsUnderOrOperatorFinder extends DefaultTraversalSymbolVisitor<Collection<ColumnIdent>, Void> {
+
+        private boolean isUnderOrOperator = false;
+        private boolean foundNonPKColumnUnderOrOperator = false;
+        private boolean foundPKColumnUnderOrOperator = false;
+
+        public boolean find(Symbol query, Collection<ColumnIdent> columnIdents) {
+            query.accept(this, columnIdents);
+            return foundNonPKColumnUnderOrOperator && foundPKColumnUnderOrOperator;
+        }
+
+        @Override
+        public Void visitFunction(Function symbol, Collection<ColumnIdent> columnIdents) {
+            if (OrOperator.NAME.equals(symbol.name())) {
+                isUnderOrOperator = true;
+                symbol.arguments().get(0).accept(this, columnIdents);
+                symbol.arguments().get(1).accept(this, columnIdents);
+                if (foundNonPKColumnUnderOrOperator && foundPKColumnUnderOrOperator) {
+                    return null; // exit early
+                }
+                resetDetectionVariables();
+            } else if (AndOperator.NAME.equals(symbol.name())) {
+                resetDetectionVariables();
+                super.visitFunction(symbol, columnIdents);
+            } else {
+                super.visitFunction(symbol, columnIdents);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, Collection<ColumnIdent> columnIdents) {
+            if (isUnderOrOperator) {
+                foundNonPKColumnUnderOrOperator |= columnIdents.contains(symbol.column()) == false;
+                foundPKColumnUnderOrOperator |= columnIdents.contains(symbol.column());
+            }
+            return null;
+        }
+
+        private void resetDetectionVariables() {
+            isUnderOrOperator = false;
+            foundNonPKColumnUnderOrOperator = false;
+            foundPKColumnUnderOrOperator = false;
         }
     }
 }

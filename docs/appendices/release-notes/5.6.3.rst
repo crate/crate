@@ -47,6 +47,13 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused wrong results to be returned for queries for which
+  the ``WHERE`` clause includes a :ref:`PK <primary_key_constraint>` column and
+  a non-:ref:`PK <primary_key_constraint>` column under an ``OR`` operator,
+  e.g.::
+
+    SELECT * FROM tbl WHERE pk_col = 1 OR other_col = 'foo'
+
 - Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
   allowed duplicate unit definitions, e.g.::
 
