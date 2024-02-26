@@ -678,19 +678,15 @@ public final class SqlFormatter {
             return null;
         }
 
-        @SuppressWarnings({ "rawtypes", "unchecked" })
         @Override
-        public Void visitCreateTableAs(CreateTableAs node, Integer indent) {
+        public Void visitCreateTableAs(CreateTableAs<?> node, Integer indent) {
             builder.append("CREATE TABLE ");
             if (node.ifNotExists()) {
                 builder.append("IF NOT EXISTS ");
             }
-
             node.name().accept(this, indent);
             builder.append(" AS ");
-
             node.query().accept(this, indent);
-
             return null;
         }
 
@@ -743,7 +739,6 @@ public final class SqlFormatter {
             append(indent, dropForeignTable.cascadeMode() == CascadeMode.CASCADE ? "CASCADE" : "RESTRICT");
             return null;
         }
-
         @Override
         public Void visitCreateUserMapping(CreateUserMapping createUserMapping, Integer indent) {
             builder.append("CREATE USER MAPPING ");
@@ -766,7 +761,6 @@ public final class SqlFormatter {
                     builder.append(optionName);
                     builder.append(" ");
                     value.accept(this, indent);
-
                     if (it.hasNext()) {
                         builder.append(", ");
                     }
@@ -775,7 +769,6 @@ public final class SqlFormatter {
             }
             return null;
         }
-
         @Override
         public Void visitDropUserMapping(DropUserMapping dropUserMapping, Integer indent) {
             append(indent, "DROP USER MAPPING ");
