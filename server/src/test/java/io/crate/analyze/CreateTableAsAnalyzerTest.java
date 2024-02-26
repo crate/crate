@@ -91,4 +91,109 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         List<DataType<?>> actualTypes = Lists.map(actual.columns().values(), Symbol::valueType);
         assertThat(expectedTypes).containsExactlyElementsOf(actualTypes);
     }
+    @Test
+    public void testCompareAnalyzedCreateTableAsWithNotExists() throws IOException {
+
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable(
+                "create table tbl (" +
+                "   col_default_object object as (" +
+                "       col_nested_integer integer," +
+                "       col_nested_object object as (" +
+                "           col_nested_timestamp_with_time_zone timestamp with time zone" +
+                "       )" +
+                "   )" +
+                ")"
+            )
+            .build();
+
+        var expected = ((AnalyzedCreateTable) e.analyze(
+            "create table cpy (" +
+            "   col_default_object object as (" +
+            "       col_nested_integer integer," +
+            "       col_nested_object object as (" +
+            "           col_nested_timestamp_with_time_zone timestamp with time zone" +
+            "       )" +
+            "   )" +
+            ")"
+        )).bind(
+            new NumberOfShards(clusterService),
+            e.fulltextAnalyzerResolver(),
+            e.nodeCtx,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+
+        AnalyzedCreateTableAs analyzedCreateTableAs = e.analyze(
+            "create table if not exists cpy as select * from  tbl"
+        );
+        var actual = analyzedCreateTableAs.analyzedCreateTable().bind(
+            new NumberOfShards(clusterService),
+            e.fulltextAnalyzerResolver(),
+            e.nodeCtx,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+
+        assertThat(expected.tableName()).isEqualTo(actual.tableName());
+        assertThat(expected.columns().keySet()).containsExactlyElementsOf(actual.columns().keySet());
+        List<DataType<?>> expectedTypes = Lists.map(expected.columns().values(), Symbol::valueType);
+        List<DataType<?>> actualTypes = Lists.map(actual.columns().values(), Symbol::valueType);
+        assertThat(expectedTypes).containsExactlyElementsOf(actualTypes);
+    }
+
+    @Test
+    public void testCompareAnalyzedCreateTableAsWithExists() throws IOException {
+
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable(
+                "create table tbl (" +
+                "   col_default_object object as (" +
+                "       col_nested_integer integer," +
+                "       col_nested_object object as (" +
+                "           col_nested_timestamp_with_time_zone timestamp with time zone" +
+                "       )" +
+                "   )" +
+                ")"
+            )
+            .build();
+
+        var expected = ((AnalyzedCreateTable) e.analyze(
+            "create table tb1 (" +
+            "   col_default_object object as (" +
+            "       col_nested_integer integer," +
+            "       col_nested_object object as (" +
+            "           col_nested_timestamp_with_time_zone timestamp with time zone" +
+            "       )" +
+            "   )" +
+            ")"
+        )).bind(
+            new NumberOfShards(clusterService),
+            e.fulltextAnalyzerResolver(),
+            e.nodeCtx,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+
+        AnalyzedCreateTableAs analyzedCreateTableAs = e.analyze(
+            "create table if not exists tb1 as select * from  tbl"
+        );
+        var actual = analyzedCreateTableAs.analyzedCreateTable().bind(
+            new NumberOfShards(clusterService),
+            e.fulltextAnalyzerResolver(),
+            e.nodeCtx,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+
+        assertThat(expected.tableName()).isEqualTo(actual.tableName());
+        assertThat(expected.columns().keySet()).containsExactlyElementsOf(actual.columns().keySet());
+        List<DataType<?>> expectedTypes = Lists.map(expected.columns().values(), Symbol::valueType);
+        List<DataType<?>> actualTypes = Lists.map(actual.columns().values(), Symbol::valueType);
+        assertThat(expectedTypes).containsExactlyElementsOf(actualTypes);
+    }
 }
