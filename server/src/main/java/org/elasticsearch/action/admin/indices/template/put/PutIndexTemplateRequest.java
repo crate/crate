@@ -330,7 +330,7 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
             out.writeInt(1);
         }
         out.writeBoolean(create);
-        writeSettingsToStream(settings, out);
+        writeSettingsToStream(out, settings);
         if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
             out.writeString(mapping);
         } else {

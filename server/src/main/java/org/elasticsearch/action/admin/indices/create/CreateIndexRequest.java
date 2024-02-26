@@ -243,7 +243,7 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         super.writeTo(out);
         out.writeString(cause);
         out.writeString(index);
-        writeSettingsToStream(settings, out);
+        writeSettingsToStream(out, settings);
         if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
             out.writeOptionalString(mapping);
         } else {

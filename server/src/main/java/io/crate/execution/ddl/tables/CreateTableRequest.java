@@ -212,7 +212,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
             for (int i = 0; i < pKeyIndices.size(); i++) {
                 out.writeVInt(pKeyIndices.get(i));
             }
-            writeSettingsToStream(settings, out);
+            writeSettingsToStream(out, settings);
             out.writeOptionalString(routingColumn);
             out.writeVInt(tableColumnPolicy.ordinal());
             out.writeCollection(partitionedBy, StreamOutput::writeStringCollection);
