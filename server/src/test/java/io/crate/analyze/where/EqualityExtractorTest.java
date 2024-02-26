@@ -72,7 +72,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtract2ColPKWithAndAndNestedOr() throws Exception {
         Symbol query = query("x = 1 and (i = 2 or i = 3 or i = 4)");
         List<List<Symbol>> matches = analyzeExactXI(query);
-        assertThat(matches).hasSize(3);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(2)),
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(3)),
@@ -84,7 +83,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtract2ColPKWithOrFullDistinctKeys() throws Exception {
         Symbol query = query("(x = 1 and i = 2) or (x = 3 and i =4)");
         List<List<Symbol>> matches = analyzeExactXI(query);
-        assertThat(matches).hasSize(2);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(2)),
             s -> assertThat(s).satisfiesExactly(isLiteral(3), isLiteral(4))
@@ -95,7 +93,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtract2ColPKWithOrFullDuplicateKeys() throws Exception {
         Symbol query = query("(x = 1 and i = 2) or (x = 1 and i = 4)");
         List<List<Symbol>> matches = analyzeExactXI(query);
-        assertThat(matches).hasSize(2);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(2)),
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(4))
@@ -107,7 +104,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtractRoutingFromAnd() throws Exception {
         Symbol query = query("x = 1 and i = 2");
         List<List<Symbol>> matches = analyzeParentX(query);
-        assertThat(matches).hasSize(1);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1)));
     }
@@ -123,7 +119,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtractRoutingFromOr() throws Exception {
         Symbol query = query("x = 1 or x = 2");
         List<List<Symbol>> matches = analyzeParentX(query);
-        assertThat(matches).hasSize(2);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1)),
             s -> assertThat(s).satisfiesExactly(isLiteral(2)));
@@ -141,7 +136,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtractRoutingFromNestedOr() throws Exception {
         Symbol query = query("x =1 or x =2 or x = 3 or x = 4");
         List<List<Symbol>> matches = analyzeParentX(query);
-        assertThat(matches).hasSize(4);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1)),
             s -> assertThat(s).satisfiesExactly(isLiteral(2)),
@@ -160,7 +154,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtract2ColPKFromNestedOrWithDuplicates() throws Exception {
         Symbol query = query("x = 1 and (i = 2 or i = 2 or i = 4)");
         List<List<Symbol>> matches = analyzeExactXI(query);
-        assertThat(matches).hasSize(2);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(2)),
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(4)));
@@ -203,7 +196,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtract2ColPKFrom1PartAndOtherPart2EqOr() throws Exception {
         Symbol query = query("x = 1 and (i = 2 or i = 3)");
         List<List<Symbol>> matches = analyzeExactXI(query);
-        assertThat(matches).hasSize(2);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(2)),
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(3)));
@@ -220,7 +212,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtractSinglePKFromAnyEq() throws Exception {
         Symbol query = query("x = any([1, 2, 3])");
         List<List<Symbol>> matches = analyzeExactX(query);
-        assertThat(matches).hasSize(3);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1)),
             s -> assertThat(s).satisfiesExactly(isLiteral(2)),
@@ -231,7 +222,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtract2ColPKFromAnyEq() throws Exception {
         Symbol query = query("i = 4 and x = any([1, 2, 3])");
         List<List<Symbol>> matches = analyzeExactXI(query);
-        assertThat(matches).hasSize(3);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(4)),
             s -> assertThat(s).satisfiesExactly(isLiteral(2), isLiteral(4)),
@@ -242,7 +232,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtractSinglePKFromAnyEqInOr() throws Exception {
         Symbol query = query("x = any([1, 2, 3]) or x = any([4, 5, 3])");
         List<List<Symbol>> matches = analyzeExactX(query);
-        assertThat(matches).hasSize(5);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1)),
             s -> assertThat(s).satisfiesExactly(isLiteral(2)),
@@ -255,7 +244,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtractSinglePKFromOrInAnd() throws Exception {
         Symbol query = query("(x = 1 or x = 2 or x = 3) and (x = 1 or x = 4 or x = 5)");
         List<List<Symbol>> matches = analyzeExactX(query);
-        assertThat(matches).hasSize(1);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1)));
     }
@@ -264,7 +252,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtractSinglePK1FromAndAnyEq() throws Exception {
         Symbol query = query("x = any([1, 2, 3]) and x = any([4, 5, 3])");
         List<List<Symbol>> matches = analyzeExactX(query);
-        assertThat(matches).hasSize(1);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(3)));
     }
@@ -273,7 +260,7 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void testExtract2ColPKFromAnyEqAnd() throws Exception {
         Symbol query = query("x = any([1, 2, 3]) and i = any([1, 2, 3])");
         List<List<Symbol>> matches = analyzeExactXI(query);
-        assertThat(matches).hasSize(9); // cartesian product: 3 * 3
+        // cartesian product: 3 * 3
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(1)),
             s -> assertThat(s).satisfiesExactly(isLiteral(1), isLiteral(2)),
@@ -325,7 +312,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
 
         var query = expressionsT4.normalize(expressionsT4.asSymbol("obj = any([{i = 1}])"));
         List<List<Symbol>> matches = analyzeExact(query, List.of(pkCol));
-        assertThat(matches).hasSize(1);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(Map.of("i", 1))));
     }
@@ -334,7 +320,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void test_primary_key_extraction_if_combined_with_and_operator() throws Exception {
         Symbol query = query("x = 1 and a = 'foo' or (x = 3 and a = 'bar')");
         List<List<Symbol>> matches = analyzeExactX(query);
-        assertThat(matches).hasSize(2);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1)),
             s -> assertThat(s).satisfiesExactly(isLiteral(3)));
@@ -344,7 +329,6 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void test_primary_key_extraction_if_combined_with_and_scalar() throws Exception {
         Symbol query = query("x in (1, 2, 3) and substr(cast(x as string), 0) = 4");
         List<List<Symbol>> matches = analyzeExactX(query);
-        assertThat(matches).hasSize(3);
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(1)),
             s -> assertThat(s).satisfiesExactly(isLiteral(2)),
