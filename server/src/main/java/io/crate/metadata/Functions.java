@@ -104,21 +104,13 @@ public class Functions {
     }
 
     @Nullable
-    private static Signature findSignatureByOid(Map<FunctionName, List<FunctionProvider>> functions, int oid) {
-        for (Map.Entry<FunctionName, List<FunctionProvider>> func : functions.entrySet()) {
-            for (FunctionProvider sig : func.getValue()) {
-                if (Objects.equals(oid, OidHash.functionOid(sig.getSignature()))) {
-                    return sig.getSignature();
-                }
+    public Signature findFunctionSignatureByOid(int oid) {
+        for (var signature : signatures()) {
+            if (oid == OidHash.functionOid(signature)) {
+                return signature;
             }
         }
         return null;
-    }
-
-    @Nullable
-    public Signature findFunctionSignatureByOid(int oid) {
-        Signature sig = findSignatureByOid(udfFunctionImplementations, oid);
-        return sig != null ? sig : findSignatureByOid(functionImplementations, oid);
     }
 
     /**
