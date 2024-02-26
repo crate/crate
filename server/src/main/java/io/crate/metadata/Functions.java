@@ -25,9 +25,11 @@ import static io.crate.common.collections.Lists.getOnlyElement;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -37,7 +39,7 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -46,12 +48,12 @@ import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.BoundVariables;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.SignatureBinder;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -69,9 +71,27 @@ public class Functions {
         return functions;
     }
 
-    @Inject
-    public Functions(Map<FunctionName, List<FunctionProvider>> functionImplementationsBySignature) {
-        this.functionImplementations = functionImplementationsBySignature;
+    public interface FunctionProviders {
+
+        Iterable<FunctionProvider> getProviders(Settings settings,
+                                                SessionSettingRegistry sessionSettingRegistry);
+    }
+
+    public Functions loadFunctions(Settings settings,
+                                   SessionSettingRegistry sessionSettingRegistry) {
+        HashMap<FunctionName, List<FunctionProvider>> providersByName = new HashMap<>();
+        for (var providers : ServiceLoader.load(FunctionProviders.class)) {
+            for (var provider : providers.getProviders(settings, sessionSettingRegistry)) {
+                FunctionName name = provider.signature().getName();
+                List<FunctionProvider> functions = providersByName.computeIfAbsent(name, k -> new ArrayList<>());
+                functions.add(provider);
+            }
+        }
+        return new Functions(providersByName);
+    }
+
+    public Functions(Map<FunctionName, List<FunctionProvider>> functionProvidersByName) {
+        this.functionImplementations = functionProvidersByName;
     }
 
     public Iterable<Signature> signatures() {

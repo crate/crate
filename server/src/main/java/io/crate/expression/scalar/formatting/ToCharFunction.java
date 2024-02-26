@@ -31,23 +31,23 @@ import org.jetbrains.annotations.Nullable;
 import org.joda.time.Period;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.role.Roles;
 
 
 public class ToCharFunction extends Scalar<String, Object> {
 
     public static final String NAME = "to_char";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ).stream()
             .forEach(type -> {
                 module.register(

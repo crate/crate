@@ -22,7 +22,7 @@
 package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -37,7 +37,7 @@ public final class ColDescriptionFunction extends Scalar<String, Object> {
     private static final String NAME = "col_description";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 FQN,

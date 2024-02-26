@@ -21,20 +21,20 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
+import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-import io.crate.expression.scalar.UnaryScalar;
 
 public class PgGetPartkeydefFunction {
 
     public static final String NAME = "pg_get_partkeydef";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 FQN,

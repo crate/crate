@@ -21,31 +21,9 @@
 
 package io.crate.metadata;
 
-import java.util.function.BiFunction;
-
-import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
-public class FunctionProvider {
-
-    public interface FunctionFactory extends BiFunction<Signature, BoundSignature, FunctionImplementation> {
-    }
-
-    private final Signature signature;
-    private final FunctionFactory factory;
-
-    public FunctionProvider(Signature signature, FunctionFactory factory) {
-        this.signature = signature;
-        this.factory = factory;
-    }
-
-    public Signature getSignature() {
-        return signature;
-    }
-
-    public FunctionFactory getFactory() {
-        return factory;
-    }
+public record FunctionProvider(Signature signature, FunctionFactory factory) {
 
     @Override
     public String toString() {

@@ -45,7 +45,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
-    public static void register(ScalarFunctionModule scalarFunctionModule) {
+    public static void register(ScalarFunctions scalarFunctionModule) {
         scalarFunctionModule.register(
             Signature.scalar(NAME,
                     TypeSignature.parse("array(T)"),

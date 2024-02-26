@@ -24,7 +24,7 @@ package io.crate.expression.scalar.string;
 import static io.crate.sql.Identifiers.isKeyWord;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
@@ -38,7 +38,7 @@ public final class QuoteIdentFunction {
 
     private static final FunctionName FQNAME = new FunctionName(PgCatalogSchemaInfo.NAME, "quote_ident");
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 FQNAME,

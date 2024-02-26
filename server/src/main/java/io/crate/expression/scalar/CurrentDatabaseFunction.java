@@ -36,7 +36,7 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
 
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, "current_database");
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 FQN,

@@ -190,7 +190,7 @@ import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
@@ -215,10 +215,10 @@ import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
-import io.crate.types.DataTypes;
+import io.crate.role.RoleManagementModule;
 import io.crate.role.Roles;
 import io.crate.role.RolesService;
-import io.crate.role.RoleManagementModule;
+import io.crate.types.DataTypes;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -420,7 +420,7 @@ public class Node implements Closeable {
             modules.add(new AuthenticationModule());
             modules.add(new SessionSettingModule());
             modules.add(new AggregationImplModule());
-            modules.add(new ScalarFunctionModule());
+            modules.add(new ScalarFunctions());
             modules.add(new TableFunctionModule(settings));
             modules.add(new WindowFunctionModule());
 

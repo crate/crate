@@ -74,7 +74,7 @@ import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.predicate.PredicateModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
@@ -236,7 +236,7 @@ public class TestingHelpers {
             .add(new SessionSettingModule())
             .add(new OperatorModule())
             .add(new AggregationImplModule())
-            .add(new ScalarFunctionModule())
+            .add(new ScalarFunctions())
             .add(new WindowFunctionModule())
             .add(new TableFunctionModule(Settings.EMPTY))
             .add(new PredicateModule());

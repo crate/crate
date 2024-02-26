@@ -30,10 +30,10 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
+import io.crate.metadata.FunctionFactory;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.functions.Signature;
 
 public abstract class AbstractFunctionModule<T extends FunctionImplementation> extends AbstractModule {

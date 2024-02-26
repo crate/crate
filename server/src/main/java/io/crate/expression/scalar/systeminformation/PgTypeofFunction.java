@@ -24,7 +24,7 @@ package io.crate.expression.scalar.systeminformation;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -39,7 +39,7 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
 
     private static final FunctionName FQNAME = new FunctionName(PgCatalogSchemaInfo.NAME, "pg_typeof");
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                     FQNAME,

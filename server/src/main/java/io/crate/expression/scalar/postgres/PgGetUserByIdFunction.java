@@ -24,7 +24,7 @@ package io.crate.expression.scalar.postgres;
 import static io.crate.metadata.functions.Signature.scalar;
 import static io.crate.role.Role.CRATE_USER;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
@@ -33,7 +33,7 @@ import io.crate.types.DataTypes;
 
 public class PgGetUserByIdFunction {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         var name = new FunctionName(PgCatalogSchemaInfo.NAME, "pg_get_userbyid");
         module.register(
             scalar(

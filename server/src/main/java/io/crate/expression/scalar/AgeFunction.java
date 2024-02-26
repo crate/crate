@@ -45,7 +45,7 @@ public class AgeFunction extends Scalar<Period, Object> {
 
     private static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "age");
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             scalar(
                 NAME,

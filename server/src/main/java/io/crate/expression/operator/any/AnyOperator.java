@@ -36,7 +36,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.FunctionFactory;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;

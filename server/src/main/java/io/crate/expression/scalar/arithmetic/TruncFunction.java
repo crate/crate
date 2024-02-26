@@ -28,7 +28,7 @@ import java.math.RoundingMode;
 import java.util.function.UnaryOperator;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -43,7 +43,7 @@ public final class TruncFunction {
 
     public static final String NAME = "trunc";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);
             assert returnType != null : "Could not get integral type of " + type;

@@ -23,7 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import java.math.BigDecimal;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -34,7 +34,7 @@ public final class NegateFunctions {
 
     public static final String NAME = "_negate";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

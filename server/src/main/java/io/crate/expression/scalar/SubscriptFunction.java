@@ -75,7 +75,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "subscript";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         // All signatures but `array[int]` must forbid coercion.
         // Otherwise they would also match for non-int numeric indices like e.g. `array[long]`
 

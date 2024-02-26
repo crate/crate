@@ -21,16 +21,16 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import static io.crate.metadata.functions.Signature.scalar;
+
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 public class RadiansDegreesFunctions {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             scalar(
                 "radians",

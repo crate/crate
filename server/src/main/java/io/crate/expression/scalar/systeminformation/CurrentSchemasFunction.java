@@ -26,7 +26,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -41,7 +41,7 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
     public static final String NAME = "current_schemas";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 FQN,

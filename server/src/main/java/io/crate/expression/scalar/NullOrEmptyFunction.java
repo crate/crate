@@ -50,7 +50,7 @@ import io.crate.types.TypeSignature;
 
 public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 "null_or_empty",

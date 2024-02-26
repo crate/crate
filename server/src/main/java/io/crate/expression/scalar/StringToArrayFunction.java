@@ -41,7 +41,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
 
     private static final String NAME = "string_to_array";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

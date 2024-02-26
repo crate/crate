@@ -21,19 +21,19 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
+import java.util.function.DoubleUnaryOperator;
+
 import io.crate.expression.scalar.DoubleScalar;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 
-import java.util.function.DoubleUnaryOperator;
-
-import static io.crate.metadata.functions.Signature.scalar;
-
 public final class TrigonometricFunctions {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         register(module, "sin", Math::sin);
         register(module, "asin", x -> Math.asin(checkRange(x)));
         register(module, "cos", Math::cos);
@@ -60,7 +60,7 @@ public final class TrigonometricFunctions {
         );
     }
 
-    private static void register(ScalarFunctionModule module, String name, DoubleUnaryOperator func) {
+    private static void register(ScalarFunctions module, String name, DoubleUnaryOperator func) {
         module.register(
             scalar(
                 name,

@@ -26,7 +26,7 @@ import static io.crate.metadata.functions.Signature.scalar;
 import java.util.EnumSet;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -44,7 +44,7 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
     public static final String NAME = "pg_backend_pid";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             scalar(
                 FQN,

@@ -22,7 +22,7 @@
 package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -34,7 +34,7 @@ public final class PgFunctionIsVisibleFunction extends Scalar<Boolean, Integer> 
 
     public static final String NAME = "pg_function_is_visible";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

@@ -21,18 +21,18 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
 import io.crate.expression.scalar.DoubleScalar;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public final class SquareRootFunction {
 
     public static final String NAME = "sqrt";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             module.register(

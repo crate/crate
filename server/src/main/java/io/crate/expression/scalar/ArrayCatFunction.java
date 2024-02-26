@@ -41,7 +41,7 @@ public class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_cat";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

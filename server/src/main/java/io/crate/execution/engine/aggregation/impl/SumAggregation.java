@@ -46,7 +46,7 @@ import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.FunctionFactory;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;

@@ -24,7 +24,6 @@ package io.crate.role.scalar;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -40,22 +39,16 @@ public class UserFunction extends Scalar<String, Object> {
     public static final String CURRENT_USER_FUNCTION_NAME = "current_user";
     public static final String SESSION_USER_FUNCTION_NAME = "session_user";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
-            Signature.scalar(
-                CURRENT_USER_FUNCTION_NAME,
-                DataTypes.STRING.getTypeSignature()
-            ).withFeatures(Scalar.NO_FEATURES),
-            UserFunction::new
-        );
-        module.register(
-            Signature.scalar(
-                SESSION_USER_FUNCTION_NAME,
-                DataTypes.STRING.getTypeSignature()
-            ).withFeatures(Scalar.NO_FEATURES),
-            UserFunction::new
-        );
-    }
+    public static final Signature CURRENT_USER = Signature.scalar(
+        CURRENT_USER_FUNCTION_NAME,
+        DataTypes.STRING.getTypeSignature()
+    ).withFeatures(Scalar.NO_FEATURES);
+
+    public static final Signature SESSION_USER = Signature.scalar(
+            SESSION_USER_FUNCTION_NAME,
+        DataTypes.STRING.getTypeSignature()
+    ).withFeatures(Scalar.NO_FEATURES);
+
 
     public UserFunction(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);

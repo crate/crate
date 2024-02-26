@@ -27,7 +27,7 @@ import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -38,7 +38,7 @@ import io.crate.types.IntervalType;
 
 public class IntervalArithmeticFunctions {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 ArithmeticFunctions.Names.ADD,

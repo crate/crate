@@ -24,17 +24,17 @@ package io.crate.expression.scalar.arithmetic;
 import static io.crate.metadata.Scalar.DETERMINISTIC_ONLY;
 import static io.crate.metadata.Scalar.Feature.NULLABLE;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.BinaryOperator;
+
+import io.crate.expression.scalar.ScalarFunctions;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public class ArithmeticFunctions {
 
@@ -126,7 +126,7 @@ public class ArithmeticFunctions {
         }
     }
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         for (var op : Operations.values()) {
             module.register(
                 Signature.scalar(

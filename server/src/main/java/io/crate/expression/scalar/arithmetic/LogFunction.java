@@ -24,7 +24,7 @@ package io.crate.expression.scalar.arithmetic;
 import static io.crate.metadata.functions.Signature.scalar;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -37,7 +37,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
     public static final String NAME = "log";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         LogBaseFunction.registerLogBaseFunctions(module);
         Log10Function.registerLog10Functions(module);
         LnFunction.registerLnFunctions(module);
@@ -64,7 +64,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
     static class LogBaseFunction extends LogFunction {
 
-        static void registerLogBaseFunctions(ScalarFunctionModule module) {
+        static void registerLogBaseFunctions(ScalarFunctions module) {
             // log(valueType, baseType) : double
             module.register(
                 scalar(
@@ -103,7 +103,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
     static class Log10Function extends LogFunction {
 
-        static void registerLog10Functions(ScalarFunctionModule module) {
+        static void registerLog10Functions(ScalarFunctions module) {
             // log(double) : double
             module.register(
                 scalar(
@@ -137,7 +137,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
     public static class LnFunction extends Log10Function {
 
-        static void registerLnFunctions(ScalarFunctionModule module) {
+        static void registerLnFunctions(ScalarFunctions module) {
             // ln(double) : double
             module.register(
                 scalar(

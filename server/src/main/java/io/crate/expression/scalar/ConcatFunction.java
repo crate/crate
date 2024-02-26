@@ -40,7 +40,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
 
     public static final String NAME = "concat";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

@@ -40,9 +40,9 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.role.Roles;
 
 public class DateTruncFunction extends Scalar<Long, Object> {
 
@@ -61,7 +61,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         .put("second", DateTimeUnit.SECOND_OF_MINUTE)
         .immutableMap();
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         List<DataType<?>> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ, DataTypes.LONG);
         for (DataType<?> dataType : supportedTimestampTypes) {

@@ -24,7 +24,7 @@ package io.crate.expression.scalar.string;
 import java.util.Locale;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.ThreeParametersFunction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -40,7 +40,7 @@ public class StringPaddingFunction extends Scalar<String, Object> {
     public static final String DEFAULT_FILL = " ";
     public static final int LEN_LIMIT = 50000;
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         // lpad(string1, len)
         module.register(
             Signature.scalar(

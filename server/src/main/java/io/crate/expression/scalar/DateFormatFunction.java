@@ -40,7 +40,7 @@ public class DateFormatFunction extends Scalar<String, Object> {
     public static final String NAME = "date_format";
     public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         List<DataType<?>> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG);
         for (DataType<?> dataType : supportedTimestampTypes) {

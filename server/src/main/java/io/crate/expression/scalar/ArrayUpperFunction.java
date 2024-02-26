@@ -63,7 +63,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
     public static final String ARRAY_UPPER = "array_upper";
     public static final String ARRAY_LENGTH = "array_length";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         for (var name : List.of(ARRAY_UPPER, ARRAY_LENGTH)) {
             module.register(
                 Signature.scalar(

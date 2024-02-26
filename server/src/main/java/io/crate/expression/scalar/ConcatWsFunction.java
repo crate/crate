@@ -32,7 +32,7 @@ import io.crate.types.DataTypes;
 public class ConcatWsFunction extends Scalar<String, String> {
     public static final String NAME = "concat_ws";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

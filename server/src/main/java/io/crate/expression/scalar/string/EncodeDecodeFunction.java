@@ -29,7 +29,7 @@ import java.util.function.UnaryOperator;
 
 import io.crate.common.Hex;
 import io.crate.common.Octal;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.arithmetic.BinaryScalar;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -37,7 +37,7 @@ import io.crate.types.DataTypes;
 
 public class EncodeDecodeFunction {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 "encode",

@@ -33,14 +33,14 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
 import io.crate.role.Roles;
+import io.crate.types.DataTypes;
 
 public class DateBinFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "date_bin";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

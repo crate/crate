@@ -38,7 +38,7 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
 
     public static final String NAME = "collection_count";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                     NAME,

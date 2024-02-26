@@ -35,7 +35,7 @@ public final class CurrentDateFunction extends Scalar<Long, String> {
 
     public static final String NAME = "curdate";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

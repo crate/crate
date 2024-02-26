@@ -35,16 +35,16 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.role.Roles;
 
 public class SubstrFunction extends Scalar<String, Object> {
 
     public static final String NAME = "substr";
     public static final String ALIAS = "substring";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         TypeSignature stringType = DataTypes.STRING.getTypeSignature();
         TypeSignature intType = DataTypes.INTEGER.getTypeSignature();
         for (var name : List.of(NAME, ALIAS)) {

@@ -26,7 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -38,7 +38,7 @@ public final class NowFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "now";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

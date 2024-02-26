@@ -27,7 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
@@ -64,7 +64,7 @@ public class MapFunction extends Scalar<Object, Object> {
             .build();
 
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             SIGNATURE,
             MapFunction::new

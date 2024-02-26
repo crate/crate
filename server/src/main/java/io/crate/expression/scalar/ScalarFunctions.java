@@ -21,7 +21,10 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.AbstractFunctionModule;
+import java.util.List;
+
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.expression.scalar.arithmetic.AbsFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -58,7 +61,6 @@ import io.crate.expression.scalar.geo.GeoHashFunction;
 import io.crate.expression.scalar.geo.IntersectsFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.object.ObjectKeysFunction;
-import io.crate.expression.scalar.postgres.CurrentSettingFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.postgres.PgEncodingToCharFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
@@ -97,15 +99,18 @@ import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionFactory;
+import io.crate.metadata.FunctionProvider;
+import io.crate.metadata.Functions.FunctionProviders;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.role.scalar.UserFunction;
 
-public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImplementation> {
+public class ScalarFunctions implements FunctionProviders {
 
-    @Override
+
     public void configureFunctions() {
-        UserFunction.register(this);
+        //UserFunction.register(this);
 
         NegateFunctions.register(this);
         CollectionCountFunction.register(this);
@@ -215,7 +220,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         CurrentSchemasFunction.register(this);
         PgGetExpr.register(this);
         PgGetPartkeydefFunction.register(this);
-        CurrentSettingFunction.register(this, getProvider(SessionSettingRegistry.class));
+        //CurrentSettingFunction.register(this, getProvider(SessionSettingRegistry.class));
 
         PgBackendPidFunction.register(this);
         PgEncodingToCharFunction.register(this);
@@ -239,5 +244,17 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         ParseURLFunction.register(this);
 
         KnnMatch.register(this);
+    }
+
+    @Override
+    public Iterable<FunctionProvider> getProviders(Settings settings,
+                                                   SessionSettingRegistry sessionSettingRegistry) {
+        return List.of(
+            new FunctionProvider(UserFunction.CURRENT_USER, UserFunction::new),
+            new FunctionProvider(UserFunction.SESSION_USER, UserFunction::new)
+        );
+    }
+
+    public void register(Signature signature, FunctionFactory factory) {
     }
 }

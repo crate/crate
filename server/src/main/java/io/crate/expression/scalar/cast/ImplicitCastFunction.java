@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -37,16 +37,16 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.role.Roles;
 
 public class ImplicitCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_cast";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

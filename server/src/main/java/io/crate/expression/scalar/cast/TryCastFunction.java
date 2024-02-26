@@ -24,7 +24,7 @@ package io.crate.expression.scalar.cast;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -39,7 +39,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "try_cast";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature
                 .scalar(

@@ -43,7 +43,7 @@ import org.locationtech.spatial4j.shape.SpatialRelation;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.EqOperator;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -61,7 +61,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "within";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

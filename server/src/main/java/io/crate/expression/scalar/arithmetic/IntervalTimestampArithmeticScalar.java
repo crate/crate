@@ -29,7 +29,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -41,7 +41,7 @@ import io.crate.types.IntervalType;
 
 public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long> {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         for (var timestampType : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
             module.register(
                 Signature.scalar(

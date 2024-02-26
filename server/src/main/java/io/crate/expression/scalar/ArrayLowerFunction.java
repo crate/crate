@@ -41,7 +41,7 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
 
     public static final String NAME = "array_lower";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                     NAME,

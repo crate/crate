@@ -53,7 +53,7 @@ public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>
         ).withTypeVariableConstraints(typeVariable("E"))
         .withFeature(Feature.NULLABLE);
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(SIGNATURE, ArrayUnnestFunction::new);
     }
 

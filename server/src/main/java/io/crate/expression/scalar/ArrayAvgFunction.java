@@ -22,17 +22,17 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.scalar.array.ArraySummationFunctions;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+
+import io.crate.expression.scalar.array.ArraySummationFunctions;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class ArrayAvgFunction {
 
@@ -91,7 +91,7 @@ public class ArrayAvgFunction {
         }
     }
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
 
         // All types except float and double have numeric average
         // https://www.postgresql.org/docs/13/functions-aggregate.html

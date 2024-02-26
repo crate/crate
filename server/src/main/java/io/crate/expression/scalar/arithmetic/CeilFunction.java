@@ -21,22 +21,22 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import static io.crate.metadata.functions.Signature.scalar;
+
+import java.util.List;
+
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.util.List;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public final class CeilFunction {
 
     public static final String CEIL = "ceil";
     public static final String CEILING = "ceiling";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);

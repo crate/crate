@@ -45,7 +45,7 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
     private final DataType<R> returnType;
     private final Function<List<T>, R> summationFunction;
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
 
         module.register(
             Signature.scalar(

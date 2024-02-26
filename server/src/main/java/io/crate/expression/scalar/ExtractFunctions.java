@@ -58,7 +58,7 @@ public class ExtractFunctions {
 
     private record IntervalFieldWithFunction(Extract.Field extractField, Function<Period, Integer> function) {}
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
 
         List<TsFieldWithDateTimeField> fieldsMapWithIntReturn = List.of(
             new TsFieldWithDateTimeField(CENTURY, ISOChronology.getInstanceUTC().centuryOfEra()),

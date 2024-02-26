@@ -42,7 +42,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
 
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, "array_to_string");
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                     FQN,

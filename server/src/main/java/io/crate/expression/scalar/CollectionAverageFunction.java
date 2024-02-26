@@ -38,7 +38,7 @@ public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
 
     public static final String NAME = "collection_avg";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                     NAME,

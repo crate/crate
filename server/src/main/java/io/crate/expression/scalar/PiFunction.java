@@ -33,7 +33,7 @@ public final class PiFunction extends Scalar<Double, Object> {
 
     private static final String NAME = "pi";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

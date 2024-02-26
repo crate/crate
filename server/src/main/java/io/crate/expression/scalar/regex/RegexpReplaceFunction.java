@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -39,14 +39,14 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
 import io.crate.role.Roles;
+import io.crate.types.DataTypes;
 
 public final class RegexpReplaceFunction extends Scalar<String, String> {
 
     public static final String NAME = "regexp_replace";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

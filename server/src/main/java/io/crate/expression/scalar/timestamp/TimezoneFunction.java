@@ -28,7 +28,7 @@ import java.time.ZonedDateTime;
 import java.util.Locale;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -43,7 +43,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
     private static final ZoneId UTC = ZoneId.of("UTC");
     private final DataType returnType;
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

@@ -37,7 +37,7 @@ public final class GenRandomTextUUIDFunction extends Scalar<String, Void> {
 
     private static final String NAME = "gen_random_text_uuid";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             Signature.scalar(
                 NAME,

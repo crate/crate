@@ -42,7 +42,7 @@ public class ArrayMinFunction<T> extends Scalar<T, List<T>> {
 
     private final DataType dataType;
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
 
         module.register(
             Signature.scalar(

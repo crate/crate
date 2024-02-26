@@ -55,7 +55,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             DataTypes.UNDEFINED.getTypeSignature())
         .withVariableArity();
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             SIGNATURE,
             SubscriptObjectFunction::new

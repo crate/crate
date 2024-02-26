@@ -40,7 +40,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
 
     public static final String NAME = "array_set";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         TypeSignature arrayESignature = TypeSignature.parse("array(E)");
         module.register(
             Signature.scalar(

@@ -30,7 +30,7 @@ import java.util.function.UnaryOperator;
 import org.elasticsearch.common.hash.MessageDigests;
 
 import io.crate.common.Hex;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -38,12 +38,12 @@ import io.crate.types.DataTypes;
 
 public final class HashFunctions {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         register(module, "md5", HashMethod.MD5::digest);
         register(module, "sha1", HashMethod.SHA1::digest);
     }
 
-    private static void register(ScalarFunctionModule module, String name, UnaryOperator<String> func) {
+    private static void register(ScalarFunctions module, String name, UnaryOperator<String> func) {
         module.register(
             Signature.scalar(
                 name,

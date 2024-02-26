@@ -21,19 +21,20 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import static io.crate.metadata.functions.Signature.scalar;
+
+import org.elasticsearch.common.geo.GeoHashUtils;
+import org.locationtech.spatial4j.shape.Point;
+
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
-import org.elasticsearch.common.geo.GeoHashUtils;
-import org.locationtech.spatial4j.shape.Point;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public final class GeoHashFunction {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             scalar(
                 "geohash",

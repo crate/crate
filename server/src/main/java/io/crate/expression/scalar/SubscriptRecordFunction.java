@@ -41,7 +41,7 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
         DataTypes.UNDEFINED.getTypeSignature()
     );
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             SIGNATURE,
             SubscriptRecordFunction::new

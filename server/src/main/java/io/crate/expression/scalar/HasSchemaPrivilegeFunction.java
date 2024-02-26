@@ -96,7 +96,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
         return toCheck;
     }
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         // Signature without user, takes user from session.
         module.register(
             Signature.scalar(

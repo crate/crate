@@ -50,7 +50,7 @@ public class FormatFunction extends Scalar<String, Object> {
             .withVariableArity();
 
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(SIGNATURE, FormatFunction::new);
     }
 

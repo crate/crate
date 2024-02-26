@@ -28,7 +28,7 @@ import java.util.EnumSet;
 import java.util.Random;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -42,7 +42,7 @@ public class RandomFunction extends Scalar<Double, Void> {
 
     public static final String NAME = "random";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctions module) {
         module.register(
             scalar(
                 NAME,
