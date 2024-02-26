@@ -766,6 +766,12 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateTableAs() {
+        printStatement("create table test as select * from created");
+        printStatement("create table if not exists test  as Select * FROM created");
+    }
+
+    @Test
     public void test_named_primary_key_constraint_without_name_is_not_allowed() {
         assertThatThrownBy(
             () -> printStatement("create table t (a int CONSTRAINT primary key)"))
@@ -856,12 +862,6 @@ public class TestStatementBuilder {
                 "create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)"))
             .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
-    }
-
-    @Test
-    public void testCreateTableAs() {
-        printStatement("create table test as select * from created");
-        printStatement("create table if not exists test  as Select * FROM created");
     }
 
     @Test
