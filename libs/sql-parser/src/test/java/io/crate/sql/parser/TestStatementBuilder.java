@@ -55,6 +55,7 @@ import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
@@ -2199,6 +2200,7 @@ public class TestStatementBuilder {
         // TODO: support formatting all statement types
         if (statement instanceof Query ||
             statement instanceof CreateTable ||
+            statement instanceof CreateTableAs ||
             statement instanceof CreateForeignTable ||
             statement instanceof CopyFrom ||
             statement instanceof SwapTable ||
