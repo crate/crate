@@ -126,6 +126,7 @@ import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.sql.tree.SingleColumn;
 import io.crate.sql.tree.SortItem;
+import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Table;
@@ -648,9 +649,8 @@ public final class SqlFormatter {
             return null;
         }
 
-        @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
-        public Void visitCreateTable(CreateTable node, Integer indent) {
+        public Void visitCreateTable(CreateTable<?> node, Integer indent) {
             builder.append("CREATE TABLE ");
             if (node.ifNotExists()) {
                 builder.append("IF NOT EXISTS ");
@@ -661,15 +661,15 @@ public final class SqlFormatter {
             builder.append(" ");
             appendNestedNodeList(node.tableElements(), indent);
 
-            Optional<ClusteredBy> clusteredBy = node.clusteredBy();
+            Optional<?> clusteredBy = node.clusteredBy();
             if (clusteredBy.isPresent()) {
                 builder.append("\n");
-                clusteredBy.get().accept(this, indent);
+                ((Statement) clusteredBy.get()).accept(this, indent);
             }
-            Optional<PartitionedBy> partitionedBy = node.partitionedBy();
+            Optional<?> partitionedBy = node.partitionedBy();
             if (partitionedBy.isPresent()) {
                 builder.append("\n");
-                partitionedBy.get().accept(this, indent);
+                ((Statement) partitionedBy.get()).accept(this, indent);
             }
             if (!node.properties().isEmpty()) {
                 builder.append("\n");
