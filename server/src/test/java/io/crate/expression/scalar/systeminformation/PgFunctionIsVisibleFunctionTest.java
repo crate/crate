@@ -21,12 +21,9 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import java.util.List;
-
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
 
@@ -41,12 +38,9 @@ public class PgFunctionIsVisibleFunctionTest extends ScalarTestCase {
     public void test_system_function_visibility() {
         assertEvaluate("pg_function_is_visible(0)",false);
         assertEvaluate("pg_function_is_visible(-14)",false);
-        for (List<FunctionProvider> providers : sqlExpressions.nodeCtx.functions().functionResolvers().values()) {
-            for (FunctionProvider sysFunc : providers) {
-                Signature signature = sysFunc.getSignature();
-                Integer funcOid = OidHash.functionOid(signature);
-                assertEvaluate("pg_function_is_visible(" + funcOid + ")", true);
-            }
+        for (Signature signature : sqlExpressions.nodeCtx.functions().signatures()) {
+            Integer funcOid = OidHash.functionOid(signature);
+            assertEvaluate("pg_function_is_visible(" + funcOid + ")", true);
         }
     }
 }

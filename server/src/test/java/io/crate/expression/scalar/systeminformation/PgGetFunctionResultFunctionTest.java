@@ -21,13 +21,9 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import java.util.List;
-
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
 
 public class PgGetFunctionResultFunctionTest extends ScalarTestCase {
@@ -45,13 +41,10 @@ public class PgGetFunctionResultFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_system_function_result_type_text_representation() {
-        for (List<FunctionProvider> providers : sqlExpressions.nodeCtx.functions().functionResolvers().values()) {
-            for (FunctionProvider sysFunc : providers) {
-                Signature signature = sysFunc.getSignature();
-                Integer funcOid = OidHash.functionOid(signature);
-                assertEvaluate("pg_get_function_result(" + funcOid + ")",
-                               signature.getReturnType().toString());
-            }
+        for (var signature : sqlExpressions.nodeCtx.functions().signatures()) {
+            Integer funcOid = OidHash.functionOid(signature);
+            assertEvaluate("pg_get_function_result(" + funcOid + ")",
+                            signature.getReturnType().toString());
         }
     }
 }
