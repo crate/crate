@@ -40,9 +40,11 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
+import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
@@ -364,6 +366,9 @@ public class EqualityExtractor {
             private final LinkedHashMap<ColumnIdent, Comparison> comparisons;
             private boolean proxyBelow;
             private final Set<Symbol> unknowns = new HashSet<>();
+            private boolean isUnderOrOperator = false;
+            private boolean foundNonPKColumnUnderOr = false;
+            private boolean foundPKColumnUnderOr = false;
 
             private Context(Collection<ColumnIdent> references) {
                 comparisons = LinkedHashMap.newLinkedHashMap(references.size());
@@ -382,64 +387,81 @@ public class EqualityExtractor {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, Context context) {
+        protected Symbol visitSymbol(Symbol symbol, Context ctx) {
             return symbol;
         }
 
         @Override
-        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
-            context.unknowns.add(matchPredicate);
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Context ctx) {
+            ctx.unknowns.add(matchPredicate);
             return Literal.BOOLEAN_TRUE;
         }
 
         @Override
-        public Symbol visitReference(Reference ref, Context context) {
-            if (!context.comparisons.containsKey(ref.column())) {
-                context.unknowns.add(ref);
+        public Symbol visitReference(Reference ref, Context ctx) {
+            if (ctx.comparisons.containsKey(ref.column())) {
+                if (ctx.isUnderOrOperator) {
+                    ctx.foundPKColumnUnderOr = true;
+                }
+            } else {
+                if (ctx.isUnderOrOperator) {
+                    ctx.foundNonPKColumnUnderOr = true;
+                }
+                ctx.unknowns.add(ref);
             }
-            return super.visitReference(ref, context);
+            return super.visitReference(ref, ctx);
         }
 
         @Override
-        public Symbol visitFunction(Function function, Context context) {
+        public Symbol visitFunction(Function function, Context ctx) {
             String functionName = function.name();
             List<Symbol> arguments = function.arguments();
-            Symbol firstArg = arguments.get(0);
 
             if (functionName.equals(EqOperator.NAME)) {
+                Symbol firstArg = arguments.get(0).accept(this, ctx);
                 if (firstArg instanceof Reference ref && SymbolVisitors.any(Symbols.IS_COLUMN, arguments.get(1)) == false) {
-                    Comparison comparison = context.comparisons.get(ref.column());
+                    Comparison comparison = ctx.comparisons.get(ref.column());
                     if (comparison != null) {
-                        context.proxyBelow = true;
+                        ctx.proxyBelow = true;
                         return comparison.add(function);
                     }
                 }
             } else if (functionName.equals(AnyEqOperator.NAME) && arguments.get(1).symbolType().isValueSymbol()) {
+                Symbol firstArg = arguments.get(0).accept(this, ctx);
                 // ref = any ([1,2,3])
                 if (firstArg instanceof Reference ref) {
-                    Comparison comparison = context.comparisons.get(ref.column());
+                    Comparison comparison = ctx.comparisons.get(ref.column());
                     if (comparison != null) {
-                        context.proxyBelow = true;
+                        ctx.proxyBelow = true;
                         return comparison.add(function);
                     }
                 }
             } else if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
-                boolean proxyBelowPre = context.proxyBelow;
+                if (OrOperator.NAME.equals(functionName)) {
+                    ctx.isUnderOrOperator = true;
+                } else if (AndOperator.NAME.equals(functionName)) {
+                    ctx.isUnderOrOperator = false;
+                    ctx.foundNonPKColumnUnderOr = false;
+                    ctx.foundPKColumnUnderOr = false;
+                }
+                boolean proxyBelowPre = ctx.proxyBelow;
                 boolean proxyBelowPost = proxyBelowPre;
                 ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
                 for (Symbol arg : arguments) {
-                    context.proxyBelow = proxyBelowPre;
-                    newArgs.add(arg.accept(this, context));
-                    proxyBelowPost = context.proxyBelow || proxyBelowPost;
+                    ctx.proxyBelow = proxyBelowPre;
+                    newArgs.add(arg.accept(this, ctx));
+                    proxyBelowPost = ctx.proxyBelow || proxyBelowPost;
                 }
-                context.proxyBelow = proxyBelowPost;
-                if (!context.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
+                if (ctx.foundPKColumnUnderOr && ctx.foundNonPKColumnUnderOr) {
+                    return null;
+                }
+                ctx.proxyBelow = proxyBelowPost;
+                if (!ctx.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
                     return Literal.BOOLEAN_TRUE;
                 }
                 return new Function(function.signature(), newArgs, function.valueType());
             }
-
-            context.unknowns.add(function);
+            ctx.unknowns.add(function);
             return Literal.BOOLEAN_TRUE;
         }
     }
@@ -448,11 +470,11 @@ public class EqualityExtractor {
     static class ColumnsUnderNotPredicateFinder extends DefaultTraversalSymbolVisitor<Collection<ColumnIdent>, Void> {
 
         private boolean isUnderNotPredicate = false;
-        private boolean foundColumnUnderNotPredicate = false;
+        private boolean foundColumnUnderOrPredicate = false;
 
         public boolean find(Symbol query, Collection<ColumnIdent> columnIdents) {
             query.accept(this, columnIdents);
-            return foundColumnUnderNotPredicate;
+            return foundColumnUnderOrPredicate;
         }
 
         @Override
@@ -470,7 +492,7 @@ public class EqualityExtractor {
 
         @Override
         public Void visitReference(Reference symbol, Collection<ColumnIdent> columnIdents) {
-            foundColumnUnderNotPredicate |= columnIdents.contains(symbol.column()) && isUnderNotPredicate;
+            foundColumnUnderOrPredicate |= columnIdents.contains(symbol.column()) && isUnderNotPredicate;
             return null;
         }
     }

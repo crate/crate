@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
@@ -40,15 +41,19 @@ public class LoadedRules implements SessionSettingProvider {
 
     public static final List<Class<? extends Rule<?>>> RULES = buildRules();
 
+    @SuppressWarnings("unchecked")
     private static List<Class<? extends Rule<?>>> buildRules() {
-        var rules = new ArrayList<Rule<?>>();
-        rules.addAll(LogicalPlanner.ITERATIVE_OPTIMIZER_RULES);
-        rules.addAll(LogicalPlanner.JOIN_ORDER_OPTIMIZER_RULES);
-        rules.addAll(LogicalPlanner.FETCH_OPTIMIZER_RULES);
+        List<Collection<Rule<?>>> rules = List.of(
+            LogicalPlanner.ITERATIVE_OPTIMIZER_RULES,
+            LogicalPlanner.JOIN_ORDER_OPTIMIZER_RULES,
+            LogicalPlanner.FETCH_OPTIMIZER_RULES
+        );
         var result = new ArrayList<Class<? extends Rule<?>>>();
-        for (Rule<?> rule : rules) {
-            if (rule.mandatory() == false) {
-                result.add((Class<? extends Rule<?>>) rule.getClass());
+        for (var ruleCollection : rules) {
+            for (Rule<?> rule : ruleCollection) {
+                if (!rule.mandatory()) {
+                    result.add((Class<? extends Rule<?>>) rule.getClass());
+                }
             }
         }
         return result;
