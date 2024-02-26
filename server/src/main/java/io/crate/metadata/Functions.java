@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -73,12 +74,17 @@ public class Functions {
         this.functionImplementations = functionImplementationsBySignature;
     }
 
-    public Map<FunctionName, List<FunctionProvider>> functionResolvers() {
-        return functionImplementations;
-    }
-
-    public Map<FunctionName, List<FunctionProvider>> udfFunctionResolvers() {
-        return udfFunctionImplementations;
+    public Iterable<Signature> signatures() {
+        return () ->
+            Stream.concat(
+                functionImplementations.values().stream()
+                    .flatMap(x -> x.stream())
+                    .map(x -> x.getSignature()),
+                udfFunctionImplementations.values().stream()
+                    .flatMap(x -> x.stream())
+                    .map(x -> x.getSignature())
+            )
+            .iterator();
     }
 
     public void registerUdfFunctionImplementationsForSchema(

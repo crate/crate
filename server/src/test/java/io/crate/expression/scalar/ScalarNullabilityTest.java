@@ -23,20 +23,18 @@ package io.crate.expression.scalar;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionProvider;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.BoundSignature;
-import io.crate.metadata.functions.Signature;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -49,18 +47,24 @@ public class ScalarNullabilityTest {
 
     final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     final NodeContext nodeContext = TestingHelpers.createNodeContext();
+    final Functions functions = nodeContext.functions();
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test_nullability_scalars_return_null_on_null_input() {
         var numberOfFunctionsToTested = 0;
-        for (var functionProvider : getFunctionProviders()) {
-            var signature = functionProvider.getSignature();
+        for (var signature : functions.signatures()) {
             if (signature.hasFeature(Scalar.Feature.NULLABLE)) {
-                var bound = getBoundSignature(signature);
-                var function = functionProvider.getFactory().apply(signature, bound);
-                var arguments = getArguments(bound);
+                // Using this::getDataType instead of signature.getArgumentDataTypes to handle generics as string
+                List<DataType<?>> argumentTypes = Lists.map(signature.getArgumentTypes(), this::getDataType);
+                var function = functions.getQualified(
+                    signature,
+                    argumentTypes,
+                    getDataType(signature.getReturnType())
+                );
                 if (function instanceof Scalar<?, ?> scalar) {
-                    var result = scalar.evaluate(txnCtx, nodeContext, arguments);
+                    List<Input<Object>> arguments = Lists.map(argumentTypes, x -> () -> null);
+                    var result = scalar.evaluate(txnCtx, nodeContext, arguments.toArray(new Input[0]));
                     var name = function.signature().getName();
                     assertThat(result).as("Return value must be null for null arguments: " + name).isNull();
                     numberOfFunctionsToTested++;
@@ -71,17 +75,22 @@ public class ScalarNullabilityTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test_non_nullability_scalars_return_not_null_on_null_input() {
         var numberOfFunctionsToTested = 0;
-        for (var functionProvider : getFunctionProviders()) {
-            var signature = functionProvider.getSignature();
+        for (var signature : functions.signatures()) {
             if (signature.hasFeature(Scalar.Feature.NON_NULLABLE)) {
-                var bound = getBoundSignature(signature);
-                var function = functionProvider.getFactory().apply(signature, bound);
-                var arguments = getArguments(bound);
+                // Using this::getDataType instead of signature.getArgumentDataTypes to handle generics as string
+                List<DataType<?>> argumentTypes = Lists.map(signature.getArgumentTypes(), this::getDataType);
+                var function = functions.getQualified(
+                    signature,
+                    argumentTypes,
+                    getDataType(signature.getReturnType())
+                );
                 if (function instanceof Scalar<?, ?> scalar) {
+                    List<Input<Object>> arguments = Lists.map(argumentTypes, x -> () -> null);
                     try {
-                        var evaluate = scalar.evaluate(txnCtx, nodeContext, arguments);
+                        var evaluate = scalar.evaluate(txnCtx, nodeContext, arguments.toArray(new Input[0]));
                         FunctionName name = function.signature().getName();
                         assertThat(evaluate).as("Return value must not be null for null arguments: " + name).isNotNull();
                     } catch (IllegalArgumentException | AssertionError e) {
@@ -92,33 +101,6 @@ public class ScalarNullabilityTest {
             }
         }
         assertThat(numberOfFunctionsToTested).isGreaterThan(0);
-    }
-
-    List<FunctionProvider> getFunctionProviders() {
-        var functions = nodeContext.functions();
-        var functionResolvers = functions.functionResolvers();
-        var result = new ArrayList<FunctionProvider>();
-        for (var value : functionResolvers.values()) {
-            result.addAll(value);
-        }
-        return result;
-    }
-
-    BoundSignature getBoundSignature(Signature signature) {
-        var boundTypes = new ArrayList<DataType<?>>();
-        for (TypeSignature typeSignature : signature.getArgumentTypes()) {
-            boundTypes.add(getDataType(typeSignature));
-        }
-        var returnType = getDataType(signature.getReturnType());
-        return new BoundSignature(boundTypes, returnType);
-    }
-
-    Input[] getArguments(BoundSignature boundSignature) {
-        var inputArguments = new Input[boundSignature.argTypes().size()];
-        for (int i = 0; i < boundSignature.argTypes().size(); i++) {
-            inputArguments[i] = (Input<Object>) () -> null;
-        }
-        return inputArguments;
     }
 
     DataType<?> getDataType(TypeSignature typeSignature) {
