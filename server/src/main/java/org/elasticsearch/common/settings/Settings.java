@@ -529,7 +529,7 @@ public final class Settings implements ToXContentFragment {
         return builder.build();
     }
 
-    public static void writeSettingsToStream(Settings settings, StreamOutput out) throws IOException {
+    public static void writeSettingsToStream(StreamOutput out, Settings settings) throws IOException {
         Set<Map.Entry<String, Object>> entries = settings.settings.entrySet();
         out.writeVInt(entries.size());
         for (Map.Entry<String, Object> entry : entries) {

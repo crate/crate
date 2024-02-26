@@ -126,7 +126,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         out.writeOptionalString(partitionIndexName);
         out.writeBoolean(isPartitioned);
         out.writeBoolean(excludePartitions);
-        writeSettingsToStream(settings, out);
+        writeSettingsToStream(out, settings);
         out.writeOptionalString(mappingDelta);
     }
 }

@@ -118,7 +118,7 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
         if (out.getVersion().after(Version.V_4_5_1)) {
             out.writeStringArray(templates);
         }
-        writeSettingsToStream(settings, out);
+        writeSettingsToStream(out, settings);
         out.writeBoolean(includeGlobalState);
         out.writeBoolean(waitForCompletion);
         out.writeBoolean(partial);

@@ -67,7 +67,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
         out.writeBoolean(ifNotExists);
         out.writeCollection(columns, Reference::toStream);
         out.writeString(server);
-        Settings.writeSettingsToStream(options, out);
+        Settings.writeSettingsToStream(out, options);
     }
 
     public RelationName tableName() {

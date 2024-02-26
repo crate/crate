@@ -473,7 +473,7 @@ public class SettingsTests extends ESTestCase {
         builder.putNull("test.key3.bar");
         builder.putList("test.key4.foo", "1", "2");
         assertEquals(3, builder.build().size());
-        Settings.writeSettingsToStream(builder.build(), out);
+        Settings.writeSettingsToStream(out, builder.build());
         StreamInput in = StreamInput.wrap(out.bytes().toBytesRef().bytes);
         Settings settings = Settings.readSettingsFromStream(in);
         assertEquals(3, settings.size());
@@ -577,7 +577,7 @@ public class SettingsTests extends ESTestCase {
         //output.setVersion(randomFrom(Version.CURRENT, Version.V_7_0_0));
         output.setVersion(Version.CURRENT);
         Settings settings = Settings.builder().putList("foo.bar", "0", "1", "2", "3").put("foo.bar.baz", "baz").build();
-        Settings.writeSettingsToStream(settings, output);
+        Settings.writeSettingsToStream(output, settings);
         StreamInput in = StreamInput.wrap(BytesReference.toBytes(output.bytes()));
         Settings build = Settings.readSettingsFromStream(in);
         assertEquals(2, build.size());

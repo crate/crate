@@ -58,8 +58,8 @@ public class ClusterUpdateSettingsResponse extends AcknowledgedResponse {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        Settings.writeSettingsToStream(transientSettings, out);
-        Settings.writeSettingsToStream(persistentSettings, out);
+        Settings.writeSettingsToStream(out, transientSettings);
+        Settings.writeSettingsToStream(out, persistentSettings);
     }
 
     @Override

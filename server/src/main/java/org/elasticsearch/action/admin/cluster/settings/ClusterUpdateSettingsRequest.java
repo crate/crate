@@ -147,8 +147,8 @@ public class ClusterUpdateSettingsRequest extends AcknowledgedRequest<ClusterUpd
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeSettingsToStream(transientSettings, out);
-        writeSettingsToStream(persistentSettings, out);
+        writeSettingsToStream(out, transientSettings);
+        writeSettingsToStream(out, persistentSettings);
     }
 
     @Override

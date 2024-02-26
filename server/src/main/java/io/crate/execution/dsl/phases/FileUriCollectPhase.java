@@ -172,7 +172,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             parserProperties.writeTo(out);
         }
         if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            Settings.writeSettingsToStream(withClauseOptions, out);
+            Settings.writeSettingsToStream(out, withClauseOptions);
         }
     }
 
