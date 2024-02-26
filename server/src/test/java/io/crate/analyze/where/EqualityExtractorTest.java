@@ -374,7 +374,11 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     public void test_no_pk_extraction_if_nonPK_column_under_or() {
         List<List<Symbol>> matches = analyzeExactX(query("x = 1 OR i = 1"));
         assertThat(matches).isNull();
+        matches = analyzeExactX(query("x = 1 OR NOT i = 1"));
+        assertThat(matches).isNull();
         matches = analyzeExactX(query("x = 1 AND (x = 2 OR i = 1)"));
+        assertThat(matches).isNull();
+        matches = analyzeExactX(query("x = 1 AND (x = 2 AND (NOT(x = 3) OR i = 1) AND x = 4)"));
         assertThat(matches).isNull();
     }
 }
