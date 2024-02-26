@@ -346,11 +346,30 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
 
     // tracks a bug: https://github.com/crate/crate/issues/15395
     @Test
-    public void test_no_pk_extraction_if_the_pk_is_also_under_is_null() {
+    public void test_no_pk_extraction_if_the_pk_is_under_is_null() {
         List<List<Symbol>> matches = analyzeExactX(query("NOT(x != 1 AND x IS NULL)"));
         assertThat(matches).isNull();
         matches = analyzeExactX(query("(x = 1) OR (x IS NOT NULL)")); // equivalent to above
         assertThat(matches).isNull();
+    }
+
+    @Test
+    public void test_no_pk_extraction_if_the_pk_is_under_not() {
+        List<List<Symbol>> matches = analyzeExactX(query("x != 1 or x = 1"));
+        assertThat(matches).isNull();
+        matches = analyzeExactX(query("not(x != 1) or x = 1"));
+        assertThat(matches).isNull();
+        matches = analyzeExactX(query("not(i != 1 and x = 1)"));
+        assertThat(matches).isNull();
+        matches = analyzeExactX(query("x = 1 or (x = 2 or (x = 3 or not(x = 4)))"));
+        assertThat(matches).isNull();
+    }
+
+    @Test
+    public void test_pk_extraction_if_another_col_is_under_not() {
+        List<List<Symbol>> matches = analyzeExactX(query("not(i = 1) and x = 1"));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(1)));
     }
 
     // tracks a bug: https://github.com/crate/crate/issues/15592
