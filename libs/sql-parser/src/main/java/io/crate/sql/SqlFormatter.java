@@ -739,6 +739,7 @@ public final class SqlFormatter {
             append(indent, dropForeignTable.cascadeMode() == CascadeMode.CASCADE ? "CASCADE" : "RESTRICT");
             return null;
         }
+
         @Override
         public Void visitCreateUserMapping(CreateUserMapping createUserMapping, Integer indent) {
             builder.append("CREATE USER MAPPING ");
@@ -769,6 +770,7 @@ public final class SqlFormatter {
             }
             return null;
         }
+
         @Override
         public Void visitDropUserMapping(DropUserMapping dropUserMapping, Integer indent) {
             append(indent, "DROP USER MAPPING ");

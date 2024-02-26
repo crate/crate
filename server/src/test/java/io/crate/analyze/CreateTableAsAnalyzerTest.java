@@ -91,6 +91,7 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         List<DataType<?>> actualTypes = Lists.map(actual.columns().values(), Symbol::valueType);
         assertThat(expectedTypes).containsExactlyElementsOf(actualTypes);
     }
+
     @Test
     public void testCompareAnalyzedCreateTableAsWithNotExists() throws IOException {
 
