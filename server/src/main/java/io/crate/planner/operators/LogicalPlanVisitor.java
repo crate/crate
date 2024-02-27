@@ -33,6 +33,10 @@ public class LogicalPlanVisitor<C, R> {
         return visitPlan(logicalPlan, context);
     }
 
+    public R visitLookupJoin(LookupJoin logicalPlan, C context) {
+        return visitPlan(logicalPlan, context);
+    }
+
     public R visitCollect(Collect logicalPlan, C context) {
         return visitPlan(logicalPlan, context);
     }

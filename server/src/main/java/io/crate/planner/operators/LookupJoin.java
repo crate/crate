@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -22,41 +22,39 @@
 package io.crate.planner.operators;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists;
-import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.Style;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.PlannerContext;
 
-/**
- * This is the {@link LogicalPlan} equivalent of the {@link MultiPhasePlan} plan.
- * It's used to describe that other logical plans needed to be executed first.
-  */
-public class MultiPhase extends ForwardingLogicalPlan {
+public class LookupJoin extends ForwardingLogicalPlan {
 
-    private final Map<LogicalPlan, SelectSymbol> subQueries;
+    private AbstractTableRelation<?> largerRelation;
+    private AbstractTableRelation<?> smallerRelation;
+    private Symbol from;
+    private Symbol to;
 
-    public static LogicalPlan createIfNeeded(Map<LogicalPlan, SelectSymbol> uncorrelatedSubQueries, LogicalPlan source) {
-        if (uncorrelatedSubQueries.isEmpty()) {
-            return source;
-        } else {
-            return new MultiPhase(source, uncorrelatedSubQueries);
-        }
-    }
 
-    public MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
-        super(source);
-        this.subQueries = subQueries;
+    public LookupJoin(AbstractTableRelation<?> largerRelation,
+                       AbstractTableRelation<?> smallerRelation,
+                       Symbol from,
+                       Symbol to,
+                       LogicalPlan multiPhase) {
+        super(multiPhase);
+        this.largerRelation = largerRelation;
+        this.smallerRelation = smallerRelation;
+        this.from = from;
+        this.to = to;
     }
 
     @Override
@@ -76,25 +74,23 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new MultiPhase(Lists.getOnlyElement(sources), subQueries);
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return Maps.concat(source.dependencies(), subQueries);
+        return new LookupJoin(largerRelation, smallerRelation, from, to, Lists.getOnlyElement(sources));
     }
 
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitMultiPhase(this, context);
+        return visitor.visitLookupJoin(this, context);
     }
 
     @Override
     public void print(PrintContext printContext) {
         printContext
-            .text("MultiPhase");
+            .text("LookupJoin[")
+            .text(from.toString(Style.QUALIFIED))
+            .text(" = ")
+            .text(to.toString(Style.QUALIFIED))
+            .text("]");
         printStats(printContext);
-        printContext.nest(source::print)
-            .nest(Lists.map(subQueries.keySet(), x -> x::print));
+        printContext.nest(source::print);
     }
 }

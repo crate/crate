@@ -77,6 +77,10 @@ public class PlanStats {
         this.visitor = new StatsVisitor(nodeContext, txnCtx, tableStats, memo);
     }
 
+    public Memo memo() {
+        return visitor.memo;
+    }
+
     public PlanStats withMemo(Memo memo) {
         return new PlanStats(nodeContext, txnCtx, tableStats, memo);
     }
