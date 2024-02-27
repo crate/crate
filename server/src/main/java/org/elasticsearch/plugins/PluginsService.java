@@ -90,7 +90,7 @@ public class PluginsService {
      * @param pluginsDirectory The directory plugins exist in, or null if plugins should not be loaded from the filesystem
      * @param classpathPlugins Plugins that exist in the classpath which should be loaded
      */
-    public PluginsService(Settings settings, Path configPath, Path modulesDirectory, Path pluginsDirectory, Collection<Class<? extends Plugin>> classpathPlugins) {
+    public PluginsService(Settings settings, Path configPath, Path pluginsDirectory, Collection<Class<? extends Plugin>> classpathPlugins) {
         this.settings = settings;
         this.configPath = configPath;
 
@@ -116,19 +116,6 @@ public class PluginsService {
         }
 
         Set<Bundle> seenBundles = new LinkedHashSet<>();
-        List<PluginInfo> modulesList = new ArrayList<>();
-        // load modules
-        if (modulesDirectory != null) {
-            try {
-                Set<Bundle> modules = getModuleBundles(modulesDirectory);
-                for (Bundle bundle : modules) {
-                    modulesList.add(bundle.plugin);
-                }
-                seenBundles.addAll(modules);
-            } catch (IOException ex) {
-                throw new IllegalStateException("Unable to initialize modules", ex);
-            }
-        }
 
         // now, find all the ones that are in plugins/
         if (pluginsDirectory != null) {
@@ -174,7 +161,6 @@ public class PluginsService {
 
         // we don't log jars in lib/ we really shouldn't log modules,
         // but for now: just be transparent so we can debug any potential issues
-        logPluginInfo(modulesList, "module", LOGGER);
         logPluginInfo(pluginsList, "plugin", LOGGER);
     }
 
@@ -314,11 +300,6 @@ public class PluginsService {
                 throw new IllegalStateException(message);
             }
         }
-    }
-
-    /** Get bundles for plugins installed in the given modules directory. */
-    static Set<Bundle> getModuleBundles(Path modulesDirectory) throws IOException {
-        return findBundles(modulesDirectory, "module");
     }
 
     /** Get bundles for plugins installed in the given plugins directory. */

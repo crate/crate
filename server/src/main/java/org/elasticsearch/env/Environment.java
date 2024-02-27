@@ -69,8 +69,6 @@ public class Environment {
 
     private final Path pluginsFile;
 
-    private final Path modulesFile;
-
     private final Path sharedDataFile;
 
     /** location of bin/, used by plugin manager */
@@ -149,7 +147,6 @@ public class Environment {
 
         binFile = homeFile.resolve("bin");
         libFile = homeFile.resolve("lib");
-        modulesFile = homeFile.resolve("modules");
 
         Settings.Builder finalSettings = Settings.builder().put(settings);
         finalSettings.put(PATH_HOME_SETTING.getKey(), homeFile);
@@ -263,10 +260,6 @@ public class Environment {
         return libFile;
     }
 
-    public Path modulesFile() {
-        return modulesFile;
-    }
-
     public Path logsFile() {
         return logsFile;
     }
@@ -290,7 +283,6 @@ public class Environment {
         assertEquals(actual.pluginsFile(), expected.pluginsFile(), "pluginsFile");
         assertEquals(actual.binFile(), expected.binFile(), "binFile");
         assertEquals(actual.libFile(), expected.libFile(), "libFile");
-        assertEquals(actual.modulesFile(), expected.modulesFile(), "modulesFile");
         assertEquals(actual.logsFile(), expected.logsFile(), "logsFile");
         assertEquals(actual.tmpFile(), expected.tmpFile(), "tmpFile");
     }
