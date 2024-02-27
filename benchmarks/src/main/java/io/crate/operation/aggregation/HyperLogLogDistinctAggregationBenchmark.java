@@ -24,6 +24,7 @@ package io.crate.operation.aggregation;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -31,7 +32,7 @@ import java.util.stream.IntStream;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.hash.MurmurHash3;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -57,7 +58,7 @@ import io.crate.memory.OffHeapMemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -81,9 +82,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
     public void setUp() throws Exception {
         hash = new MurmurHash3.Hash128();
         final RowCollectExpression inExpr0 = new RowCollectExpression(0);
-        Functions functions = new ModulesBuilder()
-            .add(new ExtraFunctionsModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         final HyperLogLogDistinctAggregation hllAggregation = (HyperLogLogDistinctAggregation) functions.getQualified(
             Signature.aggregate(
                 HyperLogLogDistinctAggregation.NAME,

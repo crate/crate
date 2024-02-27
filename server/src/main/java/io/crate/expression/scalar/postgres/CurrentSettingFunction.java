@@ -23,11 +23,9 @@ package io.crate.expression.scalar.postgres;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
-import org.elasticsearch.common.inject.Provider;
-
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -43,8 +41,8 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
     private static final String NAME = "current_setting";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module, Provider<SessionSettingRegistry> sessionSettingRegistry) {
-        module.register(
+    public static void register(Functions.Builder builder, SessionSettingRegistry sessionSettingRegistry) {
+        builder.add(
             scalar(
                 FQN,
                 DataTypes.STRING.getTypeSignature(),
@@ -58,7 +56,7 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
                 )
         );
 
-        module.register(
+        builder.add(
             scalar(
                 FQN,
                 DataTypes.STRING.getTypeSignature(),
@@ -74,9 +72,9 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Provider<SessionSettingRegistry> sessionSettingRegistry;
+    private final SessionSettingRegistry sessionSettingRegistry;
 
-    CurrentSettingFunction(Signature signature, BoundSignature boundSignature, Provider<SessionSettingRegistry> sessionSettingRegistry) {
+    CurrentSettingFunction(Signature signature, BoundSignature boundSignature, SessionSettingRegistry sessionSettingRegistry) {
         super(signature, boundSignature);
         this.sessionSettingRegistry = sessionSettingRegistry;
 
@@ -98,7 +96,7 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
             return null;
         }
 
-        final SessionSetting<?> sessionSetting = sessionSettingRegistry.get().settings().get(settingName);
+        final SessionSetting<?> sessionSetting = sessionSettingRegistry.settings().get(settingName);
         if (sessionSetting == null) {
             if (missingOk) {
                 return null;

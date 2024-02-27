@@ -26,9 +26,9 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import java.util.List;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -63,10 +63,10 @@ public class CaseFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "case";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         TypeSignature t = TypeSignature.parse("T");
         TypeSignature bool = TypeSignature.parse("boolean");
-        module.register(
+        module.add(
             Signature.builder()
                 .name(new FunctionName(null, NAME))
                 .kind(FunctionType.SCALAR)

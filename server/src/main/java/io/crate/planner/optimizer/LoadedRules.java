@@ -40,6 +40,7 @@ import io.crate.types.DataTypes;
 public class LoadedRules implements SessionSettingProvider {
 
     public static final List<Class<? extends Rule<?>>> RULES = buildRules();
+    public static final LoadedRules INSTANCE = new LoadedRules();
 
     @SuppressWarnings("unchecked")
     private static List<Class<? extends Rule<?>>> buildRules() {

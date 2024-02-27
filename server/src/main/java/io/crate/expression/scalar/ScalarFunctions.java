@@ -21,7 +21,8 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.AbstractFunctionModule;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.expression.scalar.arithmetic.AbsFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -97,147 +98,149 @@ import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.FunctionsProvider;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.role.scalar.UserFunction;
 
-public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImplementation> {
+public class ScalarFunctions implements FunctionsProvider {
 
-    @Override
-    public void configureFunctions() {
-        UserFunction.register(this);
+    public void addFunctions(Settings settings,
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Functions.Builder builder) {
+        UserFunction.register(builder);
 
-        NegateFunctions.register(this);
-        CollectionCountFunction.register(this);
-        CollectionAverageFunction.register(this);
-        FormatFunction.register(this);
-        SubstrFunction.register(this);
-        RegexpReplaceFunction.register(this);
+        NegateFunctions.register(builder);
+        CollectionCountFunction.register(builder);
+        CollectionAverageFunction.register(builder);
+        FormatFunction.register(builder);
+        SubstrFunction.register(builder);
+        RegexpReplaceFunction.register(builder);
 
-        ArithmeticFunctions.register(this);
-        BitwiseFunctions.register(this);
-        SubtractTimestampScalar.register(this);
-        IntervalTimestampArithmeticScalar.register(this);
-        IntervalArithmeticFunctions.register(this);
+        ArithmeticFunctions.register(builder);
+        BitwiseFunctions.register(builder);
+        SubtractTimestampScalar.register(builder);
+        IntervalTimestampArithmeticScalar.register(builder);
+        IntervalArithmeticFunctions.register(builder);
 
-        DistanceFunction.register(this);
-        WithinFunction.register(this);
-        IntersectsFunction.register(this);
-        CoordinateFunction.register(this);
-        GeoHashFunction.register(this);
-        AreaFunction.register(this);
+        DistanceFunction.register(builder);
+        WithinFunction.register(builder);
+        IntersectsFunction.register(builder);
+        CoordinateFunction.register(builder);
+        GeoHashFunction.register(builder);
+        AreaFunction.register(builder);
 
-        SubscriptFunction.register(this);
-        SubscriptObjectFunction.register(this);
-        SubscriptRecordFunction.register(this);
+        SubscriptFunction.register(builder);
+        SubscriptObjectFunction.register(builder);
+        SubscriptRecordFunction.register(builder);
 
-        RoundFunction.register(this);
-        CeilFunction.register(this);
-        RandomFunction.register(this);
-        AbsFunction.register(this);
-        FloorFunction.register(this);
-        TruncFunction.register(this);
-        SquareRootFunction.register(this);
-        LogFunction.register(this);
-        TrigonometricFunctions.register(this);
-        PiFunction.register(this);
-        RadiansDegreesFunctions.register(this);
-        ExpFunction.register(this);
+        RoundFunction.register(builder);
+        CeilFunction.register(builder);
+        RandomFunction.register(builder);
+        AbsFunction.register(builder);
+        FloorFunction.register(builder);
+        TruncFunction.register(builder);
+        SquareRootFunction.register(builder);
+        LogFunction.register(builder);
+        TrigonometricFunctions.register(builder);
+        PiFunction.register(builder);
+        RadiansDegreesFunctions.register(builder);
+        ExpFunction.register(builder);
 
-        DateTruncFunction.register(this);
-        ExtractFunctions.register(this);
-        CurrentTimeFunction.register(this);
-        CurrentTimestampFunction.register(this);
-        NowFunction.register(this);
-        TimezoneFunction.register(this);
-        DateFormatFunction.register(this);
-        CurrentDateFunction.register(this);
-        DateBinFunction.register(this);
-        AgeFunction.register(this);
+        DateTruncFunction.register(builder);
+        ExtractFunctions.register(builder);
+        CurrentTimeFunction.register(builder);
+        CurrentTimestampFunction.register(builder);
+        NowFunction.register(builder);
+        TimezoneFunction.register(builder);
+        DateFormatFunction.register(builder);
+        CurrentDateFunction.register(builder);
+        DateBinFunction.register(builder);
+        AgeFunction.register(builder);
 
-        ToCharFunction.register(this);
+        ToCharFunction.register(builder);
 
-        ExplicitCastFunction.register(this);
-        ImplicitCastFunction.register(this);
-        TryCastFunction.register(this);
+        ExplicitCastFunction.register(builder);
+        ImplicitCastFunction.register(builder);
+        TryCastFunction.register(builder);
 
-        StringCaseFunction.register(this);
-        StringLeftRightFunction.register(this);
-        StringPaddingFunction.register(this);
-        InitCapFunction.register(this);
-        TrimFunctions.register(this);
-        AsciiFunction.register(this);
-        EncodeDecodeFunction.register(this);
-        StringRepeatFunction.register(this);
-        StringSplitPartFunction.register(this);
-        ChrFunction.register(this);
-        GenRandomTextUUIDFunction.register(this);
+        StringCaseFunction.register(builder);
+        StringLeftRightFunction.register(builder);
+        StringPaddingFunction.register(builder);
+        InitCapFunction.register(builder);
+        TrimFunctions.register(builder);
+        AsciiFunction.register(builder);
+        EncodeDecodeFunction.register(builder);
+        StringRepeatFunction.register(builder);
+        StringSplitPartFunction.register(builder);
+        ChrFunction.register(builder);
+        GenRandomTextUUIDFunction.register(builder);
 
-        TranslateFunction.register(this);
-        ConcatFunction.register(this);
-        ConcatWsFunction.register(this);
+        TranslateFunction.register(builder);
+        ConcatFunction.register(builder);
+        ConcatWsFunction.register(builder);
 
-        LengthFunction.register(this);
-        HashFunctions.register(this);
-        ReplaceFunction.register(this);
-        QuoteIdentFunction.register(this);
+        LengthFunction.register(builder);
+        HashFunctions.register(builder);
+        ReplaceFunction.register(builder);
+        QuoteIdentFunction.register(builder);
 
-        Ignore3vlFunction.register(this);
+        Ignore3vlFunction.register(builder);
 
-        MapFunction.register(this);
-        ArrayFunction.register(this);
-        ArrayAppendFunction.register(this);
-        ArrayCatFunction.register(this);
-        ArrayDifferenceFunction.register(this);
-        ArrayUniqueFunction.register(this);
-        ArrayUpperFunction.register(this);
-        ArrayLowerFunction.register(this);
-        StringToArrayFunction.register(this);
-        ArrayToStringFunction.register(this);
-        ArrayMinFunction.register(this);
-        ArrayMaxFunction.register(this);
-        ArraySumFunction.register(this);
-        ArrayAvgFunction.register(this);
-        ArraySliceFunction.register(this);
-        ArrayPositionFunction.register(this);
-        ArrayUnnestFunction.register(this);
-        ArraySetFunction.register(this);
+        MapFunction.register(builder);
+        ArrayFunction.register(builder);
+        ArrayAppendFunction.register(builder);
+        ArrayCatFunction.register(builder);
+        ArrayDifferenceFunction.register(builder);
+        ArrayUniqueFunction.register(builder);
+        ArrayUpperFunction.register(builder);
+        ArrayLowerFunction.register(builder);
+        StringToArrayFunction.register(builder);
+        ArrayToStringFunction.register(builder);
+        ArrayMinFunction.register(builder);
+        ArrayMaxFunction.register(builder);
+        ArraySumFunction.register(builder);
+        ArrayAvgFunction.register(builder);
+        ArraySliceFunction.register(builder);
+        ArrayPositionFunction.register(builder);
+        ArrayUnnestFunction.register(builder);
+        ArraySetFunction.register(builder);
 
-        CoalesceFunction.register(this);
-        GreatestFunction.register(this);
-        LeastFunction.register(this);
-        NullIfFunction.register(this);
-        IfFunction.register(this);
-        CaseFunction.register(this);
-        NullOrEmptyFunction.register(this);
+        CoalesceFunction.register(builder);
+        GreatestFunction.register(builder);
+        LeastFunction.register(builder);
+        NullIfFunction.register(builder);
+        IfFunction.register(builder);
+        CaseFunction.register(builder);
+        NullOrEmptyFunction.register(builder);
 
-        CurrentSchemaFunction.register(this);
-        CurrentSchemasFunction.register(this);
-        PgGetExpr.register(this);
-        PgGetPartkeydefFunction.register(this);
-        CurrentSettingFunction.register(this, getProvider(SessionSettingRegistry.class));
+        CurrentSchemaFunction.register(builder);
+        CurrentSchemasFunction.register(builder);
+        PgGetExpr.register(builder);
+        PgGetPartkeydefFunction.register(builder);
+        CurrentSettingFunction.register(builder, sessionSettingRegistry);
 
-        PgBackendPidFunction.register(this);
-        PgEncodingToCharFunction.register(this);
-        PgGetUserByIdFunction.register(this);
-        PgTypeofFunction.register(this);
-        CurrentDatabaseFunction.register(this);
-        VersionFunction.register(this);
-        ColDescriptionFunction.register(this);
-        ObjDescriptionFunction.register(this);
-        FormatTypeFunction.register(this);
-        PgFunctionIsVisibleFunction.register(this);
-        PgGetFunctionResultFunction.register(this);
-        PgPostmasterStartTime.register(this);
-        PgGetSerialSequenceFunction.register(this);
+        PgBackendPidFunction.register(builder);
+        PgEncodingToCharFunction.register(builder);
+        PgGetUserByIdFunction.register(builder);
+        PgTypeofFunction.register(builder);
+        CurrentDatabaseFunction.register(builder);
+        VersionFunction.register(builder);
+        ColDescriptionFunction.register(builder);
+        ObjDescriptionFunction.register(builder);
+        FormatTypeFunction.register(builder);
+        PgFunctionIsVisibleFunction.register(builder);
+        PgGetFunctionResultFunction.register(builder);
+        PgPostmasterStartTime.register(builder);
+        PgGetSerialSequenceFunction.register(builder);
 
-        ObjectKeysFunction.register(this);
+        ObjectKeysFunction.register(builder);
 
-        HasSchemaPrivilegeFunction.register(this);
-        HasDatabasePrivilegeFunction.register(this);
-        ParseURIFunction.register(this);
-        ParseURLFunction.register(this);
+        HasSchemaPrivilegeFunction.register(builder);
+        HasDatabasePrivilegeFunction.register(builder);
+        ParseURIFunction.register(builder);
+        ParseURLFunction.register(builder);
 
-        KnnMatch.register(this);
+        KnnMatch.register(builder);
     }
 }

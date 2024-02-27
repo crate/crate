@@ -34,7 +34,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.junit.Before;
 
 import io.crate.analyze.OrderBy;
@@ -71,15 +70,10 @@ import io.crate.types.DataType;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
-    private final AbstractModule[] additionalModules;
     private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private SqlExpressions sqlExpressions;
     private InputFactory inputFactory;
     private OnHeapMemoryManager memoryManager;
-
-    public AbstractWindowFunctionTest(AbstractModule... additionalModules) {
-        this.additionalModules = additionalModules;
-    }
 
     @Before
     public void prepareFunctions() {
@@ -93,8 +87,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         sqlExpressions = new SqlExpressions(
             tableSources,
             tableRelation,
-            Role.CRATE_USER,
-            additionalModules
+            Role.CRATE_USER
         );
         inputFactory = new InputFactory(sqlExpressions.nodeCtx);
     }

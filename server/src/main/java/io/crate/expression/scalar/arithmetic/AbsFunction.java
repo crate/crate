@@ -21,22 +21,22 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import static io.crate.metadata.functions.Signature.scalar;
+
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public final class AbsFunction {
 
     public static final String NAME = "abs";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder builder) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
-            module.register(
+            builder.add(
                 scalar(NAME, typeSignature, typeSignature)
                     .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) -> {

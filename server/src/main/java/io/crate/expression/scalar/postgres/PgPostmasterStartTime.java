@@ -25,8 +25,8 @@ package io.crate.expression.scalar.postgres;
 import java.util.EnumSet;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,8 +40,8 @@ public final class PgPostmasterStartTime extends Scalar<Long, Void> {
     public static final String NAME = "pg_postmaster_start_time";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 FQN,
                 DataTypes.TIMESTAMPZ.getTypeSignature()

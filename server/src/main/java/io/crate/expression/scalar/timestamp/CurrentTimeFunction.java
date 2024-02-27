@@ -26,7 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,8 +40,8 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
     public static final String NAME = "current_time";
     private static final int MICRO_PRECISION = 6; // microseconds
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(),
@@ -49,7 +49,7 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
             ).withFeature(Feature.NON_NULLABLE),
             CurrentTimeFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.TIMETZ.getTypeSignature()

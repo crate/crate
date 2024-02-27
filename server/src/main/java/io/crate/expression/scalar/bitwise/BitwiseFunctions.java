@@ -21,22 +21,23 @@
 
 package io.crate.expression.scalar.bitwise;
 
+import static io.crate.types.DataTypes.BYTE;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.SHORT;
+
+import java.util.Locale;
+import java.util.function.BinaryOperator;
+
 import io.crate.common.TriConsumer;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.arithmetic.BinaryScalar;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.BitString;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
-import java.util.Locale;
-import java.util.function.BinaryOperator;
-
-import static io.crate.types.DataTypes.BYTE;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.SHORT;
 
 public class BitwiseFunctions {
 
@@ -46,7 +47,7 @@ public class BitwiseFunctions {
         }
     };
 
-    private static <T> void register(ScalarFunctionModule module,
+    private static <T> void register(Functions.Builder module,
                                      String name,
                                      DataType<T> type,
                                      BinaryOperator<T> operator) {
@@ -59,10 +60,10 @@ public class BitwiseFunctions {
             )
             .withFeatures(Scalar.DETERMINISTIC_ONLY)
             .withFeature(Scalar.Feature.NULLABLE);
-        module.register(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature, type));
+        module.add(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature, type));
     }
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         register(module, "AND", LONG, (a, b) -> a & b);
         register(module, "AND", INTEGER, (a, b) -> a & b);
         register(module, "AND", SHORT, (a, b) -> (short) (a & b)); // Bitwise operations on short and byte types are auto-casted to int, need to cast back.

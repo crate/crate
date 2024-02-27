@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -75,12 +76,12 @@ public class SubscriptFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "subscript";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         // All signatures but `array[int]` must forbid coercion.
         // Otherwise they would also match for non-int numeric indices like e.g. `array[long]`
 
         // subscript(array(object)), text) -> array(undefined)
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 TypeSignature.parse("array(object)"),
@@ -95,7 +96,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
                 )
         );
         // subscript(array(any)), integer) -> any
-        module.register(
+        module.add(
             Signature
                 .scalar(
                     NAME,
@@ -111,7 +112,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
                 )
         );
         // subscript(object(text, element), text) -> undefined
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
@@ -132,7 +133,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         // The first subscript function cannot infer the return type and always
         // returns the undefined type. Therefore, the second subscript function
         // must be resolved for the `subscript(undefined, text)` signature.
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.UNDEFINED.getTypeSignature(),

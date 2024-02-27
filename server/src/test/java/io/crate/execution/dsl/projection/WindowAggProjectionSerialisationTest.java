@@ -28,31 +28,28 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.WindowDefinition;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
-import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
 public class WindowAggProjectionSerialisationTest {
 
-    private Functions functions = new ModulesBuilder()
-        .add(new AggregationImplModule())
-        .add(new OperatorModule())
-        .createInjector().getInstance(Functions.class);
+    private Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
 
     @Test
     public void testWindowAggProjectionSerialisation() throws IOException {

@@ -27,16 +27,16 @@ import java.util.function.BinaryOperator;
 
 import io.crate.common.StringUtils;
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.sql.tree.TrimMode;
 import io.crate.types.DataTypes;
-import io.crate.role.Roles;
 
 
 public final class TrimFunctions {
@@ -48,9 +48,9 @@ public final class TrimFunctions {
     private static final String RTRIM_NAME = "rtrim";
     private static final String BTRIM_NAME = "btrim";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         // trim(text)
-        module.register(
+        module.add(
             Signature.scalar(
                 TRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -64,7 +64,7 @@ public final class TrimFunctions {
                 )
         );
         // trim(MODE trimmingText from text)
-        module.register(
+        module.add(
             Signature.scalar(
                 TRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -76,7 +76,7 @@ public final class TrimFunctions {
         );
 
         // ltrim(text)
-        module.register(
+        module.add(
             Signature.scalar(
                 LTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -90,7 +90,7 @@ public final class TrimFunctions {
                 )
         );
         // ltrim(text, trimmingText)
-        module.register(
+        module.add(
             Signature.scalar(
                 LTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -106,7 +106,7 @@ public final class TrimFunctions {
         );
 
         // rtrim(text)
-        module.register(
+        module.add(
             Signature.scalar(
                 RTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -120,7 +120,7 @@ public final class TrimFunctions {
                 )
         );
         // rtrim(text, trimmingText)
-        module.register(
+        module.add(
             Signature.scalar(
                 RTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -137,7 +137,7 @@ public final class TrimFunctions {
 
 
         // btrim(text)
-        module.register(
+        module.add(
             Signature.scalar(
                 BTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -151,7 +151,7 @@ public final class TrimFunctions {
                 )
         );
         // btrim(text, trimmingText)
-        module.register(
+        module.add(
             Signature.scalar(
                 BTRIM_NAME,
                 DataTypes.STRING.getTypeSignature(),
