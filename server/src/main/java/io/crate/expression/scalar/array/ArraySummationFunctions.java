@@ -22,97 +22,90 @@
 
 package io.crate.expression.scalar.array;
 
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;
 import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.function.Function;
+public class ArraySummationFunctions {
 
-public enum ArraySummationFunctions {
-
-    NUMERIC(
-        (Function<List<BigDecimal>, BigDecimal>) bigDecimals -> {
-            BigDecimal sum = BigDecimal.ZERO;
-            boolean hasNotNull = false;
-            for (int i = 0; i < bigDecimals.size(); i++) {
-                var value = bigDecimals.get(i);
-                if (value != null) {
-                    hasNotNull = true;
-                    sum = sum.add(value);
-                }
-            }
-            return hasNotNull ? sum : null;
-        }
-    ),
-    FLOAT(
-        (Function<List<Float>, Float>) floats -> {
-            var kahanSummationForFloat = new KahanSummationForFloat();
-            float sum = 0;
-            boolean hasNotNull = false;
-            for (int i = 0; i < floats.size(); i++) {
-                var value = floats.get(i);
-                if (value != null) {
-                    hasNotNull = true;
-                    sum = kahanSummationForFloat.sum(sum, value);
-                }
-            }
-            return hasNotNull ? sum : null;
-        }
-    ),
-    DOUBLE(
-        (Function<List<Double>, Double>) list -> {
-            var kahanSummationForDouble = new KahanSummationForDouble();
-            double sum = 0;
-            boolean hasNotNull = false;
-            for (int i = 0; i < list.size(); i++) {
-                var value = list.get(i);
-                if (value != null) {
-                    hasNotNull = true;
-                    sum = kahanSummationForDouble.sum(sum, value);
-                }
-            }
-            return hasNotNull ? sum : null;
-        }
-    ),
-    PRIMITIVE_NON_FLOAT_OVERFLOWING(
-        // Covers Byte, Short, Integer, Long types.
-        (Function<List<Number>, Long>) list -> {
-            Long sum = 0L;
-            boolean hasNotNull = false;
-            for (int i = 0; i < list.size(); i++) {
-                var value = list.get(i);
-                if (value != null) {
-                    hasNotNull = true;
-                    sum = Math.addExact(sum, value.longValue());
-                }
-            }
-            return hasNotNull ? sum : null;
-        }
-    ),
-    PRIMITIVE_NON_FLOAT_NOT_OVERFLOWING(
-        // Covers Byte, Short, Integer, Long types.
-        // Used for nominator calculation in array_avg as average is not supposed to overflow for primitive types.
-        (Function<List<Number>, BigDecimal>) list -> {
-            var overflowAwareMutableLong = new OverflowAwareMutableLong(0L);
-            for (int i = 0; i < list.size(); i++) {
-                var value = list.get(i);
-                if (value != null) {
-                    overflowAwareMutableLong.add(value.longValue());
-                }
-            }
-            return overflowAwareMutableLong.hasValue() ? overflowAwareMutableLong.value() : null;
-        }
-    );
-
-    private final Function function;
-
-    ArraySummationFunctions(Function function) {
-        this.function = function;
+    private ArraySummationFunctions() {
+        super();
     }
 
-    public Function getFunction() {
-        return function;
+    @Nullable
+    public static BigDecimal sumBigDecimal(List<BigDecimal> values) {
+        BigDecimal sum = BigDecimal.ZERO;
+        boolean hasNotNull = false;
+        for (int i = 0; i < values.size(); i++) {
+            var value = values.get(i);
+            if (value != null) {
+                hasNotNull = true;
+                sum = sum.add(value);
+            }
+        }
+        return hasNotNull ? sum : null;
+    }
+
+    @Nullable
+    public static Float sumFloat(List<Float> values) {
+        var kahanSummationForFloat = new KahanSummationForFloat();
+        float sum = 0;
+        boolean hasNotNull = false;
+        for (int i = 0; i < values.size(); i++) {
+            var value = values.get(i);
+            if (value != null) {
+                hasNotNull = true;
+                sum = kahanSummationForFloat.sum(sum, value);
+            }
+        }
+        return hasNotNull ? sum : null;
+    }
+
+    @Nullable
+    public static Double sumDouble(List<Double> values) {
+        var kahanSummationForDouble = new KahanSummationForDouble();
+        double sum = 0;
+        boolean hasNotNull = false;
+        for (int i = 0; i < values.size(); i++) {
+            var value = values.get(i);
+            if (value != null) {
+                hasNotNull = true;
+                sum = kahanSummationForDouble.sum(sum, value);
+            }
+        }
+        return hasNotNull ? sum : null;
+    }
+
+    @Nullable
+    public static Long sumNumber(List<Number> values) {
+        Long sum = 0L;
+        boolean hasNotNull = false;
+        for (int i = 0; i < values.size(); i++) {
+            var value = values.get(i);
+            if (value != null) {
+                hasNotNull = true;
+                sum = Math.addExact(sum, value.longValue());
+            }
+        }
+        return hasNotNull ? sum : null;
+    }
+
+    @Nullable
+    public static BigDecimal sumNumberWithOverflow(List<? extends Number> values) {
+        // Covers Byte, Short, Integer, Long types.
+        // Used for nominator calculation in array_avg as average is not supposed to overflow for primitive types.
+        var overflowAwareMutableLong = new OverflowAwareMutableLong(0L);
+        for (int i = 0; i < values.size(); i++) {
+            var value = values.get(i);
+            if (value != null) {
+                overflowAwareMutableLong.add(value.longValue());
+            }
+        }
+        return overflowAwareMutableLong.hasValue() ? overflowAwareMutableLong.value() : null;
     }
 }
