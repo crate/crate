@@ -141,7 +141,7 @@ public class Subscription implements Writeable {
         out.writeString(owner);
         connectionInfo.writeTo(out);
         out.writeStringArray(publications.toArray(new String[0]));
-        Settings.writeSettingsToStream(settings, out);
+        Settings.writeSettingsToStream(out, settings);
         out.writeVInt(relations.size());
         for (var entry : relations.entrySet()) {
             entry.getKey().writeTo(out);

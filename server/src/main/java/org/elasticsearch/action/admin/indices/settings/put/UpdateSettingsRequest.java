@@ -166,7 +166,7 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         super.writeTo(out);
         out.writeStringArrayNullable(indices);
         indicesOptions.writeIndicesOptions(out);
-        writeSettingsToStream(settings, out);
+        writeSettingsToStream(out, settings);
         out.writeBoolean(preserveExisting);
     }
 

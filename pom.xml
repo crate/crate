@@ -260,7 +260,7 @@
     <versions.aws>1.12.353</versions.aws>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>23.0.2</versions.graalvm>
+    <versions.graalvm>23.0.3</versions.graalvm>
 
     <versions.google.gax>2.29.0</versions.google.gax>
     <versions.google.auth>1.17.0</versions.google.auth>
