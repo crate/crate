@@ -79,10 +79,10 @@ public class Functions {
             Stream.concat(
                 functionImplementations.values().stream()
                     .flatMap(x -> x.stream())
-                    .map(x -> x.getSignature()),
+                    .map(x -> x.signature()),
                 udfFunctionImplementations.values().stream()
                     .flatMap(x -> x.stream())
-                    .map(x -> x.getSignature())
+                    .map(x -> x.signature())
             )
             .iterator();
     }
@@ -167,9 +167,9 @@ public class Functions {
             return null;
         }
         for (var candidate : candidates) {
-            if (candidate.getSignature().equals(signature)) {
+            if (candidate.signature().equals(signature)) {
                 var boundSignature = new BoundSignature(actualArgumentTypes, actualReturnType);
-                return candidate.getFactory().apply(signature, boundSignature);
+                return candidate.factory().apply(signature, boundSignature);
             }
         }
         return null;
@@ -203,12 +203,12 @@ public class Functions {
         }
         final var finalCandidates = candidates;
 
-        assert candidates.stream().allMatch(f -> f.getSignature().getBindingInfo() != null) :
+        assert candidates.stream().allMatch(f -> f.signature().getBindingInfo() != null) :
             "Resolving/Matching of signatures can only be done with non-null signature's binding info";
 
         // First lets try exact candidates, no generic type variables, no coercion allowed.
         Iterable<FunctionProvider> exactCandidates = () -> finalCandidates.stream()
-            .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+            .filter(function -> function.signature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
         var match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
         if (match != null) {
@@ -217,7 +217,7 @@ public class Functions {
 
         // Second, try candidates with generic type variables, still no coercion allowed.
         Iterable<FunctionProvider> genericCandidates = () -> finalCandidates.stream()
-            .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+            .filter(function -> !function.signature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
         match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
         if (match != null) {
@@ -226,7 +226,7 @@ public class Functions {
 
         // Third, try all candidates which allow coercion with precedence based coercion.
         Iterable<FunctionProvider> candidatesAllowingCoercion = () -> finalCandidates.stream()
-            .filter(function -> function.getSignature().getBindingInfo().isCoercionAllowed())
+            .filter(function -> function.signature().getBindingInfo().isCoercionAllowed())
             .iterator();
         match = matchFunctionCandidates(
             candidatesAllowingCoercion,
@@ -252,14 +252,14 @@ public class Functions {
                                                                   SignatureBinder.CoercionType coercionType) {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
         for (FunctionProvider candidate : candidates) {
-            BoundSignature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
+            BoundSignature boundSignature = new SignatureBinder(candidate.signature(), coercionType)
                 .bind(arguments);
             if (boundSignature != null) {
                 applicableFunctions.add(
                     new ApplicableFunction(
-                        candidate.getSignature(),
+                        candidate.signature(),
                         boundSignature,
-                        candidate.getFactory()
+                        candidate.factory()
                     )
                 );
             }
@@ -341,13 +341,13 @@ public class Functions {
                       + Lists.joinOn(
                           ", ",
                           candidates,
-                          c -> c.getSignature().getName().displayName()
+                          c -> c.signature().getName().displayName()
                                + "("
                                + Lists.joinOn(
                               ", ",
-                              c.getSignature().getArgumentTypes(),
+                              c.signature().getArgumentTypes(),
                               TypeSignature::toString)
-                               + "):" + c.getSignature().getReturnType().toString())
+                               + "):" + c.signature().getReturnType().toString())
                       ;
         }
 
