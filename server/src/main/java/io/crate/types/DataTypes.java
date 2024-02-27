@@ -96,6 +96,21 @@ public final class DataTypes {
     public static final ArrayType<Long> BIGINT_ARRAY = new ArrayType<>(LONG);
     public static final ArrayType<Boolean> BOOLEAN_ARRAY = new ArrayType<>(BOOLEAN);
 
+    private static final Map<DataType<?>, ArrayType<?>> ARRAY_TYPES = Map.of(
+        DOUBLE, DOUBLE_ARRAY,
+        FLOAT, FLOAT_ARRAY,
+        STRING, STRING_ARRAY,
+        INTEGER, INTEGER_ARRAY,
+        SHORT, SHORT_ARRAY,
+        LONG, BIGINT_ARRAY,
+        BOOLEAN, BOOLEAN_ARRAY
+    );
+
+    @Nullable
+    public static ArrayType<?> getArrayType(DataType<?> innerType) {
+        return ARRAY_TYPES.get(innerType);
+    }
+
     public static final OidVectorType OIDVECTOR = new OidVectorType();
 
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;

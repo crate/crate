@@ -266,7 +266,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNestedLoop_TablesAreNotSwitchedAfterOrderByPushDown() {
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
-        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(60000, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
@@ -295,7 +295,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(100, 0, Map.of()));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(20, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         LogicalPlan plan = buildLogicalPlan(mss);
@@ -323,7 +323,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "join locations on users.id = locations.id");
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
-        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(50, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(100, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
@@ -1072,7 +1072,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         // optimizer_reorder_nested_loop_join moves the smaller table to the right side,
         // therefore we make t2 bigger and it becomes the top-most-left-table
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
-        rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), new Stats(10, 10, Map.of()));
+        rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), new Stats(100, 10, Map.of()));
         rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t2"), new Stats(200, 200, Map.of()));
         executor.updateTableStats(rowCountByTable);
 

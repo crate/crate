@@ -54,7 +54,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
         }
     }
 
-    private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
+    MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
         super(source);
         this.subQueries = subQueries;
     }

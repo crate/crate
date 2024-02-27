@@ -58,13 +58,13 @@ import io.crate.metadata.RelationName;
  * It is expected that each expression argument of a EQ operator only contains symbols of one relation.
  * This can be ensured by using the {@link EquiJoinDetector} upfront.
  */
-public final class HashJoinConditionSymbolsExtractor {
+public final class JoinConditionSymbolsExtractor {
 
     private static final SymbolExtractor SYMBOL_EXTRACTOR = new SymbolExtractor();
     private static final RelationExtractor RELATION_EXTRACTOR = new RelationExtractor();
 
     /**
-     * Extracts all symbols per relations from any EQ join conditions. See {@link HashJoinConditionSymbolsExtractor}
+     * Extracts all symbols per relations from any EQ join conditions. See {@link JoinConditionSymbolsExtractor}
      * class documentation for details.
      */
     public static Map<RelationName, List<Symbol>> extract(Symbol symbol) {
@@ -146,6 +146,6 @@ public final class HashJoinConditionSymbolsExtractor {
         }
     }
 
-    private HashJoinConditionSymbolsExtractor() {
+    private JoinConditionSymbolsExtractor() {
     }
 }

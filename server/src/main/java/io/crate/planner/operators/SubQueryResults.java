@@ -59,7 +59,7 @@ public class SubQueryResults {
 
     public Object getSafe(SelectSymbol key) {
         Object value = valuesBySubQuery.get(key);
-        if (value == null && !valuesBySubQuery.containsKey(key)) {
+        if (value == null && !valuesBySubQuery.containsKey(key) && valuesBySubQuery.isEmpty() == false) {
             throw new IllegalArgumentException("Couldn't resolve value for subQuery: " + key);
         }
         return value;
