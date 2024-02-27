@@ -648,7 +648,7 @@ public final class SqlFormatter {
             return null;
         }
 
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public Void visitCreateTable(CreateTable node, Integer indent) {
             builder.append("CREATE TABLE ");
@@ -664,12 +664,12 @@ public final class SqlFormatter {
             Optional<ClusteredBy> clusteredBy = node.clusteredBy();
             if (clusteredBy.isPresent()) {
                 builder.append("\n");
-                   clusteredBy.get().accept(this, indent);
+                clusteredBy.get().accept(this, indent);
             }
-            Optional<ClusteredBy> partitionedBy = node.partitionedBy();
+            Optional<PartitionedBy> partitionedBy = node.partitionedBy();
             if (partitionedBy.isPresent()) {
                 builder.append("\n");
-                 partitionedBy.get().accept(this, indent);
+                partitionedBy.get().accept(this, indent);
             }
             if (!node.properties().isEmpty()) {
                 builder.append("\n");
