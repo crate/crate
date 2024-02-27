@@ -110,12 +110,12 @@ public class TransportRoleActionTest extends ESTestCase {
 
     @Test
     public void testDropUserNoUsersAtAll() throws Exception {
-        assertThat(TransportDropRoleAction.dropRole(Metadata.builder(), "root")).isFalse();
+        assertThat(DropRoleTask.dropRole(Metadata.builder(), "root")).isFalse();
     }
 
     @Test
     public void testDropNonExistingUser() throws Exception {
-        boolean res = TransportDropRoleAction.dropRole(
+        boolean res = DropRoleTask.dropRole(
                 Metadata.builder().putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY)),
                 "trillian"
         );
@@ -126,7 +126,7 @@ public class TransportRoleActionTest extends ESTestCase {
     public void testDropUser() throws Exception {
         RolesMetadata metadata = new RolesMetadata(DUMMY_USERS);
         Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
-        boolean res = TransportDropRoleAction.dropRole(mdBuilder, "Arthur");
+        boolean res = DropRoleTask.dropRole(mdBuilder, "Arthur");
         assertThat(roles(mdBuilder)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
         assertThat(res).isTrue();
     }
@@ -143,7 +143,7 @@ public class TransportRoleActionTest extends ESTestCase {
         );
         RolesMetadata metadata = new RolesMetadata(roles);
         Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
-        assertThatThrownBy(() -> TransportDropRoleAction.dropRole(mdBuilder, "role2"))
+        assertThatThrownBy(() -> DropRoleTask.dropRole(mdBuilder, "role2"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot drop ROLE: role2 as it is granted on role: role3");
     }
@@ -155,7 +155,7 @@ public class TransportRoleActionTest extends ESTestCase {
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        boolean res = TransportDropRoleAction.dropRole(mdBuilder, "Arthur");
+        boolean res = DropRoleTask.dropRole(mdBuilder, "Arthur");
         assertThat(roles(mdBuilder)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
         assertThat(res).isTrue();
     }

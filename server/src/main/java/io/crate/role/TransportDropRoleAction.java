@@ -22,29 +22,21 @@
 package io.crate.role;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Locale;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleRequest, WriteRoleResponse> {
 
@@ -108,62 +100,13 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
                     }
                 });
 
-        clusterService.submitStateUpdateTask("drop_role [" + request.roleName() + "]",
-                new AckedClusterStateUpdateTask<>(Priority.URGENT, request, listener) {
-
-                    private boolean alreadyExists = true;
-
-                    @Override
-                    public ClusterState execute(ClusterState currentState) throws Exception {
-                        Metadata currentMetadata = currentState.metadata();
-                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                        alreadyExists = dropRole(
-                                mdBuilder,
-                                request.roleName()
-                        );
-                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                    }
-
-                    @Override
-                    protected WriteRoleResponse newResponse(boolean acknowledged) {
-                        return new WriteRoleResponse(acknowledged, alreadyExists);
-                    }
-                });
+        DropRoleTask dropRoleTask = new DropRoleTask(request);
+        dropRoleTask.completionFuture().whenComplete(listener);
+        clusterService.submitStateUpdateTask("drop_role [" + request.roleName() + "]", dropRoleTask);
     }
 
     @Override
     protected ClusterBlockException checkBlock(DropRoleRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
-    }
-
-    @VisibleForTesting
-    static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
-        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
-        UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        if (oldUsersMetadata == null && oldRolesMetadata == null) {
-            return false;
-        }
-
-        UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
-        validateHasChildren(newMetadata.roles().values(), roleNameToDrop);
-        var role = newMetadata.remove(roleNameToDrop);
-        if (role == null && newMetadata.equals(oldRolesMetadata)) {
-            return false;
-        }
-
-        assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
-
-        return role != null;
-    }
-
-    private static void validateHasChildren(Collection<Role> roles, String roleNameToDrop) {
-        for (Role role : roles) {
-            if (role.grantedRoleNames().contains(roleNameToDrop)) {
-                throw new IllegalArgumentException(
-                    "Cannot drop ROLE: " + roleNameToDrop + " as it is granted on role: " + role.name());
-            }
-        }
     }
 }
