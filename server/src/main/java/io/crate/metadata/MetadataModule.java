@@ -210,13 +210,8 @@ public class MetadataModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bindFunctions();
         bindSchemas();
         bind(DDLClusterStateService.class).asEagerSingleton();
-    }
-
-    private void bindFunctions() {
-        bind(Functions.class).asEagerSingleton();
     }
 
     private void bindSchemas() {

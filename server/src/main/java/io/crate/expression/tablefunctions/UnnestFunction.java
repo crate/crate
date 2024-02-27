@@ -28,11 +28,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.common.collections.Iterators;
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.legacy.LegacySettings;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -49,8 +52,8 @@ public class UnnestFunction {
 
     public static final String NAME = "unnest";
 
-    public static void register(TableFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder, Settings settings) {
+        builder.add(
             Signature
                 .table(
                     NAME,
@@ -62,7 +65,7 @@ public class UnnestFunction {
                 .withVariableArity(),
             (signature, boundSignature) -> {
                 List<DataType<?>> fieldTypes = Lists.map(boundSignature.argTypes(), ArrayType::unnest);
-                Boolean useLegacyName = LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings());
+                Boolean useLegacyName = LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(settings);
                 List<String> fieldNames = fieldTypes.size() == 1 && !useLegacyName
                     ? List.of(NAME)
                     : List.of();
@@ -84,7 +87,7 @@ public class UnnestFunction {
             }
         );
         // unnest() to keep it compatible with previous versions
-        module.register(
+        builder.add(
             Signature.table(
                 NAME,
                 DataTypes.UNTYPED_OBJECT.getTypeSignature()

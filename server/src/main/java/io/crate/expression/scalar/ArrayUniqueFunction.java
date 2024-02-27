@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -44,8 +45,8 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_unique";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                     NAME,
                     TypeSignature.parse("array(E)"),
@@ -54,7 +55,7 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
                 .withFeature(Feature.NON_NULLABLE),
             ArrayUniqueFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
                     NAME,
                     TypeSignature.parse("array(E)"),

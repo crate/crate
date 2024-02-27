@@ -25,7 +25,7 @@ import java.util.Locale;
 import java.util.function.BiFunction;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -35,8 +35,8 @@ import io.crate.types.DataTypes;
 
 public class StringLeftRightFunction extends Scalar<String, Object> {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 "left",
                 DataTypes.STRING.getTypeSignature(),
@@ -46,7 +46,7 @@ public class StringLeftRightFunction extends Scalar<String, Object> {
             (signature, boundSignature) ->
                 new StringLeftRightFunction(signature, boundSignature, StringLeftRightFunction::left)
         );
-        module.register(
+        module.add(
             Signature.scalar(
                 "right",
                 DataTypes.STRING.getTypeSignature(),

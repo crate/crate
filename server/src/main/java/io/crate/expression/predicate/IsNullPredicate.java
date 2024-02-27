@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -71,8 +72,8 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         ).withFeature(Feature.NON_NULLABLE)
         .withTypeVariableConstraints(typeVariable("E"));
 
-    public static void register(PredicateModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             SIGNATURE,
             IsNullPredicate::new
         );

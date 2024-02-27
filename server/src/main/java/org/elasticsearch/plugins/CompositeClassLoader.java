@@ -19,25 +19,25 @@
 
 package org.elasticsearch.plugins;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 
-/**
- * A classloader that is a union over the parent core classloader and classloaders of extended plugins.
- */
-public class ExtendedPluginsClassLoader extends ClassLoader {
+public class CompositeClassLoader extends ClassLoader {
 
-    /** Loaders of plugins extended by a plugin. */
-    private final List<ClassLoader> extendedLoaders;
+    private final List<ClassLoader> loaders;
 
-    private ExtendedPluginsClassLoader(ClassLoader parent, List<ClassLoader> extendedLoaders) {
+    public CompositeClassLoader(ClassLoader parent, List<ClassLoader> loaders) {
         super(parent);
-        this.extendedLoaders = Collections.unmodifiableList(extendedLoaders);
+        this.loaders = Collections.unmodifiableList(loaders);
     }
 
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
-        for (ClassLoader loader : extendedLoaders) {
+        for (ClassLoader loader : loaders) {
             try {
                 return loader.loadClass(name);
             } catch (ClassNotFoundException e) {
@@ -47,10 +47,14 @@ public class ExtendedPluginsClassLoader extends ClassLoader {
         throw new ClassNotFoundException(name);
     }
 
-    /**
-     * Return a new classloader across the parent and extended loaders.
-     */
-    public static ExtendedPluginsClassLoader create(ClassLoader parent, List<ClassLoader> extendedLoaders) {
-        return new ExtendedPluginsClassLoader(parent, extendedLoaders);
+    @Override
+    public Enumeration<URL> getResources(String name) throws IOException {
+        List<URL> urls = new ArrayList<>();
+        super.getResources(name).asIterator().forEachRemaining(urls::add);
+        for (var loader : loaders) {
+            Enumeration<URL> resources = loader.getResources(name);
+            resources.asIterator().forEachRemaining(urls::add);
+        }
+        return Collections.enumeration(urls);
     }
 }

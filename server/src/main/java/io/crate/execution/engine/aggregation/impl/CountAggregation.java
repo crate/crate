@@ -44,6 +44,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
@@ -84,13 +85,13 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         DataTypes.register(CountAggregation.LongStateType.ID, in -> CountAggregation.LongStateType.INSTANCE);
     }
 
-    public static void register(AggregationImplModule mod) {
-        mod.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             SIGNATURE,
             (signature, boundSignature) ->
                 new CountAggregation(signature, boundSignature, true)
         );
-        mod.register(
+        builder.add(
             COUNT_STAR_SIGNATURE,
             (signature, boundSignature) ->
                 new CountAggregation(signature, boundSignature, false)

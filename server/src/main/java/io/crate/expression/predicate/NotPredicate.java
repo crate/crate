@@ -40,6 +40,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -58,11 +59,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         DataTypes.BOOLEAN.getTypeSignature())
         .withFeature(Feature.NULLABLE);
 
-    public static void register(PredicateModule module) {
-        module.register(
-            SIGNATURE,
-            NotPredicate::new
-        );
+    public static void register(Functions.Builder builder) {
+        builder.add(SIGNATURE, NotPredicate::new);
     }
 
     private NotPredicate(Signature signature, BoundSignature boundSignature) {

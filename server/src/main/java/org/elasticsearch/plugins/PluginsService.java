@@ -76,6 +76,9 @@ public class PluginsService {
      * We keep around a list of plugins and modules
      */
     private final List<Tuple<PluginInfo, Plugin>> plugins;
+    private final Set<Bundle> seenBundles;
+
+
     public static final Setting<List<String>> MANDATORY_SETTING =
         Setting.listSetting("plugin.mandatory", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
@@ -115,7 +118,7 @@ public class PluginsService {
             pluginsNames.add(pluginInfo.getName());
         }
 
-        Set<Bundle> seenBundles = new LinkedHashSet<>();
+        seenBundles = new LinkedHashSet<>();
 
         // now, find all the ones that are in plugins/
         if (pluginsDirectory != null) {
@@ -468,7 +471,7 @@ public class PluginsService {
         }
 
         // create a child to load the plugin in this bundle
-        ClassLoader parentLoader = ExtendedPluginsClassLoader.create(getClass().getClassLoader(), extendedLoaders);
+        ClassLoader parentLoader = new CompositeClassLoader(getClass().getClassLoader(), extendedLoaders);
         ClassLoader loader = URLClassLoader.newInstance(bundle.urls.toArray(new URL[0]), parentLoader);
 
         // reload SPI with any new services from the plugin
@@ -555,5 +558,17 @@ public class PluginsService {
     public <T> List<T> filterPlugins(Class<T> type) {
         return plugins.stream().filter(x -> type.isAssignableFrom(x.v2().getClass()))
             .map(p -> ((T)p.v2())).collect(Collectors.toList());
+    }
+
+    /**
+     * @return classloaders for plugin bundles which are not contained in the default classpath
+     */
+    public List<ClassLoader> classLoaders() {
+        ArrayList<ClassLoader> classLoaders = new ArrayList<>(seenBundles.size());
+        for (var bundle : seenBundles) {
+            ClassLoader loader = URLClassLoader.newInstance(bundle.urls.toArray(new URL[0]));
+            classLoaders.add(loader);
+        }
+        return classLoaders;
     }
 }

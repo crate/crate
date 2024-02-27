@@ -31,6 +31,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -55,8 +56,8 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             DataTypes.UNDEFINED.getTypeSignature())
         .withVariableArity();
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             SIGNATURE,
             SubscriptObjectFunction::new
         );

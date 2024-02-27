@@ -42,6 +42,7 @@ import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -68,9 +69,9 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     private static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var supportedType : SUPPORTED_TYPES) {
-            mod.register(
+            builder.add(
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
