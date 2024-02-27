@@ -37,12 +37,12 @@ import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 /**
  * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStorageBlobContainer.java
  */
-public class GCSBlobContainer extends AbstractBlobContainer {
+public class GoogleCloudStorageBlobContainer extends AbstractBlobContainer {
 
-    private final GCSBlobStore blobStore;
+    private final GoogleCloudStorageBlobStore blobStore;
     private final String path;
 
-    public GCSBlobContainer(BlobPath path, GCSBlobStore blobStore) {
+    public GoogleCloudStorageBlobContainer(BlobPath path, GoogleCloudStorageBlobStore blobStore) {
         super(path);
         this.blobStore = blobStore;
         this.path = path.buildAsString();

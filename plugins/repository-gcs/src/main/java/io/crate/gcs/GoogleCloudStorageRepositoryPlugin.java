@@ -40,30 +40,30 @@ import io.crate.analyze.repositories.TypeSettings;
 /**
  * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStoragePlugin.java
  */
-public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
+public class GoogleCloudStorageRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
-    private final GCSService service;
+    private final GoogleCloudStorageService service;
 
-    public GCSRepositoryPlugin() {
-        this.service = new GCSService();
+    public GoogleCloudStorageRepositoryPlugin() {
+        this.service = new GoogleCloudStorageService();
     }
 
     @Override
     public List<Setting<?>> getSettings() {
         return List.of(
-            GCSRepository.COMPRESS_SETTING,
-            GCSRepository.BUCKET_SETTING,
-            GCSRepository.BASE_PATH_SETTING,
-            GCSRepository.CHUNK_SIZE_SETTING,
-            GCSClientSettings.PROJECT_ID_SETTING,
-            GCSClientSettings.PRIVATE_KEY_ID_SETTING,
-            GCSClientSettings.PRIVATE_KEY_SETTING,
-            GCSClientSettings.CLIENT_EMAIL_SETTING,
-            GCSClientSettings.CLIENT_ID_SETTING,
-            GCSClientSettings.ENDPOINT_SETTING,
-            GCSClientSettings.TOKEN_URI_SETTING,
-            GCSClientSettings.CONNECT_TIMEOUT_SETTING,
-            GCSClientSettings.READ_TIMEOUT_SETTING
+            GoogleCloudStorageRepository.COMPRESS_SETTING,
+            GoogleCloudStorageRepository.BUCKET_SETTING,
+            GoogleCloudStorageRepository.BASE_PATH_SETTING,
+            GoogleCloudStorageRepository.CHUNK_SIZE_SETTING,
+            GoogleCloudStorageClientSettings.PROJECT_ID_SETTING,
+            GoogleCloudStorageClientSettings.PRIVATE_KEY_ID_SETTING,
+            GoogleCloudStorageClientSettings.PRIVATE_KEY_SETTING,
+            GoogleCloudStorageClientSettings.CLIENT_EMAIL_SETTING,
+            GoogleCloudStorageClientSettings.CLIENT_ID_SETTING,
+            GoogleCloudStorageClientSettings.ENDPOINT_SETTING,
+            GoogleCloudStorageClientSettings.TOKEN_URI_SETTING,
+            GoogleCloudStorageClientSettings.CONNECT_TIMEOUT_SETTING,
+            GoogleCloudStorageClientSettings.READ_TIMEOUT_SETTING
             );
     }
 
@@ -78,29 +78,29 @@ public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
                     return new TypeSettings(
                         // Required settings
                         List.of(
-                            GCSRepository.BUCKET_SETTING,
-                            GCSClientSettings.PROJECT_ID_SETTING,
-                            GCSClientSettings.PRIVATE_KEY_ID_SETTING,
-                            GCSClientSettings.PRIVATE_KEY_SETTING,
-                            GCSClientSettings.CLIENT_ID_SETTING,
-                            GCSClientSettings.CLIENT_EMAIL_SETTING
+                            GoogleCloudStorageRepository.BUCKET_SETTING,
+                            GoogleCloudStorageClientSettings.PROJECT_ID_SETTING,
+                            GoogleCloudStorageClientSettings.PRIVATE_KEY_ID_SETTING,
+                            GoogleCloudStorageClientSettings.PRIVATE_KEY_SETTING,
+                            GoogleCloudStorageClientSettings.CLIENT_ID_SETTING,
+                            GoogleCloudStorageClientSettings.CLIENT_EMAIL_SETTING
                         ),
                         // Optional settings
                         List.of(
-                            GCSRepository.CHUNK_SIZE_SETTING,
-                            GCSRepository.COMPRESS_SETTING,
-                            GCSRepository.BASE_PATH_SETTING,
-                            GCSClientSettings.ENDPOINT_SETTING,
-                            GCSClientSettings.TOKEN_URI_SETTING,
-                            GCSClientSettings.CONNECT_TIMEOUT_SETTING,
-                            GCSClientSettings.READ_TIMEOUT_SETTING
+                            GoogleCloudStorageRepository.CHUNK_SIZE_SETTING,
+                            GoogleCloudStorageRepository.COMPRESS_SETTING,
+                            GoogleCloudStorageRepository.BASE_PATH_SETTING,
+                            GoogleCloudStorageClientSettings.ENDPOINT_SETTING,
+                            GoogleCloudStorageClientSettings.TOKEN_URI_SETTING,
+                            GoogleCloudStorageClientSettings.CONNECT_TIMEOUT_SETTING,
+                            GoogleCloudStorageClientSettings.READ_TIMEOUT_SETTING
                         )
                     );
                 }
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) {
-                    return new GCSRepository(metadata, namedXContentRegistry, clusterService, service, recoverySettings);
+                    return new GoogleCloudStorageRepository(metadata, namedXContentRegistry, clusterService, service, recoverySettings);
                 }
             }
         );

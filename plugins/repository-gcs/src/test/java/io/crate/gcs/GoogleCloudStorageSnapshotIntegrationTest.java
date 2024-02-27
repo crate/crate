@@ -37,7 +37,7 @@ import org.junit.Test;
 import com.sun.net.httpserver.HttpServer;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
-public class GCSSnapshotIntegrationTest extends IntegTestCase {
+public class GoogleCloudStorageSnapshotIntegrationTest extends IntegTestCase {
 
     // This is an arbitrary rsa key in pkcs8 format for testing
     // which is not used in the real world. It can be generated with
@@ -77,12 +77,12 @@ public class GCSSnapshotIntegrationTest extends IntegTestCase {
 
     private HttpServer oauthServer;
     private HttpServer gcsServer;
-    private GCSHttpHandler gcsHandler;
+    private GoogleCloudStorageHttpHandler gcsHandler;
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         var plugins = new ArrayList<>(super.nodePlugins());
-        plugins.add(GCSRepositoryPlugin.class);
+        plugins.add(GoogleCloudStorageRepositoryPlugin.class);
         return plugins;
     }
 
@@ -96,7 +96,7 @@ public class GCSSnapshotIntegrationTest extends IntegTestCase {
         this.oauthServer.start();
 
         this.gcsServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
-        this.gcsHandler = new GCSHttpHandler(BUCKET_NAME);
+        this.gcsHandler = new GoogleCloudStorageHttpHandler(BUCKET_NAME);
         this.gcsServer.createContext("/", gcsHandler);
         this.gcsServer.start();
     }

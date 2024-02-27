@@ -54,9 +54,9 @@ import io.crate.common.io.IOUtils;
  * the {@code LegacyESVersion#V_7_0_0} version constant) and removed if the SDK handles retries itself in the future.
  * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStorageRetryingInputStream.java
  */
-class GCSRetryingInputStream extends InputStream {
+class GoogleCloudStorageRetryingInputStream extends InputStream {
 
-    private static final Logger LOGGER = LogManager.getLogger(GCSRetryingInputStream.class);
+    private static final Logger LOGGER = LogManager.getLogger(GoogleCloudStorageRetryingInputStream.class);
 
     static final int MAX_SUPPRESSED_EXCEPTIONS = 10;
 
@@ -76,12 +76,12 @@ class GCSRetryingInputStream extends InputStream {
     private long currentOffset;
     private boolean closed;
 
-    GCSRetryingInputStream(Storage client, BlobId blobId) throws IOException {
+    GoogleCloudStorageRetryingInputStream(Storage client, BlobId blobId) throws IOException {
         this(client, blobId, 0, Long.MAX_VALUE - 1);
     }
 
     // both start and end are inclusive bounds, following the definition in https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
-    GCSRetryingInputStream(Storage client, BlobId blobId, long start, long end) throws IOException {
+    GoogleCloudStorageRetryingInputStream(Storage client, BlobId blobId, long start, long end) throws IOException {
         if (start < 0L) {
             throw new IllegalArgumentException("start must be non-negative");
         }

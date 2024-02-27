@@ -37,7 +37,7 @@ import io.crate.exceptions.InvalidArgumentException;
 /**
  * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStorageClientSettings.java
  */
-public record GCSClientSettings(
+public record GoogleCloudStorageClientSettings(
     ServiceAccountCredentials credentials,
     String endpoint,
     String projectId,
@@ -72,8 +72,8 @@ public record GCSClientSettings(
         "read_timeout", TimeValue.ZERO, TimeValue.MINUS_ONE, Setting.Property.NodeScope);
 
 
-    static GCSClientSettings fromSettings(final Settings settings) {
-        return new GCSClientSettings(
+    static GoogleCloudStorageClientSettings fromSettings(final Settings settings) {
+        return new GoogleCloudStorageClientSettings(
             loadCredentials(settings),
             ENDPOINT_SETTING.get(settings),
             PROJECT_ID_SETTING.get(settings),

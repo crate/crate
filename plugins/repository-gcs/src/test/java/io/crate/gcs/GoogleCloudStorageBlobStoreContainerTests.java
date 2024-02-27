@@ -54,7 +54,7 @@ import com.google.cloud.storage.StorageBatch;
 import com.google.cloud.storage.StorageBatchResult;
 import com.google.cloud.storage.StorageException;
 
-public class GCSBlobStoreContainerTests extends IntegTestCase {
+public class GoogleCloudStorageBlobStoreContainerTests extends IntegTestCase {
 
     @Test
     @SuppressWarnings("unchecked")
@@ -94,10 +94,10 @@ public class GCSBlobStoreContainerTests extends IntegTestCase {
         when(storage.get("bucket")).thenReturn(mock(Bucket.class));
         when(storage.batch()).thenReturn(batch);
 
-        final GCSService storageService = mock(GCSService.class);
+        final GoogleCloudStorageService storageService = mock(GoogleCloudStorageService.class);
         when(storageService.client(any(RepositoryMetadata.class))).thenReturn(storage);
         RepositoryMetadata repositoryMetadata = new RepositoryMetadata("test", "bla", Settings.EMPTY);
-        try (BlobStore store = new GCSBlobStore("bucket", storageService, repositoryMetadata, randomIntBetween(1, 8) * 1024)) {
+        try (BlobStore store = new GoogleCloudStorageBlobStore("bucket", storageService, repositoryMetadata, randomIntBetween(1, 8) * 1024)) {
             final BlobContainer container = store.blobContainer(new BlobPath());
             assertThatThrownBy(() -> container.deleteBlobsIgnoringIfNotExists(blobs)).isInstanceOfAny(IOException.class).hasCauseExactlyInstanceOf(StorageException.class);
         }

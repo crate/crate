@@ -39,7 +39,7 @@ import io.crate.common.unit.TimeValue;
 /**
  * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStorageService.java
  */
-public class GCSService {
+public class GoogleCloudStorageService {
 
     private volatile HashMap<String, Storage> clientCache = new HashMap<>();
 
@@ -74,7 +74,7 @@ public class GCSService {
      * (blobs)
      */
     private Storage createClient(Settings settings) {
-        GCSClientSettings clientSettings = GCSClientSettings.fromSettings(settings);
+        GoogleCloudStorageClientSettings clientSettings = GoogleCloudStorageClientSettings.fromSettings(settings);
         HttpTransport httpTransport = new NetHttpTransport.Builder().build();
 
         HttpTransportOptions httpTransportOptions = new HttpTransportOptions(
@@ -87,7 +87,7 @@ public class GCSService {
         return storageOptions.getService();
     }
 
-    StorageOptions createStorageOptions(GCSClientSettings clientSettings,
+    StorageOptions createStorageOptions(GoogleCloudStorageClientSettings clientSettings,
                                         HttpTransportOptions httpTransportOptions) {
         StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
             .setTransportOptions(httpTransportOptions);

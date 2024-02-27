@@ -40,7 +40,7 @@ import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 /**
  * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStorageRepository.java
  */
-public class GCSRepository extends BlobStoreRepository {
+public class GoogleCloudStorageRepository extends BlobStoreRepository {
     // package private for testing
     static final ByteSizeValue MIN_CHUNK_SIZE = new ByteSizeValue(1, ByteSizeUnit.BYTES);
 
@@ -64,16 +64,16 @@ public class GCSRepository extends BlobStoreRepository {
         Property.Dynamic
     );
 
-    private final GCSService service;
+    private final GoogleCloudStorageService service;
     private final ByteSizeValue chunkSize;
     private final String bucket;
 
 
-    public GCSRepository(
+    public GoogleCloudStorageRepository(
         final RepositoryMetadata metadata,
         final NamedXContentRegistry namedXContentRegistry,
         final ClusterService clusterService,
-        final GCSService service,
+        final GoogleCloudStorageService service,
         final RecoverySettings recoverySettings) {
         super(metadata, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
         this.service = service;
@@ -82,8 +82,8 @@ public class GCSRepository extends BlobStoreRepository {
     }
 
     @Override
-    protected GCSBlobStore createBlobStore() {
-        return new GCSBlobStore(bucket, service, metadata, bufferSize);
+    protected GoogleCloudStorageBlobStore createBlobStore() {
+        return new GoogleCloudStorageBlobStore(bucket, service, metadata, bufferSize);
     }
 
     private static BlobPath buildBasePath(RepositoryMetadata metadata) {

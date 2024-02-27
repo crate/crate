@@ -21,20 +21,20 @@
 
 package io.crate.gcs;
 
-import static io.crate.gcs.GCSHttpHandler.decodeQueryString;
-import static io.crate.gcs.GCSHttpHandler.getContentRangeEnd;
-import static io.crate.gcs.GCSHttpHandler.getContentRangeLimit;
-import static io.crate.gcs.GCSHttpHandler.getContentRangeStart;
-import static io.crate.gcs.GCSHttpHandler.parseMultipartRequestBody;
-import static io.crate.gcs.GCSSnapshotIntegrationTest.PKCS8_PRIVATE_KEY;
-import static io.crate.gcs.GCSClientSettings.CLIENT_EMAIL_SETTING;
-import static io.crate.gcs.GCSClientSettings.CLIENT_ID_SETTING;
-import static io.crate.gcs.GCSClientSettings.ENDPOINT_SETTING;
-import static io.crate.gcs.GCSClientSettings.PRIVATE_KEY_ID_SETTING;
-import static io.crate.gcs.GCSClientSettings.PRIVATE_KEY_SETTING;
-import static io.crate.gcs.GCSClientSettings.PROJECT_ID_SETTING;
-import static io.crate.gcs.GCSClientSettings.READ_TIMEOUT_SETTING;
-import static io.crate.gcs.GCSClientSettings.TOKEN_URI_SETTING;
+import static io.crate.gcs.GoogleCloudStorageHttpHandler.decodeQueryString;
+import static io.crate.gcs.GoogleCloudStorageHttpHandler.getContentRangeEnd;
+import static io.crate.gcs.GoogleCloudStorageHttpHandler.getContentRangeLimit;
+import static io.crate.gcs.GoogleCloudStorageHttpHandler.getContentRangeStart;
+import static io.crate.gcs.GoogleCloudStorageHttpHandler.parseMultipartRequestBody;
+import static io.crate.gcs.GoogleCloudStorageSnapshotIntegrationTest.PKCS8_PRIVATE_KEY;
+import static io.crate.gcs.GoogleCloudStorageClientSettings.CLIENT_EMAIL_SETTING;
+import static io.crate.gcs.GoogleCloudStorageClientSettings.CLIENT_ID_SETTING;
+import static io.crate.gcs.GoogleCloudStorageClientSettings.ENDPOINT_SETTING;
+import static io.crate.gcs.GoogleCloudStorageClientSettings.PRIVATE_KEY_ID_SETTING;
+import static io.crate.gcs.GoogleCloudStorageClientSettings.PRIVATE_KEY_SETTING;
+import static io.crate.gcs.GoogleCloudStorageClientSettings.PROJECT_ID_SETTING;
+import static io.crate.gcs.GoogleCloudStorageClientSettings.READ_TIMEOUT_SETTING;
+import static io.crate.gcs.GoogleCloudStorageClientSettings.TOKEN_URI_SETTING;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.lucene.tests.util.LuceneTestCase.expectThrows;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -97,7 +97,7 @@ import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 
 @SuppressForbidden(reason = "use a http server")
-public class GCSBlobContainerRetriesTests extends IntegTestCase {
+public class GoogleCloudStorageBlobContainerRetriesTests extends IntegTestCase {
 
     static final long MAX_RANGE_VAL = Long.MAX_VALUE - 1;
 
@@ -460,7 +460,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
         final int lastChunkSize = randomIntBetween(1, defaultChunkSize - 1);
         final int totalChunks = nbChunks + 1;
         final byte[] data = randomBytes(defaultChunkSize * nbChunks + lastChunkSize);
-        assertThat(data.length).isGreaterThan(GCSBlobStore.LARGE_BLOB_THRESHOLD_BYTE_SIZE);
+        assertThat(data.length).isGreaterThan(GoogleCloudStorageBlobStore.LARGE_BLOB_THRESHOLD_BYTE_SIZE);
 
         final int nbErrors = 2; // we want all requests to fail at least once
         final AtomicInteger countInits = new AtomicInteger(nbErrors);
@@ -655,11 +655,11 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
             clientSettings.put(READ_TIMEOUT_SETTING.getKey(), readTimeout);
         }
 
-        final GCSService service = new GCSService() {
+        final GoogleCloudStorageService service = new GoogleCloudStorageService() {
 
             @Override
             StorageOptions createStorageOptions(
-                final GCSClientSettings clientSettings,
+                final GoogleCloudStorageClientSettings clientSettings,
                 final HttpTransportOptions httpTransportOptions
             ) {
                 StorageOptions options = super.createStorageOptions(clientSettings, httpTransportOptions);
@@ -685,14 +685,14 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
         RepositoryMetadata repositoryMetadata = new RepositoryMetadata("test", "gcs", clientSettings.build());
 
         httpServer.createContext("/token", new FakeOAuth2HttpHandler());
-        final GCSBlobStore blobStore = new GCSBlobStore(
+        final GoogleCloudStorageBlobStore blobStore = new GoogleCloudStorageBlobStore(
             "bucket",
             service,
             repositoryMetadata,
             randomIntBetween(1, 8) * 1024
         );
 
-        return new GCSBlobContainer(BlobPath.cleanPath(), blobStore);
+        return new GoogleCloudStorageBlobContainer(BlobPath.cleanPath(), blobStore);
     }
 
     private HttpHandler safeHandler(HttpHandler handler) {

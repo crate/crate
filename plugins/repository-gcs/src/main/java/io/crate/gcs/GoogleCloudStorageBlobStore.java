@@ -67,9 +67,9 @@ import io.crate.common.collections.Iterables;
 /**
  * Bassed on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStorageBlobStore.java
  */
-public class GCSBlobStore implements BlobStore {
+public class GoogleCloudStorageBlobStore implements BlobStore {
 
-    private static final Logger LOGGER = LogManager.getLogger(GCSBlobStore.class);
+    private static final Logger LOGGER = LogManager.getLogger(GoogleCloudStorageBlobStore.class);
 
     // The recommended maximum size of a blob that should be uploaded in a single
     // request. Larger files should be uploaded over multiple requests (this is
@@ -78,13 +78,13 @@ public class GCSBlobStore implements BlobStore {
     public static final int LARGE_BLOB_THRESHOLD_BYTE_SIZE = Math.toIntExact(new ByteSizeValue(5, ByteSizeUnit.MB).getBytes());
 
     private final String bucketName;
-    private final GCSService storageService;
+    private final GoogleCloudStorageService storageService;
     private final RepositoryMetadata metadata;
     private final int bufferSize;
 
-    public GCSBlobStore(
+    public GoogleCloudStorageBlobStore(
         String bucketName,
-        GCSService storageService,
+        GoogleCloudStorageService storageService,
         RepositoryMetadata metadata,
         int bufferSize) {
         this.bucketName = bucketName;
@@ -99,7 +99,7 @@ public class GCSBlobStore implements BlobStore {
 
     @Override
     public BlobContainer blobContainer(BlobPath path) {
-        return new GCSBlobContainer(path, this);
+        return new GoogleCloudStorageBlobContainer(path, this);
     }
 
     @Override
@@ -148,7 +148,7 @@ public class GCSBlobStore implements BlobStore {
                 // Strip path prefix and trailing slash
                 final String suffixName = blob.getName().substring(pathStr.length(), blob.getName().length() - 1);
                 if (suffixName.isEmpty() == false) {
-                    result.put(suffixName, new GCSBlobContainer(path.add(suffixName), this));
+                    result.put(suffixName, new GoogleCloudStorageBlobContainer(path.add(suffixName), this));
                 }
             }
         }
@@ -174,7 +174,7 @@ public class GCSBlobStore implements BlobStore {
      * @return the InputStream used to read the blob's content
      */
     InputStream readBlob(String blobName) throws IOException {
-        return new GCSRetryingInputStream(client(), BlobId.of(bucketName, blobName));
+        return new GoogleCloudStorageRetryingInputStream(client(), BlobId.of(bucketName, blobName));
     }
 
     /**
@@ -195,7 +195,7 @@ public class GCSBlobStore implements BlobStore {
         if (length == 0) {
             return new ByteArrayInputStream(new byte[0]);
         } else {
-            return new GCSRetryingInputStream(
+            return new GoogleCloudStorageRetryingInputStream(
                 client(),
                 BlobId.of(bucketName, blobName),
                 position,

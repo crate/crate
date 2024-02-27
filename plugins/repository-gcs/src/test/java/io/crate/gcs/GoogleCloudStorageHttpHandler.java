@@ -71,16 +71,16 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 /**
  * Minimal HTTP handler that acts as a Google Cloud Storage compliant server
  */
-public class GCSHttpHandler implements HttpHandler {
+public class GoogleCloudStorageHttpHandler implements HttpHandler {
 
-    private static final Logger logger = LogManager.getLogger(GCSHttpHandler.class);
+    private static final Logger logger = LogManager.getLogger(GoogleCloudStorageHttpHandler.class);
 
     private static final Pattern RANGE_MATCHER = Pattern.compile("bytes=([0-9]*)-([0-9]*)");
 
     private final ConcurrentMap<String, BytesReference> blobs;
     private final String bucket;
 
-    public GCSHttpHandler(final String bucket) {
+    public GoogleCloudStorageHttpHandler(final String bucket) {
         this.bucket = Objects.requireNonNull(bucket);
         this.blobs = new ConcurrentHashMap<>();
     }
