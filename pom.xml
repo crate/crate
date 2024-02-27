@@ -260,7 +260,7 @@
     <versions.aws>1.12.353</versions.aws>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>23.0.2</versions.graalvm>
+    <versions.graalvm>23.0.3</versions.graalvm>
 
     <versions.google.gax>2.29.0</versions.google.gax>
     <versions.google.auth>1.17.0</versions.google.auth>
@@ -276,7 +276,7 @@
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>5.10.0</versions.mockito>
-    <versions.jdbc>42.7.1</versions.jdbc>
+    <versions.jdbc>42.7.2</versions.jdbc>
     <versions.jsonassert>1.5.1</versions.jsonassert>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>

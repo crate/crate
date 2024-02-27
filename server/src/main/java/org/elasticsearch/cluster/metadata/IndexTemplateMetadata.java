@@ -214,7 +214,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             out.writeInt(1);
         }
         out.writeStringCollection(patterns);
-        Settings.writeSettingsToStream(settings, out);
+        Settings.writeSettingsToStream(out, settings);
         if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
             mapping.writeTo(out);
         } else {

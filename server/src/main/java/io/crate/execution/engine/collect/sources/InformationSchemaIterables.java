@@ -55,7 +55,6 @@ import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
@@ -106,7 +105,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<Void> referentialConstraints;
     private final Iterable<PgIndexTable.Entry> pgIndices;
     private final Iterable<PgClassTable.Entry> pgClasses;
-    private final Iterable<PgProcTable.Entry> pgBuiltInFunc;
     private final Iterable<PgProcTable.Entry> pgTypeReceiveFunctions;
     private final Iterable<PgProcTable.Entry> pgTypeSendFunctions;
     private final NodeContext nodeCtx;
@@ -185,11 +183,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         pgIndices = () -> tablesStream(schemas).filter(this::isPrimaryKey).map(this::pgIndex).iterator();
         pgClasses = () -> concat(sequentialStream(relations).map(this::relationToPgClassEntry),
                                  sequentialStream(primaryKeys).map(this::primaryKeyToPgClassEntry)).iterator();
-        pgBuiltInFunc = () -> sequentialStream(nodeCtx.functions().functionResolvers().values())
-            .flatMap(List::stream)
-            .map(this::pgProc)
-            .iterator();
-
         pgTypeReceiveFunctions = () ->
             Stream.concat(
                 sequentialStream(PGTypes.pgTypes())
@@ -270,10 +263,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         );
     }
 
-    private PgProcTable.Entry pgProc(FunctionProvider resolver) {
-        return PgProcTable.Entry.of(resolver.getSignature());
-    }
-
     private static Stream<ViewInfo> viewsStream(Schemas schemas) {
         return sequentialStream(schemas)
             .flatMap(schema -> sequentialStream(schema.getViews()))
@@ -345,12 +334,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<PgProcTable.Entry> pgProc() {
         return () -> concat(
-            concat(
-                sequentialStream(pgBuiltInFunc),
-                sequentialStream(nodeCtx.functions().udfFunctionResolvers().values())
-                    .flatMap(List::stream)
-                    .map(this::pgProc)
-            ),
+            sequentialStream(nodeCtx.functions().signatures())
+                .map(PgProcTable.Entry::of),
             concat(
                 sequentialStream(pgTypeReceiveFunctions),
                 sequentialStream(pgTypeSendFunctions)

@@ -242,7 +242,7 @@ public class ConnectionInfo implements Writeable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeStringArray(hosts.toArray(new String[0]));
-        Settings.writeSettingsToStream(settings, out);
+        Settings.writeSettingsToStream(out, settings);
     }
 
     @Override

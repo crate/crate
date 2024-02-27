@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -73,12 +74,17 @@ public class Functions {
         this.functionImplementations = functionImplementationsBySignature;
     }
 
-    public Map<FunctionName, List<FunctionProvider>> functionResolvers() {
-        return functionImplementations;
-    }
-
-    public Map<FunctionName, List<FunctionProvider>> udfFunctionResolvers() {
-        return udfFunctionImplementations;
+    public Iterable<Signature> signatures() {
+        return () ->
+            Stream.concat(
+                functionImplementations.values().stream()
+                    .flatMap(x -> x.stream())
+                    .map(x -> x.signature()),
+                udfFunctionImplementations.values().stream()
+                    .flatMap(x -> x.stream())
+                    .map(x -> x.signature())
+            )
+            .iterator();
     }
 
     public void registerUdfFunctionImplementationsForSchema(
@@ -98,21 +104,13 @@ public class Functions {
     }
 
     @Nullable
-    private static Signature findSignatureByOid(Map<FunctionName, List<FunctionProvider>> functions, int oid) {
-        for (Map.Entry<FunctionName, List<FunctionProvider>> func : functions.entrySet()) {
-            for (FunctionProvider sig : func.getValue()) {
-                if (Objects.equals(oid, OidHash.functionOid(sig.getSignature()))) {
-                    return sig.getSignature();
-                }
+    public Signature findFunctionSignatureByOid(int oid) {
+        for (var signature : signatures()) {
+            if (oid == OidHash.functionOid(signature)) {
+                return signature;
             }
         }
         return null;
-    }
-
-    @Nullable
-    public Signature findFunctionSignatureByOid(int oid) {
-        Signature sig = findSignatureByOid(udfFunctionImplementations, oid);
-        return sig != null ? sig : findSignatureByOid(functionImplementations, oid);
     }
 
     /**
@@ -169,9 +167,9 @@ public class Functions {
             return null;
         }
         for (var candidate : candidates) {
-            if (candidate.getSignature().equals(signature)) {
+            if (candidate.signature().equals(signature)) {
                 var boundSignature = new BoundSignature(actualArgumentTypes, actualReturnType);
-                return candidate.getFactory().apply(signature, boundSignature);
+                return candidate.factory().apply(signature, boundSignature);
             }
         }
         return null;
@@ -205,12 +203,12 @@ public class Functions {
         }
         final var finalCandidates = candidates;
 
-        assert candidates.stream().allMatch(f -> f.getSignature().getBindingInfo() != null) :
+        assert candidates.stream().allMatch(f -> f.signature().getBindingInfo() != null) :
             "Resolving/Matching of signatures can only be done with non-null signature's binding info";
 
         // First lets try exact candidates, no generic type variables, no coercion allowed.
         Iterable<FunctionProvider> exactCandidates = () -> finalCandidates.stream()
-            .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+            .filter(function -> function.signature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
         var match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
         if (match != null) {
@@ -219,7 +217,7 @@ public class Functions {
 
         // Second, try candidates with generic type variables, still no coercion allowed.
         Iterable<FunctionProvider> genericCandidates = () -> finalCandidates.stream()
-            .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+            .filter(function -> !function.signature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
         match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
         if (match != null) {
@@ -228,7 +226,7 @@ public class Functions {
 
         // Third, try all candidates which allow coercion with precedence based coercion.
         Iterable<FunctionProvider> candidatesAllowingCoercion = () -> finalCandidates.stream()
-            .filter(function -> function.getSignature().getBindingInfo().isCoercionAllowed())
+            .filter(function -> function.signature().getBindingInfo().isCoercionAllowed())
             .iterator();
         match = matchFunctionCandidates(
             candidatesAllowingCoercion,
@@ -254,14 +252,14 @@ public class Functions {
                                                                   SignatureBinder.CoercionType coercionType) {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
         for (FunctionProvider candidate : candidates) {
-            BoundSignature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
+            BoundSignature boundSignature = new SignatureBinder(candidate.signature(), coercionType)
                 .bind(arguments);
             if (boundSignature != null) {
                 applicableFunctions.add(
                     new ApplicableFunction(
-                        candidate.getSignature(),
+                        candidate.signature(),
                         boundSignature,
-                        candidate.getFactory()
+                        candidate.factory()
                     )
                 );
             }
@@ -343,13 +341,13 @@ public class Functions {
                       + Lists.joinOn(
                           ", ",
                           candidates,
-                          c -> c.getSignature().getName().displayName()
+                          c -> c.signature().getName().displayName()
                                + "("
                                + Lists.joinOn(
                               ", ",
-                              c.getSignature().getArgumentTypes(),
+                              c.signature().getArgumentTypes(),
                               TypeSignature::toString)
-                               + "):" + c.getSignature().getReturnType().toString())
+                               + "):" + c.signature().getReturnType().toString())
                       ;
         }
 
@@ -437,15 +435,15 @@ public class Functions {
      */
     private static boolean isMoreSpecificThan(ApplicableFunction left,
                                               ApplicableFunction right) {
-        List<DataType<?>> resolvedTypes = left.getBoundSignature().argTypes();
-        BoundVariables boundVariables = SignatureBinder.withPrecedenceOnly(right.getDeclaredSignature())
+        List<DataType<?>> resolvedTypes = left.boundSignature().argTypes();
+        BoundVariables boundVariables = SignatureBinder.withPrecedenceOnly(right.signature())
             .bindVariables(resolvedTypes);
         if (boundVariables == null) {
             return false;
         }
 
-        int leftArgsCount = left.getDeclaredSignature().getArgumentTypes().size();
-        int rightArgsCount = right.getDeclaredSignature().getArgumentTypes().size();
+        int leftArgsCount = left.signature().getArgumentTypes().size();
+        int rightArgsCount = right.signature().getArgumentTypes().size();
         return leftArgsCount >= rightArgsCount;
     }
 
@@ -454,18 +452,18 @@ public class Functions {
                                                    List<TypeSignature> actualArgumentTypes) {
         int leftExactMatches = numberOfExactTypeMatches(
             actualArgumentTypes,
-            left.getDeclaredSignature().getArgumentTypes()
+            left.signature().getArgumentTypes()
         );
         int rightExactMatches = numberOfExactTypeMatches(
             actualArgumentTypes,
-            right.getDeclaredSignature().getArgumentTypes()
+            right.signature().getArgumentTypes()
         );
         return leftExactMatches > rightExactMatches;
     }
 
     private static boolean returnTypeIsTheSame(List<ApplicableFunction> applicableFunctions) {
         Set<DataType<?>> returnTypes = applicableFunctions.stream()
-            .map(function -> function.getBoundSignature().returnType())
+            .map(function -> function.boundSignature().returnType())
             .collect(Collectors.toSet());
         return returnTypes.size() == 1;
     }
@@ -482,40 +480,20 @@ public class Functions {
         return cnt;
     }
 
-    private static class ApplicableFunction implements Supplier<FunctionImplementation> {
-
-        private final Signature declaredSignature;
-        private final BoundSignature boundSignature;
-        private final FunctionFactory factory;
-
-        public ApplicableFunction(Signature declaredSignature,
-                                  BoundSignature boundSignature,
-                                  FunctionFactory factory) {
-            this.declaredSignature = declaredSignature;
-            this.boundSignature = boundSignature;
-            this.factory = factory;
-        }
-
-        public Signature getDeclaredSignature() {
-            return declaredSignature;
-        }
-
-        public BoundSignature getBoundSignature() {
-            return boundSignature;
-        }
+    private static record ApplicableFunction(
+            Signature signature,
+            BoundSignature boundSignature,
+            FunctionFactory factory) implements Supplier<FunctionImplementation> {
 
         @Override
         public FunctionImplementation get() {
-            return factory.apply(
-                declaredSignature,
-                boundSignature
-            );
+            return factory.apply(signature, boundSignature);
         }
 
         @Override
         public String toString() {
             return "ApplicableFunction{" +
-                   "declaredSignature=" + declaredSignature +
+                   "signature=" + signature +
                    ", boundSignature=" + boundSignature +
                    '}';
         }

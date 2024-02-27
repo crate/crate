@@ -81,7 +81,7 @@ public record ForeignTable(RelationName name,
         name.writeTo(out);
         out.writeMap(references, (o, v) -> v.writeTo(o), Reference::toStream);
         out.writeString(server);
-        Settings.writeSettingsToStream(options, out);
+        Settings.writeSettingsToStream(out, options);
     }
 
     public static ForeignTable fromXContent(RelationName name, XContentParser parser) throws IOException {

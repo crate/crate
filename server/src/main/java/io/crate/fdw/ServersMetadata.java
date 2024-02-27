@@ -83,7 +83,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             out.writeString(fdw);
             out.writeString(owner);
             out.writeMap(users, StreamOutput::writeString, StreamOutput::writeMap);
-            Settings.writeSettingsToStream(options, out);
+            Settings.writeSettingsToStream(out, options);
         }
 
         @SuppressWarnings({ "unchecked", "rawtypes" })

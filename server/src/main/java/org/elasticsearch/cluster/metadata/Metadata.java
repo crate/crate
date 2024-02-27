@@ -509,8 +509,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
                 out.writeLong(columnOID);
             }
             coordinationMetadata.writeTo(out);
-            Settings.writeSettingsToStream(transientSettings, out);
-            Settings.writeSettingsToStream(persistentSettings, out);
+            Settings.writeSettingsToStream(out, transientSettings);
+            Settings.writeSettingsToStream(out, persistentSettings);
             indices.writeTo(out);
             templates.writeTo(out);
             customs.writeTo(out);
@@ -571,8 +571,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         out.writeString(clusterUUID);
         out.writeBoolean(clusterUUIDCommitted);
         coordinationMetadata.writeTo(out);
-        writeSettingsToStream(transientSettings, out);
-        writeSettingsToStream(persistentSettings, out);
+        writeSettingsToStream(out, transientSettings);
+        writeSettingsToStream(out, persistentSettings);
         out.writeVInt(indices.size());
         for (IndexMetadata indexMetadata : this) {
             indexMetadata.writeTo(out);
