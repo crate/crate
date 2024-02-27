@@ -613,8 +613,8 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         }
         out.writeBoolean(partial);
         out.writeBoolean(includeAliases);
-        writeSettingsToStream(settings, out);
-        writeSettingsToStream(indexSettings, out);
+        writeSettingsToStream(out, settings);
+        writeSettingsToStream(out, indexSettings);
         out.writeStringArray(ignoreIndexSettings);
         out.writeStringArray(templates);
         if (out.getVersion().onOrAfter(Version.V_4_5_0)) {

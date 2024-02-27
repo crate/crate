@@ -148,7 +148,7 @@ public class RepositoryMetadata implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeString(type);
-        Settings.writeSettingsToStream(settings, out);
+        Settings.writeSettingsToStream(out, settings);
         if (out.getVersion().onOrAfter(REPO_GEN_IN_CS_VERSION)) {
             out.writeLong(generation);
             out.writeLong(pendingGeneration);

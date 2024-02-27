@@ -223,7 +223,7 @@ public class WriterProjection extends Projection {
         out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
         out.writeInt(outputFormat.ordinal());
         if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            Settings.writeSettingsToStream(withClauseOptions, out);
+            Settings.writeSettingsToStream(out, withClauseOptions);
         }
     }
 

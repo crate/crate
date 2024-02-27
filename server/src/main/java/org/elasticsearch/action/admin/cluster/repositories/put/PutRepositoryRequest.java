@@ -215,7 +215,7 @@ public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryReque
         super.writeTo(out);
         out.writeString(name);
         out.writeString(type);
-        writeSettingsToStream(settings, out);
+        writeSettingsToStream(out, settings);
         out.writeBoolean(verify);
     }
 

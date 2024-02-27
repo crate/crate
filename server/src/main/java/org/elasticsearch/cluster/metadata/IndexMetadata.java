@@ -686,7 +686,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             out.writeVLong(mappingVersion);
             out.writeVLong(settingsVersion);
             out.writeByte(state.id);
-            Settings.writeSettingsToStream(settings, out);
+            Settings.writeSettingsToStream(out, settings);
             out.writeVLongArray(primaryTerms);
             mappings.writeTo(out);
             aliases.writeTo(out);
@@ -763,7 +763,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         out.writeVLong(settingsVersion);
         out.writeInt(routingNumShards);
         out.writeByte(state.id());
-        writeSettingsToStream(settings, out);
+        writeSettingsToStream(out, settings);
         out.writeVLongArray(primaryTerms);
         if (mapping == null) {
             out.writeVInt(0);
