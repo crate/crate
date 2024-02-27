@@ -86,6 +86,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.EliminateCrossJoin;
+import io.crate.planner.optimizer.rule.UseLookupJoin;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
@@ -158,6 +159,7 @@ public class LogicalPlanner {
         new RewriteGroupByKeysLimitToLimitDistinct(),
         new MoveConstantJoinConditionsBeneathNestedLoop(),
         new EliminateCrossJoin(),
+        new UseLookupJoin(),
         new RewriteJoinPlan(),
         new RewriteNestedLoopJoinToHashJoin()
     );
