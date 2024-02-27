@@ -35,16 +35,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
+import io.crate.fdw.AddServerTask;
+import io.crate.fdw.CreateServerRequest;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-public class TransportRoleActionTest extends ESTestCase {
+public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreateFirstUser() throws Exception {
@@ -158,6 +164,33 @@ public class TransportRoleActionTest extends ESTestCase {
         boolean res = DropRoleTask.dropRole(mdBuilder, "Arthur");
         assertThat(roles(mdBuilder)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
         assertThat(res).isTrue();
+    }
+
+    @Test
+    public void test_cannot_drop_user_mapped_to_foreign_servers() throws Exception {
+        Map<String, Role> roles = Map.of(
+            "role1", RolesHelper.roleOf("role1")
+        );
+        RolesMetadata rolesMetadata = new RolesMetadata(roles);
+        Metadata metadata = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, rolesMetadata)
+            .build();
+        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(metadata).build();
+
+        var e = SQLExecutor.builder(clusterService).build();
+        CreateServerRequest createServerRequest = new CreateServerRequest(
+            "pg",
+            "jdbc",
+            "role1",
+            false,
+            Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build());
+        AddServerTask addServerTask = new AddServerTask(e.foreignDataWrappers, createServerRequest);
+        ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterState));
+
+        DropRoleTask dropRoleTask = new DropRoleTask(new DropRoleRequest("role1", false));
+        assertThatThrownBy(() -> dropRoleTask.execute(clusterService.state()))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("User 'role1' cannot be dropped. The user mappings for foreign servers '[pg]' needs to be dropped first.");
     }
 
     private static Map<String, Role> roles(Metadata.Builder mdBuilder) {
