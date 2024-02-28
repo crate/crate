@@ -33,7 +33,15 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubRoleManager implements RoleManager {
 
-    private final List<Role> roles = List.of(Role.CRATE_USER);
+    private final Collection<Role> roles;
+
+    public StubRoleManager() {
+        this.roles = List.of(Role.CRATE_USER);
+    }
+
+    public StubRoleManager(Collection<Role> roles) {
+        this.roles = roles;
+    }
 
     @Override
     public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
@@ -56,16 +64,6 @@ public class StubRoleManager implements RoleManager {
                                                    GrantedRolesChange grantedRolesChange) {
         return CompletableFuture.failedFuture(
             new UnsupportedFeatureException("applyPrivileges is not implemented in StubRoleManager"));
-    }
-
-    @Override
-    public Role findUser(int userOid) {
-        return Role.CRATE_USER;
-    }
-
-    @Override
-    public Role findUser(String userName) {
-        return Role.CRATE_USER;
     }
 
     @Override
