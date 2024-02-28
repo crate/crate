@@ -95,7 +95,7 @@ public class TransportRoleActionTest extends ESTestCase {
             .putCustom(UsersPrivilegesMetadata.TYPE, oldUsersPrivilegesMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newPasswd = getSecureHash("arthurs-new-passwd");
-        boolean res = TransportAlterRoleAction.alterRole(mdBuilder, "Arthur", newPasswd);
+        boolean res = AlterRoleTask.alterRole(mdBuilder, "Arthur", newPasswd);
         assertThat(res).isTrue();
 
         var newFordUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Ford")

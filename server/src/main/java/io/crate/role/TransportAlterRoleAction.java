@@ -26,24 +26,14 @@ import java.io.IOException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRoleRequest, WriteRoleResponse> {
 
@@ -78,57 +68,9 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
             throw new IllegalStateException("Cannot alter users/roles until all nodes are upgraded to 5.6");
         }
 
-        clusterService.submitStateUpdateTask("alter_role [" + request.roleName() + "]",
-                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
-
-                    private boolean roleExists = true;
-
-                    @Override
-                    public ClusterState execute(ClusterState currentState) throws Exception {
-                        Metadata currentMetadata = currentState.metadata();
-                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                        roleExists = alterRole(
-                                mdBuilder,
-                                request.roleName(),
-                                request.secureHash()
-                        );
-                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                    }
-
-                    @Override
-                    protected WriteRoleResponse newResponse(boolean acknowledged) {
-                        return new WriteRoleResponse(acknowledged, roleExists);
-                    }
-                });
-    }
-
-    @VisibleForTesting
-    static boolean alterRole(Metadata.Builder mdBuilder, String roleName, @Nullable SecureHash secureHash) {
-        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
-        UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        if (oldUsersMetadata == null && oldRolesMetadata == null) {
-            return false;
-        }
-
-        UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
-        boolean exists = false;
-        var role = newMetadata.roles().get(roleName);
-        if (role != null) {
-            if (role.isUser() == false && secureHash != null) {
-                throw new UnsupportedFeatureException("Setting a password to a ROLE is not allowed");
-            }
-            newMetadata.roles().put(roleName, role.with(secureHash));
-            exists = true;
-        }
-        if (newMetadata.equals(oldRolesMetadata)) {
-            return exists;
-        }
-
-        assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
-
-        return exists;
+        AlterRoleTask alterRoleTask = new AlterRoleTask(request);
+        alterRoleTask.completionFuture().whenComplete(listener);
+        clusterService.submitStateUpdateTask("alter_role [" + request.roleName() + "]", alterRoleTask);
     }
 
     @Override
