@@ -23,17 +23,11 @@ package io.crate.analyze;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
 
-import io.crate.data.Row;
-import io.crate.data.testing.TestingRowConsumer;
-import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
-import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -41,18 +35,6 @@ import io.crate.testing.SQLExecutor;
 public class CursorTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor executor;
-
-    private TestingRowConsumer executePlan(SQLExecutor executor, Plan plan) {
-        TestingRowConsumer consumer = new TestingRowConsumer(true);
-        plan.execute(
-            mock(DependencyCarrier.class, Answers.RETURNS_MOCKS),
-            executor.getPlannerContext(clusterService.state()),
-            consumer,
-            Row.EMPTY,
-            SubQueryResults.EMPTY
-        );
-        return consumer;
-    }
 
     @Before
     public void setup() {
@@ -92,16 +74,16 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_declare_fails_if_cursor_already_exists() throws Exception {
-        executePlan(executor, executor.plan("declare c1 no scroll cursor for select 1"));
+        executor.execute("declare c1 no scroll cursor for select 1");
         Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
-        assertThatThrownBy(() -> executePlan(executor, plan).getBucket())
+        assertThatThrownBy(() -> executor.execute(plan).getBucket())
             .hasMessage("Cursor `c1` already exists");
     }
 
     @Test
     public void test_fetch_has_query_outputs() throws Exception {
         Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
-        executePlan(executor, plan);
+        executor.execute(plan);
         AnalyzedFetch fetch = executor.analyze("fetch from c1");
         assertThat(fetch.outputs()).satisfiesExactly(
             s -> assertThat(s).hasToString("1")
@@ -109,13 +91,13 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_close_closes_and_removes_cursor() {
+    public void test_close_closes_and_removes_cursor() throws Exception {
         Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
-        executePlan(executor, plan);
+        executor.execute(plan);
 
         assertThat(executor.cursors.size()).isEqualTo(1);
 
-        executePlan(executor, executor.plan("CLOSE ALL"));
+        executor.execute("CLOSE ALL");
 
         assertThat(executor.cursors.size()).isEqualTo(0);
     }
@@ -123,7 +105,7 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_close_fails_if_cursor_does_not_exist() {
         Plan plan = executor.plan("close c1");
-        assertThatThrownBy(() -> executePlan(executor, plan).getBucket())
+        assertThatThrownBy(() -> executor.execute(plan).getBucket())
             .hasMessage("No cursor named `c1` available");
     }
 
@@ -131,7 +113,7 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
     public void test_declare_fails_without_hold_if_not_in_transaction() {
         executor.transactionState = TransactionState.IDLE;
         Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
-        assertThatThrownBy(() -> executePlan(executor, plan).getBucket())
+        assertThatThrownBy(() -> executor.execute(plan).getBucket())
             .hasMessage("DECLARE CURSOR can only be used in transaction blocks");
     }
 }

@@ -33,6 +33,7 @@ import static io.crate.role.Securable.SCHEMA;
 import static io.crate.role.Securable.TABLE;
 import static io.crate.role.Securable.VIEW;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
@@ -46,9 +47,7 @@ import io.crate.role.Permission;
 import io.crate.role.Policy;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
-import io.crate.role.RoleManager;
 import io.crate.role.Securable;
-import io.crate.role.StubRoleManager;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -59,7 +58,6 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final Role GRANTOR_TEST_USER = RolesHelper.userOf("test");
 
-    private static final RoleManager ROLE_MANAGER = new StubRoleManager();
 
     private SQLExecutor e;
 
@@ -71,7 +69,6 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table my_schema.locations (id int)")
             .addView(new RelationName("my_schema", "locations_view"),
                      "select * from my_schema.locations limit 2")
-            .setUserManager(ROLE_MANAGER)
             .build();
     }
 

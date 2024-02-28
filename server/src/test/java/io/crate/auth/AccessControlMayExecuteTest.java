@@ -45,22 +45,17 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
 
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
-import io.crate.data.Row;
-import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
-import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
@@ -157,17 +152,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                     "function foo(i) { return i; }")
             )
             .build();
-    }
-
-    private void executePlan(Plan plan) {
-        TestingRowConsumer consumer = new TestingRowConsumer(true);
-        plan.execute(
-            mock(DependencyCarrier.class, Answers.RETURNS_MOCKS),
-            e.getPlannerContext(clusterService.state()),
-            consumer,
-            Row.EMPTY,
-            SubQueryResults.EMPTY
-        );
     }
 
     private void analyze(String stmt) {
@@ -783,7 +767,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_fetch_from_cursor_is_allowed_if_user_could_declare_it() throws Exception {
         Plan plan = e.plan("declare c1 no scroll cursor for select 1");
         e.transactionState = TransactionState.IN_TRANSACTION;
-        executePlan(plan);
+        e.execute(plan);
         analyze("fetch from c1");
     }
 
@@ -791,7 +775,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_close_cursor_is_allowed_if_user_could_declare_it() throws Exception {
         Plan plan = e.plan("declare c1 no scroll cursor for select 1");
         e.transactionState = TransactionState.IN_TRANSACTION;
-        executePlan(plan);
+        e.execute(plan);
         analyze("close c1");
     }
 
