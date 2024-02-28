@@ -49,7 +49,7 @@ public class TransportRoleActionTest extends ESTestCase {
     @Test
     public void testCreateFirstUser() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder();
-        TransportCreateRoleAction.putRole(mdBuilder, "root", true, null);
+        CreateRoleTask.putRole(mdBuilder, "root", true, null);
         RolesMetadata metadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         assertThat(metadata.roleNames()).containsExactly("root");
     }
@@ -58,14 +58,14 @@ public class TransportRoleActionTest extends ESTestCase {
     public void testCreateUserAlreadyExists() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
-        assertThat(TransportCreateRoleAction.putRole(mdBuilder, "Arthur", true, null)).isTrue();
+        assertThat(CreateRoleTask.putRole(mdBuilder, "Arthur", true, null)).isTrue();
     }
 
     @Test
     public void testCreateUser() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
-        TransportCreateRoleAction.putRole(mdBuilder, "Trillian", true, null);
+        CreateRoleTask.putRole(mdBuilder, "Trillian", true, null);
         RolesMetadata newMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         assertThat(newMetadata.roleNames()).containsExactlyInAnyOrder("Trillian", "Arthur");
     }
@@ -77,7 +77,7 @@ public class TransportRoleActionTest extends ESTestCase {
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        boolean res = TransportCreateRoleAction.putRole(mdBuilder, "RoleFoo", false, null);
+        boolean res = CreateRoleTask.putRole(mdBuilder, "RoleFoo", false, null);
         assertThat(res).isFalse();
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
             Map.of("Arthur", DUMMY_USERS.get("Arthur"),

@@ -22,28 +22,18 @@
 package io.crate.role;
 
 import java.io.IOException;
-import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateRoleRequest, WriteRoleResponse> {
 
@@ -78,54 +68,13 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
             throw new IllegalStateException("Cannot create new users/roles until all nodes are upgraded to 5.6");
         }
 
-        clusterService.submitStateUpdateTask("create_role [" + request.roleName() + "]",
-                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
-
-                    private boolean alreadyExists = false;
-
-                    @Override
-                    public ClusterState execute(ClusterState currentState) throws Exception {
-                        Metadata currentMetadata = currentState.metadata();
-                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                        alreadyExists = putRole(mdBuilder, request.roleName(), request.isUser(), request.secureHash());
-                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                    }
-
-                    @Override
-                    protected WriteRoleResponse newResponse(boolean acknowledged) {
-                        return new WriteRoleResponse(acknowledged, alreadyExists);
-                    }
-                });
+        CreateRoleTask createRoleTask = new CreateRoleTask(request);
+        createRoleTask.completionFuture().whenComplete(listener);
+        clusterService.submitStateUpdateTask("create_role [" + request.roleName() + "]", createRoleTask);
     }
 
     @Override
     protected ClusterBlockException checkBlock(CreateRoleRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
-    }
-
-    /**
-     * Puts a user into the meta data and creates an empty privileges set.
-     *
-     * @return boolean true if the user already exists, otherwise false
-     */
-    @VisibleForTesting
-    static boolean putRole(Metadata.Builder mdBuilder, String roleName, boolean isUser, @Nullable SecureHash secureHash) {
-        RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
-        UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-
-        UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
-        boolean exists = true;
-        if (newMetadata.contains(roleName) == false) {
-            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash));
-            exists = false;
-        } else if (newMetadata.equals(oldRolesMetadata)) {
-            // nothing changed, no need to update the cluster state
-            return exists;
-        }
-
-        assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
-        mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
-        return exists;
     }
 }
