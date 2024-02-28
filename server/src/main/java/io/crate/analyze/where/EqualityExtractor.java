@@ -37,7 +37,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
@@ -47,7 +46,6 @@ import io.crate.expression.operator.Operators;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.predicate.NotPredicate;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
@@ -121,10 +119,6 @@ public class EqualityExtractor {
                                      Symbol query,
                                      boolean shortCircuitOnMatchPredicateUnknown,
                                      TransactionContext txnCtx) {
-        if (new ColumnsUnderNotPredicateFinder().find(query, columns)) {
-            return EqMatches.NONE;
-        }
-
         var context = new ProxyInjectingVisitor.Context(columns);
         // Normalize the query so that any casts on literals are evaluated
         var normalizedQuery = normalizer.normalize(query, txnCtx);
@@ -366,6 +360,8 @@ public class EqualityExtractor {
             private final LinkedHashMap<ColumnIdent, Comparison> comparisons;
             private boolean proxyBelow;
             private final Set<Symbol> unknowns = new HashSet<>();
+            private boolean isUnderNotPredicate = false;
+            private boolean foundPKColumnUnderNot = false;
             private boolean isUnderOrOperator = false;
             private boolean foundNonPKColumnUnderOr = false;
             private boolean foundPKColumnUnderOr = false;
@@ -403,6 +399,9 @@ public class EqualityExtractor {
                 if (ctx.isUnderOrOperator) {
                     ctx.foundPKColumnUnderOr = true;
                 }
+                if (ctx.isUnderNotPredicate) {
+                    ctx.foundPKColumnUnderNot = true;
+                }
             } else {
                 if (ctx.isUnderOrOperator) {
                     ctx.foundNonPKColumnUnderOr = true;
@@ -416,6 +415,7 @@ public class EqualityExtractor {
         public Symbol visitFunction(Function function, Context ctx) {
             String functionName = function.name();
             List<Symbol> arguments = function.arguments();
+            boolean prevIsUnderNotPredicate = ctx.isUnderNotPredicate;
 
             if (functionName.equals(EqOperator.NAME)) {
                 Symbol firstArg = arguments.get(0).accept(this, ctx);
@@ -437,12 +437,15 @@ public class EqualityExtractor {
                     }
                 }
             } else if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
-                if (OrOperator.NAME.equals(functionName)) {
-                    ctx.isUnderOrOperator = true;
-                } else if (AndOperator.NAME.equals(functionName)) {
-                    ctx.isUnderOrOperator = false;
-                    ctx.foundNonPKColumnUnderOr = false;
-                    ctx.foundPKColumnUnderOr = false;
+                switch (functionName) {
+                    case OrOperator.NAME -> ctx.isUnderOrOperator = true;
+                    case NotPredicate.NAME -> ctx.isUnderNotPredicate = true;
+                    case AndOperator.NAME -> {
+                        ctx.isUnderOrOperator = false;
+                        ctx.foundNonPKColumnUnderOr = false;
+                        ctx.foundPKColumnUnderOr = false;
+                    }
+                    default -> throw new IllegalStateException("Unexpected function: " + functionName);
                 }
                 boolean proxyBelowPre = ctx.proxyBelow;
                 boolean proxyBelowPost = proxyBelowPre;
@@ -452,9 +455,10 @@ public class EqualityExtractor {
                     newArgs.add(arg.accept(this, ctx));
                     proxyBelowPost = ctx.proxyBelow || proxyBelowPost;
                 }
-                if (ctx.foundPKColumnUnderOr && ctx.foundNonPKColumnUnderOr) {
+                if ((ctx.foundPKColumnUnderOr && ctx.foundNonPKColumnUnderOr) || ctx.foundPKColumnUnderNot) {
                     return null;
                 }
+                ctx.isUnderNotPredicate = prevIsUnderNotPredicate;
                 ctx.proxyBelow = proxyBelowPost;
                 if (!ctx.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
                     return Literal.BOOLEAN_TRUE;
@@ -463,37 +467,6 @@ public class EqualityExtractor {
             }
             ctx.unknowns.add(function);
             return Literal.BOOLEAN_TRUE;
-        }
-    }
-
-    @VisibleForTesting
-    static class ColumnsUnderNotPredicateFinder extends DefaultTraversalSymbolVisitor<Collection<ColumnIdent>, Void> {
-
-        private boolean isUnderNotPredicate = false;
-        private boolean foundColumnUnderOrPredicate = false;
-
-        public boolean find(Symbol query, Collection<ColumnIdent> columnIdents) {
-            query.accept(this, columnIdents);
-            return foundColumnUnderOrPredicate;
-        }
-
-        @Override
-        public Void visitFunction(Function symbol, Collection<ColumnIdent> columnIdents) {
-            if (NotPredicate.NAME.equals(symbol.name())) {
-                boolean isAlreadyUnderNotPredicate = isUnderNotPredicate;
-                isUnderNotPredicate = true;
-                symbol.arguments().get(0).accept(this, columnIdents);
-                isUnderNotPredicate = isAlreadyUnderNotPredicate;
-            } else {
-                super.visitFunction(symbol, columnIdents);
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitReference(Reference symbol, Collection<ColumnIdent> columnIdents) {
-            foundColumnUnderOrPredicate |= columnIdents.contains(symbol.column()) && isUnderNotPredicate;
-            return null;
         }
     }
 }
