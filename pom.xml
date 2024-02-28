@@ -195,6 +195,7 @@
             <addModule>jdk.jfr</addModule>
 
             <addModule>jdk.jcmd</addModule>
+            <addModule>jdk.jdwp.agent</addModule>
           </addModules>
         </configuration>
       </plugin>
