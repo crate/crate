@@ -123,6 +123,8 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -909,9 +911,9 @@ public class SQLExecutor {
             planStats
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
-        if (plan instanceof LogicalPlan) {
-            return (T) ((LogicalPlan) plan).build(
-                mock(DependencyCarrier.class),
+        if (plan instanceof LogicalPlan logicalPlan) {
+            return (T) logicalPlan.build(
+                dependencyMock,
                 plannerContext,
                 Set.of(),
                 new ProjectionBuilder(nodeCtx),
@@ -939,6 +941,22 @@ public class SQLExecutor {
 
     public <T> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0);
+    }
+
+    public TestingRowConsumer execute(String statement, Object ... params) throws Exception {
+        return execute((Plan) plan(statement), params);
+    }
+
+    public TestingRowConsumer execute(Plan plan, Object ... params) throws Exception {
+        var consumer = new TestingRowConsumer();
+        plan.execute(
+            dependencyMock,
+            getPlannerContext(planner.currentClusterState()),
+            consumer,
+            new RowN(params),
+            SubQueryResults.EMPTY
+        );
+        return consumer;
     }
 
     public void updateTableStats(Map<RelationName, Stats> stats) {

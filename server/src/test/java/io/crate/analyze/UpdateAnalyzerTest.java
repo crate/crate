@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isFunction;
@@ -28,6 +29,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -35,7 +37,6 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -48,9 +49,7 @@ import org.junit.Test;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
-import io.crate.data.Row1;
 import io.crate.data.RowN;
-import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
@@ -70,11 +69,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.DependencyCarrier;
-import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -149,7 +145,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set name=name");
         assertThat(update.assignmentByTargetCol().size(), is(1));
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
-        Asserts.assertThat(value).isReference().hasName("name");
+        assertThat(value).isReference().hasName("name");
     }
 
     @Test
@@ -157,7 +153,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set other_id=other_id+1");
         assertThat(update.assignmentByTargetCol().size(), is(1));
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
-        Asserts.assertThat(value).isFunction("add");
+        assertThat(value).isFunction("add");
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -204,7 +200,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertTrue(update.assignmentByTargetCol().containsKey(ref));
 
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
-        Asserts.assertThat(value).isLiteral("Trillian");
+        assertThat(value).isLiteral("Trillian");
     }
 
     @Test
@@ -235,7 +231,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
         Symbol[] sources = assignments.bindSources(
             ((DocTableInfo) update.table().tableInfo()), Row.EMPTY, SubQueryResults.EMPTY);
-        Asserts.assertThat(sources[0]).isLiteral(9L);
+        assertThat(sources[0]).isLiteral(9L);
     }
 
     @Test
@@ -248,19 +244,19 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNoWhereClause() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set other_id=9");
-        Asserts.assertThat(update.query()).isLiteral(true);
+        assertThat(update.query()).isLiteral(true);
     }
 
     @Test
     public void testNoMatchWhereClause() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set other_id=9 where true=false");
-        Asserts.assertThat(update.query()).isLiteral(false);
+        assertThat(update.query()).isLiteral(false);
     }
 
     @Test
     public void testUpdateWhereClause() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set other_id=9 where name='Trillian'");
-        Asserts.assertThat(update.query()).isFunction(EqOperator.NAME, isReference("name"), isLiteral("Trillian"));
+        assertThat(update.query()).isFunction(EqOperator.NAME, isReference("name"), isLiteral("Trillian"));
     }
 
     @Test
@@ -284,7 +280,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(update.assignmentByTargetCol().get(friendsRef), instanceOf(ParameterSymbol.class));
         assertThat(update.assignmentByTargetCol().get(otherId), instanceOf(ParameterSymbol.class));
 
-        Asserts.assertThat(update.query())
+        assertThat(update.query())
             .isFunction(EqOperator.NAME, isReference("id"), exactlyInstanceOf(ParameterSymbol.class));
     }
 
@@ -437,14 +433,14 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUsingFQColumnNameShouldBePossibleInWhereClause() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set name = 'foo' where users.name != 'foo'");
-        Asserts.assertThat(update.query())
+        assertThat(update.query())
             .isFunction(NotPredicate.NAME, isFunction(EqOperator.NAME, isReference("name"), isLiteral("foo")));
     }
 
     @Test
     public void testTestUpdateOnTableWithAliasAndFQColumnNameInWhereClause() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users  t set name = 'foo' where t.name != 'foo'");
-        Asserts.assertThat(update.query())
+        assertThat(update.query())
             .isFunction(NotPredicate.NAME, isFunction(EqOperator.NAME, isReference("name"), isLiteral("foo")));
     }
 
@@ -464,87 +460,87 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWhereVersionUsingWrongOperator() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set text = ? where text = ? and \"_version\" >= ?"),
-            new RowN(new Object[]{"already in panic", "don't panic", 3}));
+        String stmt = "update users set text = ? where text = ? and \"_version\" >= ?";
+        assertThatThrownBy(() -> e.execute(stmt, "already in panic", "don't panic", 3).getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
     public void testUpdateWhereVersionIsColumn() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set col2 = ? where _version = id"), new Row1(1));
+        assertThatThrownBy(() -> e.execute("update users set col2 = ? where _version = id", 1).getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
     public void testUpdateWhereVersionInOperatorColumn() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set col2 = 'x' where _version in (1,2,3)"), Row.EMPTY);
+        assertThatThrownBy(() -> e.execute("update users set col2 = 'x' where _version in (1,2,3)").getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
     public void testUpdateWhereVersionOrOperatorColumn() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set col2 = ? where _version = 1 or _version = 2"), new Row1(1));
+        assertThatThrownBy(() -> e.execute("update users set col2 = ? where _version = 1 or _version = 2", 1).getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
 
     @Test
     public void testUpdateWhereVersionAddition() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set col2 = ? where _version + 1 = 2"), new Row1(1));
+        assertThatThrownBy(() -> e.execute("update users set col2 = ? where _version + 1 = 2", 1).getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
     public void testUpdateWhereVersionNotPredicate() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set text = ? where not (_version = 1 and id = 1)"), new Row1(1));
+        assertThatThrownBy(() -> e.execute("update users set text = ? where not (_version = 1 and id = 1)", 1).getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
     public void testUpdateWhereVersionOrOperator() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set awesome = true where _version = 1 or _version = 2"), Row.EMPTY);
+        assertThatThrownBy(() -> e.execute("update users set awesome = true where _version = 1 or _version = 2").getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
     public void testUpdateWithVersionZero() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set awesome=true where name='Ford' and _version=0"), Row.EMPTY);
+        assertThatThrownBy(() -> e.execute("update users set awesome=true where name='Ford' and _version=0").getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
     public void testSelectWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        execute(e.plan("update users set col2 = 'x' where _version is null"), Row.EMPTY);
+        assertThatThrownBy(() -> e.execute("update users set col2 = 'x' where _version is null").getResult())
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
     public void testUpdateElementOfObjectArrayUsingParameterExpressionResultsInCorrectlyTypedParameterSymbol() {
         AnalyzedUpdateStatement stmt = e.analyze("UPDATE bag SET ob = [?] WHERE id = ?");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("ob", new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
             toCondition(isFunction("_array")));
-        Asserts.assertThat(stmt.assignmentByTargetCol().values())
-                .satisfiesExactly(l -> Asserts.assertThat(l)
+        assertThat(stmt.assignmentByTargetCol().values())
+                .satisfiesExactly(l -> assertThat(l)
                     .isFunction("_array", singletonList(DataTypes.UNTYPED_OBJECT)));
     }
 
     @Test
     public void testUpdateElementOfObjectArrayUsingParameterExpressionInsideFunctionResultsInCorrectlyTypedParameterSymbol() {
         AnalyzedUpdateStatement stmt = e.analyze("UPDATE bag SET ob = array_cat([?], [{obb=1}]) WHERE id = ?");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("ob", new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
             toCondition(isFunction("array_cat")));
-        Asserts.assertThat(stmt.assignmentByTargetCol().values()).satisfiesExactly(
+        assertThat(stmt.assignmentByTargetCol().values()).satisfiesExactly(
             isFunction("array_cat",
                 isFunction("_array", singletonList(DataTypes.UNTYPED_OBJECT)),
                        exactlyInstanceOf(Literal.class)));
@@ -554,30 +550,30 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_update_returning_with_asterisk_contains_all_columns_in_returning_clause() {
         AnalyzedUpdateStatement stmt = e.analyze(
             "UPDATE users SET name='noam' RETURNING *");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("name", DataTypes.STRING)),
             toCondition(isLiteral("noam")));
-        assertThat(stmt.outputs().size(), is(17));
+        assertThat(stmt.outputs()).hasSize(17);
     }
 
     @Test
     public void test_update_returning_with_single_value_in_returning_clause() {
         AnalyzedUpdateStatement stmt = e.analyze(
             "UPDATE users SET name='noam' RETURNING id AS foo");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("name", DataTypes.STRING)),
             toCondition(isLiteral("noam")));
-        Asserts.assertThat(stmt.outputs()).satisfiesExactly(isAlias("foo", isReference("id")));
+        assertThat(stmt.outputs()).satisfiesExactly(isAlias("foo", isReference("id")));
     }
 
     @Test
     public void test_update_returning_with_multiple_values_in_returning_clause() {
         AnalyzedUpdateStatement stmt = e.analyze(
             "UPDATE users SET name='noam' RETURNING id AS foo, name AS bar");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("name", DataTypes.STRING)),
             toCondition(isLiteral("noam")));
-        Asserts.assertThat(stmt.outputs()).satisfiesExactly(
+        assertThat(stmt.outputs()).satisfiesExactly(
             isAlias("foo", isReference("id")), isAlias("bar", isReference("name")));
     }
 
@@ -592,10 +588,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_update_returning_with_single_value_altered_in_returning_clause() {
         AnalyzedUpdateStatement stmt = e.analyze(
             "UPDATE users SET name='noam' RETURNING id + 1 AS foo");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("name", DataTypes.STRING)),
             toCondition(isLiteral("noam")));
-        Asserts.assertThat(stmt.outputs()).satisfiesExactly(
+        assertThat(stmt.outputs()).satisfiesExactly(
             isAlias("foo", isFunction("add", isReference("id"), isLiteral(1L))));
     }
 
@@ -603,10 +599,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_update_returning_with_multiple_values_altered_in_returning_clause() {
         AnalyzedUpdateStatement stmt = e.analyze(
             "UPDATE users SET name='noam' RETURNING id + 1 AS foo, id -1 as bar");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
                 toCondition(isReference("name", DataTypes.STRING)),
                 toCondition(isLiteral("noam")));
-        Asserts.assertThat(stmt.outputs()).satisfiesExactly(
+        assertThat(stmt.outputs()).satisfiesExactly(
             isAlias("foo", isFunction("add", isReference("id"), isLiteral(1L))),
             isAlias("bar", isFunction("subtract")));
     }
@@ -624,7 +620,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (o object as (a int[]))")
             .build();
         AnalyzedUpdateStatement stmt = e.analyze("update t set o['a'][1] = 10;");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("o['a']", DataTypes.INTEGER_ARRAY)),
             toCondition(isFunction("array_set",
                                    isReference("o['a']"),
@@ -692,7 +688,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         AnalyzedUpdateStatement stmt = e.analyze("update t set a[1] = {c=1}");
-        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+        assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("a", new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
             toCondition(isFunction("array_set",
                                    isReference("a"),
@@ -715,17 +711,5 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("update t set a[1] = 1, a = [0,0,0]"))
             .hasMessage("Target expression repeated: a")
             .isExactlyInstanceOf(IllegalArgumentException.class);
-    }
-
-    private List<Object[]> execute(Plan plan, Row params) throws Exception {
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        plan.execute(
-            mock(DependencyCarrier.class),
-            e.getPlannerContext(clusterService.state()),
-            consumer,
-            params,
-            SubQueryResults.EMPTY
-        );
-        return consumer.getResult();
     }
 }

@@ -23,18 +23,13 @@ package io.crate.planner.statement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
 import org.junit.Test;
 
-import io.crate.data.Row;
-import io.crate.data.testing.TestingRowConsumer;
-import io.crate.planner.DependencyCarrier;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
-import io.crate.planner.operators.SubQueryResults;
 import io.crate.role.Role;
 import io.crate.role.StubRoleManager;
 import io.crate.role.metadata.RolesHelper;
@@ -59,7 +54,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
         var sessionSettings = e.getSessionSettings();
         sessionSettings.setSessionUser(Role.CRATE_USER);
 
-        execute(e, e.plan("SET SESSION AUTHORIZATION " + user.name()));
+        e.execute("SET SESSION AUTHORIZATION " + user.name());
 
         assertThat(sessionSettings.sessionUser()).isEqualTo(user);
     }
@@ -72,7 +67,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
         sessionSettings.setSessionUser(RolesHelper.userOf("test"));
         assertThat(sessionSettings.sessionUser()).isNotEqualTo(sessionSettings.authenticatedUser());
 
-        execute(e, e.plan("SET SESSION AUTHORIZATION DEFAULT"));
+        e.execute("SET SESSION AUTHORIZATION DEFAULT");
 
         assertThat(sessionSettings.sessionUser()).isEqualTo(sessionSettings.authenticatedUser());
     }
@@ -81,20 +76,8 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
     public void test_set_session_auth_to_unknown_user_results_in_exception() throws Exception {
         var e = SQLExecutor.builder(clusterService).build();
         Plan plan = e.plan("SET SESSION AUTHORIZATION 'unknown_user'");
-        assertThatThrownBy(() -> execute(e, plan))
+        assertThatThrownBy(() -> e.execute(plan).getResult())
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("User 'unknown_user' does not exist.");
-    }
-
-    private void execute(SQLExecutor e, Plan plan) throws Exception {
-        var consumer = new TestingRowConsumer();
-        plan.execute(
-            mock(DependencyCarrier.class),
-            e.getPlannerContext(clusterService.state()),
-            consumer,
-            Row.EMPTY,
-            SubQueryResults.EMPTY
-        );
-        consumer.getResult();
     }
 }
