@@ -22,16 +22,9 @@
 package io.crate.analyze;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-
-import java.util.List;
 
 import org.junit.Test;
 
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.role.Role;
-import io.crate.role.RoleManagerService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -41,16 +34,6 @@ public class CreateUserMappingAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void test_cannot_create_user_mapping_for_unknown_user() {
         var e = SQLExecutor
             .builder(clusterService)
-            .setUserManager(
-                new RoleManagerService(
-                    null,
-                    null,
-                    null,
-                    null,
-                    mock(SysTableRegistry.class),
-                    () -> List.of(Role.CRATE_USER),
-                    new DDLClusterStateService())
-            )
             .build();
         assertThatThrownBy(() -> e.analyze("CREATE USER MAPPING FOR user1 SERVER pg"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
