@@ -45,11 +45,16 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexReference;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -84,10 +89,18 @@ public record ForeignTable(RelationName name,
         Settings.writeSettingsToStream(out, options);
     }
 
-    public static ForeignTable fromXContent(RelationName name, XContentParser parser) throws IOException {
+    public static ForeignTable fromXContent(NodeContext nodeCtx, RelationName name, XContentParser parser) throws IOException {
         Map<ColumnIdent, Reference> references = null;
         String server = null;
         Settings options = null;
+
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            CoordinatorTxnCtx.systemTransactionContext(),
+            nodeCtx,
+            ParamTypeHints.EMPTY,
+            FieldProvider.UNSUPPORTED,
+            null
+        );
 
         while (parser.nextToken() != END_OBJECT) {
             if (parser.currentToken() == FIELD_NAME) {
@@ -109,7 +122,7 @@ public record ForeignTable(RelationName name,
 
                         Map<String, Object> properties = parser.map();
                         DocTableInfoFactory.parseColumns(
-                            null,
+                            expressionAnalyzer,
                             name,
                             null,
                             Map.of(),
