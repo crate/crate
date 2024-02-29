@@ -21,11 +21,19 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
@@ -60,5 +68,32 @@ public final class RoundFunction {
                 }
             );
         }
+        module.register(
+            scalar(
+                NAME,
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            RoundFunction::roundWithPrecision
+        );
+    }
+
+    private static Scalar<Number, Number> roundWithPrecision(Signature signature, BoundSignature boundSignature) {
+        return new Scalar<>(signature,boundSignature) {
+            
+            @Override
+            public Number evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Number>... args) {
+                Number n = args[0].value();
+                Number nd = args[1].value();
+                if (n == null || nd == null) {
+                    return null;
+                }
+                double val = n.doubleValue();
+                int numDecimals = nd.intValue();
+                
+                return BigDecimal.valueOf(val).setScale(numDecimals, RoundingMode.HALF_UP).doubleValue();
+            }
+        };
     }
 }
