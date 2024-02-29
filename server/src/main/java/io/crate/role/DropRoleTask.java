@@ -21,7 +21,10 @@
 
 package io.crate.role;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
 
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -29,6 +32,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Priority;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.fdw.ServersMetadata;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -46,6 +50,7 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
     @Override
     public ClusterState execute(ClusterState currentState) throws Exception {
         Metadata currentMetadata = currentState.metadata();
+        ensureUserDoesNotOwnForeignServers(currentMetadata, request.roleName());
         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
         alreadyExists = dropRole(
             mdBuilder,
@@ -87,6 +92,27 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
                 throw new IllegalArgumentException(
                     "Cannot drop ROLE: " + roleNameToDrop + " as it is granted on role: " + role.name());
             }
+        }
+    }
+
+    private static void ensureUserDoesNotOwnForeignServers(Metadata metadata, String roleName) {
+        ServersMetadata serversMetadata = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        List<String> serversOwned = new ArrayList<>();
+        serversMetadata.forEach(
+            server -> {
+                if (roleName.equals(server.owner())) {
+                    serversOwned.add(server.name());
+                }
+            }
+        );
+        if (!serversOwned.isEmpty()) {
+            throw new IllegalStateException(
+                String.format(
+                    Locale.ENGLISH,
+                    "User '%s' cannot be dropped. %s '%s' needs to be dropped first.",
+                    roleName,
+                    "The user mappings for foreign servers", serversOwned)
+            );
         }
     }
 }

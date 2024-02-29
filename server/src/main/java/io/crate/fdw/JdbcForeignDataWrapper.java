@@ -27,7 +27,6 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
@@ -49,7 +48,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.role.Role;
-import io.crate.types.DataTypes;
 
 final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
@@ -65,6 +63,12 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         tableName
     );
 
+    private final Setting<String> foreignUser = Setting.simpleString("user");
+    private final Setting<String> foreignPw = Setting.simpleString("password");
+    private final List<Setting<?>> optionalUserOptions = List.of(
+        foreignUser,
+        foreignPw
+    );
 
     JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory) {
         this.settings = settings;
@@ -82,21 +86,26 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     }
 
     @Override
+    public List<Setting<?>> optionalUserOptions() {
+        return optionalUserOptions;
+    }
+
+    @Override
     public CompletableFuture<BatchIterator<Row>> getIterator(Role currentUser,
                                                              Server server,
                                                              ForeignTable foreignTable,
                                                              TransactionContext txnCtx,
                                                              List<Symbol> collect) {
         SessionSettings sessionSettings = txnCtx.sessionSettings();
-        Map<String, Object> userOptions = server.users().get(sessionSettings.userName());
+        Settings userOptions = server.users().get(sessionSettings.userName());
         if (userOptions == null) {
-            userOptions = Map.of();
+            userOptions = Settings.EMPTY;
         }
-        String user = DataTypes.STRING.implicitCast(userOptions.get("user"));
-        String password = DataTypes.STRING.implicitCast(userOptions.get("password"));
+        String user = foreignUser.get(userOptions);
+        String password = foreignPw.get(userOptions);
         var properties = new Properties();
-        properties.setProperty("user", user == null ? sessionSettings.userName() : user);
-        if (password != null) {
+        properties.setProperty("user", user.isEmpty() ? sessionSettings.userName() : user);
+        if (password.isEmpty()) {
             properties.setProperty("password", password);
         }
 

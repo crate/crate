@@ -316,4 +316,46 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             "Dom| CH"
         );
     }
+
+    @Test
+    public void test_mask_foreign_password_from_user_mapping_options_table() {
+        execute("create user trillian with (password = 'user1pw')");
+        execute("create user arthur with (password = 'user2pw')");
+        execute("grant al to trillian");
+        execute("grant al to arthur");
+
+        var roles = cluster().getInstance(Roles.class);
+        Role trillian = roles.findUser("trillian");
+        sqlExecutor.executeAs("""
+            CREATE SERVER pg
+            FOREIGN DATA WRAPPER jdbc
+            OPTIONS (url 'jdbc:postgresql://example.com:5432/');
+            """, trillian);
+        sqlExecutor.executeAs("""
+            CREATE FOREIGN TABLE doc.remote_documents (name text)
+            SERVER pg
+            OPTIONS (schema_name 'public', table_name 'documents');
+            """, trillian);
+        sqlExecutor.executeAs("""
+            CREATE USER MAPPING FOR trillian
+            SERVER pg
+            OPTIONS ("user" 'foreign-user', password 'foreign-pw');
+            """, trillian);
+
+        // trillian can see the pw because trillian is being mapped
+        var response = sqlExecutor.executeAs("select * from information_schema.user_mapping_options where option_name = 'password'", trillian);
+        assertThat(response).hasRows("trillian| crate| pg| password| foreign-pw");
+
+        // arthur cannot see the pw because arthur is not being mapped nor is a superuser
+        response = sqlExecutor.executeAs("select * from information_schema.user_mapping_options where option_name = 'password'",
+            roles.findUser("arthur"));
+        assertThat(response).hasRows("trillian| crate| pg| password| NULL");
+
+        // superuser can see the pw
+        response = execute("select * from information_schema.user_mapping_options where option_name = 'password'");
+        assertThat(response).hasRows("trillian| crate| pg| password| foreign-pw");
+
+        execute("drop user mapping for trillian server pg");
+        assertThat(execute("select * from information_schema.user_mapping_options where option_name = 'password'")).isEmpty();
+    }
 }

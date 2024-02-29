@@ -31,9 +31,8 @@ Parameters
 ==========
 
 :name:
-
-The name of the server to drop. Separate multiple names by comma to drop
-multiple servers at once.
+  The name of the server to drop. Separate multiple names by comma to drop
+  multiple servers at once.
 
 
 Clauses
@@ -51,7 +50,7 @@ any servers listed don't exist.
 ----------------------
 
 ``RESTRICT`` causes ``DROP SERVER`` to raise an error if any foreign table or
-user mappings for the given servers exist. This is the default
+user mappings for the given servers exist. This is the default.
 
 ``CASCADE`` instead causes ``DROP SERVER`` to also delete all foreign tables and
 mapped users using the given servers.

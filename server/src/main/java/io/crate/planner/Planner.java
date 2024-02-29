@@ -650,7 +650,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, PlannerContext context) {
-        return new CreateUserMappingPlan(createUserMapping);
+        return new CreateUserMappingPlan(foreignDataWrappers, createUserMapping);
     }
 
     @Override

@@ -21,101 +21,63 @@
 
 package io.crate.planner.statement;
 
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Before;
+import java.util.List;
+
 import org.junit.Test;
 
-import io.crate.auth.AccessControl;
-import io.crate.data.Row;
-import io.crate.data.testing.TestingRowConsumer;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.planner.DependencyCarrier;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
-import io.crate.planner.operators.SubQueryResults;
+import io.crate.role.Role;
+import io.crate.role.StubRoleManager;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.role.Role;
-import io.crate.role.RoleManager;
 
 public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e;
-    private RoleManager roleManager;
-
-    @Before
-    public void beforeEach() {
-        roleManager = mock(RoleManager.class);
-        when(roleManager.getAccessControl(any(CoordinatorSessionSettings.class)))
-            .thenReturn(AccessControl.DISABLED);
-        e = SQLExecutor.builder(clusterService).setUserManager(roleManager).build();
-    }
-
     @Test
     public void test_set_local_session_auth_results_in_noop() {
-        assertThat(
-            e.plan("SET LOCAL SESSION AUTHORIZATION DEFAULT"),
-            instanceOf(NoopPlan.class)
-        );
+        var e = SQLExecutor.builder(clusterService).build();
+        assertThat((Plan) e.plan("SET LOCAL SESSION AUTHORIZATION DEFAULT"))
+            .isExactlyInstanceOf(NoopPlan.class);
     }
 
     @Test
     public void test_set_session_auth_modifies_the_session_user() throws Exception {
+        var user = RolesHelper.userOf("test");
+        var e = SQLExecutor.builder(clusterService)
+            .setUserManager(new StubRoleManager(List.of(user, Role.CRATE_USER)))
+            .build();
         var sessionSettings = e.getSessionSettings();
         sessionSettings.setSessionUser(Role.CRATE_USER);
-        var user = RolesHelper.userOf("test");
-        when(roleManager.findUser(eq(user.name()))).thenReturn(user);
 
-        execute(e.plan("SET SESSION AUTHORIZATION " + user.name()));
+        e.execute("SET SESSION AUTHORIZATION " + user.name());
 
-        assertThat(sessionSettings.sessionUser(), is(user));
+        assertThat(sessionSettings.sessionUser()).isEqualTo(user);
     }
 
     @Test
     public void test_set_session_auth_to_default_sets_session_user_to_authenticated_user() throws Exception {
+        var e = SQLExecutor.builder(clusterService).build();
+
         var sessionSettings = e.getSessionSettings();
         sessionSettings.setSessionUser(RolesHelper.userOf("test"));
-        assertThat(
-            sessionSettings.sessionUser(),
-            is(not(sessionSettings.authenticatedUser()))
-        );
+        assertThat(sessionSettings.sessionUser()).isNotEqualTo(sessionSettings.authenticatedUser());
 
-        execute(e.plan("SET SESSION AUTHORIZATION DEFAULT"));
+        e.execute("SET SESSION AUTHORIZATION DEFAULT");
 
-        assertThat(
-            sessionSettings.sessionUser(),
-            is(sessionSettings.authenticatedUser())
-        );
+        assertThat(sessionSettings.sessionUser()).isEqualTo(sessionSettings.authenticatedUser());
     }
 
     @Test
     public void test_set_session_auth_to_unknown_user_results_in_exception() throws Exception {
-        when(roleManager.findUser(eq("unknown_user"))).thenReturn(null);
+        var e = SQLExecutor.builder(clusterService).build();
         Plan plan = e.plan("SET SESSION AUTHORIZATION 'unknown_user'");
-
-        expectedException.expectMessage("User 'unknown_user' does not exist.");
-        expectedException.expect(IllegalArgumentException.class);
-        execute(plan);
-    }
-
-    private void execute(Plan plan) throws Exception {
-        var consumer = new TestingRowConsumer();
-        plan.execute(
-            mock(DependencyCarrier.class),
-            e.getPlannerContext(clusterService.state()),
-            consumer,
-            Row.EMPTY,
-            SubQueryResults.EMPTY
-        );
-        consumer.getResult();
+        assertThatThrownBy(() -> e.execute(plan).getResult())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("User 'unknown_user' does not exist.");
     }
 }

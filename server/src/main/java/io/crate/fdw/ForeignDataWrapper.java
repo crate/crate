@@ -43,6 +43,10 @@ public interface ForeignDataWrapper {
         return List.of();
     }
 
+    default List<Setting<?>> optionalUserOptions() {
+        return List.of();
+    }
+
     CompletableFuture<BatchIterator<Row>> getIterator(Role user,
                                                       Server server,
                                                       ForeignTable foreignTable,
