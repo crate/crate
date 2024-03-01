@@ -21,6 +21,7 @@
 
 package io.crate.role;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -33,9 +34,24 @@ public class AlterRoleRequest extends AcknowledgedRequest<AlterRoleRequest> {
     private final String roleName;
     private final SecureHash secureHash;
 
-    public AlterRoleRequest(String roleName, @Nullable SecureHash secureHash) {
+    @Nullable
+    private final JwtProperties jwtProperties;
+
+    private final boolean resetPassword;
+
+    private final boolean resetJwtProperties;
+
+
+    public AlterRoleRequest(String roleName,
+                            @Nullable SecureHash secureHash,
+                            @Nullable JwtProperties jwtProperties,
+                            boolean resetPassword,
+                            boolean resetJwtProperties) {
         this.roleName = roleName;
         this.secureHash = secureHash;
+        this.jwtProperties = jwtProperties;
+        this.resetPassword = resetPassword;
+        this.resetJwtProperties = resetJwtProperties;
     }
 
     public String roleName() {
@@ -47,10 +63,32 @@ public class AlterRoleRequest extends AcknowledgedRequest<AlterRoleRequest> {
         return secureHash;
     }
 
+    @Nullable
+    public JwtProperties jwtProperties() {
+        return jwtProperties;
+    }
+
+    public boolean resetPassword() {
+        return resetPassword;
+    }
+
+    public boolean resetJwtProperties() {
+        return resetJwtProperties;
+    }
+
     public AlterRoleRequest(StreamInput in) throws IOException {
         super(in);
         roleName = in.readString();
         secureHash = in.readOptionalWriteable(SecureHash::readFrom);
+        if (in.getVersion().onOrAfter(Version.V_5_7_0)) {
+            this.jwtProperties = in.readOptionalWriteable(JwtProperties::readFrom);
+            this.resetPassword = in.readBoolean();
+            this.resetJwtProperties = in.readBoolean();
+        } else {
+            this.jwtProperties = null;
+            this.resetPassword = false;
+            this.resetJwtProperties = false;
+        }
     }
 
     @Override
@@ -58,5 +96,10 @@ public class AlterRoleRequest extends AcknowledgedRequest<AlterRoleRequest> {
         super.writeTo(out);
         out.writeString(roleName);
         out.writeOptionalWriteable(secureHash);
+        if (out.getVersion().onOrAfter(Version.V_5_7_0)) {
+            out.writeOptionalWriteable(jwtProperties);
+            out.writeBoolean(resetPassword);
+            out.writeBoolean(resetJwtProperties);
+        }
     }
 }

@@ -85,7 +85,7 @@ public class CreateRolePlan implements Plan {
                                                     "use CREATE USER instead");
         }
 
-        JwtProperties jwtProperties = JwtProperties.fromMap(Maps.getOrDefault(properties, JWT_PROPERTY_KEY, Map.of()));
+        JwtProperties jwtProperties = JwtProperties.fromMap(Maps.get(properties, JWT_PROPERTY_KEY));
 
         roleManager.createRole(createRole.roleName(), createRole.isUser(), newPassword, jwtProperties)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));

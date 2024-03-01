@@ -292,4 +292,15 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             .hasHTTPError(CONFLICT, 4099)
             .hasMessageContaining("Another role with the same combination of jwt properties already exists");
     }
+
+    @Test
+    public void test_alter_user_jwt_properties() {
+        execute("CREATE USER user1 WITH (password = 'pwd', jwt = {\"iss\" = 'issuer1', \"username\" = 'user1'})");
+        execute("CREATE USER user2 WITH (password = 'pwd', jwt = {\"iss\" = 'issuer2', \"username\" = 'user2'})");
+        // Updating JWT properties clashes with JWT properties of an existing user.
+        Asserts.assertSQLError(() -> execute("ALTER USER user1 set (jwt = {\"iss\" = 'issuer2', \"username\" = 'user2'})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(CONFLICT, 4099)
+            .hasMessageContaining("Another role with the same combination of jwt properties already exists");
+    }
 }

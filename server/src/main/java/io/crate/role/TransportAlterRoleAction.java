@@ -40,6 +40,7 @@ import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
@@ -90,8 +91,15 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
                         roleExists = alterRole(
                                 mdBuilder,
                                 request.roleName(),
-                                request.secureHash()
+                                request.secureHash(),
+                                request.jwtProperties(),
+                                request.resetPassword(),
+                                request.resetJwtProperties()
                         );
+                        RolesMetadata updatedRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
+                        if (updatedRolesMetadata.contains(request.jwtProperties())) {
+                            throw new RoleAlreadyExistsException("Another role with the same combination of jwt properties already exists");
+                        }
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
 
@@ -103,7 +111,12 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
     }
 
     @VisibleForTesting
-    static boolean alterRole(Metadata.Builder mdBuilder, String roleName, @Nullable SecureHash secureHash) {
+    static boolean alterRole(Metadata.Builder mdBuilder,
+                             String roleName,
+                             @Nullable SecureHash secureHash,
+                             @Nullable JwtProperties jwtProperties,
+                             boolean resetPassword,
+                             boolean resetJwtProperties) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         if (oldUsersMetadata == null && oldRolesMetadata == null) {
@@ -115,10 +128,19 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
         boolean exists = false;
         var role = newMetadata.roles().get(roleName);
         if (role != null) {
-            if (role.isUser() == false && secureHash != null) {
-                throw new UnsupportedFeatureException("Setting a password to a ROLE is not allowed");
+            if (role.isUser() == false) {
+                if (secureHash != null || resetPassword) {
+                    throw new UnsupportedFeatureException("Setting a password to a ROLE is not allowed");
+                }
+                if (jwtProperties != null || resetJwtProperties) {
+                    throw new UnsupportedFeatureException("Setting JWT properties to a ROLE is not allowed");
+                }
             }
-            newMetadata.roles().put(roleName, role.with(secureHash));
+
+            var newSecureHash = secureHash != null ? secureHash : (resetPassword ? null : role.password());
+            var newJwtProperties = jwtProperties != null ? jwtProperties : (resetJwtProperties ? null : role.jwtProperties());
+
+            newMetadata.roles().put(roleName, role.with(newSecureHash, newJwtProperties));
             exists = true;
         }
         if (newMetadata.equals(oldRolesMetadata)) {

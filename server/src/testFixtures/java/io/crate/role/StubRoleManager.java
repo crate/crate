@@ -57,7 +57,11 @@ public class StubRoleManager implements RoleManager {
     }
 
     @Override
-    public CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw) {
+    public CompletableFuture<Long> alterRole(String roleName,
+                                             @Nullable SecureHash newHashedPw,
+                                             @Nullable JwtProperties newJwtProperties,
+                                             boolean resetPassword,
+                                             boolean resetJwtProperties) {
         return CompletableFuture.failedFuture(new UnsupportedFeatureException("alterRole is not implemented in StubRoleManager"));
     }
 
