@@ -32,7 +32,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
@@ -50,8 +49,8 @@ public record JwtProperties(String iss, String username) implements Writeable, T
     }
 
     @Nullable
-    public static JwtProperties fromMap(@NotNull Map<String, Object> jwtPropertiesMap) {
-        if (jwtPropertiesMap.isEmpty() == false) {
+    public static JwtProperties fromMap(@Nullable Map<String, Object> jwtPropertiesMap) {
+        if (jwtPropertiesMap != null && jwtPropertiesMap.isEmpty() == false) {
             String iss = Maps.get(jwtPropertiesMap, "iss");
             ensureNotNull("iss", iss);
             String username = Maps.get(jwtPropertiesMap, "username");

@@ -137,13 +137,20 @@ public class RoleManagerService implements RoleManager {
     }
 
     @Override
-    public CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw) {
-        return transportAlterRoleAction.execute(new AlterRoleRequest(roleName, newHashedPw), r -> {
-            if (r.doesUserExist() == false) {
-                throw new RoleUnknownException(roleName);
+    public CompletableFuture<Long> alterRole(String roleName,
+                                             @Nullable SecureHash newHashedPw,
+                                             @Nullable JwtProperties newJwtProperties,
+                                             boolean resetPassword,
+                                             boolean resetJwtProperties) {
+        return transportAlterRoleAction.execute(
+            new AlterRoleRequest(roleName, newHashedPw, newJwtProperties, resetPassword, resetJwtProperties),
+            r -> {
+                if (r.doesUserExist() == false) {
+                    throw new RoleUnknownException(roleName);
+                }
+                return 1L;
             }
-            return 1L;
-        });
+        );
     }
 
     public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames,
