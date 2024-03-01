@@ -88,7 +88,13 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
                     public ClusterState execute(ClusterState currentState) throws Exception {
                         Metadata currentMetadata = currentState.metadata();
                         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                        alreadyExists = putRole(mdBuilder, request.roleName(), request.isUser(), request.secureHash(), request.jwtProperties());
+                        alreadyExists = putRole(
+                            mdBuilder,
+                            request.roleName(),
+                            request.isUser(),
+                            request.secureHash(),
+                            request.jwtProperties()
+                        );
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
 

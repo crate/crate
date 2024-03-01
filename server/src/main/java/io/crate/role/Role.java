@@ -165,10 +165,16 @@ public class Role implements Writeable, ToXContent {
         return new Role(name, new RolePrivileges(privileges), grantedRoles, properties, false);
     }
 
-    public Role with(SecureHash password) {
-        return new Role(name, privileges, grantedRoles, new Properties(properties.login, password, properties.jwtProperties), false);
+    public Role with(@Nullable SecureHash password,
+                     @Nullable JwtProperties jwtProperties) {
+        return new Role(
+            name,
+            privileges,
+            grantedRoles,
+            new Properties(properties.login, password, jwtProperties),
+            false
+        );
     }
-
 
     public String name() {
         return name;

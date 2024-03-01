@@ -55,6 +55,17 @@ are supported to alter an existing user account:
     For security reasons it is recommended to authenticate as ``crate`` using a
     client certificate.
 
+:jwt:
+  JWT properties map (``iss`` and ``username``) entered as a string literal.
+  e.g.::
+
+     ALTER USER john WITH (jwt = {"iss" = 'new_issuer', "username" = 'john.smith'})
+
+  New JWT properties must not coincide with JWT properties of another user.
+
+  ``NULL`` removes the JWT properties from the user.
+
 .. NOTE::
 
-   Passwords can be set only to existing database users, but not to roles.
+   Passwords and JWT properties can be changed only for existing database
+   users, but not to roles.
