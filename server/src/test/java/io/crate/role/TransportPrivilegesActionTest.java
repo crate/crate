@@ -64,7 +64,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
             new PrivilegesRequest(Collections.singletonList("Ford"), Collections.singletonList(DENY_DQL), null);
 
         //when
-        TransportPrivilegesAction.applyPrivileges(rolesMap::values, mdBuilder, denyPrivilegeRequest);
+        PrivilegesTask.applyPrivileges(rolesMap::values, mdBuilder, denyPrivilegeRequest);
 
         // then
         RolesMetadata newRolesMetadata =
@@ -75,21 +75,21 @@ public class TransportPrivilegesActionTest extends ESTestCase {
     @Test
     public void testValidateUserNamesEmptyUsers() throws Exception {
         List<String> roleNames = List.of("ford", "arthur");
-        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(new RolesMetadata(), roleNames);
+        List<String> unknownRoleNames = PrivilegesTask.validateRoleNames(new RolesMetadata(), roleNames);
         assertThat(unknownRoleNames).isEqualTo(roleNames);
     }
 
     @Test
     public void testValidateUserNamesMissingUser() throws Exception {
         List<String> roleNames = List.of("Ford", "Arthur");
-        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(
+        List<String> unknownRoleNames = PrivilegesTask.validateRoleNames(
             new RolesMetadata(RolesHelper.SINGLE_USER_ONLY), roleNames);
         assertThat(unknownRoleNames).containsExactly("Ford");
     }
 
     @Test
     public void testValidateUserNamesAllExists() throws Exception {
-        List<String> unknownRoleNames = TransportPrivilegesAction.validateRoleNames(
+        List<String> unknownRoleNames = PrivilegesTask.validateRoleNames(
                 new RolesMetadata(RolesHelper.DUMMY_USERS), List.of("Ford", "Arthur"));
         assertThat(unknownRoleNames).isEmpty();
     }
@@ -103,14 +103,14 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         PrivilegesRequest privilegeReq = new PrivilegesRequest(
             List.of("unknownUser"), Set.of(), new GrantedRolesChange(Policy.GRANT, Set.of("John"), null));
 
-        var result = TransportPrivilegesAction.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq);
+        var result = PrivilegesTask.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq);
         assertThat(result.affectedRows()).isEqualTo(-1);
         assertThat(result.unknownRoleNames()).containsExactly("unknownUser");
 
         privilegeReq = new PrivilegesRequest(
             List.of("John"), Set.of(), new GrantedRolesChange(Policy.GRANT, Set.of("unknownRole"), null));
 
-        result = TransportPrivilegesAction.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq);
+        result = PrivilegesTask.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq);
         assertThat(result.affectedRows()).isEqualTo(-1);
         assertThat(result.unknownRoleNames()).containsExactly("unknownRole");
     }
@@ -126,7 +126,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
                 List.of("DummyRole"), Set.of(), new GrantedRolesChange(state, Set.of("John"), null));
 
             assertThatThrownBy(() ->
-                TransportPrivilegesAction.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq))
+                PrivilegesTask.applyPrivileges(DUMMY_USERS_AND_ROLES::values, mdBuilder, privilegeReq))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Cannot " + state + " a USER to a ROLE");
         }
@@ -176,7 +176,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         var privilegeReq1 = new PrivilegesRequest(
             List.of("role1"), Set.of(), new GrantedRolesChange(Policy.GRANT, Set.of("role4"), null));
         assertThatThrownBy(() ->
-            TransportPrivilegesAction.detectCyclesInRolesHierarchy(roles::values, privilegeReq1))
+            PrivilegesTask.detectCyclesInRolesHierarchy(roles::values, privilegeReq1))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot grant role role4 to role1, role1 is a parent role of role4 and a cycle will " +
                 "be created");
@@ -197,7 +197,7 @@ public class TransportPrivilegesActionTest extends ESTestCase {
         var privilegeReq2 = new PrivilegesRequest(
             List.of("role2"), Set.of(), new GrantedRolesChange(Policy.GRANT, Set.of("role5"), null));
         assertThatThrownBy(() ->
-            TransportPrivilegesAction.detectCyclesInRolesHierarchy(roles::values, privilegeReq2))
+            PrivilegesTask.detectCyclesInRolesHierarchy(roles::values, privilegeReq2))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot grant role role5 to role2, role2 is a parent role of role5 and a cycle will " +
                 "be created");

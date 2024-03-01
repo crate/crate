@@ -22,33 +22,19 @@
 package io.crate.role;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.role.metadata.RolesMetadata;
-import io.crate.role.metadata.UsersMetadata;
-import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 @Singleton
 public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
@@ -97,103 +83,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
             throw new IllegalStateException("Cannot grant/deny/revoke privileges until all nodes are upgraded to 5.6");
         }
 
-        clusterService.submitStateUpdateTask("grant_privileges",
-                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
-
-                    ApplyPrivsResult result = null;
-
-                    @Override
-                    public ClusterState execute(ClusterState currentState) throws Exception {
-                        Metadata currentMetadata = currentState.metadata();
-                        Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-
-                        result = applyPrivileges(roles, mdBuilder, request);
-                        return ClusterState.builder(currentState).metadata(mdBuilder).build();
-                    }
-
-                    @Override
-                    protected PrivilegesResponse newResponse(boolean acknowledged) {
-                        return new PrivilegesResponse(acknowledged, result.affectedRows, result.unknownRoleNames);
-                    }
-                });
-
+        PrivilegesTask privilegesTask = new PrivilegesTask(request, roles);
+        privilegesTask.completionFuture().whenComplete(listener);
+        clusterService.submitStateUpdateTask("grant_privileges", privilegesTask);
     }
-
-    @VisibleForTesting
-    static List<String> validateRoleNames(RolesMetadata rolesMetadata, Collection<String> roleNames) {
-        if (rolesMetadata == null) {
-            return new ArrayList<>(roleNames);
-        }
-        List<String> unknownRoleNames = null;
-        for (String roleName : roleNames) {
-            //noinspection PointlessBooleanExpression
-            if (rolesMetadata.roleNames().contains(roleName) == false) {
-                if (unknownRoleNames == null) {
-                    unknownRoleNames = new ArrayList<>();
-                }
-                unknownRoleNames.add(roleName);
-            }
-        }
-        if (unknownRoleNames == null) {
-            return Collections.emptyList();
-        }
-        return unknownRoleNames;
-    }
-
-    @VisibleForTesting
-    static ApplyPrivsResult applyPrivileges(Roles roles, Metadata.Builder mdBuilder, PrivilegesRequest request) {
-        var oldPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
-        var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        var oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
-
-        RolesMetadata newMetadata = RolesMetadata.of(
-            mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
-
-        List<String> unknownRoleNames = validateRoleNames(newMetadata, request.roleNames());
-        long affectedRows = -1;
-        if (unknownRoleNames.isEmpty()) {
-            if (request.privileges().isEmpty() == false) {
-                affectedRows = PrivilegesModifier.applyPrivileges(newMetadata, request.roleNames(), request.privileges());
-            } else {
-                unknownRoleNames = validateRoleNames(newMetadata, request.rolePrivilege().roleNames());
-                if (unknownRoleNames.isEmpty()) {
-                    validateIsNotUser(roles, request.rolePrivilege());
-                    detectCyclesInRolesHierarchy(roles, request);
-                    affectedRows = newMetadata.applyRolePrivileges(request.roleNames(), request.rolePrivilege());
-                }
-            }
-        }
-
-        if (newMetadata.equals(oldRolesMetadata) == false) {
-            mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
-        }
-
-        return new ApplyPrivsResult(affectedRows, unknownRoleNames);
-    }
-
-    private static void validateIsNotUser(Roles roles, GrantedRolesChange grantedRolesChange) {
-        for (String roleNameToApply : grantedRolesChange.roleNames()) {
-            if (roles.findRole(roleNameToApply).isUser()) {
-                throw new IllegalArgumentException("Cannot " + grantedRolesChange.policy().name() + " a USER to a ROLE");
-            }
-        }
-    }
-
-    @VisibleForTesting
-    static void detectCyclesInRolesHierarchy(Roles roles, PrivilegesRequest request) {
-        if (request.rolePrivilege().policy() == Policy.GRANT) {
-            for (var roleNameToGrant : request.rolePrivilege().roleNames()) {
-                Set<String> parentsOfRoleToGrant = roles.findAllParents(roleNameToGrant);
-                for (var grantee : request.roleNames()) {
-                    if (parentsOfRoleToGrant.contains(grantee)) {
-                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Cannot grant role %s to %s, %s is a parent role of %s and a cycle will " +
-                                "be created", roleNameToGrant, grantee, grantee, roleNameToGrant));
-                    }
-                }
-            }
-        }
-    }
-
-    record ApplyPrivsResult(long affectedRows, List<String> unknownRoleNames) {}
 }
