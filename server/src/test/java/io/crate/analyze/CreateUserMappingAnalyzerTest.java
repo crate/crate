@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,20 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.analyze;
 
-import java.util.function.BiFunction;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.crate.metadata.functions.BoundSignature;
-import io.crate.metadata.functions.Signature;
+import org.junit.Test;
 
-public record FunctionProvider(Signature signature, FunctionFactory factory) {
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-    public interface FunctionFactory extends BiFunction<Signature, BoundSignature, FunctionImplementation> {
-    }
+public class CreateUserMappingAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    @Override
-    public String toString() {
-        return "FunctionProvider{" + "signature=" + signature + '}';
+    @Test
+    public void test_cannot_create_user_mapping_for_unknown_user() {
+        var e = SQLExecutor
+            .builder(clusterService)
+            .build();
+        assertThatThrownBy(() -> e.analyze("CREATE USER MAPPING FOR user1 SERVER pg"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot create a user mapping for an unknown user: 'user1'");
     }
 }

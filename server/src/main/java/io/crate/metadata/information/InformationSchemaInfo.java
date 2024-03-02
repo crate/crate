@@ -59,6 +59,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .put(ForeignTableTableInfo.NAME, ForeignTableTableInfo.create())
             .put(ForeignTableOptionsTableInfo.NAME, ForeignTableOptionsTableInfo.create())
             .put(UserMappingsTableInfo.NAME, UserMappingsTableInfo.create())
+            .put(UserMappingOptionsTableInfo.NAME, UserMappingOptionsTableInfo.create())
             .immutableMap();
     }
 

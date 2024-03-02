@@ -41,12 +41,17 @@ public class ServersMetadataTest extends ESTestCase {
 
     @Test
     public void test_xcontent_roundtrip() throws Exception {
-        Map<String, Map<String, Object>> pg1Users = Map.of(
+        Map<String, Settings> pg1Users = Map.of(
             "crate",
-            Map.of(
-                "user", "trillian",
-                "password", "secret"
-            )
+            Settings.builder()
+                .put("user", "trillian")
+                .put("password", "secret")
+                .build(),
+            "dummy",
+            Settings.builder()
+                .put("user", "dummy")
+                .put("password", "123")
+                .build()
         );
         Settings pg1Options = Settings.builder()
             .put("url", "jdbc:postgresql://localhost:5432")

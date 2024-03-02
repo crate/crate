@@ -54,9 +54,8 @@ Do not raise an error if the table already exists.
 -----------
 
 :option value:
-
-Key value pairs defining foreign data wrapper specific options for the server.
-See :ref:`administration-fdw` for the foreign data wrapper specific options.
+  Key value pairs defining foreign data wrapper specific options for the server
+  .See :ref:`administration-fdw` for the foreign data wrapper specific options.
 
 .. seealso::
 

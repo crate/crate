@@ -36,6 +36,7 @@
             "type": "java",
             "request": "attach",
             "name": "Attach to CrateDB",
+            "projectName": "crate-app",
             "hostName": "127.0.0.1",
             "port": 5005,
             "cwd": "${workspaceFolder}/app"

@@ -128,7 +128,7 @@ public final class DataTypes {
             .collect(toSet());
 
 
-    public static final List<DataType<?>> NUMERIC_PRIMITIVE_TYPES = List.of(
+    public static final List<DataType<? extends Number>> NUMERIC_PRIMITIVE_TYPES = List.of(
         DOUBLE,
         FLOAT,
         BYTE,

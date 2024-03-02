@@ -62,7 +62,7 @@ public class CreateServerRequest extends AcknowledgedRequest<CreateServerRequest
         out.writeString(fdw);
         out.writeString(owner);
         out.writeBoolean(ifNotExists);
-        Settings.writeSettingsToStream(options, out);
+        Settings.writeSettingsToStream(out, options);
     }
 
     public String name() {

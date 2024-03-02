@@ -215,10 +215,10 @@ import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
-import io.crate.types.DataTypes;
+import io.crate.role.RoleManagementModule;
 import io.crate.role.Roles;
 import io.crate.role.RolesService;
-import io.crate.role.RoleManagementModule;
+import io.crate.types.DataTypes;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -322,8 +322,12 @@ public class Node implements Closeable {
                              environment.pluginsFile());
             }
 
-            this.pluginsService = new PluginsService(tmpSettings, environment.configFile(), environment.modulesFile(),
-                environment.pluginsFile(), classpathPlugins);
+            this.pluginsService = new PluginsService(
+                tmpSettings,
+                environment.configFile(),
+                environment.pluginsFile(),
+                classpathPlugins
+            );
             this.settings = pluginsService.updatedSettings();
             final Set<DiscoveryNodeRole> possibleRoles = Stream.concat(
                     DiscoveryNodeRole.BUILT_IN_ROLES.stream(),

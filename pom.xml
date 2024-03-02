@@ -195,6 +195,7 @@
             <addModule>jdk.jfr</addModule>
 
             <addModule>jdk.jcmd</addModule>
+            <addModule>jdk.jdwp.agent</addModule>
           </addModules>
         </configuration>
       </plugin>
@@ -260,12 +261,14 @@
     <versions.aws>1.12.353</versions.aws>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>23.0.2</versions.graalvm>
+    <versions.graalvm>23.0.3</versions.graalvm>
 
-    <versions.google.gax>2.29.0</versions.google.gax>
-    <versions.google.auth>1.17.0</versions.google.auth>
-    <versions.google.oauth2>1.17.0</versions.google.oauth2>
-    <versions.google.cloud>2.22.4</versions.google.cloud>
+    <versions.google.gax>2.43.0</versions.google.gax>
+    <versions.google.auth>1.23.0</versions.google.auth>
+    <versions.google.oauth2>1.23.0</versions.google.oauth2>
+    <versions.google.cloud.storage>1.113.1</versions.google.cloud.storage>
+    <versions.google.cloud.core>2.30.0</versions.google.cloud.core>
+    <versions.google.cloud.core.http>2.23.0</versions.google.cloud.core.http>
 
     <versions.guava>32.0.1-jre</versions.guava>
     <versions.google.gson>1.43.1</versions.google.gson>
@@ -276,7 +279,7 @@
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>5.10.0</versions.mockito>
-    <versions.jdbc>42.7.1</versions.jdbc>
+    <versions.jdbc>42.7.2</versions.jdbc>
     <versions.jsonassert>1.5.1</versions.jsonassert>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>

@@ -86,6 +86,6 @@ public class CreateSubscriptionRequest extends AcknowledgedRequest<CreateSubscri
         out.writeString(name);
         connectionInfo.writeTo(out);
         out.writeStringArray(publications.toArray(new String[0]));
-        Settings.writeSettingsToStream(settings, out);
+        Settings.writeSettingsToStream(out, settings);
     }
 }

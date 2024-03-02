@@ -45,7 +45,7 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
         List<FunctionProvider> functions = functionImplementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());
-        var duplicate = functions.stream().filter(fr -> fr.getSignature().equals(signature)).findFirst();
+        var duplicate = functions.stream().filter(fr -> fr.signature().equals(signature)).findFirst();
         if (duplicate.isPresent()) {
             throw new IllegalStateException(
                 "A function already exists for signature = " + signature);

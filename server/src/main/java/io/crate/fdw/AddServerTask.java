@@ -27,12 +27,12 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Priority;
 
-final class AddServerTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
+public final class AddServerTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
 
     private final ForeignDataWrappers foreignDataWrappers;
     private final CreateServerRequest request;
 
-    AddServerTask(ForeignDataWrappers foreignDataWrappers, CreateServerRequest request) {
+    public AddServerTask(ForeignDataWrappers foreignDataWrappers, CreateServerRequest request) {
         super(Priority.NORMAL, request);
         this.foreignDataWrappers = foreignDataWrappers;
         this.request = request;
