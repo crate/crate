@@ -80,18 +80,26 @@ public class AverageAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_function_implements_doc_values_aggregator_for_numeric_types() {
-        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            assertHasDocValueAggregator(AverageAggregation.NAME, List.of(dataType));
-        }
+        DataTypes.NUMERIC_PRIMITIVE_TYPES.forEach(
+            dataType -> {
+                if (dataType != DataTypes.NUMERIC) {
+                    assertHasDocValueAggregator(AverageAggregation.NAME, List.of(dataType));
+                }
+            }
+        );
     }
 
     @Test
     public void testReturnType() throws Exception {
         for (var name : List.of("avg", "mean")) {
             // Return type is fixed to Double for numerics
-            for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-                assertThat(getFunction(name, dataType).boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
-            }
+            DataTypes.NUMERIC_PRIMITIVE_TYPES.forEach(
+                dataType -> {
+                    if (dataType != DataTypes.NUMERIC) {
+                        assertThat(getFunction(name, dataType).boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
+                    }
+                }
+            );
             assertThat(getFunction(name, DataTypes.TIMESTAMP).boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
             assertThat(getFunction(name, DataTypes.TIMESTAMPZ).boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
             assertThat(getFunction(name, DataTypes.INTERVAL).boundSignature().returnType()).isEqualTo(DataTypes.INTERVAL);

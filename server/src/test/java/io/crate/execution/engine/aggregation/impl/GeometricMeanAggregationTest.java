@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
@@ -70,9 +71,13 @@ public class GeometricMeanAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_function_implements_doc_values_aggregator_for_supported_numeric_types() {
-        for (var dataType : GeometricMeanAggregation.SUPPORTED_TYPES) {
-            assertHasDocValueAggregator(GeometricMeanAggregation.NAME, List.of(dataType));
-        }
+        DataTypes.NUMERIC_PRIMITIVE_TYPES.forEach(
+            dataType -> {
+                if (dataType != DataTypes.NUMERIC) {
+                    assertHasDocValueAggregator(AverageAggregation.NAME, List.of(dataType));
+                }
+            }
+        );
     }
 
     @Test

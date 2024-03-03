@@ -77,15 +77,18 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     public static void register(Functions.Builder builder) {
         for (var functionName : NAMES) {
             for (var supportedType : SUPPORTED_TYPES) {
-                builder.add(
-                    Signature.aggregate(
-                        functionName,
-                        supportedType.getTypeSignature(),
-                        DataTypes.DOUBLE.getTypeSignature()),
-                    (signature, boundSignature) ->
-                        new AverageAggregation(signature, boundSignature,
-                            supportedType.id() != DataTypes.FLOAT.id() && supportedType.id() != DataTypes.DOUBLE.id())
-                );
+                // See NumericAverageAggregation for avg(numeric) -> numeric
+                if (supportedType != DataTypes.NUMERIC) {
+                    builder.add(
+                        Signature.aggregate(
+                            functionName,
+                            supportedType.getTypeSignature(),
+                            DataTypes.DOUBLE.getTypeSignature()),
+                        (signature, boundSignature) ->
+                            new AverageAggregation(signature, boundSignature,
+                                supportedType.id() != DataTypes.FLOAT.id() && supportedType.id() != DataTypes.DOUBLE.id())
+                    );
+                }
             }
         }
     }
