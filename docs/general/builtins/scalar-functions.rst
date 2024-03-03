@@ -2061,7 +2061,7 @@ Returns: ``double precision``
 Returns Euler's number ``e`` raised to the power of the given numeric value.
 The output will be cast to the given input type and thus may loose precision.
 
-Returns: Same as input type.
+Returns: ``double precision``
 
 ::
 
