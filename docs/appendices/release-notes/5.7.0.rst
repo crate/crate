@@ -48,6 +48,9 @@ Breaking Changes
 - Added ``CURRENT_ROLE`` as a reserved keyword. If you have a column or table
   named ``CURRENT_ROLE``, you must escape it using double quotes.
 
+- Changed :ref:`scalar-exp` to always return ``double`` type for its result,
+  independently of the input type.
+
 Deprecations
 ============
 

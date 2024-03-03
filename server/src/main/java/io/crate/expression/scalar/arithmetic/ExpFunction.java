@@ -33,19 +33,18 @@ public class ExpFunction {
     public static final String NAME = "exp";
 
     public static void register(Functions.Builder module) {
-        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            var typeSignature = type.getTypeSignature();
-            module.add(
-                scalar(NAME, typeSignature, typeSignature)
-                    .withFeature(Scalar.Feature.NULLABLE),
-                (declaredSignature, boundSignature) ->
-                    new UnaryScalar<>(
-                        declaredSignature,
-                        boundSignature,
-                        type,
-                        x -> type.sanitizeValue(Math.exp(((Number) x).doubleValue()))
-                    )
-            );
-        }
+        var type = DataTypes.DOUBLE;
+        var signature = type.getTypeSignature();
+        module.add(
+            scalar(NAME, signature, signature)
+                .withFeature(Scalar.Feature.NULLABLE),
+            (declaredSignature, boundSignature) ->
+                new UnaryScalar<>(
+                    declaredSignature,
+                    boundSignature,
+                    type,
+                    x -> type.sanitizeValue(Math.exp(((Number) x).doubleValue()))
+                )
+        );
     }
 }
