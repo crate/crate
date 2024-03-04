@@ -41,6 +41,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
+import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
 import io.crate.role.metadata.RolesHelper;
@@ -75,12 +76,13 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             null,
             new JwtProperties("https:dummy.org", "test"));
 
-        boolean exists = TransportCreateRoleAction.putRole(mdBuilder,
-            "user2",
-            true,
-            null,
-            new JwtProperties("https:dummy.org", "test"));
-        assertThat(exists).isTrue();
+        assertThatThrownBy(() -> TransportCreateRoleAction.putRole(mdBuilder,
+                "user2",
+                true,
+                null,
+                new JwtProperties("https:dummy.org", "test")))
+            .isExactlyInstanceOf(RoleAlreadyExistsException.class)
+            .hasMessage("Another role with the same combination of jwt properties already exists");
     }
 
     @Test
