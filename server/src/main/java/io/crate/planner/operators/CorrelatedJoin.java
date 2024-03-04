@@ -28,7 +28,6 @@ import java.util.SequencedCollection;
 import java.util.Set;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
@@ -132,11 +131,6 @@ public class CorrelatedJoin implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return inputPlan.baseTables();
     }
 
     @Override
