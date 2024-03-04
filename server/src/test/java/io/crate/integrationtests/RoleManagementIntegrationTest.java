@@ -285,6 +285,6 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         Asserts.assertSQLError(() -> execute("CREATE USER user2 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user'})"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(CONFLICT, 4099)
-            .hasMessageContaining("Role 'user2' or another role with the same combination of jwt properties already exists");
+            .hasMessageContaining("Another role with the same combination of jwt properties already exists");
     }
 }
