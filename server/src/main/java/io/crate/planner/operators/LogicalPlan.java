@@ -31,7 +31,6 @@ import java.util.function.Consumer;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -111,7 +110,10 @@ public interface LogicalPlan extends Plan {
         return false;
     }
 
-    List<AbstractTableRelation<?>> baseTables();
+    default boolean supportsDistributedReads() {
+        return false;
+    }
+
 
     List<LogicalPlan> sources();
 

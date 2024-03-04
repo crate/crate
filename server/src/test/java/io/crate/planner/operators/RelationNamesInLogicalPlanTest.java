@@ -87,7 +87,6 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
     @Test
     public void test_relationnames_are_based_on_sources_in_hashjoin() throws Exception {
         var hashJoin = new HashJoin(t1Rename, t2Rename, e.asSymbol("x = y"));
-        assertThat(hashJoin.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(hashJoin.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }
 
@@ -99,14 +98,12 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
                                                 e.asSymbol("x = y"),
                                                 false,
                                                 false);
-        assertThat(nestedLoopJoin.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(nestedLoopJoin.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }
 
     @Test
     public void test_relationnames_are_based_on_sources_in_union() {
         var union = new Union(t1Rename, t2Rename, List.of());
-        assertThat(union.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(union.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }
 
@@ -115,21 +112,18 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         QueriedSelectRelation relation = e.analyze("select * from abs(1)");
         TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.from().get(0);
         var tableFunction = new TableFunction(tableFunctionRelation, List.of(), new WhereClause(null));
-        assertThat(tableFunction.baseTables(), containsInAnyOrder());
         assertThat(tableFunction.getRelationNames(), containsInAnyOrder(new RelationName(null, "abs")));
     }
 
     @Test
     public void test_relationnames_are_based_on_sources_in_collect() {
         var collect = new Collect(t1Relation, List.of(), new WhereClause(null));
-        assertThat(collect.baseTables(), containsInAnyOrder(t1Relation));
         assertThat(collect.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
     }
 
     @Test
     public void test_relationnames_are_based_on_sources_in_get() {
         var get = new Get(t1Relation, new DocKeys(List.of(List.of()), false, false, 1, null), null, List.of(), false);
-        assertThat(get.baseTables(), containsInAnyOrder(t1Relation));
         assertThat(get.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
     }
 
@@ -138,7 +132,6 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         QueriedSelectRelation relation = e.analyze("select count(1)");
         Function function = (Function) relation.outputs().get(0);
         var count = new Count(function, t1Relation, new WhereClause(null));
-        assertThat(count.baseTables(), containsInAnyOrder(t1Relation));
         assertThat(count.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
     }
 

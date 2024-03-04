@@ -37,8 +37,6 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
@@ -140,8 +138,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         ExecutionPlan right = rhs.build(
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
 
-        boolean hasDocTables = baseTables().stream().anyMatch(r -> r instanceof DocTableRelation);
-        boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
+        boolean isDistributed = supportsDistributedReads() && isFiltered && !joinType.isOuter();
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
@@ -209,11 +206,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             outputs().size(),
             orderByFromLeft
         );
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists.concat(lhs.baseTables(), rhs.baseTables());
     }
 
     @Override

@@ -32,7 +32,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
@@ -117,11 +116,6 @@ public final class TableFunction implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return toCollect;
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return List.of();
     }
 
     @Override
