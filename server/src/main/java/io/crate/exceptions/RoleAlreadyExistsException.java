@@ -21,27 +21,25 @@
 
 package io.crate.exceptions;
 
-import java.util.Locale;
+import java.io.IOException;
 
-import org.jetbrains.annotations.Nullable;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-import io.crate.role.JwtProperties;
 
-public class RoleAlreadyExistsException extends RuntimeException implements ConflictException, UnscopedException {
+public class RoleAlreadyExistsException extends ElasticsearchException implements ConflictException, UnscopedException {
 
-    private RoleAlreadyExistsException(String message) {
+    public RoleAlreadyExistsException(String message) {
         super(message);
     }
 
-    public static RoleAlreadyExistsException of(String roleName, @Nullable JwtProperties jwtProperties) {
-        if (jwtProperties == null) {
-            return new RoleAlreadyExistsException(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
-        } else {
-            return new RoleAlreadyExistsException(String.format(
-                Locale.ENGLISH,
-                "Role '%s' or another role with the same combination of jwt properties already exists",
-                roleName
-            ));
-        }
+    public RoleAlreadyExistsException(StreamInput in) throws IOException {
+        super(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
     }
 }
