@@ -75,6 +75,7 @@ public class ColumnStatsBuilder<T> {
         if (value == null) {
             nullCount++;
         } else {
+            // data size + object header
             totalBytes += dataType.valueBytes(value) + Long.BYTES;
             ramAccounting.addBytes(totalBytes);
             samples.add(value);
@@ -113,35 +114,18 @@ public class ColumnStatsBuilder<T> {
             return this;
         }
         ColumnStatsBuilder<T> mergedStats = new ColumnStatsBuilder<>(this.dataType);
-        Sampler<T> sampler = new Sampler<>(random, this.samples, typedOther.samples);
+        // https://ballsandbins.wordpress.com/2014/04/13/distributedparallel-reservoir-sampling/
+        double pivot = (double) this.samples.size() / (typedOther.samples.size() + this.samples.size());
         for (int i = 0; i < maxSampleCount; i++) {
-            mergedStats.add(sampler.next(), RamAccounting.NO_ACCOUNTING);
+            double j = random.nextDouble();
+            T next = j <= pivot ?
+                this.samples.get(random.nextInt(this.samples.size())) :
+                typedOther.samples.get(random.nextInt(typedOther.samples.size()));
+            mergedStats.add(next, RamAccounting.NO_ACCOUNTING);
         }
         mergedStats.nullCount = this.nullCount + other.nullCount;
         mergedStats.sampleCount = this.sampleCount + other.sampleCount;
         return mergedStats;
-    }
-
-    // https://ballsandbins.wordpress.com/2014/04/13/distributedparallel-reservoir-sampling/
-    private static class Sampler<T> {
-        final Random random;
-        final List<T> left;
-        final List<T> right;
-        final double pivot;
-
-        private Sampler(Random random, List<T> left, List<T> right) {
-            this.random = random;
-            this.left = left;
-            this.right = right;
-            this.pivot = (double) right.size() / (right.size() + left.size());
-        }
-
-        T next() {
-            double j = random.nextDouble();
-            return j <= pivot ?
-                left.get(random.nextInt(left.size())) :
-                right.get(random.nextInt(right.size()));
-        }
     }
 
 }
