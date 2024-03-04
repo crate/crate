@@ -21,15 +21,15 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
+import java.util.function.DoubleUnaryOperator;
+
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
-
-import java.util.function.DoubleUnaryOperator;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public final class TrigonometricFunctions {
 
@@ -40,7 +40,7 @@ public final class TrigonometricFunctions {
         register(module, "acos", x -> Math.acos(checkRange(x)));
         register(module, "tan", Math::tan);
         register(module, "cot", x -> 1 / Math.tan(x));
-        register(module, "atan", x -> Math.atan(checkRange(x)));
+        register(module, "atan", x -> Math.atan(x));
 
         module.register(
             scalar(
