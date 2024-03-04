@@ -89,6 +89,8 @@ Scalar and Aggregation Functions
 
 - Removed the -1 to 1 value constraint from :ref:`scalar-atan`.
 
+- Added the :ref:`scalar-reverse` scalar function.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
