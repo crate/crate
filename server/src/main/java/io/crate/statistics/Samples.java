@@ -40,12 +40,12 @@ class Samples implements Writeable {
 
     static final Samples EMPTY = new Samples(List.of(), 0L, 0L);
 
-    private final List<ColumnStatsBuilder<?>> columnStatsBuilders;
+    private final List<ColumnSketch<?>> columnSketches;
     private final long numTotalDocs;
     private final long numTotalSizeInBytes;
 
-    Samples(List<ColumnStatsBuilder<?>> columnStatsBuilders, long numTotalDocs, long numTotalSizeInBytes) {
-        this.columnStatsBuilders = columnStatsBuilders;
+    Samples(List<ColumnSketch<?>> columnSketches, long numTotalDocs, long numTotalSizeInBytes) {
+        this.columnSketches = columnSketches;
         this.numTotalDocs = numTotalDocs;
         this.numTotalSizeInBytes = numTotalSizeInBytes;
     }
@@ -61,10 +61,10 @@ class Samples implements Writeable {
             throw new IllegalStateException(
                 "Expected to receive stats for " + numRecords + " columns but received " + numRecords);
         }
-        this.columnStatsBuilders = new ArrayList<>(numRecords);
+        this.columnSketches = new ArrayList<>(numRecords);
         for (int i = 0; i < numRecords; i++) {
             Reference ref = references.get(i);
-            this.columnStatsBuilders.add(new ColumnStatsBuilder<>(ref.valueType(), in));
+            this.columnSketches.add(new ColumnSketch<>(ref.valueType(), in));
         }
     }
 
@@ -75,8 +75,8 @@ class Samples implements Writeable {
         }
         out.writeLong(numTotalDocs);
         out.writeLong(numTotalSizeInBytes);
-        out.writeVInt(columnStatsBuilders.size());
-        for (ColumnStatsBuilder<?> stats : columnStatsBuilders) {
+        out.writeVInt(columnSketches.size());
+        for (ColumnSketch<?> stats : columnSketches) {
             stats.writeTo(out);
         }
     }
@@ -88,12 +88,12 @@ class Samples implements Writeable {
         if (s2 == Samples.EMPTY) {
             return s1;
         }
-        if (s1.columnStatsBuilders.size() != s2.columnStatsBuilders.size()) {
+        if (s1.columnSketches.size() != s2.columnSketches.size()) {
             throw new IllegalArgumentException("Column mismatch");
         }
-        List<ColumnStatsBuilder<?>> mergedColumns = new ArrayList<>();
-        for (int i = 0; i < s1.columnStatsBuilders.size(); i++) {
-            var merged = s1.columnStatsBuilders.get(i).merge(random, maxSampleSize, s2.columnStatsBuilders.get(i));
+        List<ColumnSketch<?>> mergedColumns = new ArrayList<>();
+        for (int i = 0; i < s1.columnSketches.size(); i++) {
+            var merged = s1.columnSketches.get(i).merge(s2.columnSketches.get(i));
             mergedColumns.add(merged);
         }
         return new Samples(
@@ -107,7 +107,7 @@ class Samples implements Writeable {
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>();
         for (int i = 0; i < primitiveColumns.size(); i++) {
             Reference primitiveColumn = primitiveColumns.get(i);
-            statsByColumn.put(primitiveColumn.column(), columnStatsBuilders.get(i).toColumnStats());
+            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toColumnStats());
         }
         return new Stats(numTotalDocs, numTotalSizeInBytes, statsByColumn);
     }

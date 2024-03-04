@@ -21,7 +21,6 @@
 
 package io.crate.statistics;
 
-import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SETTING;
 
 import java.io.IOException;
@@ -46,7 +45,6 @@ import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -57,14 +55,10 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
-import io.crate.breaker.RateLimitedRamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
-import io.crate.data.breaker.BlockBasedRamAccounting;
-import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.FetchId;
@@ -82,7 +76,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataTypes;
 
 public final class ReservoirSampler {
 
@@ -147,10 +140,6 @@ public final class ReservoirSampler {
         Random random = Randomness.get();
         Metadata metadata = clusterService.state().metadata();
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        CircuitBreaker breaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
-        RamAccounting ramAccounting = new BlockBasedRamAccounting(
-            b -> breaker.addEstimateBytesAndMaybeBreak(b, "Reservoir-sampling"),
-            MAX_BLOCK_SIZE_IN_BYTES);
         try {
             return getSamples(
                 columns,
@@ -158,14 +147,10 @@ public final class ReservoirSampler {
                 docTable,
                 random,
                 metadata,
-                coordinatorTxnCtx,
-                RateLimitedRamAccounting.wrap(ramAccounting, rateLimiter)
+                coordinatorTxnCtx
             );
         } catch (IOException e) {
             throw new UncheckedIOException(e);
-        } finally {
-            ramAccounting.close();
-
         }
     }
 
@@ -174,17 +159,15 @@ public final class ReservoirSampler {
                                DocTableInfo docTable,
                                Random random,
                                Metadata metadata,
-                               CoordinatorTxnCtx coordinatorTxnCtx,
-                               RamAccounting ramAccounting) throws IOException {
+                               CoordinatorTxnCtx coordinatorTxnCtx) throws IOException {
 
-        ramAccounting.addBytes(DataTypes.LONG.fixedSize() * (long) maxSamples);
         Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
         List<ColumnCollector<?>> columnCollectors = new ArrayList<>();
         for (int i = 0; i < columns.size(); i++) {
-            columnCollectors.add(new ColumnCollector<>(new ColumnStatsBuilder<>(columns.get(i).valueType())));
+            columnCollectors.add(new ColumnCollector<>(new ColumnSketchBuilder<>(columns.get(i).valueType())));
         }
 
         List<ShardExpressions> searchersToRelease = new ArrayList<>();
@@ -229,12 +212,12 @@ public final class ReservoirSampler {
                 }
             }
 
-            var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get, ramAccounting);
+            var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get);
             sampler.iterate(fetchIdSamples.samples());
 
-            List<ColumnStatsBuilder<?>> statsBuilders = new ArrayList<>();
+            List<ColumnSketch<?>> statsBuilders = new ArrayList<>();
             for (var collector : columnCollectors) {
-                statsBuilders.add(collector.statsBuilder);
+                statsBuilders.add(collector.statsBuilder.toSketch());
             }
 
             return new Samples(statsBuilders, totalNumDocs, totalSizeInBytes);
@@ -274,9 +257,9 @@ public final class ReservoirSampler {
     private static class ColumnCollector<T> {
         LuceneCollectorExpression<?> collector;
         Input<?> input;
-        final ColumnStatsBuilder<T> statsBuilder;
+        final ColumnSketchBuilder<T> statsBuilder;
 
-        private ColumnCollector(ColumnStatsBuilder<T> statsBuilder) {
+        private ColumnCollector(ColumnSketchBuilder<T> statsBuilder) {
             this.statsBuilder = statsBuilder;
         }
 
@@ -286,9 +269,9 @@ public final class ReservoirSampler {
         }
 
         @SuppressWarnings("unchecked")
-        void collect(int docId, RamAccounting ramAccounting) {
+        void collect(int docId) {
             collector.setNextDocId(docId);
-            statsBuilder.add((T) input.value(), ramAccounting);
+            statsBuilder.add((T) input.value());
         }
     }
 
@@ -314,7 +297,6 @@ public final class ReservoirSampler {
 
         final List<ColumnCollector<?>> expressions;
         final IntFunction<ShardExpressions> shardSupplier;
-        final RamAccounting ramAccounting;
 
         ShardExpressions currentShard;
         ReaderContext currentLeafContext;
@@ -322,12 +304,10 @@ public final class ReservoirSampler {
 
         private ColumnSampler(
             List<ColumnCollector<?>> expressions,
-            IntFunction<ShardExpressions> shardSupplier,
-            RamAccounting ramAccounting
+            IntFunction<ShardExpressions> shardSupplier
         ) {
             this.expressions = expressions;
             this.shardSupplier = shardSupplier;
-            this.ramAccounting = ramAccounting;
         }
 
         @Override
@@ -351,7 +331,7 @@ public final class ReservoirSampler {
         protected boolean collect(int doc) {
             try {
                 for (var expression : expressions) {
-                    expression.collect(doc, ramAccounting);
+                    expression.collect(doc);
                 }
                 rowsCollected++;
                 return true;
