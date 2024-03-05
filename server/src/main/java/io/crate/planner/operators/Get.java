@@ -38,7 +38,6 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.collections.Lists;
@@ -195,11 +194,6 @@ public class Get implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return List.of(tableRelation);
     }
 
     @Override

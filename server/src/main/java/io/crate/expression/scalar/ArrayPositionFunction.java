@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -45,8 +46,8 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
-    public static void register(ScalarFunctionModule scalarFunctionModule) {
-        scalarFunctionModule.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(NAME,
                     TypeSignature.parse("array(T)"),
                     TypeSignature.parse("T"),
@@ -55,7 +56,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
                 .withFeature(Feature.NULLABLE),
             ArrayPositionFunction::new);
 
-        scalarFunctionModule.register(
+        builder.add(
             Signature.scalar(NAME,
                     TypeSignature.parse("array(T)"),
                     TypeSignature.parse("T"),

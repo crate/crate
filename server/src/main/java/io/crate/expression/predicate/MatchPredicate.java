@@ -29,8 +29,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
@@ -46,6 +44,7 @@ import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.QueryShardContext;
+import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.analyze.MatchOptionsAnalysis;
@@ -59,6 +58,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.lucene.match.MatchQueries;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -103,15 +103,9 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
     ).withFeature(Scalar.Feature.NON_NULLABLE);
 
 
-    public static void register(PredicateModule module) {
-        module.register(
-            GEO_MATCH,
-            MatchPredicate::new
-        );
-        module.register(
-            TEXT_MATCH,
-            MatchPredicate::new
-        );
+    public static void register(Functions.Builder builder) {
+        builder.add(GEO_MATCH, MatchPredicate::new);
+        builder.add(TEXT_MATCH, MatchPredicate::new);
     }
 
     public static final Set<DataType<?>> SUPPORTED_TYPES = Set.of(DataTypes.STRING, DataTypes.GEO_SHAPE);

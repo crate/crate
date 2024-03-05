@@ -178,35 +178,32 @@ import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.TransportExecutorModule;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.CopyModule;
 import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.execution.jobs.JobModule;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
-import io.crate.expression.operator.OperatorModule;
-import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
+import io.crate.metadata.Functions;
 import io.crate.metadata.MetadataModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetadataBlobModule;
 import io.crate.metadata.information.MetadataInformationModule;
 import io.crate.metadata.pgcatalog.PgCatalogModule;
-import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.MetadataSysModule;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.plugin.CopyPlugin;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -329,6 +326,14 @@ public class Node implements Closeable {
                 classpathPlugins
             );
             this.settings = pluginsService.updatedSettings();
+            SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(
+                Set.of(LoadedRules.INSTANCE)
+            );
+            final Functions functions = Functions.load(
+                settings,
+                sessionSettingRegistry,
+                pluginsService.classLoaders().toArray(new ClassLoader[0])
+            );
             final Set<DiscoveryNodeRole> possibleRoles = Stream.concat(
                     DiscoveryNodeRole.BUILT_IN_ROLES.stream(),
                     pluginsService.filterPlugins(Plugin.class)
@@ -377,6 +382,9 @@ public class Node implements Closeable {
             );
             resourcesToClose.add(clusterService);
 
+            final Roles roles = new RolesService(clusterService);
+            final NodeContext nodeContext = new NodeContext(functions, roles);
+
             SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
             final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(
                 settings,
@@ -415,18 +423,11 @@ public class Node implements Closeable {
             modules.add(new MetadataBlobModule());
             modules.add(new PgCatalogModule());
             modules.add(new MetadataInformationModule());
-            modules.add(new OperatorModule());
-            modules.add(new PredicateModule());
             modules.add(new MonitorModule());
             modules.add(new SysChecksModule());
             modules.add(new SysNodeChecksModule());
             modules.add(new RoleManagementModule());
             modules.add(new AuthenticationModule());
-            modules.add(new SessionSettingModule());
-            modules.add(new AggregationImplModule());
-            modules.add(new ScalarFunctionModule());
-            modules.add(new TableFunctionModule(settings));
-            modules.add(new WindowFunctionModule());
 
             final MonitorService monitorService = new MonitorService(settings,
                                                                      nodeEnvironment,
@@ -475,7 +476,7 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedXContent().stream()),
                 ClusterModule.getNamedXWriteables().stream(),
-                MetadataModule.getNamedXContents().stream())
+                MetadataModule.getNamedXContents(nodeContext).stream())
                 .flatMap(Function.identity()).collect(Collectors.toList()));
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
             final PersistedClusterStateService persistedClusterStateService
@@ -542,7 +543,6 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
-            Roles roles = new RolesService(clusterService);
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
                 ? new HostBasedAuthentication(settings, roles, SystemDefaultDnsResolver.INSTANCE)
                 : new AlwaysOKAuthentication(roles);
@@ -786,6 +786,8 @@ public class Node implements Closeable {
                     b.bind(RemoteClusters.class).toInstance(remoteClusters);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                     b.bind(FsHealthService.class).toInstance(fsHealthService);
+                    b.bind(SessionSettingRegistry.class).toInstance(sessionSettingRegistry);
+                    b.bind(Functions.class).toInstance(functions);
                 }
             );
             injector = modules.createInjector();

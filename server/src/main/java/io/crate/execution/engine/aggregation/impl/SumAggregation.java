@@ -47,6 +47,7 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -64,11 +65,11 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     public static final String NAME = "sum";
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         BinaryOperator<Long> add = Math::addExact;
         BinaryOperator<Long> sub = Math::subtractExact;
 
-        mod.register(
+        builder.add(
             Signature.aggregate(
                 NAME,
                 DataTypes.FLOAT.getTypeSignature(),
@@ -76,7 +77,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             ),
             getSumAggregationForFloatFactory()
         );
-        mod.register(
+        builder.add(
             Signature.aggregate(
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature(),
@@ -86,7 +87,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
-            mod.register(
+            builder.add(
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),

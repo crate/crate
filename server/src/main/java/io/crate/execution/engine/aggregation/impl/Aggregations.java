@@ -21,36 +21,41 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.IntervalAverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageAggregation;
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.metadata.Functions.Builder;
+import io.crate.metadata.FunctionsProvider;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 
-public class AggregationImplModule extends AbstractFunctionModule<AggregationFunction<?, ?>> {
+public class Aggregations implements FunctionsProvider {
 
     @Override
-    public void configureFunctions() {
-        AverageAggregation.register(this);
-        NumericAverageAggregation.register(this);
-        IntervalAverageAggregation.register(this);
-        MinimumAggregation.register(this);
-        MaximumAggregation.register(this);
-        ArbitraryAggregation.register(this);
-        CmpByAggregation.register(this);
+    public void addFunctions(Settings settings,
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Builder builder) {
+        AverageAggregation.register(builder);
+        NumericAverageAggregation.register(builder);
+        IntervalAverageAggregation.register(builder);
+        MinimumAggregation.register(builder);
+        MaximumAggregation.register(builder);
+        ArbitraryAggregation.register(builder);
+        CmpByAggregation.register(builder);
 
-        IntervalSumAggregation.register(this);
-        SumAggregation.register(this);
-        NumericSumAggregation.register(this);
+        IntervalSumAggregation.register(builder);
+        SumAggregation.register(builder);
+        NumericSumAggregation.register(builder);
 
-        CountAggregation.register(this);
-        CollectSetAggregation.register(this);
-        PercentileAggregation.register(this);
-        StringAgg.register(this);
-        ArrayAgg.register(this);
+        CountAggregation.register(builder);
+        CollectSetAggregation.register(builder);
+        PercentileAggregation.register(builder);
+        StringAgg.register(builder);
+        ArrayAgg.register(builder);
 
-        VarianceAggregation.register(this);
-        GeometricMeanAggregation.register(this);
-        StandardDeviationAggregation.register(this);
+        VarianceAggregation.register(builder);
+        GeometricMeanAggregation.register(builder);
+        StandardDeviationAggregation.register(builder);
     }
 }

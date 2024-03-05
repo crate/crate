@@ -29,6 +29,7 @@ import java.util.function.BiFunction;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.FourFunction;
+import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
@@ -96,9 +97,9 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
         return toCheck;
     }
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         // Signature without user, takes user from session.
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(), // Schema
@@ -109,7 +110,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
         );
 
         // Signature without user, takes user from session.
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(), // Schema
@@ -119,7 +120,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
             (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_NAME, CHECK_BY_SCHEMA_OID)
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(), // User
@@ -130,7 +131,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
             (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_NAME, CHECK_BY_SCHEMA_NAME)
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),  // User
@@ -141,7 +142,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
             (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_NAME, CHECK_BY_SCHEMA_OID)
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(), // User
@@ -152,7 +153,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
             (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_OID, CHECK_BY_SCHEMA_NAME)
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(), // User

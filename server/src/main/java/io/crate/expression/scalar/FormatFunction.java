@@ -26,6 +26,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfA
 import java.util.Locale;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -50,8 +51,8 @@ public class FormatFunction extends Scalar<String, Object> {
             .withVariableArity();
 
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(SIGNATURE, FormatFunction::new);
+    public static void register(Functions.Builder module) {
+        module.add(SIGNATURE, FormatFunction::new);
     }
 
     public FormatFunction(Signature signature, BoundSignature boundSignature) {

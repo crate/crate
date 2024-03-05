@@ -28,22 +28,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.role.Role;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
@@ -55,9 +56,7 @@ import io.crate.types.DataTypes;
 public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
 
     NodeContext nodeContext = new NodeContext(
-        new ModulesBuilder()
-            .add(new OperatorModule())
-            .createInjector().getInstance(Functions.class),
+        Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of())),
         () -> List.of(Role.CRATE_USER)
     );
     TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();

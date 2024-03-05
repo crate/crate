@@ -19,28 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing.plugin;
+package io.crate.testing;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.testing.SleepScalarFunction;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.common.settings.Settings;
 
-import java.util.Collection;
-import java.util.Collections;
+import io.crate.metadata.Functions.Builder;
+import io.crate.metadata.FunctionsProvider;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 
-public class CrateTestingPlugin extends Plugin {
+public class TestScalars implements FunctionsProvider {
 
     @Override
-    public Collection<Module> createGuiceModules() {
-        return Collections.singletonList(new AbstractFunctionModule<>() {
-            @Override
-            public void configureFunctions() {
-                register(
-                    SleepScalarFunction.SIGNATURE,
-                    (signature, boundSignature) -> new SleepScalarFunction()
-                );
-            }
-        });
+    public void addFunctions(Settings settings,
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Builder builder) {
+        builder.add(SleepScalarFunction.SIGNATURE, SleepScalarFunction::new);
     }
 }

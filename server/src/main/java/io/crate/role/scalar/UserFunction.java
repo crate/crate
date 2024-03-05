@@ -24,10 +24,10 @@ package io.crate.role.scalar;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,15 +40,15 @@ public class UserFunction extends Scalar<String, Object> {
     public static final String CURRENT_USER_FUNCTION_NAME = "current_user";
     public static final String SESSION_USER_FUNCTION_NAME = "session_user";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(
                 CURRENT_USER_FUNCTION_NAME,
                 DataTypes.STRING.getTypeSignature()
             ).withFeatures(Scalar.NO_FEATURES),
             UserFunction::new
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 SESSION_USER_FUNCTION_NAME,
                 DataTypes.STRING.getTypeSignature()

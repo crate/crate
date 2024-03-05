@@ -46,6 +46,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -70,7 +71,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
         out.writeMap(tables, (o, v) -> v.writeTo(o), (o, v) -> v.writeTo(o));
     }
 
-    public static ForeignTablesMetadata fromXContent(XContentParser parser) throws IOException {
+    public static ForeignTablesMetadata fromXContent(NodeContext nodeCtx, XContentParser parser) throws IOException {
         HashMap<RelationName, ForeignTable> tables = new HashMap<>();
         if (parser.currentToken() == START_OBJECT) {
             parser.nextToken();
@@ -83,7 +84,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
             if (parser.currentToken() == FIELD_NAME) {
                 RelationName name = RelationName.fromIndexName(parser.currentName());
                 parser.nextToken();
-                ForeignTable table = ForeignTable.fromXContent(name, parser);
+                ForeignTable table = ForeignTable.fromXContent(nodeCtx, name, parser);
                 tables.put(name, table);
             }
         }

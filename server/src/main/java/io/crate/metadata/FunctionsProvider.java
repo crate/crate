@@ -19,35 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.window;
+package io.crate.metadata;
 
-import io.crate.plugin.ExtraFunctionsPlugin;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.common.settings.Settings;
 
-import java.util.Collection;
-import java.util.List;
+import io.crate.metadata.Functions.Builder;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 
-/**
- * A proxy class which implements the elasticsearch Plugin interface
- * so the EnterpriseFunctionsPlugin can be used in integration tests.
- */
-public class EnterpriseFunctionsProxyTestPlugin extends Plugin {
+public interface FunctionsProvider {
 
-    private final ExtraFunctionsPlugin plugin;
-
-    public EnterpriseFunctionsProxyTestPlugin() {
-        this.plugin = new ExtraFunctionsPlugin();
-    }
-
-    @Override
-    public Collection<Module> createGuiceModules() {
-        return plugin.createGuiceModules();
-    }
-
-    @Override
-    public List<Setting<?>> getSettings() {
-        return plugin.getSettings();
-    }
+    void addFunctions(Settings settings,
+                      SessionSettingRegistry sessionSettingRegistry,
+                      Builder builder);
 }

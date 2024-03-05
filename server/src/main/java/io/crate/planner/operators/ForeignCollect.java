@@ -29,7 +29,6 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ForeignCollectPhase;
@@ -86,12 +85,6 @@ public class ForeignCollect implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return toCollect;
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        // TODO return them
-        return List.of();
     }
 
     @Override

@@ -26,22 +26,22 @@ import java.util.List;
 import java.util.Map;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
 import io.crate.role.Roles;
+import io.crate.types.DataTypes;
 
 public class TranslateFunction extends Scalar<String, String> {
 
     private static final Character NULL = '\0';
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 "translate",
                 DataTypes.STRING.getTypeSignature(),

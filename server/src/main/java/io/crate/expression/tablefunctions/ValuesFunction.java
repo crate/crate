@@ -30,6 +30,7 @@ import java.util.List;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -52,8 +53,8 @@ public class ValuesFunction {
         .withTypeVariableConstraints(typeVariableOfAnyType("E"))
         .withVariableArity();
 
-    public static void register(TableFunctionModule module) {
-        module.register(SIGNATURE, ValuesTableFunctionImplementation::of);
+    public static void register(Functions.Builder builder) {
+        builder.add(SIGNATURE, ValuesTableFunctionImplementation::of);
     }
 
     private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {

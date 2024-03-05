@@ -304,7 +304,7 @@ public class DocTableInfoFactory {
     }
 
     @SuppressWarnings("unchecked")
-    public static void parseColumns(@Nullable ExpressionAnalyzer expressionAnalyzer,
+    public static void parseColumns(ExpressionAnalyzer expressionAnalyzer,
                                     RelationName relationName,
                                     @Nullable ColumnIdent parent,
                                     Map<String, Object> indicesMap,
@@ -332,10 +332,6 @@ public class DocTableInfoFactory {
             String defaultExpressionString = Maps.get(columnProperties, "default_expr");
             Symbol defaultExpression = null;
             if (defaultExpressionString != null) {
-                if (expressionAnalyzer == null) {
-                    throw new UnsupportedOperationException(
-                        "Cannot analyze default expression without ExpressionAnalyzer");
-                }
                 defaultExpression = expressionAnalyzer.convert(
                     SqlParser.createExpression(defaultExpressionString),
                     new ExpressionAnalysisContext(txnCtx.sessionSettings())

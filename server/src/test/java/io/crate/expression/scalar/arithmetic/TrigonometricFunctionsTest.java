@@ -24,8 +24,10 @@ package io.crate.expression.scalar.arithmetic;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.assertj.core.data.Offset;
+import org.assertj.core.data.Percentage;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -76,24 +78,36 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_relationships() throws Exception {
+        // https://en.wikipedia.org/wiki/Inverse_trigonometric_functions#Relationships_between_trigonometric_functions_and_inverse_trigonometric_functions
+        Percentage percentage = Percentage.withPercentage(99.9);
+        assertEvaluate("sin(asin(0.3))", 0.3);
+        assertEvaluate("sin(acos(0.3))", Math.sqrt(1 - Math.pow(0.3, 2)));
+        assertEvaluate("sin(atan(0.3))",
+            (Double val) -> assertThat(val).isCloseTo(0.3 / Math.sqrt(1 + Math.pow(0.3, 2)), percentage));
+        assertEvaluate("cos(asin(0.3))", Math.sqrt(1 - Math.pow(0.3, 2)));
+        assertEvaluate("cos(acos(0.3))", (Double val) -> assertThat(val).isCloseTo(0.3, percentage));
+    }
+
+    @Test
+    public void test_atan_values_greater_and_less_than_1() throws Exception {
+        assertEvaluate("tan(atan(2))", 1.9999999999999996);
+        assertEvaluate("tan(atan(-1))", -0.9999999999999999);
+        assertEvaluate("atan(double_val)", 1.2626272556789115, Literal.of(Math.PI));
+    }
+
+    @Test
     public void testEvaluateAsinOnIllegalArgument() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
-        assertEvaluate("asin(2.0)", 0);
+        assertThatThrownBy(() -> assertEvaluate("asin(2.0)", 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
     }
 
     @Test
     public void testEvaluateAcosOnIllegalArgument() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
-        assertEvaluate("acos(2.0)", 0);
-    }
-
-    @Test
-    public void testEvaluateAtanOnIllegalArgument() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
-        assertEvaluate("atan(2.0)", 0);
+        assertThatThrownBy(() -> assertEvaluate("acos(2.0)", 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
     }
 
     @Test

@@ -29,6 +29,7 @@ import java.util.function.Function;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.array.ArraySummationFunctions;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -52,16 +53,16 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
         ).withFeature(Feature.NULLABLE);
     }
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             signature(DataTypes.NUMERIC, DataTypes.NUMERIC),
             (sig, boundSig) -> new ArraySumFunction<>(sig, boundSig, ArraySummationFunctions::sumBigDecimal)
         );
-        module.register(
+        builder.add(
             signature(DataTypes.DOUBLE, DataTypes.DOUBLE),
             (sig, boundSig) -> new ArraySumFunction<>(sig, boundSig, ArraySummationFunctions::sumDouble)
         );
-        module.register(
+        builder.add(
             signature(DataTypes.FLOAT, DataTypes.FLOAT),
             (sig, boundSig) -> new ArraySumFunction<>(sig, boundSig, ArraySummationFunctions::sumFloat)
         );
@@ -73,7 +74,7 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
             DataTypes.LONG
         );
         for (DataType<? extends Number> integralType : integralTypes) {
-            module.register(
+            builder.add(
                 signature(integralType, DataTypes.LONG),
                 (sig, boundSig) -> new ArraySumFunction<>(sig, boundSig, ArraySummationFunctions::sumNumber)
             );

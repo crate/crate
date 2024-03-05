@@ -87,7 +87,7 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- Removed the -1 to 1 value constraint from :ref:`scalar-atan`.
 
 Performance and Resilience Improvements
 ---------------------------------------

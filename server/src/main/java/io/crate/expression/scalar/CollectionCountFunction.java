@@ -26,6 +26,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -38,8 +39,8 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
 
     public static final String NAME = "collection_count";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(
                     NAME,
                     TypeSignature.parse("array(E)"),

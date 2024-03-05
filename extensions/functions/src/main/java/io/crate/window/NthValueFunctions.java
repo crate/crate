@@ -34,9 +34,9 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -158,8 +158,8 @@ public class NthValueFunctions implements WindowFunction {
         }
     }
 
-    public static void register(ExtraFunctionsModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.window(
                 FIRST_VALUE_NAME,
                 TypeSignature.parse("E"),
@@ -173,7 +173,7 @@ public class NthValueFunctions implements WindowFunction {
                 )
         );
 
-        module.register(
+        builder.add(
             Signature.window(
                 LAST_VALUE_NAME,
                 TypeSignature.parse("E"),
@@ -187,7 +187,7 @@ public class NthValueFunctions implements WindowFunction {
                 )
         );
 
-        module.register(
+        builder.add(
             Signature.window(
                 NTH_VALUE_NAME,
                 TypeSignature.parse("E"),

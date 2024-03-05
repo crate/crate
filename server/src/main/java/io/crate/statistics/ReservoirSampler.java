@@ -27,13 +27,13 @@ import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SET
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.IntFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.CollectionTerminatedException;
@@ -52,6 +52,7 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
@@ -62,23 +63,17 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
-import io.crate.Streamer;
-import io.crate.breaker.CellsSizeEstimator;
+import io.crate.breaker.RateLimitedRamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
@@ -93,6 +88,7 @@ import io.crate.types.DataTypes;
 public final class ReservoirSampler {
 
     private static final Logger LOGGER = LogManager.getLogger(ReservoirSampler.class);
+
     private final ClusterService clusterService;
     private final NodeContext nodeCtx;
     private final Schemas schemas;
@@ -139,23 +135,6 @@ public final class ReservoirSampler {
         rateLimiter.setMBPerSec(newReadLimit.getMbFrac()); // mbPerSec is volatile in SimpleRateLimiter, one volatile write
     }
 
-    public long maybePause(long bytesRead, long bytesSinceLastPause) {
-        if (rateLimiter.getMBPerSec() > 0) {
-            // Throttling is enabled
-            bytesSinceLastPause += bytesRead;
-            if (bytesSinceLastPause >= rateLimiter.getMinPauseCheckBytes()) {
-                try {
-                    rateLimiter.pause(bytesSinceLastPause); // SimpleRateLimiter does one volatile read of mbPerSec.
-                    return 0;
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            }
-        }
-        return bytesSinceLastPause;
-    }
-
-    @SuppressWarnings("rawtypes")
     Samples getSamples(RelationName relationName, List<Reference> columns, int maxSamples) {
         TableInfo table;
         try {
@@ -169,8 +148,6 @@ public final class ReservoirSampler {
         Random random = Randomness.get();
         Metadata metadata = clusterService.state().metadata();
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        List<Streamer> streamers = Arrays.asList(Symbols.streamerArray(columns));
-        List<Engine.Searcher> searchersToRelease = new ArrayList<>();
         CircuitBreaker breaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
         RamAccounting ramAccounting = new BlockBasedRamAccounting(
             b -> breaker.addEstimateBytesAndMaybeBreak(b, "Reservoir-sampling"),
@@ -183,159 +160,232 @@ public final class ReservoirSampler {
                 random,
                 metadata,
                 coordinatorTxnCtx,
-                streamers,
-                searchersToRelease,
-                ramAccounting
+                RateLimitedRamAccounting.wrap(ramAccounting, rateLimiter)
             );
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         } finally {
             ramAccounting.close();
-            for (Engine.Searcher searcher : searchersToRelease) {
-                searcher.close();
-            }
+
         }
     }
 
-    @SuppressWarnings("rawtypes")
     private Samples getSamples(List<Reference> columns,
                                int maxSamples,
                                DocTableInfo docTable,
                                Random random,
                                Metadata metadata,
                                CoordinatorTxnCtx coordinatorTxnCtx,
-                               List<Streamer> streamers,
-                               List<Engine.Searcher> searchersToRelease,
-                               RamAccounting ramAccounting) {
+                               RamAccounting ramAccounting) throws IOException {
+
         ramAccounting.addBytes(DataTypes.LONG.fixedSize() * (long) maxSamples);
         Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
-        ArrayList<IntFunction<Object[]>> docIdToRowsFunctionPerReader = new ArrayList<>();
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
-        for (String index : docTable.concreteOpenIndices()) {
-            var indexMetadata = metadata.index(index);
-            if (indexMetadata == null) {
-                continue;
-            }
-            var indexService = indicesService.indexService(indexMetadata.getIndex());
-            if (indexService == null) {
-                continue;
-            }
-            var mapperService = indexService.mapperService();
-            FieldTypeLookup fieldTypeLookup = mapperService::fieldType;
-            var ctx = new DocInputFactory(
-                nodeCtx,
-                new LuceneReferenceResolver(
-                    indexService.index().getName(),
-                    fieldTypeLookup,
-                    docTable.partitionedByColumns()
-                )
-            ).getCtx(coordinatorTxnCtx);
-            ctx.add(Lists.map(columns, DocReferences::toSourceLookup));
-            List<Input<?>> inputs = ctx.topLevelInputs();
-            List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-            CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
-            for (LuceneCollectorExpression<?> expression : expressions) {
-                expression.startCollect(collectorContext);
-            }
-            for (IndexShard indexShard : indexService) {
-                if (!indexShard.routingEntry().primary()) {
+        List<ColumnCollector<?>> columnCollectors = new ArrayList<>();
+        for (int i = 0; i < columns.size(); i++) {
+            columnCollectors.add(new ColumnCollector<>(new ColumnStatsBuilder<>(columns.get(i).valueType())));
+        }
+
+        List<ShardExpressions> searchersToRelease = new ArrayList<>();
+
+        try {
+
+            for (String index : docTable.concreteOpenIndices()) {
+                var indexMetadata = metadata.index(index);
+                if (indexMetadata == null) {
                     continue;
                 }
-                try {
-                    Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
-                    searchersToRelease.add(searcher);
-                    totalNumDocs += searcher.getIndexReader().numDocs();
-                    totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
-                    DocIdToRow docIdToRow = new DocIdToRow(searcher, inputs, expressions);
-                    docIdToRowsFunctionPerReader.add(docIdToRow);
-                    try {
-                        // We do the sampling in 2 phases. First we get the docIds;
-                        // then we retrieve the column values for the sampled docIds.
-                        // we do this in 2 phases because the reservoir sampling might override previously seen
-                        // items and we want to avoid unnecessary disk-lookup
-                        var collector = new ReservoirCollector(fetchIdSamples, searchersToRelease.size() - 1);
-                        searcher.search(new MatchAllDocsQuery(), collector);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
+                var indexService = indicesService.indexService(indexMetadata.getIndex());
+                if (indexService == null) {
+                    continue;
+                }
+
+                List<? extends LuceneCollectorExpression<?>> expressions
+                    = getCollectorExpressions(indexService, docTable, coordinatorTxnCtx, columns);
+
+                for (IndexShard indexShard : indexService) {
+                    if (!indexShard.routingEntry().primary()) {
+                        continue;
                     }
-                } catch (IllegalIndexShardStateException | AlreadyClosedException ignored) {
+                    try {
+                        Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
+                        searchersToRelease.add(new ShardExpressions(searcher, expressions));
+                        totalNumDocs += searcher.getIndexReader().numDocs();
+                        totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
+
+                        try {
+                            // We do the sampling in 2 phases. First we get the docIds;
+                            // then we retrieve the column values for the sampled docIds.
+                            // we do this in 2 phases because the reservoir sampling might override previously seen
+                            // items and we want to avoid unnecessary disk-lookup
+                            var collector = new ReservoirCollector(fetchIdSamples, searchersToRelease.size() - 1);
+                            searcher.search(new MatchAllDocsQuery(), collector);
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    } catch (IllegalIndexShardStateException | AlreadyClosedException ignored) {
+                    }
+                }
+            }
+
+            var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get, ramAccounting);
+            sampler.iterate(fetchIdSamples.samples());
+
+            List<ColumnStatsBuilder<?>> statsBuilders = new ArrayList<>();
+            for (var collector : columnCollectors) {
+                statsBuilders.add(collector.statsBuilder);
+            }
+
+            return new Samples(statsBuilders, totalNumDocs, totalSizeInBytes);
+        } finally {
+            for (var shard : searchersToRelease) {
+                shard.searcher.close();
+            }
+        }
+    }
+
+    private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
+        IndexService indexService,
+        DocTableInfo docTable,
+        CoordinatorTxnCtx coordinatorTxnCtx,
+        List<Reference> columns
+    ) {
+        var mapperService = indexService.mapperService();
+        FieldTypeLookup fieldTypeLookup = mapperService::fieldType;
+        LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
+            indexService.index().getName(),
+            fieldTypeLookup,
+            docTable.partitionedByColumns()
+        );
+        List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
+            columns,
+            x -> referenceResolver.getImplementation(DocReferences.toSourceLookup(x))
+        );
+
+        CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
+        for (LuceneCollectorExpression<?> expression : expressions) {
+            expression.startCollect(collectorContext);
+        }
+
+        return expressions;
+    }
+
+    private static class ColumnCollector<T> {
+        LuceneCollectorExpression<?> expression;
+        final ColumnStatsBuilder<T> statsBuilder;
+
+        private ColumnCollector(ColumnStatsBuilder<T> statsBuilder) {
+            this.statsBuilder = statsBuilder;
+        }
+
+        void setShard(LuceneCollectorExpression<?> collector) {
+            this.expression = collector;
+        }
+
+        @SuppressWarnings("unchecked")
+        void collect(int docId, RamAccounting ramAccounting) {
+            expression.setNextDocId(docId);
+            statsBuilder.add((T) expression.value(), ramAccounting);
+        }
+    }
+
+    private record ShardExpressions(Engine.Searcher searcher,
+                                    List<? extends LuceneCollectorExpression<?>> expressions) {
+
+        void updateColumnCollectors(List<ColumnCollector<?>> collectors) {
+            assert collectors.size() == expressions.size();
+            for (int i = 0; i < collectors.size(); i++) {
+                collectors.get(i).setShard(expressions.get(i));
+            }
+        }
+
+    }
+
+    private static class ColumnSampler {
+
+        final List<ColumnCollector<?>> collectors;
+        final IntFunction<ShardExpressions> shardSupplier;
+        final RamAccounting ramAccounting;
+
+        ShardExpressions currentShard;
+        ReaderContext currentLeafContext;
+        int rowsCollected;
+        long idCount;
+
+        private ColumnSampler(
+            List<ColumnCollector<?>> expressions,
+            IntFunction<ShardExpressions> shardSupplier,
+            RamAccounting ramAccounting
+        ) {
+            this.collectors = expressions;
+            this.shardSupplier = shardSupplier;
+            this.ramAccounting = ramAccounting;
+        }
+
+        public final void iterate(LongArrayList ids) throws IOException {
+
+            this.idCount = ids.size();
+
+            int currentShardId = -1;
+            IndexReaderContext currentShardContext = null;
+            int currentReaderCeiling = -1;
+            int currentReaderDocBase = -1;
+
+            for (LongCursor cursor : ids) {
+                int shardId = FetchId.decodeReaderId(cursor.value);
+                if (shardId != currentShardId) {
+                    currentShardId = shardId;
+                    currentShardContext = nextShard(shardId);
+                    currentReaderCeiling = -1;
+                }
+                int docId = FetchId.decodeDocId(cursor.value);
+                if (docId >= currentReaderCeiling) {
+                    assert currentShardContext != null;
+                    int contextOrd = ReaderUtil.subIndex(docId, currentShardContext.leaves());
+                    var leafContext = nextReaderContext(contextOrd);
+                    currentReaderDocBase = leafContext.docBase;
+                    currentReaderCeiling = currentReaderDocBase + leafContext.reader().maxDoc();
+                }
+
+                if (collect(docId - currentReaderDocBase) == false) {
+                    break;
                 }
             }
         }
 
-        var sizeEstimator = CellsSizeEstimator.forColumns(Symbols.typeView(columns));
-        ArrayList<Row> records = createRecords(fetchIdSamples.samples(), docIdToRowsFunctionPerReader, ramAccounting, sizeEstimator, maxSamples);
-        return new Samples(records, streamers, totalNumDocs, totalSizeInBytes);
-    }
+        protected IndexReaderContext nextShard(int shardId) {
+            currentShard = shardSupplier.apply(shardId);
+            currentShard.updateColumnCollectors(collectors);
+            return currentShard.searcher.getTopReaderContext();
+        }
 
-    @VisibleForTesting
-    ArrayList<Row> createRecords(LongArrayList samples,
-                                 List<IntFunction<Object[]>> docIdToRowsFunctionPerReader,
-                                 RamAccounting ramAccounting,
-                                 CellsSizeEstimator sizeEstimator,
-                                 int maxSamples) {
-        ArrayList<Row> records = new ArrayList<>();
-        long bytesSinceLastPause = 0;
+        protected LeafReaderContext nextReaderContext(int contextOrd) throws IOException {
+            var ctx = currentShard.searcher.getLeafContexts().get(contextOrd);
+            currentLeafContext = new ReaderContext(ctx);
+            for (var collector : collectors) {
+                collector.expression.setNextReader(currentLeafContext);
+            }
+            return ctx;
+        }
 
-        for (LongCursor cursor : samples) {
-            long fetchId = cursor.value;
-            int readerId = FetchId.decodeReaderId(fetchId);
-            IntFunction<Object[]> docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
-            Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
-
+        protected boolean collect(int doc) {
             try {
-                long bytesRead = sizeEstimator.estimateSize(row);
-                ramAccounting.addBytes(bytesRead);
-                bytesSinceLastPause = maybePause(bytesRead, bytesSinceLastPause);
+                for (var collector : collectors) {
+                    collector.collect(doc, ramAccounting);
+                }
+                rowsCollected++;
+                return true;
             } catch (CircuitBreakingException e) {
                 LOGGER.info(
                     "Stopped gathering samples for `ANALYZE` operation because circuit breaker triggered. "
                         + "Generating statistics with {} instead of {} records",
-                    records.size(),
-                    maxSamples
+                    rowsCollected,
+                    idCount
                 );
-                break;
+                return false;
             }
-            records.add(new RowN(row));
-        }
-
-        return records;
-    }
-
-    static class DocIdToRow implements IntFunction<Object[]> {
-
-        private final Engine.Searcher searcher;
-        private final List<Input<?>> inputs;
-        private final List<? extends LuceneCollectorExpression<?>> expressions;
-
-        DocIdToRow(Engine.Searcher searcher,
-                   List<Input<?>> inputs,
-                   List<? extends LuceneCollectorExpression<?>> expressions) {
-            this.searcher = searcher;
-            this.inputs = inputs;
-            this.expressions = expressions;
-        }
-
-        @Override
-        public Object[] apply(int docId) {
-            List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
-            int readerIndex = ReaderUtil.subIndex(docId, leaves);
-            LeafReaderContext leafContext = leaves.get(readerIndex);
-            int subDoc = docId - leafContext.docBase;
-            try {
-                var readerContext = new ReaderContext(leafContext);
-                for (LuceneCollectorExpression<?> expression : expressions) {
-                    expression.setNextReader(readerContext);
-                    expression.setNextDocId(subDoc);
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-            Object[] cells = new Object[inputs.size()];
-            for (int i = 0; i < cells.length; i++) {
-                cells[i] = inputs.get(i).value();
-            }
-            return cells;
         }
     }
 

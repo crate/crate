@@ -27,11 +27,12 @@ import static io.crate.window.NthValueFunctions.LAST_VALUE_NAME;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -57,7 +58,7 @@ import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -82,8 +83,7 @@ public class RowsBatchIteratorBenchmark {
         rows = IntStream.range(0, 10_000_000)
             .mapToObj(RowN::new)
             .toList();
-        Functions functions = new ModulesBuilder().add(new ExtraFunctionsModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         lastValueIntFunction = (WindowFunction) functions.getQualified(
             Signature.window(
                 LAST_VALUE_NAME,
