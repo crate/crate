@@ -307,7 +307,7 @@ public final class ReservoirSampler {
 
     private static class ColumnSampler {
 
-        final List<ColumnCollector<?>> expressions;
+        final List<ColumnCollector<?>> collectors;
         final IntFunction<ShardExpressions> shardSupplier;
         final RamAccounting ramAccounting;
 
@@ -321,7 +321,7 @@ public final class ReservoirSampler {
             IntFunction<ShardExpressions> shardSupplier,
             RamAccounting ramAccounting
         ) {
-            this.expressions = expressions;
+            this.collectors = expressions;
             this.shardSupplier = shardSupplier;
             this.ramAccounting = ramAccounting;
         }
@@ -359,23 +359,23 @@ public final class ReservoirSampler {
 
         protected IndexReaderContext nextShard(int shardId) {
             currentShard = shardSupplier.apply(shardId);
-            currentShard.updateColumnCollectors(expressions);
+            currentShard.updateColumnCollectors(collectors);
             return currentShard.searcher.getTopReaderContext();
         }
 
         protected LeafReaderContext nextReaderContext(int contextOrd) throws IOException {
             var ctx = currentShard.searcher.getLeafContexts().get(contextOrd);
             currentLeafContext = new ReaderContext(ctx);
-            for (var expression : expressions) {
-                expression.expression.setNextReader(currentLeafContext);
+            for (var collector : collectors) {
+                collector.expression.setNextReader(currentLeafContext);
             }
             return ctx;
         }
 
         protected boolean collect(int doc) {
             try {
-                for (var expression : expressions) {
-                    expression.collect(doc, ramAccounting);
+                for (var collector : collectors) {
+                    collector.collect(doc, ramAccounting);
                 }
                 rowsCollected++;
                 return true;
