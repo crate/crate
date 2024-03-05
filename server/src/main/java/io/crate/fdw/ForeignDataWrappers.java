@@ -127,7 +127,8 @@ public class ForeignDataWrappers implements CollectSource {
             server,
             foreignTable,
             txnCtx,
-            collectPhase.toCollect()
+            collectPhase.toCollect(),
+            phase.query()
         );
     }
 }

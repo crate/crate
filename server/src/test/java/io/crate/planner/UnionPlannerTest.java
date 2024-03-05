@@ -24,11 +24,13 @@ package io.crate.planner;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,6 +39,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
@@ -231,6 +234,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         var context = e.getPlannerContext(clusterService.state());
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         var plan = logicalPlanner.plan(e.analyze(stmt), context);

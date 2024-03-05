@@ -28,6 +28,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.settings.Setting;
@@ -40,8 +41,18 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.pipeline.InputRowProjector;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputFactory.Context;
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GtOperator;
+import io.crate.expression.operator.GteOperator;
+import io.crate.expression.operator.LtOperator;
+import io.crate.expression.operator.LteOperator;
+import io.crate.expression.operator.OrOperator;
+import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -50,6 +61,20 @@ import io.crate.metadata.settings.SessionSettings;
 import io.crate.role.Role;
 
 final class JdbcForeignDataWrapper implements ForeignDataWrapper {
+
+    /**
+     * Functions that any foreign database accessible via jdbc must support
+     */
+    private static final Set<String> SAFE_FUNCTIONS = Set.of(
+        AndOperator.NAME,
+        OrOperator.NAME,
+        NotPredicate.NAME,
+        EqOperator.NAME,
+        GtOperator.NAME,
+        GteOperator.NAME,
+        LtOperator.NAME,
+        LteOperator.NAME
+    );
 
     private final InputFactory inputFactory;
     private final Settings settings;
@@ -95,7 +120,8 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
                                                              Server server,
                                                              ForeignTable foreignTable,
                                                              TransactionContext txnCtx,
-                                                             List<Symbol> collect) {
+                                                             List<Symbol> collect,
+                                                             Symbol query) {
         SessionSettings sessionSettings = txnCtx.sessionSettings();
         Settings userOptions = server.users().get(sessionSettings.userName());
         if (userOptions == null) {
@@ -142,7 +168,10 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         RelationName remoteName = new RelationName(
             remoteSchema.isEmpty() ? foreignTable.name().schema() : remoteSchema,
             remoteTable.isEmpty() ? foreignTable.name().name() : remoteTable);
-        BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, remoteName);
+
+        assert supportsQueryPushdown(query)
+            : "ForeignCollect must only have a query where `supportsQueryPushDown` is true";
+        BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, query, remoteName);
         if (!refs.containsAll(collect)) {
             var sourceRefs = new InputColumns.SourceSymbols(refs);
             List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);
@@ -151,5 +180,13 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
             it = inputRowProjector.apply(it);
         }
         return CompletableFuture.completedFuture(it);
+    }
+
+    @Override
+    public boolean supportsQueryPushdown(Symbol query) {
+        return !SymbolVisitors.any(
+            x -> x instanceof Function fn && !SAFE_FUNCTIONS.contains(fn.name()),
+            query
+        );
     }
 }

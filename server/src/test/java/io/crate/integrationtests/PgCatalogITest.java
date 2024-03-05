@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,13 +39,13 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.view.ViewInfo;
+import io.crate.role.Roles;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.role.Roles;
 
 public class PgCatalogITest extends IntegTestCase {
 
@@ -231,6 +232,7 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.| NULL| NULL",
             "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.| NULL| NULL",
             "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.| NULL| NULL",
+            "optimizer_merge_filter_and_foreign_collect| true| Indicates if the optimizer rule MergeFilterAndForeignCollect is activated.| NULL| NULL",
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.| NULL| NULL",
             "optimizer_move_constant_join_conditions_beneath_nested_loop| true| Indicates if the optimizer rule MoveConstantJoinConditionsBeneathNestedLoop is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_correlated_join| true| Indicates if the optimizer rule MoveFilterBeneathCorrelatedJoin is activated.| NULL| NULL",
