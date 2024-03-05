@@ -247,7 +247,7 @@ public final class ReservoirSampler {
         }
     }
 
-    private List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
+    private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
         IndexService indexService,
         DocTableInfo docTable,
         CoordinatorTxnCtx coordinatorTxnCtx,
