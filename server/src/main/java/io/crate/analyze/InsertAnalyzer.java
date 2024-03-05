@@ -216,7 +216,7 @@ class InsertAnalyzer {
                 // Going through ExpressionAnalyzer again to still have a "column must exist" validation
                 if (x instanceof QualifiedNameReference) {
                     QualifiedName name = ((QualifiedNameReference) x).getName();
-                    Expression subscriptExpression = MetadataToASTNodeResolver.expressionFromColumn(
+                    Expression subscriptExpression = TableInfoToAST.expressionFromColumn(
                         ColumnIdent.fromPath(name.toString())
                     );
                     return expressionAnalyzer.convert(subscriptExpression, ctx);
