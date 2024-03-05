@@ -4352,5 +4352,5 @@ Example::
 .. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
 .. _Joda-Time: https://www.joda.org/joda-time/
 .. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
-.. _MySQL date_format: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. _MySQL date_format: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-format
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry
