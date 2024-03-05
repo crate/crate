@@ -160,14 +160,11 @@ garbage collection logging.
 ``CRATE_GC_LOG_DIR``: *path to logs directory* (default: varies)
   The log file directory.
 
-  For a `basic installation`_, the ``logs`` directory in the
-  :ref:`CRATE_HOME <conf-env-crate-home>` directory is default.
+  For a :ref:`basic installation <guide:install-quick>`, the ``logs`` directory
+  in the :ref:`CRATE_HOME <conf-env-crate-home>` directory is the default.
 
-  If you have installed `a CrateDB Linux package`_, the default directory is
-  ``/var/log/crate`` instead.
-
-.. _basic installation: https://crate.io/docs/crate/tutorials/en/latest/basic/
-.. _a CrateDB Linux package: https://crate.io/docs/crate/tutorials/en/latest/basic/index.html#linux
+  If you have installed :ref:`a CrateDB Linux package <guide:install>`, the
+  default directory is ``/var/log/crate`` instead.
 
 .. _conf-logging-gc-log-size:
 
