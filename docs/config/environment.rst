@@ -48,7 +48,7 @@ Application variables
 
   If you are installing manually, in most cases, this should be set to the
   directory from which you would normally execute ``bin/crate``, i.e. the root
-  directory of the `basic installation`_.
+  directory of the :ref:`basic installation <guide:install-quick>`.
 
 .. _conf-env-java:
 
@@ -108,18 +108,15 @@ General
 
   Default values are as follows:
 
-  - For a `basic installation`_, the process working directory
+  - For a :ref:`basic installation <guide:install-quick>`, the process working directory
 
-  - If you have installed `a CrateDB Linux package`_, ``/var/lib/crate``
+  - If you have installed :ref:`a CrateDB Linux package <guide:install>`, ``/var/lib/crate``
 
-  - When running `CrateDB on Docker`_, ``/data/data``
+  - When running :ref:`CrateDB on Docker <guide:install-container>`, ``/data/data``
 
   .. WARNING::
 
       Make sure there is enough disk space available for heap dumps.
 
 
-.. _basic installation: https://cratedb.com/docs/guide/install/tarball.html
-.. _a CrateDB Linux package: https://cratedb.com/docs/guide/install/
-.. _CrateDB on Docker: https://cratedb.com/docs/guide/install/container/
 .. _environment variables: https://en.wikipedia.org/wiki/Environment_variable
