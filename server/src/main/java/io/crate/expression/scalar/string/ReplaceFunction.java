@@ -21,20 +21,21 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import org.elasticsearch.common.Strings;
+
 import io.crate.expression.scalar.TripleScalar;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Strings;
 
 
 public final class ReplaceFunction {
 
     private static final String NAME = "replace";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),

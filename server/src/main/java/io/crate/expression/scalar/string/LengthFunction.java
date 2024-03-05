@@ -21,26 +21,26 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
+
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.nio.charset.StandardCharsets;
-import java.util.function.Function;
-
 public final class LengthFunction {
 
-    public static void register(ScalarFunctionModule module) {
-        register(module, "octet_length", x -> x.getBytes(StandardCharsets.UTF_8).length);
-        register(module, "bit_length", x -> x.getBytes(StandardCharsets.UTF_8).length * Byte.SIZE);
-        register(module, "char_length", String::length);
-        register(module, "length", String::length);
+    public static void register(Functions.Builder builder) {
+        register(builder, "octet_length", x -> x.getBytes(StandardCharsets.UTF_8).length);
+        register(builder, "bit_length", x -> x.getBytes(StandardCharsets.UTF_8).length * Byte.SIZE);
+        register(builder, "char_length", String::length);
+        register(builder, "length", String::length);
     }
 
-    private static void register(ScalarFunctionModule module, String name, Function<String, Integer> func) {
-        module.register(
+    private static void register(Functions.Builder builder, String name, Function<String, Integer> func) {
+        builder.add(
             Signature.scalar(
                 name,
                 DataTypes.STRING.getTypeSignature(),

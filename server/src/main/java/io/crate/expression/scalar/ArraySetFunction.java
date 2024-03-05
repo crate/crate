@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,9 +41,9 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
 
     public static final String NAME = "array_set";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         TypeSignature arrayESignature = TypeSignature.parse("array(E)");
-        module.register(
+        module.add(
             Signature.scalar(
                     NAME,
                     arrayESignature,
@@ -53,7 +54,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
                 .withFeature(Feature.NULLABLE),
             ArraySetFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
                     NAME,
                     arrayESignature,

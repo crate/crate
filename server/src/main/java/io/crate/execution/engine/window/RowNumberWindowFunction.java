@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -36,8 +37,8 @@ public class RowNumberWindowFunction implements WindowFunction {
 
     private static final String NAME = "row_number";
 
-    public static void register(WindowFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.window(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature()

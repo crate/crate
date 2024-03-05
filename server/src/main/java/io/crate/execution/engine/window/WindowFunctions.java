@@ -21,12 +21,18 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.expression.AbstractFunctionModule;
+import org.elasticsearch.common.settings.Settings;
 
-public class WindowFunctionModule extends AbstractFunctionModule<WindowFunction> {
+import io.crate.metadata.Functions.Builder;
+import io.crate.metadata.FunctionsProvider;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+
+public class WindowFunctions implements FunctionsProvider {
 
     @Override
-    public void configureFunctions() {
-        RowNumberWindowFunction.register(this);
+    public void addFunctions(Settings settings,
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Builder builder) {
+        RowNumberWindowFunction.register(builder);
     }
 }

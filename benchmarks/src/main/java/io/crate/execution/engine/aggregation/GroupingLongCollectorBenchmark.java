@@ -25,6 +25,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -45,7 +46,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -63,7 +64,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowCollectExpression;
@@ -73,6 +73,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.LongObjectHashMap;
 
@@ -93,10 +94,7 @@ public class GroupingLongCollectorBenchmark {
     public void createGroupingCollector() throws Exception {
         try (IndexWriter iw =
                  new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()))) {
-            Functions functions = new ModulesBuilder()
-                .add(new AggregationImplModule())
-                .createInjector()
-                .getInstance(Functions.class);
+            Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
             SumAggregation<?> sumAgg = (SumAggregation<?>) functions.getQualified(
                 Signature.aggregate(
                     SumAggregation.NAME,

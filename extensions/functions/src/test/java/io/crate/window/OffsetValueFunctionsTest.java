@@ -28,13 +28,8 @@ import org.junit.Test;
 
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
-import io.crate.module.ExtraFunctionsModule;
 
 public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
-
-    public OffsetValueFunctionsTest() {
-        super(new ExtraFunctionsModule());
-    }
 
     @Test
     public void testLagWithSingleArgumentAndEmptyOver() throws Throwable {

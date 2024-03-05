@@ -23,25 +23,21 @@ package io.crate.fdw;
 
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 
-public class ForeignTableRelation implements AnalyzedRelation {
-
-    private final ForeignTable table;
+public class ForeignTableRelation extends AbstractTableRelation<ForeignTable> {
 
     public ForeignTableRelation(ForeignTable table) {
-        this.table = table;
+        super(table, List.copyOf(table.columns()), List.of());
     }
 
     @Override
@@ -59,20 +55,10 @@ public class ForeignTableRelation implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("Cannot write or delete on foreign tables");
         }
-        Reference reference = table.references().get(column);
+        Reference reference = tableInfo.getReadReference(column);
         if (reference == null) {
-            throw new ColumnUnknownException(column, table.name());
+            throw new ColumnUnknownException(column, tableInfo.name());
         }
         return reference;
-    }
-
-    @Override
-    public RelationName relationName() {
-        return table.name();
-    }
-
-    @Override
-    public @NotNull List<Symbol> outputs() {
-        return List.copyOf(table.references().values());
     }
 }

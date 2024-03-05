@@ -33,6 +33,7 @@ import org.joda.time.PeriodType;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -45,8 +46,8 @@ public class AgeFunction extends Scalar<Period, Object> {
 
     private static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "age");
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             scalar(
                 NAME,
                 DataTypes.TIMESTAMP.getTypeSignature(),
@@ -55,7 +56,7 @@ public class AgeFunction extends Scalar<Period, Object> {
             AgeFunction::new
         );
 
-        module.register(
+        builder.add(
             scalar(
                 NAME,
                 DataTypes.TIMESTAMP.getTypeSignature(),

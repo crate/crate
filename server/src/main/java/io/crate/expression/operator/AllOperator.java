@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.function.IntPredicate;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -56,9 +57,9 @@ public final class AllOperator extends Operator<Object> {
         }
     }
 
-    public static void register(OperatorModule module) {
+    public static void register(Functions.Builder builder) {
         for (var type : Type.values()) {
-            module.register(
+            builder.add(
                 Signature.scalar(
                         type.fullQualifiedName,
                         TypeSignature.parse("E"),

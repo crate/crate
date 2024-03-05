@@ -24,10 +24,13 @@ package io.crate.metadata;
 import static io.crate.common.collections.Lists.getOnlyElement;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -37,7 +40,8 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.CompositeClassLoader;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -52,6 +56,7 @@ import io.crate.metadata.functions.BoundVariables;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.SignatureBinder;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -69,9 +74,39 @@ public class Functions {
         return functions;
     }
 
-    @Inject
-    public Functions(Map<FunctionName, List<FunctionProvider>> functionImplementationsBySignature) {
-        this.functionImplementations = functionImplementationsBySignature;
+    public static class Builder {
+
+        private HashMap<FunctionName, List<FunctionProvider>> providersByName = new HashMap<>();
+
+        public void add(Signature signature, FunctionFactory factory) {
+            List<FunctionProvider> functionProviders = providersByName.computeIfAbsent(
+                signature.getName(),
+                k -> new ArrayList<>()
+            );
+            functionProviders.add(new FunctionProvider(signature, factory));
+        }
+
+        public Functions build() {
+            return new Functions(Collections.unmodifiableMap(providersByName));
+        }
+    }
+
+    public static Functions load(Settings settings,
+                                 SessionSettingRegistry sessionSettingRegistry,
+                                 ClassLoader ... classLoaders) {
+        Builder builder = new Builder();
+        CompositeClassLoader compositeLoader = new CompositeClassLoader(
+            FunctionsProvider.class.getClassLoader(),
+            List.of(classLoaders)
+        );
+        for (var provider : ServiceLoader.load(FunctionsProvider.class, compositeLoader)) {
+            provider.addFunctions(settings, sessionSettingRegistry, builder);
+        }
+        return builder.build();
+    }
+
+    public Functions(Map<FunctionName, List<FunctionProvider>> functionProvidersByName) {
+        this.functionImplementations = functionProvidersByName;
     }
 
     public Iterable<Signature> signatures() {

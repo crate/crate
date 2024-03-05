@@ -21,21 +21,10 @@
 
 package io.crate.window;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 public class WindowFunctionsITest extends IntegTestCase {
-
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        ArrayList<Class<? extends Plugin>> plugins = new ArrayList<>(super.nodePlugins());
-        plugins.add(EnterpriseFunctionsProxyTestPlugin.class);
-        return plugins;
-    }
 
     @Test
     public void test_window_function_use_mixed_with_joins() throws Exception {

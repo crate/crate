@@ -29,7 +29,6 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.Projection;
@@ -104,15 +103,14 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists.concat(lhs.baseTables(), rhs.baseTables());
-    }
-
-    @Override
     public List<LogicalPlan> sources() {
         return List.of(lhs, rhs);
     }
 
+    @Override
+    public boolean supportsDistributedReads() {
+        return lhs.supportsDistributedReads() && rhs.supportsDistributedReads();
+    }
 
     protected static MergePhase buildMergePhaseForJoin(PlannerContext plannerContext,
                                                        ResultDescription resultDescription,

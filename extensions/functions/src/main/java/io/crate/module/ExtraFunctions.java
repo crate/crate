@@ -19,34 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.module;
 
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.metadata.Functions.Builder;
+import io.crate.metadata.FunctionsProvider;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.operation.aggregation.HyperLogLogDistinctAggregation;
+import io.crate.window.NthValueFunctions;
+import io.crate.window.OffsetValueFunctions;
+import io.crate.window.RankFunctions;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
-
-    private final Settings settings;
-
-    public TableFunctionModule(Settings settings) {
-        this.settings = settings;
-    }
+public class ExtraFunctions implements FunctionsProvider {
 
     @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
-        GenerateSeries.register(this);
-        ValuesFunction.register(this);
-        PgGetKeywordsFunction.register(this);
-        PgExpandArray.register(this);
-        GenerateSubscripts.register(this);
-        MatchesFunction.register(this);
-    }
-
-    public Settings settings() {
-        return settings;
+    public void addFunctions(Settings settings,
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Builder builder) {
+        HyperLogLogDistinctAggregation.register(builder);
+        NthValueFunctions.register(builder);
+        OffsetValueFunctions.register(builder);
+        RankFunctions.register(builder);
     }
 }

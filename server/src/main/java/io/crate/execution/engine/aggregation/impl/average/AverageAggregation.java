@@ -39,12 +39,12 @@ import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -74,10 +74,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     /**
      * register as "avg" and "mean"
      */
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var functionName : NAMES) {
             for (var supportedType : SUPPORTED_TYPES) {
-                mod.register(
+                builder.add(
                     Signature.aggregate(
                         functionName,
                         supportedType.getTypeSignature(),

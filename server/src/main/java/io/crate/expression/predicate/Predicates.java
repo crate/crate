@@ -19,30 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.operator;
+package io.crate.expression.predicate;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.expression.operator.any.AnyOperator;
-import io.crate.metadata.FunctionImplementation;
+import org.elasticsearch.common.settings.Settings;
 
-public class OperatorModule extends AbstractFunctionModule<FunctionImplementation> {
+import io.crate.metadata.Functions.Builder;
+import io.crate.metadata.FunctionsProvider;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+
+public class Predicates implements FunctionsProvider {
 
     @Override
-    public void configureFunctions() {
-        AndOperator.register(this);
-        OrOperator.register(this);
-        EqOperator.register(this);
-        CIDROperator.register(this);
-        LtOperator.register(this);
-        LteOperator.register(this);
-        GtOperator.register(this);
-        GteOperator.register(this);
-        RegexpMatchOperator.register(this);
-        RegexpMatchCaseInsensitiveOperator.register(this);
-
-        AnyOperator.register(this);
-        AllOperator.register(this);
-        LikeOperators.register(this);
-        ExistsOperator.register(this);
+    public void addFunctions(Settings settings,
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Builder builder) {
+        IsNullPredicate.register(builder);
+        NotPredicate.register(builder);
+        MatchPredicate.register(builder);
     }
 }

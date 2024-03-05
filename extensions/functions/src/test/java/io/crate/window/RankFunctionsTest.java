@@ -28,14 +28,9 @@ import org.junit.Test;
 
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
-import io.crate.module.ExtraFunctionsModule;
 
 
 public class RankFunctionsTest extends AbstractWindowFunctionTest {
-
-    public RankFunctionsTest() {
-        super(new ExtraFunctionsModule());
-    }
 
     @Test
     public void testRankWithEmptyOver() throws Throwable {

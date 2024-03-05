@@ -32,6 +32,7 @@ import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyNotLikeOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -104,8 +105,8 @@ public class LikeOperators {
         public abstract int patternFlags();
     }
 
-    public static void register(OperatorModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(
                 OP_LIKE,
                 DataTypes.STRING.getTypeSignature(),
@@ -115,7 +116,7 @@ public class LikeOperators {
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.SENSITIVE)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 OP_ILIKE,
                 DataTypes.STRING.getTypeSignature(),
@@ -126,7 +127,7 @@ public class LikeOperators {
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.INSENSITIVE)
         );
 
-        module.register(
+        builder.add(
             Signature.scalar(
                 OP_LIKE,
                 DataTypes.STRING.getTypeSignature(),
@@ -137,7 +138,7 @@ public class LikeOperators {
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.SENSITIVE)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 OP_ILIKE,
                 DataTypes.STRING.getTypeSignature(),
@@ -148,7 +149,7 @@ public class LikeOperators {
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.INSENSITIVE)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 ANY_LIKE,
                 DataTypes.STRING.getTypeSignature(),
@@ -162,7 +163,7 @@ public class LikeOperators {
                     CaseSensitivity.SENSITIVE
                 )
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 ANY_NOT_LIKE,
                 DataTypes.STRING.getTypeSignature(),
@@ -176,7 +177,7 @@ public class LikeOperators {
                     CaseSensitivity.SENSITIVE
                 )
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 ANY_ILIKE,
                 DataTypes.STRING.getTypeSignature(),
@@ -190,7 +191,7 @@ public class LikeOperators {
                     CaseSensitivity.INSENSITIVE
                 )
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 ANY_NOT_ILIKE,
                 DataTypes.STRING.getTypeSignature(),

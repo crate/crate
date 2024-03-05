@@ -24,14 +24,13 @@ package io.crate.execution.engine.aggregation.impl;
 import java.io.IOException;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
@@ -43,6 +42,7 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -62,10 +62,10 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
 
     public static final String NAME = "max";
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             var fixedWidthType = supportedType instanceof FixedWidthType;
-            mod.register(
+            builder.add(
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),

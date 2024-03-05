@@ -23,8 +23,8 @@ package io.crate.expression.scalar.arithmetic;
 
 import java.math.BigDecimal;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -34,8 +34,8 @@ public final class NegateFunctions {
 
     public static final String NAME = "_negate";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(
                 NAME,
                 TypeSignature.parse("double precision"),
@@ -45,7 +45,7 @@ public final class NegateFunctions {
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, x -> x * -1)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 DataTypes.FLOAT.getTypeSignature(),
@@ -55,7 +55,7 @@ public final class NegateFunctions {
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.FLOAT, x -> x * -1)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 TypeSignature.parse("integer"),
@@ -65,7 +65,7 @@ public final class NegateFunctions {
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.INTEGER, x -> x * -1)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 TypeSignature.parse("bigint"),
@@ -75,7 +75,7 @@ public final class NegateFunctions {
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.LONG, x -> x * -1)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 TypeSignature.parse("smallint"),
@@ -85,7 +85,7 @@ public final class NegateFunctions {
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.SHORT, x -> (short) (x * -1))
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 DataTypes.NUMERIC.getTypeSignature(),

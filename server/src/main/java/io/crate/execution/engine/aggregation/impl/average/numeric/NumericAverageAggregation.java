@@ -40,13 +40,13 @@ import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.util.BigDecimalValueWrapper;
 import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -67,9 +67,9 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         DataTypes.register(NumericAverageStateType.ID, in -> NumericAverageStateType.INSTANCE);
     }
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var functionName : NAMES) {
-            mod.register(
+            builder.add(
                 Signature.aggregate(
                     functionName,
                     DataTypes.NUMERIC.getTypeSignature(),

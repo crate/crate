@@ -35,22 +35,23 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
-import io.crate.role.Roles;
 
 class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_difference";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                     NAME,
                     TypeSignature.parse("array(E)"),

@@ -27,6 +27,7 @@ import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInn
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -42,9 +43,9 @@ public class ArrayMaxFunction<T> extends Scalar<T, List<T>> {
 
     private final DataType dataType;
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
 
-        module.register(
+        module.add(
             Signature.scalar(
                     NAME,
                     new ArrayType(DataTypes.NUMERIC).getTypeSignature(),
@@ -55,7 +56,7 @@ public class ArrayMaxFunction<T> extends Scalar<T, List<T>> {
         );
 
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
-            module.register(
+            module.add(
                 Signature.scalar(
                     NAME,
                     new ArrayType(supportedType).getTypeSignature(),
