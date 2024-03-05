@@ -111,7 +111,7 @@ public class ColumnStatsTest {
 
     @Test
     public void test_histogram_contains_evenly_spaced_values_from_samples() {
-        HistogramSketch<Integer> sketch = new HistogramSketch<>(DataTypes.INTEGER);
+        HistogramSketch<Integer> sketch = new HistogramSketch<>(Integer.class, DataTypes.INTEGER);
         IntStream.range(1, 21).boxed().forEach(sketch::update);
         List<Integer> histogram = sketch.toHistogram();
         assertThat(histogram, contains(1, 7, 13, 19));

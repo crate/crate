@@ -39,15 +39,15 @@ public class HistogramSketch<T> {
     private final ItemsSketch<T> sketch;
     private final SketchStreamer<T> streamer;
 
-    public HistogramSketch(DataType<T> dataType) {
-        this.sketch = ItemsSketch.getInstance(dataType);
+    public HistogramSketch(Class<T> clazz, DataType<T> dataType) {
+        this.sketch = ItemsSketch.getInstance(clazz, dataType);
         this.streamer = new SketchStreamer<>(dataType.streamer());
     }
 
-    public HistogramSketch(DataType<T> dataType, StreamInput in) throws IOException {
+    public HistogramSketch(Class<T> clazz, DataType<T> dataType, StreamInput in) throws IOException {
         byte[] bytes = in.readByteArray();
         this.streamer = new SketchStreamer<>(dataType.streamer());
-        this.sketch = ItemsSketch.getInstance(Memory.wrap(bytes), dataType, streamer);
+        this.sketch = ItemsSketch.getInstance(clazz, Memory.wrap(bytes), dataType, streamer);
     }
 
     public void writeTo(StreamOutput out) throws IOException {

@@ -55,7 +55,6 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
@@ -69,9 +68,7 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.lucene.FieldTypeLookup;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -83,24 +80,18 @@ public final class ReservoirSampler {
     private static final Logger LOGGER = LogManager.getLogger(ReservoirSampler.class);
 
     private final ClusterService clusterService;
-    private final NodeContext nodeCtx;
     private final Schemas schemas;
-    private final CircuitBreakerService circuitBreakerService;
     private final IndicesService indicesService;
 
     private final RateLimiter rateLimiter;
 
     @Inject
     public ReservoirSampler(ClusterService clusterService,
-                            NodeContext nodeCtx,
                             Schemas schemas,
-                            CircuitBreakerService circuitBreakerService,
                             IndicesService indicesService,
                             Settings settings) {
         this(clusterService,
-             nodeCtx,
              schemas,
-             circuitBreakerService,
              indicesService,
              new RateLimiter.SimpleRateLimiter(STATS_SERVICE_THROTTLING_SETTING.get(settings).getMbFrac())
         );
@@ -108,15 +99,11 @@ public final class ReservoirSampler {
 
     @VisibleForTesting
     ReservoirSampler(ClusterService clusterService,
-                            NodeContext nodeCtx,
                             Schemas schemas,
-                            CircuitBreakerService circuitBreakerService,
                             IndicesService indicesService,
                             RateLimiter rateLimiter) {
         this.clusterService = clusterService;
-        this.nodeCtx = nodeCtx;
         this.schemas = schemas;
-        this.circuitBreakerService = circuitBreakerService;
         this.indicesService = indicesService;
         this.rateLimiter = rateLimiter;
 
@@ -140,15 +127,13 @@ public final class ReservoirSampler {
         }
         Random random = Randomness.get();
         Metadata metadata = clusterService.state().metadata();
-        CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         try {
             return getSamples(
                 columns,
                 maxSamples,
                 docTable,
                 random,
-                metadata,
-                coordinatorTxnCtx
+                metadata
             );
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -159,8 +144,7 @@ public final class ReservoirSampler {
                                int maxSamples,
                                DocTableInfo docTable,
                                Random random,
-                               Metadata metadata,
-                               CoordinatorTxnCtx coordinatorTxnCtx) throws IOException {
+                               Metadata metadata) throws IOException {
 
         Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
         long totalNumDocs = 0;
@@ -186,7 +170,7 @@ public final class ReservoirSampler {
                 }
 
                 List<? extends LuceneCollectorExpression<?>> expressions
-                    = getCollectorExpressions(indexService, docTable, coordinatorTxnCtx, columns);
+                    = getCollectorExpressions(indexService, docTable, columns);
 
                 for (IndexShard indexShard : indexService) {
                     if (!indexShard.routingEntry().primary()) {
@@ -232,7 +216,6 @@ public final class ReservoirSampler {
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
         IndexService indexService,
         DocTableInfo docTable,
-        CoordinatorTxnCtx coordinatorTxnCtx,
         List<Reference> columns
     ) {
         var mapperService = indexService.mapperService();

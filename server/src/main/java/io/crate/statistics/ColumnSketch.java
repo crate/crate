@@ -64,7 +64,7 @@ public class ColumnSketch<T> {
         this.histogram = histogram;
     }
 
-    public ColumnSketch(DataType<T> dataType, StreamInput in) throws IOException {
+    public ColumnSketch(Class<T> clazz, DataType<T> dataType, StreamInput in) throws IOException {
         this.dataType = dataType;
         this.sampleCount = in.readLong();
         this.nullCount = in.readLong();
@@ -74,7 +74,7 @@ public class ColumnSketch<T> {
         this.distinctValues = Sketches.wrapSketch(Memory.wrap(distinctSketchBytes));
 
         this.mostCommonValues = new MostCommonValuesSketch<>(dataType.streamer(), in);
-        this.histogram = new HistogramSketch<>(dataType, in);
+        this.histogram = new HistogramSketch<>(clazz, dataType, in);
     }
 
     public void writeTo(StreamOutput out) throws IOException {
