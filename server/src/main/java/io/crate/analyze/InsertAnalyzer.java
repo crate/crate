@@ -214,11 +214,9 @@ class InsertAnalyzer {
             } catch (ColumnUnknownException e) {
                 // Needed for BWC; to keep supporting `\"o.id\"` style subscript definition
                 // Going through ExpressionAnalyzer again to still have a "column must exist" validation
-                if (x instanceof QualifiedNameReference) {
-                    QualifiedName name = ((QualifiedNameReference) x).getName();
-                    Expression subscriptExpression = TableInfoToAST.expressionFromColumn(
-                        ColumnIdent.fromPath(name.toString())
-                    );
+                if (x instanceof QualifiedNameReference qnameRef) {
+                    QualifiedName name = qnameRef.getName();
+                    Expression subscriptExpression = ColumnIdent.fromPath(name.toString()).toExpression();
                     return expressionAnalyzer.convert(subscriptExpression, ctx);
                 }
                 throw e;
