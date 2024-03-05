@@ -43,7 +43,6 @@ public class PluginInfo {
     private final String name;
     private final String description;
     private final String classname;
-    private final List<String> extendedPlugins;
 
     /**
      * Construct plugin info.
@@ -60,7 +59,6 @@ public class PluginInfo {
         this.name = name;
         this.description = description;
         this.classname = classname;
-        this.extendedPlugins = Collections.unmodifiableList(extendedPlugins);
     }
 
     /**
@@ -145,15 +143,6 @@ public class PluginInfo {
         return classname;
     }
 
-    /**
-     * Other plugins this plugin extends through SPI.
-     *
-     * @return the names of the plugins extended
-     */
-    public List<String> getExtendedPlugins() {
-        return extendedPlugins;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -179,7 +168,6 @@ public class PluginInfo {
             .append(prefix).append("- Plugin information:\n")
             .append(prefix).append("Name: ").append(name).append("\n")
             .append(prefix).append("Description: ").append(description).append("\n")
-            .append(prefix).append("Extended Plugins: ").append(extendedPlugins).append("\n")
             .append(prefix).append(" * Classname: ").append(classname);
         return information.toString();
     }

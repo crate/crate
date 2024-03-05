@@ -28,6 +28,7 @@ import org.elasticsearch.transport.RemoteTransportException;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
+import io.crate.exceptions.SQLExceptions;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.rest.action.HttpError;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -63,7 +64,8 @@ public final class SQLErrorAssert extends AbstractThrowableAssert<SQLErrorAssert
                 + errorCode
                 + " but "
                 + actual.getClass().getSimpleName()
-                + " has a different code"
+                + " has a different code."
+                + " Actual error message: " + SQLExceptions.messageOf(actual)
             )
             .isEqualTo(errorCode);
         assertThat(httpError.httpResponseStatus()).isEqualTo(httpResponseCode);
