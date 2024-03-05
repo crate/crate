@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnSketchBuilder;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -47,9 +48,11 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
         var numbers = IntStream.range(1, 20001)
             .boxed()
             .collect(Collectors.toList());
+        ColumnSketchBuilder<Integer> sketchBuilder = new ColumnSketchBuilder<>(DataTypes.INTEGER);
+        sketchBuilder.addAll(numbers);
         columnStats.put(
             new ColumnIdent("x"),
-            ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, totalNumRows)
+            sketchBuilder.toSketch().toColumnStats()
         );
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table doc.tbl (x int)")
@@ -74,10 +77,12 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
         ).boxed().collect(Collectors.toList());
 
         long numDocs = 2_000L;
+        ColumnSketchBuilder<Integer> sketchBuilder = new ColumnSketchBuilder<>(DataTypes.INTEGER);
+        sketchBuilder.addAll(samples);
         Stats stats = new Stats(
             numDocs,
             DataTypes.INTEGER.fixedSize(),
-            Map.of(new ColumnIdent("x"), ColumnStats.fromSortedValues(samples, DataTypes.INTEGER, 0, numDocs))
+            Map.of(new ColumnIdent("x"), sketchBuilder.toSketch().toColumnStats())
         );
 
         e.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));

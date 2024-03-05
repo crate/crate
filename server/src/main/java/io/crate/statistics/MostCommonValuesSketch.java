@@ -23,37 +23,43 @@ package io.crate.statistics;
 
 import java.io.IOException;
 
-import org.apache.datasketches.common.ArrayOfStringsSerDe;
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
 import org.apache.datasketches.memory.Memory;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-public class MostCommonValuesSketch {
+import io.crate.Streamer;
 
-    private final ItemsSketch<String> sketch;
+public class MostCommonValuesSketch<T> {
 
-    public MostCommonValuesSketch() {
+    private final ItemsSketch<T> sketch;
+    private final SketchStreamer<T> streamer;
+
+    public MostCommonValuesSketch(Streamer<T> streamer) {
+        this.streamer = new SketchStreamer<>(streamer);
         this.sketch = new ItemsSketch<>(256);
     }
 
-    public MostCommonValuesSketch(StreamInput in) throws IOException {
+    public MostCommonValuesSketch(Streamer<T> streamer, StreamInput in) throws IOException {
+        this.streamer = new SketchStreamer<>(streamer);
         byte[] bytes = in.readByteArray();
-        this.sketch = ItemsSketch.getInstance(Memory.wrap(bytes), new ArrayOfStringsSerDe());
+        this.sketch = ItemsSketch.getInstance(Memory.wrap(bytes), this.streamer);
     }
 
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeByteArray(this.sketch.toByteArray(new ArrayOfStringsSerDe()));
+        out.writeByteArray(this.sketch.toByteArray(streamer));
     }
 
-    public MostCommonValuesSketch merge(MostCommonValuesSketch other) {
-        this.sketch.merge(other.sketch);
+    @SuppressWarnings("unchecked")
+    public MostCommonValuesSketch<T> merge(MostCommonValuesSketch<?> other) {
+        var otherSketch = (ItemsSketch<T>) other.sketch;
+        this.sketch.merge(otherSketch);
         return this;
     }
 
-    public void update(Object value) {
-        this.sketch.update(value.toString());
+    public void update(T value) {
+        this.sketch.update(value);
     }
 
     public MostCommonValues toMostCommonValues() {

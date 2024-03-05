@@ -21,6 +21,8 @@
 
 package io.crate.statistics;
 
+import java.util.Collection;
+
 import org.apache.datasketches.theta.UpdateSketch;
 
 import io.crate.types.DataType;
@@ -33,12 +35,13 @@ public class ColumnSketchBuilder<T> {
     private int nullCount;
     private long totalBytes;
     private final UpdateSketch distinctSketch = UpdateSketch.builder().build();
-    private final MostCommonValuesSketch mostCommonValuesSketch = new MostCommonValuesSketch();
-    private final HistogramSketch histogramSketch;
+    private final MostCommonValuesSketch<T> mostCommonValuesSketch;
+    private final HistogramSketch<T> histogramSketch;
 
     public ColumnSketchBuilder(DataType<T> dataType) {
         this.dataType = dataType;
-        this.histogramSketch = new HistogramSketch();
+        this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer());
+        this.histogramSketch = new HistogramSketch<T>(dataType);
     }
 
     public void add(T value) {
@@ -50,6 +53,12 @@ public class ColumnSketchBuilder<T> {
             distinctSketch.update(value.toString());
             mostCommonValuesSketch.update(value);
             histogramSketch.update(value);
+        }
+    }
+
+    public void addAll(Collection<T> values) {
+        for (var v : values) {
+            add(v);
         }
     }
 

@@ -28,7 +28,6 @@ import java.util.List;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.data.breaker.RamAccounting;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -47,10 +46,10 @@ public class TransportAnalyzeActionTest extends ESTestCase {
         ArrayType<String> type = DataTypes.STRING_ARRAY;
         var col1 = new ColumnSketchBuilder<>(type);
         var col2 = new ColumnSketchBuilder<>(type);
-        col1.add(null, RamAccounting.NO_ACCOUNTING);
-        col2.add(null, RamAccounting.NO_ACCOUNTING);
+        col1.add(null);
+        col2.add(null);
         var samples = new Samples(
-            List.of(col1, col2),
+            List.of(col1.toSketch(), col2.toSketch()),
             2,
             10
         );

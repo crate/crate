@@ -43,9 +43,9 @@ public class ColumnSketch<T> {
     private final long totalBytes;
 
     private final Sketch distinctValues;
-    private final MostCommonValuesSketch mostCommonValues;
+    private final MostCommonValuesSketch<T> mostCommonValues;
 
-    private final HistogramSketch histogram;
+    private final HistogramSketch<T> histogram;
 
 
     public ColumnSketch(DataType<T> dataType,
@@ -53,8 +53,8 @@ public class ColumnSketch<T> {
                         long nullCount,
                         long totalBytes,
                         Sketch distinctValues,
-                        MostCommonValuesSketch mostCommonValues,
-                        HistogramSketch histogram) {
+                        MostCommonValuesSketch<T> mostCommonValues,
+                        HistogramSketch<T> histogram) {
         this.dataType = dataType;
         this.sampleCount = sampleCount;
         this.nullCount = nullCount;
@@ -73,8 +73,8 @@ public class ColumnSketch<T> {
         byte[] distinctSketchBytes = in.readByteArray();
         this.distinctValues = Sketches.wrapSketch(Memory.wrap(distinctSketchBytes));
 
-        this.mostCommonValues = new MostCommonValuesSketch(in);
-        this.histogram = new HistogramSketch(in);
+        this.mostCommonValues = new MostCommonValuesSketch<>(dataType.streamer(), in);
+        this.histogram = new HistogramSketch<>(dataType, in);
     }
 
     public void writeTo(StreamOutput out) throws IOException {

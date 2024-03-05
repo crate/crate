@@ -41,14 +41,14 @@ public final class ColumnStats<T> implements Writeable {
     private final double approxDistinct;
     private final DataType<T> type;
     private final MostCommonValues mostCommonValues;
-    private final List<String> histogram;
+    private final List<T> histogram;
 
     public ColumnStats(double nullFraction,
                        double averageSizeInBytes,
                        double approxDistinct,
                        DataType<T> type,
                        MostCommonValues mostCommonValues,
-                       List<String> histogram) {
+                       List<T> histogram) {
         this.nullFraction = nullFraction;
         this.averageSizeInBytes = averageSizeInBytes;
         this.approxDistinct = approxDistinct;
@@ -67,23 +67,24 @@ public final class ColumnStats<T> implements Writeable {
         Streamer<T> streamer = type.streamer();
         this.mostCommonValues = new MostCommonValues(streamer, in);
         int numHistogramValues = in.readVInt();
-        ArrayList<String> histogram = new ArrayList<>(numHistogramValues);
+        ArrayList<T> histogram = new ArrayList<>(numHistogramValues);
         for (int i = 0; i < numHistogramValues; i++) {
-            histogram.add(in.readString());
+            histogram.add(streamer.readValueFrom(in));
         }
         this.histogram = histogram;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        Streamer<T> streamer = this.type.streamer();
         DataTypes.toStream(type, out);
         out.writeDouble(nullFraction);
         out.writeDouble(averageSizeInBytes);
         out.writeDouble(approxDistinct);
         mostCommonValues.writeTo(type.streamer(), out);
         out.writeVInt(histogram.size());
-        for (String o : histogram) {
-            out.writeString(o);
+        for (T o : histogram) {
+            streamer.writeValueTo(out, o);
         }
     }
 
@@ -103,7 +104,7 @@ public final class ColumnStats<T> implements Writeable {
         return mostCommonValues;
     }
 
-    public List<String> histogram() {
+    public List<T> histogram() {
         return histogram;
     }
 

@@ -34,6 +34,7 @@ import org.junit.Test;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnSketchBuilder;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
@@ -55,7 +56,9 @@ public class GroupHashAggregateTest extends CrateDummyClusterServiceUnitTest {
             IntStream.generate(() -> 20).limit(50)
         ).boxed().collect(Collectors.toList());
         long numDocs = 2_000L;
-        ColumnStats<Integer> columnStats = ColumnStats.fromSortedValues(samples, DataTypes.INTEGER, 0, numDocs);
+        ColumnSketchBuilder<Integer> sketchBuilder = new ColumnSketchBuilder<>(DataTypes.INTEGER);
+        sketchBuilder.addAll(samples);
+        ColumnStats<Integer> columnStats = sketchBuilder.toSketch().toColumnStats();
         stats = new Stats(
             numDocs,
             DataTypes.INTEGER.fixedSize(),

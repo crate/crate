@@ -51,8 +51,7 @@ public class ColumnStatsTest {
 
     @Test
     public void test_column_stats_generation() {
-        List<Integer> numbers = List.of(1, 1, 2, 4, 4, 4, 4, 4);
-        ColumnStats columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 1, 400L);
+        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 1, 2, 4, 4, 4, 4, 4));
         assertThat(columnStats.averageSizeInBytes(), is((double) DataTypes.INTEGER.fixedSize()));
         assertThat(columnStats.nullFraction(), Matchers.closeTo(0.111, 0.01));
         assertThat(columnStats.approxDistinct(), is(3.0));
@@ -67,7 +66,7 @@ public class ColumnStatsTest {
         assumeThat(totalRowCount, greaterThanOrEqualTo((long) nullCount));
         assumeThat((long) numbers.size() + nullCount, lessThanOrEqualTo(totalRowCount));
 
-        ColumnStats<Integer> stats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, nullCount, totalRowCount);
+        ColumnStats<Integer> stats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
         assertThat(stats.nullFraction(), greaterThanOrEqualTo(0.0));
         assertThat(stats.nullFraction(), lessThanOrEqualTo(1.0));
     }
@@ -75,7 +74,7 @@ public class ColumnStatsTest {
     @Test
     public void test_common_stats_can_be_serialized_and_deserialized() throws IOException {
         List<Integer> numbers = List.of(1, 1, 2, 4, 4, 4, 4, 4);
-        ColumnStats columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 1, 400L);
+        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
 
         BytesStreamOutput out = new BytesStreamOutput();
         columnStats.writeTo(out);
@@ -99,7 +98,7 @@ public class ColumnStatsTest {
             .boxed()
             .collect(Collectors.toList());
 
-        ColumnStats<Integer> columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, 400L);
+        ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
         List<Integer> histogramSample = columnStats.histogram().subList(0, 15);
         assertThat(histogramSample, contains(1, 2, 3, 4, 5, 6, 7, 8, 9, 30, 31, 32, 33, 34, 35));
         MostCommonValues mostCommonValues = columnStats.mostCommonValues();
@@ -112,22 +111,21 @@ public class ColumnStatsTest {
 
     @Test
     public void test_histogram_contains_evenly_spaced_values_from_samples() {
-        List<Integer> histogram = ColumnStats.generateHistogram(
-            4,
-            IntStream.range(1, 21).boxed().collect(Collectors.toList())
-        );
+        HistogramSketch<Integer> sketch = new HistogramSketch<>(DataTypes.INTEGER);
+        IntStream.range(1, 21).boxed().forEach(sketch::update);
+        List<Integer> histogram = sketch.toHistogram();
         assertThat(histogram, contains(1, 7, 13, 19));
     }
 
     @Test
     public void test_average_size_in_bytes_is_calculated_for_variable_width_columns() {
-        ColumnStats stats = ColumnStats.fromSortedValues(List.of("a", "b", "ccc", "dddddd"), DataTypes.STRING, 0, 100L);
+        ColumnStats stats = StatsUtils.statsFromValues(DataTypes.STRING, List.of("a", "b", "ccc", "dddddd"));
         assertThat(stats.averageSizeInBytes(), is(50.0));
     }
 
     @Test
     public void test_column_stats_generation_from_null_values_only_has_null_fraction_1() {
-        ColumnStats columnStats = ColumnStats.fromSortedValues(List.of(), DataTypes.INTEGER, 200, 1000L);
+        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of());
         assertThat(columnStats.nullFraction(), is(1.0));
     }
 }

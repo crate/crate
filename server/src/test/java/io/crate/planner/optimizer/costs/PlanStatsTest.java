@@ -46,15 +46,16 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
+import io.crate.role.Role;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
+import io.crate.statistics.StatsUtils;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 
 
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
@@ -243,8 +244,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         DocTableRelation relation = new DocTableRelation(aDoc);
         var lhs = new Collect(relation, List.of(x), WhereClause.MATCH_ALL);
         var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
-        ColumnStats<Integer> xStats = ColumnStats.fromSortedValues(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9), DataTypes.INTEGER, 0, 9);
-        ColumnStats<Integer> yStats = ColumnStats.fromSortedValues(List.of(1), DataTypes.INTEGER, 0, 1);
+        ColumnStats<Integer> xStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
+        ColumnStats<Integer> yStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1));
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
