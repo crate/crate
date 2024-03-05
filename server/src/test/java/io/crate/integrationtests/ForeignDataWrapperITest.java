@@ -58,8 +58,8 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         execute("create user trillian with (password = 'secret')");
         execute("create user arthur with (password = 'not-so-secret')");
 
-        execute("create table doc.tbl (x int)");
-        execute("insert into doc.tbl (x) values (1), (2), (42)");
+        execute("create table doc.tbl (x int, y int)");
+        execute("insert into doc.tbl (x, y) values (1, 1), (2, 2), (42, 42)");
         execute("refresh table doc.tbl");
 
         PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
@@ -89,7 +89,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         assertThat(response).hasRows(new Object[] { "pg", "url", url });
 
         String stmt = """
-            CREATE FOREIGN TABLE doc.dummy (x int)
+            CREATE FOREIGN TABLE doc.dummy (x int, y int)
             SERVER pg
             OPTIONS (schema_name 'doc', table_name 'tbl')
             """;
@@ -123,7 +123,8 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         );
         execute("select column_name from information_schema.columns where table_name = 'dummy' order by 1");
         assertThat(response).hasRows(
-            "x"
+            "x",
+            "y"
         );
 
         execute("grant dql on table doc.tbl to arthur");
@@ -149,23 +150,39 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         execute("explain select * from doc.dummy order by x");
         assertThat(response).hasLines(
             "OrderBy[x ASC] (rows=unknown)",
-            "  └ ForeignCollect[x] (rows=unknown)"
+            "  └ ForeignCollect[doc.dummy | [y, x] | true] (rows=unknown)"
         );
 
         var roles = cluster().getInstance(Roles.class);
         Role trillian = roles.findUser("trillian");
         response = sqlExecutor.executeAs("select * from doc.dummy order by x asc", trillian);
         assertThat(response).hasRows(
-            "1",
-            "2",
-            "42"
+            "1| 1",
+            "2| 2",
+            "42| 42"
         );
 
-        response = sqlExecutor.executeAs("select {x=x} from doc.dummy order by x asc", trillian);
+        response = sqlExecutor.executeAs("explain select x from doc.dummy where x > 1 order by x asc", trillian);
+        assertThat(response).hasLines(
+            "OrderBy[x ASC] (rows=unknown)",
+            "  └ ForeignCollect[doc.dummy | [x] | (x > 1)] (rows=unknown)"
+        );
+        response = sqlExecutor.executeAs("select {x=x} from doc.dummy where x > 1 order by x asc", trillian);
         assertThat(response).hasRows(
-            "{x=1}",
             "{x=2}",
             "{x=42}"
+        );
+        response = sqlExecutor.executeAs("explain select x from doc.dummy where sqrt(y) < 5 order by x asc", trillian);
+        assertThat(response).hasLines(
+            "Eval[x] (rows=0)",
+            "  └ OrderBy[x ASC] (rows=0)",
+            "    └ Filter[(sqrt(y) < 5.0)] (rows=0)",
+            "      └ ForeignCollect[doc.dummy | [x, y] | true] (rows=unknown)"
+        );
+        response = sqlExecutor.executeAs("select x from doc.dummy where sqrt(y) < 5 order by x asc", trillian);
+        assertThat(response).hasRows(
+            "1",
+            "2"
         );
 
 
@@ -187,7 +204,8 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         );
         execute("select column_name from information_schema.columns where table_name = 'dummy' order by 1");
         assertThat(response).hasRows(
-            "x"
+            "x",
+            "y"
         );
         execute("select authorization_identifier, foreign_server_name from information_schema.user_mappings");
         assertThat(response).hasRows(

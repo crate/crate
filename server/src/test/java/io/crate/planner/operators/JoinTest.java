@@ -28,6 +28,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,6 +48,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -90,6 +93,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan buildLogicalPlan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
@@ -472,6 +476,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation mss = e.analyze("select * from t1, t4 order by t1.x");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
@@ -489,6 +494,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "JOIN t3 t3 on t3.c = t2.b");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
 

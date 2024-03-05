@@ -39,6 +39,7 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
     private final String handlerNode;
     private final RelationName relationName;
     private final List<Symbol> toCollect;
+    private final Symbol query;
 
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
 
@@ -46,12 +47,14 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
                                int phaseId,
                                String handlerNode,
                                RelationName relationName,
-                               List<Symbol> toCollect) {
+                               List<Symbol> toCollect,
+                               Symbol query) {
         super(jobId, phaseId, relationName.fqn(), null);
         this.handlerNode = handlerNode;
         this.relationName = relationName;
         this.toCollect = toCollect;
         this.outputTypes = Symbols.typeView(toCollect);
+        this.query = query;
     }
 
     public ForeignCollectPhase(StreamInput in) throws IOException {
@@ -61,6 +64,7 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
         this.toCollect = Symbols.listFromStream(in);
         this.outputTypes = extractOutputTypes(toCollect, projections);
         this.distributionInfo = new DistributionInfo(in);
+        this.query = Symbols.fromStream(in);
     }
 
     @Override
@@ -70,6 +74,7 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
         relationName.writeTo(out);
         Symbols.toStream(toCollect, out);
         distributionInfo.writeTo(out);
+        Symbols.toStream(query, out);
     }
 
     @Override
@@ -104,5 +109,9 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
 
     public RelationName relationName() {
         return relationName;
+    }
+
+    public Symbol query() {
+        return query;
     }
 }
