@@ -255,16 +255,15 @@ public final class ReservoirSampler {
     ) {
         var mapperService = indexService.mapperService();
         FieldTypeLookup fieldTypeLookup = mapperService::fieldType;
-        var ctx = new DocInputFactory(
-            nodeCtx,
-            new LuceneReferenceResolver(
-                indexService.index().getName(),
-                fieldTypeLookup,
-                docTable.partitionedByColumns()
-            )
-        ).getCtx(coordinatorTxnCtx);
-        ctx.add(Lists.map(columns, DocReferences::toSourceLookup));
-        List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
+        LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
+            indexService.index().getName(),
+            fieldTypeLookup,
+            docTable.partitionedByColumns()
+        );
+        List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
+            columns,
+            x -> referenceResolver.getImplementation(DocReferences.toSourceLookup(x))
+        );
 
         CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
         for (LuceneCollectorExpression<?> expression : expressions) {
