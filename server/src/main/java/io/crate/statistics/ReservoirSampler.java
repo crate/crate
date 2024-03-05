@@ -69,7 +69,6 @@ import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
