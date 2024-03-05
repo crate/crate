@@ -63,7 +63,6 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -230,7 +229,7 @@ public final class ReservoirSampler {
         }
     }
 
-    private List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
+    private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
         IndexService indexService,
         DocTableInfo docTable,
         CoordinatorTxnCtx coordinatorTxnCtx,
@@ -238,16 +237,15 @@ public final class ReservoirSampler {
     ) {
         var mapperService = indexService.mapperService();
         FieldTypeLookup fieldTypeLookup = mapperService::fieldType;
-        var ctx = new DocInputFactory(
-            nodeCtx,
-            new LuceneReferenceResolver(
-                indexService.index().getName(),
-                fieldTypeLookup,
-                docTable.partitionedByColumns()
-            )
-        ).getCtx(coordinatorTxnCtx);
-        ctx.add(Lists.map(columns, DocReferences::toSourceLookup));
-        List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
+        LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
+            indexService.index().getName(),
+            fieldTypeLookup,
+            docTable.partitionedByColumns()
+        );
+        List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
+            columns,
+            x -> referenceResolver.getImplementation(DocReferences.toSourceLookup(x))
+        );
 
         CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
         for (LuceneCollectorExpression<?> expression : expressions) {
