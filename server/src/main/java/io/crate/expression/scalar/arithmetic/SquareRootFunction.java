@@ -21,21 +21,21 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
 import io.crate.expression.scalar.DoubleScalar;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public final class SquareRootFunction {
 
     public static final String NAME = "sqrt";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
-            module.register(
+            module.add(
                 scalar(NAME, typeSignature, DataTypes.DOUBLE.getTypeSignature())
                     .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->

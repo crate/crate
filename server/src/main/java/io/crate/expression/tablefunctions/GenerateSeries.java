@@ -28,12 +28,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.BinaryOperator;
 
+import org.elasticsearch.common.settings.Settings;
 import org.joda.time.Period;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.legacy.LegacySettings;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -60,12 +62,12 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "generate_series");
 
-    public static void register(TableFunctionModule module) {
+    public static void register(Functions.Builder builder, Settings settings) {
         final List<String> fieldNames =
-            LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings()) ? List.of() : List.of(NAME.name());
+            LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(settings) ? List.of() : List.of(NAME.name());
 
         // without step
-        module.register(
+        builder.add(
             Signature.table(
                 NAME,
                 DataTypes.LONG.getTypeSignature(),
@@ -82,7 +84,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 Long::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
-        module.register(
+        builder.add(
             Signature.table(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(),
@@ -101,7 +103,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         );
 
         // with step
-        module.register(
+        builder.add(
             Signature.table(
                 NAME,
                 DataTypes.LONG.getTypeSignature(),
@@ -119,7 +121,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 Long::compare,
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
-        module.register(
+        builder.add(
             Signature.table(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(),
@@ -140,7 +142,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
 
         // generate_series(ts, ts, interval)
         for (var supportedType : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
-            module.register(
+            builder.add(
                 Signature.table(
                     NAME,
                     supportedType.getTypeSignature(),
@@ -153,7 +155,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                     boundSignature,
                     new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
             );
-            module.register(
+            builder.add(
                 Signature.table(
                     NAME,
                     supportedType.getTypeSignature(),

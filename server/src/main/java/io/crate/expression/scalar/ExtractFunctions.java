@@ -45,6 +45,7 @@ import org.joda.time.DurationFieldType;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
 
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.Extract;
@@ -58,7 +59,7 @@ public class ExtractFunctions {
 
     private record IntervalFieldWithFunction(Extract.Field extractField, Function<Period, Integer> function) {}
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
 
         List<TsFieldWithDateTimeField> fieldsMapWithIntReturn = List.of(
             new TsFieldWithDateTimeField(CENTURY, ISOChronology.getInstanceUTC().centuryOfEra()),
@@ -78,7 +79,7 @@ public class ExtractFunctions {
         for (var argType : List.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP)) {
             for (var entry : fieldsMapWithIntReturn) {
                 final DateTimeField dtf = entry.dtf();
-                module.register(
+                module.add(
                     Signature.scalar(
                         functionNameFrom(entry.extractField()),
                         argType.getTypeSignature(),
@@ -89,7 +90,7 @@ public class ExtractFunctions {
                 );
             }
             // extract(epoch from ...) is different as is returns a `double precision`
-            module.register(
+            module.add(
                 Signature.scalar(
                     functionNameFrom(EPOCH),
                     argType.getTypeSignature(),
@@ -113,7 +114,7 @@ public class ExtractFunctions {
 
         for (var entry : intervalFieldsMapWithIntReturn) {
             final Function<Period, Integer> function = entry.function();
-            module.register(
+            module.add(
                 Signature.scalar(
                     functionNameFrom(entry.extractField()),
                     DataTypes.INTERVAL.getTypeSignature(),
@@ -124,7 +125,7 @@ public class ExtractFunctions {
             );
         }
         // extract(epoch from ...) is different as is returns a `double precision`
-        module.register(
+        module.add(
             Signature.scalar(
                 functionNameFrom(EPOCH),
                 DataTypes.INTERVAL.getTypeSignature(),

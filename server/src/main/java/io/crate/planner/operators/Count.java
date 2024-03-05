@@ -130,11 +130,6 @@ public class Count implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return List.of(tableRelation);
-    }
-
-    @Override
     public List<LogicalPlan> sources() {
         return List.of();
     }

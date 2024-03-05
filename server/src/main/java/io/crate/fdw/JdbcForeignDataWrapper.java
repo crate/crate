@@ -105,7 +105,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         String password = foreignPw.get(userOptions);
         var properties = new Properties();
         properties.setProperty("user", user.isEmpty() ? sessionSettings.userName() : user);
-        if (password.isEmpty()) {
+        if (!password.isEmpty()) {
             properties.setProperty("password", password);
         }
 

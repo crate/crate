@@ -64,6 +64,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -306,8 +307,8 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return baseTables;
+    public boolean supportsDistributedReads() {
+        return tableInfo instanceof ShardedTable;
     }
 
     @Override

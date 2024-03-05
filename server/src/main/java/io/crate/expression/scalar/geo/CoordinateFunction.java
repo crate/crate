@@ -21,17 +21,17 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import static io.crate.metadata.functions.Signature.scalar;
+
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 public final class CoordinateFunction {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             scalar(
                 "latitude",
                 DataTypes.GEO_POINT.getTypeSignature(),
@@ -45,7 +45,7 @@ public final class CoordinateFunction {
                     CoordinateFunction::getLatitude
                 )
         );
-        module.register(
+        module.add(
             scalar(
                 "longitude",
                 DataTypes.GEO_POINT.getTypeSignature(),

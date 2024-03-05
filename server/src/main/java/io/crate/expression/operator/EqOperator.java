@@ -51,6 +51,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -79,11 +80,8 @@ public final class EqOperator extends Operator<Object> {
         ).withFeature(Feature.NULLABLE)
         .withTypeVariableConstraints(typeVariable("E"));
 
-    public static void register(OperatorModule module) {
-        module.register(
-            SIGNATURE,
-            EqOperator::new
-        );
+    public static void register(Functions.Builder builder) {
+        builder.add(SIGNATURE, EqOperator::new);
     }
 
     private final DataType<Object> argType;

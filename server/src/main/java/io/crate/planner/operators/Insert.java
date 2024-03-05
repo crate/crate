@@ -22,7 +22,6 @@
 package io.crate.planner.operators;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,6 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
@@ -113,11 +111,6 @@ public class Insert implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return (List<Symbol>) writeToTable.outputs();
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Collections.emptyList();
     }
 
     @Override

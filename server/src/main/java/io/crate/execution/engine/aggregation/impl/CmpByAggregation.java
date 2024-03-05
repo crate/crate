@@ -44,6 +44,7 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -100,12 +101,12 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         DataTypes.register(CompareByType.ID, CompareByType::new);
     }
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         TypeSignature returnValueType = TypeSignature.parse("A");
         TypeSignature cmpType = TypeSignature.parse("B");
         var variableConstraintA = TypeVariableConstraint.typeVariableOfAnyType("A");
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
-        mod.register(
+        builder.add(
             Signature.aggregate(
                 MAX_BY,
                 returnValueType,
@@ -117,7 +118,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             ),
             (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
         );
-        mod.register(
+        builder.add(
             Signature.aggregate(
                 MIN_BY,
                 returnValueType,

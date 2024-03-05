@@ -21,7 +21,7 @@
 
 package io.crate.window;
 
-import static io.crate.testing.Asserts.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -30,14 +30,9 @@ import org.junit.Test;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
-import io.crate.module.ExtraFunctionsModule;
 
 
 public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
-
-    public NthValueFunctionsTest() {
-        super(new ExtraFunctionsModule());
-    }
 
     @Test
     public void testLastValueWithEmptyOver() throws Throwable {

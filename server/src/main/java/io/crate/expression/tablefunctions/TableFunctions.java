@@ -19,17 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.predicate;
+package io.crate.expression.tablefunctions;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.FunctionImplementation;
+import org.elasticsearch.common.settings.Settings;
 
-public class PredicateModule extends AbstractFunctionModule<FunctionImplementation> {
+import io.crate.metadata.Functions.Builder;
+import io.crate.metadata.FunctionsProvider;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+
+public class TableFunctions implements FunctionsProvider {
 
     @Override
-    public void configureFunctions() {
-        IsNullPredicate.register(this);
-        NotPredicate.register(this);
-        MatchPredicate.register(this);
+    public void addFunctions(Settings settings,
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Builder builder) {
+        UnnestFunction.register(builder, settings);
+        EmptyRowTableFunction.register(builder);
+        GenerateSeries.register(builder, settings);
+        ValuesFunction.register(builder);
+        PgGetKeywordsFunction.register(builder);
+        PgExpandArray.register(builder);
+        GenerateSubscripts.register(builder);
+        MatchesFunction.register(builder, settings);
     }
 }

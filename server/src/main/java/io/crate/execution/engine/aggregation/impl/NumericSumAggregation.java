@@ -43,6 +43,7 @@ import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -67,8 +68,8 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
     );
     private static final long INIT_BIG_DECIMAL_SIZE = NumericType.size(BigDecimal.ZERO);
 
-    public static void register(AggregationImplModule mod) {
-        mod.register(SIGNATURE, NumericSumAggregation::new);
+    public static void register(Functions.Builder builder) {
+        builder.add(SIGNATURE, NumericSumAggregation::new);
     }
 
     private final Signature signature;

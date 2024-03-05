@@ -33,13 +33,12 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Objects;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
@@ -47,9 +46,9 @@ import io.crate.Streamer;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -65,9 +64,9 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
     /**
      * register as "avg" and "mean"
      */
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var functionName : NAMES) {
-            mod.register(
+            builder.add(
                 Signature.aggregate(
                     functionName,
                     DataTypes.INTERVAL.getTypeSignature(),

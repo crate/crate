@@ -31,6 +31,7 @@ import org.elasticsearch.common.network.InetAddresses;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -47,8 +48,8 @@ public final class CIDROperator {
 
     private CIDROperator() {}
 
-    public static void register(OperatorModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(
                 CONTAINED_WITHIN,
                 DataTypes.IP.getTypeSignature(),

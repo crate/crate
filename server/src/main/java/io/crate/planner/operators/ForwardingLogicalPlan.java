@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
 
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -59,11 +58,6 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
     public List<RelationName> getRelationNames() {
         return source.getRelationNames();
     }
@@ -78,4 +72,8 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
         return source.dependencies();
     }
 
+    @Override
+    public boolean supportsDistributedReads() {
+        return source.supportsDistributedReads();
+    }
 }

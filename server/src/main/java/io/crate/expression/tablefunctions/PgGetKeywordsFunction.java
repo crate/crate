@@ -31,6 +31,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -49,9 +50,9 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
         List.of("word", "catcode", "catdesc")
     );
 
-    public static void register(TableFunctionModule module) {
+    public static void register(Functions.Builder builder) {
 
-        module.register(
+        builder.add(
             Signature.table(
                     FUNCTION_NAME,
                     RETURN_TYPE.getTypeSignature()

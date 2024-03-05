@@ -64,7 +64,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.data.CollectionBucket;
@@ -820,11 +819,6 @@ public class InsertFromValues implements LogicalPlan {
 
     @Override
     public List<Symbol> outputs() {
-        return List.of();
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
         return List.of();
     }
 

@@ -26,8 +26,8 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import java.util.ArrayList;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -50,8 +50,8 @@ public class ArrayFunction extends Scalar<Object, Object> {
             .build();
 
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             SIGNATURE,
             ArrayFunction::new
         );
