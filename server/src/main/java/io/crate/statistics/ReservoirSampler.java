@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
@@ -56,13 +57,14 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.cursors.LongCursor;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
-import io.crate.data.Input;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.FetchId;
-import io.crate.execution.engine.fetch.FetchIdIterator;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -184,8 +186,8 @@ public final class ReservoirSampler {
                     continue;
                 }
 
-                ExpressionsAndInputs expressionsAndInputs
-                    = getExpressionsAndInputs(indexService, docTable, coordinatorTxnCtx, columns);
+                List<? extends LuceneCollectorExpression<?>> expressions
+                    = getCollectorExpressions(indexService, docTable, coordinatorTxnCtx, columns);
 
                 for (IndexShard indexShard : indexService) {
                     if (!indexShard.routingEntry().primary()) {
@@ -193,7 +195,7 @@ public final class ReservoirSampler {
                     }
                     try {
                         Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
-                        searchersToRelease.add(new ShardExpressions(searcher, expressionsAndInputs));
+                        searchersToRelease.add(new ShardExpressions(searcher, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
 
@@ -228,10 +230,12 @@ public final class ReservoirSampler {
         }
     }
 
-    private ExpressionsAndInputs getExpressionsAndInputs(IndexService indexService,
-                                                         DocTableInfo docTable,
-                                                         CoordinatorTxnCtx coordinatorTxnCtx,
-                                                         List<Reference> columns) {
+    private List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
+        IndexService indexService,
+        DocTableInfo docTable,
+        CoordinatorTxnCtx coordinatorTxnCtx,
+        List<Reference> columns
+    ) {
         var mapperService = indexService.mapperService();
         FieldTypeLookup fieldTypeLookup = mapperService::fieldType;
         var ctx = new DocInputFactory(
@@ -243,7 +247,6 @@ public final class ReservoirSampler {
             )
         ).getCtx(coordinatorTxnCtx);
         ctx.add(Lists.map(columns, DocReferences::toSourceLookup));
-        List<Input<?>> inputs = ctx.topLevelInputs();
         List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
 
         CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
@@ -251,87 +254,109 @@ public final class ReservoirSampler {
             expression.startCollect(collectorContext);
         }
 
-        return new ExpressionsAndInputs(expressions, inputs);
+        return expressions;
     }
 
     private static class ColumnCollector<T> {
-        LuceneCollectorExpression<?> collector;
-        Input<?> input;
+
+        LuceneCollectorExpression<?> expression;
         final ColumnSketchBuilder<T> statsBuilder;
 
         private ColumnCollector(ColumnSketchBuilder<T> statsBuilder) {
             this.statsBuilder = statsBuilder;
         }
 
-        void setShard(LuceneCollectorExpression<?> collector, Input<?> input) {
-            this.collector = collector;
-            this.input = input;
+        void setShard(LuceneCollectorExpression<?> collector) {
+            this.expression = collector;
         }
 
         @SuppressWarnings("unchecked")
         void collect(int docId) {
-            collector.setNextDocId(docId);
-            statsBuilder.add((T) input.value());
+            expression.setNextDocId(docId);
+            statsBuilder.add((T) expression.value());
         }
     }
 
-    private record ExpressionsAndInputs(
-        List<? extends LuceneCollectorExpression<?>> expressions,
-        List<Input<?>> inputs
-    ) {}
-
     private record ShardExpressions(Engine.Searcher searcher,
-                                    ExpressionsAndInputs expressionsAndInputs) {
+                                    List<? extends LuceneCollectorExpression<?>> expressions) {
 
         void updateColumnCollectors(List<ColumnCollector<?>> collectors) {
-            assert collectors.size() == expressionsAndInputs.expressions.size();
-            assert collectors.size() == expressionsAndInputs.inputs.size();
+            assert collectors.size() == expressions.size();
             for (int i = 0; i < collectors.size(); i++) {
-                collectors.get(i).setShard(expressionsAndInputs.expressions.get(i), expressionsAndInputs.inputs.get(i));
+                collectors.get(i).setShard(expressions.get(i));
             }
         }
 
     }
 
-    private static class ColumnSampler extends FetchIdIterator {
+    private static class ColumnSampler {
 
-        final List<ColumnCollector<?>> expressions;
+        final List<ColumnCollector<?>> collectors;
         final IntFunction<ShardExpressions> shardSupplier;
 
         ShardExpressions currentShard;
         ReaderContext currentLeafContext;
         int rowsCollected;
+        long idCount;
 
         private ColumnSampler(
-            List<ColumnCollector<?>> expressions,
+            List<ColumnCollector<?>> collectors,
             IntFunction<ShardExpressions> shardSupplier
         ) {
-            this.expressions = expressions;
+            this.collectors = collectors;
             this.shardSupplier = shardSupplier;
         }
 
-        @Override
+        public final void iterate(LongArrayList ids) throws IOException {
+
+            this.idCount = ids.size();
+
+            int currentShardId = -1;
+            IndexReaderContext currentShardContext = null;
+            int currentReaderCeiling = -1;
+            int currentReaderDocBase = -1;
+
+            for (LongCursor cursor : ids) {
+                int shardId = FetchId.decodeReaderId(cursor.value);
+                if (shardId != currentShardId) {
+                    currentShardId = shardId;
+                    currentShardContext = nextShard(shardId);
+                    currentReaderCeiling = -1;
+                }
+                int docId = FetchId.decodeDocId(cursor.value);
+                if (docId >= currentReaderCeiling) {
+                    assert currentShardContext != null;
+                    int contextOrd = ReaderUtil.subIndex(docId, currentShardContext.leaves());
+                    var leafContext = nextReaderContext(contextOrd);
+                    currentReaderDocBase = leafContext.docBase;
+                    currentReaderCeiling = currentReaderDocBase + leafContext.reader().maxDoc();
+                }
+
+                if (collect(docId - currentReaderDocBase) == false) {
+                    break;
+                }
+            }
+        }
+
         protected IndexReaderContext nextShard(int shardId) {
             currentShard = shardSupplier.apply(shardId);
-            currentShard.updateColumnCollectors(expressions);
+            currentShard.updateColumnCollectors(collectors);
             return currentShard.searcher.getTopReaderContext();
         }
 
-        @Override
         protected LeafReaderContext nextReaderContext(int contextOrd) throws IOException {
             var ctx = currentShard.searcher.getLeafContexts().get(contextOrd);
             currentLeafContext = new ReaderContext(ctx);
-            for (var expression : expressions) {
-                expression.collector.setNextReader(currentLeafContext);
+            for (var collector : collectors) {
+                collector.expression.setNextReader(currentLeafContext);
             }
             return ctx;
         }
 
-        @Override
         protected boolean collect(int doc) {
             try {
-                for (var expression : expressions) {
-                    expression.collect(doc);
+                for (var collector : collectors) {
+                    collector.collect(doc);
                 }
                 rowsCollected++;
                 return true;
