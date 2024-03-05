@@ -63,9 +63,7 @@ import io.crate.sql.tree.NotNullColumnConstraint;
 import io.crate.sql.tree.PartitionedBy;
 import io.crate.sql.tree.PrimaryKeyConstraint;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
-import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableElement;
 import io.crate.types.ArrayType;
@@ -92,14 +90,6 @@ public class TableInfoToAST {
         Optional<PartitionedBy<Expression>> partitionedBy = createPartitionedBy();
         Optional<ClusteredBy<Expression>> clusteredBy = createClusteredBy();
         return new CreateTable<>(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
-    }
-
-    public static Expression expressionFromColumn(ColumnIdent ident) {
-        Expression fqn = new QualifiedNameReference(QualifiedName.of(ident.getRoot().fqn()));
-        for (String child : ident.path()) {
-            fqn = new SubscriptExpression(fqn, Literal.fromObject(child));
-        }
-        return fqn;
     }
 
     private List<TableElement<Expression>> extractTableElements() {
@@ -273,7 +263,7 @@ public class TableInfoToAST {
         ColumnIdent clusteredByColumn = tableInfo.clusteredBy();
         Expression clusteredBy = clusteredByColumn == null || clusteredByColumn.isSystemColumn()
             ? null
-            : expressionFromColumn(clusteredByColumn);
+            : clusteredByColumn.toExpression();
         Expression numShards = new LongLiteral(tableInfo.numberOfShards());
         return Optional.of(new ClusteredBy<>(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
     }
@@ -301,7 +291,7 @@ public class TableInfoToAST {
     private List<Expression> expressionsFromReferences(List<Reference> columns) {
         List<Expression> expressions = new ArrayList<>(columns.size());
         for (Reference ident : columns) {
-            expressions.add(expressionFromColumn(ident.column()));
+            expressions.add(ident.column().toExpression());
         }
         return expressions;
     }
@@ -309,7 +299,7 @@ public class TableInfoToAST {
     private List<Expression> expressionsFromColumns(List<ColumnIdent> columns) {
         List<Expression> expressions = new ArrayList<>(columns.size());
         for (ColumnIdent ident : columns) {
-            expressions.add(expressionFromColumn(ident));
+            expressions.add(ident.toExpression());
         }
         return expressions;
     }
