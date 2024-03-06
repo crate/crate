@@ -39,7 +39,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.role.metadata.RolesMetadata;

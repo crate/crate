@@ -48,7 +48,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;

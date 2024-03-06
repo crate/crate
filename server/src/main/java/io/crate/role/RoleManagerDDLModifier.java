@@ -28,7 +28,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateModifier;
 import io.crate.role.metadata.RolesMetadata;

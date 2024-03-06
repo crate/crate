@@ -39,7 +39,7 @@ import org.elasticsearch.repositories.azure.AzureRepository.Repository;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.StorageException;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 
 public class AzureBlobStore implements BlobStore {
 

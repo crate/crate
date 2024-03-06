@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;

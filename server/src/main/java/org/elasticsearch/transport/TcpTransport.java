@@ -82,7 +82,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Sets;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;

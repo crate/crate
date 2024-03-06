@@ -37,7 +37,7 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;

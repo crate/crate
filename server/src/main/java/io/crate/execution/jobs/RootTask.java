@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.Logger;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;

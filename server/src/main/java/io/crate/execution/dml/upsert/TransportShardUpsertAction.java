@@ -62,7 +62,7 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Constants;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;

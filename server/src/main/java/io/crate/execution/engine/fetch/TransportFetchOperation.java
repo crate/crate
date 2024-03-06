@@ -34,7 +34,7 @@ import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Bucket;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;

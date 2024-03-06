@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
