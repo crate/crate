@@ -37,7 +37,6 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -83,8 +82,7 @@ public final class QueryTester implements AutoCloseable {
         public Builder(ThreadPool threadPool,
                        ClusterService clusterService,
                        Version indexVersion,
-                       String createTableStmt,
-                       AbstractModule... additionalModules) throws IOException {
+                       String createTableStmt) throws IOException {
             this(
                 threadPool,
                 clusterService,
@@ -92,18 +90,16 @@ public final class QueryTester implements AutoCloseable {
                 createTableStmt,
                 // Disable OID generation for columns/references in order to be able to compare the query outcome with
                 // expected ones.
-                () -> COLUMN_OID_UNASSIGNED,
-                additionalModules);
+                () -> COLUMN_OID_UNASSIGNED);
         }
 
         public Builder(ThreadPool threadPool,
                        ClusterService clusterService,
                        Version indexVersion,
                        String createTableStmt,
-                       LongSupplier columnOidSupplier,
-                       AbstractModule... additionalModules) throws IOException {
+                       LongSupplier columnOidSupplier) throws IOException {
             var sqlExecutor = SQLExecutor
-                .builder(clusterService, additionalModules)
+                .builder(clusterService)
                 .setColumnOidSupplier(columnOidSupplier)
                 .addTable(createTableStmt)
                 .build();

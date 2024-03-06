@@ -277,15 +277,14 @@ public class SQLExecutor {
         private Builder(ClusterService clusterService,
                         int numNodes,
                         Random random,
-                        List<AnalysisPlugin> analysisPlugins,
-                        AbstractModule... additionalModules) {
+                        List<AnalysisPlugin> analysisPlugins) {
             if (numNodes < 1) {
                 throw new IllegalArgumentException("Must have at least 1 node");
             }
             this.random = random;
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
-            nodeCtx = createNodeContext(additionalModules);
+            nodeCtx = createNodeContext();
             DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
             Path homeDir = CrateLuceneTestCase.createTempDir();
@@ -799,16 +798,15 @@ public class SQLExecutor {
         }
     }
 
-    public static Builder builder(ClusterService clusterService, AbstractModule... additionalModules) {
-        return new Builder(clusterService, 1, Randomness.get(), List.of(), additionalModules);
+    public static Builder builder(ClusterService clusterService) {
+        return new Builder(clusterService, 1, Randomness.get(), List.of());
     }
 
     public static Builder builder(ClusterService clusterService,
                                   int numNodes,
                                   Random random,
-                                  List<AnalysisPlugin> analysisPlugins,
-                                  AbstractModule... additionalModules) {
-        return new Builder(clusterService, numNodes, random, analysisPlugins, additionalModules);
+                                  List<AnalysisPlugin> analysisPlugins) {
+        return new Builder(clusterService, numNodes, random, analysisPlugins);
     }
 
     /**
