@@ -33,6 +33,9 @@ import org.joda.time.format.PeriodFormatterBuilder;
 
 import io.crate.Streamer;
 import io.crate.interval.IntervalParser;
+import io.crate.statistics.ColumnSketch;
+import io.crate.statistics.ColumnSketchBuilder;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
 
@@ -175,5 +178,20 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         result = result.add(BigInteger.valueOf(p.getMonths() * 30 * (long) DateTimeConstants.MILLIS_PER_DAY));
         result = result.add(BigInteger.valueOf(p.getYears() * 365 * (long) DateTimeConstants.MILLIS_PER_DAY));
         return result;
+    }
+
+    @Override
+    public ColumnStatsSupport<Period> columnStatsSupport() {
+        return new ColumnStatsSupport<>() {
+            @Override
+            public ColumnSketchBuilder<Period> sketchBuilder() {
+                return new ColumnSketchBuilder<>(Period.class, IntervalType.this);
+            }
+
+            @Override
+            public ColumnSketch<Period> readSketchFrom(StreamInput in) throws IOException {
+                return new ColumnSketch<>(Period.class, IntervalType.this, in);
+            }
+        };
     }
 }

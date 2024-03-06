@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.Streamer;
+import io.crate.statistics.ColumnStatsSupport;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

@@ -44,8 +44,8 @@ public class TransportAnalyzeActionTest extends ESTestCase {
     public void test_create_stats_for_tables_with_array_columns_with_nulls() {
 
         ArrayType<String> type = DataTypes.STRING_ARRAY;
-        var col1 = new ColumnSketchBuilder<>(type);
-        var col2 = new ColumnSketchBuilder<>(type);
+        var col1 = type.columnStatsSupport().sketchBuilder();
+        var col2 = type.columnStatsSupport().sketchBuilder();
         col1.add(null);
         col2.add(null);
         var samples = new Samples(

@@ -49,7 +49,7 @@ public class ColumnSketchBuilder<T> {
         if (value == null) {
             nullCount++;
         } else {
-            totalBytes += dataType.valueBytes(value) + Long.BYTES;
+            totalBytes += dataType.valueBytes(value);
             distinctSketch.update(value.toString());
             mostCommonValuesSketch.update(value);
             histogramSketch.update(value);

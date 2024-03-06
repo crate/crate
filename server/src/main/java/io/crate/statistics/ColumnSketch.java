@@ -113,7 +113,7 @@ public class ColumnSketch<T> {
 
     public ColumnStats<T> toColumnStats() {
         double nullFraction = (double) nullCount / (double) sampleCount;
-        double avgSizeInBytes = (double) totalBytes / (double) sampleCount;
+        double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
         return new ColumnStats<>(
             nullFraction,
             avgSizeInBytes,

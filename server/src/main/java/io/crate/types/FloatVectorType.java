@@ -46,6 +46,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class FloatVectorType extends DataType<float[]> implements Streamer<float[]> {
 

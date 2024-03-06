@@ -21,25 +21,14 @@
 
 package io.crate.statistics;
 
-import java.util.Collection;
+import java.io.IOException;
 
-import io.crate.types.DataType;
+import org.elasticsearch.common.io.stream.StreamInput;
 
-public final class StatsUtils {
+public interface ColumnStatsSupport<T> {
 
-    public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values) {
-        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
-        builder.addAll(values);
-        return builder.toSketch().toColumnStats();
-    }
+    ColumnSketchBuilder<T> sketchBuilder();
 
-    public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values, int nullCount) {
-        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
-        builder.addAll(values);
-        for (int i = 0; i < nullCount; i++) {
-            builder.add(null);
-        }
-        return builder.toSketch().toColumnStats();
-    }
+    ColumnSketch<T> readSketchFrom(StreamInput in) throws IOException;
 
 }

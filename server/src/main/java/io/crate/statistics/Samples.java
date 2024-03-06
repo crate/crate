@@ -64,7 +64,7 @@ class Samples implements Writeable {
         this.columnSketches = new ArrayList<>(numRecords);
         for (int i = 0; i < numRecords; i++) {
             Reference ref = references.get(i);
-            this.columnSketches.add(new ColumnSketch<>(ref.valueType(), in));
+            this.columnSketches.add(ref.valueType().columnStatsSupport().readSketchFrom(in));
         }
     }
 

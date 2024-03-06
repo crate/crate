@@ -46,6 +46,9 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnSketch;
+import io.crate.statistics.ColumnSketchBuilder;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
@@ -267,5 +270,20 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     @Override
     public StorageSupport<Boolean> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Boolean> columnStatsSupport() {
+        return new ColumnStatsSupport<>() {
+            @Override
+            public ColumnSketchBuilder<Boolean> sketchBuilder() {
+                return new ColumnSketchBuilder<>(Boolean.class, BooleanType.this);
+            }
+
+            @Override
+            public ColumnSketch<Boolean> readSketchFrom(StreamInput in) throws IOException {
+                return new ColumnSketch<>(Boolean.class, BooleanType.this, in);
+            }
+        };
     }
 }

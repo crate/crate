@@ -51,7 +51,7 @@ public class ColumnStatsTest {
 
     @Test
     public void test_column_stats_generation() {
-        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 1, 2, 4, 4, 4, 4, 4));
+        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 1, 2, 4, 4, 4, 4, 4), 1);
         assertThat(columnStats.averageSizeInBytes(), is((double) DataTypes.INTEGER.fixedSize()));
         assertThat(columnStats.nullFraction(), Matchers.closeTo(0.111, 0.01));
         assertThat(columnStats.approxDistinct(), is(3.0));
@@ -125,7 +125,9 @@ public class ColumnStatsTest {
 
     @Test
     public void test_column_stats_generation_from_null_values_only_has_null_fraction_1() {
-        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of());
+        List<Integer> allNulls = new ArrayList<>();
+        allNulls.add(null);
+        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, allNulls);
         assertThat(columnStats.nullFraction(), is(1.0));
     }
 }

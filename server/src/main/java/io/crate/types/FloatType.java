@@ -42,6 +42,9 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnSketch;
+import io.crate.statistics.ColumnSketchBuilder;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
@@ -213,6 +216,21 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     @Override
     public StorageSupport<Float> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Float> columnStatsSupport() {
+        return new ColumnStatsSupport<>() {
+            @Override
+            public ColumnSketchBuilder<Float> sketchBuilder() {
+                return new ColumnSketchBuilder<>(Float.class, FloatType.this);
+            }
+
+            @Override
+            public ColumnSketch<Float> readSketchFrom(StreamInput in) throws IOException {
+                return new ColumnSketch<>(Float.class, FloatType.this, in);
+            }
+        };
     }
 
     @Override

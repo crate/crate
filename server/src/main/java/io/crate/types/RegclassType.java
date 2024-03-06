@@ -35,6 +35,7 @@ import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.statistics.ColumnStatsSupport;
 
 /**
  * Type that encapsulates the name and oid of a relation.

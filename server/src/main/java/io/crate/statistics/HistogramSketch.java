@@ -71,6 +71,9 @@ public class HistogramSketch<T> {
     }
 
     public List<T> toHistogram() {
+        if (sketch.isEmpty()) {
+            return List.of();
+        }
         int numBins = (int) Math.max(100, sketch.getN());
         double inc = (double) numBins / 100;
         List<T> values = new ArrayList<>(numBins);

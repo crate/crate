@@ -47,6 +47,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
+import io.crate.statistics.ColumnStatsSupport;
 
 public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T>, Accountable {
 
@@ -287,5 +288,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * The mapping is for the cluster state's {@link IndexMetadata}
      */
     public void addMappingOptions(Map<String, Object> mapping) {
+    }
+
+    public ColumnStatsSupport<T> columnStatsSupport() {
+        return null;
     }
 }

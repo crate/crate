@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.CmpByAggregation.CompareBy;
+import io.crate.statistics.ColumnStatsSupport;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

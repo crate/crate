@@ -152,7 +152,7 @@ public final class ReservoirSampler {
 
         List<ColumnCollector<?>> columnCollectors = new ArrayList<>();
         for (int i = 0; i < columns.size(); i++) {
-            columnCollectors.add(new ColumnCollector<>(new ColumnSketchBuilder<>(columns.get(i).valueType())));
+            columnCollectors.add(new ColumnCollector<>(columns.get(i).valueType().columnStatsSupport().sketchBuilder()));
         }
 
         List<ShardExpressions> searchersToRelease = new ArrayList<>();

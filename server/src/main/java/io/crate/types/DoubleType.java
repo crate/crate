@@ -42,6 +42,9 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnSketch;
+import io.crate.statistics.ColumnSketchBuilder;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
 
@@ -209,6 +212,21 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     @Override
     public StorageSupport<Double> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Double> columnStatsSupport() {
+        return new ColumnStatsSupport<>() {
+            @Override
+            public ColumnSketchBuilder<Double> sketchBuilder() {
+                return new ColumnSketchBuilder<>(Double.class, DoubleType.this);
+            }
+
+            @Override
+            public ColumnSketch<Double> readSketchFrom(StreamInput in) throws IOException {
+                return new ColumnSketch<>(Double.class, DoubleType.this, in);
+            }
+        };
     }
 
     @Override
