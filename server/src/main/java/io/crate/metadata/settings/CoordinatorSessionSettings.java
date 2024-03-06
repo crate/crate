@@ -80,10 +80,21 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.memoryLimit = memoryLimit;
     }
 
+    /**
+     * Current active user.
+     * <p>
+     * This is either the same as {@link #authenticatedUser()} or the user set via
+     * SET SESSION AUTHORIZATION
+     * </p>
+     **/
     public Role sessionUser() {
         return sessionUser;
     }
 
+    /**
+     * The user as it originally authenticated against CrateDB.
+     * In most cases you should use {@link #sessionUser()} instead
+     **/
     public Role authenticatedUser() {
         return authenticatedUser;
     }
