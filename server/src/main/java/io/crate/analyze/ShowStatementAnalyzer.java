@@ -40,7 +40,6 @@ import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.Table;
-import io.crate.role.Role;
 
 /**
  * Rewrites the SHOW statements into Select queries.
@@ -91,7 +90,7 @@ class ShowStatementAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             table.getName(),
             Operation.SHOW_CREATE,
-            Role.CRATE_USER,
+            analysis.sessionSettings().sessionUser(),
             analysis.sessionSettings().searchPath()
         );
         return new AnalyzedShowCreateTable(tableInfo);
