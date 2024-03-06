@@ -16,6 +16,8 @@ pipeline {
         stage('sphinx') {
           agent { label 'small' }
           steps {
+            sh 'git clean -xdff'
+	    checkout scm
             sh 'cd ./blackbox/ && ./bootstrap.sh'
             sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/_out/html'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
