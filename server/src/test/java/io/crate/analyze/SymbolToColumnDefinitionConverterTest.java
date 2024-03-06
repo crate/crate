@@ -50,7 +50,8 @@ import io.crate.types.DataTypes;
 public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServiceUnitTest {
 
     private List<ColumnDefinition<Expression>> getAllColumnDefinitionsFrom(String createTableStmt) throws IOException {
-        var e = SQLExecutor.builder(clusterService).addTable(createTableStmt).build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable(createTableStmt);
         AnalyzedRelation analyzedRelation = e.analyze("select * from tbl");
         return Lists.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
     }
@@ -149,7 +150,8 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "       )" +
             "   )" +
             ")";
-        var e = SQLExecutor.builder(clusterService).addTable(createTableStmt).build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable(createTableStmt);
         AnalyzedRelation analyzedRelation = e.analyze(
             "select col_default_object from tbl"
         );
@@ -223,7 +225,8 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "       )" +
             "   )" +
             ")";
-        var e = SQLExecutor.builder(clusterService).addTable(createTableStmt).build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable(createTableStmt);
         String selectStmt =
             "select " +
             "   col_default_object['col_nested_integer'], " +
@@ -322,7 +325,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "   )" +
             ")";
 
-        var e = SQLExecutor.builder(clusterService).addTable(createTableStmt).build();
+        var e = SQLExecutor.of(clusterService).addTable(createTableStmt);
         String selectStmt =
             "select " +
             "   col_default_object['col_nested_integer'] as col1, " +
@@ -364,11 +367,9 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "   )" +
             ")";
 
-        var e = SQLExecutor
-            .builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable(createTableStmt)
-            .addView(new RelationName("doc", "tbl_view"), "select * from doc.tbl")
-            .build();
+            .addView(new RelationName("doc", "tbl_view"), "select * from doc.tbl");
         String selectStmt =
             "select " +
             "   col_default_object['col_nested_integer'] as col1, " +
@@ -409,7 +410,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "       )" +
             "   )" +
             ")";
-        var e = SQLExecutor.builder(clusterService).addTable(createTableStmt).build();
+        var e = SQLExecutor.of(clusterService).addTable(createTableStmt);
         String selectStmt =
             "select A.col_default_object['col_nested_integer'], " +
             "   A.col_default_object['col_nested_object']['col_nested_timestamp_with_time_zone'], " +
@@ -449,7 +450,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
         String selectStmt =
             "select cast([0,1,5] as array(boolean)) AS active_threads, " +
             "   cast(port['http']as boolean) from sys.nodes limit 1 ";
-        var e = SQLExecutor.builder(clusterService).build();
+        var e = SQLExecutor.of(clusterService);
         var analyzedRelation = e.analyze(selectStmt);
         var actual = Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbols::toColumnDefinition);
 

@@ -54,10 +54,9 @@ public class AddForeignTableTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_cannot_create_foreign_table_if_name_is_in_use_and_if_exists() throws Exception {
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addTable("create table doc.t1 (x int)")
-            .addView(new RelationName("doc", "v1"), "select * from t1")
-            .build();
+            .addView(new RelationName("doc", "v1"), "select * from t1");
 
         var addT1Conflict = new AddForeignTableTask(new CreateForeignTableRequest(
             new RelationName("doc", "t1"),

@@ -25,14 +25,12 @@ import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLimitAndOffset;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
@@ -54,9 +52,10 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLimitOnLimitOperator() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         QueriedSelectRelation queriedDocTable = e.analyze("select name from users");
 
         LogicalPlan plan = Limit.create(
@@ -102,9 +101,8 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_no_limit_and_no_offset_on_limit_operator() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 1, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         QueryThenFetch qtf = e.plan("SELECT * FROM users LIMIT null OFFSET 0");
         assertThat(qtf.subPlan()).isExactlyInstanceOf(io.crate.planner.node.dql.Collect.class);
         io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) qtf.subPlan();
@@ -116,9 +114,8 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_no_limit_with_offset_on_limit_operator() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 1, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         QueryThenFetch qtf = e.plan("SELECT * FROM users LIMIT null OFFSET 10");
         assertThat(qtf.subPlan()).isExactlyInstanceOf(io.crate.planner.node.dql.Collect.class);
         io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) qtf.subPlan();

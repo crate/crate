@@ -57,9 +57,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_drop_simple_column() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int, z int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int, z int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState initialState = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -99,9 +98,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_drop_subcolumn() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (a int, b int)))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (a int, b int)))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(
             THREAD_POOL,
@@ -131,9 +129,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_drop_subcolumn_and_parent_together() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (o2 object as (c int)))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (o2 object as (c int)))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(
             THREAD_POOL,
@@ -158,9 +155,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_no_op_if_columns_exist() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -187,9 +183,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_drop_column_with_check_constraint() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int check (x > 0), y int check (y > 0))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int check (x > 0), y int check (y > 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -220,9 +215,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_cannot_drop_column_used_in_generated_expression() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int, z as (y + 1))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int, z as (y + 1))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -245,10 +239,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_drop_subcolumn_with_check_constraint() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (" +
-                      "a int check (o['oo']['a'] > 0), b int)))")
-            .build();
+                      "a int check (o['oo']['a'] > 0), b int)))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(
             THREAD_POOL,
@@ -277,9 +270,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_drop_column_with_table_level_check_constraint() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int, check (x > 0), check (y > 0))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int, check (x > 0), check (y > 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -310,13 +302,12 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_drop_column_with_check_constraint_from_partitioned_table() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addPartitionedTable("create table doc.parted(x int check (x > 0), y int check (y > 0)) " +
                                  "partitioned by (x)" ,
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList("2")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName())
-            .build();
+                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName());
         DocTableInfo tbl = e.resolveTableInfo("doc.parted");
         var dropColumnTask = new AlterTableTask<>(e.nodeCtx, imd -> MapperTestUtils.newMapperService(
             new NamedXContentRegistry(ClusterModule.getNamedXWriteables()),
@@ -344,10 +335,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_drop_subcolumn_with_check_constraint_on_children() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (" +
-                "a int, ooo object AS (a int))), check (o['oo']['a'] + o['oo']['ooo']['a']> 0))")
-            .build();
+                "a int, ooo object AS (a int))), check (o['oo']['a'] + o['oo']['ooo']['a']> 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(
             THREAD_POOL,

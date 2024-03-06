@@ -38,13 +38,12 @@ public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyCluster
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table t (" +
                       "     id integer primary key," +
                       "     qty integer constraint check_qty_gt_zero check (qty > 0)," +
                       "     constraint check_id_ge_zero check (id >= 0)" +
-                      ")")
-            .build();
+                      ")");
     }
 
 

@@ -52,9 +52,8 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         DocTableInfo users = sqlExecutor.schemas().getTableInfo(new RelationName("doc", "users"));
         sqlExpressions = new SqlExpressions(Map.of(users.ident(), new DocTableRelation(users)));
         udfService.registerLanguage(DUMMY_LANG);

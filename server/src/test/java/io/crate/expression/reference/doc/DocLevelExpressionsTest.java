@@ -52,9 +52,8 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
 
     @Before
     public void prepare() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable(createTableStatement)
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(createTableStatement);
         indexEnv = new IndexEnv(
             THREAD_POOL,
             (DocTableInfo) StreamSupport.stream(e.schemas().spliterator(), false)

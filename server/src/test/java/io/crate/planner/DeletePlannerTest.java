@@ -23,6 +23,7 @@ package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -56,13 +57,12 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395961200000")).asIndexName())
-            .build();
+                new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395961200000")).asIndexName());
     }
 
     @Test

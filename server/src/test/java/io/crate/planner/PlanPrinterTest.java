@@ -41,10 +41,9 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T2_DEFINITION)
-            .build();
+            .addTable(T3.T2_DEFINITION);
     }
 
     private Map<String, Object> printPlan(String stmt) {

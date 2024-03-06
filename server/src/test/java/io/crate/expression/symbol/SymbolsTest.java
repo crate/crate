@@ -61,9 +61,8 @@ public class SymbolsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_symbols_are_accountable() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         Symbol symbol = e.asSymbol("x + 10 > 100");
         assertThat(symbol.ramBytesUsed()).isEqualTo(928L);
     }

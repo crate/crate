@@ -49,7 +49,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
     public void test_set_session_auth_modifies_the_session_user() throws Exception {
         var user = RolesHelper.userOf("test");
         var e = SQLExecutor.builder(clusterService)
-            .setUserManager(new StubRoleManager(List.of(user, Role.CRATE_USER)))
+            .setRoleManager(new StubRoleManager(List.of(user, Role.CRATE_USER)))
             .build();
         var sessionSettings = e.getSessionSettings();
         sessionSettings.setSessionUser(Role.CRATE_USER);

@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -33,8 +34,6 @@ import java.util.stream.Collectors;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
@@ -58,7 +57,9 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 "create table parted (" +
@@ -78,7 +79,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ") partitioned by (day) ",
                 new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395961200000")).asIndexName()
-            ).build();
+            );
     }
 
     private <T> T plan(String stmt) {

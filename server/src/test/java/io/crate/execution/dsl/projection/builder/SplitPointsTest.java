@@ -21,11 +21,11 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.isScopedSymbol;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,10 +41,9 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
-            .addTable("create table t2 (x int, xs array(integer))")
-            .build();
+            .addTable("create table t2 (x int, xs array(integer))");
     }
 
     @Test

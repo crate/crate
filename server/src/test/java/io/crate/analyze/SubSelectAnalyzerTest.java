@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -59,11 +60,10 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        executor = SQLExecutor.builder(clusterService)
+        executor = SQLExecutor.of(clusterService)
             .addTable("create table nested_obj (o object as (a object as (b object as (c int))))")
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T2_DEFINITION)
-            .build();
+            .addTable(T3.T2_DEFINITION);
         schemas = executor.schemas();
         t1Info = schemas.getTableInfo(new RelationName("doc", "t1"));
     }

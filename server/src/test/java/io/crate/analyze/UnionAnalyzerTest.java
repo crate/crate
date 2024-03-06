@@ -32,11 +32,11 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.util.Objects;
 
-import io.crate.exceptions.AmbiguousColumnException;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
@@ -50,10 +50,9 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        sqlExecutor = SQLExecutor.builder(clusterService)
+        sqlExecutor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION);
     }
 
     private <T extends AnalyzedStatement> T analyze(String statement) {
@@ -117,10 +116,8 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionDistinct() throws Exception {
-        SQLExecutor.builder(clusterService)
-            .addTable(
-                "create table x (a text)"
-            ).build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table x (a text)");
 
         UnionSelect unionSelect = analyze("select a from x union select a from x");
         assertThat(unionSelect.isDistinct(), is(true));
@@ -190,13 +187,9 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionObjectTypesWithSubColumnsOfSameNameButDifferentInnerTypes() throws Exception {
-        SQLExecutor.builder(clusterService)
-            .addTable(
-                "create table v1 (obj object as (col int))"
-            )
-            .addTable(
-                "create table v2 (obj object as (col text))"
-            ).build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table v1 (obj object as (col int))")
+            .addTable("create table v2 (obj object as (col text))");
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
         ObjectType expectedType = ObjectType.builder().setInnerType("col", DataTypes.INTEGER).build();
@@ -207,13 +200,9 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_union_merging_sub_columns_for_object_types() throws Exception {
-        SQLExecutor.builder(clusterService)
-            .addTable(
-                "create table v1 (obj object as (col1 int, col2 text))"
-            )
-            .addTable(
-                "create table v2 (obj object as (col1 text, col2 int))"
-            ).build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table v1 (obj object as (col1 int, col2 text))")
+            .addTable("create table v2 (obj object as (col1 text, col2 int))");
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
         ObjectType expectedType = ObjectType.builder()
@@ -227,13 +216,9 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionObjectTypesWithSubColumnsOfDifferentNames() throws Exception {
-        SQLExecutor.builder(clusterService)
-            .addTable(
-                "create table v1 (obj object as (obj1 object as (col text)))"
-            )
-            .addTable(
-                "create table v2 (obj object as (obj2 object as (col text)))"
-            ).build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table v1 (obj object as (obj1 object as (col text)))")
+            .addTable("create table v2 (obj object as (obj2 object as (col text)))");
 
         UnionSelect unionSelect = analyze("select obj from v1 union all select obj from v2");
         Asserts.assertThat(unionSelect.outputs().get(0)).isField("obj");
@@ -241,7 +226,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_union_containing_duplicates_in_outputs_list_may_throw_AmbiguousColumnException() throws IOException {
-        SQLExecutor.builder(clusterService).addTable("create table t (a int, b int)");
+        SQLExecutor.of(clusterService).addTable("create table t (a int, b int)");
         assertThatThrownBy(() -> analyze("select a from (select a, b as a from t union select 1, 1) t2"))
             .isExactlyInstanceOf(AmbiguousColumnException.class)
             .hasMessage("Column \"a\" is ambiguous");

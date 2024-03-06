@@ -68,9 +68,9 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
         Planner plannerMock = mock(Planner.class);
         when(plannerMock.plan(Mockito.any(), Mockito.any())).thenReturn(insertPlan);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x int)")
-            .overridePlanner(plannerMock)
-            .build();
+            .setPlanner(plannerMock)
+            .build()
+            .addTable("create table t1 (x int)");
 
         Session session = sqlExecutor.createSession();
 

@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -53,7 +54,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        sqlExecutor = SQLExecutor.builder(clusterService)
+        sqlExecutor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION)
             .addTable("create table foo.users (" +
@@ -61,8 +62,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                       " name string," +
                       " age integer," +
                       " height integer, " +
-                      " details_ignored object(ignored) )")
-            .build();
+                      " details_ignored object(ignored) )");
     }
 
     private <T extends AnalyzedStatement> T analyze(String statement) {
