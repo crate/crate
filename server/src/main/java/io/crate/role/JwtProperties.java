@@ -36,16 +36,16 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
 
-
 /**
  * Represents JWT token payload.
  * @param iss https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1
  * @param username is username on the third party app. Not necessarily same as CrateDB user.
+ * @param aud https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3. Optional field.
  */
-public record JwtProperties(String iss, String username) implements Writeable, ToXContent {
+public record JwtProperties(String iss, String username, @Nullable String aud) implements Writeable, ToXContent {
 
     public static JwtProperties readFrom(StreamInput in) throws IOException {
-        return new JwtProperties(in.readString(), in.readString());
+        return new JwtProperties(in.readString(), in.readString(), in.readOptionalString());
     }
 
     @Nullable
@@ -55,12 +55,13 @@ public record JwtProperties(String iss, String username) implements Writeable, T
             ensureNotNull("iss", iss);
             String username = Maps.get(jwtPropertiesMap, "username");
             ensureNotNull("username", username);
-            if (jwtPropertiesMap.size() > 2) {
+            String aud = Maps.get(jwtPropertiesMap, "aud");
+            if (jwtPropertiesMap.size() > 3 || (jwtPropertiesMap.size() == 3 && aud == null)) {
                 throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Only 'iss' and 'username' JWT properties are allowed")
+                    "Only 'iss', 'username' and 'aud' JWT properties are allowed"
                 );
             }
-            return new JwtProperties(iss, username);
+            return new JwtProperties(iss, username, aud);
         }
         return null;
 
@@ -78,14 +79,18 @@ public record JwtProperties(String iss, String username) implements Writeable, T
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(iss);
         out.writeString(username);
+        out.writeOptionalString(aud);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject("jwt")
             .field("iss", iss)
-            .field("username", username)
-            .endObject();
+            .field("username", username);
+        if (aud != null) {
+            builder.field("aud", aud);
+        }
+        builder.endObject();
         return builder;
     }
 
@@ -93,6 +98,7 @@ public record JwtProperties(String iss, String username) implements Writeable, T
         XContentParser.Token currentToken;
         String iss = null;
         String username = null;
+        String aud = null;
         while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (currentToken == XContentParser.Token.FIELD_NAME) {
                 String currentFieldName = parser.currentName();
@@ -112,11 +118,27 @@ public record JwtProperties(String iss, String username) implements Writeable, T
                         }
                         username = parser.text();
                         break;
+                    case "aud":
+                        if (currentToken != XContentParser.Token.VALUE_STRING) {
+                            throw new ElasticsearchParseException(
+                                "failed to parse jwt, 'aud' value is not a string [{}]", currentToken);
+                        }
+                        aud = parser.text();
+                        break;
                     default:
                         throw new ElasticsearchParseException("failed to parse jwt, unknown property '{}'", currentFieldName);
                 }
             }
         }
-        return new JwtProperties(iss, username);
+        return new JwtProperties(iss, username, aud);
+    }
+
+
+    /**
+     * aud is ignored in equality check as only iss/username combination must be unique
+     */
+    @Nullable
+    public boolean match(@Nullable String iss, @Nullable String username) {
+        return this.iss.equals(iss) && this.username.equals(username);
     }
 }

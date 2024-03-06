@@ -138,7 +138,7 @@ public class Credentials implements Closeable {
                 if (role.isUser() && jwtProperties != null) {
                     assert jwtProperties.iss() != null && jwtProperties.username() != null :
                         "If user has jwt properties, 'iss' and 'username' must be not null";
-                    return decodedToken.getIssuer().equals(jwtProperties.iss()) && decodedToken.getClaim("username").asString().equals(jwtProperties.username());
+                    return jwtProperties.match(decodedToken.getIssuer(), decodedToken.getClaim("username").asString());
                 }
                 return false;
             };

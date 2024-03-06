@@ -27,7 +27,6 @@ import io.crate.protocols.postgres.ConnectionProperties;
 import org.apache.http.conn.DnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.Cidrs;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
@@ -96,11 +95,16 @@ public class HostBasedAuthentication implements Authentication {
     private final Roles roles;
     private final DnsResolver dnsResolver;
 
-    @Inject
-    public HostBasedAuthentication(Settings settings, Roles roles, DnsResolver dnsResolver) {
+    private final Supplier<String> clusterId;
+
+    public HostBasedAuthentication(Settings settings,
+                                   Roles roles,
+                                   DnsResolver dnsResolver,
+                                   Supplier<String> clusterId) {
         hbaConf = convertHbaSettingsToHbaConf(settings);
         this.roles = roles;
         this.dnsResolver = dnsResolver;
+        this.clusterId = clusterId;
     }
 
     @VisibleForTesting
@@ -132,7 +136,8 @@ public class HostBasedAuthentication implements Authentication {
             case (JWTAuthenticationMethod.NAME) ->
                 new JWTAuthenticationMethod(
                     roles,
-                    JWTAuthenticationMethod::jwkProvider
+                    JWTAuthenticationMethod::jwkProvider,
+                    clusterId
                 );
             default -> null;
         };

@@ -155,6 +155,7 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
         String jwt = JWT.create()
             .withHeader(Map.of("typ", "JWT", "alg", "RS256", "kid", KID))
             .withIssuer(iss)
+            .withAudience(clusterService().state().metadata().clusterUUID())
             .withClaim("username", appUsername)
             .sign(Algorithm.RSA256(null, privateKey));
 
@@ -191,6 +192,7 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
         String jwt = JWT.create()
             .withHeader(Map.of("typ", "JWT", "alg", "RS256", "kid", KID))
             .withIssuer(iss)
+            .withAudience(clusterService().state().metadata().clusterUUID())
             .withClaim("username", appUsername)
             .sign(Algorithm.RSA256(null, privateKey));
 

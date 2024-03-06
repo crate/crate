@@ -137,7 +137,9 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
             var newJwtProperties = jwtProperties != null ? jwtProperties : (resetJwtProperties ? null : role.jwtProperties());
 
             if (newMetadata.contains(newJwtProperties)) {
-                throw new RoleAlreadyExistsException("Another role with the same combination of jwt properties already exists");
+                throw new RoleAlreadyExistsException(
+                    "Another role with the same combination of iss/username jwt properties already exists"
+                );
             }
 
             newMetadata.roles().put(roleName, role.with(newSecureHash, newJwtProperties));
