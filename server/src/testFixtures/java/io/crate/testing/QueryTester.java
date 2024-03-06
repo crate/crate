@@ -99,10 +99,9 @@ public final class QueryTester implements AutoCloseable {
                        String createTableStmt,
                        LongSupplier columnOidSupplier) throws IOException {
             var sqlExecutor = SQLExecutor
-                .builder(clusterService)
+                .of(clusterService)
                 .setColumnOidSupplier(columnOidSupplier)
-                .addTable(createTableStmt)
-                .build();
+                .addTable(createTableStmt);
             plannerContext = sqlExecutor.getPlannerContext(clusterService.state());
 
             var createTable = (CreateTable<?>) SqlParser.createStatement(createTableStmt);

@@ -40,9 +40,8 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test

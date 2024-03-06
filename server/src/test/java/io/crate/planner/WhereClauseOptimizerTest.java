@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -48,7 +49,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table t_pk(a string primary key)")
             .addTable("create table bystring (name string primary key, score double) " +
                       "clustered by (name) ")
@@ -77,8 +78,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 """,
                 new PartitionName(new RelationName("doc", "partdatebin"), List.of("1676352000000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "partdatebin"), List.of("1687767893000")).asIndexName()
-            )
-            .build();
+            );
     }
 
     private WhereClauseOptimizer.DetailedQuery optimize(String statement) {

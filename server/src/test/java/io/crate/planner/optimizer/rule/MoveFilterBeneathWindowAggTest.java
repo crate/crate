@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -48,9 +49,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (id int, x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (id int, x int)");
     }
 
     @Test

@@ -49,9 +49,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_simple_column() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int, b int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int, b int)");
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN a");
         assertThat(d.columns()).satisfiesExactly(
@@ -60,9 +59,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_multiple_simple_columns() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int, b int, c int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int, b int, c int)");
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN a, DROP b");
         assertThat(d.table().ident().name()).isEqualTo("t");
@@ -73,9 +71,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_part_of_simple_index() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int, b text INDEX USING fulltext)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int, b text INDEX USING fulltext)");
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
         assertThat(d.columns()).satisfiesExactly(
@@ -84,9 +81,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_with_constraint() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE t(a int, b int CHECK (abs(b) + (b / 2) > 2))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t(a int, b int CHECK (abs(b) + (b / 2) > 2))");
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
         assertThat(d.columns()).satisfiesExactly(
@@ -95,9 +91,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_with_table_level_constraint_referencing_only_this_column() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE t(a int, b int, CONSTRAINT my_check CHECK (abs(b) + (b / 2) > 2))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t(a int, b int, CONSTRAINT my_check CHECK (abs(b) + (b / 2) > 2))");
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
         assertThat(d.columns()).satisfiesExactly(
@@ -106,10 +101,9 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_with_table_level_constraint_on_multiple_subcols() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE t (o object AS (oo object AS(ooa int, oob int)), " +
-                      "CHECK (o['oo']['ooa'] + o['oo']['oob'] > 0))")
-            .build();
+                      "CHECK (o['oo']['ooa'] + o['oo']['oob'] > 0))");
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN o['oo']");
         assertThat(d.columns()).satisfiesExactly(
@@ -118,9 +112,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_named_index_column_is_not_supported() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a text, INDEX ft USING fulltext(a))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a text, INDEX ft USING fulltext(a))");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP COLUMN ft"))
                 .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -129,9 +122,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_sub_column() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int, o object AS (oo object AS(ooa int, oob long)))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int, o object AS (oo object AS(ooa int, oob long)))");
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN o['oo']['ooa']");
         assertThat(d.table().ident().name()).isEqualTo("t");
@@ -146,15 +138,14 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_parent_column_with_constraint_including_non_children() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (a int, o object AS (oa int, oo object AS(ooa int, oob long)), " +
                       "CONSTRAINT my_check CHECK (o['oo']['oob'] + o['oa'] > 0))")
             .addTable("create table t2 (a int, o object AS (oa int, oo object AS(ooa int, oob long)), " +
                       "CONSTRAINT my_check CHECK (o['oo']['oob'] + a > 0))")
             .addTable("create table t3 (a int, o object AS (" +
                       "oa int, oo object AS(ooa int, oob long), obj object AS (obja int, objb long)), " +
-                      "CONSTRAINT my_check CHECK (o['oo']['oob'] + o['obj']['objb'] > 0))")
-            .build();
+                      "CONSTRAINT my_check CHECK (o['oo']['oob'] + o['obj']['objb'] > 0))");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP COLUMN o['oo']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -169,10 +160,9 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_not_existing_column_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (a int, b int, c int)")
-            .addTable("create table t2 (o object AS (oa int, oo object AS(ooa int, oob int)))")
-            .build();
+            .addTable("create table t2 (o object AS (oa int, oo object AS(ooa int, oob int)))");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP COLUMN d"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
@@ -188,10 +178,9 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_not_existing_column_with_if_exists() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (a int, b int, c int)")
-            .addTable("create table t2 (o object AS (oa int, oo object AS(ooa int, oob int)))")
-            .build();
+            .addTable("create table t2 (o object AS (oa int, oo object AS(ooa int, oob int)))");
 
         AnalyzedAlterTableDropColumn d1 = e.analyze("ALTER TABLE t1 DROP COLUMN IF EXISTS d, DROP IF EXISTS e");
         assertThat(d1.table().ident().name()).isEqualTo("t1");
@@ -221,9 +210,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_all_columns_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int, b int, c int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int, b int, c int)");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP COLUMN a, DROP b, DROP COLUMN c"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -232,7 +220,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_from_system_table_is_not_allowed() {
-        e = SQLExecutor.builder(clusterService).build();
+        e = SQLExecutor.of(clusterService);
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE sys.shards DROP COLUMN foobar"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
@@ -242,10 +230,9 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_clustered_by_column_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE t1 (a int, b int) CLUSTERED BY (a)")
-            .addTable("CREATE TABLE t2 (o object AS(oo object AS(ooa int))) CLUSTERED BY (o['oo']['ooa'])")
-            .build();
+            .addTable("CREATE TABLE t2 (o object AS(oo object AS(ooa int))) CLUSTERED BY (o['oo']['ooa'])");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP COLUMN a"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -258,11 +245,10 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_from_single_partition_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
-                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .build();
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS);
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE parted partition (date = 1395874800000) DROP COLUMN name"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -271,13 +257,12 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_partition_by_column_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .addPartitionedTable("CREATE TABLE t2 (o object AS (oo object AS(ooa int))) PARTITIONED BY (o['oo']['ooa'])",
-                                 new PartitionName(new RelationName("doc", "t2"), singletonList("1")).asIndexName())
-            .build();
+                                 new PartitionName(new RelationName("doc", "t2"), singletonList("1")).asIndexName());
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE parted DROP COLUMN date"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -289,10 +274,9 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_pk_column_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION)
-            .addTable("CREATE TABLE t2 (o object AS(oo object AS(ooa int)), PRIMARY KEY (o['oo']['ooa']))")
-            .build();
+            .addTable("CREATE TABLE t2 (o object AS(oo object AS(ooa int)), PRIMARY KEY (o['oo']['ooa']))");
 
         // id is also part of clustered by, but pk is checked first
         assertThatThrownBy(() -> e.analyze("ALTER TABLE users_multi_pk DROP COLUMN id"))
@@ -309,10 +293,9 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_used_in_a_generated_col_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE t(a int, b generated always as (a + 1))")
-            .addTable("CREATE TABLE t1(o object AS (oo object AS(ooa int)), b generated always as (o['oo']['ooa'] + 1))")
-            .build();
+            .addTable("CREATE TABLE t1(o object AS (oo object AS(ooa int)), b generated always as (o['oo']['ooa'] + 1))");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP a"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -325,10 +308,9 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_used_in_a_named_index() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE t1(a text, b text, INDEX ft USING fulltext(a, b))")
-            .addTable("CREATE TABLE t2(a text, b text, INDEX ft USING fulltext(b))")
-            .build();
+            .addTable("CREATE TABLE t2(a text, b text, INDEX ft USING fulltext(b))");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -341,11 +323,10 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_used_in_table_level_check_constraint() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE t1(a int, b int, CONSTRAINT my_check CHECK (abs(b) + (a / 2) > 2))")
             .addTable("CREATE TABLE t2(a int, o object AS(oo object AS(ooa int, oob int)), " +
-                      "CONSTRAINT my_check CHECK (abs(o['oo']['oob']) + (a / 2) > 2))")
-            .build();
+                      "CONSTRAINT my_check CHECK (abs(o['oo']['oob']) + (a / 2) > 2))");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -358,9 +339,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void add_multiple_columns_adding_same_name_primitive_throws_an_exception() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE t (o object AS(oo object AS(ooa int, oob int)))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t (o object AS(oo object AS(ooa int, oob int)))");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP o['oo']['ooa'], DROP o['oo']['oob'], DROP o['oo']['ooa']"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -369,13 +349,12 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_drop_column_from_old_table_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(
                 // Need second column to not fall into earlier check "Dropping all columns of a table is not allowed".
                 "create table t (a int, b int)",
                 Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
-            )
-            .build();
+            );
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP COLUMN a"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -384,9 +363,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_dropping_system_column_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE t (x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t (x int)");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP _doc"))
             .isExactlyInstanceOf(IllegalArgumentException.class)

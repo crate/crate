@@ -63,13 +63,12 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpSQLExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T2_DEFINITION)
             .addTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .addTable("create table my_schema.locations (id int)")
             .addView(new RelationName("my_schema", "locations_view"),
-                     "select * from my_schema.locations limit 2")
-            .build();
+                     "select * from my_schema.locations limit 2");
     }
 
     @Test

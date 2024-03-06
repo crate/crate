@@ -72,11 +72,11 @@ import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -104,9 +104,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        executor = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text not null)")
-            .build();
+        executor = SQLExecutor.of(clusterService)
+            .addTable("create table users (name text not null)");
         sqlOperations = executor.sqlOperations;
     }
 

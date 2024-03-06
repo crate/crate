@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -53,14 +53,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addBlobTable("create blob table blobs;")
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
-            )
-            .build();
+            );
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 

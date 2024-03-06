@@ -42,9 +42,8 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Before
     public void prepare() throws IOException {
-        executor = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        executor = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test

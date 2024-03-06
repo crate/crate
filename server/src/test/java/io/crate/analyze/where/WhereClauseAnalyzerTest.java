@@ -21,12 +21,12 @@
 
 package io.crate.analyze.where;
 
-import static io.crate.planner.WhereClauseOptimizer.DetailedQuery;
 import static io.crate.planner.WhereClauseOptimizer.optimize;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -53,6 +53,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.planner.WhereClauseOptimizer.DetailedQuery;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -66,11 +67,11 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        SQLExecutor.Builder builder = SQLExecutor.builder(clusterService);
-        registerTables(builder);
+        e = SQLExecutor.of(clusterService);
+        registerTables(e);
 
         RelationName docGeneratedCol = new RelationName("doc", "generated_col");
-        builder.addPartitionedTable(
+        e.addPartitionedTable(
             "create table doc.generated_col (" +
             "   ts timestamp with time zone ," +
             "   x integer," +
@@ -83,7 +84,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new PartitionName(docGeneratedCol, List.of("1420156800000", "-2")).asIndexName()
         );
         RelationName docDoubleGenParted = new RelationName(DocSchemaInfo.NAME, "double_gen_parted");
-        builder.addPartitionedTable(
+        e.addPartitionedTable(
             "create table doc.double_gen_parted (" +
             "   x integer," +
             "   x1 as x + 1," +
@@ -92,10 +93,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(docDoubleGenParted, List.of("4", "5")).toString(),
                 new PartitionName(docDoubleGenParted, List.of("5", "6")).toString()
         );
-        e = builder.build();
     }
 
-    private void registerTables(SQLExecutor.Builder builder) throws IOException {
+    private void registerTables(SQLExecutor builder) throws IOException {
         builder.addTable(
             "create table users (" +
              "  id string primary key," +

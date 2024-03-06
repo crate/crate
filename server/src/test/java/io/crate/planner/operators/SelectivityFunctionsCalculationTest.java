@@ -51,9 +51,8 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
             new ColumnIdent("x"),
             ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, totalNumRows)
         );
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table doc.tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.tbl (x int)");
 
         Stats stats = new Stats(totalNumRows, DataTypes.INTEGER.fixedSize(), columnStats);
         e.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
@@ -64,9 +63,8 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
 
     @Test
     public void test_group_operator_adapt_expected_row_count_based_on_column_stats() throws Throwable {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table doc.tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.tbl (x int)");
 
         var samples = IntStream.concat(
             IntStream.generate(() -> 10).limit(50),

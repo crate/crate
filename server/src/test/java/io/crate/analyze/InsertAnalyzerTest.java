@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.isInputColumn;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -57,7 +58,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
             .addTable(
@@ -95,8 +96,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                   col3 int default 20 not null,
                   col4 int generated always as ((col2 + col3) * col1 - 2) primary key)
                 """
-            )
-            .build();
+            );
     }
 
     private void assertCompatibleColumns(AnalyzedInsertStatement statement) {

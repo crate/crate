@@ -62,9 +62,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE doc.tbl(a int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.tbl(a int)");
     }
 
     @Test
