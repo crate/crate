@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;

@@ -22,7 +22,7 @@
 package io.crate.execution.engine.collect.files;
 
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -42,7 +42,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;

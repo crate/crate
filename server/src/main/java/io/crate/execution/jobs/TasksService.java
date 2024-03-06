@@ -46,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;

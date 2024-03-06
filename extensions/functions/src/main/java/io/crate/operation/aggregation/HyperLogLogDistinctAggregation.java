@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.BitMixer;
 
 import io.crate.Streamer;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;

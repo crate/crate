@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.data.Row1;

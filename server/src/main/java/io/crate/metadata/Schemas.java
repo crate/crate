@@ -50,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Sets;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;

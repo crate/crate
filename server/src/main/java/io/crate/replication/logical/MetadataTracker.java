@@ -62,7 +62,7 @@ import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;

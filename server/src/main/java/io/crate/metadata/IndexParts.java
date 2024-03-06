@@ -26,7 +26,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.blob.BlobSchemaInfo;
 

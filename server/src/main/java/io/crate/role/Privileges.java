@@ -23,7 +23,7 @@ package io.crate.role;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;

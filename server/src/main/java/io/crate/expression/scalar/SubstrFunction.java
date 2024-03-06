@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;

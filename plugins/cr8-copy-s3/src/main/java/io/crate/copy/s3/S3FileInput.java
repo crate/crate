@@ -25,7 +25,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.copy.s3.common.S3ClientHelper;
 import io.crate.copy.s3.common.S3URI;
 import io.crate.execution.engine.collect.files.FileInput;

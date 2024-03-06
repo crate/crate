@@ -23,7 +23,7 @@ package io.crate.expression.scalar.string;
 
 import static io.crate.sql.Identifiers.isKeyWord;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;

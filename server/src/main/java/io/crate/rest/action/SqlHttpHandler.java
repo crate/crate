@@ -58,7 +58,7 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.breaker.TypedRowAccounting;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;

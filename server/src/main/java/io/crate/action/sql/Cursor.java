@@ -29,7 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import io.crate.breaker.TypedCellsAccounting;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;

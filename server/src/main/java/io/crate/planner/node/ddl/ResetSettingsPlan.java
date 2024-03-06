@@ -44,7 +44,7 @@ package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

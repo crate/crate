@@ -58,7 +58,7 @@ import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;

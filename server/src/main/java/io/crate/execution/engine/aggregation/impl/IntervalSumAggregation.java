@@ -26,7 +26,7 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
 import org.joda.time.Period;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;

@@ -46,7 +46,7 @@ import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.MetadataMappingService;
 
 import io.crate.Constants;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import org.elasticsearch.common.xcontent.XContentType;
 
