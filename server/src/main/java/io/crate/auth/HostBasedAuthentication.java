@@ -21,7 +21,7 @@
 
 package io.crate.auth;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.role.Roles;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.apache.http.conn.DnsResolver;

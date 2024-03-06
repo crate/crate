@@ -21,7 +21,7 @@
 
 package io.crate.role;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.planner.node.ddl.CreateRolePlan;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.SecureString;

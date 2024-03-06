@@ -52,7 +52,7 @@ import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.BoundRestoreSnapshot;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;

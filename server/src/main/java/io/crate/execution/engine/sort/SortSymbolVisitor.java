@@ -36,7 +36,7 @@ import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;

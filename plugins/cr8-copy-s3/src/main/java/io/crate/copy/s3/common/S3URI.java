@@ -21,7 +21,7 @@
 
 package io.crate.copy.s3.common;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.net.URI;
 import java.util.Objects;

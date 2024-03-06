@@ -46,7 +46,7 @@ import org.elasticsearch.gateway.PersistedClusterStateService;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
 import io.crate.execution.ddl.Templates;

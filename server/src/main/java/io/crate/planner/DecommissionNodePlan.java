@@ -25,7 +25,7 @@ import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.DecommissionRequest;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

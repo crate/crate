@@ -38,7 +38,7 @@ import org.elasticsearch.indices.IndicesService;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.metadata.IndexParts;
 
 public class SharedShardContexts {

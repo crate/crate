@@ -26,7 +26,7 @@ import static org.apache.lucene.util.StringHelper.murmurhash3_x86_32;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;

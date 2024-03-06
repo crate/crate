@@ -82,7 +82,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;

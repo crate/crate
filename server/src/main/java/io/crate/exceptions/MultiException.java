@@ -22,7 +22,7 @@
 package io.crate.exceptions;
 
 import io.crate.common.SuppressForbidden;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;

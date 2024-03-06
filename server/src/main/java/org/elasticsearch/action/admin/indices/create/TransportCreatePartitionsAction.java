@@ -82,7 +82,7 @@ import org.joda.time.DateTimeZone;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Iterables;
 import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.XContentHelper;

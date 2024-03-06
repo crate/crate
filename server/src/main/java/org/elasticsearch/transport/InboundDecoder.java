@@ -19,7 +19,7 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;

@@ -57,7 +57,7 @@ import org.elasticsearch.common.settings.Settings;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Protocol;
 import io.crate.common.Optionals;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;

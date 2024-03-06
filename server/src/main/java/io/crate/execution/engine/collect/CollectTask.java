@@ -35,7 +35,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.annotations.GuardedBy;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.RefCountedItem;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
