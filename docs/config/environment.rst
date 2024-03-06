@@ -119,7 +119,7 @@ General
       Make sure there is enough disk space available for heap dumps.
 
 
-.. _basic installation: https://crate.io/docs/crate/tutorials/en/latest/basic/
-.. _a CrateDB Linux package: https://crate.io/docs/crate/tutorials/en/latest/basic/index.html#linux
-.. _CrateDB on Docker: https://crate.io/docs/crate/tutorials/en/latest/basic/index.html#docker
+.. _basic installation: https://cratedb.com/docs/guide/install/tarball.html
+.. _a CrateDB Linux package: https://cratedb.com/docs/guide/install/
+.. _CrateDB on Docker: https://cratedb.com/docs/guide/install/container/
 .. _environment variables: https://en.wikipedia.org/wiki/Environment_variable
