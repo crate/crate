@@ -34,8 +34,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.Expression;
 
 public class ShowCreateTablePlan implements Plan {
 
@@ -58,8 +56,7 @@ public class ShowCreateTablePlan implements Plan {
                               SubQueryResults subQueryResults) {
         Row1 row;
         try {
-            CreateTable<Expression> createTable = new TableInfoToAST(statement.tableInfo())
-                .extractCreateTable();
+            var createTable = new TableInfoToAST(statement.tableInfo()).toStatement();
             row = new Row1(SqlFormatter.formatSql(createTable));
         } catch (Throwable t) {
             consumer.accept(null, t);

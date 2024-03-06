@@ -38,7 +38,8 @@ The name of the table must be unique, and distinct from the name of other
 relations like user tables or views.
 
 Foreign tables are listed in the ``information_schema.tables`` view and
-``information_schema.foreign_tables``.
+``information_schema.foreign_tables``. You can use :ref:`ref-show-create-table`
+to view the definition of an existing foreign table.
 
 Creating a foreign table requires ``AL`` permission on schema or cluster level.
 
