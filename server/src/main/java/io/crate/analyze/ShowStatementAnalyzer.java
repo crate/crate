@@ -26,10 +26,12 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
@@ -87,12 +89,17 @@ class ShowStatementAnalyzer {
     }
 
     public AnalyzedStatement analyzeShowCreateTable(Table<?> table, Analysis analysis) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        CoordinatorSessionSettings sessionSettings = analysis.sessionSettings();
+        RelationInfo relation = schemas.resolveRelationInfo(
             table.getName(),
             Operation.SHOW_CREATE,
-            analysis.sessionSettings().sessionUser(),
-            analysis.sessionSettings().searchPath()
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
         );
+        if (!(relation instanceof TableInfo tableInfo)) {
+            throw new UnsupportedOperationException(
+                "Cannot use SHOW CREATE TABLE on relation " + relation.ident() + " of type " + relation.relationType());
+        }
         return new AnalyzedShowCreateTable(tableInfo);
     }
 

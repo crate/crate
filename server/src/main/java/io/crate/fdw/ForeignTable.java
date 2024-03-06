@@ -27,6 +27,7 @@ import static org.elasticsearch.common.xcontent.XContentParser.Token.FIELD_NAME;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -197,7 +198,7 @@ public record ForeignTable(RelationName name,
 
     @Override
     public Set<Operation> supportedOperations() {
-        return Operation.READ_ONLY;
+        return EnumSet.of(Operation.READ, Operation.SHOW_CREATE);
     }
 
     @Override

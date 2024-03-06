@@ -103,6 +103,7 @@ import io.crate.Constants;
 import io.crate.action.sql.Cursors;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
@@ -134,6 +135,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.fdw.AddForeignTableTask;
+import io.crate.fdw.AddServerTask;
+import io.crate.fdw.CreateServerRequest;
+import io.crate.fdw.FdwAnalyzer;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -159,6 +164,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -181,6 +187,7 @@ import io.crate.role.RoleManager;
 import io.crate.role.StubRoleManager;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
@@ -719,6 +726,55 @@ public class SQLExecutor {
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
+            return this;
+        }
+
+        public Builder addForeignTable(String stmt) throws Exception {
+            CreateForeignTable createTable = (CreateForeignTable) SqlParser.createStatement(stmt);
+            var txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
+            Cursors cursors = new Cursors();
+            var analysis = new Analysis(txnCtx, ParamTypeHints.EMPTY, cursors);
+            var analyzedCreateForeignTable = FdwAnalyzer.analyze(analysis, nodeCtx, createTable);
+            RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
+            ClusterState currentState = clusterService.state();
+            PlannerContext plannerContext = new PlannerContext(
+                currentState,
+                routingProvider,
+                UUIDs.dirtyUUID(),
+                txnCtx,
+                nodeCtx,
+                0,
+                null,
+                cursors,
+                TransactionState.IDLE,
+                new PlanStats(nodeCtx, txnCtx, tableStats)
+            );
+            var request = CreateForeignTablePlan.toRequest(
+                foreignDataWrappers,
+                analyzedCreateForeignTable,
+                plannerContext,
+                Row.EMPTY,
+                SubQueryResults.EMPTY
+            );
+            AddForeignTableTask addForeignTableTask = new AddForeignTableTask(request);
+            ClusterState newState = addForeignTableTask.execute(currentState);
+            ClusterServiceUtils.setState(clusterService, newState);
+            return this;
+        }
+
+        public Builder addServer(String serverName,
+                                 String fdw,
+                                 String owner,
+                                 Settings options) throws Exception {
+            CreateServerRequest request = new CreateServerRequest(
+                "pg",
+                "jdbc",
+                "crate",
+                true,
+                options
+            );
+            AddServerTask addServerTask = new AddServerTask(foreignDataWrappers, request);
+            ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterService.state()));
             return this;
         }
 
