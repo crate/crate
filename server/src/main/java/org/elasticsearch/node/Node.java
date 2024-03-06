@@ -191,6 +191,7 @@ import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetadataModule;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetadataBlobModule;
 import io.crate.metadata.information.MetadataInformationModule;
@@ -381,6 +382,9 @@ public class Node implements Closeable {
             );
             resourcesToClose.add(clusterService);
 
+            final Roles roles = new RolesService(clusterService);
+            final NodeContext nodeContext = new NodeContext(functions, roles);
+
             SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
             final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(
                 settings,
@@ -472,7 +476,7 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedXContent().stream()),
                 ClusterModule.getNamedXWriteables().stream(),
-                MetadataModule.getNamedXContents().stream())
+                MetadataModule.getNamedXContents(nodeContext).stream())
                 .flatMap(Function.identity()).collect(Collectors.toList()));
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
             final PersistedClusterStateService persistedClusterStateService
@@ -539,7 +543,6 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
-            Roles roles = new RolesService(clusterService);
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
                 ? new HostBasedAuthentication(settings, roles, SystemDefaultDnsResolver.INSTANCE)
                 : new AlwaysOKAuthentication(roles);

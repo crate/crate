@@ -39,9 +39,14 @@ public interface RoleManager extends Roles {
      * This never raises but always returns a failed future in error cases.
      *
      * @param roleName name of the role to create
+     * @param jwtProperties contains JWK specific properties if user can be authenticated by providing a JWTtoken.
      * @return 1 if the role was created, otherwise a failed future.
      */
-    CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw);
+    CompletableFuture<Long> createRole(String roleName,
+                                       boolean isUser,
+                                       @Nullable SecureHash hashedPw,
+                                       @Nullable JwtProperties jwtProperties
+    );
 
     /**
      * Delete a roles.
@@ -59,9 +64,16 @@ public interface RoleManager extends Roles {
      *
      * @param roleName of the existing role to modify
      * @param newHashedPw new password; if null the password is removed from the role
+     * @param newJwtProperties new jwt properties. if null properties are removed from the role
+     * @param resetPassword hints how to treat NULL password: as not provided and supposed to be kept or explicitly set to NULL.
+     * @param resetJwtProperties hints how to treat NULL jwt: as not provided and supposed to be kept or explicitly set to NULL.
      * @return 1 if the role has been updated, otherwise a failed future.
      */
-    CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw);
+    CompletableFuture<Long> alterRole(String roleName,
+                                      @Nullable SecureHash newHashedPw,
+                                      @Nullable JwtProperties newJwtProperties,
+                                      boolean resetPassword,
+                                      boolean resetJwtProperties);
 
     /**
      * Apply given list of {@link Privilege}s or {@link Role} for each given role

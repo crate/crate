@@ -28,11 +28,11 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpVersion;
-import org.elasticsearch.common.settings.SecureString;
 
 import org.jetbrains.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 public final class Headers {
@@ -64,15 +64,30 @@ public final class Headers {
         }
     }
 
-    public static Credentials extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
+    /**
+     * An entry point for HTTP authentication, forwards to either Basic or JWT, depending on header.
+     * @param authHeaderValue contains authentication scheme (basic or bearer) and auth payload (token or password) separated by space.
+     * Authentication scheme is case-insensitive: <a href="https://datatracker.ietf.org/doc/html/rfc7235?ref=blog.teknkl.com#section-2.1">spec</a>
+     */
+    public static Credentials extractCredentialsFromHttpAuthHeader(String authHeaderValue) {
         if (authHeaderValue == null || authHeaderValue.isEmpty()) {
             // Empty credentials.
-            return new Credentials("", new SecureString(new char[] {}));
+            return new Credentials(null, null);
         }
+        String[] splitHeader = authHeaderValue.split(" ");
+        assert splitHeader.length == 2 :
+            "Header must contain only authentication scheme and base64 encoded value, separated by a whitespace";
+        return switch (splitHeader[0].toLowerCase(Locale.ENGLISH)) {
+            case "basic" -> extractCredentialsFromHttpBasicAuthHeader(splitHeader[1]);
+            case "bearer" -> new Credentials(splitHeader[1]);
+            default ->
+                    throw new IllegalArgumentException("Only basic or bearer HTTP Authentication schemes are allowed.");
+        };
+    }
+
+    private static Credentials extractCredentialsFromHttpBasicAuthHeader(String valueWithoutBasePrefix) {
         String username;
-        // Empty password by default.
-        SecureString password = new SecureString(new char[] {});
-        String valueWithoutBasePrefix = authHeaderValue.substring(6);
+        char[] password = null;
         String decodedCreds = new String(Base64.getDecoder().decode(valueWithoutBasePrefix), StandardCharsets.UTF_8);
 
         int idx = decodedCreds.indexOf(':');
@@ -81,8 +96,8 @@ public final class Headers {
         } else {
             username = decodedCreds.substring(0, idx);
             String passwdStr = decodedCreds.substring(idx + 1);
-            if (passwdStr.length() > 0) {
-                password = new SecureString(passwdStr.toCharArray());
+            if (!passwdStr.isEmpty()) {
+                password = passwdStr.toCharArray();
             }
         }
         return new Credentials(username, password);

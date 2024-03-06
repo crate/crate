@@ -44,7 +44,11 @@ import io.crate.common.collections.LexicographicalOrdering;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.sql.Identifiers;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.SubscriptExpression;
 
 public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
 
@@ -170,6 +174,17 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
             return element;
         }
         return obj;
+    }
+
+    /**
+     * Convert a ColumnIdent back into a parser expression
+     **/
+    public Expression toExpression() {
+        Expression fqn = new QualifiedNameReference(QualifiedName.of(name));
+        for (String child : path) {
+            fqn = new SubscriptExpression(fqn, Literal.fromObject(child));
+        }
+        return fqn;
     }
 
 

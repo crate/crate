@@ -37,6 +37,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.GrantedRole;
+import io.crate.role.JwtProperties;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
 import io.crate.role.Privilege;
@@ -45,6 +46,41 @@ import io.crate.role.Securable;
 import io.crate.role.SecureHash;
 
 public final class RolesHelper {
+
+
+    /**
+     * Base64 encoded token, which represents header/payload shown below (signed by RsaKeys.PRIVATE_KEY_256).
+     * Header:
+     * {
+     *   "alg": "RS256",
+     *   "typ": "JWT",
+     *   "kid": "1"
+     * }
+     * Payload:
+     * {
+     *   "iss": "https://console.cratedb-dev.cloud/api/v2/meta/jwk/",
+     *   "username": "cloud_user"
+     * }
+     */
+    public static final String JWT_TOKEN = """
+        eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpc3MiOiJod\
+        HRwczovL2NvbnNvbGUuY3JhdGVkYi1kZXYuY2xvdWQvYXBpL3YyL21ldGEvandrL\
+        yIsInVzZXJuYW1lIjoiY2xvdWRfdXNlciJ9.sbawfydZA66n6T8hCvioLYpBrqov\
+        p0BuMCIhStrqGKpDiw2JLeB6e3Tb3a9T9nuMF0S7HHMXHKXrypPCuBxeJsR4jck9m\
+        DeVyPZ1i4daNK-wezF0n-OLPJAV_lOvgv_exi2mpi2Ws7tfS3Ht3ZY8aQIOtnZjwW\
+        1O2GAljToLfRopUzJ8f6MZtZw2UKfkHvWZUalCcA5WWTqqzBx8hELswJ_VkUyYWYq\
+        wFgjaHsn2xF8nrS7_qF8OhD59_gCEUOzqIN0z2ctjSxRbFQ6VUewqQwMYVJTP7Lyl\
+        c89wlemQGx6JVk7wqejbLeCJqiHJXZFUe69A5MsWK8SZXDTfQoGWow\
+        """;
+
+    public static Role JWT_USER = userOf(
+        "John",
+        Set.of(),
+        new HashSet<>(),
+        getSecureHash("johns-pwd"),
+        new JwtProperties("https://console.cratedb-dev.cloud/api/v2/meta/jwk/", "cloud_user")
+    );
+
 
     public static final Map<String, Role> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", userOf("Arthur"));
 
@@ -128,27 +164,35 @@ public final class RolesHelper {
     }
 
     public static Role userOf(String name, Set<Privilege> privileges, @Nullable SecureHash password) {
-        return new Role(name, true, privileges, Set.of(), password);
+        return new Role(name, true, privileges, Set.of(), password, null);
     }
 
     public static Role userOf(String name, Set<Privilege> privileges, Set<GrantedRole> grantedRoles, @Nullable SecureHash password) {
-        return new Role(name, true, privileges, grantedRoles, password);
+        return new Role(name, true, privileges, grantedRoles, password, null);
+    }
+
+    public static Role userOf(String name,
+                              Set<Privilege> privileges,
+                              Set<GrantedRole> grantedRoles,
+                              @Nullable SecureHash password,
+                              @Nullable JwtProperties jwtProperties) {
+        return new Role(name, true, privileges, grantedRoles, password, jwtProperties);
     }
 
     public static Role roleOf(String name) {
-        return new Role(name, false, Set.of(), Set.of(), null);
+        return new Role(name, false, Set.of(), Set.of(), null, null);
     }
 
     public static Role roleOf(String name, Set<Privilege> privileges, List<String> grantedRoles) {
-        return new Role(name, false, privileges, buildGrantedRoles(grantedRoles), null);
+        return new Role(name, false, privileges, buildGrantedRoles(grantedRoles), null, null);
     }
 
     public static Role roleOf(String name, Set<Privilege> privileges) {
-        return new Role(name, false, privileges, Set.of(), null);
+        return new Role(name, false, privileges, Set.of(), null, null);
     }
 
     public static Role roleOf(String name, List<String> grantedRoles) {
-        return new Role(name, false, Set.of(), buildGrantedRoles(grantedRoles), null);
+        return new Role(name, false, Set.of(), buildGrantedRoles(grantedRoles), null, null);
     }
 
     @NotNull

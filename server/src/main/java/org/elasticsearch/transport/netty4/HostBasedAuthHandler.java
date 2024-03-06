@@ -29,6 +29,7 @@ import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 
 import io.crate.auth.Authentication;
+import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -67,7 +68,7 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
             closeAndThrowException(ctx, msg, authError);
         }
         try {
-            authMethod.authenticate(userName, null, connectionProperties);
+            authMethod.authenticate(new Credentials(userName, null), connectionProperties);
             ctx.pipeline().remove(this);
             super.channelRead(ctx, msg);
         } catch (Exception e) {

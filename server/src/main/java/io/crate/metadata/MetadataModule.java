@@ -152,7 +152,7 @@ public class MetadataModule extends AbstractModule {
         return entries;
     }
 
-    public static List<NamedXContentRegistry.Entry> getNamedXContents() {
+    public static List<NamedXContentRegistry.Entry> getNamedXContents(NodeContext nodeCtx) {
         List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedXContentRegistry.Entry(
             Metadata.Custom.class,
@@ -198,7 +198,7 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedXContentRegistry.Entry(
             Metadata.Custom.class,
             new ParseField(ForeignTablesMetadata.TYPE),
-            ForeignTablesMetadata::fromXContent
+            parser -> ForeignTablesMetadata.fromXContent(nodeCtx, parser)
         ));
 
 

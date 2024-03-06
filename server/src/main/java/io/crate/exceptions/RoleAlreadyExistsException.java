@@ -21,11 +21,25 @@
 
 package io.crate.exceptions;
 
-import java.util.Locale;
+import java.io.IOException;
 
-public class RoleAlreadyExistsException extends RuntimeException implements ConflictException, UnscopedException {
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-    public RoleAlreadyExistsException(String roleName) {
-        super(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
+
+public class RoleAlreadyExistsException extends ElasticsearchException implements ConflictException, UnscopedException {
+
+    public RoleAlreadyExistsException(String message) {
+        super(message);
+    }
+
+    public RoleAlreadyExistsException(StreamInput in) throws IOException {
+        super(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
     }
 }

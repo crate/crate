@@ -56,6 +56,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
@@ -423,7 +424,12 @@ public class PostgresWireProtocol {
             );
             Messages.sendAuthenticationError(channel, errorMessage);
         } else {
-            authContext = new AuthenticationContext(authMethod, connProperties, userName, LOGGER);
+            authContext = new AuthenticationContext(
+                authMethod,
+                connProperties,
+                new Credentials(userName, null),
+                LOGGER
+            );
             if (PASSWORD_AUTH_NAME.equals(authMethod.name())) {
                 Messages.sendAuthenticationCleartextPassword(channel);
                 return;

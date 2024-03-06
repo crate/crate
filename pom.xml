@@ -263,6 +263,8 @@
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
     <versions.graalvm>23.0.3</versions.graalvm>
+    <versions.jwt>4.4.0</versions.jwt>
+    <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
 
     <versions.google.gax>2.43.0</versions.google.gax>
     <versions.google.auth>1.23.0</versions.google.auth>
