@@ -544,7 +544,12 @@ public class Node implements Closeable {
             modules.add(actionModule);
 
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
-                ? new HostBasedAuthentication(settings, roles, SystemDefaultDnsResolver.INSTANCE)
+                ? new HostBasedAuthentication(
+                    settings,
+                    roles,
+                    SystemDefaultDnsResolver.INSTANCE,
+                    () -> clusterService.state().metadata().clusterUUID()
+                )
                 : new AlwaysOKAuthentication(roles);
 
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);

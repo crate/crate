@@ -123,12 +123,19 @@ CrateDB will validate the token and match it to a user created with ``CREATE
 USER`` with ``JWT`` properties that match those of the provided ``JWT`` token.
 
 Token must contain the following claims:
+
 ``kid`` - `Key ID`_.
+
 ``iss`` - URL of the `JWK endpoint`_.
+
+``aud`` - `aud`_.
+
 ``username`` - user name in a third party app.
 
-``iss`` and  ``username`` values must match the values created by
-``CREATE USER`` statement. See :ref:`create-user-jwt` for details.
+``iss``, ``username`` and ``aud`` values must match the values created by
+``CREATE USER`` statement. If ``aud`` has not been defined on the
+``CREATE USER`` statement, the cluster id is used and must match the token's
+``aud`` value. See :ref:`create-user-jwt` for details.
 
 It's recommended to have ``exp`` (`expiration date`_ as epoch seconds) in the
 header. If it's provided, the token's expiration date will be checked against
@@ -162,3 +169,4 @@ both values are compared and in case of a mismatch the token is rejected.
 .. _Key ID: https://datatracker.ietf.org/doc/html/rfc7517#section-4.5
 .. _expiration date: https://www.rfc-editor.org/rfc/rfc7519#section-4.1.4
 .. _Algorithm parameter: https://datatracker.ietf.org/doc/html/rfc7517#section-4.4
+.. _aud: https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3

@@ -130,7 +130,9 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             null,
             mock(SysTableRegistry.class),
             roles,
-            new DDLClusterStateService());
+            new DDLClusterStateService(),
+            this.clusterService
+        );
 
         e = SQLExecutor.builder(clusterService)
             .addBlobTable("create blob table blobs")

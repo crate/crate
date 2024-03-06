@@ -23,6 +23,8 @@ package io.crate.auth;
 
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.testing.auth.RsaKeys.PRIVATE_KEY_256;
 import static io.crate.testing.auth.RsaKeys.PUBLIC_KEY_256;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,6 +44,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,7 +63,6 @@ import io.crate.role.JwtProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.SecureHash;
-import io.crate.role.metadata.RolesHelper;
 
 public class UserAuthenticationMethodTest extends ESTestCase {
 
@@ -77,7 +79,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 throw new RuntimeException(e);
             }
-            return List.of(RolesHelper.userOf("crate", pwHash));
+            return List.of(userOf("crate", pwHash));
         }
     }
 
@@ -132,7 +134,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null)
+            jwkProviderFunction(null),
+            () -> "dummy"
         );
         assertThat(jwtAuth.name()).isEqualTo("jwt");
 
@@ -146,16 +149,75 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     }
 
     @Test
+    public void test_jwt_authentication_default_aud_same_as_token() throws Exception {
+        // JWT_TOKEN has aud = "test_cluster_id", imitate that cluster id is same.
+        String clusterId = "test_cluster_id";
+        Roles roles = () -> List.of(
+            userOf(
+                "John",
+                Set.of(),
+                new HashSet<>(),
+                getSecureHash("johns-pwd"),
+                // User doesn't have "aud" JWT property, cluster id will be used as aud.
+                new JwtProperties("https://console.cratedb-dev.cloud/api/v2/meta/jwk/", "cloud_user", null)
+            )
+        );
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            jwkProviderFunction(null),
+            () -> clusterId
+        );
+
+        Credentials credentials = new Credentials(JWT_TOKEN);
+        credentials.setUsername(JWT_USER.name());
+
+        Role authenticatedRole = jwtAuth.authenticate(credentials, null);
+        assertThat(authenticatedRole.name()).isEqualTo(JWT_USER.name());
+    }
+
+    @Test
+    public void test_jwt_authentication_default_aud_different_as_token() throws Exception {
+        // JWT_TOKEN has aud = "test_cluster_id", imitate that cluster id is different.
+        String clusterId = "not_same_as_user_aud";
+        Roles roles = () -> List.of(
+            userOf(
+                "John",
+                Set.of(),
+                new HashSet<>(),
+                getSecureHash("johns-pwd"),
+                // User doesn't have "aud" JWT property, cluster id will be used as aud.
+                new JwtProperties("https://console.cratedb-dev.cloud/api/v2/meta/jwk/", "cloud_user", null)
+            )
+        );
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            jwkProviderFunction(null),
+            () -> clusterId
+        );
+
+        Credentials credentials = new Credentials(JWT_TOKEN);
+        credentials.setUsername(JWT_USER.name());
+
+        assertThatThrownBy(
+            () -> jwtAuth.authenticate(credentials, null))
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessageContaining("jwt authentication failed for user John. Reason: The Claim 'aud' value doesn't contain the required audience.");
+    }
+
+
+    @Test
     @SuppressWarnings("resource")
     public void test_jwt_authentication_token_expired() throws Exception {
         PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(PRIVATE_KEY_256));
         KeyFactory kf = KeyFactory.getInstance("RSA");
         RSAPrivateKey privateKey = (RSAPrivateKey) kf.generatePrivate(privateKeySpec);
 
+        var jwtProperties = JWT_USER.jwtProperties();
         String jwt = JWT.create()
             .withHeader(Map.of("typ", "JWT", "alg", "RS256", "kid", KID))
-            .withIssuer(JWT_USER.jwtProperties().iss())
-            .withClaim("username", JWT_USER.jwtProperties().username())
+            .withIssuer(jwtProperties.iss())
+            .withClaim("username", jwtProperties.username())
+            .withAudience(jwtProperties.aud())
             .withExpiresAt(LocalDateTime.now(ZoneOffset.UTC).minusDays(1).toInstant(ZoneOffset.UTC))
             .sign(Algorithm.RSA256(null, privateKey));
 
@@ -163,7 +225,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null)
+            jwkProviderFunction(null),
+            () -> "dummy"
         );
 
         Credentials credentials = new Credentials(jwt);
@@ -177,11 +240,43 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
     @Test
     @SuppressWarnings("resource")
+    public void test_jwt_authentication_token_aud_not_provided() throws Exception {
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(PRIVATE_KEY_256));
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        RSAPrivateKey privateKey = (RSAPrivateKey) kf.generatePrivate(privateKeySpec);
+
+        var jwtProperties = JWT_USER.jwtProperties();
+        String jwt = JWT.create()
+            .withHeader(Map.of("typ", "JWT", "alg", "RS256", "kid", KID))
+            .withIssuer(jwtProperties.iss())
+            .withClaim("username", jwtProperties.username())
+            .sign(Algorithm.RSA256(null, privateKey));
+
+        Roles roles = () -> List.of(JWT_USER);
+
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            jwkProviderFunction(null),
+            () -> "dummy"
+        );
+
+        Credentials credentials = new Credentials(jwt);
+        credentials.setUsername(JWT_USER.name());
+
+        assertThatThrownBy(
+            () -> jwtAuth.authenticate(credentials, null))
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessageContaining("jwt authentication failed for user John. Reason: The Claim 'aud' is not present in the JWT.");
+    }
+
+    @Test
+    @SuppressWarnings("resource")
     public void test_token_algo_and_jwk_algo_mistmatch_throws_error() throws Exception {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction("RS384")
+            jwkProviderFunction("RS384"),
+            () -> "dummy"
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -199,7 +294,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     public void test_jwt_authentication_user_not_found_throws_error() throws Exception {
         // Testing a scenario when user is looked up by iss/username, name is set to Credentials
         // but during authentication user cannot be found by name (for example, could be dropped in a meantime).
-        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(List::of, null);
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(List::of, null, () -> "dummy");
 
         Credentials credentials = new Credentials(JWT_TOKEN);
         credentials.setUsername(JWT_USER.name());
@@ -225,7 +320,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             () -> List.of(JWT_USER),
-            JWTAuthenticationMethod::jwkProvider
+            JWTAuthenticationMethod::jwkProvider,
+            () -> "dummy"
         );
 
         Credentials credentials = new Credentials(jwt);
@@ -246,12 +342,13 @@ public class UserAuthenticationMethodTest extends ESTestCase {
             Set.of(),
             Set.of(),
             null,
-            new JwtProperties("dummy", "dummy")
+            new JwtProperties("dummy", "dummy", null)
         );
         Roles roles = () -> List.of(userWithModifiedJwtProperty);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null)
+            jwkProviderFunction(null),
+            () -> "dummy"
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);

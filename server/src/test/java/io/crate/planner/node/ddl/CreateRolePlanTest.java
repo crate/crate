@@ -70,7 +70,7 @@ public class CreateRolePlanTest {
         final Map<String, Object> invalidJwtProperties = Maps.getOrDefault(parsedProperties, "jwt", Map.of());
         assertThatThrownBy(() -> JwtProperties.fromMap(invalidJwtProperties))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Only 'iss' and 'username' JWT properties are allowed");
+            .hasMessage("Only 'iss', 'username' and 'aud' JWT properties are allowed");
     }
 
 }
