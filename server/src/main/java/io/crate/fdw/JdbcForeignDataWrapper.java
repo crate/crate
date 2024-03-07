@@ -142,7 +142,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         RelationName remoteName = new RelationName(
             remoteSchema.isEmpty() ? foreignTable.name().schema() : remoteSchema,
             remoteTable.isEmpty() ? foreignTable.name().name() : remoteTable);
-        BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, remoteName);
+        BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, remoteName, foreignTable.name());
         if (!refs.containsAll(collect)) {
             var sourceRefs = new InputColumns.SourceSymbols(refs);
             List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);

@@ -56,8 +56,9 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
     private PreparedStatement statement;
     private ResultSet resultSet;
     private volatile Throwable killed = null;
+    private final RelationName localName;
 
-    public JdbcBatchIterator(String url, Properties properties, List<Reference> columns, RelationName table) {
+    public JdbcBatchIterator(String url, Properties properties, List<Reference> columns, RelationName remoteName, RelationName localName) {
         this.url = url;
         this.properties = properties;
         this.columns = columns;
@@ -65,11 +66,11 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             Locale.ENGLISH,
             "SELECT %s FROM %s",
             String.join(", ", Lists.mapLazy(columns, ref -> ref.column().quotedOutputName())),
-            table.sqlFqn()
-
+            remoteName.sqlFqn()
         );
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
+        this.localName = localName;
     }
 
     @Override
@@ -150,10 +151,19 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
         if (conn == null) {
             conn = DriverManager.getConnection(url, properties);
         }
-        if (statement == null) {
-            statement = conn.prepareStatement(sql);
+        try {
+            if (statement == null) {
+                statement = conn.prepareStatement(sql);
+            }
+            resultSet = statement.executeQuery();
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                String.format(
+                    Locale.ENGLISH,
+                    "The query on the foreign table, '%s' failed due to: %s",
+                    localName.sqlFqn(),
+                    e.getMessage()));
         }
-        resultSet = statement.executeQuery();
         return CompletableFuture.completedFuture(null);
     }
 
