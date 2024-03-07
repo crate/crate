@@ -297,6 +297,12 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     public void test_alter_user_jwt_properties() {
         execute("CREATE USER user1 WITH (password = 'pwd', jwt = {\"iss\" = 'issuer1', \"username\" = 'user1'})");
         execute("CREATE USER user2 WITH (password = 'pwd', jwt = {\"iss\" = 'issuer2', \"username\" = 'user2'})");
+
+        // Regular alter - update all properties
+        execute("ALTER USER user1 set (jwt = {\"iss\" = 'issuer11', \"username\" = 'user11'})");
+        execute("SELECT name, jwt from sys.users WHERE name = 'user1'");
+        assertThat(response).hasRows("user1| {iss=issuer11, username=user11}");
+
         // Updating JWT properties clashes with JWT properties of an existing user.
         Asserts.assertSQLError(() -> execute("ALTER USER user1 set (jwt = {\"iss\" = 'issuer2', \"username\" = 'user2'})"))
             .hasPGError(INTERNAL_ERROR)

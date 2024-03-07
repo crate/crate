@@ -372,6 +372,37 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    @Test
+    public void test_alter_user_throws_error_on_jwt_properties_clash() throws Exception {
+        Map<String, Role> roleWithJwtAndPassword = new HashMap<>();
+        roleWithJwtAndPassword.put("another_user_causing_clash", userOf(
+            "another_user_causing_clash",
+            Set.of(),
+            new HashSet<>(),
+            null,
+            new JwtProperties("https:dummy.org", "test"))
+        );
+        roleWithJwtAndPassword.put("John", userOf(
+            "John",
+            Set.of(),
+            new HashSet<>(),
+            null,
+            new JwtProperties("john's valid iss", "john's valid username"))
+        );
+        var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "John",
+            null,
+            new JwtProperties("https:dummy.org", "test"),
+            false,
+            false))
+            .isExactlyInstanceOf(RoleAlreadyExistsException.class)
+            .hasMessage("Another role with the same combination of jwt properties already exists");
+    }
+
 
     private static Map<String, Role> roles(Metadata.Builder mdBuilder) {
         return ((RolesMetadata) mdBuilder.build().custom(RolesMetadata.TYPE)).roles();
