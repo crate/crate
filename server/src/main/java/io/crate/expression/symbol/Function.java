@@ -70,6 +70,7 @@ public class Function implements Symbol, Cloneable {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Function.class);
 
+    // POWER is not mapped to ^ to keep toString implementation printing 'power()'.
     private static final Map<String, String> ARITHMETIC_OPERATOR_MAPPING = Map.ofEntries(
         Map.entry(ArithmeticFunctions.Names.ADD, "+"),
         Map.entry(ArithmeticFunctions.Names.SUBTRACT, "-"),
@@ -77,6 +78,7 @@ public class Function implements Symbol, Cloneable {
         Map.entry(ArithmeticFunctions.Names.DIVIDE, "/"),
         Map.entry(ArithmeticFunctions.Names.MOD, "%"),
         Map.entry(ArithmeticFunctions.Names.MODULUS, "%")
+
     );
 
     private final List<Symbol> arguments;

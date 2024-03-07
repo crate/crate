@@ -17,11 +17,12 @@ Operator   Description
 ``*``      Multiply the first number with the second
 ``/``      Divide the first number by the second
 ``%``      Finds the remainder of division of one number by another
+``^``      Finds the exponentiation of one number raised to another
 ========   =========================================================
 
 Here's an example that uses all of the available arithmetic operators::
 
-    cr> select ((2 * 4.0 - 2 + 1) / 2) % 3 AS n;
+    cr> select ((2 * 4.0 - 2 ^ 3 + 1) / 2) % 3 AS n;
     +-----+
     |   n |
     +-----+

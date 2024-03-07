@@ -125,3 +125,8 @@ External contributions
 - `Herman Bergwerf <https://github.com/bergwerf>`_ added support for
   :ref:`Google Cloud Storage repositories <sql-create-repo-gcs>` to write and
   restore snapshots on Google Cloud Storage.
+
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the ``^``
+  operator as syntax sugar for the :ref:`scalar-power` scalar function. E.g.::
+
+    SELECT 5 ^ 2;
