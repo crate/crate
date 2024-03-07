@@ -23,6 +23,8 @@ package io.crate.expression.scalar.geo;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
+import org.locationtech.spatial4j.shape.Point;
+
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
@@ -62,11 +64,11 @@ public final class CoordinateFunction {
     }
 
 
-    private static Double getLatitude(Object value) {
-        return (DataTypes.GEO_POINT.sanitizeValue(value)).getY();
+    private static Double getLatitude(Point point) {
+        return point.getY();
     }
 
-    private static Double getLongitude(Object value) {
-        return (DataTypes.GEO_POINT.sanitizeValue(value)).getX();
+    private static Double getLongitude(Point point) {
+        return point.getX();
     }
 }

@@ -27,6 +27,7 @@ import java.math.MathContext;
 import java.util.List;
 import java.util.Objects;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.scalar.array.ArraySummationFunctions;
@@ -41,8 +42,8 @@ public class ArrayAvgFunction {
     public static final String NAME = "array_avg";
 
     @Nullable
-    private static Float avgFloat(List<Float> values) {
-        if (values == null || values.isEmpty()) {
+    private static Float avgFloat(@NotNull List<Float> values) {
+        if (values.isEmpty()) {
             return null;
         }
         long size = values.stream().filter(Objects::nonNull).count();
@@ -51,8 +52,8 @@ public class ArrayAvgFunction {
     }
 
     @Nullable
-    private static Double avgDouble(List<Double> values) {
-        if (values == null || values.isEmpty()) {
+    private static Double avgDouble(@NotNull List<Double> values) {
+        if (values.isEmpty()) {
             return null;
         }
         long size = values.stream().filter(Objects::nonNull).count();
@@ -62,8 +63,8 @@ public class ArrayAvgFunction {
 
 
     @Nullable
-    private static BigDecimal avgBigDecimal(List<BigDecimal> values) {
-        if (values == null || values.isEmpty()) {
+    private static BigDecimal avgBigDecimal(@NotNull List<BigDecimal> values) {
+        if (values.isEmpty()) {
             return null;
         }
         long size = values.stream().filter(Objects::nonNull).count();
@@ -72,8 +73,8 @@ public class ArrayAvgFunction {
     }
 
     @Nullable
-    private static Number avgNumber(List<? extends Number> values) {
-        if (values == null || values.isEmpty()) {
+    private static Number avgNumber(@NotNull List<? extends Number> values) {
+        if (values.isEmpty()) {
             return null;
         }
         long size = values.stream().filter(Objects::nonNull).count();

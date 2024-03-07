@@ -47,7 +47,7 @@ public final class InitCapFunction {
     }
 
     private static String toCapital(String val) {
-        if (val.length() == 0) {
+        if (val.isEmpty()) {
             return val;
         }
 

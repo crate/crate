@@ -30,7 +30,6 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
-import io.crate.types.GeoPointType;
 
 public final class GeoHashFunction {
 
@@ -51,9 +50,8 @@ public final class GeoHashFunction {
         );
     }
 
-    private static String getGeoHash(Object value) {
-        Point geoValue = GeoPointType.INSTANCE.sanitizeValue(value);
-        return GeoHashUtils.stringEncode(geoValue.getX(), geoValue.getY());
+    private static String getGeoHash(Point point) {
+        return GeoHashUtils.stringEncode(point.getX(), point.getY());
     }
 }
 

@@ -43,7 +43,7 @@ public class ExpFunction {
                         declaredSignature,
                         boundSignature,
                         type,
-                        x -> type.sanitizeValue(Math.exp(((Number) x).doubleValue()))
+                        x -> Math.exp(x.doubleValue())
                     )
             );
         }

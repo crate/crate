@@ -45,7 +45,7 @@ public final class AbsFunction {
                         signature,
                         boundSignature,
                         argType,
-                        x -> argType.sanitizeValue(Math.abs(((Number) x).doubleValue()))
+                        x -> Math.abs(((Number) x).doubleValue())
                     );
                 }
             );

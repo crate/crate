@@ -63,9 +63,9 @@ public final class TruncFunction {
                         boundSignature,
                         type,
                         n -> {
-                            double val = ((Number) n).doubleValue();
+                            double val = n.doubleValue();
                             UnaryOperator<Double> f = val >= 0 ? Math::floor : Math::ceil;
-                            return (Number) returnType.sanitizeValue(f.apply(val));
+                            return (Number) f.apply(val);
                         }
                     )
             );

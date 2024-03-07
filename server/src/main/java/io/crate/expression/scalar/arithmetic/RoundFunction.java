@@ -47,14 +47,14 @@ public final class RoundFunction {
                             signature,
                             boundSignature,
                             type,
-                            x -> Math.round(((Number) x).floatValue())
+                            x -> Math.round(x.floatValue())
                         );
                     } else {
                         return new UnaryScalar<>(
                             signature,
                             boundSignature,
                             type,
-                            x -> Math.round(((Number) x).doubleValue())
+                            x -> Math.round(x.doubleValue())
                         );
                     }
                 }
