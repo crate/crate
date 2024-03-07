@@ -353,6 +353,7 @@ REGEX_NO_MATCH_CI: '!~*';
 PLUS: '+';
 MINUS: '-';
 ASTERISK: '*';
+CARET: '^';
 SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
