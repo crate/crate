@@ -82,7 +82,11 @@ public class EquiJoinDetector {
                     }
                     break;
                 case EqOperator.NAME:
+                    if (context.isHashJoinPossible) {
+                        break;
+                    }
                     context.isHashJoinPossible = true;
+                    final var saveInsideEqOperator = context.insideEqOperator;
                     context.insideEqOperator = true;
                     Set<RelationName> usedRelationsFromBothEqOperatorArgs = new HashSet<>();
                     for (Symbol arg : function.arguments()) {
@@ -96,15 +100,13 @@ public class EquiJoinDetector {
                     if (usedRelationsFromBothEqOperatorArgs.size() < 2) {
                         context.isHashJoinPossible = false;
                     }
+                    context.insideEqOperator = saveInsideEqOperator;
                     break;
                 default:
                     if (context.insideEqOperator) {
                         for (Symbol arg : function.arguments()) {
                             arg.accept(this, context);
                         }
-                    } else {
-                        context.isHashJoinPossible = false;
-                        return null;
                     }
                     break;
             }
