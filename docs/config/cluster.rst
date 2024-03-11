@@ -105,7 +105,7 @@ Collecting stats
   common use case is to include only jobs that took a certain amount of time to
   execute::
 
-    cr> SET GLOBAL "stats.jobs_log_filter" = 'ended - started > 100';
+    cr> SET GLOBAL "stats.jobs_log_filter" = $$ended - started > '5 minutes'::interval$$;
 
 .. _stats.jobs_log_persistent_filter:
 
