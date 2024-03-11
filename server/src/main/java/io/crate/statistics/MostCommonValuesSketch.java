@@ -22,6 +22,9 @@
 package io.crate.statistics;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
@@ -32,6 +35,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.Streamer;
 
 public class MostCommonValuesSketch<T> {
+
+    private static final int MAX_VALUES = 100;
 
     private final ItemsSketch<T> sketch;
     private final SketchStreamer<T> streamer;
@@ -62,18 +67,64 @@ public class MostCommonValuesSketch<T> {
         this.sketch.update(value);
     }
 
-    public MostCommonValues toMostCommonValues() {
+    public MostCommonValues<T> toMostCommonValues(long valueCount, double approxDistinct) {
         var rows = this.sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
-        int count = rows.length;
-        double[] freqs = new double[count];
-        Object[] values = new Object[count];
-        int i = 0;
-        for (var row : rows) {
-            freqs[i] = row.getEstimate();
-            values[i] = row.getItem();
-            i++;
+        int count = Math.min(MAX_VALUES, rows.length);
+        long[] counts = new long[count];
+        List<T> values = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            counts[i] = rows[i].getEstimate();
+            values.add(rows[i].getItem());
         }
-        return new MostCommonValues(values, freqs);
+        if (rows.length <= MAX_VALUES) {
+            return new MostCommonValues<>(values, toFreqs(counts, valueCount));
+        }
+        int cutoff = cutoff(this.sketch.getStreamLength(), approxDistinct, counts);
+        values = values.subList(0, cutoff);
+        counts = Arrays.copyOf(counts, cutoff);
+        return new MostCommonValues<>(values, toFreqs(counts, valueCount));
+    }
+
+    private static double[] toFreqs(long[] counts, long valueCount) {
+        double[] freqs = new double[counts.length];
+        for (int i = 0; i < freqs.length; i++) {
+            freqs[i] = (double) counts[i] / valueCount;
+        }
+        return freqs;
+    }
+
+    private static int cutoff(long valueCount, double approxDistinct, long[] counts) {
+        int cutoff = counts.length;
+
+        long sumFreq = 0;
+        for (int i = 0; i < counts.length - 1; i++) {
+            sumFreq += counts[i];
+        }
+
+        while (cutoff > 0) {
+            double selectivity = 1.0 - ((double) sumFreq / valueCount);
+            selectivity = Math.max(0.0, Math.min(1.0, selectivity));
+            double otherDistinct = approxDistinct - cutoff + 1;
+            if (otherDistinct > 1) {
+                selectivity /= otherDistinct;
+            }
+
+            selectivity *= valueCount + 0.5;
+
+            if (counts[cutoff - 1] > selectivity) {
+                // this value and all those above are sufficiently high-frequency to keep
+                break;
+            } else {
+                // discard this value and move to the next least common
+                cutoff--;
+                if (cutoff == 0) {
+                    break;
+                }
+                sumFreq -= counts[cutoff - 1];
+            }
+        }
+
+        return cutoff;
     }
 
 }

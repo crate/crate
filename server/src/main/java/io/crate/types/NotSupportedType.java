@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import io.crate.statistics.ColumnStatsSupport;
 
 public class NotSupportedType extends DataType<Void> {
 

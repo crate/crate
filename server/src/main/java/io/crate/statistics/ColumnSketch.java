@@ -112,15 +112,24 @@ public class ColumnSketch<T> {
     }
 
     public ColumnStats<T> toColumnStats() {
-        double nullFraction = (double) nullCount / (double) sampleCount;
+        double nullFraction = nullFraction();
         double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
+        double approxDistinct = this.distinctValues.getEstimate();
+        MostCommonValues<T> mcv = this.mostCommonValues.toMostCommonValues(sampleCount, approxDistinct);
         return new ColumnStats<>(
             nullFraction,
             avgSizeInBytes,
-            this.distinctValues.getEstimate(),
+            approxDistinct,
             dataType,
-            this.mostCommonValues.toMostCommonValues(),
-            this.histogram.toHistogram()
+            mcv,
+            this.histogram.toHistogram(100, mcv.values())
         );
+    }
+
+    private double nullFraction() {
+        if (nullCount == 0 || sampleCount == 0) {
+            return 0;
+        }
+        return (double) nullCount / (double) sampleCount;
     }
 }

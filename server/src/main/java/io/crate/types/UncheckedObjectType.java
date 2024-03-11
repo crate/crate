@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.statistics.ColumnStatsSupport;
 
 /**
  * Object type that makes no assumptions about neither the keys or values, treating them like generic values and lifting

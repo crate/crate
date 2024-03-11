@@ -41,7 +41,7 @@ public class ColumnSketchBuilder<T> {
     public ColumnSketchBuilder(Class<T> clazz, DataType<T> dataType) {
         this.dataType = dataType;
         this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer());
-        this.histogramSketch = new HistogramSketch<T>(clazz, dataType);
+        this.histogramSketch = new HistogramSketch<>(clazz, dataType);
     }
 
     public void add(T value) {

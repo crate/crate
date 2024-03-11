@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -81,7 +80,7 @@ class Samples implements Writeable {
         }
     }
 
-    public static Samples merge(int maxSampleSize, Samples s1, Samples s2, Random random) {
+    public static Samples merge(Samples s1, Samples s2) {
         if (s1 == Samples.EMPTY) {
             return s2;
         }

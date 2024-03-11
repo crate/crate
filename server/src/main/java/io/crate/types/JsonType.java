@@ -34,7 +34,6 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.Streamer;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.statistics.ColumnStatsSupport;
 
 public final class JsonType extends DataType<String> implements Streamer<String> {
 

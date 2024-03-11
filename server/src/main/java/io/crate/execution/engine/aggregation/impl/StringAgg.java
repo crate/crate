@@ -40,7 +40,6 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.statistics.ColumnStatsSupport;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

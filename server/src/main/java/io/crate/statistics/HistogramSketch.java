@@ -23,7 +23,9 @@ package io.crate.statistics;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.datasketches.memory.Memory;
 import org.apache.datasketches.quantiles.ItemsSketch;
@@ -70,17 +72,29 @@ public class HistogramSketch<T> {
         return new HistogramSketch<>(streamer, union.getResult());
     }
 
-    public List<T> toHistogram() {
+    public List<T> toHistogram(int maxBins, List<T> valuesToExclude) {
         if (sketch.isEmpty()) {
             return List.of();
         }
-        int numBins = (int) Math.max(100, sketch.getN());
-        double inc = (double) numBins / 100;
-        List<T> values = new ArrayList<>(numBins);
-        for (int i = 0; i < numBins; i++) {
-            values.add(sketch.getQuantile(inc, QuantileSearchCriteria.EXCLUSIVE));
+        Set<T> exclusions = new HashSet<>(valuesToExclude);
+        List<T> histogram = new ArrayList<>();
+
+        long count = sketch.getN();
+        int numBins = (int) Math.min(maxBins, count); // 100 bins at most
+        if (numBins <= 1) {
+            return List.of();
         }
-        return values;
+        long inc = (count - 1) / (numBins - 1);
+        long rank = 0;
+        while (rank < count) {
+            T value = sketch.getQuantile((double) rank / count, QuantileSearchCriteria.EXCLUSIVE);
+            if (exclusions.contains(value) == false) {
+                histogram.add(value);
+            }
+            rank += inc;
+        }
+
+        return histogram;
     }
 
 }

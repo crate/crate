@@ -291,6 +291,6 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     }
 
     public ColumnStatsSupport<T> columnStatsSupport() {
-        return null;
+        throw new UnsupportedOperationException("Datatype " + this + " does not support column stats");
     }
 }

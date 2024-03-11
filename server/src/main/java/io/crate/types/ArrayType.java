@@ -63,6 +63,9 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
+import io.crate.statistics.ColumnSketch;
+import io.crate.statistics.ColumnSketchBuilder;
+import io.crate.statistics.ColumnStatsSupport;
 
 /**
  * A type which contains a collection of elements of another type.
@@ -443,5 +446,20 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public long ramBytesUsed() {
         return SHALLOW_SIZE + innerType.ramBytesUsed();
+    }
+
+    @Override
+    public ColumnStatsSupport<List<T>> columnStatsSupport() {
+        return new ColumnStatsSupport<List<T>>() {
+            @Override
+            public ColumnSketchBuilder<List<T>> sketchBuilder() {
+                return null;
+            }
+
+            @Override
+            public ColumnSketch<List<T>> readSketchFrom(StreamInput in) throws IOException {
+                return null;
+            }
+        }
     }
 }

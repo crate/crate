@@ -199,7 +199,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 9,
                 DataTypes.INTEGER,
-                MostCommonValues.EMPTY,
+                MostCommonValues.empty(),
                 List.of()
             ),
             new ColumnIdent("y"),
@@ -208,7 +208,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 1,
                 DataTypes.INTEGER,
-                MostCommonValues.EMPTY,
+                MostCommonValues.empty(),
                 List.of()
             )
         );
@@ -300,7 +300,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 2500.0,
                 DataTypes.INTEGER,
-                new MostCommonValues(new Object[0], new double[0]),
+                MostCommonValues.empty(),
                 List.of()
             )
         );

@@ -56,7 +56,7 @@ public class ColumnStatsTest {
         assertThat(columnStats.nullFraction(), Matchers.closeTo(0.111, 0.01));
         assertThat(columnStats.approxDistinct(), is(3.0));
         MostCommonValues mostCommonValues = columnStats.mostCommonValues();
-        assertThat(mostCommonValues.values().length, is(0));
+        assertThat(mostCommonValues.values().size(), is(3));
     }
 
     @Property
@@ -99,13 +99,13 @@ public class ColumnStatsTest {
             .collect(Collectors.toList());
 
         ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
-        List<Integer> histogramSample = columnStats.histogram().subList(0, 15);
-        assertThat(histogramSample, contains(1, 2, 3, 4, 5, 6, 7, 8, 9, 30, 31, 32, 33, 34, 35));
+        List<Integer> histogramSample = columnStats.histogram().subList(0, 8);
+        assertThat(histogramSample, contains(1, 3, 5, 7, 9, 31, 33, 35));
         MostCommonValues mostCommonValues = columnStats.mostCommonValues();
-        assertThat(mostCommonValues.values().length, is(2));
-        assertThat(mostCommonValues.values()[0], is(10));
+        assertThat(mostCommonValues.values().size(), is(2));
+        assertThat(mostCommonValues.values().get(0), is(10));
         assertThat(mostCommonValues.frequencies()[0], Matchers.closeTo(0.376, 0.01));
-        assertThat(mostCommonValues.values()[1], is(20));
+        assertThat(mostCommonValues.values().get(1), is(20));
         assertThat(mostCommonValues.frequencies()[1], Matchers.closeTo(0.086, 0.01));
     }
 
@@ -113,7 +113,7 @@ public class ColumnStatsTest {
     public void test_histogram_contains_evenly_spaced_values_from_samples() {
         HistogramSketch<Integer> sketch = new HistogramSketch<>(Integer.class, DataTypes.INTEGER);
         IntStream.range(1, 21).boxed().forEach(sketch::update);
-        List<Integer> histogram = sketch.toHistogram();
+        List<Integer> histogram = sketch.toHistogram(4, List.of());
         assertThat(histogram, contains(1, 7, 13, 19));
     }
 

@@ -21,13 +21,13 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.Streamer;
-import io.crate.statistics.ColumnStatsSupport;
-import io.crate.types.DataType;
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+import io.crate.Streamer;
+import io.crate.types.DataType;
 
 class TDigestStateType extends DataType<TDigestState> implements Streamer<TDigestState> {
 

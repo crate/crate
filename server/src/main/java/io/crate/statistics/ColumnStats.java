@@ -40,14 +40,14 @@ public final class ColumnStats<T> implements Writeable {
     private final double averageSizeInBytes;
     private final double approxDistinct;
     private final DataType<T> type;
-    private final MostCommonValues mostCommonValues;
+    private final MostCommonValues<T> mostCommonValues;
     private final List<T> histogram;
 
     public ColumnStats(double nullFraction,
                        double averageSizeInBytes,
                        double approxDistinct,
                        DataType<T> type,
-                       MostCommonValues mostCommonValues,
+                       MostCommonValues<T> mostCommonValues,
                        List<T> histogram) {
         this.nullFraction = nullFraction;
         this.averageSizeInBytes = averageSizeInBytes;
@@ -65,7 +65,7 @@ public final class ColumnStats<T> implements Writeable {
         this.averageSizeInBytes = in.readDouble();
         this.approxDistinct = in.readDouble();
         Streamer<T> streamer = type.streamer();
-        this.mostCommonValues = new MostCommonValues(streamer, in);
+        this.mostCommonValues = new MostCommonValues<>(streamer, in);
         int numHistogramValues = in.readVInt();
         ArrayList<T> histogram = new ArrayList<>(numHistogramValues);
         for (int i = 0; i < numHistogramValues; i++) {
@@ -76,7 +76,7 @@ public final class ColumnStats<T> implements Writeable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Streamer<T> streamer = this.type.streamer();
+        final Streamer<T> streamer = this.type.streamer();
         DataTypes.toStream(type, out);
         out.writeDouble(nullFraction);
         out.writeDouble(averageSizeInBytes);
@@ -100,7 +100,7 @@ public final class ColumnStats<T> implements Writeable {
         return approxDistinct;
     }
 
-    public MostCommonValues mostCommonValues() {
+    public MostCommonValues<T> mostCommonValues() {
         return mostCommonValues;
     }
 
@@ -158,7 +158,7 @@ public final class ColumnStats<T> implements Writeable {
         return "ColumnStats{" +
             "nullFraction=" + nullFraction +
             ", approxDistinct=" + approxDistinct +
-            ", mcv=" + Arrays.toString(mostCommonValues.values()) +
+            ", mcv=" + mostCommonValues.values().toString() +
             ", frequencies=" + Arrays.toString(mostCommonValues.frequencies()) + '}';
     }
 }
