@@ -29,6 +29,7 @@ import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Locale;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -55,10 +56,15 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
 
     private final Function<String, JwkProvider> urlToJwkProvider;
 
+    private final Supplier<String> clusterId;
 
-    public JWTAuthenticationMethod(Roles roles, Function<String, JwkProvider> urlToJwkProvider) {
+
+    public JWTAuthenticationMethod(Roles roles,
+                                   Function<String, JwkProvider> urlToJwkProvider,
+                                   Supplier<String> clusterId) {
         this.roles = roles;
         this.urlToJwkProvider = urlToJwkProvider;
+        this.clusterId = clusterId;
     }
 
     @Override
@@ -84,7 +90,8 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
                 // withers below are not needed for payload signature check.
                 // It's an extra step on top of signature verification to double check that user metadata matches token payload.
                 .withIssuer(jwtProperties.iss())
-                .withClaim("username", jwtProperties.username());
+                .withClaim("username", jwtProperties.username())
+                .withAudience(jwtProperties.aud() == null ? clusterId.get() : jwtProperties.aud());
 
             JWTVerifier verifier = verification.build();
             verifier.verify(decodedJWT);

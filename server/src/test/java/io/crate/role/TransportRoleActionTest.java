@@ -65,29 +65,33 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             "root",
             true,
             null,
-            new JwtProperties("https:dummy.org", "test"));
+            new JwtProperties("https:dummy.org", "test", "test_aud"));
         RolesMetadata metadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         assertThat(metadata.roleNames()).containsExactly("root");
-        assertThat(metadata.roles().get("root").jwtProperties().iss()).isEqualTo("https:dummy.org");
-        assertThat(metadata.roles().get("root").jwtProperties().username()).isEqualTo("test");
+        var jwtProps = metadata.roles().get("root").jwtProperties();
+        assertThat(jwtProps).isNotNull();
+        assertThat(jwtProps.iss()).isEqualTo("https:dummy.org");
+        assertThat(jwtProps.username()).isEqualTo("test");
+        assertThat(jwtProps.aud()).isEqualTo("test_aud");
     }
 
     @Test
     public void test_create_user_with_matching_jwt_props_exists() throws Exception {
+        // Users have different "aud" property values - still clashing as only iss/username matters.
         Metadata.Builder mdBuilder = new Metadata.Builder();
         TransportCreateRoleAction.putRole(mdBuilder,
             "user1",
             true,
             null,
-            new JwtProperties("https:dummy.org", "test"));
+            new JwtProperties("https:dummy.org", "test", "aud1"));
 
         assertThatThrownBy(() -> TransportCreateRoleAction.putRole(mdBuilder,
                 "user2",
                 true,
                 null,
-                new JwtProperties("https:dummy.org", "test")))
+                new JwtProperties("https:dummy.org", "test", "aud2")))
             .isExactlyInstanceOf(RoleAlreadyExistsException.class)
-            .hasMessage("Another role with the same combination of jwt properties already exists");
+            .hasMessage("Another role with the same combination of iss/username jwt properties already exists");
     }
 
     @Test
@@ -97,13 +101,13 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             "user1",
             true,
             null,
-            new JwtProperties("https:dummy.org", "test"));
+            new JwtProperties("https:dummy.org", "test", null));
 
         boolean exists = TransportCreateRoleAction.putRole(mdBuilder,
             "user1",
             true,
             null,
-            new JwtProperties("https:dummy.org", "test2"));
+            new JwtProperties("https:dummy.org", "test2", null));
         assertThat(exists).isTrue();
     }
 
@@ -284,7 +288,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             mdBuilder,
             "DummyRole",
             null,
-            new JwtProperties("iss", "username"),
+            new JwtProperties("iss", "username", null),
             false,
             false))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
@@ -311,7 +315,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             Set.of(),
             new HashSet<>(),
             oldPassword,
-            new JwtProperties("https:dummy.org", "test"))
+            new JwtProperties("https:dummy.org", "test", null))
         );
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
         Metadata.Builder mdBuilder = Metadata.builder()
@@ -320,7 +324,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             mdBuilder,
             "John",
             null,
-            new JwtProperties("new_issuer", "new_username"),
+            new JwtProperties("new_issuer", "new_username", null),
             false, // No reset, keep pwd
             false
         );
@@ -331,7 +335,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
                     Set.of(),
                     new HashSet<>(),
                     oldPassword,
-                    new JwtProperties("new_issuer", "new_username")
+                    new JwtProperties("new_issuer", "new_username", null)
                 )
             )
         );
@@ -346,7 +350,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             Set.of(),
             new HashSet<>(),
             oldPassword,
-            new JwtProperties("https:dummy.org", "test"))
+            new JwtProperties("https:dummy.org", "test", null))
         );
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
         Metadata.Builder mdBuilder = Metadata.builder()
@@ -370,6 +374,38 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
                 )
             )
         );
+    }
+
+    @Test
+    public void test_alter_user_throws_error_on_jwt_properties_clash() throws Exception {
+        Map<String, Role> roleWithJwtAndPassword = new HashMap<>();
+        // Users have different "aud" property values - still clashing as only iss/username matters.
+        roleWithJwtAndPassword.put("another_user_causing_clash", userOf(
+            "another_user_causing_clash",
+            Set.of(),
+            new HashSet<>(),
+            null,
+            new JwtProperties("https:dummy.org", "test", "aud1"))
+        );
+        roleWithJwtAndPassword.put("John", userOf(
+            "John",
+            Set.of(),
+            new HashSet<>(),
+            null,
+            new JwtProperties("john's valid iss", "john's valid username", "aud2"))
+        );
+        var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "John",
+            null,
+            new JwtProperties("https:dummy.org", "test", null),
+            false,
+            false))
+            .isExactlyInstanceOf(RoleAlreadyExistsException.class)
+            .hasMessage("Another role with the same combination of iss/username jwt properties already exists");
     }
 
 

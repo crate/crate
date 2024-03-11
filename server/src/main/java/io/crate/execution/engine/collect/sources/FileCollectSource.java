@@ -39,7 +39,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SkippingBatchIterator;

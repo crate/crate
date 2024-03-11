@@ -49,6 +49,7 @@ import org.junit.Test;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
@@ -129,7 +130,9 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             null,
             mock(SysTableRegistry.class),
             roles,
-            new DDLClusterStateService());
+            new DDLClusterStateService(),
+            this.clusterService
+        );
 
         e = SQLExecutor.builder(clusterService)
             .addBlobTable("create blob table blobs")
@@ -480,6 +483,11 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void testShowTable() throws Exception {
         analyze("show create table users");
         assertAskedForTable(Permission.DQL, "doc.users");
+
+        assertThatThrownBy(() -> analyze("show create table users1"))
+            .as("Exception message must not point to `users` table, because the user has no privilege on it")
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'users1' unknown");
     }
 
     @Test

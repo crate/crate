@@ -29,6 +29,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ForeignCollectPhase;
@@ -36,6 +37,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
@@ -44,12 +46,19 @@ import io.crate.planner.PlannerContext;
 
 public class ForeignCollect implements LogicalPlan {
 
+    private final ForeignDataWrapper fdw;
     private final ForeignTableRelation relation;
     private final List<Symbol> toCollect;
+    private final WhereClause where;
 
-    public ForeignCollect(ForeignTableRelation relation, List<Symbol> toCollect) {
+    public ForeignCollect(ForeignDataWrapper fdw,
+                          ForeignTableRelation relation,
+                          List<Symbol> toCollect,
+                          WhereClause where) {
+        this.fdw = fdw;
         this.relation = relation;
         this.toCollect = toCollect;
+        this.where = where;
     }
 
     @Override
@@ -70,7 +79,8 @@ public class ForeignCollect implements LogicalPlan {
             plannerContext.nextExecutionPhaseId(),
             plannerContext.handlerNode(),
             relation.relationName(),
-            Lists.map(toCollect, binder)
+            Lists.map(toCollect, binder),
+            where.map(binder).queryOrFallback()
         );
         return new io.crate.planner.node.dql.Collect(
             phase,
@@ -80,6 +90,18 @@ public class ForeignCollect implements LogicalPlan {
             LimitAndOffset.NO_LIMIT,
             null
         );
+    }
+
+    public ForeignDataWrapper fdw() {
+        return fdw;
+    }
+
+    public ForeignTableRelation relation() {
+        return relation;
+    }
+
+    public WhereClause where() {
+        return where;
     }
 
     @Override
@@ -103,7 +125,7 @@ public class ForeignCollect implements LogicalPlan {
         if (outputsToKeep.containsAll(toCollect)) {
             return this;
         }
-        return new ForeignCollect(relation, List.copyOf(outputsToKeep));
+        return new ForeignCollect(fdw, relation, List.copyOf(outputsToKeep), where);
     }
 
     @Override
@@ -119,5 +141,18 @@ public class ForeignCollect implements LogicalPlan {
     @Override
     public List<RelationName> getRelationNames() {
         return List.of(relation.relationName());
+    }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("ForeignCollect[")
+            .text(relation.relationName().toString())
+            .text(" | [")
+            .text(Lists.joinOn(", ", toCollect, Symbol::toString))
+            .text("] | ")
+            .text(where.queryOrFallback().toString())
+            .text("]");
+        printStats(printContext);
     }
 }

@@ -30,6 +30,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.expression.InputFactory;
+import io.crate.expression.symbol.Literal;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -70,7 +71,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         );
         Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
         ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
-        assertThatThrownBy(() -> fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef)))
+        assertThatThrownBy(() -> fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE))
             .hasMessage("Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
     }
 }

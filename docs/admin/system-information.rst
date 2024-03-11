@@ -2179,6 +2179,9 @@ The ``sys.users`` table contains all existing database users in the cluster.
 +----------------------------+----------------------------------+-------------+
 | ``jwt``                    | JWT authentication properties    | ``OBJECT``  |
 +----------------------------+----------------------------------+-------------+
+| ``jwt[aud]``               | Recipient that the JWT is        | ``TEXT``    |
+|                            | intended for                     |             |
++----------------------------+----------------------------------+-------------+
 | ``jwt[iss]``               | JWK endpoint URL                 | ``TEXT``    |
 +----------------------------+----------------------------------+-------------+
 | ``jwt[username]``          | User name in a third party app   | ``TEXT``    |

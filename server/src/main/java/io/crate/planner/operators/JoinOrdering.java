@@ -22,7 +22,7 @@
 package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.ObjectIntHashMap;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.metadata.RelationName;
 
 import java.util.ArrayList;

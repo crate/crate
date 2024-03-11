@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl.util;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import org.jetbrains.annotations.Nullable;
 import java.math.BigDecimal;

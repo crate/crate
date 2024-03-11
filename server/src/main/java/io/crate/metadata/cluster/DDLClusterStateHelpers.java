@@ -43,7 +43,7 @@ import org.elasticsearch.index.mapper.ContentPath;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.PartitionName;

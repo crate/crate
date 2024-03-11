@@ -21,10 +21,12 @@
 
 package io.crate.fdw;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
 import io.crate.planner.CreateForeignTablePlan;
@@ -74,17 +76,10 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_cannot_add_foreign_table_with_invalid_options() throws Exception {
-        var e = SQLExecutor.builder(clusterService).build();
-        CreateServerRequest request = new CreateServerRequest(
-            "pg",
-            "jdbc",
-            "crate",
-            true,
-            Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build()
-        );
-        AddServerTask addServerTask = new AddServerTask(e.foreignDataWrappers, request);
-        ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterService.state()));
-
+        Settings options = Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build();
+        var e = SQLExecutor.builder(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .build();
         String stmt = "create foreign table tbl (x int) server pg options (invalid 42)";
         CreateForeignTablePlan plan = e.plan(stmt);
         assertThatThrownBy(() -> e.execute(plan).getResult())
@@ -94,21 +89,37 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_cannot_create_user_mapping_with_invalid_options() throws Exception {
-        var e = SQLExecutor.builder(clusterService).build();
-        CreateServerRequest request = new CreateServerRequest(
-            "pg",
-            "jdbc",
-            "crate",
-            true,
-            Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build()
-        );
-        AddServerTask addServerTask = new AddServerTask(e.foreignDataWrappers, request);
-        ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterService.state()));
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .build();
 
         String stmt = "CREATE USER MAPPING FOR crate SERVER pg OPTIONS (\"option1\" 'abc');";
         CreateUserMappingPlan plan = e.plan(stmt);
         assertThatThrownBy(() -> e.execute(plan).getResult())
             .hasMessageContaining(
                 "Invalid option 'option1' provided, the supported options are: [user, password]");
+    }
+
+    @Test
+    public void test_show_create_table_on_foreign_table() throws Exception {
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .addForeignTable("create foreign table tbl (x int) server pg options (schema_name 'doc')")
+            .build();
+
+        List<Object[]> result = e.execute("show create table tbl").getResult();
+        assertThat((String) result.get(0)[0]).startsWith(
+            """
+            CREATE FOREIGN TABLE IF NOT EXISTS "doc"."tbl" (
+               "x" INTEGER
+            ) SERVER pg OPTIONS (schema_name 'doc')
+            """.stripIndent().trim()
+        );
     }
 }

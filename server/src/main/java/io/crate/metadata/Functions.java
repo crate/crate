@@ -44,7 +44,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.CompositeClassLoader;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Symbol;

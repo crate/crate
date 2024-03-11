@@ -39,7 +39,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.role.metadata.RolesMetadata;
@@ -96,10 +96,6 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
                                 request.resetPassword(),
                                 request.resetJwtProperties()
                         );
-                        RolesMetadata updatedRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
-                        if (updatedRolesMetadata != null && updatedRolesMetadata.contains(request.jwtProperties())) {
-                            throw new RoleAlreadyExistsException("Another role with the same combination of jwt properties already exists");
-                        }
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
 
@@ -139,6 +135,12 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
 
             var newSecureHash = secureHash != null ? secureHash : (resetPassword ? null : role.password());
             var newJwtProperties = jwtProperties != null ? jwtProperties : (resetJwtProperties ? null : role.jwtProperties());
+
+            if (newMetadata.contains(newJwtProperties)) {
+                throw new RoleAlreadyExistsException(
+                    "Another role with the same combination of iss/username jwt properties already exists"
+                );
+            }
 
             newMetadata.roles().put(roleName, role.with(newSecureHash, newJwtProperties));
             exists = true;

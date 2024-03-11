@@ -40,7 +40,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
@@ -128,7 +128,9 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         boolean exists = true;
         if (newMetadata.contains(jwtProperties)) {
-            throw new RoleAlreadyExistsException("Another role with the same combination of jwt properties already exists");
+            throw new RoleAlreadyExistsException(
+                "Another role with the same combination of iss/username jwt properties already exists"
+            );
         }
         if (newMetadata.contains(roleName) == false) {
             newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash, jwtProperties));

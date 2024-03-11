@@ -192,7 +192,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    SessionSettingRegistry sessionSettingRegistry) {
         this.clusterService = clusterService;
         this.tableStats = tableStats;
-        this.logicalPlanner = new LogicalPlanner(nodeCtx, () -> clusterService.state().nodes().getMinNodeVersion());
+        this.logicalPlanner = new LogicalPlanner(
+            nodeCtx,
+            foreignDataWrappers,
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
         this.roleManager = roleManager;

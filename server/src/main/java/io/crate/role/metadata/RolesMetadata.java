@@ -96,12 +96,15 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     /**
      * Combination of iss/username must be unique throughout all users.
      */
-    public boolean contains(JwtProperties jwtProperties) {
+    public boolean contains(@Nullable JwtProperties jwtProperties) {
+        if (jwtProperties == null) {
+            // Short-circuit for CREATE/ALTER user statements without jwt property specified.
+            return false;
+        }
         for (Role role: roles.values()) {
-            if (role.jwtProperties() != null) {
-                if (role.jwtProperties().equals(jwtProperties)) {
-                    return true;
-                }
+            var jwtProps = role.jwtProperties();
+            if (role.isUser() && jwtProps != null && jwtProps.match(jwtProperties.iss(), jwtProperties.username())) {
+                return true;
             }
         }
         return false;

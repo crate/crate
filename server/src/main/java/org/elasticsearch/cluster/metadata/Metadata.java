@@ -69,7 +69,7 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;

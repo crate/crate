@@ -29,12 +29,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
+import io.crate.fdw.ForeignTable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
@@ -43,6 +43,7 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ClusteredBy;
@@ -50,6 +51,7 @@ import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.Expression;
@@ -63,6 +65,7 @@ import io.crate.sql.tree.NotNullColumnConstraint;
 import io.crate.sql.tree.PartitionedBy;
 import io.crate.sql.tree.PrimaryKeyConstraint;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableElement;
@@ -74,22 +77,45 @@ import io.crate.types.StorageSupport;
 
 public class TableInfoToAST {
 
-    private final DocTableInfo tableInfo;
+    private final TableInfo tableInfo;
 
-    public static CreateTable<Expression> toCreateTable(DocTableInfo tableInfo) {
-        return new TableInfoToAST(tableInfo).extractCreateTable();
-    }
-
-    public TableInfoToAST(DocTableInfo tableInfo) {
+    public TableInfoToAST(TableInfo tableInfo) {
         this.tableInfo = tableInfo;
     }
 
-    public CreateTable<Expression> extractCreateTable() {
-        Table<Expression> table = new Table<>(QualifiedName.of(tableInfo.ident().fqn()), false);
+    public Statement toStatement() {
+        QualifiedName name = QualifiedName.of(tableInfo.ident().fqn());
         List<TableElement<Expression>> tableElements = extractTableElements();
-        Optional<PartitionedBy<Expression>> partitionedBy = createPartitionedBy();
-        Optional<ClusteredBy<Expression>> clusteredBy = createClusteredBy();
-        return new CreateTable<>(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
+        if (tableInfo instanceof DocTableInfo docTable) {
+            Table<Expression> table = new Table<>(name, false);
+            Optional<PartitionedBy<Expression>> partitionedBy = createPartitionedBy(docTable);
+            Optional<ClusteredBy<Expression>> clusteredBy = createClusteredBy(docTable);
+            return new CreateTable<>(
+                table,
+                tableElements,
+                partitionedBy,
+                clusteredBy,
+                extractTableProperties(),
+                true
+            );
+        } else if (tableInfo instanceof ForeignTable foreignTable) {
+            Map<String, Expression> options = new HashMap<>();
+            for (var entry : foreignTable.options().getAsStructuredMap().entrySet()) {
+                String optionName = entry.getKey();
+                Object optionValue = entry.getValue();
+                options.put(optionName, Literal.fromObject(optionValue));
+            }
+            return new CreateForeignTable(
+                name,
+                true,
+                tableElements,
+                foreignTable.server(),
+                options
+            );
+        } else {
+            throw new UnsupportedOperationException(
+                "Cannot convert " + tableInfo.getClass().getSimpleName() + " to AST");
+        }
     }
 
     private List<TableElement<Expression>> extractTableElements() {
@@ -161,7 +187,7 @@ public class TableInfoToAST {
                         ((ArrayType<?>) ref.valueType()).innerType().id() == ObjectType.ID)) {
                 constraints.add(IndexColumnConstraint.off());
             } else if (ref.indexType().equals(IndexType.FULLTEXT)) {
-                String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
+                String analyzer = ((DocTableInfo) tableInfo).getAnalyzerForColumnIdent(ident);
                 GenericProperties<Expression> properties;
                 if (analyzer == null) {
                     properties = GenericProperties.empty();
@@ -225,8 +251,11 @@ public class TableInfoToAST {
     }
 
     private List<IndexDefinition<Expression>> extractIndexDefinitions() {
+        if (!(tableInfo instanceof DocTableInfo docTable)) {
+            return List.of();
+        }
         List<IndexDefinition<Expression>> elements = new ArrayList<>();
-        Collection<IndexReference> indexColumns = tableInfo.indexColumns();
+        Collection<IndexReference> indexColumns = docTable.indexColumns();
         if (indexColumns != null) {
             for (var indexRef : indexColumns) {
                 String name = indexRef.column().name();
@@ -251,40 +280,38 @@ public class TableInfoToAST {
         return elements;
     }
 
-    private Optional<PartitionedBy<Expression>> createPartitionedBy() {
-        if (tableInfo.partitionedBy().isEmpty()) {
+    private Optional<PartitionedBy<Expression>> createPartitionedBy(DocTableInfo docTable) {
+        if (docTable.partitionedBy().isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(new PartitionedBy<>(expressionsFromColumns(tableInfo.partitionedBy())));
+            return Optional.of(new PartitionedBy<>(expressionsFromColumns(docTable.partitionedBy())));
         }
     }
 
-    private Optional<ClusteredBy<Expression>> createClusteredBy() {
-        ColumnIdent clusteredByColumn = tableInfo.clusteredBy();
+    private Optional<ClusteredBy<Expression>> createClusteredBy(DocTableInfo docTable) {
+        ColumnIdent clusteredByColumn = docTable.clusteredBy();
         Expression clusteredBy = clusteredByColumn == null || clusteredByColumn.isSystemColumn()
             ? null
             : clusteredByColumn.toExpression();
-        Expression numShards = new LongLiteral(tableInfo.numberOfShards());
+        Expression numShards = new LongLiteral(docTable.numberOfShards());
         return Optional.of(new ClusteredBy<>(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
     }
 
     private GenericProperties<Expression> extractTableProperties() {
         // WITH ( key = value, ... )
         Map<String, Expression> properties = new HashMap<>();
-        Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas());
-        properties.put(TableParameters.stripIndexPrefix(TableParameters.NUMBER_OF_REPLICAS.getKey()), numReplicas);
-        // we want a sorted map of table parameters
-
-        TreeMap<String, Object> tableParameters = new TreeMap<>(
-            TableParameters.tableParametersFromIndexMetadata(tableInfo.parameters())
-        );
+        if (tableInfo instanceof DocTableInfo docTable) {
+            Expression numReplicas = new StringLiteral(docTable.numberOfReplicas());
+            properties.put(TableParameters.stripIndexPrefix(TableParameters.NUMBER_OF_REPLICAS.getKey()), numReplicas);
+            properties.put("column_policy", new StringLiteral(docTable.columnPolicy().lowerCaseName()));
+        }
+        Map<String, Object> tableParameters = TableParameters.tableParametersFromIndexMetadata(tableInfo.parameters());
         for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
             properties.put(
                 TableParameters.stripIndexPrefix(entry.getKey()),
                 Literal.fromObject(entry.getValue())
             );
         }
-        properties.put("column_policy", new StringLiteral(tableInfo.columnPolicy().lowerCaseName()));
         return new GenericProperties<>(properties);
     }
 
