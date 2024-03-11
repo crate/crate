@@ -39,8 +39,6 @@ import java.util.Map;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.VersioningValidationException;
@@ -1141,7 +1139,6 @@ public class UpdateIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @Repeat(iterations = 100)
     public void test_update_fail_fast() {
         execute("create table test (a int CHECK (a < 100))");
         execute("insert into test (a) values (1), (2), (3)");

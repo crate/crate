@@ -45,22 +45,25 @@ public class SessionSettings implements Writeable {
     protected boolean hashJoinsEnabled;
     protected boolean errorOnUnknownObjectKey;
     protected int memoryLimit;
+    protected boolean insertFailFast;
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true, true, 0);
+        this(userName, searchPath, true, true, 0, false);
     }
 
     public SessionSettings(String userName,
                            SearchPath searchPath,
                            boolean hashJoinsEnabled,
                            boolean errorOnUnknownObjectKey,
-                           int memoryLimit) {
+                           int memoryLimit,
+                           boolean insertFailFast) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
         this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
         this.memoryLimit = memoryLimit;
+        this.insertFailFast = insertFailFast;
     }
 
 
@@ -79,6 +82,11 @@ public class SessionSettings implements Writeable {
         } else {
             this.memoryLimit = 0;
         }
+        if (version.onOrAfter(Version.V_5_7_0)) {
+            this.insertFailFast = in.readBoolean();
+        } else {
+            this.insertFailFast = false;
+        }
     }
 
     @Override
@@ -92,6 +100,9 @@ public class SessionSettings implements Writeable {
         }
         if (version.onOrAfter(Version.V_5_5_0)) {
             out.writeVInt(memoryLimit);
+        }
+        if (version.onOrAfter(Version.V_5_7_0)) {
+            out.writeBoolean(insertFailFast);
         }
     }
 
@@ -138,8 +149,7 @@ public class SessionSettings implements Writeable {
     }
 
     public Boolean insertFailFast() {
-        // Only available on coordinator
-        return false;
+        return insertFailFast;
     }
 
     @Override
@@ -154,11 +164,12 @@ public class SessionSettings implements Writeable {
         return Objects.equals(userName, that.userName) &&
                Objects.equals(searchPath, that.searchPath) &&
                Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled) &&
-               Objects.equals(memoryLimit, that.memoryLimit);
+               Objects.equals(memoryLimit, that.memoryLimit) &&
+               Objects.equals(insertFailFast, that.insertFailFast);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userName, searchPath, hashJoinsEnabled, memoryLimit);
+        return Objects.hash(userName, searchPath, hashJoinsEnabled, memoryLimit, insertFailFast);
     }
 }

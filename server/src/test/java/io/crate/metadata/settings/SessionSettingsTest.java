@@ -36,7 +36,14 @@ public class SessionSettingsTest {
 
     @Test
     public void testSessionSettingsStreaming() throws IOException {
-        SessionSettings s1 = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, false, 20);
+        SessionSettings s1 = new SessionSettings(
+            "user",
+            SearchPath.createSearchPathFrom("crate"),
+            true,
+            false,
+            20,
+            true
+        );
         BytesStreamOutput out = new BytesStreamOutput();
         s1.writeTo(out);
 
@@ -46,14 +53,21 @@ public class SessionSettingsTest {
 
     @Test
     public void testSessionSettingsStreamingFrom4_6_0() throws IOException {
-        SessionSettings s1 = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, false, 10);
+        SessionSettings s1 = new SessionSettings(
+            "user",
+            SearchPath.createSearchPathFrom("crate"),
+            true,
+            false,
+            10,
+            true
+        );
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_6_0);
         s1.writeTo(out);
         var in = out.bytes().streamInput();
         in.setVersion(Version.V_4_6_0);
         SessionSettings actual = new SessionSettings(in);
-        SessionSettings expected = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, true, 0);
+        SessionSettings expected = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, true, 0, false);
         assertThat(actual).isEqualTo(expected);
     }
 }

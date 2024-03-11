@@ -47,7 +47,6 @@ public class CoordinatorSessionSettings extends SessionSettings {
     private String applicationName;
     private String dateStyle;
     private TimeValue statementTimeout;
-    private Boolean insertFailFast;
 
     public CoordinatorSessionSettings(Role authenticatedUser, String ... searchPath) {
         this(authenticatedUser, authenticatedUser, searchPath);
@@ -74,14 +73,13 @@ public class CoordinatorSessionSettings extends SessionSettings {
                                       boolean errorOnUnknownObjectKey,
                                       int memoryLimit,
                                       boolean insertFailFast) {
-        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit);
+        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit, insertFailFast);
         this.authenticatedUser = authenticatedUser;
         this.sessionUser = sessionUser;
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
         this.dateStyle = DEFAULT_DATE_STYLE;
         this.statementTimeout = TimeValue.ZERO;
         this.memoryLimit = memoryLimit;
-        this.insertFailFast = insertFailFast;
     }
 
     /**
@@ -160,11 +158,6 @@ public class CoordinatorSessionSettings extends SessionSettings {
 
     public void memoryLimit(int memoryLimit) {
         this.memoryLimit = memoryLimit;
-    }
-
-    @Override
-    public Boolean insertFailFast() {
-        return insertFailFast;
     }
 
     public void insertFailFast(Boolean insertFailFast) {
