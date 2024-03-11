@@ -24,7 +24,6 @@ package io.crate.statistics;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -43,12 +42,10 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -186,7 +183,6 @@ public final class TransportAnalyzeAction {
         return listener;
     }
 
-    @SuppressWarnings("rawtypes")
     private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
         FutureActionListener<FetchSampleResponse> listener = new FutureActionListener<>();
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
@@ -197,10 +193,9 @@ public final class TransportAnalyzeAction {
                 (FetchSampleResponse s1, FetchSampleResponse s2) -> FetchSampleResponse.merge(TransportAnalyzeAction.NUM_SAMPLES, s1, s2)),
             listener
         );
-        List<Streamer> streamers = Arrays.asList(Symbols.streamerArray(columns));
         ActionListenerResponseHandler<FetchSampleResponse> responseHandler = new ActionListenerResponseHandler<>(
             multiListener,
-            in -> new FetchSampleResponse(streamers, in),
+            in -> new FetchSampleResponse(columns, in),
             ThreadPool.Names.SAME
         );
         for (DiscoveryNode node : discoveryNodes) {

@@ -29,7 +29,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
-import io.crate.Streamer;
+import io.crate.metadata.Reference;
 
 public final class FetchSampleResponse extends TransportResponse {
 
@@ -39,9 +39,8 @@ public final class FetchSampleResponse extends TransportResponse {
         this.samples = samples;
     }
 
-    @SuppressWarnings("rawtypes")
-    public FetchSampleResponse(List<Streamer> streamers, StreamInput in) throws IOException {
-        this.samples = new Samples(streamers, in);
+    public FetchSampleResponse(List<Reference> references, StreamInput in) throws IOException {
+        this.samples = new Samples(references, in);
     }
 
     Samples samples() {
