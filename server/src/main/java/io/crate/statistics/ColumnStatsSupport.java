@@ -27,12 +27,25 @@ import org.elasticsearch.common.io.stream.StreamInput;
 
 import io.crate.types.DataType;
 
+/**
+ * Provides support for generating column statistics for a specific data type
+ * @param <T>
+ */
 public interface ColumnStatsSupport<T> {
 
+    /**
+     * Creates a column sketch builder for a column
+     */
     ColumnSketchBuilder<T> sketchBuilder();
 
+    /**
+     * Reads a column sketch from a stream
+     */
     ColumnSketch<T> readSketchFrom(StreamInput in) throws IOException;
 
+    /**
+     * Creates a support instance for a single-valued datatype
+     */
     static <T> ColumnStatsSupport<T> singleValued(Class<T> clazz, DataType<T> dataType) {
         return new ColumnStatsSupport<T>() {
             @Override
@@ -47,6 +60,9 @@ public interface ColumnStatsSupport<T> {
         };
     }
 
+    /**
+     * Creates a support instance for a composite data type, e.g. an array
+     */
     static <T> ColumnStatsSupport<T> composite(DataType<T> dataType) {
         return new ColumnStatsSupport<T>() {
             @Override

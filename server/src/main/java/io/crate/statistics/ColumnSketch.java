@@ -37,6 +37,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.types.DataType;
 
+/**
+ * An intermediate summary of a column's data.  Can be streamed and merged with
+ * other instances of the same type, or used to produce a final {@link ColumnStats}
+ * summary
+ * @param <T>   the column's Java data type
+ */
 public abstract class ColumnSketch<T> {
 
     protected final DataType<T> dataType;
@@ -47,7 +53,10 @@ public abstract class ColumnSketch<T> {
 
     protected final Sketch distinctValues;
 
-    public ColumnSketch(DataType<T> dataType,
+    /**
+     * Constructs a new sketch for a column
+     */
+    protected ColumnSketch(DataType<T> dataType,
                         long sampleCount,
                         long nullCount,
                         long totalBytes,
@@ -59,6 +68,9 @@ public abstract class ColumnSketch<T> {
         this.distinctValues = distinctValues;
     }
 
+    /**
+     * Deserializes a sketch from a stream
+     */
     public ColumnSketch(DataType<T> dataType, StreamInput in) throws IOException {
         this.dataType = dataType;
         this.sampleCount = in.readLong();
@@ -69,6 +81,9 @@ public abstract class ColumnSketch<T> {
         this.distinctValues = Sketches.wrapSketch(Memory.wrap(distinctSketchBytes));
     }
 
+    /**
+     * Serializes this sketch to a stream
+     */
     public void writeTo(StreamOutput out) throws IOException {
         out.writeLong(this.sampleCount);
         out.writeLong(this.nullCount);
@@ -79,8 +94,15 @@ public abstract class ColumnSketch<T> {
 
     protected abstract void writeSketches(StreamOutput out) throws IOException;
 
+    /**
+     * Merges this sketch with another of the same type and returns the result.  This
+     * sketch may be mutated as a result of the operation and should not be re-used.
+     */
     public abstract ColumnSketch<T> merge(ColumnSketch<?> other);
 
+    /**
+     * Produces ColumnStats from this sketch
+     */
     public abstract ColumnStats<T> toColumnStats();
 
     double nullFraction() {
@@ -97,6 +119,9 @@ public abstract class ColumnSketch<T> {
         return union.getResult();
     }
 
+    /**
+     * Implementation for single valued data types
+     */
     public static class SingleValued<T> extends ColumnSketch<T> {
 
         private final MostCommonValuesSketch<T> mostCommonValues;
@@ -162,6 +187,10 @@ public abstract class ColumnSketch<T> {
 
     }
 
+    /**
+     * Implementation for array data types.  Note that this does not support histograms
+     */
+    // TODO - rework this so that we operate on the individual members
     public static class Composite<C> extends ColumnSketch<C> {
 
         private final MostCommonValuesSketch<BytesRef> mostCommonValues;

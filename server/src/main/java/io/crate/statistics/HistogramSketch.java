@@ -36,6 +36,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.types.DataType;
 
+/**
+ * A streamable representation of an updateable histogram sketch
+ * @param <T>
+ */
 public class HistogramSketch<T> {
 
     private final ItemsSketch<T> sketch;

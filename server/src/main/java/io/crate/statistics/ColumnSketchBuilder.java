@@ -34,6 +34,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.Streamer;
 import io.crate.types.DataType;
 
+/**
+ * Constructs a {@link ColumnSketch} from a set of samples
+ */
 public abstract class ColumnSketchBuilder<T> {
 
     protected final DataType<T> dataType;
@@ -43,10 +46,16 @@ public abstract class ColumnSketchBuilder<T> {
     protected long totalBytes;
     protected final UpdateSketch distinctSketch = UpdateSketch.builder().build();
 
+    /**
+     * Creates a new ColumnSketchBuilder for the given DataType
+     */
     public ColumnSketchBuilder(DataType<T> dataType) {
         this.dataType = dataType;
     }
 
+    /**
+     * Add a sample to the sketch
+     */
     public void add(T value) {
         sampleCount++;
         if (value == null) {
@@ -60,14 +69,24 @@ public abstract class ColumnSketchBuilder<T> {
 
     protected abstract void updateSketches(T value);
 
+    /**
+     * Add a collection of samples to the sketch
+     */
     public final void addAll(Collection<T> values) {
         for (var v : values) {
             add(v);
         }
     }
 
+    /**
+     * Produce a streamable and merge-able representation of the sketch
+     */
     public abstract ColumnSketch<T> toSketch();
 
+    /**
+     * An implementation for single-valued data types
+     */
+    // TODO - create a specialized implementation for numeric data
     public static class SingleValued<T> extends ColumnSketchBuilder<T> {
 
         private final MostCommonValuesSketch<T> mostCommonValuesSketch;
@@ -100,6 +119,10 @@ public abstract class ColumnSketchBuilder<T> {
 
     }
 
+    /**
+     * An implementation for array data types
+     */
+    // TODO - rework so that stats are produced for the individual items in the arrays
     public static class Composite<T> extends ColumnSketchBuilder<T> {
 
         private final MostCommonValuesSketch<BytesRef> mostCommonValuesSketch;
