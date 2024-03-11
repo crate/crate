@@ -31,8 +31,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.statistics.ColumnSketch;
-import io.crate.statistics.ColumnSketchBuilder;
 import io.crate.statistics.ColumnStatsSupport;
 
 public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType, Streamer<TimeTZ> {
@@ -135,16 +133,6 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
 
     @Override
     public ColumnStatsSupport<TimeTZ> columnStatsSupport() {
-        return new ColumnStatsSupport<>() {
-            @Override
-            public ColumnSketchBuilder<TimeTZ> sketchBuilder() {
-                return new ColumnSketchBuilder<>(TimeTZ.class, TimeTZType.this);
-            }
-
-            @Override
-            public ColumnSketch<TimeTZ> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketch<>(TimeTZ.class, TimeTZType.this, in);
-            }
-        };
+        return ColumnStatsSupport.singleValued(TimeTZ.class, TimeTZType.this);
     }
 }

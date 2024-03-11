@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.datasketches.common.ArrayOfItemsSerDe;
+import org.apache.datasketches.memory.Buffer;
 import org.apache.datasketches.memory.Memory;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -100,24 +101,20 @@ public class SketchStreamer<T> extends ArrayOfItemsSerDe<T> {
 
     private static class MemoryStreamInput extends StreamInput {
 
-        final Memory memory;
-        int pos = 0;
+        final Buffer buffer;
 
         private MemoryStreamInput(Memory memory) {
-            this.memory = memory;
+            this.buffer = memory.asBuffer();
         }
 
         @Override
         public byte readByte() throws IOException {
-            byte v = this.memory.getByte(pos);
-            pos++;
-            return v;
+            return this.buffer.getByte();
         }
 
         @Override
         public void readBytes(byte[] b, int offset, int len) throws IOException {
-            this.memory.getByteArray(pos, b, offset, len);
-            pos += len;
+            this.buffer.getByteArray(b, offset, len);
         }
 
         @Override
@@ -127,9 +124,7 @@ public class SketchStreamer<T> extends ArrayOfItemsSerDe<T> {
 
         @Override
         public int read() throws IOException {
-            int v = this.memory.getInt(pos);
-            pos += 4;
-            return v;
+            return this.buffer.getInt();
         }
 
         @Override

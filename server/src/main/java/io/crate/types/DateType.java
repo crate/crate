@@ -35,8 +35,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.statistics.ColumnSketch;
-import io.crate.statistics.ColumnSketchBuilder;
 import io.crate.statistics.ColumnStatsSupport;
 
 public class DateType extends DataType<Long>
@@ -141,16 +139,6 @@ public class DateType extends DataType<Long>
 
     @Override
     public ColumnStatsSupport<Long> columnStatsSupport() {
-        return new ColumnStatsSupport<>() {
-            @Override
-            public ColumnSketchBuilder<Long> sketchBuilder() {
-                return new ColumnSketchBuilder<>(Long.class, DateType.this);
-            }
-
-            @Override
-            public ColumnSketch<Long> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketch<>(Long.class, DateType.this, in);
-            }
-        };
+        return ColumnStatsSupport.singleValued(Long.class, DateType.this);
     }
 }

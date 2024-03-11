@@ -137,14 +137,19 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
         var columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
         Stats stats = new Stats(20_000, 16, Map.of(new ColumnIdent("x"), columnStats));
-        assertThat(estimate(stats, query)).isEqualTo(19999L);
+        assertThat(estimate(stats, query)).isEqualTo(19998L);
     }
 
     @Test
     public void test_col_is_null_uses_null_fraction_as_selectivity() {
         SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Symbol query = expressions.asSymbol("x is null");
-        var columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 2));
+        List<Integer> listWithNulls = new ArrayList<>();
+        listWithNulls.add(1);
+        listWithNulls.add(null);
+        listWithNulls.add(2);
+        listWithNulls.add(null);
+        var columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, listWithNulls);
         assertThat(columnStats.nullFraction()).isEqualTo(0.5);
         Stats stats = new Stats(100, 16, Map.of(new ColumnIdent("x"), columnStats));
         assertThat(estimate(stats, query)).isEqualTo(50L);
@@ -208,8 +213,8 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(estimate(stats, expressions.asSymbol("x < 5"))).isEqualTo(30);
         assertThat(estimate(stats, expressions.asSymbol("x <= 5"))).isEqualTo(30);
-        assertThat(estimate(stats, expressions.asSymbol("x > 5"))).isEqualTo(9);
-        assertThat(estimate(stats, expressions.asSymbol("x >= 5"))).isEqualTo(9);
+        assertThat(estimate(stats, expressions.asSymbol("x > 5"))).isEqualTo(10);
+        assertThat(estimate(stats, expressions.asSymbol("x >= 5"))).isEqualTo(10);
         assertThat(estimate(stats, expressions.asSymbol("x > null"))).isEqualTo(0);
     }
 }

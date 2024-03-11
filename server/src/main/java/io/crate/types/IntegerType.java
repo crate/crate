@@ -36,8 +36,6 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.statistics.ColumnSketch;
-import io.crate.statistics.ColumnSketchBuilder;
 import io.crate.statistics.ColumnStatsSupport;
 
 public class IntegerType extends DataType<Integer> implements Streamer<Integer>, FixedWidthType {
@@ -157,17 +155,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
 
     @Override
     public ColumnStatsSupport<Integer> columnStatsSupport() {
-        return new ColumnStatsSupport<>() {
-            @Override
-            public ColumnSketchBuilder<Integer> sketchBuilder() {
-                return new ColumnSketchBuilder<>(Integer.class, IntegerType.this);
-            }
-
-            @Override
-            public ColumnSketch<Integer> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketch<>(Integer.class, IntegerType.this, in);
-            }
-        };
+        return ColumnStatsSupport.singleValued(Integer.class, IntegerType.this);
     }
 
     @Override

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
@@ -68,15 +69,19 @@ public class MostCommonValuesSketch<T> {
     }
 
     public MostCommonValues<T> toMostCommonValues(long valueCount, double approxDistinct) {
+        return toMostCommonValues(valueCount, approxDistinct, Function.identity());
+    }
+
+    public <R> MostCommonValues<R> toMostCommonValues(long valueCount, double approxDistinct, Function<T, R> converter) {
         var rows = this.sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
         int count = Math.min(MAX_VALUES, rows.length);
         long[] counts = new long[count];
-        List<T> values = new ArrayList<>();
+        List<R> values = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            counts[i] = rows[i].getEstimate();
-            values.add(rows[i].getItem());
+            counts[i] = rows[i].getLowerBound();
+            values.add(converter.apply(rows[i].getItem()));
         }
-        if (rows.length <= MAX_VALUES) {
+        if (approxDistinct < MAX_VALUES) {
             return new MostCommonValues<>(values, toFreqs(counts, valueCount));
         }
         int cutoff = cutoff(this.sketch.getStreamLength(), approxDistinct, counts);

@@ -21,27 +21,30 @@
 
 package io.crate.statistics;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 
 import org.apache.datasketches.theta.UpdateSketch;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.Streamer;
 import io.crate.types.DataType;
 
-public class ColumnSketchBuilder<T> {
+public abstract class ColumnSketchBuilder<T> {
 
-    private final DataType<T> dataType;
+    protected final DataType<T> dataType;
 
-    private long sampleCount;
-    private int nullCount;
-    private long totalBytes;
-    private final UpdateSketch distinctSketch = UpdateSketch.builder().build();
-    private final MostCommonValuesSketch<T> mostCommonValuesSketch;
-    private final HistogramSketch<T> histogramSketch;
+    protected long sampleCount;
+    protected int nullCount;
+    protected long totalBytes;
+    protected final UpdateSketch distinctSketch = UpdateSketch.builder().build();
 
-    public ColumnSketchBuilder(Class<T> clazz, DataType<T> dataType) {
+    public ColumnSketchBuilder(DataType<T> dataType) {
         this.dataType = dataType;
-        this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer());
-        this.histogramSketch = new HistogramSketch<>(clazz, dataType);
     }
 
     public void add(T value) {
@@ -51,27 +54,100 @@ public class ColumnSketchBuilder<T> {
         } else {
             totalBytes += dataType.valueBytes(value);
             distinctSketch.update(value.toString());
-            mostCommonValuesSketch.update(value);
-            histogramSketch.update(value);
+            updateSketches(value);
         }
     }
 
-    public void addAll(Collection<T> values) {
+    protected abstract void updateSketches(T value);
+
+    public final void addAll(Collection<T> values) {
         for (var v : values) {
             add(v);
         }
     }
 
-    public ColumnSketch<T> toSketch() {
-        return new ColumnSketch<>(
-            dataType,
-            sampleCount,
-            nullCount,
-            totalBytes,
-            distinctSketch,
-            mostCommonValuesSketch,
-            histogramSketch
-        );
+    public abstract ColumnSketch<T> toSketch();
+
+    public static class SingleValued<T> extends ColumnSketchBuilder<T> {
+
+        private final MostCommonValuesSketch<T> mostCommonValuesSketch;
+        private final HistogramSketch<T> histogramSketch;
+
+        public SingleValued(Class<T> clazz, DataType<T> dataType) {
+            super(dataType);
+            this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer());
+            this.histogramSketch = new HistogramSketch<>(clazz, dataType);
+        }
+
+        @Override
+        protected void updateSketches(T value) {
+            mostCommonValuesSketch.update(value);
+            histogramSketch.update(value);
+        }
+
+        @Override
+        public ColumnSketch<T> toSketch() {
+            return new ColumnSketch.SingleValued<>(
+                dataType,
+                sampleCount,
+                nullCount,
+                totalBytes,
+                distinctSketch,
+                mostCommonValuesSketch,
+                histogramSketch
+            );
+        }
+
     }
+
+    public static class Composite<T> extends ColumnSketchBuilder<T> {
+
+        private final MostCommonValuesSketch<BytesRef> mostCommonValuesSketch;
+        private final BytesStreamOutput scratch = new BytesStreamOutput();
+
+        public Composite(DataType<T> dataType) {
+            super(dataType);
+            this.mostCommonValuesSketch = new MostCommonValuesSketch<>(BYTE_ARRAY_STREAMER);
+        }
+
+        @Override
+        protected void updateSketches(T value) {
+            try {
+                scratch.reset();
+                dataType.streamer().writeValueTo(scratch, value);
+                // TODO update DataSketches to take byte, offset, length
+                BytesRef bv = scratch.copyBytes().toBytesRef();
+                mostCommonValuesSketch.update(bv);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        @Override
+        public ColumnSketch<T> toSketch() {
+            return new ColumnSketch.Composite<>(
+                dataType,
+                sampleCount,
+                nullCount,
+                totalBytes,
+                distinctSketch,
+                mostCommonValuesSketch
+            );
+        }
+    }
+
+    public static final Streamer<BytesRef> BYTE_ARRAY_STREAMER = new Streamer<>() {
+        @Override
+        public BytesRef readValueFrom(StreamInput in) throws IOException {
+            byte[] b = in.readByteArray();
+            return new BytesRef(b);
+        }
+
+        @Override
+        public void writeValueTo(StreamOutput out, BytesRef v) throws IOException {
+            out.writeVInt(v.length);
+            out.writeBytes(v.bytes, v.offset, v.length);
+        }
+    };
 
 }

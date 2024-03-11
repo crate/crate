@@ -25,10 +25,40 @@ import java.io.IOException;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 
+import io.crate.types.DataType;
+
 public interface ColumnStatsSupport<T> {
 
     ColumnSketchBuilder<T> sketchBuilder();
 
     ColumnSketch<T> readSketchFrom(StreamInput in) throws IOException;
+
+    static <T> ColumnStatsSupport<T> singleValued(Class<T> clazz, DataType<T> dataType) {
+        return new ColumnStatsSupport<T>() {
+            @Override
+            public ColumnSketchBuilder<T> sketchBuilder() {
+                return new ColumnSketchBuilder.SingleValued<>(clazz, dataType);
+            }
+
+            @Override
+            public ColumnSketch<T> readSketchFrom(StreamInput in) throws IOException {
+                return new ColumnSketch.SingleValued<>(clazz, dataType, in);
+            }
+        };
+    }
+
+    static <T> ColumnStatsSupport<T> composite(DataType<T> dataType) {
+        return new ColumnStatsSupport<T>() {
+            @Override
+            public ColumnSketchBuilder<T> sketchBuilder() {
+                return new ColumnSketchBuilder.Composite<>(dataType);
+            }
+
+            @Override
+            public ColumnSketch<T> readSketchFrom(StreamInput in) throws IOException {
+                return new ColumnSketch.Composite<>(dataType, in);
+            }
+        };
+    }
 
 }

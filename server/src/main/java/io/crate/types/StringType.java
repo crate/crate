@@ -65,8 +65,6 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
-import io.crate.statistics.ColumnSketch;
-import io.crate.statistics.ColumnSketchBuilder;
 import io.crate.statistics.ColumnStatsSupport;
 
 public class StringType extends DataType<String> implements Streamer<String> {
@@ -429,16 +427,6 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
     @Override
     public ColumnStatsSupport<String> columnStatsSupport() {
-        return new ColumnStatsSupport<>() {
-            @Override
-            public ColumnSketchBuilder<String> sketchBuilder() {
-                return new ColumnSketchBuilder<>(String.class, StringType.this);
-            }
-
-            @Override
-            public ColumnSketch<String> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketch<>(String.class, StringType.this, in);
-            }
-        };
+        return ColumnStatsSupport.singleValued(String.class, StringType.this);
     }
 }

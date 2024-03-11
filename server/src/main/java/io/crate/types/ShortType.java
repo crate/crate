@@ -36,8 +36,6 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.statistics.ColumnSketch;
-import io.crate.statistics.ColumnSketchBuilder;
 import io.crate.statistics.ColumnStatsSupport;
 
 public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
@@ -151,17 +149,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
 
     @Override
     public ColumnStatsSupport<Short> columnStatsSupport() {
-        return new ColumnStatsSupport<>() {
-            @Override
-            public ColumnSketchBuilder<Short> sketchBuilder() {
-                return new ColumnSketchBuilder<>(Short.class, ShortType.this);
-            }
-
-            @Override
-            public ColumnSketch<Short> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketch<>(Short.class, ShortType.this, in);
-            }
-        };
+        return ColumnStatsSupport.singleValued(Short.class, ShortType.this);
     }
 
     @Override
