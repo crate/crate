@@ -24,11 +24,11 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNull;
 
@@ -38,6 +38,8 @@ import java.util.Map;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ColumnUnknownException;
@@ -1136,5 +1138,21 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("update test set a = a + 98");
         assertThat(response).hasRowCount(1);
+    }
+
+    @Test
+    @Repeat(iterations = 100)
+    public void test_update_fail_fast() {
+        execute("create table test (a int CHECK (a < 100))");
+        execute("insert into test (a) values (1), (2), (3)");
+        refresh();
+
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().insertFailFast(true);
+            assertSQLError(() -> execute("update test set a = a + 98", session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("Failed CONSTRAINT");
+        }
     }
 }
