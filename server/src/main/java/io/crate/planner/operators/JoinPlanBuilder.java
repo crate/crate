@@ -42,6 +42,7 @@ import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists;
 import io.crate.expression.operator.AndOperator;
+import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
@@ -283,9 +284,12 @@ public class JoinPlanBuilder {
         while (queryIterator.hasNext()) {
             Map.Entry<Set<RelationName>, Symbol> queryEntry = queryIterator.next();
             Set<RelationName> relations = queryEntry.getKey();
+            Symbol implicitJoinCondition = queryEntry.getValue();
+            if (implicitJoinCondition instanceof io.crate.expression.symbol.Function func && CaseFunction.NAME.equals(func.name())) {
+                continue;
+            }
 
             if (relations.size() == 2) { // If more than 2 relations are involved it cannot be converted to a JoinPair
-                Symbol implicitJoinCondition = queryEntry.getValue();
                 JoinPair newJoinPair = null;
                 int existingJoinPairIdx = -1;
                 for (int i = 0; i < explicitJoinPairs.size(); i++) {

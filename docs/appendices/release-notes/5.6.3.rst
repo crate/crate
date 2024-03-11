@@ -100,5 +100,8 @@ Fixes
   is set to ``on`` which caused the clients to treat all query strings as non
   standard conforming.
 
+- Fixed an issue that caused a ``JOIN`` query to return invalid results when
+  the ``WHERE`` clause contains a ``CASE`` expression.
+
 - Fixed ``NullPointerException`` thrown when joining tables with ``USING``
   clause which contains columns not existing in either or both tables.

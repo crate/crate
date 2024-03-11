@@ -37,7 +37,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.planner.operators.JoinPlanBuilder;
 import io.crate.sql.tree.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -178,5 +177,15 @@ public class JoinPlanBuilderTest extends CrateDummyClusterServiceUnitTest {
             assertThat(newPairAtPos.left()).isEqualTo(oldPairAtPos.left());
             assertThat(newPairAtPos.right()).isEqualTo(oldPairAtPos.right());
         }
+    }
+
+    @Test
+    public void test_convertImplicitJoinConditionsToJoinPairs_to_reject_case_expressions() {
+        List<JoinPair> joinPairs = List.of();
+        Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
+        remainingQueries.put(Set.of(T3.T1), asSymbol("case when t1.a > 5 then true else false end"));
+        List<JoinPair> newJoinPairs =
+            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
+        assertThat(newJoinPairs).isEmpty();
     }
 }
