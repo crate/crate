@@ -37,7 +37,7 @@ public class CreateRoleRequestTest extends ESTestCase {
             new CreateRoleRequest("testUser",
                 false,
                 SecureHash.of(new SecureString("passwd".toCharArray())),
-                new JwtProperties("https:dummy.org", "test")
+                new JwtProperties("https:dummy.org", "test", "test_aud")
             );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -46,8 +46,11 @@ public class CreateRoleRequestTest extends ESTestCase {
         assertThat(crr2.roleName()).isEqualTo(crr1.roleName());
         assertThat(crr2.secureHash()).isEqualTo(crr1.secureHash());
         assertThat(crr2.isUser()).isFalse();
-        assertThat(crr2.jwtProperties().iss()).isEqualTo("https:dummy.org");
-        assertThat(crr2.jwtProperties().username()).isEqualTo("test");
+        var jwtProps = crr2.jwtProperties();
+        assertThat(jwtProps).isNotNull();
+        assertThat(jwtProps.iss()).isEqualTo("https:dummy.org");
+        assertThat(jwtProps.username()).isEqualTo("test");
+        assertThat(jwtProps.aud()).isEqualTo("test_aud");
 
         out = new BytesStreamOutput();
         out.setVersion(Version.V_5_5_0);

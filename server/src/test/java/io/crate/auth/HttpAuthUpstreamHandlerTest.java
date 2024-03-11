@@ -70,7 +70,12 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         .build();
 
     // Roles always returns null, so there are no users (even no default crate superuser)
-    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, List::of, SystemDefaultDnsResolver.INSTANCE);
+    private final Authentication authService = new HostBasedAuthentication(
+        hbaEnabled,
+        List::of,
+        SystemDefaultDnsResolver.INSTANCE,
+        () -> "dummy"
+    );
     private final HttpAuthUpstreamHandler handlerWithHBA = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, new StubRoleManager());
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {

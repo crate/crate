@@ -24,6 +24,8 @@ package io.crate.role.metadata;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING;
 
+import java.util.function.Supplier;
+
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -38,7 +40,7 @@ public class SysUsersTableInfo {
 
     private SysUsersTableInfo() {}
 
-    public static SystemTable<Role> create() {
+    public static SystemTable<Role> create(Supplier<String> clusterId) {
         return SystemTable.<Role>builder(IDENT)
             .add("name", STRING, Role::name)
             .add("superuser", BOOLEAN, Role::isSuperUser)
@@ -46,6 +48,7 @@ public class SysUsersTableInfo {
             .startObject("jwt", x -> x.jwtProperties() == null)
                 .add("iss", STRING, x -> x.jwtProperties().iss())
                 .add("username", STRING, x -> x.jwtProperties().username())
+                .add("aud", STRING, x -> x.jwtProperties().aud() == null ? clusterId.get() : x.jwtProperties().aud())
             .endObject()
             .startObjectArray("granted_roles", r -> r.grantedRoles().stream().sorted().toList())
                 .add("role", STRING, GrantedRole::roleName)

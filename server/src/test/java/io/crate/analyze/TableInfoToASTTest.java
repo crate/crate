@@ -34,8 +34,6 @@ import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.Expression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -81,7 +79,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("doc.test");
 
-        CreateTable<Expression> node = TableInfoToAST.toCreateTable(tableInfo);
+        var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"bools\" BOOLEAN,\n" +
                      "   \"bytes\" BYTE,\n" +
@@ -148,7 +146,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
-        CreateTable<Expression> node = TableInfoToAST.toCreateTable(tableInfo);
+        var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"pk_col_one\" BIGINT NOT NULL,\n" +
                      "   \"pk_col_two\" BIGINT NOT NULL,\n" +
@@ -198,7 +196,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
-        CreateTable<Expression> node = TableInfoToAST.toCreateTable(tableInfo);
+        var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"col_a\" TEXT NOT NULL,\n" +
                      "   \"col_b\" TEXT NOT NULL INDEX USING FULLTEXT WITH (\n" +
@@ -248,7 +246,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("doc.test");
 
-        CreateTable<Expression> node = TableInfoToAST.toCreateTable(tableInfo);
+        var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"floats\" REAL,\n" +
                      "   \"shorts\" SMALLINT,\n" +
@@ -298,7 +296,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
-        CreateTable<Expression> node = TableInfoToAST.toCreateTable(tableInfo);
+        var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"id\" BIGINT,\n" +
                      "   \"partition_column\" TEXT,\n" +
@@ -360,7 +358,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
-        CreateTable<Expression> node = TableInfoToAST.toCreateTable(tableInfo);
+        var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"id\" BIGINT,\n" +
                      "   \"col_a\" TEXT,\n" +
@@ -423,7 +421,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
-        CreateTable<Expression> node = TableInfoToAST.toCreateTable(tableInfo);
+        var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"s\" TEXT STORAGE WITH (\n" +
                      "      columnstore = false\n" +
@@ -469,7 +467,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("test");
-        CreateTable<?> node = TableInfoToAST.toCreateTable(tableInfo);
+        var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"col1\" TEXT,\n" +
                      "   \"col2\" INTEGER DEFAULT 2,\n" +
@@ -509,7 +507,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (name varchar(10))")
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
-        CreateTable<?> node = TableInfoToAST.toCreateTable(table);
+        var node = new TableInfoToAST(table).toStatement();
         assertThat(SqlFormatter.formatSql(node), Matchers.containsString("\"name\" VARCHAR(10)"));
     }
 
@@ -519,7 +517,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (xs bit(8))")
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
-        CreateTable<?> node = TableInfoToAST.toCreateTable(table);
+        var node = new TableInfoToAST(table).toStatement();
         assertThat(SqlFormatter.formatSql(node), Matchers.containsString("\"xs\" BIT(8)"));
     }
 
@@ -529,7 +527,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (g geo_shape generated always as 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')")
             .build();
         DocTableInfo table = e.resolveTableInfo("t");
-        CreateTable<?> node = TableInfoToAST.toCreateTable(table);
+        var node = new TableInfoToAST(table).toStatement();
         assertThat(
             SqlFormatter.formatSql(node),
             Matchers.containsString("\"g\" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))")
@@ -542,7 +540,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (geo_arr array(geo_shape) INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))")
             .build();
         DocTableInfo table = e.resolveTableInfo("t");
-        CreateTable<?> node = TableInfoToAST.toCreateTable(table);
+        var node = new TableInfoToAST(table).toStatement();
         assertThat(
             SqlFormatter.formatSql(node),
             Matchers.containsString("""

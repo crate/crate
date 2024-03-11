@@ -37,6 +37,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.common.collections.Lists;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.expression.symbol.Symbol;
+import io.crate.fdw.FdwAnalyzer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
@@ -778,18 +779,7 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitCreateForeignTable(CreateForeignTable createForeignTable,
                                                          Analysis context) {
-            RelationName tableName = RelationName.of(
-                createForeignTable.name(),
-                context.sessionSettings().searchPath().currentSchema()
-            );
-            tableName.ensureValidForRelationCreation();
-            var tableElementsAnalyzer = new TableElementsAnalyzer(
-                tableName,
-                context.transactionContext(),
-                nodeCtx,
-                context.paramTypeHints()
-            );
-            return tableElementsAnalyzer.analyze(createForeignTable);
+            return FdwAnalyzer.analyze(context, nodeCtx, createForeignTable);
         }
 
         @Override

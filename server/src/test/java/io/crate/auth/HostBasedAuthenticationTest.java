@@ -143,7 +143,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
     @Test
     public void testMissingUserOrAddress() {
-        HostBasedAuthentication authService = new HostBasedAuthentication(Settings.EMPTY, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            Settings.EMPTY,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         AuthenticationMethod method;
         method = authService.resolveAuthenticationType(null, new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertNull(method);
@@ -153,7 +158,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
     @Test
     public void testEmptyHbaConf() {
-        HostBasedAuthentication authService = new HostBasedAuthentication(Settings.EMPTY, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            Settings.EMPTY,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         AuthenticationMethod method =
             authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertNull(method);
@@ -161,7 +171,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
     @Test
     public void testResolveAuthMethod() {
-        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_1, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            HBA_1,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         AuthenticationMethod method =
             authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertThat(method, instanceOf(TrustAuthenticationMethod.class));
@@ -169,7 +184,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
     @Test
     public void test_resolve_jwt_method() {
-        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_6, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            HBA_6,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         AuthenticationMethod method =
             authService.resolveAuthenticationType("jwt_user", new ConnectionProperties(LOCALHOST, Protocol.HTTP, null));
         assertThat(method, instanceOf(JWTAuthenticationMethod.class));
@@ -183,7 +203,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             .put("auth.host_based.config.1.method", "jwt")
             .build();
         assertThatThrownBy(
-            () -> new HostBasedAuthentication(noProtocolSettings, null, SystemDefaultDnsResolver.INSTANCE)
+            () -> new HostBasedAuthentication(
+                noProtocolSettings,
+                null,
+                SystemDefaultDnsResolver.INSTANCE,
+                () -> "dummy"
+            )
         ).isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessage("protocol must be set to http when using jwt auth method");
 
@@ -194,14 +219,24 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             .put("auth.host_based.config.1.protocol", "pg")
             .build();
         assertThatThrownBy(
-            () -> new HostBasedAuthentication(unsupportedProtocolSettings, null, SystemDefaultDnsResolver.INSTANCE)
+            () -> new HostBasedAuthentication(
+                unsupportedProtocolSettings,
+                null,
+                SystemDefaultDnsResolver.INSTANCE,
+                () -> "dummy"
+            )
         ).isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessage("protocol must be set to http when using jwt auth method");
     }
 
     @Test
     public void testFilterEntriesSimple() {
-        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_1, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            HBA_1,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         Optional entry;
 
         entry = authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
@@ -218,7 +253,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
     @Test
     public void testFilterEntriesCIDR() {
         Settings settings = Settings.builder().put(HBA_2).put(HBA_3).build();
-        HostBasedAuthentication authService = new HostBasedAuthentication(settings, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            settings,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
 
         Optional<Map.Entry<String, Map<String, String>>> entry;
 
@@ -239,7 +279,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
     @Test
     public void testLocalhostMatchesBothIpv4AndIpv6() {
-        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_4, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            HBA_4,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
 
         Optional<Map.Entry<String, Map<String, String>>> entry;
         entry = authService.getEntry("crate",
@@ -252,7 +297,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
     @Test
     public void test_filter_entries_hostname() {
-        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_5, null, IN_MEMORY_RESOLVER);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            HBA_5,
+            null,
+            IN_MEMORY_RESOLVER,
+            () -> "dummy"
+        );
 
         Optional entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString(TEST_DNS_IP), Protocol.POSTGRES, null));
@@ -328,7 +378,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
                 "3", new String[]{}, new String[]{}) // ignored because empty
             .build();
 
-        HostBasedAuthentication authService = new HostBasedAuthentication(settings, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            settings,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         Settings confirmSettings = Settings.builder().put(HBA_1).put(HBA_2).build();
         assertThat(authService.hbaConf(), is(authService.convertHbaSettingsToHbaConf(confirmSettings)));
     }
@@ -341,7 +396,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         sslConfig = Settings.builder().put(HBA_1)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.OPTIONAL.VALUE)
             .build();
-        authService = new HostBasedAuthentication(sslConfig, null, SystemDefaultDnsResolver.INSTANCE);
+        authService = new HostBasedAuthentication(
+            sslConfig,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
@@ -352,7 +412,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         sslConfig = Settings.builder().put(HBA_1)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE)
             .build();
-        authService = new HostBasedAuthentication(sslConfig, null, SystemDefaultDnsResolver.INSTANCE);
+        authService = new HostBasedAuthentication(
+            sslConfig,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             is(Optional.empty()));
@@ -363,7 +428,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         sslConfig = Settings.builder().put(HBA_1)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE)
             .build();
-        authService = new HostBasedAuthentication(sslConfig, null, SystemDefaultDnsResolver.INSTANCE);
+        authService = new HostBasedAuthentication(
+            sslConfig,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
@@ -391,21 +461,36 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         sslConfig = Settings.builder().put(baseConfig)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.OPTIONAL.VALUE)
             .build();
-        authService = new HostBasedAuthentication(sslConfig, null, SystemDefaultDnsResolver.INSTANCE);
+        authService = new HostBasedAuthentication(
+            sslConfig,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
 
         sslConfig = Settings.builder().put(baseConfig)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE)
             .build();
-        authService = new HostBasedAuthentication(sslConfig, null, SystemDefaultDnsResolver.INSTANCE);
+        authService = new HostBasedAuthentication(
+            sslConfig,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         assertThat(authService.getEntry("crate", noSslConnProperties), is(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
 
         sslConfig = Settings.builder().put(baseConfig)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE)
             .build();
-        authService = new HostBasedAuthentication(sslConfig, null, SystemDefaultDnsResolver.INSTANCE);
+        authService = new HostBasedAuthentication(
+            sslConfig,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), is(Optional.empty()));
     }
@@ -422,7 +507,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
         // add in reverse order to test natural order of keys in config
         Settings settings = Settings.builder().put(second).put(first).build();
-        HostBasedAuthentication hba = new HostBasedAuthentication(settings, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication hba = new HostBasedAuthentication(
+            settings,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
 
         AuthenticationMethod authMethod = hba.resolveAuthenticationType("crate",
             new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.POSTGRES, null));
@@ -454,7 +544,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         // 'on' becomes 'true' -
         assertThat(finalSettings.get("auth.host_based.config.0.ssl"), is("true"));
 
-        HostBasedAuthentication hba = new HostBasedAuthentication(finalSettings, null, SystemDefaultDnsResolver.INSTANCE);
+        HostBasedAuthentication hba = new HostBasedAuthentication(
+            finalSettings,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
         AuthenticationMethod authMethod = hba.resolveAuthenticationType("crate",
             new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.TRANSPORT, mock(SSLSession.class)));
         assertThat(authMethod, instanceOf(ClientCertAuth.class));
