@@ -365,7 +365,7 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            true, // continueOnErrors
+            plannerContext.transactionContext().sessionSettings().insertFailFast() ? false : true, // continueOnErrors
             updateColumnNames,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,
@@ -655,7 +655,6 @@ public class InsertFromValues implements LogicalPlan {
                 if (throwable == null) {
                     result.complete(compressedResult);
                 } else {
-                    // check: session setting should work here as well
                     throwable = SQLExceptions.unwrap(throwable);
                     // we want to report duplicate key exceptions
                     if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&

@@ -55,6 +55,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -688,7 +689,7 @@ public class Session implements AutoCloseable {
 
         CompletableFuture<Void> result = allRowCounts
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
-            .thenAccept(ignored -> emitRowCountsToResultReceivers(mostRecentJobID, jobsLogs, toExec, rowCounts))
+            .thenAccept(ignored -> emitRowCountsToResultReceivers(mostRecentJobID, jobsLogs, toExec, rowCounts, sessionSettings.insertFailFast()))
             .runAfterBoth(allResultReceivers, () -> {});
         addStatementTimeout(result);
         return result;
@@ -697,22 +698,47 @@ public class Session implements AutoCloseable {
     private static void emitRowCountsToResultReceivers(UUID jobId,
                                                        JobsLogs jobsLogs,
                                                        List<DeferredExecution> executions,
-                                                       List<CompletableFuture<Long>> completedRowCounts) {
+                                                       List<CompletableFuture<Long>> completedRowCounts,
+                                                       boolean insertFailFast) {
+
         Object[] cells = new Object[1];
         RowN row = new RowN(cells);
+        Throwable errorEncountered = null;
         for (int i = 0; i < completedRowCounts.size(); i++) {
             CompletableFuture<Long> completedRowCount = completedRowCounts.get(i);
             ResultReceiver<?> resultReceiver = executions.get(i).resultReceiver();
+
+            // One error is encountered, finish all following results receivers
+            if (insertFailFast && errorEncountered != null) {
+                resultReceiver.allFinished();
+                continue;
+            }
+
             try {
                 Long rowCount = completedRowCount.join();
                 cells[0] = rowCount == null ? Row1.ERROR : rowCount;
             } catch (Throwable t) {
-                cells[0] = Row1.ERROR;
+                if (insertFailFast) {
+                    t = SQLExceptions.unwrap(t);
+                    errorEncountered = Exceptions.toRuntimeException(t);
+                } else {
+                    cells[0] = Row1.ERROR;
+                }
             }
-            resultReceiver.setNextRow(row);
-            resultReceiver.allFinished();
+
+            if (insertFailFast && errorEncountered != null) {
+                resultReceiver.fail(errorEncountered);
+            } else {
+                resultReceiver.setNextRow(row);
+                resultReceiver.allFinished();
+            }
         }
-        jobsLogs.logExecutionEnd(jobId, null);
+
+        if (insertFailFast && errorEncountered != null) {
+            jobsLogs.logExecutionEnd(jobId, errorEncountered.getMessage());
+        } else {
+            jobsLogs.logExecutionEnd(jobId, null);
+        }
     }
 
     @VisibleForTesting

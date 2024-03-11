@@ -1235,6 +1235,35 @@ public class PostgresITest extends IntegTestCase {
         }
     }
 
+    @Test
+    public void test_bulk_insert_from_select_fail_fast() throws Exception {
+        var properties = new Properties();
+        properties.setProperty("user", "crate");
+        properties.setProperty("options", "-c insert_fail_fast=true");
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate("create table t (a int primary key)");
+            ensureGreen();
+
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (a) values (?)");
+            preparedStatement.setInt(1, 1);
+            preparedStatement.addBatch();
+            preparedStatement.setInt(1, 1);
+            preparedStatement.addBatch();
+
+            assertThatThrownBy(() -> preparedStatement.executeBatch())
+                .isExactlyInstanceOf(BatchUpdateException.class)
+                .hasMessageContaining("A document with the same primary key exists already");
+
+
+            // First error encountered is reflected in jobs_log.
+            var resultSet = conn.createStatement().executeQuery("""
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a) values%'
+                """);
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getString(1)).contains("version conflict, document already exists");
+        }
+    }
+
     private long getNumQueriesFromJobsLogs() {
         long result = 0;
         Iterable<JobsLogs> jobLogs = cluster().getInstances(JobsLogs.class);
