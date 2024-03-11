@@ -797,6 +797,24 @@ Returns: ``text``
     +--------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-reverse:
+
+``reverse(text)``
+------------------
+
+Reverses the order of the string. Returns ``NULL`` if the argument is ``NULL``.
+
+Returns: ``text``
+
+::
+
+    cr> select reverse('abcde') as reverse;
+    +---------+
+    | reverse |
+    +---------+
+    |  edcba  |
+    +---------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-split_part:
 
