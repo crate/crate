@@ -300,6 +300,8 @@ IDs of all currently available data types:
      - :ref:`JSON <data-type-json>`
    * - 27
      - :ref:`CHARACTER <data-type-character>`
+   * - 28
+     - :ref:`FLOAT VECTOR <type-float_vector>`
    * - 100
      - :ref:`ARRAY <type-array>`
 
