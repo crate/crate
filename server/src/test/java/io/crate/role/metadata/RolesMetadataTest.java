@@ -78,7 +78,7 @@ public class RolesMetadataTest extends ESTestCase {
             Set.of(),
             new HashSet<>(),
             getSecureHash("johns-pwd"),
-            new JwtProperties("https:dummy.org", "test"))
+            new JwtProperties("https:dummy.org", "test", null))
         );
         DummyUsersAndRolesWithParentRoles.put("role1", roleOf("role1"));
         DummyUsersAndRolesWithParentRoles.put("role2", roleOf("role2"));
@@ -242,6 +242,23 @@ public class RolesMetadataTest extends ESTestCase {
         assertThatThrownBy(() -> JwtProperties.fromXContent(finalParser1))
             .isExactlyInstanceOf(ElasticsearchParseException.class)
             .hasMessage("failed to parse jwt, 'username' value is not a string [VALUE_NUMBER]");
+
+        xContentBuilder = JsonXContent.builder();
+        xContentBuilder.startObject();
+        xContentBuilder.field("iss", "dummy");
+        xContentBuilder.field("username", "dummy");
+        xContentBuilder.field("aud", 5);
+        xContentBuilder.endObject();
+
+        parser = JsonXContent.JSON_XCONTENT.createParser(
+            xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            Strings.toString(xContentBuilder));
+
+        XContentParser finalParser2 = parser;
+        assertThatThrownBy(() -> JwtProperties.fromXContent(finalParser2))
+            .isExactlyInstanceOf(ElasticsearchParseException.class)
+            .hasMessage("failed to parse jwt, 'aud' value is not a string [VALUE_NUMBER]");
 
         xContentBuilder = JsonXContent.builder();
         xContentBuilder.startObject();

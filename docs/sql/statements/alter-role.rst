@@ -56,14 +56,19 @@ are supported to alter an existing user account:
     client certificate.
 
 :jwt:
-  JWT properties map (``iss`` and ``username``) entered as a string literal.
+  JWT properties map (``iss``, ``username`` and ``aud``) entered as a string literal.
   e.g.::
 
-     ALTER USER john WITH (jwt = {"iss" = 'new_issuer', "username" = 'john.smith'})
+     ALTER USER john WITH (jwt = {"iss" = 'new_issuer', "username" = 'john.smith', "aud" = 'new_aud'})
 
   New JWT properties must not coincide with JWT properties of another user.
 
   ``NULL`` removes the JWT properties from the user.
+
+.. NOTE::
+
+   ``jwt = {...}`` overrides existing jwt properties. If an optional property
+   is not provided, an existing value will be discarded.
 
 .. NOTE::
 

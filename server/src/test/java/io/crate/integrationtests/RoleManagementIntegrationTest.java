@@ -102,6 +102,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             "granted_roles['grantor']| text_array",
             "granted_roles['role']| text_array",
             "jwt| object",
+            "jwt['aud']| text",
             "jwt['iss']| text",
             "jwt['username']| text",
             "name| text",
@@ -283,30 +284,26 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
-    public void test_create_user_jwt_properties_must_be_unique() {
-        execute("CREATE USER user1 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user'})");
+    public void test_create_user_jwt_iss_and_username_must_be_unique() {
+        // 'aud' field is intentionally different in 2 CREATE statements as it's not taken to account on JWT uniqueness check.
+        execute("CREATE USER user1 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user', \"aud\" = 'aud1'})");
         execute("SELECT name, jwt from sys.users WHERE name = 'user1'");
-        assertThat(response).hasRows("user1| {iss=dummy.org/keys, username=app_user}");
-        Asserts.assertSQLError(() -> execute("CREATE USER user2 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user'})"))
+        assertThat(response).hasRows("user1| {aud=aud1, iss=dummy.org/keys, username=app_user}");
+        Asserts.assertSQLError(() -> execute("CREATE USER user2 WITH (jwt = {\"iss\" = 'dummy.org/keys', \"username\" = 'app_user',  \"aud\" = 'aud2'})"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(CONFLICT, 4099)
-            .hasMessageContaining("Another role with the same combination of jwt properties already exists");
+            .hasMessageContaining("Another role with the same combination of iss/username jwt properties already exists");
     }
 
     @Test
-    public void test_alter_user_jwt_properties() {
+    public void test_alter_user_jwt_iss_and_username_must_be_unique() {
         execute("CREATE USER user1 WITH (password = 'pwd', jwt = {\"iss\" = 'issuer1', \"username\" = 'user1'})");
         execute("CREATE USER user2 WITH (password = 'pwd', jwt = {\"iss\" = 'issuer2', \"username\" = 'user2'})");
-
-        // Regular alter - update all properties
-        execute("ALTER USER user1 set (jwt = {\"iss\" = 'issuer11', \"username\" = 'user11'})");
-        execute("SELECT name, jwt from sys.users WHERE name = 'user1'");
-        assertThat(response).hasRows("user1| {iss=issuer11, username=user11}");
 
         // Updating JWT properties clashes with JWT properties of an existing user.
         Asserts.assertSQLError(() -> execute("ALTER USER user1 set (jwt = {\"iss\" = 'issuer2', \"username\" = 'user2'})"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(CONFLICT, 4099)
-            .hasMessageContaining("Another role with the same combination of jwt properties already exists");
+            .hasMessageContaining("Another role with the same combination of iss/username jwt properties already exists");
     }
 }

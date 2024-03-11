@@ -59,18 +59,20 @@ public final class RolesHelper {
      * Payload:
      * {
      *   "iss": "https://console.cratedb-dev.cloud/api/v2/meta/jwk/",
-     *   "username": "cloud_user"
+     *   "username": "cloud_user",
+     *   "aud": "test_cluster_id"
      * }
      */
     public static final String JWT_TOKEN = """
         eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpc3MiOiJod\
         HRwczovL2NvbnNvbGUuY3JhdGVkYi1kZXYuY2xvdWQvYXBpL3YyL21ldGEvandrL\
-        yIsInVzZXJuYW1lIjoiY2xvdWRfdXNlciJ9.sbawfydZA66n6T8hCvioLYpBrqov\
-        p0BuMCIhStrqGKpDiw2JLeB6e3Tb3a9T9nuMF0S7HHMXHKXrypPCuBxeJsR4jck9m\
-        DeVyPZ1i4daNK-wezF0n-OLPJAV_lOvgv_exi2mpi2Ws7tfS3Ht3ZY8aQIOtnZjwW\
-        1O2GAljToLfRopUzJ8f6MZtZw2UKfkHvWZUalCcA5WWTqqzBx8hELswJ_VkUyYWYq\
-        wFgjaHsn2xF8nrS7_qF8OhD59_gCEUOzqIN0z2ctjSxRbFQ6VUewqQwMYVJTP7Lyl\
-        c89wlemQGx6JVk7wqejbLeCJqiHJXZFUe69A5MsWK8SZXDTfQoGWow\
+        yIsInVzZXJuYW1lIjoiY2xvdWRfdXNlciIsImF1ZCI6InRlc3RfY2x1c3Rlcl9pZ\
+        CJ9.OYV2uPx7qr1bghV5Uwh3ZKH50ARVL3oeTBXZhpPNmEuzbxBjgWF8I-HULRrl\
+        5LbWIi4SPE5D98HF94cjL61ArkxcPC2IKZY2JVhVpO59C8sDDN1lO8GDbUr003sT\
+        PxBpQIrSrMd1YPU2C094lP7vfkqLJtwDhmHQgl4YF_5wiUXvMICOh_kT8KiWfaHP\
+        n9gPdnRo3UgwPZHOnUK1NMSfyl_6qT5Z46A0flpdzbBN1zjsvnr1aig_Nn6GvNeu\
+        hUuhLlDHh6Cq3TiPyKWhh5lAAjUUFEqZzj3IPdsSYE9LcKzt_laAsmZT9XIvJv4c\
+        Va_M2PLiMJlYwHUDU74Vta0Isw\
         """;
 
     public static Role JWT_USER = userOf(
@@ -78,7 +80,7 @@ public final class RolesHelper {
         Set.of(),
         new HashSet<>(),
         getSecureHash("johns-pwd"),
-        new JwtProperties("https://console.cratedb-dev.cloud/api/v2/meta/jwk/", "cloud_user")
+        new JwtProperties("https://console.cratedb-dev.cloud/api/v2/meta/jwk/", "cloud_user", "test_cluster_id")
     );
 
 

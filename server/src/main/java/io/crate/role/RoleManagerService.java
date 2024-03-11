@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
@@ -74,13 +75,14 @@ public class RoleManagerService implements RoleManager {
                               TransportPrivilegesAction transportPrivilegesAction,
                               SysTableRegistry sysTableRegistry,
                               Roles roles,
-                              DDLClusterStateService ddlClusterStateService) {
+                              DDLClusterStateService ddlClusterStateService,
+                              ClusterService clusterService) {
         this.transportCreateRoleAction = transportCreateRoleAction;
         this.transportDropRoleAction = transportDropRoleAction;
         this.transportAlterRoleAction = transportAlterRoleAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         this.roles = roles;
-        var userTable = SysUsersTableInfo.create();
+        var userTable = SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID());
         sysTableRegistry.registerSysTable(
             userTable,
             () -> CompletableFuture.completedFuture(
