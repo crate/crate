@@ -54,8 +54,7 @@ public class OptimizerRuleSessionSettingProviderTest {
 
     @Test
     public void test_optimizer_rule_session_settings() {
-        var settingsProvider = new LoadedRules();
-        var sessionSetting = settingsProvider.buildRuleSessionSetting(MergeFilters.class);
+        var sessionSetting = LoadedRules.buildRuleSessionSetting(MergeFilters.class);
 
         assertThat(sessionSetting.name(), is("optimizer_merge_filters"));
         assertThat(sessionSetting.description(), is("Indicates if the optimizer rule MergeFilters is activated."));
