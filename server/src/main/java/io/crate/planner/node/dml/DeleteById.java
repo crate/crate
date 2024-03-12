@@ -81,7 +81,7 @@ public class DeleteById implements Plan {
                                                      List<Row> bulkParams,
                                                      SubQueryResults subQueryResults) {
         return createExecutor(dependencies, plannerContext)
-            .executeBulk(bulkParams, subQueryResults);
+            .executeBulk(bulkParams, subQueryResults, false);
     }
 
     private ShardRequestExecutor<ShardDeleteRequest> createExecutor(DependencyCarrier dependencies,

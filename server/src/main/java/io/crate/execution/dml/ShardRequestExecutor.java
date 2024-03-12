@@ -124,7 +124,9 @@ public class ShardRequestExecutor<Req> {
         }
     }
 
-    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, SubQueryResults subQueryResults) {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams,
+                                                     SubQueryResults subQueryResults,
+                                                     boolean insertFailFast) {
         HashMap<ShardId, Req> requests = new HashMap<>();
         IntArrayList bulkIndices = new IntArrayList(bulkParams.size() * docKeys.size());
         int location = 0;
@@ -138,7 +140,7 @@ public class ShardRequestExecutor<Req> {
             }
         }
         BulkShardResponseListener listener =
-            new BulkShardResponseListener(requests.size(), bulkParams.size(), bulkIndices);
+            new BulkShardResponseListener(requests.size(), bulkParams.size(), bulkIndices, insertFailFast);
         for (Req req : requests.values()) {
             transportAction.accept(req, listener);
         }
@@ -250,6 +252,7 @@ public class ShardRequestExecutor<Req> {
             if (failure == null) {
                 f.accept(acc, response);
             } else if (!failure.versionConflict() && !(failure.message().contains("Document not found") || failure.message().contains("document missing"))) {
+                // Non-bulk DeleteById/UpdateById throws even if plan has continueOnError = true as it affects only one document.
                 throw new RuntimeException(failure.message());
             }
         }

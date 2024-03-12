@@ -1264,6 +1264,37 @@ public class PostgresITest extends IntegTestCase {
         }
     }
 
+    @Test
+    public void test_bulk_update_by_id_insert_fail_fast_throws() throws Exception {
+        var properties = new Properties();
+        properties.setProperty("user", "crate");
+        properties.setProperty("options", "-c insert_fail_fast=true");
+
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate("create table t (id int primary key, a int CHECK (a < 100))");
+            conn.createStatement().executeUpdate("insert into t (id, a) values (1, 1), (2, 2), (3, 3)");
+            conn.createStatement().executeUpdate("refresh table t");
+
+            PreparedStatement preparedStatement = conn.prepareStatement("update t set a = a + 98 where id = ?");
+            preparedStatement.setInt(1, 2);
+            preparedStatement.addBatch();
+            preparedStatement.setInt(1, 3);
+            preparedStatement.addBatch();
+
+            assertThatThrownBy(() -> preparedStatement.executeBatch())
+                .isExactlyInstanceOf(BatchUpdateException.class)
+                .hasMessageContaining("Failed CONSTRAINT");
+
+
+            // First error encountered is reflected in jobs_log.
+            var resultSet = conn.createStatement().executeQuery("""
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'update t set a = a +%'
+                """);
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getString(1)).contains("Failed CONSTRAINT");
+        }
+    }
+
     private long getNumQueriesFromJobsLogs() {
         long result = 0;
         Iterable<JobsLogs> jobLogs = cluster().getInstances(JobsLogs.class);

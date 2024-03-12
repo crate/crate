@@ -21,20 +21,20 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.execution.engine.indexing.ShardDMLExecutor.maybeRaiseFailure;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import com.carrotsearch.hppc.IntCollection;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.data.Row1;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 
 /**
@@ -53,7 +53,8 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
      */
     BulkShardResponseListener(int numCallbacks,
                               int numBulkParams,
-                              IntCollection resultIndices) {
+                              IntCollection resultIndices,
+                              boolean insertFailFast) {
         this.results = new ArrayList<>();
         for (int i = 0; i < numBulkParams; i++) {
             results.add(new CompletableFuture<>());
@@ -62,24 +63,34 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
         listener = new MultiActionListener<>(
             numCallbacks,
             () -> compressedResult,
-            BulkShardResponseListener::onResponse,
+            acc(insertFailFast),
             responses -> toRowCounts(responses, resultIndices, numBulkParams),
             new SetResultFutures(results)
         );
     }
 
-    private static void onResponse(ShardResponse.CompressedResult result, ShardResponse response) {
-
-        // ??? check this scenario
-        Exception failure = response.failure();
-        if (failure == null) {
-            result.update(response);
-        } else {
-            Throwable t = SQLExceptions.unwrap(failure);
-            if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
-                throw new RuntimeException(t);
+    private static BiConsumer<ShardResponse.CompressedResult, ShardResponse> acc(boolean insertFailFast) {
+        return (result, response) -> {
+            Exception failure = response.failure();
+            maybeRaiseFailure(failure); // Try to throw regardless of insert_fail_fast.
+            assert failure == null : "No failure as it was not thrown before";
+            if (insertFailFast == false) {
+                result.update(response);
+            } else {
+                // This component is used for bulk DeleteById/UpdateById.
+                // While single UpdateById throws an error regardless of continueOnError setup (because only single document is affected),
+                // bulk UpdateById normally doesn't throw and behaves like regular Update.
+                // However, when insert_fail_fast is enabled, we force error execution stop even for bulk update.
+                for (int i = 0; i < response.itemIndices().size(); i++) {
+                    ShardResponse.Failure itemFailure = response.failures().get(i);
+                    if (itemFailure != null) {
+                        throw new RuntimeException(itemFailure.message());
+                    }
+                }
+                // No error encountered in items, fall back to normal behavior
+                result.update(response);
             }
-        }
+        };
     }
 
     public List<CompletableFuture<Long>> rowCountFutures() {
