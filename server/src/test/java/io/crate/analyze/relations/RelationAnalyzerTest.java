@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -50,11 +51,10 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        executor = SQLExecutor.builder(clusterService)
+        executor = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
-            .addTable(T3.T3_DEFINITION)
-            .build();
+            .addTable(T3.T3_DEFINITION);
     }
 
     @Test
@@ -133,11 +133,10 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     // tracks a bug: https://github.com/crate/crate/issues/15516
     @Test
     public void test_resolve_relations_by_going_through_each_search_path_at_a_time() throws IOException {
-        var executor = SQLExecutor.builder(clusterService)
+        var executor = SQLExecutor.of(clusterService)
             .addTable("create table b.t1 (x text);")
             .addView(new RelationName("a", "t1"), "select 'view'")
-            .setSearchPath("a", "b")
-            .build();
+            .setSearchPath("a", "b");
 
         QueriedSelectRelation relation = executor.analyze("select * from t1");
         assertThat(relation.from().size()).isEqualTo(1);

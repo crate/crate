@@ -77,9 +77,8 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
     @Test
     public void test_cannot_add_foreign_table_with_invalid_options() throws Exception {
         Settings options = Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build();
-        var e = SQLExecutor.builder(clusterService)
-            .addServer("pg", "jdbc", "crate", options)
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options);
         String stmt = "create foreign table tbl (x int) server pg options (invalid 42)";
         CreateForeignTablePlan plan = e.plan(stmt);
         assertThatThrownBy(() -> e.execute(plan).getResult())
@@ -92,9 +91,8 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
         Settings options = Settings.builder()
             .put("url", "jdbc:postgresql://localhost:5432/")
             .build();
-        var e = SQLExecutor.builder(clusterService)
-            .addServer("pg", "jdbc", "crate", options)
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options);
 
         String stmt = "CREATE USER MAPPING FOR crate SERVER pg OPTIONS (\"option1\" 'abc');";
         CreateUserMappingPlan plan = e.plan(stmt);
@@ -108,10 +106,9 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
         Settings options = Settings.builder()
             .put("url", "jdbc:postgresql://localhost:5432/")
             .build();
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addServer("pg", "jdbc", "crate", options)
-            .addForeignTable("create foreign table tbl (x int) server pg options (schema_name 'doc')")
-            .build();
+            .addForeignTable("create foreign table tbl (x int) server pg options (schema_name 'doc')");
 
         List<Object[]> result = e.execute("show create table tbl").getResult();
         assertThat((String) result.get(0)[0]).startsWith(

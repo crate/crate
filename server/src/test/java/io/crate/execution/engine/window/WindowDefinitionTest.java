@@ -35,8 +35,6 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -54,9 +52,8 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 1, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test

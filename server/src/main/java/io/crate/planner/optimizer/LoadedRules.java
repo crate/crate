@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.common.inject.Singleton;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Lists;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
@@ -41,6 +41,10 @@ public class LoadedRules implements SessionSettingProvider {
 
     public static final List<Class<? extends Rule<?>>> RULES = buildRules();
     public static final LoadedRules INSTANCE = new LoadedRules();
+
+    private LoadedRules() {
+        super();
+    }
 
     @SuppressWarnings("unchecked")
     private static List<Class<? extends Rule<?>>> buildRules() {

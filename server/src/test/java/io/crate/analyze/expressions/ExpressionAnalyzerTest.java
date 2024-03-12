@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -33,7 +34,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.metadata.ColumnIdent;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.junit.Before;
@@ -61,6 +61,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -88,7 +89,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws Exception {
         paramTypeHints = ParamTypeHints.EMPTY;
         context = new ExpressionAnalysisContext(CoordinatorSessionSettings.systemDefaults());
-        executor = SQLExecutor.builder(clusterService)
+        executor = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .addTable(T3.T5_DEFINITION)
@@ -98,8 +99,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                       "o object as (a object as (b object as (c int)))," +
                       "o_arr array(object as (x int, o_arr_nested array(object as (y int))))," +
                       "\"myObj\" object as (x object as (\"AbC\" int))" +
-                      ")")
-            .build();
+                      ")");
         expressions = new SqlExpressions(Collections.emptyMap());
     }
 
@@ -416,9 +416,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_resolve_eq_function_for_text_types_with_length_limit_and_unbound() throws IOException {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (str varchar(3))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (str varchar(3))");
         var eq = (Function) e.asSymbol("tbl.str = 'abc'");
         assertThat(eq.arguments()).satisfiesExactly(
             s -> assertThat(s).hasDataType(DataTypes.STRING),
@@ -427,9 +426,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_resolve_eq_function_for_bit_types_with_different_length() throws IOException {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (b bit(3))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (b bit(3))");
         var eq = (Function) e.asSymbol("tbl.b = B'1'");
         assertThat(eq.arguments()).satisfiesExactly(
             s -> assertThat(s).hasDataType(new BitStringType(3)),
@@ -438,9 +436,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_object_cast_errors_contain_child_information() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (obj object as (x int))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (obj object as (x int))");
         assertThatThrownBy(() -> e.asSymbol("obj = {x = 'foo'}"))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessageContaining("Cannot cast object element `x` with value `foo` to type `integer`");

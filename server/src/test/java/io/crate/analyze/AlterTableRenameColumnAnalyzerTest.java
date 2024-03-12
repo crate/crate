@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -44,9 +45,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_rename_top_level_column() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int)");
 
         AnalyzedAlterTableRenameColumn analyzed = e.analyze("alter table t rename column a to b");
         assertThat(analyzed.refToRename()).isReference().hasName("a");
@@ -56,9 +56,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_rename_nested_column() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (o object as (o2 object as (o3 object)))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (o object as (o2 object as (o3 object)))");
 
         AnalyzedAlterTableRenameColumn analyzed = e.analyze("alter table t rename column o['o2']['o3'] to o['o2']['x']");
         assertThat(analyzed.refToRename()).isReference().hasColumnIdent(new ColumnIdent("o", List.of("o2", "o3")));
@@ -68,9 +67,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_rename_nested_column_record_subscripts() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (o object as (o2 object as (o3 object)))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (o object as (o2 object as (o3 object)))");
 
         AnalyzedAlterTableRenameColumn analyzed = e.analyze("alter table t rename column o['o2']['o3'] to o['o2']['x']");
         assertThat(analyzed.refToRename()).isReference().hasColumnIdent(new ColumnIdent("o", List.of("o2", "o3")));
@@ -80,9 +78,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_cannot_rename_nested_column_to_target_name_with_different_parent() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (o object as (o2 object as (o3 object)))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (o object as (o2 object as (o3 object)))");
 
         assertThatThrownBy(() -> e.analyze("alter table t rename column o['o2']['o3'] to o['x']['x']"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -91,9 +88,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_cannot_rename_nested_column_to_target_name_with_different_depths() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (o object as (o2 object as (o3 object)))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (o object as (o2 object as (o3 object)))");
 
         assertThatThrownBy(() -> e.analyze("alter table t rename column o['o2']['o3'] to o['o2']['o3']['y']"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -102,9 +98,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_cannot_rename_unknown_column() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (o object)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (o object)");
 
         assertThatThrownBy(() -> e.analyze("alter table t rename column o['unknown1'] to o['unknown2']"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
@@ -113,9 +108,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_cannot_rename_to_name_in_use() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int, b int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int, b int)");
 
         assertThatThrownBy(() -> e.analyze("alter table t rename column a to b"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -124,11 +118,10 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_cannot_rename_column_from_single_partition() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
-                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .build();
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS);
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE parted partition (date = 1395874800000) rename column name to newName"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -137,12 +130,11 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_renaming_column_from_old_table_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(
                 "create table t (a int)",
                 Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
-            )
-            .build();
+            );
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t RENAME COLUMN a to b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -151,9 +143,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_renaming_index_columns_to_subscript_expressions_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a text, index b using fulltext (a))")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a text, index b using fulltext (a))");
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t RENAME COLUMN b to o['b']"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -162,9 +153,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
     @Test
     public void test_renaming_to_or_from_system_columns_is_not_allowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a text)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a text)");
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t RENAME COLUMN _doc to x"))
             .isExactlyInstanceOf(InvalidColumnNameException.class)
             .hasMessage("\"_doc\" conflicts with system column pattern");

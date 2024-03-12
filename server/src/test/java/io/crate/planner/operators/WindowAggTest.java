@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -40,9 +41,8 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void init() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE t1 (x int, y int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t1 (x int, y int)");
     }
 
     private LogicalPlan plan(String statement) {

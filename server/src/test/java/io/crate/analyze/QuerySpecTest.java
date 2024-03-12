@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,9 +40,8 @@ public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable(T3.T1_DEFINITION)
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(T3.T1_DEFINITION);
     }
 
     @Test

@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -62,11 +63,10 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                   CoordinatorTxnCtx.systemTransactionContext(),
                                   new TableStats());
 
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (a int)")
             .addTable("create table t2 (b int)")
-            .addTable("create table t3 (c int)")
-            .build();
+            .addTable("create table t3 (c int)");
 
         t1 = e.logicalPlan("SELECT a FROM t1");
         t2 = e.logicalPlan("SELECT b FROM t2");

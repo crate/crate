@@ -216,9 +216,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_retrieve_all_parents_of_nested_object_column() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o1 object as (o2 object as (x int)))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o1 object as (o2 object as (x int)))");
 
         TableInfo table = e.resolveTableInfo("tbl");
         Iterable<Reference> parents = table.getParents(new ColumnIdent("o1", List.of("o2", "x")));
@@ -233,9 +232,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         var customSettings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_0_0)
             .build();
-        var e = SQLExecutor.builder(clusterService)
-            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings)
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings);
 
         DocTableInfo tableInfo = e.resolveTableInfo("p1");
         assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.V_5_0_0);
@@ -243,11 +241,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_version_created_is_set_to_current_version_if_unavailable_at_partitioned_template() throws Exception {
-        var customSettings = Settings.builder()
-            .build();
-        var e = SQLExecutor.builder(clusterService)
-            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings)
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", Settings.EMPTY);
 
         DocTableInfo tableInfo = e.resolveTableInfo("p1");
         assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.CURRENT);
@@ -316,9 +311,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_drop_column_updates_type_of_parent_ref() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o1 object as (o2 object as (x int)))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o1 object as (o2 object as (x int)))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         ColumnIdent o1o2 = new ColumnIdent("o1", "o2");
         Reference o1o2Ref = table.getReference(o1o2);
@@ -333,9 +327,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_drop_column_after_drop_column_preserves_previous_dropped_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int, z int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int, z int)");
         DocTableInfo table1 = e.resolveTableInfo("tbl");
         Reference xref = table1.getReference(new ColumnIdent("x"));
         Reference yref = table1.getReference(new ColumnIdent("y"));
@@ -352,7 +345,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_write_to_preserves_indices() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 """
                 create table tbl (
@@ -362,8 +355,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                     index name_ft using fulltext (name) with (analyzer = 'standard')
                 )
                 """
-            )
-            .build();
+            );
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -396,9 +388,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_add_column_to_table() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, point object as (x int))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, point object as (x int))");
         DocTableInfo table1 = e.resolveTableInfo("tbl");
         Reference xref = table1.getReference(new ColumnIdent("x"));
         Reference pointRef = table1.getReference(new ColumnIdent("point"));
@@ -455,9 +446,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_cannot_add_child_column_without_defining_parents() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference ox = new SimpleReference(
             new ReferenceIdent(table.ident(), new ColumnIdent("o", "x")),
@@ -479,9 +469,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_add_column_fixes_inner_types_of_all_its_parents() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (o object as (b1 int), a1 int))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (o object as (b1 int), a1 int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         SimpleReference newReference1 = new SimpleReference(
             new ReferenceIdent(table.ident(), new ColumnIdent("o", List.of("o", "o", "c1"))),
@@ -538,9 +527,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_drop_column_fixes_inner_types_of_all_its_parents() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (o object as (o object as (c1 int), b1 int), a1 int))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (o object as (o object as (c1 int), b1 int), a1 int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         ColumnIdent dropCol1 = new ColumnIdent("o", List.of("o", "o"));
         ColumnIdent dropCol2 = new ColumnIdent("o", List.of("o", "o", "c1"));
@@ -573,9 +561,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_rename_column_fixes_inner_types_of_all_its_parents() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (o object as (o object as (c1 int), b1 int), a1 int))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (o object as (o object as (c1 int), b1 int), a1 int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         ColumnIdent ooo = new ColumnIdent("o", List.of("o", "o"));
         ColumnIdent ooo2 = new ColumnIdent("o", List.of("o", "o2"));

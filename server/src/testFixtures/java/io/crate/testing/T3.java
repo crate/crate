@@ -21,15 +21,16 @@
 
 package io.crate.testing;
 
+import java.io.IOException;
+import java.util.Map;
+
+import org.elasticsearch.cluster.service.ClusterService;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import org.elasticsearch.cluster.service.ClusterService;
-
-import java.io.IOException;
-import java.util.Map;
 
 public class T3 {
 
@@ -90,19 +91,18 @@ public class T3 {
     }
 
     public static Map<RelationName, AnalyzedRelation> sources(Iterable<RelationName> relations, ClusterService clusterService) {
-        SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService);
+        SQLExecutor executor = SQLExecutor.of(clusterService);
         relations.forEach(rn -> {
             String tableDefinition = RELATION_DEFINITIONS.get(rn);
             if (tableDefinition == null) {
                 throw new RuntimeException("Unknown relation " + rn);
             }
             try {
-                executorBuilder.addTable(tableDefinition);
+                executor.addTable(tableDefinition);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
-        SQLExecutor executor = executorBuilder.build();
         Schemas schemas = executor.schemas();
 
         MapBuilder<RelationName, AnalyzedRelation> builder = MapBuilder.newMapBuilder();

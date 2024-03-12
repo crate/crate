@@ -27,14 +27,11 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -57,10 +54,11 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION);
     }
 
     @Test

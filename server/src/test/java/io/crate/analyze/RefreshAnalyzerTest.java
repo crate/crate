@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -45,12 +46,11 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addBlobTable("create blob table blobs")
-            .build();
+            .addBlobTable("create blob table blobs");
     }
 
     @Test

@@ -63,13 +63,12 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
-            )
-            .build();
+            );
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
@@ -386,27 +385,24 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_copy_to_using_upper_case_columns_does_not_result_in_quoted_col_names() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE doc.upper (\"Name\" varchar)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.upper (\"Name\" varchar)");
         BoundCopyTo analysis = analyze("COPY doc.upper (\"Name\") TO DIRECTORY '/dummy'");
         assertThat(analysis.outputNames()).containsExactly("Name");
     }
 
     @Test
     public void test_copy_to_using_generated_columns_does_not_result_in_full_expression() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE doc.generated_copy (i as 1 + 1)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.generated_copy (i as 1 + 1)");
         BoundCopyTo analysis = analyze("COPY doc.generated_copy (i) TO DIRECTORY '/dummy'");
         assertThat(analysis.outputNames()).containsExactly("i");
     }
 
     @Test
     public void test_cannot_use_return_summary_without_waiting_for_completion() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         assertThatThrownBy(() -> analyze("copy tbl from '/*' with (wait_for_completion = false) return summary"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");

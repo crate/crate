@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -53,10 +54,9 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setupExecutor() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(USER_TABLE_DEFINITION)
-            .addTable("create table t1 (a string, x int, i int)")
-            .build();
+            .addTable("create table t1 (a string, x int, i int)");
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 

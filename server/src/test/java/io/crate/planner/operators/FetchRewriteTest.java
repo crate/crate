@@ -29,6 +29,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -55,9 +56,8 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fetch_rewrite_on_eval_removes_eval_and_extends_replaced_outputs() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
 
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
         var x = e.asSymbol("x");
@@ -90,9 +90,8 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fetchrewrite_on_rename_puts_fetch_marker_into_alias_scope() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
         Reference x = (Reference) e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
@@ -127,9 +126,8 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fetchrewrite_on_eval_with_nested_source_outputs() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
 
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
         var x = new AliasSymbol("x_alias", e.asSymbol("x"));

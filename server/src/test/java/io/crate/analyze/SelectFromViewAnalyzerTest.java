@@ -47,10 +47,9 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table doc.t1 (name string, x int)")
-            .addView(new RelationName("doc", "v1"), "select name, count(*) from doc.t1 group by name")
-            .build();
+            .addView(new RelationName("doc", "v1"), "select name, count(*) from doc.t1 group by name");
     }
 
     @Test
@@ -97,13 +96,12 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void test_anylze_with_changed_search_path() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table custom.t1 (name string, x int)")
             .addTable("create table doc.t1 (name string, x int)")
             .setSearchPath("custom")
-            .addView(new RelationName("doc", "v1"), "select name, count(*) from t1 group by name")
-            .build();
-        e.getSessionSettings().setSearchPath("foobar");
+            .addView(new RelationName("doc", "v1"), "select name, count(*) from t1 group by name");
+        e.setSearchPath("foobar");
         QueriedSelectRelation relation = e.analyze("select * from doc.v1");
         List<AnalyzedRelation> sources = relation.from();
         assertThat(sources).satisfiesExactly(

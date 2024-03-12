@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.costs;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -65,9 +66,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_collect() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table a (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table a (x int)");
 
         DocTableInfo a = e.resolveTableInfo("a");
 
@@ -88,9 +88,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_group_reference() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table a (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table a (x int)");
 
         DocTableInfo a = e.resolveTableInfo("a");
 
@@ -110,9 +109,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_limit() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table a (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table a (x int)");
 
         DocTableInfo a = e.resolveTableInfo("a");
 
@@ -142,10 +140,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_union() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
-            .addTable("create table b (y int)")
-            .build();
+            .addTable("create table b (y int)");
 
         DocTableInfo aDoc = e.resolveTableInfo("a");
         DocTableInfo bDoc = e.resolveTableInfo("b");
@@ -176,10 +173,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_hash_join() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
-            .addTable("create table b (y int)")
-            .build();
+            .addTable("create table b (y int)");
 
         DocTableInfo aDoc = e.resolveTableInfo("a");
         DocTableInfo bDoc = e.resolveTableInfo("b");
@@ -230,10 +226,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_nl_join() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
-            .addTable("create table b (y int)")
-            .build();
+            .addTable("create table b (y int)");
 
         DocTableInfo aDoc = e.resolveTableInfo("a");
         DocTableInfo bDoc = e.resolveTableInfo("b");
@@ -284,9 +279,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_filter() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         Symbol x = e.asSymbol("x");
         Collect source = new Collect(new DocTableRelation(tbl), List.of(x), WhereClause.MATCH_ALL);

@@ -59,7 +59,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void test_max_index_keys_session_setting_cannot_be_changed() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.MAX_INDEX_KEYS);
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.MAX_INDEX_KEYS);
         assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("32"), EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("\"max_index_keys\" cannot be changed.");
@@ -67,7 +67,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void test_max_identifier_length_session_setting_cannot_be_changed() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.MAX_IDENTIFIER_LENGTH);
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.MAX_IDENTIFIER_LENGTH);
         assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("255"), EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("\"max_identifier_length\" cannot be changed.");
@@ -75,7 +75,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void test_server_version_num_session_setting_cannot_be_changed() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.SERVER_VERSION_NUM);
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.SERVER_VERSION_NUM);
         assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("100000"), EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("\"server_version_num\" cannot be changed.");
@@ -83,7 +83,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void test_server_version_session_setting_cannot_be_changed() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.SERVER_VERSION);
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.SERVER_VERSION);
         assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("10.0"), EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("\"server_version\" cannot be changed.");
@@ -91,7 +91,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void test_standard_confirming_strings_session_setting_cannot_be_set_to_false() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.STANDARD_CONFORMING_STRINGS);
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.STANDARD_CONFORMING_STRINGS);
         var value = generateInput(randomFrom("no", "false", "0", "no"));
         assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, value, EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -100,7 +100,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void test_standard_confirming_strings_session_setting_invalid_values() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.STANDARD_CONFORMING_STRINGS);
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.STANDARD_CONFORMING_STRINGS);
         var value = generateInput("invalid");
         assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, value, EVAL))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -109,19 +109,19 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void testHashJoinSessionSetting() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.HASH_JOIN_KEY);
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.HASH_JOIN_KEY);
         assertBooleanNonEmptySetting(SESSION_SETTINGS::hashJoinsEnabled, setting, true);
     }
 
     @Test
     public void testSettingErrorOnUnknownObjectKey() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.ERROR_ON_UNKNOWN_OBJECT_KEY);
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.ERROR_ON_UNKNOWN_OBJECT_KEY);
         assertBooleanNonEmptySetting(SESSION_SETTINGS::errorOnUnknownObjectKey, setting, true);
     }
 
     @Test
     public void test_search_path_session_setting() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get("search_path");
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get("search_path");
         assertThat(setting.defaultValue(),is("doc"));
         setting.apply(SESSION_SETTINGS, generateInput("a_schema"), EVAL);
         assertThat(setting.getValue(SESSION_SETTINGS), is("a_schema"));
@@ -131,7 +131,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void test_date_style_session_setting() {
-        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.DATE_STYLE.name());
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.DATE_STYLE.name());
         assertThat(setting.defaultValue(),is("ISO"));
         setting.apply(SESSION_SETTINGS, generateInput("iso"), EVAL);
         assertThat(SESSION_SETTINGS.dateStyle(), is("ISO"));

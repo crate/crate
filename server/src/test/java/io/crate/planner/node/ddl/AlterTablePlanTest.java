@@ -47,8 +47,13 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)", Settings.builder()
-            .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), "sub1").build()).build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(
+                "create table doc.test(i int)",
+                Settings.builder()
+                    .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), "sub1")
+                    .build()
+            );
     }
 
     /**

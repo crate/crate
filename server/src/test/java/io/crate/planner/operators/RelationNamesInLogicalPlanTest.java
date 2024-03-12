@@ -26,7 +26,6 @@ import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
-import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,11 +58,12 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
 
     @Before
     public void setup() throws Exception {
-        e = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
-            .addTable(T3.T3_DEFINITION)
-            .build();
+            .addTable(T3.T3_DEFINITION);
 
         DocTableInfo t1 = e.resolveTableInfo("t1");
         Reference x = (Reference) e.asSymbol("x");

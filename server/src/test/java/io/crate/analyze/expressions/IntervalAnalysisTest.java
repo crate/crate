@@ -39,9 +39,8 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (ts timestamp without time zone)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (ts timestamp without time zone)");
     }
 
     @Test

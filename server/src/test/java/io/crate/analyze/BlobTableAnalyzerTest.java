@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).addBlobTable("create blob table blobs").build();
+        e = SQLExecutor.of(clusterService).addBlobTable("create blob table blobs");
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 

@@ -34,7 +34,6 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -43,8 +42,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
@@ -83,7 +80,9 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private static SQLExecutor buildExecutor(ClusterService clusterService) throws IOException {
-        return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        return SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
@@ -94,8 +93,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
                 "  name text," +
                 "  date timestamp with time zone" +
                 ")" +
-                " partitioned by (date)")
-            .build();
+                " partitioned by (date)");
     }
 
     @Test

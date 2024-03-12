@@ -23,7 +23,6 @@ package io.crate.execution.engine.collect.collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.cluster.ClusterState;
@@ -31,7 +30,6 @@ import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
@@ -44,7 +42,9 @@ public class ShardStateObserverTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_wait_for_active_shard_completes_on_shard_state_change() throws Throwable {
         // Add 2 nodes and table to cluster state
-        SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("create table t1 (x int) clustered into 1 shards");
 
         var observer = new ShardStateObserver(clusterService);

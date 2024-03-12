@@ -121,11 +121,10 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     @Test
     public void test_validate_table_while_dropping_udf() throws Exception {
         UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor executor = SQLExecutor.of(clusterService)
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
-            .addTable("create table doc.t1 (id int, gen as foo(id))")
-            .build();
+            .addTable("create table doc.t1 (id int, gen as foo(id))");
 
         Assertions.assertThrows(
             IllegalArgumentException.class,
@@ -142,11 +141,10 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     @Test
     public void test_validate_partitioned_table_while_dropping_udf() throws Exception {
         UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor executor = SQLExecutor.of(clusterService)
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
-            .addPartitionedTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)")
-            .build();
+            .addPartitionedTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)");
 
         Assertions.assertThrows(
             IllegalArgumentException.class,
@@ -163,11 +161,10 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     @Test
     public void test_validate_sub_columns_while_dropping_udf() throws Exception {
         UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor executor = SQLExecutor.of(clusterService)
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
-            .addPartitionedTable("create table doc.p1 (o object as (id int), gen as foo(o['id'])) partitioned by (o['id'])")
-            .build();
+            .addPartitionedTable("create table doc.p1 (o object as (id int), gen as foo(o['id'])) partitioned by (o['id'])");
 
         assertThatThrownBy(() -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
                                Schemas.DOC_SCHEMA_NAME,

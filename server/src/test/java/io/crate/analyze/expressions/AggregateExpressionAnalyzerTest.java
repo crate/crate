@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
@@ -41,9 +42,8 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (x int)");
     }
 
     @Test
