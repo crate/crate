@@ -41,7 +41,7 @@ public interface ColumnStatsSupport<T> {
     /**
      * Reads a column sketch from a stream
      */
-    ColumnSketch<T> readSketchFrom(StreamInput in) throws IOException;
+    ColumnSketchBuilder<T> readSketchFrom(StreamInput in) throws IOException;
 
     /**
      * Creates a support instance for a single-valued datatype
@@ -54,8 +54,8 @@ public interface ColumnStatsSupport<T> {
             }
 
             @Override
-            public ColumnSketch<T> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketch.SingleValued<>(clazz, dataType, in);
+            public ColumnSketchBuilder<T> readSketchFrom(StreamInput in) throws IOException {
+                return new ColumnSketchBuilder.SingleValued<>(clazz, dataType, in);
             }
         };
     }
@@ -71,8 +71,8 @@ public interface ColumnStatsSupport<T> {
             }
 
             @Override
-            public ColumnSketch<T> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketch.Composite<>(dataType, in);
+            public ColumnSketchBuilder<T> readSketchFrom(StreamInput in) throws IOException {
+                return new ColumnSketchBuilder.Composite<>(dataType, in);
             }
         };
     }

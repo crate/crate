@@ -49,7 +49,7 @@ public class TransportAnalyzeActionTest extends ESTestCase {
         col1.add(null);
         col2.add(null);
         var samples = new Samples(
-            List.of(col1.toSketch(), col2.toSketch()),
+            List.of(col1, col2),
             2,
             10
         );

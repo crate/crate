@@ -39,11 +39,11 @@ class Samples implements Writeable {
 
     static final Samples EMPTY = new Samples(List.of(), 0L, 0L);
 
-    private final List<ColumnSketch<?>> columnSketches;
+    private final List<ColumnSketchBuilder<?>> columnSketches;
     private final long numTotalDocs;
     private final long numTotalSizeInBytes;
 
-    Samples(List<ColumnSketch<?>> columnSketches, long numTotalDocs, long numTotalSizeInBytes) {
+    Samples(List<ColumnSketchBuilder<?>> columnSketches, long numTotalDocs, long numTotalSizeInBytes) {
         this.columnSketches = columnSketches;
         this.numTotalDocs = numTotalDocs;
         this.numTotalSizeInBytes = numTotalSizeInBytes;
@@ -75,7 +75,7 @@ class Samples implements Writeable {
         out.writeLong(numTotalDocs);
         out.writeLong(numTotalSizeInBytes);
         out.writeVInt(columnSketches.size());
-        for (ColumnSketch<?> stats : columnSketches) {
+        for (ColumnSketchBuilder<?> stats : columnSketches) {
             stats.writeTo(out);
         }
     }
@@ -90,7 +90,7 @@ class Samples implements Writeable {
         if (s1.columnSketches.size() != s2.columnSketches.size()) {
             throw new IllegalArgumentException("Column mismatch");
         }
-        List<ColumnSketch<?>> mergedColumns = new ArrayList<>();
+        List<ColumnSketchBuilder<?>> mergedColumns = new ArrayList<>();
         for (int i = 0; i < s1.columnSketches.size(); i++) {
             var merged = s1.columnSketches.get(i).merge(s2.columnSketches.get(i));
             mergedColumns.add(merged);
@@ -106,7 +106,7 @@ class Samples implements Writeable {
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>();
         for (int i = 0; i < primitiveColumns.size(); i++) {
             Reference primitiveColumn = primitiveColumns.get(i);
-            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toColumnStats());
+            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats());
         }
         return new Stats(numTotalDocs, numTotalSizeInBytes, statsByColumn);
     }

@@ -200,9 +200,9 @@ public final class ReservoirSampler {
             var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get);
             sampler.iterate(fetchIdSamples.samples());
 
-            List<ColumnSketch<?>> statsBuilders = new ArrayList<>();
+            List<ColumnSketchBuilder<?>> statsBuilders = new ArrayList<>();
             for (var collector : columnCollectors) {
-                statsBuilders.add(collector.statsBuilder.toSketch());
+                statsBuilders.add(collector.statsBuilder);
             }
 
             return new Samples(statsBuilders, totalNumDocs, totalSizeInBytes);

@@ -24,8 +24,9 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 
-import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,23 +36,42 @@ import io.crate.Streamer;
 import io.crate.types.DataType;
 
 /**
- * Constructs a {@link ColumnSketch} from a set of samples
+ * Constructs a {@link ColumnStats} from a set of samples
  */
 public abstract class ColumnSketchBuilder<T> {
 
     protected final DataType<T> dataType;
 
     protected long sampleCount;
-    protected int nullCount;
+    protected long nullCount;
     protected long totalBytes;
-    protected final UpdateSketch distinctSketch = UpdateSketch.builder().build();
+    protected DistinctValuesSketch distinctSketch;
 
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
      */
     public ColumnSketchBuilder(DataType<T> dataType) {
         this.dataType = dataType;
+        this.distinctSketch = DistinctValuesSketch.newSketch();
     }
+
+    public ColumnSketchBuilder(DataType<T> dataType, StreamInput in) throws IOException {
+        this.dataType = dataType;
+        this.sampleCount = in.readLong();
+        this.nullCount = in.readLong();
+        this.totalBytes = in.readLong();
+        this.distinctSketch = DistinctValuesSketch.fromStream(in);
+    }
+
+    public final void writeTo(StreamOutput out) throws IOException {
+        out.writeLong(sampleCount);
+        out.writeLong(nullCount);
+        out.writeLong(totalBytes);
+        out.writeByteArray(distinctSketch.getSketch().toByteArray());
+        writeSketches(out);
+    }
+
+    protected abstract void writeSketches(StreamOutput out) throws IOException;
 
     /**
      * Add a sample to the sketch
@@ -78,10 +98,19 @@ public abstract class ColumnSketchBuilder<T> {
         }
     }
 
+    public abstract ColumnSketchBuilder<T> merge(ColumnSketchBuilder<?> other);
+
     /**
      * Produce a streamable and merge-able representation of the sketch
      */
-    public abstract ColumnSketch<T> toSketch();
+    public abstract ColumnStats<T> toStats();
+
+    double nullFraction() {
+        if (nullCount == 0 || sampleCount == 0) {
+            return 0;
+        }
+        return (double) nullCount / (double) sampleCount;
+    }
 
     /**
      * An implementation for single-valued data types
@@ -89,13 +118,25 @@ public abstract class ColumnSketchBuilder<T> {
     // TODO - create a specialized implementation for numeric data
     public static class SingleValued<T> extends ColumnSketchBuilder<T> {
 
-        private final MostCommonValuesSketch<T> mostCommonValuesSketch;
-        private final HistogramSketch<T> histogramSketch;
+        private MostCommonValuesSketch<T> mostCommonValuesSketch;
+        private HistogramSketch<T> histogramSketch;
 
         public SingleValued(Class<T> clazz, DataType<T> dataType) {
             super(dataType);
             this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer());
             this.histogramSketch = new HistogramSketch<>(clazz, dataType);
+        }
+
+        public SingleValued(Class<T> clazz, DataType<T> dataType, StreamInput in) throws IOException {
+            super(dataType, in);
+            this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer(), in);
+            this.histogramSketch = new HistogramSketch<>(clazz, dataType, in);
+        }
+
+        @Override
+        protected void writeSketches(StreamOutput out) throws IOException {
+            mostCommonValuesSketch.writeTo(out);
+            histogramSketch.writeTo(out);
         }
 
         @Override
@@ -105,15 +146,36 @@ public abstract class ColumnSketchBuilder<T> {
         }
 
         @Override
-        public ColumnSketch<T> toSketch() {
-            return new ColumnSketch.SingleValued<>(
+        @SuppressWarnings("unchecked")
+        public ColumnSketchBuilder<T> merge(ColumnSketchBuilder<?> other) {
+            if (Objects.equals(this.dataType, other.dataType) == false) {
+                throw new IllegalArgumentException("Columns must be of the same data type");
+            }
+
+            final ColumnSketchBuilder.SingleValued<T> typedOther = (ColumnSketchBuilder.SingleValued<T>) other;
+            this.sampleCount += other.sampleCount;
+            this.nullCount += other.nullCount;
+            this.totalBytes += other.totalBytes;
+            this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
+            this.histogramSketch = this.histogramSketch.merge(typedOther.histogramSketch);
+
+            return this;
+        }
+
+        @Override
+        public ColumnStats<T> toStats() {
+            double nullFraction = nullFraction();
+            double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
+            double approxDistinct = this.distinctSketch.getSketch().getEstimate();
+            MostCommonValues<T> mcv = this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct);
+            return new ColumnStats<>(
+                nullFraction,
+                avgSizeInBytes,
+                approxDistinct,
                 dataType,
-                sampleCount,
-                nullCount,
-                totalBytes,
-                distinctSketch,
-                mostCommonValuesSketch,
-                histogramSketch
+                mcv,
+                this.histogramSketch.toHistogram(100, mcv.values())
             );
         }
 
@@ -125,12 +187,22 @@ public abstract class ColumnSketchBuilder<T> {
     // TODO - rework so that stats are produced for the individual items in the arrays
     public static class Composite<T> extends ColumnSketchBuilder<T> {
 
-        private final MostCommonValuesSketch<BytesRef> mostCommonValuesSketch;
+        private MostCommonValuesSketch<BytesRef> mostCommonValuesSketch;
         private final BytesStreamOutput scratch = new BytesStreamOutput();
 
         public Composite(DataType<T> dataType) {
             super(dataType);
             this.mostCommonValuesSketch = new MostCommonValuesSketch<>(BYTE_ARRAY_STREAMER);
+        }
+
+        public Composite(DataType<T> dataType, StreamInput in) throws IOException {
+            super(dataType, in);
+            this.mostCommonValuesSketch = new MostCommonValuesSketch<>(BYTE_ARRAY_STREAMER, in);
+        }
+
+        @Override
+        protected void writeSketches(StreamOutput out) throws IOException {
+            this.mostCommonValuesSketch.writeTo(out);
         }
 
         @Override
@@ -147,15 +219,45 @@ public abstract class ColumnSketchBuilder<T> {
         }
 
         @Override
-        public ColumnSketch<T> toSketch() {
-            return new ColumnSketch.Composite<>(
+        @SuppressWarnings("unchecked")
+        public ColumnSketchBuilder<T> merge(ColumnSketchBuilder<?> other) {
+            if (Objects.equals(this.dataType, other.dataType) == false) {
+                throw new IllegalArgumentException("Columns must be of the same data type");
+            }
+
+            final ColumnSketchBuilder.Composite<T> typedOther = (ColumnSketchBuilder.Composite<T>) other;
+            this.sampleCount += other.sampleCount;
+            this.nullCount += other.nullCount;
+            this.totalBytes += other.totalBytes;
+            this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
+
+            return this;
+        }
+
+        @Override
+        public ColumnStats<T> toStats() {
+            double nullFraction = nullFraction();
+            double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
+            double approxDistinct = this.distinctSketch.getSketch().getEstimate();
+            MostCommonValues<T> mcv =
+                this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct, this::fromByteStream);
+            return new ColumnStats<>(
+                nullFraction,
+                avgSizeInBytes,
+                approxDistinct,
                 dataType,
-                sampleCount,
-                nullCount,
-                totalBytes,
-                distinctSketch,
-                mostCommonValuesSketch
+                mcv,
+                List.of()
             );
+        }
+
+        private T fromByteStream(BytesRef bytes) {
+            try {
+                return dataType.streamer().readValueFrom(StreamInput.wrap(bytes.bytes, bytes.offset, bytes.length));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
     }
 

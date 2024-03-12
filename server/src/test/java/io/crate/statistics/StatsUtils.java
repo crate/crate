@@ -30,7 +30,7 @@ public final class StatsUtils {
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values) {
         ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
         builder.addAll(values);
-        return builder.toSketch().toColumnStats();
+        return builder.toStats();
     }
 
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values, int nullCount) {
@@ -39,7 +39,7 @@ public final class StatsUtils {
         for (int i = 0; i < nullCount; i++) {
             builder.add(null);
         }
-        return builder.toSketch().toColumnStats();
+        return builder.toStats();
     }
 
 }

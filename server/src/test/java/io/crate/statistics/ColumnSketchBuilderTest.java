@@ -44,7 +44,7 @@ public class ColumnSketchBuilderTest extends ESTestCase {
         builder.add(List.of(Map.of("id", 2)));
         builder.add(List.of(Map.of("id", 1)));
 
-        var stats = builder.toSketch().toColumnStats();
+        var stats = builder.toStats();
 
         assertThat(stats.mostCommonValues().values()).containsExactly(
             List.of(Map.of("id", 1)),
