@@ -93,15 +93,14 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_can_lookup_generated_partition_column_if_casted() throws Exception {
         // See https://github.com/crate/crate/issues/14307
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addPartitionedTable("""
                 create table tbl (
                     ts timestamp,
                     year as date_trunc('year', ts)
                 ) partitioned by (year)
                 """
-            )
-            .build();
+            );
         DocTableInfo table = e.resolveTableInfo("tbl");
         table.partitionedByColumns();
         PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("2023"));

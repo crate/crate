@@ -41,9 +41,8 @@ public class JdbcBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         // Foreign SQL databases may use different keywords than CrateDB
         // → Identifiers.quoteIfNeeded() isn't reliable → quote everything
 
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table doc.summits (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.summits (x int)");
         DocTableInfo table = e.resolveTableInfo("doc.summits");
         Symbol query = e.asSymbol("x > 10 and x < 40");
         List<Reference> columns = List.of(

@@ -45,7 +45,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MapperService;
@@ -105,7 +104,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .metadata(metadata)
             .build();
         ClusterServiceUtils.setState(clusterService, state);
-        e = SQLExecutor.builder(clusterService, 3, Randomness.get(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(3)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
@@ -115,8 +116,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 "  id bigint," +
                 "  content text" +
                 ")" +
-                " clustered by (id)")
-            .build();
+                " clustered by (id)");
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
@@ -997,12 +997,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableUsesDefaultSchema() {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService, 1, Randomness.get(), List.of())
-            .setSearchPath("firstSchema", "secondSchema")
-            .build();
+        e.setSearchPath("firstSchema", "secondSchema");
 
-        BoundCreateTable analysis = analyze(sqlExecutor, "create table t (id int)");
-        assertThat(analysis.tableName().schema()).isEqualTo(sqlExecutor.getSessionSettings().searchPath().currentSchema());
+        BoundCreateTable analysis = analyze(e, "create table t (id int)");
+        assertThat(analysis.tableName().schema()).isEqualTo(e.getSessionSettings().searchPath().currentSchema());
     }
 
     @Test
@@ -1028,7 +1026,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() {
-        SQLExecutor e = SQLExecutor.builder(clusterService).setSearchPath("hoschi").build();
+        SQLExecutor e = SQLExecutor.of(clusterService).setSearchPath("hoschi");
         BoundCreateTable statement = analyze(e, "create table foo.bar (x string)");
 
         // schema from statement must take precedence
@@ -1037,7 +1035,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testDefaultSchemaIsAddedToTableIdentIfNoExplicitSchemaExistsInTheStatement() {
-        SQLExecutor e = SQLExecutor.builder(clusterService).setSearchPath("hoschi").build();
+        SQLExecutor e = SQLExecutor.of(clusterService).setSearchPath("hoschi");
         BoundCreateTable statement = analyze(e, "create table bar (x string)");
 
         assertThat(statement.tableName().schema()).isEqualTo("hoschi");
@@ -1485,8 +1483,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void test_alter_table_add_generated_column_based_on_generated_column() throws IOException {
-        SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE tbl (col1 INT, col2 INT GENERATED ALWAYS AS col1*2)").build();
+        SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE tbl (col1 INT, col2 INT GENERATED ALWAYS AS col1*2)");
         assertThatThrownBy(
             () -> {
                 AnalyzedAlterTableAddColumn analyze = analyze(
@@ -1624,21 +1622,26 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void test_alter_table_dynamic_setting_on_closed_table() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.test(i int)")
+            .closeTable("test");
         BoundAlterTable analysis = analyze(e, "alter table test set (\"routing.allocation.exclude.foo\"='bar')");
         assertThat(analysis.tableParameter().settings().get(INDEX_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "foo")).isEqualTo("bar");
     }
 
     @Test
     public void test_alter_table_non_dynamic_setting_on_closed_table() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.test(i int)")
+            .closeTable("test");
         BoundAlterTable analysis = analyze(e, "ALTER TABLE test SET (codec = 'best_compression')");
         assertThat(analysis.tableParameter().settings().get(INDEX_CODEC_SETTING.getKey())).isEqualTo("best_compression");
     }
 
     @Test
     public void test_alter_table_update_final_setting_on_open_table() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.test(i int)");
         Asserts.assertSQLError(() -> analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
@@ -1647,7 +1650,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void test_alter_table_update_final_setting_on_closed_table() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.test(i int)")
+            .closeTable("test");
         Asserts.assertSQLError(() -> analyze(e, "alter table test SET (number_of_routing_shards = 5)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)

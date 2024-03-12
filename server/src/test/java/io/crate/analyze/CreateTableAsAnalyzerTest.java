@@ -42,7 +42,7 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testSimpleCompareAgainstAnalyzedCreateTable() throws IOException {
 
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 "create table tbl (" +
                 "   col_default_object object as (" +
@@ -52,8 +52,7 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
                 "       )" +
                 "   )" +
                 ")"
-            )
-            .build();
+            );
 
         var expected = ((AnalyzedCreateTable) e.analyze(
             "create table cpy (" +

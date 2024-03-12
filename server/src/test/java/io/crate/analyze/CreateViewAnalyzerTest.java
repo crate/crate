@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -48,10 +49,9 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .setUser(TEST_USER)
-            .addTable("create table t1 (x int)")
-            .build();
+            .addTable("create table t1 (x int)");
     }
 
     @Test
@@ -71,12 +71,10 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreateViewCreatesViewInDefaultSchema() {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .setSearchPath("firstSchema", "secondSchema")
-            .build();
-        CreateViewStmt createView = sqlExecutor.analyze("create view v1 as select * from sys.nodes");
+        e.setSearchPath("firstSchema", "secondSchema");
+        CreateViewStmt createView = e.analyze("create view v1 as select * from sys.nodes");
 
-        assertThat(createView.name()).isEqualTo(new RelationName(sqlExecutor.getSessionSettings().searchPath().currentSchema(), "v1"));
+        assertThat(createView.name()).isEqualTo(new RelationName(e.getSessionSettings().searchPath().currentSchema(), "v1"));
     }
 
     @Test

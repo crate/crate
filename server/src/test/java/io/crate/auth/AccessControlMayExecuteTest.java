@@ -135,6 +135,8 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         );
 
         e = SQLExecutor.builder(clusterService)
+            .setRoleManager(roleManager)
+            .build()
             .addBlobTable("create blob table blobs")
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
@@ -144,7 +146,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .setUser(superUser)
             .addView(new RelationName("doc", "v1"), "select * from users")
-            .setUserManager(roleManager)
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(
                 new UserDefinedFunctionMetadata(
@@ -153,8 +154,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                     List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
                     DUMMY_LANG.name(),
                     "function foo(i) { return i; }")
-            )
-            .build();
+            );
     }
 
     private void analyze(String stmt) {
@@ -709,10 +709,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_drop_publication_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
+            .setRoleManager(roleManager)
+            .build()
             .setUser(normalUser)
-            .addPublication("pub1", true)
-            .setUserManager(roleManager)
-            .build();
+            .addPublication("pub1", true);
         analyze("DROP PUBLICATION pub1", normalUser);
         assertAskedForCluster(Permission.AL);
     }
@@ -720,10 +720,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_alter_publication_asks_cluster_AL() throws Exception {
         e = SQLExecutor.builder(clusterService)
+            .setRoleManager(roleManager)
+            .build()
             .setUser(normalUser)
-            .addPublication("pub1", false, new RelationName("doc", "t1"))
-            .setUserManager(roleManager)
-            .build();
+            .addPublication("pub1", false, new RelationName("doc", "t1"));
         analyze("ALTER PUBLICATION pub1 ADD TABLE t2", normalUser);
         assertAskedForCluster(Permission.AL);
         for (Permission permission : READ_WRITE_DEFINE) {
@@ -740,10 +740,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_drop_subscription_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
+            .setRoleManager(roleManager)
+            .build()
             .setUser(normalUser)
-            .addSubscription("sub1", "pub1")
-            .setUserManager(roleManager)
-            .build();
+            .addSubscription("sub1", "pub1");
         analyze("DROP SUBSCRIPTION sub1", normalUser);
         assertAskedForCluster(Permission.AL);
     }
@@ -751,10 +751,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_alter_subscription_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
+            .setRoleManager(roleManager)
+            .build()
             .setUser(normalUser)
-            .addSubscription("sub1", "pub1")
-            .setUserManager(roleManager)
-            .build();
+            .addSubscription("sub1", "pub1");
         analyze("ALTER SUBSCRIPTION sub1 DISABLE", normalUser);
         assertAskedForCluster(Permission.AL);
     }

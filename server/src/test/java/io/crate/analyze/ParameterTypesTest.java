@@ -93,7 +93,8 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromDelete() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("delete from users where name = ?"),
             CoordinatorSessionSettings.systemDefaults(),
@@ -105,7 +106,8 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromUpdate() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("update users set name = ? || '_updated' where id = ?"),
             CoordinatorSessionSettings.systemDefaults(),
@@ -117,7 +119,8 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromInsertValues() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?)"),
             CoordinatorSessionSettings.systemDefaults(),
@@ -130,10 +133,9 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromInsertFromQuery() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
                                       "WHERE name = ?)"),
@@ -147,10 +149,9 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromInsertWithOnDuplicateKey() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +
                                       "ON CONFLICT (id) DO UPDATE SET name = ?"),
@@ -174,7 +175,7 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTypesCanBeResolvedIfParametersAreInSubRelation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+        SQLExecutor e = SQLExecutor.of(clusterService);
 
         AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("select * from (select $1::int + $2) t"),
@@ -188,9 +189,8 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTypesCanBeResolvedIfParametersAreInSubRelationOfInsertStatement() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table t (x int)");
 
         AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("insert into t (x) (select * from (select $1::int + $2) t)"),
@@ -204,9 +204,8 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTypesCanBeResolvedIfParametersAreInSubQueryInDeleteStatement() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table t (x int)");
 
         AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("delete from t where x = (select $1::long)"),
@@ -221,9 +220,8 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_extract_parameters_from_match_predicate() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text, keywords text)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table users (name text, keywords text)");
         AnalyzedStatement statement = e.analyze(
             "select * from users where match(keywords, ?) using best_fields with (fuzziness= ?) and name = ?");
         List<DataType<?>> parameterTypes = ParameterTypes.extract(statement);
@@ -233,10 +231,9 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_extract_parameters_from_join_condition() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table subscriptions (id text primary key, name text not null)")
-            .addTable("create table clusters (id text, subscription_id text)")
-            .build();
+            .addTable("create table clusters (id text, subscription_id text)");
 
         AnalyzedStatement stmt = e.analyze(
             """
@@ -253,8 +250,7 @@ public class ParameterTypesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_extract_parameters_from_create_table_defaults() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService);
         AnalyzedStatement stmt = e.analyze("create table tbl (x int, y int default $1)");
         List<DataType<?>> parameterTypes = ParameterTypes.extract(stmt);
         assertThat(parameterTypes).containsExactly(DataTypes.INTEGER);

@@ -87,7 +87,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 .build();
         ClusterServiceUtils.setState(clusterService, state);
         RelationName multiPartName = new RelationName("doc", "multi_parted");
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
@@ -102,8 +102,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 new PartitionName(multiPartName, Arrays.asList("1395874800000", "0")).toString(),
                 new PartitionName(multiPartName, Arrays.asList("1395961200000", "-100")).toString(),
                 new PartitionName(multiPartName, Arrays.asList(null, "-100")).toString()
-            )
-            .build();
+            );
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 

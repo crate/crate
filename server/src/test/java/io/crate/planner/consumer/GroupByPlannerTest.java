@@ -39,8 +39,6 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -77,9 +75,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() throws IOException {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge distributedGroupByMerge = e.plan("select count('foo'), name from users group by name");
         RoutedCollectPhase collectPhase =
@@ -91,9 +90,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithAggregationPlan() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan(
             "select count(*), name from users group by name");
 
@@ -140,9 +140,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithAggregationAndLimit() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan(
             "select count(*), name from users group by name limit 1 offset 1");
 
@@ -173,7 +174,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByOnNodeLevel() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of()).build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build();
         Collect collect = e.plan(
             "select count(*), name from sys.nodes group by name");
 
@@ -198,9 +201,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNonDistributedGroupByOnClusteredColumn() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select count(*), id from users group by id limit 20");
         Collect collect = ((Collect) merge.subPlan());
@@ -219,9 +223,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNonDistributedGroupByOnClusteredColumnSorted() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select count(*), id from users group by id order by 1 desc nulls last limit 20");
         Collect collect = ((Collect) merge.subPlan());
@@ -251,9 +256,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNonDistributedGroupByOnClusteredColumnSortedScalar() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
         Collect collect = (Collect) merge.subPlan();
@@ -281,9 +287,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithOrderOnAggregate() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select count(*), name from users group by name order by count(*)");
 
@@ -306,7 +313,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandlerSideRoutingGroupBy() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of()).build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build();
         Collect collect = e.plan(
             "select count(*) from sys.cluster group by name");
         // just testing the dispatching here.. making sure it is not a ESSearchNode
@@ -322,9 +331,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCountDistinctWithGroupBy() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan(
             "select count(distinct id), name from users group by name order by count(distinct id)");
         Merge reducerMerge = (Merge) distributedGroupByMerge.subPlan();
@@ -375,9 +385,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHavingNonDistributed() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select id from users group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();
@@ -393,9 +404,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithHavingAndLimit() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge planNode = e.plan(
             "select count(*), name from users group by name having count(*) > 1 limit 100");
         Merge reducerMerge = (Merge) planNode.subPlan();
@@ -425,9 +437,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithHavingAndNoLimit() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge planNode = e.plan(
             "select count(*), name from users group by name having count(*) > 1");
         Merge reducerMerge = (Merge) planNode.subPlan();
@@ -455,9 +468,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithHavingAndNoSelectListReordering() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge planNode = e.plan(
             "select name, count(*) from users group by name having count(*) > 1");
         Merge reducerMerge = (Merge) planNode.subPlan();
@@ -491,9 +505,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHavingAndNoSelectListReOrderingWithLimit() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge planNode = e.plan(
             "select name, count(*) from users group by name having count(*) > 1 limit 100");
         Merge reducerMerge = (Merge) planNode.subPlan();
@@ -536,9 +551,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan("select count(*) from users group by name");
         Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
         CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
@@ -549,9 +565,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNonDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan("select count(distinct id), name from users" +
                                                " group by name order by count(distinct id)");
         Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
@@ -563,13 +580,15 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.empty_parted (" +
                 "   id integer primary key," +
                 "   date timestamp with time zone primary key" +
                 ") clustered by (id) partitioned by (date)"
-            ).build();
+            );
         Collect collect = e.plan(
             "select count(*), id, date from empty_parted group by id, date limit 20");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
@@ -582,13 +601,15 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNonDistributedGroupByAggregationsWrappedInScalar() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.empty_parted (" +
                 "   id integer primary key," +
                 "   date timestamp with time zone primary key" +
                 ") clustered by (id) partitioned by (date)"
-            ).build();
+            );
         Collect collect = e.plan(
             "select (count(*) + 1), id from empty_parted group by id");
 
@@ -602,9 +623,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHaving() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan(
             "select avg(date), name from users group by name having min(date) > '1970-01-01'");
         Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
@@ -633,7 +655,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedGroupByAggregation() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of()).build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build();
         Collect collect = e.plan("select count(*) from (" +
                                  "  select max(load['1']) as maxLoad, hostname " +
                                  "  from sys.nodes " +
@@ -658,7 +682,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByOnClusteredByColumnPartitionedOnePartition() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.clustered_parted (" +
                 "   id integer," +
@@ -667,7 +693,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ") clustered by (city) partitioned by (date) ",
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
-            ).build();
+            );
 
         // only one partition hit
         Merge optimizedPlan = e.plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
@@ -688,7 +714,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByOrderByPartitionedClolumn() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.clustered_parted (" +
                 "   id integer," +
@@ -697,7 +725,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ") clustered by (city) partitioned by (date) ",
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
-            ).build();
+            );
         Merge plan = e.plan("select date from clustered_parted group by date order by date");
         Merge reduceMerge = (Merge) plan.subPlan();
         OrderedLimitAndOffsetProjection limitAndOffsetProjection =

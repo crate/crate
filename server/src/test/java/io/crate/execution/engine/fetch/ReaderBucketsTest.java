@@ -52,9 +52,8 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_reader_bucket_accounts_memory_for_added_rows() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x text)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (x text)");
         var t1 = e.resolveTableInfo("t1");
         var x = (Reference) e.asSymbol("x");
         var fetchSource = new FetchSource();

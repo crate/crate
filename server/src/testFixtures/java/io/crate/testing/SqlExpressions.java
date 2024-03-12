@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.common.inject.AbstractModule;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -61,29 +60,26 @@ public class SqlExpressions {
     private final EvaluatingNormalizer normalizer;
     public final NodeContext nodeCtx;
 
-    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources, AbstractModule... additionalModules) {
-        this(sources, null, Role.CRATE_USER, additionalModules);
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources) {
+        this(sources, null, Role.CRATE_USER);
+    }
+
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
+                          @Nullable FieldResolver fieldResolver) {
+        this(sources, fieldResolver, Role.CRATE_USER);
     }
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
-                          AbstractModule... additionalModules) {
-        this(sources, fieldResolver, Role.CRATE_USER, additionalModules);
+                          Role sessionUser) {
+        this(sources, fieldResolver, sessionUser, List.of());
     }
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           Role sessionUser,
-                          AbstractModule... additionalModules) {
-        this(sources, fieldResolver, sessionUser, List.of(), additionalModules);
-    }
-
-    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
-                          @Nullable FieldResolver fieldResolver,
-                          Role sessionUser,
-                          List<Role> additionalUsers,
-                          AbstractModule... additionalModules) {
-        this.nodeCtx = createNodeContext(Lists.concat(additionalUsers, sessionUser), additionalModules);
+                          List<Role> additionalUsers) {
+        this.nodeCtx = createNodeContext(Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
         var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? Role.CRATE_USER : sessionUser);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);

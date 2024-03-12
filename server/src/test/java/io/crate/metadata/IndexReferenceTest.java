@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import static io.crate.metadata.ReferenceTest.columnMapping;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -64,11 +65,11 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_mapping_generation_ft_col_has_source_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (title string, description string, " +
                       "index title_desc_fulltext using fulltext(title, description) " +
                       "with (analyzer = 'stop'))"
-            ).build();
+            );
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         IndexReference reference = table.indexColumn(new ColumnIdent("title_desc_fulltext"));

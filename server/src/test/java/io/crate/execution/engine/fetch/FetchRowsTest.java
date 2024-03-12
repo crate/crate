@@ -53,10 +53,9 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fetch_rows_can_map_inputs_and_buckets_to_outputs() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (x text)")
-            .addTable("create table t2 (y text, z int)")
-            .build();
+            .addTable("create table t2 (y text, z int)");
         var t1 = e.resolveTableInfo("t1");
         var x = (Reference) e.asSymbol("x");
         var fetchSource1 = new FetchSource();

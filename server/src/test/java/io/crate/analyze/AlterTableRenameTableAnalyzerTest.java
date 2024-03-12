@@ -44,7 +44,7 @@ public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceU
 
     @Test
     public void testRenamePartitionThrowsException() throws Exception {
-        var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
+        var e = SQLExecutor.of(clusterService).addTable(T3.T1_DEFINITION);
 
         assertThatThrownBy(() -> e.analyze("alter table t1 partition (i=1) rename to t2"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -53,7 +53,7 @@ public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceU
 
     @Test
     public void testRenameToUsingSchemaThrowsException() throws Exception {
-        var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
+        var e = SQLExecutor.of(clusterService).addTable(T3.T1_DEFINITION);
 
         assertThatThrownBy(() -> e.analyze("alter table t1 rename to my_schema.t1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -62,7 +62,7 @@ public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceU
 
     @Test
     public void testRenameToInvalidName() throws Exception {
-        var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
+        var e = SQLExecutor.of(clusterService).addTable(T3.T1_DEFINITION);
         assertThatThrownBy(() -> e.analyze("alter table t1 rename to \"foo.bar\""))
             .isExactlyInstanceOf(InvalidRelationName.class)
             .hasMessageContaining("Relation name \"doc.foo.bar\" is invalid.");
@@ -71,7 +71,7 @@ public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceU
     @Test
     public void test_rename_is_not_allowed_when_table_is_published() throws Exception {
         var clusterService = clusterServiceWithPublicationMetadata(false, new RelationName("doc", "t1"));
-        var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
+        var executor = SQLExecutor.of(clusterService).addTable(T3.T1_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessageContaining(
@@ -82,7 +82,7 @@ public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceU
     @Test
     public void test_rename_is_not_allowed_when_all_tables_are_published() throws Exception {
         var clusterService = clusterServiceWithPublicationMetadata(true);
-        var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
+        var executor = SQLExecutor.of(clusterService).addTable(T3.T1_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessageContaining(

@@ -53,7 +53,6 @@ import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -215,11 +214,11 @@ public class TestingHelpers {
         return sortedList;
     }
 
-    public static NodeContext createNodeContext(AbstractModule... additionalModules) {
-        return createNodeContext(List.of(Role.CRATE_USER), additionalModules);
+    public static NodeContext createNodeContext() {
+        return createNodeContext(List.of(Role.CRATE_USER));
     }
 
-    public static NodeContext createNodeContext(List<Role> roles, AbstractModule... additionalModules) {
+    public static NodeContext createNodeContext(List<Role> roles) {
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
             () -> roles

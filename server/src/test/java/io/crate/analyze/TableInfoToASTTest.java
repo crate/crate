@@ -48,7 +48,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildCreateTableColumns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table doc.test (" +
                       " bools boolean," +
                       " bytes byte," +
@@ -75,8 +75,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       "with (" +
                       " number_of_replicas = '0-all'," +
                       " \"merge.scheduler.max_thread_count\" = 1" +
-                      ")")
-            .build();
+                      ")");
         DocTableInfo tableInfo = e.resolveTableInfo("doc.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
@@ -131,7 +130,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildCreateTablePrimaryKey() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table myschema.test (" +
                       " pk_col_one long," +
                       " pk_col_two long," +
@@ -142,8 +141,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       " number_of_replicas = '0-all'," +
                       " column_policy = 'strict'," +
                       " \"merge.scheduler.max_thread_count\" = 1" +
-                      ")")
-            .build();
+                      ")");
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
@@ -181,7 +179,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildCreateTableNotNull() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table myschema.test (" +
                       " col_a string," +
                       " col_b string not null index using fulltext," +
@@ -192,8 +190,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       " number_of_replicas = '0-all'," +
                       " column_policy = 'strict'," +
                       " \"merge.scheduler.max_thread_count\" = 1" +
-                      ")")
-            .build();
+                      ")");
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
@@ -233,7 +230,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildCreateTableCheckConstraints() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table doc.test (" +
                       " floats float constraint test_floats_check check (floats != -1)," +
                       " shorts short," +
@@ -242,8 +239,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       "clustered into 5 shards " +
                       "with (" +
                       " number_of_replicas = '0-all'" +
-                      ")")
-            .build();
+                      ")");
         DocTableInfo tableInfo = e.resolveTableInfo("doc.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
@@ -281,7 +277,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildCreateTableClusteredByPartitionedBy() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addPartitionedTable("create table myschema.test (" +
                       " id long," +
                       " partition_column string," +
@@ -292,8 +288,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       "with (" +
                       " number_of_replicas = '0-all'," +
                       " \"merge.scheduler.max_thread_count\" = 1" +
-                      ")")
-            .build();
+                      ")");
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
@@ -333,7 +328,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildCreateTableIndexes() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table myschema.test (" +
                       " id long," +
                       " col_a string," +
@@ -354,8 +349,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       "with (" +
                       " number_of_replicas = '0-all'," +
                       " \"merge.scheduler.max_thread_count\" = 1" +
-                      ")")
-            .build();
+                      ")");
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
@@ -408,7 +402,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildCreateTableStorageDefinitions() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table myschema.test (" +
                       " s string storage with (columnstore =false)" +
                       ") " +
@@ -417,8 +411,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       " number_of_replicas = '0-all'," +
                       " column_policy = 'strict'," +
                       " \"merge.scheduler.max_thread_count\" = 1" +
-                      ")")
-            .build();
+                      ")");
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
@@ -456,7 +449,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildCreateTableColumnDefaultClause() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE test (" +
                       "   col1 TEXT," +
                       "   col2 INTEGER DEFAULT 1 + 1," +
@@ -464,8 +457,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       "   col4 TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP(3)" +
                       ") with (" +
                       " \"merge.scheduler.max_thread_count\" = 1" +
-                      ")")
-            .build();
+                      ")");
         DocTableInfo tableInfo = e.resolveTableInfo("test");
         var node = new TableInfoToAST(tableInfo).toStatement();
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
@@ -503,9 +495,8 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_varchar_with_length_limit_is_printed_as_varchar_with_length_in_show_create_table() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (name varchar(10))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (name varchar(10))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         var node = new TableInfoToAST(table).toStatement();
         assertThat(SqlFormatter.formatSql(node), Matchers.containsString("\"name\" VARCHAR(10)"));
@@ -513,9 +504,8 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_bit_string_length_is_shown_in_show_create_table_output() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs bit(8))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs bit(8))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         var node = new TableInfoToAST(table).toStatement();
         assertThat(SqlFormatter.formatSql(node), Matchers.containsString("\"xs\" BIT(8)"));
@@ -523,9 +513,8 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generated_expression_on_geo_shape_in_show_create_table_output() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (g geo_shape generated always as 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table t (g geo_shape generated always as 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
         DocTableInfo table = e.resolveTableInfo("t");
         var node = new TableInfoToAST(table).toStatement();
         assertThat(
@@ -536,9 +525,8 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_geo_shape_array_index_definition_is_preserved_in_cluster_state() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (geo_arr array(geo_shape) INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table t (geo_arr array(geo_shape) INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
         DocTableInfo table = e.resolveTableInfo("t");
         var node = new TableInfoToAST(table).toStatement();
         assertThat(

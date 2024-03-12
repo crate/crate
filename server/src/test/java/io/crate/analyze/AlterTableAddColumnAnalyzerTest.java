@@ -62,9 +62,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_cannot_alter_table_to_add_a_column_definition_of_type_time() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (name text)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (name text)");
 
         assertThatThrownBy(() -> analyze("alter table t add column ts time with time zone"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -73,7 +72,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnOnSystemTableIsNotAllowed() throws Exception {
-        e = SQLExecutor.builder(clusterService).build();
+        e = SQLExecutor.of(clusterService);
 
         assertThatThrownBy(() -> e.analyze("alter table sys.shards add column foobar string"))
             .hasMessage("The relation \"sys.shards\" doesn't support or allow ALTER " +
@@ -82,11 +81,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnOnSinglePartitionNotAllowed() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
-                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .build();
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS);
 
         assertThatThrownBy(() -> e.analyze("alter table parted partition (date = 1395874800000) add column foobar string"))
             .hasMessage("Adding a column to a single partition is not supported");
@@ -94,9 +92,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnWithAnalyzerAndNonStringType() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table users (name text)");
 
         assertThatThrownBy(() -> analyze("alter table users add column foobar object as (age int index using fulltext)"))
             .hasMessage("Can't use an Analyzer on column foobar['age'] because analyzers are only allowed " +
@@ -105,9 +102,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddFulltextIndex() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table users (name text)");
 
         assertThatThrownBy(() -> e.analyze("alter table users add column index ft_foo using fulltext (name)"))
             .isExactlyInstanceOf(ParsingException.class);
@@ -115,9 +111,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnThatExistsAlready() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table users (name text)");
 
         assertThatThrownBy(() -> analyze("alter table users add column name string"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -126,9 +121,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddPrimaryKeyColumnWithArrayTypeUnsupported() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table users (id bigint primary key, name text)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table users (id bigint primary key, name text)");
 
         assertThatThrownBy(() -> analyze("alter table users add column newpk array(string) primary key"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -137,9 +131,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_cannot_add_named_primary_key_constraint_to_existing_table() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int primary key)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int primary key)");
 
         assertThatThrownBy(() -> analyze("alter table t add column b int constraint c_1 primary key"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -148,9 +141,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnWithCheckConstraintFailsBecauseItRefersToAnotherColumn() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table users (id bigint primary key, name text)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table users (id bigint primary key, name text)");
 
         assertThatThrownBy(() -> analyze("alter table users add column bazinga int constraint bazinga_check check(id > 0)"))
             .hasMessage("CHECK constraint on column `bazinga` cannot refer to column `id`. Use full path to refer " +
@@ -159,9 +151,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void add_multiple_columns_pkey_indices_referring_to_correct_ref_indices() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE tbl (x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE tbl (x int)");
 
         AddColumnRequest request = analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN o['a']['c'] int primary key");
 
@@ -178,9 +169,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAlterTableAddColumnWithNullConstraint() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE tbl (col1 INT, col2 INT)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE tbl (col1 INT, col2 INT)");
 
         assertThatThrownBy(() -> analyze("ALTER TABLE tbl ADD COLUMN col3 INT PRIMARY KEY NULL"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -210,9 +200,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void add_multiple_columns_adding_same_name_primitive_throws_an_exception() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE tbl (x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE tbl (x int)");
 
         // same name, same type
         assertThatThrownBy(() -> e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN int_col INTEGER, ADD COLUMN int_col INTEGER"))
@@ -227,9 +216,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_check_constraint_on_nested_object_sub_column_has_correct_type_and_expression() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (i int, o object)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (i int, o object)");
 
         var addColumnRequest = analyze("alter table t add column o1 object as (o2 object as (b int check (o1['o2']['b'] > 100)))");
         assertThat(addColumnRequest.references()).satisfiesExactly(
@@ -242,9 +230,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_check_constraint_cannot_be_added_to_nested_object_sub_column_without_full_path() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (i int, o object)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (i int, o object)");
 
         assertThatThrownBy(
             () -> analyze("alter table t add column o1 object as (o2 object as (b int check (b > 100)))"))

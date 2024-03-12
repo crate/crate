@@ -50,9 +50,8 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        executor = SQLExecutor.builder(clusterService)
-            .addTable(T1_DEFINITION)
-            .build();
+        executor = SQLExecutor.of(clusterService)
+            .addTable(T1_DEFINITION);
         t1Info = executor.schemas().getTableInfo(T1);
 
         DocTableRelation tableRelation = new DocTableRelation(t1Info);
