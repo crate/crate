@@ -76,7 +76,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("delete from sys.nodes where name='Trillian'"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.nodes\" doesn't support or allow DELETE " +
-                        "operations, as it is read-only.");
+                        "operations");
     }
 
     @Test

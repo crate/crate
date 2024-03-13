@@ -64,7 +64,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
     public void testSystemSchemaIsNotWritable() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT " +
-                                        "operations, as it is read-only.");
+                                        "operations");
 
         RelationName relationName = new RelationName("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);

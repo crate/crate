@@ -68,10 +68,10 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThatThrownBy(() -> e.plan("optimize table doc.v1"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"doc.v1\" doesn't support or allow OPTIMIZE operations, as it is read-only.");
+            .hasMessage("The relation \"doc.v1\" doesn't support or allow OPTIMIZE operations");
 
         assertThatThrownBy(() -> e.plan("refresh table doc.v1"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"doc.v1\" doesn't support or allow REFRESH operations, as it is read-only.");
+            .hasMessage("The relation \"doc.v1\" doesn't support or allow REFRESH operations");
     }
 }

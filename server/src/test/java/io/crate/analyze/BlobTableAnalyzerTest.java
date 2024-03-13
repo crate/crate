@@ -268,7 +268,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAlterBlobTableRenameTable() {
         assertThatThrownBy(() -> e.analyze("alter blob table blobs rename to blobbier"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations.");
+            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations");
     }
 
     @Test
@@ -282,7 +282,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAlterBlobTableOpenClose() {
         assertThatThrownBy(() -> e.analyze("alter blob table blobs close"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations.");
+            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations");
     }
 
     @Test

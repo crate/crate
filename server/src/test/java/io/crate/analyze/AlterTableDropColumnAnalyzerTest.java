@@ -225,7 +225,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         assertThatThrownBy(() -> e.analyze("ALTER TABLE sys.shards DROP COLUMN foobar"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow ALTER " +
-                "operations, as it is read-only.");
+                "operations");
     }
 
     @Test
