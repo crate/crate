@@ -26,23 +26,23 @@ import java.util.List;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRenameTable;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 
 class AlterTableAnalyzer {
@@ -92,7 +92,7 @@ class AlterTableAnalyzer {
     }
 
 
-    AnalyzedAlterTableRenameTable analyze(AlterTableRenameTable<Expression> node, SessionSettings sessionSettings) {
+    AnalyzedAlterTableRenameTable analyze(AlterTableRenameTable<Expression> node, CoordinatorSessionSettings sessionSettings) {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }
@@ -104,22 +104,19 @@ class AlterTableAnalyzer {
             throw new IllegalArgumentException("Target table name must not include a schema");
         }
 
-        RelationName sourceName;
-        if (node.blob()) {
-            sourceName = RelationName.fromBlobTable(node.table());
-        } else {
-            sourceName = schemas.resolveRelation(node.table().getName(), sessionSettings.searchPath());
-        }
-
-        boolean isPartitioned = false;
+        QualifiedName qName = node.blob()
+            ? RelationName.fromBlobTable(node.table()).toQualifiedName()
+            : node.table().getName();
+        RelationInfo source = schemas.resolveRelationInfo(
+            qName,
+            Operation.ALTER_TABLE_RENAME,
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
+        RelationName sourceName = source.ident();
         RelationName targetName = new RelationName(sourceName.schema(), newIdentParts.get(0));
         targetName.ensureValidForRelationCreation();
-        try {
-            DocTableInfo tableInfo = schemas.getTableInfo(sourceName, Operation.ALTER_TABLE_RENAME);
-            isPartitioned = tableInfo.isPartitioned();
-        } catch (RelationUnknown e) {
-            schemas.resolveView(node.table().getName(), sessionSettings.searchPath());
-        }
+        boolean isPartitioned = source instanceof DocTableInfo docTable && docTable.isPartitioned();
         return new AnalyzedAlterTableRenameTable(sourceName, targetName, isPartitioned);
     }
 
@@ -128,17 +125,21 @@ class AlterTableAnalyzer {
                                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsStrings = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+        CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+        var exprCtx = new ExpressionAnalysisContext(sessionSettings);
 
         Table<Symbol> table = node.table().map(x -> exprAnalyzerWithFieldsAsStrings.convert(x, exprCtx));
-        RelationName relationName;
-        if (node.blob()) {
-            relationName = RelationName.fromBlobTable(table);
-        } else {
-            relationName = schemas.resolveRelation(table.getName(), txnCtx.sessionSettings().searchPath());
-        }
+        QualifiedName qName = node.blob()
+            ? RelationName.fromBlobTable(node.table()).toQualifiedName()
+            : node.table().getName();
 
-        DocTableInfo tableInfo = schemas.getTableInfo(relationName, node.openTable() ? Operation.ALTER_OPEN : Operation.ALTER_CLOSE);
+        Operation operation = node.openTable() ? Operation.ALTER_OPEN : Operation.ALTER_CLOSE;
+        DocTableInfo tableInfo = schemas.resolveRelationInfo(
+            qName,
+            operation,
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
         return new AnalyzedAlterTableOpenClose(tableInfo, table, node.openTable());
     }
 }
