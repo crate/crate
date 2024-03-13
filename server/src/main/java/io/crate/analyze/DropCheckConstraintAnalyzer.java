@@ -42,11 +42,12 @@ class DropCheckConstraintAnalyzer {
     }
 
     public AnalyzedAlterTableDropCheckConstraint analyze(Table<?> table, String name, CoordinatorTxnCtx txnCtx) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             table.getName(),
             Operation.ALTER,
             txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
+            txnCtx.sessionSettings().searchPath()
+        );
         List<CheckConstraint<Symbol>> checkConstraints = tableInfo.checkConstraints();
         for (var checkConstraint : checkConstraints) {
             if (name.equals(checkConstraint.name())) {

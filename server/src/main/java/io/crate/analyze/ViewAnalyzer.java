@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.RelationUnknown;
@@ -36,8 +38,6 @@ import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
-
-import java.util.ArrayList;
 
 public final class ViewAnalyzer {
 
@@ -94,7 +94,7 @@ public final class ViewAnalyzer {
         ArrayList<RelationName> missing = new ArrayList<>();
         for (QualifiedName qualifiedName : dropView.names()) {
             try {
-                views.add(schemas.resolveView(qualifiedName, txnCtx.sessionSettings().searchPath()).name());
+                views.add(schemas.findView(qualifiedName, txnCtx.sessionSettings().searchPath()).name());
             } catch (RelationUnknown e) {
                 if (!dropView.ifExists()) {
                     missing.add(RelationName.of(qualifiedName, txnCtx.sessionSettings().searchPath().currentSchema()));

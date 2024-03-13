@@ -61,6 +61,7 @@ import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -115,22 +116,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         this.builtInSchemas = builtInSchemas;
     }
 
-    public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, Role user, SearchPath searchPath) {
-
-        RelationInfo relationInfo = resolveRelationInfo(ident, operation, user, searchPath);
-        // resolveRelationInfo must trigger an error via Operation.blockedRaiseException()
-        // for operations that don't work on non-TableInfo instances (like views)
-        //
-        // We cannot express that with the type system - so the else branch is kinda
-        // dead code that acts as assert
-        if (relationInfo instanceof TableInfo tableInfo) {
-            return tableInfo;
-        }
-        throw new OperationOnInaccessibleRelationException(
-            relationInfo.ident(),
-            "The relation " + relationInfo.ident().sqlFqn() + " doesn't support " + operation + " operations");
-    }
-
     private List<String> getSimilarTables(Role user, String tableName, Iterable<TableInfo> tables) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
@@ -178,68 +163,41 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
     }
 
-
     /**
-     * Resolves the provided ident relation (table or view) against the search path.
-     * @param ident
-     * @param searchPath
-     * @throws RelationUnknown in case a valid relation cannot be resolved in the search path.
-     * @return the corresponding RelationName
-     */
-    public RelationName resolveRelation(QualifiedName ident, SearchPath searchPath) {
-        String identSchema = schemaName(ident);
-        String relation = relationName(ident);
-
-        Metadata metadata = clusterService.state().metadata();
-        ViewsMetadata views = metadata.custom(ViewsMetadata.TYPE);
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
-        if (identSchema == null) {
-            for (String pathSchema : searchPath) {
-                RelationName tableOrViewRelation = getRelation(pathSchema, relation, views, foreignTables);
-                if (tableOrViewRelation != null) {
-                    return tableOrViewRelation;
-                }
-            }
-        } else {
-            RelationName tableOrViewRelation = getRelation(identSchema, relation, views, foreignTables);
-            if (tableOrViewRelation != null) {
-                return tableOrViewRelation;
-            }
-        }
-        throw new RelationUnknown(ident.toString());
-    }
-
-    @Nullable
-    private RelationName getRelation(String pathSchema,
-                                     String relation,
-                                     @Nullable ViewsMetadata views,
-                                     ForeignTablesMetadata foreignTables) {
-        SchemaInfo schemaInfo = schemas.get(pathSchema);
-        if (schemaInfo == null) {
-            return null;
-        }
-        TableInfo tableInfo = schemaInfo.getTableInfo(relation);
-        if (tableInfo != null) {
-            return new RelationName(pathSchema, relation);
-        }
-        RelationName relationName = new RelationName(pathSchema, relation);
-        if (views != null && views.contains(relationName)) {
-            return relationName;
-        }
-        if (foreignTables.contains(relationName)) {
-            return relationName;
-        }
-        return null;
-    }
-
-    public RelationInfo resolveRelationInfo(QualifiedName ident, Operation operation, Role user, SearchPath searchPath) {
-        String schemaName = schemaName(ident);
-        String tableName = relationName(ident);
+     * <p>
+     * Finds a relation matching the given qualified name.
+     * </p>
+     *
+     * <p>
+     * If the qualified name includes a schema it must be an exact match, otherwise
+     * it traverses through the search path and returns the first match on table
+     * name..
+     * </p>
+     *
+     * <p>
+     * The result type is generic and can be upcast to concrete instances like
+     * {@link DocTableInfo} if it is expected to be safe due to the
+     * {@link Operation} constraint.
+     * If the cast fails, this throws a {@link OperationOnInaccessibleRelationException}.
+     * </p>
+     *
+     * @param qName relation name in {@code <schema>.<tableName>} or {@code <tableName>} format.
+     * @throws RelationUnknown
+     * @throws SchemaUnknownException
+     * @throws OperationOnInaccessibleRelationException
+     **/
+    @SuppressWarnings("unchecked")
+    public <T extends RelationInfo> T findRelation(QualifiedName qName,
+                                                   Operation operation,
+                                                   Role user,
+                                                   SearchPath searchPath) {
+        String schemaName = schemaName(qName);
+        String tableName = relationName(qName);
 
         RelationInfo relationInfo = null;
         if (schemaName == null) {
             for (String schema : searchPath) {
-                relationInfo = resolveForeignTable(schema, tableName);
+                relationInfo = getForeignTable(schema, tableName);
                 if (relationInfo != null) {
                     break;
                 }
@@ -268,7 +226,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             }
         } else {
             if (relationInfo == null) {
-                relationInfo = resolveForeignTable(schemaName, tableName);
+                relationInfo = getForeignTable(schemaName, tableName);
             }
             if (relationInfo == null) {
                 SchemaInfo schemaInfo = schemas.get(schemaName);
@@ -286,7 +244,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             }
         }
         Operation.blockedRaiseException(relationInfo, operation);
-        return relationInfo;
+        try {
+            return (T) relationInfo;
+        } catch (ClassCastException e) {
+            throw new OperationOnInaccessibleRelationException(
+                relationInfo.ident(),
+                "The relation " + relationInfo.ident().sqlFqn() + " doesn't support " + operation + " operations");
+        }
     }
 
     @Nullable
@@ -478,7 +442,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
 
     @Nullable
-    private ForeignTable resolveForeignTable(String schemaName, String tableName) {
+    private ForeignTable getForeignTable(String schemaName, String tableName) {
         Metadata metadata = clusterService.state().metadata();
         ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
         if (foreignTables == null) {
@@ -490,7 +454,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     /**
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
-    public View resolveView(QualifiedName ident, SearchPath searchPath) {
+    public View findView(QualifiedName ident, SearchPath searchPath) {
         ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
         ViewMetadata metadata = null;
         RelationName name = null;
