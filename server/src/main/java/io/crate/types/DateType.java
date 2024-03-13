@@ -35,6 +35,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class DateType extends DataType<Long>
     implements FixedWidthType, Streamer<Long> {
@@ -134,5 +135,10 @@ public class DateType extends DataType<Long>
     @Override
     public long valueBytes(Long value) {
         return TYPE_SIZE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Long> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Long.class, DateType.this);
     }
 }

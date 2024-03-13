@@ -74,7 +74,7 @@ public final class TransportAnalyzeAction {
      *
      * In PostgreSQL `k` is configurable (per column). We don't support changing k, we default it to 100
      */
-    private static final int NUM_SAMPLES = 300 * MostCommonValues.MCV_TARGET;
+    private static final int NUM_SAMPLES = 30_000;
     private final TransportService transportService;
     private final Schemas schemas;
     private final ClusterService clusterService;
@@ -190,7 +190,7 @@ public final class TransportAnalyzeAction {
             discoveryNodes.getSize(),
             Collectors.reducing(
                 new FetchSampleResponse(Samples.EMPTY),
-                (FetchSampleResponse s1, FetchSampleResponse s2) -> FetchSampleResponse.merge(TransportAnalyzeAction.NUM_SAMPLES, s1, s2)),
+                FetchSampleResponse::merge),
             listener
         );
         ActionListenerResponseHandler<FetchSampleResponse> responseHandler = new ActionListenerResponseHandler<>(
@@ -202,7 +202,7 @@ public final class TransportAnalyzeAction {
             transportService.sendRequest(
                 node,
                 FETCH_SAMPLES,
-                new FetchSampleRequest(relationName, columns, TransportAnalyzeAction.NUM_SAMPLES),
+                new FetchSampleRequest(relationName, columns, NUM_SAMPLES),
                 responseHandler
             );
         }

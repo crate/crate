@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,37 +21,35 @@
 
 package io.crate.statistics;
 
-import java.io.IOException;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.List;
+import java.util.Map;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.test.ESTestCase;
 
-import io.crate.metadata.Reference;
+import io.crate.types.ArrayType;
+import io.crate.types.IntegerType;
+import io.crate.types.ObjectType;
 
-public final class FetchSampleResponse extends TransportResponse {
+public class ColumnSketchBuilderTest extends ESTestCase {
 
-    private final Samples samples;
+    public void test_array_stats() {
 
-    FetchSampleResponse(Samples samples) {
-        this.samples = samples;
+        var builder = new ColumnSketchBuilder.Composite<>(
+            new ArrayType<>(ObjectType.builder().setInnerType("id", IntegerType.INSTANCE).build())
+        );
+
+        builder.add(List.of(Map.of("id", 1)));
+        builder.add(List.of(Map.of("id", 2)));
+        builder.add(List.of(Map.of("id", 1)));
+
+        var stats = builder.toStats();
+
+        assertThat(stats.mostCommonValues().values()).containsExactly(
+            List.of(Map.of("id", 1)),
+            List.of(Map.of("id", 2))
+        );
     }
 
-    public FetchSampleResponse(List<Reference> references, StreamInput in) throws IOException {
-        this.samples = new Samples(references, in);
-    }
-
-    Samples samples() {
-        return samples;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        samples.writeTo(out);
-    }
-
-    public static FetchSampleResponse merge(FetchSampleResponse s1, FetchSampleResponse s2) {
-        return new FetchSampleResponse(Samples.merge(s1.samples(), s2.samples()));
-    }
 }
