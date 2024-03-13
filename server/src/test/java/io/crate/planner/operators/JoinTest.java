@@ -127,7 +127,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(5_000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         var plannerCtx = e.getPlannerContext(clusterService.state());
@@ -136,7 +136,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(tableName(nl.left())).isEqualTo("locations");
         assertThat(tableName(nl.right())).isEqualTo("users");
 
-        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(5_000, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
@@ -249,7 +249,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(5_000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
@@ -264,7 +264,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testNestedLoop_TablesAreNotSwitchedAfterOrderByPushDown() {
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(1000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         QueriedSelectRelation mss = e.analyze("select users.id from users, locations " +
