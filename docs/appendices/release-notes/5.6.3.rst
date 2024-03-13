@@ -92,3 +92,6 @@ Fixes
 
 - Fixed ``NullPointerException`` thrown when joining tables with ``USING``
   clause which contains columns not existing in either or both tables.
+
+- Fixed an issue that caused an inner join with a ``WHERE`` clause containing
+  a ``CASE`` expression to return invalid results.
