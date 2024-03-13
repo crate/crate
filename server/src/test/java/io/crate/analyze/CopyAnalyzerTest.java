@@ -137,7 +137,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage(
                 "The relation \"sys.shards\" doesn't support or allow INSERT " +
-                "operations, as it is read-only.");
+                "operations");
     }
 
     @Test
@@ -227,7 +227,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage(
                 "The relation \"sys.nodes\" doesn't support or allow COPY TO " +
-                "operations, as it is read-only.");
+                "operations");
     }
 
     @Test

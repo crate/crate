@@ -70,7 +70,7 @@ public class SwapTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSwapTableDoesNotWorkOnSystemTables() {
-        expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow ALTER operations, as it is read-only.");
+        expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow ALTER operations");
         e.analyze("alter cluster swap table sys.cluster to t2");
     }
 }

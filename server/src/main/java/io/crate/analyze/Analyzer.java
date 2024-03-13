@@ -695,7 +695,7 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitCreatePublication(CreatePublication createPublication,
                                                         Analysis context) {
-            return logicalReplicationAnalyzer.analyze(createPublication, context.sessionSettings());
+            return logicalReplicationAnalyzer.analyze(createPublication, context.transactionContext());
         }
 
         @Override

@@ -76,7 +76,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         assertThatThrownBy(() -> e.analyze("alter table sys.shards add column foobar string"))
             .hasMessage("The relation \"sys.shards\" doesn't support or allow ALTER " +
-                "operations, as it is read-only.");
+                "operations");
     }
 
     @Test

@@ -31,6 +31,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.InvalidArgumentException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.expression.symbol.Symbol;
@@ -40,7 +41,8 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.metadata.settings.SessionSettings;
+import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
@@ -69,17 +71,21 @@ public class LogicalReplicationAnalyzer {
         this.nodeCtx = nodeCtx;
     }
 
-    public AnalyzedCreatePublication analyze(CreatePublication createPublication, SessionSettings sessionSettings) {
+    public AnalyzedCreatePublication analyze(CreatePublication createPublication, CoordinatorTxnCtx txnCtx) {
         if (logicalReplicationService.publications().containsKey(createPublication.name())) {
             throw new PublicationAlreadyExistsException(createPublication.name());
         }
-
-        var defaultSchema = sessionSettings.searchPath().currentSchema();
         var tables = Lists.map(
             createPublication.tables(),
             q -> {
-                var relation = RelationName.of(q, defaultSchema);
-                if (schemas.getTableInfo(relation) instanceof DocTableInfo tableInfo) {
+                CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+                TableInfo tableInfo = schemas.resolveTableInfo(
+                    q,
+                    Operation.CREATE_PUBLICATION,
+                    sessionSettings.sessionUser(),
+                    sessionSettings.searchPath()
+                );
+                if (tableInfo instanceof DocTableInfo docTable) {
                     boolean softDeletes;
                     if ((softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(tableInfo.parameters())) == false) {
                         throw new UnsupportedOperationException(
@@ -87,15 +93,16 @@ public class LogicalReplicationAnalyzer {
                                 Locale.ENGLISH,
                                 "Tables included in a publication must have the table setting " +
                                 "'soft_deletes.enabled' set to `true`, current setting for table '%s': %b",
-                                relation,
+                                docTable.ident(),
                                 softDeletes)
                         );
                     }
+                    return tableInfo.ident();
                 } else {
-                    throw new RelationUnknown(relation);
+                    throw new OperationOnInaccessibleRelationException(
+                        tableInfo.ident(),
+                        "The relation " + tableInfo.ident() + " doesn't support CREATE PUBLICATION operations");
                 }
-
-                return relation;
             }
         );
 

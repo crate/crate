@@ -21,19 +21,20 @@
 
 package io.crate.metadata.table;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import io.crate.common.collections.MapBuilder;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.collections.Sets;
-import io.crate.metadata.RelationInfo;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.common.collections.MapBuilder;
+import io.crate.common.collections.Sets;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.metadata.RelationInfo;
 
 public enum Operation {
     READ("READ"),
@@ -52,7 +53,8 @@ public enum Operation {
     OPTIMIZE("OPTIMIZE"),
     COPY_TO("COPY TO"),
     RESTORE_SNAPSHOT("RESTORE SNAPSHOT"),
-    CREATE_SNAPSHOT("CREATE SNAPSHOT"),;
+    CREATE_SNAPSHOT("CREATE SNAPSHOT"),
+    CREATE_PUBLICATION("CREATE PUBLICATION");
 
     public static final EnumSet<Operation> ALL = EnumSet.allOf(Operation.class);
     public static final EnumSet<Operation> SYS_READ_ONLY = EnumSet.of(READ);
@@ -130,11 +132,8 @@ public enum Operation {
             } else if (relationInfo.supportedOperations().equals(PUBLISHED_IN_LOGICAL_REPLICATION)) {
                 exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
                                    "logical replication publication.";
-            } else if (relationInfo.supportedOperations().equals(SYS_READ_ONLY) ||
-                relationInfo.supportedOperations().equals(READ_ONLY)) {
-                exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is read-only.";
             } else {
-                exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations.";
+                exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations";
             }
             throw new OperationOnInaccessibleRelationException(relationInfo.ident(), String.format(Locale.ENGLISH,
                 exceptionMessage, relationInfo.ident().fqn(), operation));

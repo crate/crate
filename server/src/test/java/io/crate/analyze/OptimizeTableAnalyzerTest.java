@@ -75,7 +75,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testOptimizeSystemTable() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
-                                        "operations, as it is read-only.");
+                                        "operations");
         analyze("OPTIMIZE TABLE sys.shards");
     }
 
@@ -182,7 +182,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testOptimizeSysPartitioned() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
-                                        "operations, as it is read-only.");
+                                        "operations");
         analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')");
     }
 }
