@@ -1149,7 +1149,8 @@ a node. There are several pools, but the important ones include:
 * ``write``: For index, update and delete operations, defaults to fixed
 * ``search``: For count/search operations, defaults to fixed
 * ``get``: For queries on ``sys.shards`` and ``sys.nodes``, defaults to fixed.
-* ``refresh``: For refresh operations, defaults to cache
+* ``refresh``: For refresh operations, defaults to cache.
+* ``generic``: For internal tasks like cluster state management.
 * ``logical_replication``: For operations used by the logical replication, defaults to fixed.
 
 .. _thread_pool.<name>.type:
