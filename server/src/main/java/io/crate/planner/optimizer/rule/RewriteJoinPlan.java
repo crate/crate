@@ -76,7 +76,6 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                 join.joinCondition(),
                 join.isFiltered(),
                 false,
-                false,
                 false
             );
         }
