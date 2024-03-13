@@ -131,10 +131,14 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
         assertThatThrownBy(() -> e.plan("optimize table doc.tbl"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"doc.tbl\" doesn't support or allow OPTIMIZE operations.");
+            .hasMessage("The relation \"doc.tbl\" doesn't support or allow OPTIMIZE operations");
 
         assertThatThrownBy(() -> e.plan("refresh table doc.tbl"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"doc.tbl\" doesn't support or allow REFRESH operations.");
+            .hasMessage("The relation \"doc.tbl\" doesn't support or allow REFRESH operations");
+
+        assertThatThrownBy(() -> e.plan("create publication pub1 for table doc.tbl"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.tbl\" doesn't support or allow CREATE PUBLICATION operations");
     }
 }

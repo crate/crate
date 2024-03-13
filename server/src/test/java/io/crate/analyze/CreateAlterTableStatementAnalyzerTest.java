@@ -706,7 +706,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testAlterSystemTable() {
         assertThatThrownBy(() -> analyze("alter table sys.shards reset (number_of_replicas)"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"sys.shards\" doesn't support or allow ALTER operations, as it is read-only.");
+            .hasMessage("The relation \"sys.shards\" doesn't support or allow ALTER operations");
     }
 
     @Test

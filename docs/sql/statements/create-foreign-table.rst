@@ -43,6 +43,10 @@ to view the definition of an existing foreign table.
 
 Creating a foreign table requires ``AL`` permission on schema or cluster level.
 
+A foreign table cannot be used in :ref:`sql-create-publication` for logical
+replication.
+
+
 Clauses
 =======
 

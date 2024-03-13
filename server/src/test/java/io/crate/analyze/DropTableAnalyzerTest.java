@@ -67,7 +67,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("drop table sys.cluster"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.cluster\" doesn't support or allow DROP " +
-                        "operations, as it is read-only.");
+                        "operations");
     }
 
     @Test
@@ -75,7 +75,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("drop table information_schema.tables"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"information_schema.tables\" doesn't support or allow " +
-                        "DROP operations, as it is read-only.");
+                        "DROP operations");
     }
 
     @Test

@@ -168,7 +168,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateSysTables() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow UPDATE " +
-                                        "operations, as it is read-only.");
+                                        "operations");
         analyze("update sys.nodes set fs={\"free\"=0}");
     }
 

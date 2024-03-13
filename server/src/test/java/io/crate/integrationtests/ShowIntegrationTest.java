@@ -46,7 +46,7 @@ public class ShowIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("show create table sys.shards"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4007)
-            .hasMessageContaining("The relation \"sys.shards\" doesn't support or allow SHOW CREATE operations, as it is read-only.");
+            .hasMessageContaining("The relation \"sys.shards\" doesn't support or allow SHOW CREATE operations");
     }
 
     @Test
@@ -55,7 +55,7 @@ public class ShowIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("show create table blob.table_blob"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4007)
-            .hasMessageContaining("The relation \"blob.table_blob\" doesn't support or allow SHOW CREATE operations.");
+            .hasMessageContaining("The relation \"blob.table_blob\" doesn't support or allow SHOW CREATE operations");
     }
 
     @Test

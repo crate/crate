@@ -214,7 +214,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThatThrownBy(() -> analyze(e, "CREATE SNAPSHOT my_repo.my_snapshot TABLE sys.shards"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow " +
-                        "CREATE SNAPSHOT operations, as it is read-only.");
+                        "CREATE SNAPSHOT operations");
     }
 
     @Test
@@ -228,7 +228,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCreateSnapshotFromBlobTable() throws Exception {
         assertThatThrownBy(() -> analyze(e, "CREATE SNAPSHOT my_repo.my_snapshot TABLE blob.my_blobs"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"blob.my_blobs\" doesn't support or allow CREATE SNAPSHOT operations.");
+            .hasMessage("The relation \"blob.my_blobs\" doesn't support or allow CREATE SNAPSHOT operations");
     }
 
     @Test
