@@ -66,7 +66,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
 
     private final boolean isFiltered;
     private boolean orderByWasPushedDown = false;
-    private final boolean joinConditionOptimised;
     // this can be removed
     private boolean rewriteNestedLoopJoinToHashJoinDone = false;
 
@@ -74,11 +73,9 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                    LogicalPlan rhs,
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
-                   boolean isFiltered,
-                   boolean joinConditionOptimised) {
+                   boolean isFiltered) {
         super(lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered || joinCondition != null;
-        this.joinConditionOptimised = joinConditionOptimised;
     }
 
     public NestedLoopJoin(LogicalPlan lhs,
@@ -87,9 +84,8 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                           @Nullable Symbol joinCondition,
                           boolean isFiltered,
                           boolean orderByWasPushedDown,
-                          boolean joinConditionOptimised,
                           boolean rewriteEquiJoinToHashJoinDone) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, joinConditionOptimised);
+        this(lhs, rhs, joinType, joinCondition, isFiltered);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteNestedLoopJoinToHashJoinDone = rewriteEquiJoinToHashJoinDone;
     }
@@ -97,11 +93,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     public boolean isRewriteNestedLoopJoinToHashJoinDone() {
         return rewriteNestedLoopJoinToHashJoinDone;
     }
-
-    public boolean isJoinConditionOptimised() {
-        return joinConditionOptimised;
-    }
-
 
     public boolean isFiltered() {
         return isFiltered;
@@ -230,7 +221,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             joinCondition,
             isFiltered,
             orderByWasPushedDown,
-            joinConditionOptimised,
             rewriteNestedLoopJoinToHashJoinDone
         );
     }
@@ -259,7 +249,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             joinCondition,
             isFiltered,
             orderByWasPushedDown,
-            joinConditionOptimised,
             rewriteNestedLoopJoinToHashJoinDone
         );
     }
@@ -294,7 +283,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                 joinCondition,
                 isFiltered,
                 orderByWasPushedDown,
-                joinConditionOptimised,
                 rewriteNestedLoopJoinToHashJoinDone
             )
         );
