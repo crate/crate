@@ -160,7 +160,7 @@ public class CreateSnapshotPlan implements Plan {
             for (Table<Symbol> table : createSnapshot.tables()) {
                 DocTableInfo docTableInfo;
                 try {
-                    docTableInfo = schemas.resolveRelationInfo(
+                    docTableInfo = schemas.findRelation(
                         table.getName(),
                         Operation.CREATE_SNAPSHOT,
                         txnCtx.sessionSettings().sessionUser(),

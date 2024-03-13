@@ -111,7 +111,7 @@ class InsertAnalyzer {
                 throw new IllegalArgumentException("column \"" + columnName + "\" specified more than once");
             }
         }
-        DocTableInfo tableInfo = schemas.resolveRelationInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             insert.table().getName(),
             Operation.INSERT,
             txnCtx.sessionSettings().sessionUser(),

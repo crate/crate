@@ -56,7 +56,7 @@ class RefreshTableAnalyzer {
         HashMap<Table<Symbol>, DocTableInfo> analyzedTables = new HashMap<>();
         for (var table : refreshStatement.tables()) {
             var analyzedTable = table.map(t -> exprAnalyzerWithFieldsAsString.convert(t, exprCtx));
-            DocTableInfo tableInfo = schemas.resolveRelationInfo(
+            DocTableInfo tableInfo = schemas.findRelation(
                 table.getName(),
                 Operation.REFRESH,
                 txnCtx.sessionSettings().sessionUser(),

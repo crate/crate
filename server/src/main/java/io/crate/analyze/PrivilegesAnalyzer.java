@@ -239,7 +239,7 @@ class PrivilegesAnalyzer {
                                                             boolean isRevoke) {
         return Lists.map(relations, q -> {
             try {
-                RelationInfo relation = schemas.resolveRelationInfo(q, Operation.READ, sessionUser, searchPath);
+                RelationInfo relation = schemas.findRelation(q, Operation.READ, sessionUser, searchPath);
                 RelationName relationName = relation.ident();
                 if (!isRevoke) {
                     validateSchemaName(relationName.schema());

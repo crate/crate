@@ -64,7 +64,7 @@ public class AlterTableRenameColumnAnalyzer {
         }
 
         CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
-        DocTableInfo tableInfo = schemas.resolveRelationInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             renameColumn.table().getName(),
             Operation.ALTER,
             sessionSettings.sessionUser(),

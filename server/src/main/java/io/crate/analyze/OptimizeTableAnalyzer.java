@@ -58,7 +58,7 @@ public class OptimizeTableAnalyzer {
 
         HashMap<Table<Symbol>, TableInfo> analyzedOptimizeTables = new HashMap<>();
         for (Table<Symbol> table : analyzedStatement.tables()) {
-            TableInfo tableInfo = schemas.resolveRelationInfo(
+            TableInfo tableInfo = schemas.findRelation(
                 table.getName(),
                 Operation.OPTIMIZE,
                 txnCtx.sessionSettings().sessionUser(),

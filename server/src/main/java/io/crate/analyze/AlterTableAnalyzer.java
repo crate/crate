@@ -64,7 +64,7 @@ class AlterTableAnalyzer {
         CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
         var exprCtx = new ExpressionAnalysisContext(sessionSettings);
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
-        DocTableInfo docTableInfo = schemas.resolveRelationInfo(
+        DocTableInfo docTableInfo = schemas.findRelation(
             alterTable.table().getName(),
             Operation.ALTER_BLOCKS,
             sessionSettings.sessionUser(),
@@ -107,7 +107,7 @@ class AlterTableAnalyzer {
         QualifiedName qName = node.blob()
             ? RelationName.fromBlobTable(node.table()).toQualifiedName()
             : node.table().getName();
-        RelationInfo source = schemas.resolveRelationInfo(
+        RelationInfo source = schemas.findRelation(
             qName,
             Operation.ALTER_TABLE_RENAME,
             sessionSettings.sessionUser(),
@@ -134,7 +134,7 @@ class AlterTableAnalyzer {
             : node.table().getName();
 
         Operation operation = node.openTable() ? Operation.ALTER_OPEN : Operation.ALTER_CLOSE;
-        DocTableInfo tableInfo = schemas.resolveRelationInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             qName,
             operation,
             sessionSettings.sessionUser(),

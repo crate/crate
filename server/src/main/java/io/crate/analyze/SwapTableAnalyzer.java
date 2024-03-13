@@ -68,8 +68,8 @@ public final class SwapTableAnalyzer {
         SearchPath searchPath = txnCtx.sessionSettings().searchPath();
         Role user = txnCtx.sessionSettings().sessionUser();
         return new AnalyzedSwapTable(
-            schemas.resolveRelationInfo(swapTable.source(), Operation.ALTER, user, searchPath),
-            schemas.resolveRelationInfo(swapTable.target(), Operation.ALTER, user, searchPath),
+            schemas.findRelation(swapTable.source(), Operation.ALTER, user, searchPath),
+            schemas.findRelation(swapTable.target(), Operation.ALTER, user, searchPath),
             dropSource
         );
     }

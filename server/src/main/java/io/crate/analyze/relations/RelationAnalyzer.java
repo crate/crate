@@ -702,7 +702,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (withQuery != null) {
             relation = withQuery;
         } else {
-            RelationInfo relationInfo = schemas.resolveRelationInfo(
+            RelationInfo relationInfo = schemas.findRelation(
                 tableQualifiedName, context.currentOperation(), context.sessionSettings().sessionUser(), searchPath);
             switch (relationInfo) {
                 case DocTableInfo docTable ->

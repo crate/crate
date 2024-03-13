@@ -57,7 +57,7 @@ class CopyAnalyzer {
                                      ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx txnCtx) {
         CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
-        DocTableInfo tableInfo = schemas.resolveRelationInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             node.table().getName(),
             Operation.INSERT,
             sessionSettings.sessionUser(),
@@ -105,7 +105,7 @@ class CopyAnalyzer {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is not supported");
         }
 
-        DocTableInfo tableInfo = schemas.resolveRelationInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             node.table().getName(),
             Operation.COPY_TO,
             txnCtx.sessionSettings().sessionUser(),

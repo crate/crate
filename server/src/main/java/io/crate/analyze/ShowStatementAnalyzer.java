@@ -90,7 +90,7 @@ class ShowStatementAnalyzer {
 
     public AnalyzedStatement analyzeShowCreateTable(Table<?> table, Analysis analysis) {
         CoordinatorSessionSettings sessionSettings = analysis.sessionSettings();
-        RelationInfo relation = schemas.resolveRelationInfo(
+        RelationInfo relation = schemas.findRelation(
             table.getName(),
             Operation.SHOW_CREATE,
             sessionSettings.sessionUser(),

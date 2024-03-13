@@ -42,7 +42,7 @@ class DropCheckConstraintAnalyzer {
     }
 
     public AnalyzedAlterTableDropCheckConstraint analyze(Table<?> table, String name, CoordinatorTxnCtx txnCtx) {
-        DocTableInfo tableInfo = schemas.resolveRelationInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             table.getName(),
             Operation.ALTER,
             txnCtx.sessionSettings().sessionUser(),

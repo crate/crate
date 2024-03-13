@@ -683,7 +683,7 @@ public class SQLExecutor {
     public <T extends RelationInfo> T resolveTableInfo(String tableName) {
         IndexParts indexParts = new IndexParts(tableName);
         QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
-        return schemas.resolveRelationInfo(
+        return schemas.findRelation(
             qualifiedName,
             Operation.READ,
             sessionSettings.sessionUser(),
