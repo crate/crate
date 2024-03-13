@@ -31,7 +31,6 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.InvalidArgumentException;
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.expression.symbol.Symbol;
@@ -42,7 +41,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
@@ -79,30 +77,24 @@ public class LogicalReplicationAnalyzer {
             createPublication.tables(),
             q -> {
                 CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
-                TableInfo tableInfo = schemas.resolveTableInfo(
+                DocTableInfo tableInfo = schemas.resolveRelationInfo(
                     q,
                     Operation.CREATE_PUBLICATION,
                     sessionSettings.sessionUser(),
                     sessionSettings.searchPath()
                 );
-                if (tableInfo instanceof DocTableInfo docTable) {
-                    boolean softDeletes;
-                    if ((softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(tableInfo.parameters())) == false) {
-                        throw new UnsupportedOperationException(
-                            String.format(
-                                Locale.ENGLISH,
-                                "Tables included in a publication must have the table setting " +
-                                "'soft_deletes.enabled' set to `true`, current setting for table '%s': %b",
-                                docTable.ident(),
-                                softDeletes)
-                        );
-                    }
-                    return tableInfo.ident();
-                } else {
-                    throw new OperationOnInaccessibleRelationException(
-                        tableInfo.ident(),
-                        "The relation " + tableInfo.ident() + " doesn't support CREATE PUBLICATION operations");
+                boolean softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(tableInfo.parameters());
+                if (softDeletes == false) {
+                    throw new UnsupportedOperationException(
+                        String.format(
+                            Locale.ENGLISH,
+                            "Tables included in a publication must have the table setting " +
+                            "'soft_deletes.enabled' set to `true`, current setting for table '%s': %b",
+                            tableInfo.ident(),
+                            softDeletes)
+                    );
                 }
+                return tableInfo.ident();
             }
         );
 

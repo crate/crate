@@ -61,6 +61,7 @@ import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -113,22 +114,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         this.roles = roles;
         schemas.putAll(builtInSchemas);
         this.builtInSchemas = builtInSchemas;
-    }
-
-    public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, Role user, SearchPath searchPath) {
-
-        RelationInfo relationInfo = resolveRelationInfo(ident, operation, user, searchPath);
-        // resolveRelationInfo must trigger an error via Operation.blockedRaiseException()
-        // for operations that don't work on non-TableInfo instances (like views)
-        //
-        // We cannot express that with the type system - so the else branch is kinda
-        // dead code that acts as assert
-        if (relationInfo instanceof TableInfo tableInfo) {
-            return tableInfo;
-        }
-        throw new OperationOnInaccessibleRelationException(
-            relationInfo.ident(),
-            "The relation " + relationInfo.ident().sqlFqn() + " doesn't support " + operation + " operations");
     }
 
     private List<String> getSimilarTables(Role user, String tableName, Iterable<TableInfo> tables) {
@@ -232,9 +217,36 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return null;
     }
 
-    public RelationInfo resolveRelationInfo(QualifiedName ident, Operation operation, Role user, SearchPath searchPath) {
-        String schemaName = schemaName(ident);
-        String tableName = relationName(ident);
+    /**
+     * <p>
+     * Return a relation matching the given qualified name.
+     * </p>
+     *
+     * <p>
+     * If the qualified name includes a schema it must be an exact match, otherwise
+     * it traverses through the search path and returns the first match on table
+     * name..
+     * </p>
+     *
+     * <p>
+     * The result type is generic and can be upcast to concrete instances like
+     * {@link DocTableInfo} if it is expected to be safe due to the
+     * {@link Operation} constraint.
+     * If the cast fails, this throws a {@link OperationOnInaccessibleRelationException}.
+     * </p>
+     *
+     * @param qName relation name in {@code <schema>.<tableName>} or {@code <tableName>} format.
+     * @throws RelationUnknown
+     * @throws SchemaUnknownException
+     * @throws OperationOnInaccessibleRelationException
+     **/
+    @SuppressWarnings("unchecked")
+    public <T extends RelationInfo> T resolveRelationInfo(QualifiedName qName,
+                                                          Operation operation,
+                                                          Role user,
+                                                          SearchPath searchPath) {
+        String schemaName = schemaName(qName);
+        String tableName = relationName(qName);
 
         RelationInfo relationInfo = null;
         if (schemaName == null) {
@@ -286,7 +298,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             }
         }
         Operation.blockedRaiseException(relationInfo, operation);
-        return relationInfo;
+        try {
+            return (T) relationInfo;
+        } catch (ClassCastException e) {
+            throw new OperationOnInaccessibleRelationException(
+                relationInfo.ident(),
+                "The relation " + relationInfo.ident().sqlFqn() + " doesn't support " + operation + " operations");
+        }
     }
 
     @Nullable

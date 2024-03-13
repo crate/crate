@@ -41,6 +41,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableRenameColumn;
 import io.crate.sql.tree.Expression;
@@ -62,11 +63,13 @@ public class AlterTableRenameColumnAnalyzer {
             throw new UnsupportedOperationException("Renaming a column from a single partition is not supported");
         }
 
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+        DocTableInfo tableInfo = schemas.resolveRelationInfo(
             renameColumn.table().getName(),
             Operation.ALTER,
-            txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
         if (tableInfo.versionCreated().before(Version.V_5_5_0)) {
             throw new UnsupportedOperationException(
                 "Renaming columns of a table created before version 5.5 is not supported"
@@ -79,7 +82,7 @@ public class AlterTableRenameColumnAnalyzer {
             new FieldProviderResolvesUnknownColumns(tableInfo),
             null
         );
-        var expressionContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+        var expressionContext = new ExpressionAnalysisContext(sessionSettings);
 
         Reference sourceRef = (Reference) expressionAnalyzer.convert(renameColumn.column(), expressionContext);
         Reference targetRef = (Reference) expressionAnalyzer.convert(renameColumn.newName(), expressionContext);
