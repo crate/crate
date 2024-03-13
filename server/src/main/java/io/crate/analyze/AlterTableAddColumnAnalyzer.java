@@ -45,12 +45,12 @@ class AlterTableAddColumnAnalyzer {
         if (!alterTable.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        DocTableInfo tableInfo = schemas.resolveRelationInfo(
             alterTable.table().getName(),
             Operation.ALTER,
             txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
-
+            txnCtx.sessionSettings().searchPath()
+        );
         var analyzer = new TableElementsAnalyzer(tableInfo, txnCtx, nodeCtx, paramTypeHints);
         return analyzer.analyze(alterTable);
     }

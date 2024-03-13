@@ -37,11 +37,11 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -160,11 +160,12 @@ public class CreateSnapshotPlan implements Plan {
             for (Table<Symbol> table : createSnapshot.tables()) {
                 DocTableInfo docTableInfo;
                 try {
-                    docTableInfo = (DocTableInfo) schemas.resolveTableInfo(
+                    docTableInfo = schemas.resolveRelationInfo(
                         table.getName(),
                         Operation.CREATE_SNAPSHOT,
                         txnCtx.sessionSettings().sessionUser(),
-                        txnCtx.sessionSettings().searchPath());
+                        txnCtx.sessionSettings().searchPath()
+                    );
                 } catch (Exception e) {
                     if (ignoreUnavailable && e instanceof ResourceUnknownException) {
                         LOGGER.info(

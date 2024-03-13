@@ -35,6 +35,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterBlobTable;
@@ -59,15 +60,16 @@ class AlterTableAnalyzer {
                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
+        CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+        var exprCtx = new ExpressionAnalysisContext(sessionSettings);
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
-
-        DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        DocTableInfo docTableInfo = schemas.resolveRelationInfo(
             alterTable.table().getName(),
             Operation.ALTER_BLOCKS,
-            txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
 
         return new AnalyzedAlterTable(docTableInfo, alterTable);
     }

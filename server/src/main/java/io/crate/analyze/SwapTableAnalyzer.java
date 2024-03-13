@@ -32,11 +32,10 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.role.Role;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SwapTable;
-import io.crate.role.Role;
 
 public final class SwapTableAnalyzer {
 
@@ -69,8 +68,8 @@ public final class SwapTableAnalyzer {
         SearchPath searchPath = txnCtx.sessionSettings().searchPath();
         Role user = txnCtx.sessionSettings().sessionUser();
         return new AnalyzedSwapTable(
-            (DocTableInfo) schemas.resolveTableInfo(swapTable.source(), Operation.ALTER, user, searchPath),
-            (DocTableInfo) schemas.resolveTableInfo(swapTable.target(), Operation.ALTER, user, searchPath),
+            schemas.resolveRelationInfo(swapTable.source(), Operation.ALTER, user, searchPath),
+            schemas.resolveRelationInfo(swapTable.target(), Operation.ALTER, user, searchPath),
             dropSource
         );
     }

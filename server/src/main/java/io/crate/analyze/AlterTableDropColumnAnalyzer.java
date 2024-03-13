@@ -40,6 +40,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.Expression;
@@ -61,12 +62,13 @@ public class AlterTableDropColumnAnalyzer {
             throw new UnsupportedOperationException("Dropping a column from a single partition is not supported");
         }
 
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+        DocTableInfo tableInfo = schemas.resolveRelationInfo(
             alterTable.table().getName(),
             Operation.ALTER,
-            txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
-
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
         var expressionAnalyzer = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,
@@ -74,7 +76,7 @@ public class AlterTableDropColumnAnalyzer {
             new NameFieldProvider(new DocTableRelation(tableInfo)),
             null
         );
-        var expressionContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+        var expressionContext = new ExpressionAnalysisContext(sessionSettings);
         List<DropColumn> dropColumns = new ArrayList<>(alterTable.tableElements().size());
 
         for (var dropColumnDefinition : alterTable.tableElements()) {

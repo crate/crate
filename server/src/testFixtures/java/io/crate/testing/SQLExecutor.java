@@ -144,6 +144,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
@@ -679,11 +680,15 @@ public class SQLExecutor {
         return sessionSettings;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T extends TableInfo> T resolveTableInfo(String tableName) {
+    public <T extends RelationInfo> T resolveTableInfo(String tableName) {
         IndexParts indexParts = new IndexParts(tableName);
         QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
-        return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
+        return schemas.resolveRelationInfo(
+            qualifiedName,
+            Operation.READ,
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
     }
 
     public Session createSession() {
