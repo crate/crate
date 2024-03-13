@@ -163,60 +163,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
     }
 
-
-    /**
-     * Resolves the provided ident relation (table or view) against the search path.
-     * @param ident
-     * @param searchPath
-     * @throws RelationUnknown in case a valid relation cannot be resolved in the search path.
-     * @return the corresponding RelationName
-     */
-    public RelationName resolveRelation(QualifiedName ident, SearchPath searchPath) {
-        String identSchema = schemaName(ident);
-        String relation = relationName(ident);
-
-        Metadata metadata = clusterService.state().metadata();
-        ViewsMetadata views = metadata.custom(ViewsMetadata.TYPE);
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
-        if (identSchema == null) {
-            for (String pathSchema : searchPath) {
-                RelationName tableOrViewRelation = getRelation(pathSchema, relation, views, foreignTables);
-                if (tableOrViewRelation != null) {
-                    return tableOrViewRelation;
-                }
-            }
-        } else {
-            RelationName tableOrViewRelation = getRelation(identSchema, relation, views, foreignTables);
-            if (tableOrViewRelation != null) {
-                return tableOrViewRelation;
-            }
-        }
-        throw new RelationUnknown(ident.toString());
-    }
-
-    @Nullable
-    private RelationName getRelation(String pathSchema,
-                                     String relation,
-                                     @Nullable ViewsMetadata views,
-                                     ForeignTablesMetadata foreignTables) {
-        SchemaInfo schemaInfo = schemas.get(pathSchema);
-        if (schemaInfo == null) {
-            return null;
-        }
-        TableInfo tableInfo = schemaInfo.getTableInfo(relation);
-        if (tableInfo != null) {
-            return new RelationName(pathSchema, relation);
-        }
-        RelationName relationName = new RelationName(pathSchema, relation);
-        if (views != null && views.contains(relationName)) {
-            return relationName;
-        }
-        if (foreignTables.contains(relationName)) {
-            return relationName;
-        }
-        return null;
-    }
-
     /**
      * <p>
      * Return a relation matching the given qualified name.

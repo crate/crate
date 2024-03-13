@@ -33,10 +33,12 @@ import org.jetbrains.annotations.NotNull;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.role.GrantedRolesChange;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
@@ -83,6 +85,7 @@ class PrivilegesAnalyzer {
         }
         Securable securable = Securable.valueOf(node.securable());
         List<String> idents = validatePrivilegeIdents(
+            grantor,
             securable,
             node.privilegeIdents(),
             policy == Policy.REVOKE,
@@ -159,7 +162,8 @@ class PrivilegesAnalyzer {
         }
     }
 
-    private List<String> validatePrivilegeIdents(Securable securable,
+    private List<String> validatePrivilegeIdents(Role sessionUser,
+                                                 Securable securable,
                                                  List<QualifiedName> tableOrSchemaNames,
                                                  boolean isRevoke,
                                                  SearchPath searchPath,
@@ -172,7 +176,7 @@ class PrivilegesAnalyzer {
             validateSchemaNames(schemaNames);
             return schemaNames;
         } else {
-            return resolveAndValidateRelations(tableOrSchemaNames, searchPath, schemas, isRevoke);
+            return resolveAndValidateRelations(tableOrSchemaNames, sessionUser, searchPath, schemas, isRevoke);
         }
     }
 
@@ -229,12 +233,14 @@ class PrivilegesAnalyzer {
     }
 
     private static List<String> resolveAndValidateRelations(List<QualifiedName> relations,
+                                                            Role sessionUser,
                                                             SearchPath searchPath,
                                                             Schemas schemas,
                                                             boolean isRevoke) {
         return Lists.map(relations, q -> {
             try {
-                RelationName relationName = schemas.resolveRelation(q, searchPath);
+                RelationInfo relation = schemas.resolveRelationInfo(q, Operation.READ, sessionUser, searchPath);
+                RelationName relationName = relation.ident();
                 if (!isRevoke) {
                     validateSchemaName(relationName.schema());
                 }

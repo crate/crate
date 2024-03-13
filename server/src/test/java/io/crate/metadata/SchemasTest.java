@@ -198,40 +198,4 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.schema(), is("schema"));
         assertThat(relation.name(), is("t"));
     }
-
-    @Test
-    public void testResolveRelationThrowsRelationUnknownfForInvalidFQN() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "schema");
-        QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
-
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'bogus_schema.t' unknown");
-        sqlExecutor.schemas().resolveRelation(invalidFqn, sqlExecutor.getSessionSettings().searchPath());
-    }
-
-    @Test
-    public void testResolveRelationThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema");
-        QualifiedName table = QualifiedName.of("missing_table");
-
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'missing_table' unknown");
-        sqlExecutor.schemas().resolveRelation(table, sqlExecutor.getSessionSettings().searchPath());
-    }
-
-    @Test
-    public void testResolveRelationForTableAndView() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
-            .addView(new RelationName("schema", "view"), "select 1");
-
-        QualifiedName table = QualifiedName.of("t");
-        RelationName tableRelation = sqlExecutor.schemas().resolveRelation(table, sqlExecutor.getSessionSettings().searchPath());
-        assertThat(tableRelation.schema(), is("schema"));
-        assertThat(tableRelation.name(), is("t"));
-
-        QualifiedName view = QualifiedName.of("view");
-        RelationName viewRelation = sqlExecutor.schemas().resolveRelation(view, sqlExecutor.getSessionSettings().searchPath());
-        assertThat(viewRelation.schema(), is("schema"));
-        assertThat(viewRelation.name(), is("view"));
-    }
 }
