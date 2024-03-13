@@ -47,11 +47,12 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Sets;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
@@ -115,45 +116,19 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, Role user, SearchPath searchPath) {
-        String identSchema = schemaName(ident);
-        String tableName = relationName(ident);
 
-        SchemaInfo schemaInfo;
-        TableInfo tableInfo = null;
-        if (identSchema == null) {
-            for (String pathSchema : searchPath) {
-                schemaInfo = schemas.get(pathSchema);
-                if (schemaInfo != null) {
-                    tableInfo = schemaInfo.getTableInfo(tableName);
-                    if (tableInfo != null) {
-                        break;
-                    }
-                }
-            }
-            if (tableInfo == null) {
-                SchemaInfo currentSchema = schemas.get(searchPath.currentSchema());
-                if (currentSchema == null) {
-                    throw new RelationUnknown(tableName);
-                } else {
-                    throw RelationUnknown.of(
-                        tableName,
-                        getSimilarTables(user, tableName, currentSchema.getTables()));
-                }
-            }
-        } else {
-            schemaInfo = schemas.get(identSchema);
-            if (schemaInfo == null) {
-                throw SchemaUnknownException.of(identSchema, getSimilarSchemas(user, identSchema));
-            } else {
-                tableInfo = schemaInfo.getTableInfo(tableName);
-                if (tableInfo == null) {
-                    throw RelationUnknown.of(identSchema + "." + tableName,
-                                             getSimilarTables(user, tableName, schemaInfo.getTables()));
-                }
-            }
+        RelationInfo relationInfo = resolveRelationInfo(ident, operation, user, searchPath);
+        // resolveRelationInfo must trigger an error via Operation.blockedRaiseException()
+        // for operations that don't work on non-TableInfo instances (like views)
+        //
+        // We cannot express that with the type system - so the else branch is kinda
+        // dead code that acts as assert
+        if (relationInfo instanceof TableInfo tableInfo) {
+            return tableInfo;
         }
-        Operation.blockedRaiseException(tableInfo, operation);
-        return tableInfo;
+        throw new OperationOnInaccessibleRelationException(
+            relationInfo.ident(),
+            "The relation " + relationInfo.ident().sqlFqn() + " doesn't support " + operation + " operations");
     }
 
     private List<String> getSimilarTables(Role user, String tableName, Iterable<TableInfo> tables) {
@@ -503,7 +478,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
 
     @Nullable
-    public ForeignTable resolveForeignTable(String schemaName, String tableName) {
+    private ForeignTable resolveForeignTable(String schemaName, String tableName) {
         Metadata metadata = clusterService.state().metadata();
         ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
         if (foreignTables == null) {
