@@ -165,7 +165,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     /**
      * <p>
-     * Return a relation matching the given qualified name.
+     * Finds a relation matching the given qualified name.
      * </p>
      *
      * <p>
@@ -187,17 +187,17 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws OperationOnInaccessibleRelationException
      **/
     @SuppressWarnings("unchecked")
-    public <T extends RelationInfo> T resolveRelationInfo(QualifiedName qName,
-                                                          Operation operation,
-                                                          Role user,
-                                                          SearchPath searchPath) {
+    public <T extends RelationInfo> T findRelation(QualifiedName qName,
+                                                   Operation operation,
+                                                   Role user,
+                                                   SearchPath searchPath) {
         String schemaName = schemaName(qName);
         String tableName = relationName(qName);
 
         RelationInfo relationInfo = null;
         if (schemaName == null) {
             for (String schema : searchPath) {
-                relationInfo = resolveForeignTable(schema, tableName);
+                relationInfo = getForeignTable(schema, tableName);
                 if (relationInfo != null) {
                     break;
                 }
@@ -226,7 +226,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             }
         } else {
             if (relationInfo == null) {
-                relationInfo = resolveForeignTable(schemaName, tableName);
+                relationInfo = getForeignTable(schemaName, tableName);
             }
             if (relationInfo == null) {
                 SchemaInfo schemaInfo = schemas.get(schemaName);
@@ -442,7 +442,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
 
     @Nullable
-    private ForeignTable resolveForeignTable(String schemaName, String tableName) {
+    private ForeignTable getForeignTable(String schemaName, String tableName) {
         Metadata metadata = clusterService.state().metadata();
         ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
         if (foreignTables == null) {
@@ -454,7 +454,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     /**
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
-    public View resolveView(QualifiedName ident, SearchPath searchPath) {
+    public View findView(QualifiedName ident, SearchPath searchPath) {
         ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
         ViewMetadata metadata = null;
         RelationName name = null;

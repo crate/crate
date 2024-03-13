@@ -76,7 +76,7 @@ class DropTableAnalyzer {
         RelationName tableName;
         boolean maybeCorrupt = false;
         try {
-            tableInfo = schemas.resolveRelationInfo(
+            tableInfo = schemas.findRelation(
                 name,
                 Operation.DROP,
                 sessionSettings.sessionUser(),

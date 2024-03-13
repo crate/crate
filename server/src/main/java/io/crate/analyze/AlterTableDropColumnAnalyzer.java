@@ -63,7 +63,7 @@ public class AlterTableDropColumnAnalyzer {
         }
 
         CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
-        DocTableInfo tableInfo = schemas.resolveRelationInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             alterTable.table().getName(),
             Operation.ALTER,
             sessionSettings.sessionUser(),

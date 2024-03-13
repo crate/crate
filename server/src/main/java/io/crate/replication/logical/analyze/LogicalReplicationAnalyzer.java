@@ -77,7 +77,7 @@ public class LogicalReplicationAnalyzer {
             createPublication.tables(),
             q -> {
                 CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
-                DocTableInfo tableInfo = schemas.resolveRelationInfo(
+                DocTableInfo tableInfo = schemas.findRelation(
                     q,
                     Operation.CREATE_PUBLICATION,
                     sessionSettings.sessionUser(),

@@ -72,7 +72,7 @@ public class AlterTableRerouteAnalyzer {
             : table.getName();
 
         CoordinatorSessionSettings sessionSettings = transactionContext.sessionSettings();
-        tableInfo = schemas.resolveRelationInfo(
+        tableInfo = schemas.findRelation(
             qName,
             Operation.ALTER_REROUTE,
             sessionSettings.sessionUser(),
