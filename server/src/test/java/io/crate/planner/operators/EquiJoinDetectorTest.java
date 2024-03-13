@@ -76,6 +76,9 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
     public void testNotPossibleOnInnerContainingEqOrAnyCondition() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.x = t2.y and t1.a = t2.b or t1.i = t2.i");
         assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+
+        joinCondition = sqlExpressions.asSymbol("(t1.a = t2.b or t1.x = t2.y) and t1.i = t2.i");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 
     @Test
@@ -108,6 +111,13 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
         assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
 
         joinCondition = sqlExpressions.asSymbol("t1.x = t1.i");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+    }
+
+    // tracks a bug : https://github.com/crate/crate/issues/15613
+    @Test
+    public void test_equality_expression_followed_by_case_expression() {
+        Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t1.a AND CASE 1 WHEN t1.a THEN false ELSE t2.b in (t2.b) END");
         assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 }
