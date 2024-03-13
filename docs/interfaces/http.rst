@@ -282,6 +282,8 @@ IDs of all currently available data types:
      - :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>`
    * - 16
      - Unchecked object
+   * - 17
+     - :ref:`INTERVAL <type-interval>`
    * - 19
      - :ref:`REGPROC <type-regproc>`
    * - 20
