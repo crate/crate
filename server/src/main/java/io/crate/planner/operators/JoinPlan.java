@@ -27,6 +27,7 @@ import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists;
@@ -43,13 +44,7 @@ public class JoinPlan extends AbstractJoinPlan {
 
     private final boolean isFiltered;
     private final boolean rewriteFilterOnOuterJoinToInnerJoinDone;
-
-    public JoinPlan(LogicalPlan lhs,
-                    LogicalPlan rhs,
-                    JoinType joinType,
-                    @Nullable Symbol joinCondition) {
-        this(lhs, rhs, joinType, joinCondition, false, false);
-    }
+    private final boolean moveConstantJoinConditionRuleApplied;
 
     public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
@@ -57,9 +52,28 @@ public class JoinPlan extends AbstractJoinPlan {
                     @Nullable Symbol joinCondition,
                     boolean isFiltered,
                     boolean rewriteFilterOnOuterJoinToInnerJoinDone) {
+        this(lhs, rhs, joinType, joinCondition, isFiltered, rewriteFilterOnOuterJoinToInnerJoinDone, false);
+    }
+
+    @VisibleForTesting
+    public JoinPlan(LogicalPlan lhs,
+                    LogicalPlan rhs,
+                    JoinType joinType,
+                    @Nullable Symbol joinCondition) {
+        this(lhs, rhs, joinType, joinCondition, false, false, false);
+    }
+
+    private JoinPlan(LogicalPlan lhs,
+                    LogicalPlan rhs,
+                    JoinType joinType,
+                    @Nullable Symbol joinCondition,
+                    boolean isFiltered,
+                    boolean rewriteFilterOnOuterJoinToInnerJoinDone,
+                    boolean moveConstantJoinConditionRuleApplied) {
         super(lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
+        this.moveConstantJoinConditionRuleApplied = moveConstantJoinConditionRuleApplied;
     }
 
     public boolean isFiltered() {
@@ -68,6 +82,21 @@ public class JoinPlan extends AbstractJoinPlan {
 
     public boolean isRewriteFilterOnOuterJoinToInnerJoinDone() {
         return rewriteFilterOnOuterJoinToInnerJoinDone;
+    }
+
+    public boolean moveConstantJoinConditionRuleApplied() {
+        return moveConstantJoinConditionRuleApplied;
+    }
+
+    public JoinPlan withMoveConstantJoinConditionRuleApplied(boolean moveConstantJoinConditionRuleApplied) {
+        return new JoinPlan(
+            lhs,
+            rhs,
+            joinType,
+            joinCondition,
+            isFiltered,
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            moveConstantJoinConditionRuleApplied);
     }
 
     @Override
@@ -113,7 +142,8 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            moveConstantJoinConditionRuleApplied
         );
     }
 
@@ -140,7 +170,8 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            moveConstantJoinConditionRuleApplied
         );
     }
 }

@@ -50,8 +50,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     protected final Symbol joinCondition;
     protected final JoinType joinType;
 
-    protected AbstractJoinPlan(
-                               LogicalPlan lhs,
+    protected AbstractJoinPlan(LogicalPlan lhs,
                                LogicalPlan rhs,
                                @Nullable Symbol joinCondition,
                                JoinType joinType) {
