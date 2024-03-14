@@ -20,6 +20,17 @@ Operator   Description
 ``^``      Finds the exponentiation of one number raised to another
 ========   =========================================================
 
+.. NOTE::
+
+    Operators are evaluated from left to right. Operation with a higher
+    precedence is performed before operation with a lower precedence.
+    Operators have the following precedence (from higher to lower):
+    1. Parentheses
+    2. Exponentiation
+    3. Multiplication and Division
+    4. Addition and Subtraction
+    Use parentheses if you want to ensure a specific order of evaluation.
+
 Here's an example that uses all of the available arithmetic operators::
 
     cr> select ((2 * 4.0 - 2 ^ 3 + 1) / 2) % 3 AS n;
