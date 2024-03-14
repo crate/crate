@@ -21,7 +21,6 @@
 
 package io.crate.statistics;
 
-import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SETTING;
 
 import java.io.IOException;
@@ -47,7 +46,6 @@ import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -57,17 +55,12 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
-import io.crate.breaker.RateLimitedRamAccounting;
 import io.crate.common.collections.Lists;
-import io.crate.data.breaker.BlockBasedRamAccounting;
-import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.execution.engine.fetch.ReaderContext;
@@ -75,39 +68,30 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.lucene.FieldTypeLookup;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataTypes;
 
 public final class ReservoirSampler {
 
     private static final Logger LOGGER = LogManager.getLogger(ReservoirSampler.class);
 
     private final ClusterService clusterService;
-    private final NodeContext nodeCtx;
     private final Schemas schemas;
-    private final CircuitBreakerService circuitBreakerService;
     private final IndicesService indicesService;
 
     private final RateLimiter rateLimiter;
 
     @Inject
     public ReservoirSampler(ClusterService clusterService,
-                            NodeContext nodeCtx,
                             Schemas schemas,
-                            CircuitBreakerService circuitBreakerService,
                             IndicesService indicesService,
                             Settings settings) {
         this(clusterService,
-             nodeCtx,
              schemas,
-             circuitBreakerService,
              indicesService,
              new RateLimiter.SimpleRateLimiter(STATS_SERVICE_THROTTLING_SETTING.get(settings).getMbFrac())
         );
@@ -115,15 +99,11 @@ public final class ReservoirSampler {
 
     @VisibleForTesting
     ReservoirSampler(ClusterService clusterService,
-                            NodeContext nodeCtx,
                             Schemas schemas,
-                            CircuitBreakerService circuitBreakerService,
                             IndicesService indicesService,
                             RateLimiter rateLimiter) {
         this.clusterService = clusterService;
-        this.nodeCtx = nodeCtx;
         this.schemas = schemas;
-        this.circuitBreakerService = circuitBreakerService;
         this.indicesService = indicesService;
         this.rateLimiter = rateLimiter;
 
@@ -147,26 +127,16 @@ public final class ReservoirSampler {
         }
         Random random = Randomness.get();
         Metadata metadata = clusterService.state().metadata();
-        CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        CircuitBreaker breaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
-        RamAccounting ramAccounting = new BlockBasedRamAccounting(
-            b -> breaker.addEstimateBytesAndMaybeBreak(b, "Reservoir-sampling"),
-            MAX_BLOCK_SIZE_IN_BYTES);
         try {
             return getSamples(
                 columns,
                 maxSamples,
                 docTable,
                 random,
-                metadata,
-                coordinatorTxnCtx,
-                RateLimitedRamAccounting.wrap(ramAccounting, rateLimiter)
+                metadata
             );
         } catch (IOException e) {
             throw new UncheckedIOException(e);
-        } finally {
-            ramAccounting.close();
-
         }
     }
 
@@ -174,18 +144,15 @@ public final class ReservoirSampler {
                                int maxSamples,
                                DocTableInfo docTable,
                                Random random,
-                               Metadata metadata,
-                               CoordinatorTxnCtx coordinatorTxnCtx,
-                               RamAccounting ramAccounting) throws IOException {
+                               Metadata metadata) throws IOException {
 
-        ramAccounting.addBytes(DataTypes.LONG.fixedSize() * (long) maxSamples);
         Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
         List<ColumnCollector<?>> columnCollectors = new ArrayList<>();
         for (int i = 0; i < columns.size(); i++) {
-            columnCollectors.add(new ColumnCollector<>(new ColumnStatsBuilder<>(columns.get(i).valueType())));
+            columnCollectors.add(new ColumnCollector<>(columns.get(i).valueType().columnStatsSupport().sketchBuilder()));
         }
 
         List<ShardExpressions> searchersToRelease = new ArrayList<>();
@@ -203,7 +170,7 @@ public final class ReservoirSampler {
                 }
 
                 List<? extends LuceneCollectorExpression<?>> expressions
-                    = getCollectorExpressions(indexService, docTable, coordinatorTxnCtx, columns);
+                    = getCollectorExpressions(indexService, docTable, columns);
 
                 for (IndexShard indexShard : indexService) {
                     if (!indexShard.routingEntry().primary()) {
@@ -230,10 +197,10 @@ public final class ReservoirSampler {
                 }
             }
 
-            var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get, ramAccounting);
+            var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get);
             sampler.iterate(fetchIdSamples.samples());
 
-            List<ColumnStatsBuilder<?>> statsBuilders = new ArrayList<>();
+            List<ColumnSketchBuilder<?>> statsBuilders = new ArrayList<>();
             for (var collector : columnCollectors) {
                 statsBuilders.add(collector.statsBuilder);
             }
@@ -249,7 +216,6 @@ public final class ReservoirSampler {
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
         IndexService indexService,
         DocTableInfo docTable,
-        CoordinatorTxnCtx coordinatorTxnCtx,
         List<Reference> columns
     ) {
         var mapperService = indexService.mapperService();
@@ -273,10 +239,11 @@ public final class ReservoirSampler {
     }
 
     private static class ColumnCollector<T> {
-        LuceneCollectorExpression<?> expression;
-        final ColumnStatsBuilder<T> statsBuilder;
 
-        private ColumnCollector(ColumnStatsBuilder<T> statsBuilder) {
+        LuceneCollectorExpression<?> expression;
+        final ColumnSketchBuilder<T> statsBuilder;
+
+        private ColumnCollector(ColumnSketchBuilder<T> statsBuilder) {
             this.statsBuilder = statsBuilder;
         }
 
@@ -285,9 +252,9 @@ public final class ReservoirSampler {
         }
 
         @SuppressWarnings("unchecked")
-        void collect(int docId, RamAccounting ramAccounting) {
+        void collect(int docId) {
             expression.setNextDocId(docId);
-            statsBuilder.add((T) expression.value(), ramAccounting);
+            statsBuilder.add((T) expression.value());
         }
     }
 
@@ -307,7 +274,6 @@ public final class ReservoirSampler {
 
         final List<ColumnCollector<?>> collectors;
         final IntFunction<ShardExpressions> shardSupplier;
-        final RamAccounting ramAccounting;
 
         ShardExpressions currentShard;
         ReaderContext currentLeafContext;
@@ -315,13 +281,11 @@ public final class ReservoirSampler {
         long idCount;
 
         private ColumnSampler(
-            List<ColumnCollector<?>> expressions,
-            IntFunction<ShardExpressions> shardSupplier,
-            RamAccounting ramAccounting
+            List<ColumnCollector<?>> collectors,
+            IntFunction<ShardExpressions> shardSupplier
         ) {
-            this.collectors = expressions;
+            this.collectors = collectors;
             this.shardSupplier = shardSupplier;
-            this.ramAccounting = ramAccounting;
         }
 
         public final void iterate(LongArrayList ids) throws IOException {
@@ -373,7 +337,7 @@ public final class ReservoirSampler {
         protected boolean collect(int doc) {
             try {
                 for (var collector : collectors) {
-                    collector.collect(doc, ramAccounting);
+                    collector.collect(doc);
                 }
                 rowsCollected++;
                 return true;

@@ -36,6 +36,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
+import io.crate.statistics.StatsUtils;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -55,7 +56,7 @@ public class GroupHashAggregateTest extends CrateDummyClusterServiceUnitTest {
             IntStream.generate(() -> 20).limit(50)
         ).boxed().collect(Collectors.toList());
         long numDocs = 2_000L;
-        ColumnStats<Integer> columnStats = ColumnStats.fromSortedValues(samples, DataTypes.INTEGER, 0, numDocs);
+        ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, samples);
         stats = new Stats(
             numDocs,
             DataTypes.INTEGER.fixedSize(),

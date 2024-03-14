@@ -28,7 +28,6 @@ import java.util.List;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.data.breaker.RamAccounting;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -45,10 +44,10 @@ public class TransportAnalyzeActionTest extends ESTestCase {
     public void test_create_stats_for_tables_with_array_columns_with_nulls() {
 
         ArrayType<String> type = DataTypes.STRING_ARRAY;
-        var col1 = new ColumnStatsBuilder<>(type);
-        var col2 = new ColumnStatsBuilder<>(type);
-        col1.add(null, RamAccounting.NO_ACCOUNTING);
-        col2.add(null, RamAccounting.NO_ACCOUNTING);
+        var col1 = type.columnStatsSupport().sketchBuilder();
+        var col2 = type.columnStatsSupport().sketchBuilder();
+        col1.add(null);
+        col2.add(null);
         var samples = new Samples(
             List.of(col1, col2),
             2,

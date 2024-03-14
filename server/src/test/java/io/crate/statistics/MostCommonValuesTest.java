@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,37 +21,27 @@
 
 package io.crate.statistics;
 
-import java.io.IOException;
-import java.util.List;
+import static io.crate.testing.Asserts.assertThat;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import java.util.stream.IntStream;
 
-import io.crate.metadata.Reference;
+import org.elasticsearch.test.ESTestCase;
 
-public final class FetchSampleResponse extends TransportResponse {
+import io.crate.types.IntegerType;
 
-    private final Samples samples;
+public class MostCommonValuesTest extends ESTestCase {
 
-    FetchSampleResponse(Samples samples) {
-        this.samples = samples;
+    public void test_cutoffs() {
+        MostCommonValuesSketch<Integer> sketch = new MostCommonValuesSketch<>(IntegerType.INSTANCE);
+        IntStream.range(1, 200).forEach(sketch::update);
+        for (int i = 0; i < 10; i++) {
+            sketch.update(10);
+            sketch.update(20);
+        }
+        sketch.update(10);
+
+        var mcv = sketch.toMostCommonValues(221, 200);
+        assertThat(mcv.values()).containsExactly(10, 20);
     }
 
-    public FetchSampleResponse(List<Reference> references, StreamInput in) throws IOException {
-        this.samples = new Samples(references, in);
-    }
-
-    Samples samples() {
-        return samples;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        samples.writeTo(out);
-    }
-
-    public static FetchSampleResponse merge(FetchSampleResponse s1, FetchSampleResponse s2) {
-        return new FetchSampleResponse(Samples.merge(s1.samples(), s2.samples()));
-    }
 }

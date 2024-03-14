@@ -36,6 +36,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class LongType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
@@ -143,6 +144,11 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     @Override
     public StorageSupport<Long> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Long> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Long.class, LongType.this);
     }
 
     @Override
