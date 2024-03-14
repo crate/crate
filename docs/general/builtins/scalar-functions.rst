@@ -144,7 +144,7 @@ Returns: ``text``
 
 Extract a part from a string that matches a POSIX regular expression pattern.
 
-Returns:: ``text``.
+Returns: ``text``.
 
 If the pattern contains groups specified via parentheses it returns the first
 matching group.
@@ -167,7 +167,7 @@ If the pattern doesn't match, the function returns ``NULL``.
 .. _scalar-substring:
 
 ``substring(...)``
----------------...
+------------------
 
 Alias for :ref:`scalar-substr`.
 
