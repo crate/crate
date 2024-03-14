@@ -43,12 +43,13 @@ public class JoinPlan extends AbstractJoinPlan {
 
     private final boolean isFiltered;
     private final boolean rewriteFilterOnOuterJoinToInnerJoinDone;
+    private final boolean lookUpJoinRuleApplied;
 
     public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition) {
-        this(lhs, rhs, joinType, joinCondition, false, false);
+        this(lhs, rhs, joinType, joinCondition, false, false, false);
     }
 
     public JoinPlan(LogicalPlan lhs,
@@ -56,10 +57,16 @@ public class JoinPlan extends AbstractJoinPlan {
                     JoinType joinType,
                     @Nullable Symbol joinCondition,
                     boolean isFiltered,
-                    boolean rewriteFilterOnOuterJoinToInnerJoinDone) {
+                    boolean rewriteFilterOnOuterJoinToInnerJoinDone,
+                    boolean lookUpJoinRuleApplied) {
         super(lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
+        this.lookUpJoinRuleApplied = lookUpJoinRuleApplied;
+    }
+
+    public boolean isLookUpJoinRuleApplied() {
+        return lookUpJoinRuleApplied;
     }
 
     public boolean isFiltered() {
@@ -113,7 +120,8 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            lookUpJoinRuleApplied
         );
     }
 
@@ -140,7 +148,8 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            lookUpJoinRuleApplied
         );
     }
 }

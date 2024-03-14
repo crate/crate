@@ -23,15 +23,15 @@ package io.crate.metadata.view;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.settings.Settings;
-
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
@@ -84,7 +84,7 @@ public class ViewInfo implements RelationInfo {
 
     @Override
     public Set<Operation> supportedOperations() {
-        return Operation.READ_ONLY;
+        return EnumSet.of(Operation.READ, Operation.ALTER_TABLE_RENAME);
     }
 
     @Override

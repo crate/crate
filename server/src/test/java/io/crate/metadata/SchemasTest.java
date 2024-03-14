@@ -64,7 +64,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
     public void testSystemSchemaIsNotWritable() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT " +
-                                        "operations, as it is read-only.");
+                                        "operations");
 
         RelationName relationName = new RelationName("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
@@ -151,7 +151,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         QualifiedName fqn = QualifiedName.of("crate", "schema", "t");
         var sessionSettings = sqlExecutor.getSessionSettings();
         TableInfo tableInfo = sqlExecutor.schemas()
-            .resolveTableInfo(fqn, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
+            .findRelation(fqn, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
 
         RelationName relation = tableInfo.ident();
         assertThat(relation.schema(), is("schema"));
@@ -172,7 +172,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         var sessionSetttings = sqlExecutor.getSessionSettings();
         expectedException.expect(SchemaUnknownException.class);
         expectedException.expectMessage("Schema 'bogus_schema' unknown");
-        sqlExecutor.schemas().resolveTableInfo(invalidFqn, Operation.READ, sessionSetttings.sessionUser(), sessionSetttings.searchPath());
+        sqlExecutor.schemas().findRelation(invalidFqn, Operation.READ, sessionSetttings.sessionUser(), sessionSetttings.searchPath());
     }
 
     @Test
@@ -183,7 +183,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         var sessionSettings = sqlExecutor.getSessionSettings();
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'missing_table' unknown");
-        sqlExecutor.schemas().resolveTableInfo(table, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
+        sqlExecutor.schemas().findRelation(table, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
     }
 
     @Test
@@ -192,46 +192,10 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         QualifiedName tableQn = QualifiedName.of("t");
         var sessionSettings = sqlExecutor.getSessionSettings();
         TableInfo tableInfo = sqlExecutor.schemas()
-            .resolveTableInfo(tableQn, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
+            .findRelation(tableQn, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
 
         RelationName relation = tableInfo.ident();
         assertThat(relation.schema(), is("schema"));
         assertThat(relation.name(), is("t"));
-    }
-
-    @Test
-    public void testResolveRelationThrowsRelationUnknownfForInvalidFQN() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "schema");
-        QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
-
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'bogus_schema.t' unknown");
-        sqlExecutor.schemas().resolveRelation(invalidFqn, sqlExecutor.getSessionSettings().searchPath());
-    }
-
-    @Test
-    public void testResolveRelationThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema");
-        QualifiedName table = QualifiedName.of("missing_table");
-
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'missing_table' unknown");
-        sqlExecutor.schemas().resolveRelation(table, sqlExecutor.getSessionSettings().searchPath());
-    }
-
-    @Test
-    public void testResolveRelationForTableAndView() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
-            .addView(new RelationName("schema", "view"), "select 1");
-
-        QualifiedName table = QualifiedName.of("t");
-        RelationName tableRelation = sqlExecutor.schemas().resolveRelation(table, sqlExecutor.getSessionSettings().searchPath());
-        assertThat(tableRelation.schema(), is("schema"));
-        assertThat(tableRelation.name(), is("t"));
-
-        QualifiedName view = QualifiedName.of("view");
-        RelationName viewRelation = sqlExecutor.schemas().resolveRelation(view, sqlExecutor.getSessionSettings().searchPath());
-        assertThat(viewRelation.schema(), is("schema"));
-        assertThat(viewRelation.name(), is("view"));
     }
 }

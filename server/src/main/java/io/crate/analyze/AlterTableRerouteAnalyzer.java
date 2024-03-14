@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.metadata.RelationName.fromBlobTable;
-
 import java.util.HashMap;
 import java.util.List;
 
@@ -36,6 +34,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.AlterTableReroute;
@@ -43,9 +42,11 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.PromoteReplica;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
 import io.crate.sql.tree.RerouteCancelShard;
 import io.crate.sql.tree.RerouteMoveShard;
+import io.crate.sql.tree.Table;
 
 public class AlterTableRerouteAnalyzer {
 
@@ -65,20 +66,23 @@ public class AlterTableRerouteAnalyzer {
         // safe to expect a `ShardedTable` since getTableInfo with
         // Operation.ALTER_REROUTE raises a appropriate error for sys tables
         ShardedTable tableInfo;
-        RelationName relationName;
-        if (alterTableReroute.blob()) {
-            relationName = fromBlobTable(alterTableReroute.table());
-        } else {
-            relationName = schemas.resolveRelation(
-                alterTableReroute.table().getName(),
-                transactionContext.sessionSettings().searchPath());
-        }
-        tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_REROUTE);
+        Table<Expression> table = alterTableReroute.table();
+        QualifiedName qName = alterTableReroute.blob()
+            ? RelationName.fromBlobTable(table).toQualifiedName()
+            : table.getName();
+
+        CoordinatorSessionSettings sessionSettings = transactionContext.sessionSettings();
+        tableInfo = schemas.findRelation(
+            qName,
+            Operation.ALTER_REROUTE,
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
         return alterTableReroute.rerouteOption().accept(
             rerouteOptionVisitor,
             new Context(
                 tableInfo,
-                alterTableReroute.table().partitionProperties(),
+                table.partitionProperties(),
                 transactionContext,
                 nodeCtx,
                 paramTypeHints

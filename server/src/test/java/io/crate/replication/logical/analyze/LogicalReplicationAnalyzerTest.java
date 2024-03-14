@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.analyze;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -34,6 +35,7 @@ import org.junit.Test;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.exceptions.InvalidArgumentException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.RelationName;
@@ -249,5 +251,13 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             SubscriptionUnknownException.class,
             () -> e.analyze("ALTER SUBSCRIPTION sub1 DISABLE")
         );
+    }
+
+    @Test
+    public void test_cannot_create_publication_for_system_table() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> e.plan("create publication pub1 for table sys.summits"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"sys.summits\" doesn't support or allow CREATE PUBLICATION operations");
     }
 }
