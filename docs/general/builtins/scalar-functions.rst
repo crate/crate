@@ -797,6 +797,26 @@ Returns: ``text``
     +--------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-strpos:
+
+``strpos(string, substring)``
+-----------------------------
+
+Returns first starting 1-based index of the specified substring within string.
+If substring is not found, returns zero.
+
+Returns: ``integer``
+
+::
+
+    cr> SELECT strpos('crate' , 'ate');
+    +---+
+    | 3 |
+    +---+
+    | 3 |
+    +---+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-reverse:
 
 ``reverse(text)``
