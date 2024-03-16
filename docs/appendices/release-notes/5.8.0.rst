@@ -76,6 +76,9 @@ Scalar and Aggregation Functions
 - `azatyamanaev <https://github.com/azatyamanaev>`_ added support for the
    :ref:`sign <scalar-sign>` function.
 
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the
+  :ref:`strpos <scalar-strpos>` scalar function.
+
 
 Performance and Resilience Improvements
 ---------------------------------------
