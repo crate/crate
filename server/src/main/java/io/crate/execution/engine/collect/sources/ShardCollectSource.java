@@ -259,6 +259,8 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         }
         OrderBy orderBy = collectPhase.orderBy();
         if (collectPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
+            assert !Projections.hasAnyShardProjections(collectPhase.projections())
+                : "Must not have shard projections for ordered collect";
             return createMultiShardScoreDocCollector(
                 collectPhase,
                 requireMoveToStartSupport,
