@@ -58,41 +58,27 @@ Fixes
 
     SELECT * FROM tbl WHERE pk_col = 1 OR other_col = 'foo'
 
-- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
-  allowed duplicate unit definitions, e.g.::
+- Fixed several issues with PostgreSQL style :ref:`INTERVALS <type-interval>`:
 
-     SELECT '1 year 3 days 2 years'::INTERVAL
+  - Duplicate definitions now raise an error::
 
-- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
-  didn't allow units next to values without whitespace separation, e.g.::
+     SELECT '1 year 2 years'::INTERVAL
 
-     SELECT '1year 2weeks 3day'::INTERVAL
+  - Units next to values are now supported without whitespace separation::
 
-- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
-  caused issues for interval strings with extra white spaces, e.g.::
+     SELECT '1year 3day'::INTERVAL
 
-     SELECT ' @ 1 year 2 weeks 3 days ago '::INTERVAL
+  - Weeks were ignored if days were also present in the string::
 
-- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
-  didn't recognize the ``ago`` keyword when in mixed-case or uppercase, e.g.::
+     SELECT '2 weeks 3 days'::INTERVAL
 
-     SELECT '@ 1 year 2 weeks 3 days AGO'::INTERVAL
+  - Made the parsing of the interval units strict. Before using units like
+    ``yearrr`` was allowed, now it raises an error.
 
-- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
-  caused weeks to be ignored if days are also present in the string, e.g.::
+  - Made the interval units case-insensitive. The following used to raise an
+    error::
 
-     SELECT '1 year 2 weeks 3 days'::INTERVAL
-
-- Fixed parsing of PostgreSQL style :ref:`INTERVALs <type-interval>`, by
-  restricting the tokens allowed for the interval units. For example,
-  previously, the following string would be parsed correctly::
-
-     SELECT '1 yearrrrrr 2 weekend 10dayyyyyy'::INTERVAL
-
-- Fixed an issue with PostgreSQL style :ref:`INTERVALs <type-interval>`, which
-  didn't allow the interval units to be upper or mixed case, e.g.::
-
-     SELECT '1 yeAR 2 WeeKs 3 DAYS'::INTERVAL
+      SELECT '2 WEEKS'::INTERVAL
 
 - Fixed an issue that caused ``CrateDB`` to fail to notify client applications
   connecting via :ref:`PostgreSQL Wire Protocol <interface-postgresql>` that
