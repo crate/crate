@@ -21,8 +21,7 @@
 
 package io.crate.auth;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -42,9 +41,9 @@ public class AuthSettingsTest {
             .build();
 
         // When no protocol is specified in HBA, all protocols will have the same value.
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.NONE));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.NONE));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.NONE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP)).isEqualTo(ClientAuth.NONE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT)).isEqualTo(ClientAuth.NONE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES)).isEqualTo(ClientAuth.NONE);
     }
 
     @Test
@@ -55,9 +54,9 @@ public class AuthSettingsTest {
             .build();
 
         // When no protocol is specified in HBA, all protocols will have the same value.
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.REQUIRE));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.REQUIRE));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.REQUIRE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP)).isEqualTo(ClientAuth.REQUIRE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT)).isEqualTo(ClientAuth.REQUIRE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES)).isEqualTo(ClientAuth.REQUIRE);
     }
 
     @Test
@@ -67,9 +66,9 @@ public class AuthSettingsTest {
             .put("auth.host_based.config.2.method", "password")
             .build();
         // When no protocol is specified in HBA, all protocols will have the same value.
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.OPTIONAL));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.OPTIONAL));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.OPTIONAL));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP)).isEqualTo(ClientAuth.OPTIONAL);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT)).isEqualTo(ClientAuth.OPTIONAL);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES)).isEqualTo(ClientAuth.OPTIONAL);
     }
 
     @Test
@@ -81,9 +80,9 @@ public class AuthSettingsTest {
             .build();
 
         // TRANSPORT is optional because of protocol-agnostic password entry
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.OPTIONAL));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.NONE));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.NONE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT)).isEqualTo(ClientAuth.OPTIONAL);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP)).isEqualTo(ClientAuth.NONE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES)).isEqualTo(ClientAuth.NONE);
     }
 
     @Test
@@ -96,8 +95,8 @@ public class AuthSettingsTest {
             .build();
 
         // See https://github.com/crate/crate/issues/11856
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT), is(ClientAuth.REQUIRE));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP), is(ClientAuth.NONE));
-        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES), is(ClientAuth.NONE));
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT)).isEqualTo(ClientAuth.REQUIRE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP)).isEqualTo(ClientAuth.NONE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES)).isEqualTo(ClientAuth.NONE);
     }
 }
