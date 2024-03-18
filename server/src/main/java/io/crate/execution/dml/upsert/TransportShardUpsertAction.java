@@ -58,11 +58,11 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Constants;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
@@ -86,7 +86,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
 
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.
@@ -135,7 +134,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                                                         AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
-        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
+        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));
         var mapperService = indexShard.mapperService();
         Function<String, FieldType> getFieldType = mapperService::getLuceneFieldType;
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
@@ -351,7 +350,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         String indexName = request.index();
         boolean traceEnabled = logger.isTraceEnabled();
         RelationName relationName = RelationName.fromIndexName(indexName);
-        DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.INSERT);
+        DocTableInfo tableInfo = schemas.getTableInfo(relationName);
         var mapperService = indexShard.mapperService();
         Function<String, FieldType> getFieldType = mapperService::getLuceneFieldType;
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
@@ -587,7 +586,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             );
             addColumnAction.execute(addColumnRequest).get();
             schemas.tableExists(relationName); // triggers cache invalidation
-            DocTableInfo actualTable = schemas.getTableInfo(relationName, Operation.READ);
+            DocTableInfo actualTable = schemas.getTableInfo(relationName);
             if (rawIndexer != null) {
                 rawIndexer.updateTargets(actualTable::getReference);
             } else {
