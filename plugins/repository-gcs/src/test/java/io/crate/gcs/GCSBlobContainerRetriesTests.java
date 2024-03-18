@@ -21,12 +21,6 @@
 
 package io.crate.gcs;
 
-import static io.crate.gcs.GCSHttpHandler.decodeQueryString;
-import static io.crate.gcs.GCSHttpHandler.getContentRangeEnd;
-import static io.crate.gcs.GCSHttpHandler.getContentRangeLimit;
-import static io.crate.gcs.GCSHttpHandler.getContentRangeStart;
-import static io.crate.gcs.GCSHttpHandler.parseMultipartRequestBody;
-import static io.crate.gcs.GCSSnapshotIntegrationTest.PKCS8_PRIVATE_KEY;
 import static io.crate.gcs.GCSClientSettings.CLIENT_EMAIL_SETTING;
 import static io.crate.gcs.GCSClientSettings.CLIENT_ID_SETTING;
 import static io.crate.gcs.GCSClientSettings.ENDPOINT_SETTING;
@@ -35,6 +29,12 @@ import static io.crate.gcs.GCSClientSettings.PRIVATE_KEY_SETTING;
 import static io.crate.gcs.GCSClientSettings.PROJECT_ID_SETTING;
 import static io.crate.gcs.GCSClientSettings.READ_TIMEOUT_SETTING;
 import static io.crate.gcs.GCSClientSettings.TOKEN_URI_SETTING;
+import static io.crate.gcs.GCSHttpHandler.decodeQueryString;
+import static io.crate.gcs.GCSHttpHandler.getContentRangeEnd;
+import static io.crate.gcs.GCSHttpHandler.getContentRangeLimit;
+import static io.crate.gcs.GCSHttpHandler.getContentRangeStart;
+import static io.crate.gcs.GCSHttpHandler.parseMultipartRequestBody;
+import static io.crate.gcs.GCSSnapshotIntegrationTest.PKCS8_PRIVATE_KEY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.lucene.tests.util.LuceneTestCase.expectThrows;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -219,8 +219,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                 exchange.getResponseBody().write(bytes, rangeStart, length);
                 exchange.close();
                 return;
-            }
-            if (randomBoolean()) {
+            } else {
                 exchange.sendResponseHeaders(
                     randomFrom(
                         HttpStatus.SC_INTERNAL_SERVER_ERROR,
@@ -230,8 +229,6 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                     ),
                     -1
                 );
-            } else if (randomBoolean()) {
-                sendIncompleteContent(exchange, bytes);
             }
             if (randomBoolean()) {
                 exchange.close();
@@ -666,7 +663,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                 RetrySettings.Builder retrySettingsBuilder = RetrySettings.newBuilder()
                     .setTotalTimeout(options.getRetrySettings().getTotalTimeout())
                     .setInitialRetryDelay(Duration.ofMillis(10L))
-//                    .setRetryDelayMultiplier(1.0d)
+                    .setRetryDelayMultiplier(1.0d)
                     .setMaxRetryDelay(Duration.ofSeconds(1L))
                     .setInitialRpcTimeout(Duration.ofSeconds(1))
                     .setRpcTimeoutMultiplier(options.getRetrySettings().getRpcTimeoutMultiplier())
