@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -86,7 +85,6 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.metadata.table.Operation;
 import io.crate.netty.NettyBootstrap;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -173,7 +171,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         Schemas schemas = mock(Schemas.class);
         when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
         when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
-        when(schemas.getTableInfo(any(RelationName.class), eq(Operation.INSERT))).thenReturn(tableInfo);
+        when(schemas.getTableInfo(any(RelationName.class))).thenReturn(tableInfo);
 
         var dynamicLongColRef = new SimpleReference(
                 new ReferenceIdent(TABLE_IDENT,"dynamic_long_col"),

@@ -273,36 +273,58 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     /**
-     * @param ident the table ident to get a TableInfo for
-     * @return an instance of TableInfo for the given ident, guaranteed to be not null
-     * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
+     * Get a {@link TableInfo} instance for the given relation.
+     *
+     * <p>
+     * Used to re-retrieve a {@link TableInfo} after having used
+     * {@link #findRelation(QualifiedName, Operation, Role, SearchPath)} before.
+     * E.g. in the execution layer where only a {@link RelationName} gets streamed.
+     * </p>
+     *
+     * <p>
+     * If you use this without having made a
+     * {@link #findRelation(QualifiedName, Operation, Role, SearchPath) call, make
+     * sure to call {@link Operation#blockedRaiseException(RelationInfo, Operation)}
+     * to ensure the operation is supported for the given relation.
+     * </p>
+     *
+     * @return {@link TableInfo}. Can be upcast to {@link DocTableInfo} or
+     *         {@link ForeignTable}
+     * @throws io.crate.exceptions.SchemaUnknownException if schema given in
+     *                                                    <code>ident</code>
      *                                                    does not exist
-     * @throws RelationUnknown  if table given in <code>ident</code> does
-     *                                                    not exist in the given schema
+     *
+     * @throws RelationUnknown                            if table given in
+     *                                                    <code>ident</code> does
+     *                                                    not exist in the given
+     *                                                    schema.
+     *
+     * @throws OperationOnInaccessibleRelationException   if cast to more concrete
+     *                                                    {@link TableInfo} instance
+     *                                                    fails
      */
+    @SuppressWarnings("unchecked")
     public <T extends TableInfo> T getTableInfo(RelationName ident) {
         SchemaInfo schemaInfo = getSchemaInfo(ident);
         TableInfo info = schemaInfo.getTableInfo(ident.name());
         if (info == null) {
-            throw new RelationUnknown(ident);
+            Metadata metadata = clusterService.state().metadata();
+            ForeignTablesMetadata foreignTables = metadata.custom(
+                ForeignTablesMetadata.TYPE,
+                ForeignTablesMetadata.EMPTY
+            );
+            info = foreignTables.get(ident);
+            if (info == null) {
+                throw new RelationUnknown(ident);
+            }
         }
-        return (T) info;
-    }
-
-    /**
-     * @param ident the table ident to get a TableInfo for
-     * @param operation The opreation planned to be performed on the table
-     * @return an instance of TableInfo for the given ident, guaranteed to be not null and to support the operation
-     * required on it.
-     * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
-     *                                                    does not exist
-     * @throws RelationUnknown  if table given in <code>ident</code> does
-     *                                                    not exist in the given schema
-     */
-    public <T extends TableInfo> T getTableInfo(RelationName ident, Operation operation) {
-        TableInfo tableInfo = getTableInfo(ident);
-        Operation.blockedRaiseException(tableInfo, operation);
-        return (T) tableInfo;
+        try {
+            return (T) info;
+        } catch (ClassCastException e) {
+            throw new OperationOnInaccessibleRelationException(
+                info.ident(),
+                "The relation " + info.ident().sqlFqn() + " doesn't support the operation");
+        }
     }
 
     private SchemaInfo getSchemaInfo(RelationName ident) {

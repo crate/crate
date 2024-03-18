@@ -47,12 +47,12 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.BoundRestoreSnapshot;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -218,7 +218,8 @@ public class RestoreSnapshotPlan implements Plan {
                 txnCtx.sessionSettings().searchPath().currentSchema());
 
             try {
-                DocTableInfo docTableInfo = schemas.getTableInfo(relationName, Operation.RESTORE_SNAPSHOT);
+                DocTableInfo docTableInfo = schemas.getTableInfo(relationName);
+                Operation.blockedRaiseException(docTableInfo, Operation.RESTORE_SNAPSHOT);
                 // Table existence check is done later after resolving indices and applying all table name/schema renaming options.
                 PartitionName partitionName = null;
                 if (table.partitionProperties().isEmpty() == false) {
