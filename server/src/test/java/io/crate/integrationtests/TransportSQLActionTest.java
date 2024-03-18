@@ -2188,4 +2188,40 @@ public class TransportSQLActionTest extends IntegTestCase {
                 .hasMessageEndingWith("Limit: 2b");
         }
     }
+
+    @Test
+    public void test_filter_on_top_of_order_by_and_collect_works() throws Exception {
+        /**
+         * This is a query that resulted in a Filter/FilterProjection with requiredGranularity==SHARD
+         * That filter was ignored by the ordered-collect logic in ShardCollectSource
+         *
+         * Usually a filter is pushed into the collect, and this case didn't surface, but
+         * here the Filter->Collect could only be merged _after_ column pruning
+         *  (to remove the `row_number()` and the window agg)
+         * and we currently don't run another optimize iteration after column pruning.
+         *
+         * If this ever changes, the test should be adapted to disable the filter->collect merge
+         * with a initial filter->orderBy->Collect plan
+         */
+        execute("CREATE TABLE t1 (ts TIMESTAMP, field1 TEXT, anumber DOUBLE)");
+        execute("INSERT INTO t1 (ts, field1, anumber) VALUES (now(), 'abc', 1.1)");
+        execute("refresh table t1");
+        execute(
+            """
+            CREATE VIEW v1
+            AS
+            SELECT field1, anumber
+            FROM (
+                SELECT
+                    field1,
+                    row_number() OVER (PARTITION BY date_bin('1 day'::interval,ts, 0)) "row_number",
+                    anumber
+                FROM t1
+                ORDER BY field1
+                ) x;
+            """
+        );
+        execute("SELECT * FROM v1 WHERE field1 = 'xyz'");
+        assertThat(response).isEmpty();
+    }
 }
