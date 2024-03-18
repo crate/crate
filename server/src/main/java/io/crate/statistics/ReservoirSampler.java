@@ -279,12 +279,11 @@ public final class ReservoirSampler {
             this.expression = collector;
         }
 
-        @SuppressWarnings("unchecked")
         void collect(int docId) {
             expression.setNextDocId(docId);
-            T value = (T) expression.value();
+            T value = dataType.sanitizeValue(expression.value());
             ramAccounting.addBytes(dataType.valueBytes(value));
-            statsBuilder.add((T) expression.value());
+            statsBuilder.add(value);
         }
     }
 
