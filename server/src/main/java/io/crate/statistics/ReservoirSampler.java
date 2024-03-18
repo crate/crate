@@ -21,6 +21,7 @@
 
 package io.crate.statistics;
 
+import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SETTING;
 
 import java.io.IOException;
@@ -47,6 +48,7 @@ import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -56,12 +58,16 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
 import io.crate.common.collections.Lists;
+import io.crate.data.breaker.BlockBasedRamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.execution.engine.fetch.ReaderContext;
@@ -75,12 +81,14 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataType;
 
 public final class ReservoirSampler {
 
     private static final Logger LOGGER = LogManager.getLogger(ReservoirSampler.class);
 
     private final ClusterService clusterService;
+    private final CircuitBreakerService circuitBreakerService;
     private final Schemas schemas;
     private final IndicesService indicesService;
 
@@ -88,10 +96,12 @@ public final class ReservoirSampler {
 
     @Inject
     public ReservoirSampler(ClusterService clusterService,
+                            CircuitBreakerService circuitBreakerService,
                             Schemas schemas,
                             IndicesService indicesService,
                             Settings settings) {
         this(clusterService,
+             circuitBreakerService,
              schemas,
              indicesService,
              new RateLimiter.SimpleRateLimiter(STATS_SERVICE_THROTTLING_SETTING.get(settings).getMbFrac())
@@ -100,10 +110,12 @@ public final class ReservoirSampler {
 
     @VisibleForTesting
     ReservoirSampler(ClusterService clusterService,
+                            CircuitBreakerService circuitBreakerService,
                             Schemas schemas,
                             IndicesService indicesService,
                             RateLimiter rateLimiter) {
         this.clusterService = clusterService;
+        this.circuitBreakerService = circuitBreakerService;
         this.schemas = schemas;
         this.indicesService = indicesService;
         this.rateLimiter = rateLimiter;
@@ -128,11 +140,17 @@ public final class ReservoirSampler {
         }
         Random random = Randomness.get();
         Metadata metadata = clusterService.state().metadata();
-        try {
+        CircuitBreaker breaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+        RamAccounting ramAccounting = new BlockBasedRamAccounting(
+            b -> breaker.addEstimateBytesAndMaybeBreak(b, "Reservoir-sampling"),
+            MAX_BLOCK_SIZE_IN_BYTES);
+
+        try (SketchRamAccounting rla = new SketchRamAccounting(ramAccounting, rateLimiter)) {
             return getSamples(
                 columns,
                 maxSamples,
                 docTable,
+                rla,
                 random,
                 metadata
             );
@@ -144,6 +162,7 @@ public final class ReservoirSampler {
     private Samples getSamples(List<Reference> columns,
                                int maxSamples,
                                DocTableInfo docTable,
+                               SketchRamAccounting ramAccounting,
                                Random random,
                                Metadata metadata) throws IOException {
 
@@ -153,7 +172,7 @@ public final class ReservoirSampler {
 
         List<ColumnCollector<?>> columnCollectors = new ArrayList<>();
         for (int i = 0; i < columns.size(); i++) {
-            columnCollectors.add(new ColumnCollector<>(columns.get(i).valueType().columnStatsSupport().sketchBuilder()));
+            columnCollectors.add(new ColumnCollector<>(ramAccounting, columns.get(i).valueType()));
         }
 
         List<ShardExpressions> searchersToRelease = new ArrayList<>();
@@ -208,6 +227,7 @@ public final class ReservoirSampler {
         }
     }
 
+    @VisibleForTesting
     static void sampleDocIds(Reservoir reservoir, int readerIdx, IndexSearcher searcher) {
         var collector = new ReservoirCollector(reservoir, readerIdx);
         try {
@@ -246,9 +266,13 @@ public final class ReservoirSampler {
 
         LuceneCollectorExpression<?> expression;
         final ColumnSketchBuilder<T> statsBuilder;
+        final SketchRamAccounting ramAccounting;
+        final DataType<T> dataType;
 
-        private ColumnCollector(ColumnSketchBuilder<T> statsBuilder) {
-            this.statsBuilder = statsBuilder;
+        private ColumnCollector(SketchRamAccounting ramAccounting, DataType<T> dataType) {
+            this.statsBuilder = dataType.columnStatsSupport().sketchBuilder();
+            this.dataType = dataType;
+            this.ramAccounting = ramAccounting;
         }
 
         void setShard(LuceneCollectorExpression<?> collector) {
@@ -258,6 +282,8 @@ public final class ReservoirSampler {
         @SuppressWarnings("unchecked")
         void collect(int docId) {
             expression.setNextDocId(docId);
+            T value = (T) expression.value();
+            ramAccounting.addBytes(dataType.valueBytes(value));
             statsBuilder.add((T) expression.value());
         }
     }
@@ -402,4 +428,5 @@ public final class ReservoirSampler {
             }
         }
     }
+
 }

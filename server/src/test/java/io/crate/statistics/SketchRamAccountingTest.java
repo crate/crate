@@ -19,17 +19,21 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.statistics;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.apache.lucene.tests.util.LuceneTestCase.expectThrows;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+import java.io.IOException;
 
 import org.apache.lucene.store.RateLimiter;
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.data.breaker.RamAccounting;
 
-public class RateLimitedRamAccountingTest extends ESTestCase {
+public class SketchRamAccountingTest extends ESTestCase {
 
     private static class TrackingRateLimiter extends RateLimiter.SimpleRateLimiter {
 
@@ -49,7 +53,7 @@ public class RateLimitedRamAccountingTest extends ESTestCase {
     @Test
     public void test_rate_limited_ram_accounting() {
         TrackingRateLimiter rateLimiter = new TrackingRateLimiter(1000);
-        RamAccounting ra = RateLimitedRamAccounting.wrap(RamAccounting.NO_ACCOUNTING, rateLimiter);
+        var ra = new SketchRamAccounting(RamAccounting.NO_ACCOUNTING, rateLimiter);
 
         long bytesToAdd = rateLimiter.getMinPauseCheckBytes() / 2;
 
@@ -57,13 +61,13 @@ public class RateLimitedRamAccountingTest extends ESTestCase {
             ra.addBytes(bytesToAdd);
         }
 
-        assertThat(rateLimiter.pauses).isEqualTo(5);
+        Assertions.assertThat(rateLimiter.pauses).isEqualTo(5);
     }
 
     @Test
     public void test_rate_limit_disabled() {
         TrackingRateLimiter rateLimiter = new TrackingRateLimiter(1000);
-        RamAccounting ra = RateLimitedRamAccounting.wrap(RamAccounting.NO_ACCOUNTING, rateLimiter);
+        var ra = new SketchRamAccounting(RamAccounting.NO_ACCOUNTING, rateLimiter);
 
         long bytesToAdd = rateLimiter.getMinPauseCheckBytes() / 2;
 
@@ -74,7 +78,58 @@ public class RateLimitedRamAccountingTest extends ESTestCase {
             ra.addBytes(bytesToAdd);
         }
 
-        assertThat(rateLimiter.pauses).isEqualTo(0);
+        Assertions.assertThat(rateLimiter.pauses).isEqualTo(0);
+    }
+
+    @Test
+    public void test_throws_exceptions() throws IOException {
+
+        boolean[] closed = new boolean[1];
+
+        RamAccounting a = new RamAccounting() {
+
+            long total;
+
+            @Override
+            public void addBytes(long bytes) {
+                total += bytes;
+                if (total > 32) {
+                    throw new RuntimeException("Circuit break! " + total);
+                }
+            }
+
+            @Override
+            public long totalBytes() {
+                return total;
+            }
+
+            @Override
+            public void release() {
+                total = 0;
+            }
+
+            @Override
+            public void close() {
+                closed[0] = true;
+            }
+        };
+
+        TrackingRateLimiter rateLimiter = new TrackingRateLimiter(0);
+        try (SketchRamAccounting accounting = new SketchRamAccounting(a, rateLimiter)) {
+            accounting.addBytes(1025);  // first 1024 accounted for, next 1 cached
+            for (int i = 0; i < 32; i++) {
+                accounting.addBytes(1);     // remain in cache
+            }
+            accounting.addBytes(991);       // still cached
+
+            Exception e = expectThrows(RuntimeException.class, () -> accounting.addBytes(1));
+            assertThat(e).hasMessageContaining("Circuit break!");
+
+            a.release();
+        }
+
+        assertThat(closed[0]).isTrue();
+
     }
 
 }

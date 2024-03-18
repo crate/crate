@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.statistics;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -29,28 +29,38 @@ import org.apache.lucene.store.RateLimiter;
 import io.crate.data.breaker.RamAccounting;
 
 /**
- * Wraps a RamAccounting instance with a RateLimiter, which will pause after
- * a configurable number of bytes have been accounted for.
+ * Keep track of sketch memory usage, with a rate limit on how much data is being read
+ * <p/>
+ * Experiments show that using data sketches holding approximately 100 items
+ * use between 0.02% and 0.04% of the memory used by an equivalent java array
+ * of 30,000 items.
  */
-public class RateLimitedRamAccounting implements RamAccounting {
+public class SketchRamAccounting implements AutoCloseable {
 
-    long bytesSinceLastPause;
+    private static final int BLOCK_SIZE = 1024;
+    private static final int SHIFTED_BLOCK_SIZE = 32;
 
-    final RamAccounting in;
-    final RateLimiter rateLimiter;
+    private final RamAccounting ramAccounting;
+    private final RateLimiter rateLimiter;
 
-    public static RateLimitedRamAccounting wrap(RamAccounting in, RateLimiter rateLimiter) {
-        return new RateLimitedRamAccounting(in, rateLimiter);
-    }
+    private long blockCache;
+    private long bytesSinceLastPause;
 
-    private RateLimitedRamAccounting(RamAccounting in, RateLimiter rateLimiter) {
-        this.in = in;
+    public SketchRamAccounting(RamAccounting ramAccounting, RateLimiter rateLimiter) {
+        this.ramAccounting = ramAccounting;
         this.rateLimiter = rateLimiter;
     }
 
-    @Override
     public void addBytes(long bytes) {
-        in.addBytes(bytes);
+        this.blockCache += bytes;
+        while (this.blockCache > BLOCK_SIZE) {
+            this.blockCache -= BLOCK_SIZE;
+            ramAccounting.addBytes(SHIFTED_BLOCK_SIZE);
+        }
+        checkRateLimit(bytes);
+    }
+
+    private void checkRateLimit(long bytes) {
         if (rateLimiter.getMBPerSec() > 0) {
             // Throttling is enabled
             bytesSinceLastPause += bytes;
@@ -67,17 +77,7 @@ public class RateLimitedRamAccounting implements RamAccounting {
     }
 
     @Override
-    public long totalBytes() {
-        return in.totalBytes();
-    }
-
-    @Override
-    public void release() {
-        in.release();
-    }
-
-    @Override
-    public void close() {
-        in.close();
+    public void close() throws IOException {
+        ramAccounting.close();
     }
 }
