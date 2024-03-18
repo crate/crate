@@ -21,6 +21,12 @@
 
 package io.crate.planner.node.dql;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
@@ -33,11 +39,6 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.types.DataType;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
 
 public class Collect implements ExecutionPlan, ResultDescription {
 
@@ -151,8 +152,12 @@ public class Collect implements ExecutionPlan, ResultDescription {
     public boolean executesOnShard() {
         List<Projection> projections = collectPhase.projections();
         if (projections.isEmpty()) {
-            return collectPhase instanceof RoutedCollectPhase &&
-                   ((RoutedCollectPhase) collectPhase).routing().containsShards();
+            // Can't apply shard projections if there is an ORDER BY
+            // because we've to merge the result of the shards first.
+            // See ShardCollectSource.createMultiShardScoreDocCollector
+            return collectPhase instanceof RoutedCollectPhase routedPhase
+                && routedPhase.routing().containsShards()
+                && routedPhase.orderBy() == null;
         }
         Projection lastProjection = projections.get(projections.size() - 1);
         return lastProjection.requiredGranularity() == RowGranularity.SHARD;

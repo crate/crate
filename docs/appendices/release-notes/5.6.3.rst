@@ -47,6 +47,10 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could cause ``SELECT`` statements to ignore a ``WHERE``
+  clause if it involved views or virtual tables, and unused columns containing a
+  window function.
+
 - Fixed an issue that could cause ``SHOW CREATE TABLE`` on a missing table to
   mention similarly named tables, despite the user not having any permissions on
   those tables.
