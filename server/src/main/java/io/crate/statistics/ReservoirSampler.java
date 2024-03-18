@@ -37,6 +37,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Scorable;
@@ -181,17 +182,11 @@ public final class ReservoirSampler {
                         searchersToRelease.add(new ShardExpressions(searcher, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
-
-                        try {
-                            // We do the sampling in 2 phases. First we get the docIds;
-                            // then we retrieve the column values for the sampled docIds.
-                            // we do this in 2 phases because the reservoir sampling might override previously seen
-                            // items and we want to avoid unnecessary disk-lookup
-                            var collector = new ReservoirCollector(fetchIdSamples, searchersToRelease.size() - 1);
-                            searcher.search(new MatchAllDocsQuery(), collector);
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
+                        // We do the sampling in 2 phases. First we get the docIds;
+                        // then we retrieve the column values for the sampled docIds.
+                        // we do this in 2 phases because the reservoir sampling might override previously seen
+                        // items and we want to avoid unnecessary disk-lookup
+                        sampleDocIds(fetchIdSamples, searchersToRelease.size() - 1, searcher);
                     } catch (IllegalIndexShardStateException | AlreadyClosedException ignored) {
                     }
                 }
@@ -210,6 +205,15 @@ public final class ReservoirSampler {
             for (var shard : searchersToRelease) {
                 shard.searcher.close();
             }
+        }
+    }
+
+    static void sampleDocIds(Reservoir reservoir, int readerIdx, IndexSearcher searcher) {
+        var collector = new ReservoirCollector(reservoir, readerIdx);
+        try {
+            searcher.search(new MatchAllDocsQuery(), collector);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
