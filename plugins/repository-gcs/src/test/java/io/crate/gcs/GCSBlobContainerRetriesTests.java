@@ -92,11 +92,9 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
-import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 
-@SuppressForbidden(reason = "use a http server")
 public class GCSBlobContainerRetriesTests extends IntegTestCase {
 
     static final long MAX_RANGE_VAL = Long.MAX_VALUE - 1;
