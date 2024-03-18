@@ -58,4 +58,21 @@ public class NumericArithmeticTest extends ScalarTestCase {
         assertEvaluate("12.12::numeric(4, 2) % 10.14::numeric(4, 2)",
                        new BigDecimal("1.98"));
     }
+
+    @Test
+    public void test_numeric_exp() {
+        assertEvaluate("3::numeric ^ 4::numeric" ,
+            new BigDecimal("81.0").doubleValue());
+    }
+
+    @Test
+    public void test_numeric_exp_mixed_operators() {
+        assertEvaluate(
+            "3::numeric * 4::numeric + 4::numeric + 5::numeric * 5::numeric ^ 7::numeric",
+            new BigDecimal("390641.0")
+        );
+    }
+
+
+
 }

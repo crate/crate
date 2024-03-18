@@ -1143,14 +1143,49 @@ Total circuit breaker
 Thread pools
 ------------
 
-Every node holds several thread pools to improve how threads are managed within
-a node. There are several pools, but the important ones include:
+Every node uses a number of thread pools to schedule operations, each pool is
+dedicated to specific operations. The most important pools are:
 
-* ``write``: For index, update and delete operations, defaults to fixed
-* ``search``: For count/search operations, defaults to fixed
-* ``get``: For queries on ``sys.shards`` and ``sys.nodes``, defaults to fixed.
-* ``refresh``: For refresh operations, defaults to cache
-* ``logical_replication``: For operations used by the logical replication, defaults to fixed.
+* ``write``: Used for write operations like index, update or delete. The ``type``
+  defaults to ``fixed``.
+* ``search``: Used for read operations like ``SELECT`` statements. The ``type``
+  defaults to ``fixed``.
+* ``get``: Used for some specific read operations. For example on tables like
+  ``sys.shards`` or ``sys.nodes``. The ``type`` defaults to ``fixed``.
+* ``refresh``: Used for :ref:`refresh operations <refresh_data>`. The ``type``
+  defaults to ``scaling``.
+* ``generic``: For internal tasks like cluster state management. The ``type``
+  defaults to ``scaling``.
+* ``logical_replication``: For logical replication operations. The ``type``
+  defaults to fixed.
+
+In addition to those pools, there are also ``netty`` worker threads which are
+used to process network requests and many CPU bound actions like query analysis
+and optimization.
+
+The thread pool settings are expert settings which you generally shouldn't need
+to touch. They are dynamically sized depending on the number of available CPU
+cores. If you're running multiple services on the same machine you instead
+should change the :ref:`processors` setting.
+
+Increasing the number of threads for a pool can result in degraded performance
+due to increased context switching and higher memory footprint.
+
+If you observe idle CPU cores increasing the thread pool size is rarely the
+right course of action, instead it can be a sign that:
+
+- Operations are blocked on disk IO. Increasing the thread pool size could
+  result in more operations getting queued and blocked on disk IO without
+  increasing throughput but decreasing it due to more memory pressure and
+  additional garbage collection activity.
+
+- Individual operations running single threaded. Not all tasks required to
+  process a SQL statement can be further subdivided and processed in parallel,
+  but many operations default to use one thread per shard. Because of this, you
+  can consider increasing the number of shards of a table to increase the
+  parallelism of a single individual statement and increase CPU core
+  utilization. As an alternative you can try increasing the concurrency on the
+  client side, to have CrateDB process more SQL statements in parallel.
 
 .. _thread_pool.<name>.type:
 
@@ -1188,6 +1223,12 @@ settings.
 
   Size of the queue for pending requests. A value of ``-1`` sets it to
   unbounded.
+  If you have burst workloads followed by periods of inactivity it can make
+  sense to increase the ``queue_size`` to allow a node to buffer more queries
+  before rejecting new operations. But be aware, increasing the queue size if
+  you have sustained workloads will only increase the system's memory
+  consumption and likely degrade performance.
+
 
 .. _overload_protection:
 
