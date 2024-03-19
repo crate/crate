@@ -2225,38 +2225,53 @@ public class TransportSQLActionTest extends IntegTestCase {
 
 
     @Test
+    @UseRandomizedOptimizerRules(0)
+    @UseRandomizedSchema(random = false)
     public void test_filter_on_top_of_order_by_and_collect_works() throws Exception {
-        /**
-         * This is a query that resulted in a Filter/FilterProjection with requiredGranularity==SHARD
-         * That filter was ignored by the ordered-collect logic in ShardCollectSource
-         *
-         * Usually a filter is pushed into the collect, and this case didn't surface, but
-         * here the Filter->Collect could only be merged _after_ column pruning
-         *  (to remove the `row_number()` and the window agg)
-         * and we currently don't run another optimize iteration after column pruning.
-         *
-         * If this ever changes, the test should be adapted to disable the filter->collect merge
-         * with a initial filter->orderBy->Collect plan
-         */
-        execute("CREATE TABLE t1 (ts TIMESTAMP, field1 TEXT, anumber DOUBLE)");
-        execute("INSERT INTO t1 (ts, field1, anumber) VALUES (now(), 'abc', 1.1)");
+        execute("CREATE TABLE t1 (ts TIMESTAMP, field1 TEXT, num DOUBLE)");
+        execute("INSERT INTO t1 (ts, field1, num) VALUES (now(), 'abc', 1.1)");
         execute("refresh table t1");
         execute(
             """
             CREATE VIEW v1
             AS
-            SELECT field1, anumber
+            SELECT field1, num
             FROM (
                 SELECT
                     field1,
                     row_number() OVER (PARTITION BY date_bin('1 day'::interval,ts, 0)) "row_number",
-                    anumber
+                    num
                 FROM t1
                 ORDER BY field1
                 ) x;
             """
         );
-        execute("SELECT * FROM v1 WHERE field1 = 'xyz'");
-        assertThat(response).isEmpty();
+        String stmt = "SELECT * FROM v1 WHERE field1 = 'xyz'";
+        execute("explain " + stmt);
+        assertThat(response)
+            .as("Filter is moved below OrderBy and merged into collect")
+            .hasLines(
+                "Rename[field1, num] AS doc.v1 (rows=unknown)",
+                "  └ Rename[field1, num] AS x (rows=unknown)",
+                "    └ OrderBy[field1 ASC] (rows=unknown)",
+                "      └ Collect[doc.t1 | [field1, num] | (field1 = 'xyz')] (rows=unknown)"
+            );
+        assertThat(execute(stmt)).isEmpty();
+        try (var session = sqlExecutor.newSession()) {
+            execute("set optimizer_merge_filter_and_collect = false", session);
+            execute("explain " + stmt, session);
+            // This results in a execution plan that has a filter _above_ a CollectPhase with OrderedBy.
+            // The filter can't be run on shard level
+            assertThat(response)
+                .as("Has OrderBy->Filter->Collect")
+                .hasLines(
+                    "Rename[field1, num] AS doc.v1 (rows=0)",
+                    "  └ Rename[field1, num] AS x (rows=0)",
+                    "    └ OrderBy[field1 ASC] (rows=0)",
+                    "      └ Filter[(field1 = 'xyz')] (rows=0)",
+                    "        └ Collect[doc.t1 | [field1, num] | true] (rows=unknown)"
+                );
+            assertThat(execute(stmt, session)).isEmpty();
+        }
     }
 }
