@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.index.shard;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -32,28 +33,38 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.TestTranslog;
 import org.elasticsearch.index.translog.Translog;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.Indexer;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
 
@@ -72,18 +83,15 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(syncAction);
         syncer.setChunkSize(new ByteSizeValue(randomIntBetween(1, 10)));
 
+
         int numDocs = randomInt(10);
+        Indexer indexer = createIndexer(shard, List.of());
         for (int i = 0; i < numDocs; i++) {
             // Index doc but not advance local checkpoint.
-            shard.applyIndexOperationOnPrimary(
-                Versions.MATCH_ANY,
-                VersionType.INTERNAL,
-                new SourceToParse(shard.shardId().getIndexName(), Integer.toString(i), new BytesArray("{}"), XContentType.JSON),
-                SequenceNumbers.UNASSIGNED_SEQ_NO,
-                0,
-                -1L,
-                true
-            );
+            var item = new IndexItem.StaticItem(Integer.toString(i), List.of(), new Object[]{}, 0L, 0L);
+            long startTime = System.nanoTime();
+            ParsedDocument parsedDocument = indexer.index(item);
+            shard.applyIndexOperationOnPrimary(parsedDocument, Versions.MATCH_ANY, startTime, -1L, true);
         }
 
         long globalCheckPoint = numDocs > 0 ? randomIntBetween(0, numDocs - 1) : 0;
@@ -150,17 +158,14 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         syncer.setChunkSize(new ByteSizeValue(1)); // every document is sent off separately
 
         int numDocs = 10;
+        Indexer indexer = createIndexer(shard, List.of());
         for (int i = 0; i < numDocs; i++) {
             // Index doc but not advance local checkpoint.
-            shard.applyIndexOperationOnPrimary(
-                Versions.MATCH_ANY,
-                VersionType.INTERNAL,
-                new SourceToParse(shard.shardId().getIndexName(), Integer.toString(i), new BytesArray("{}"), XContentType.JSON),
-                SequenceNumbers.UNASSIGNED_SEQ_NO,
-                0,
-                -1L,
-                false
-            );
+
+            var item = new IndexItem.StaticItem(Integer.toString(i), List.of(), new Object[]{}, 0L, 0L);
+            long startTime = System.nanoTime();
+            ParsedDocument parsedDocument = indexer.index(item);
+            shard.applyIndexOperationOnPrimary(parsedDocument, Versions.MATCH_ANY, startTime, -1L, false);
         }
 
         String allocationId = shard.routingEntry().allocationId().getId();
@@ -232,5 +237,39 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         FutureUtils.get(fut);
         assertThat(sentOperations, equalTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList())));
         closeShards(shard);
+    }
+
+    private static Indexer createIndexer(IndexShard shard, List<Reference> targetColumns) {
+        DocTableInfo table = new DocTableInfo(
+            new RelationName("doc", shard.shardId().getIndexName()),
+            targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
+            Map.of(),
+            Map.of(),
+            null,
+            List.of(),
+            List.of(),
+            null,
+            new String[] { shard.shardId().getIndexName() },
+            new String[] { shard.shardId().getIndexName() },
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                .build(),
+            List.of(),
+            List.of(),
+            ColumnPolicy.STRICT,
+            Version.CURRENT,
+            null,
+            false,
+            Set.of()
+        );
+        return new Indexer(
+            shard.shardId().getIndexName(),
+            table,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            createNodeContext(),
+            column -> shard.mapperService().getLuceneFieldType(column),
+            targetColumns,
+            null
+        );
     }
 }
