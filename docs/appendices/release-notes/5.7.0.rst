@@ -110,6 +110,9 @@ Performance and Resilience Improvements
 
     Note that this setting is experimental, and may change in the future.
 
+- Improved the performance of the :ref:`analyze` statement. CrateDB now uses much
+  less memory when collecting column statistics.
+
 Administration and Operations
 -----------------------------
 

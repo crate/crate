@@ -35,6 +35,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
@@ -150,5 +151,10 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     @Override
     public StorageSupport<Number> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Byte> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Byte.class, ByteType.this);
     }
 }

@@ -42,6 +42,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
@@ -213,6 +214,11 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     @Override
     public StorageSupport<Float> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Float> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Float.class, FloatType.this);
     }
 
     @Override
