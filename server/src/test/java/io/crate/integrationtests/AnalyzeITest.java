@@ -56,9 +56,10 @@ public class AnalyzeITest extends IntegTestCase {
         assertThat(((Float) row[0]).doubleValue()).isCloseTo(0.166, withPercentage(1));
         assertThat(row[1]).isEqualTo(DataTypes.INTEGER.fixedSize());
         assertThat(row[2]).isEqualTo(3.0f);
-        assertThat(((List<String>) row[3])).isEmpty();
-        assertThat(((List<Double>) row[4])).isEmpty();
-        assertThat(((List<String>) row[5])).containsExactly("1", "2", "3");
+        assertThat(((List<String>) row[3])).containsExactly("3", "2", "1");
+        assertThat(((List<Float>) row[4])).hasSize(3);
+        assertThat(((List<Float>) row[4]).get(0)).isEqualTo(0.5f);
+        assertThat(((List<String>) row[5])).isEmpty();
     }
 
     @Test
@@ -80,7 +81,7 @@ public class AnalyzeITest extends IntegTestCase {
         execute("SELECT attname, most_common_vals, histogram_bounds FROM pg_stats");
         Object[] row = response.rows()[0];
         assertThat(row[0]).isEqualTo("val['id']");
-        assertThat(row[1]).isEqualTo(List.of("[1]"));
+        assertThat(row[1]).isEqualTo(List.of("[1]", "[2]"));
         assertThat(row[2]).isEqualTo(List.of());
     }
 }

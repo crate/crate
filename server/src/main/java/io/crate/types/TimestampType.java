@@ -49,6 +49,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public final class TimestampType extends DataType<Long>
     implements FixedWidthType, Streamer<Long> {
@@ -242,5 +243,10 @@ public final class TimestampType extends DataType<Long>
         if (id == ID_WITHOUT_TZ) {
             mapping.put("ignore_timezone", true);
         }
+    }
+
+    @Override
+    public ColumnStatsSupport<Long> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Long.class, TimestampType.this);
     }
 }

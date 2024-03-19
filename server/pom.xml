@@ -268,6 +268,11 @@
       <version>${versions.hdrhistogram}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.datasketches</groupId>
+      <artifactId>datasketches-java</artifactId>
+      <version>${versions.datasketches}</version>
+    </dependency>
+    <dependency>
       <groupId>com.carrotsearch</groupId>
       <artifactId>hppc</artifactId>
       <version>${versions.hppc}</version>

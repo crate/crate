@@ -21,7 +21,6 @@
 
 package io.crate.planner.selectivity;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -356,7 +355,7 @@ public class SelectivityFunctions {
             return 0.0;
         }
         var mcv = columnStats.mostCommonValues();
-        int idx = Arrays.asList(mcv.values()).indexOf(value);
+        int idx = mcv.values().indexOf(value);
         if (idx < 0) {
             return 1.0 / columnStats.approxDistinct();
         } else {

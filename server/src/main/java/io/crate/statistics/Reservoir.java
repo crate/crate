@@ -21,6 +21,7 @@
 
 package io.crate.statistics;
 
+import java.util.Arrays;
 import java.util.Random;
 
 import com.carrotsearch.hppc.LongArrayList;
@@ -56,6 +57,7 @@ public final class Reservoir {
     }
 
     public LongArrayList samples() {
+        Arrays.sort(samples.buffer, 0, samples.elementsCount);
         return samples;
     }
 }

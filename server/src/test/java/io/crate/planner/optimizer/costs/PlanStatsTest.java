@@ -52,6 +52,7 @@ import io.crate.sql.tree.JoinType;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
+import io.crate.statistics.StatsUtils;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -194,7 +195,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 9,
                 DataTypes.INTEGER,
-                MostCommonValues.EMPTY,
+                MostCommonValues.empty(),
                 List.of()
             ),
             new ColumnIdent("y"),
@@ -203,7 +204,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 1,
                 DataTypes.INTEGER,
-                MostCommonValues.EMPTY,
+                MostCommonValues.empty(),
                 List.of()
             )
         );
@@ -238,8 +239,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         DocTableRelation relation = new DocTableRelation(aDoc);
         var lhs = new Collect(relation, List.of(x), WhereClause.MATCH_ALL);
         var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
-        ColumnStats<Integer> xStats = ColumnStats.fromSortedValues(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9), DataTypes.INTEGER, 0, 9);
-        ColumnStats<Integer> yStats = ColumnStats.fromSortedValues(List.of(1), DataTypes.INTEGER, 0, 1);
+        ColumnStats<Integer> xStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
+        ColumnStats<Integer> yStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1));
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
@@ -293,7 +294,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 2500.0,
                 DataTypes.INTEGER,
-                new MostCommonValues(new Object[0], new double[0]),
+                MostCommonValues.empty(),
                 List.of()
             )
         );
