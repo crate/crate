@@ -36,6 +36,36 @@ For this to work, you'll need several parts:
   try to connect with the current user.
 
 
+Query clauses like ``GROUP BY``, ``HAVING``, ``LIMIT`` or ``ORDER BY`` are
+executed within CrateDB, not within the foreign system. ``WHERE`` clauses can in
+some circumstances be pushed to the foreign system, but that depends on the
+concrete foreign data wrapper implementation. You can check if this is the case
+by using the :ref:`ref-explain` statement.
+
+For example, in the following explain output there is a dedicated ``Filter``
+node, indicating that the filter is executed within CrateDB::
+
+    cr> explain select * from summits where mountain like 'H%';
+    +--------------------------------------------------------------------+
+    | QUERY PLAN                                                         |
+    +--------------------------------------------------------------------+
+    | Filter[(mountain LIKE 'H%')] (rows=0)                              |
+    |   └ ForeignCollect[doc.summits | [mountain] | true] (rows=unknown) |
+    +--------------------------------------------------------------------+
+
+Compare this to the following output, where the query became part of the
+``ForeignCollect`` node, indicating that it evaluates within the foreign
+system::
+
+
+    cr> explain select * from summits where mountain = 'Monte Verena';
+    +---------------------------------------------------------------------------------------+
+    | QUERY PLAN                                                                            |
+    +---------------------------------------------------------------------------------------+
+    | ForeignCollect[doc.summits | [mountain] | (mountain = 'Monte Verena')] (rows=unknown) |
+    +---------------------------------------------------------------------------------------+
+
+
 ``jdbc``
 ========
 
