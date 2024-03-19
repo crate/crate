@@ -27,13 +27,13 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseNewCluster;
@@ -87,6 +87,8 @@ public class AlterTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 500)
+    @UseNewCluster
     public void test_alter_partitioned_table_drop_simple_column() {
         execute("create table t(id integer primary key, a integer, b integer) partitioned by(id)");
         execute("insert into t(id, a, b) values(1, 11, 111)");
@@ -105,8 +107,8 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             "1| 111",
             "2| 222",
             "3| 333");
-        execute("select * from t where id = 2");
-        assertThat(response).hasRows("2| 222");
+        execute("select id, b, _raw from t where id = 2");
+        assertThat(response).hasRows("2| 222| {\"2\":22,\"3\":222}");
         Asserts.assertSQLError(() -> execute("select a from t"))
             .hasPGError(UNDEFINED_COLUMN)
             .hasHTTPError(NOT_FOUND, 4043)
