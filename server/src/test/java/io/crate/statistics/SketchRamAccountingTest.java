@@ -21,8 +21,8 @@
 
 package io.crate.statistics;
 
-import static org.apache.lucene.tests.util.LuceneTestCase.expectThrows;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.io.IOException;
 
@@ -94,6 +94,7 @@ public class SketchRamAccountingTest extends ESTestCase {
             public void addBytes(long bytes) {
                 total += bytes;
                 if (total > 32) {
+                    // break when more than two block sizes have been added to the Sketch
                     throw new RuntimeException("Circuit break! " + total);
                 }
             }
@@ -122,8 +123,7 @@ public class SketchRamAccountingTest extends ESTestCase {
             }
             accounting.addBytes(991);       // still cached
 
-            Exception e = expectThrows(RuntimeException.class, () -> accounting.addBytes(1));
-            assertThat(e).hasMessageContaining("Circuit break!");
+            assertThatThrownBy(() -> accounting.addBytes(1)).hasMessageContaining("Circuit break!");
 
             a.release();
         }
