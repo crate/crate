@@ -168,6 +168,7 @@ public class LogicalPlanner {
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
         new RemoveRedundantEval(),
+        new MergeFilterAndCollect(),
         new RewriteToQueryThenFetch()
     );
 
