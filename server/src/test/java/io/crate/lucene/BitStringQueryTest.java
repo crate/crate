@@ -21,10 +21,8 @@
 
 package io.crate.lucene;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,7 +32,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
@@ -64,17 +61,17 @@ public class BitStringQueryTest extends CrateDummyClusterServiceUnitTest {
 
         try (var tester = builder.build()) {
             Query query = tester.toQuery("bits = ANY([B'01001110', B'11111111'])");
-            assertThat(query, instanceOf(TermInSetQuery.class));
-            assertThat(query.toString(), is("bits:(r [ff])"));
+            assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
+            assertThat(query.toString()).isEqualTo("bits:(r [ff])");
 
             List<Object> result = tester.runQuery("bits", "bits = ANY([B'01001110', B'11111111'])");
-            assertThat(result, Matchers.empty());
+            assertThat(result).isEmpty();
 
             result = tester.runQuery("bits", "bits = ANY([B'00010110', B'11111111'])");
-            assertThat(result, Matchers.contains(bits1));
+            assertThat(result).containsExactly(bits1);
 
             result = tester.runQuery("bits", "bits = ANY([B'00010110', B'01110000'])");
-            assertThat(result, Matchers.contains(bits1, bits2));
+            assertThat(result).containsExactly(bits1, bits2);
         }
 
     }
@@ -93,15 +90,9 @@ public class BitStringQueryTest extends CrateDummyClusterServiceUnitTest {
 
         try (var tester = builder.build()) {
             Query query = tester.toQuery("bits = ?", bits1);
-            assertThat(query, instanceOf(TermQuery.class));
-            assertThat(
-                tester.runQuery("bits", "bits = ?", bits1),
-                Matchers.contains(bits1)
-            );
-            assertThat(
-                tester.runQuery("bits", "bits = ?", bitsNoMatch),
-                Matchers.empty()
-            );
+            assertThat(query).isExactlyInstanceOf(TermQuery.class);
+            assertThat(tester.runQuery("bits", "bits = ?", bits1)).containsExactly(bits1);
+            assertThat(tester.runQuery("bits", "bits = ?", bitsNoMatch)).isEmpty();
         }
     }
 
@@ -109,16 +100,15 @@ public class BitStringQueryTest extends CrateDummyClusterServiceUnitTest {
     public void test_is_not_null_on_bit_column_uses_field_exists_query() throws Exception {
         try (var tester = builder("create table tbl (bits bit(8))").build()) {
             Query query = tester.toQuery("bits is not null");
-            assertThat(query.toString(), is("FieldExistsQuery [field=bits]"));
+            assertThat(query.toString()).isEqualTo("FieldExistsQuery [field=bits]");
         }
     }
 
     @Test
     public void test_range_query_on_bit_type_is_not_supported() throws Exception {
         try (var tester = builder("create table tbl (bits bit(8))").build()) {
-            assertThrows(
-                UnsupportedFunctionException.class,
-                () -> tester.toQuery("bits > B'01'"));
+            assertThatThrownBy(() -> tester.toQuery("bits > B'01'"))
+                .isExactlyInstanceOf(UnsupportedFunctionException.class);
         }
     }
 
