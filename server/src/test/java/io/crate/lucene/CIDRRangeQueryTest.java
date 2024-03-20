@@ -21,10 +21,10 @@
 
 package io.crate.lucene;
 
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -36,28 +36,30 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
     public void test_ipv4_cidr_operator() throws Throwable {
         test(
             new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
-             "ip_addr << '192.168.1.1/24'",
-             "192.168.1.1", "192.168.1.7", "192.168.1.255");
+            "ip_addr << '192.168.1.1/24'",
+            "192.168.1.1", "192.168.1.7", "192.168.1.255");
     }
 
     @Test
     public void test_ipv4_cidr_operator_right_operand_is_ip() throws Throwable {
         // operand [192.168.1.0] must conform with CIDR notation
-        expectedException.expect(IllegalArgumentException.class);
-        test(
-            new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
-             "ip_addr << '192.168.1.0'::ip",
-             "192.168.1.1", "192.168.1.7");
+        assertThatThrownBy(
+            () -> test(
+                new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
+                "ip_addr << '192.168.1.0'::ip",
+                "192.168.1.1", "192.168.1.7"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void test_ipv4_cidr_operator_right_operand_is_text() throws Throwable {
         // operand [random text] must conform with CIDR notation
-        expectedException.expect(IllegalArgumentException.class);
-        test(
-            new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
-             "ip_addr << 'random text'",
-             "192.168.1.1", "192.168.1.7");
+        assertThatThrownBy(
+            () -> test(
+                new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
+                "ip_addr << 'random text'",
+                "192.168.1.1", "192.168.1.7"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     private void test(Object[] valuesToIndex, String queryStr, Object... expectedResults) throws Throwable {
@@ -69,7 +71,7 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
         );
         builder.indexValues("ip_addr", valuesToIndex);
         try (QueryTester tester = builder.build()) {
-            assertThat(tester.runQuery("ip_addr", queryStr), Matchers.contains(expectedResults));
+            assertThat(tester.runQuery("ip_addr", queryStr)).contains(expectedResults);
         }
 
         // test ip col with index off
@@ -81,7 +83,7 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
         );
         builder.indexValues("ip_addr", valuesToIndex);
         try (QueryTester tester = builder.build()) {
-            assertThat(tester.runQuery("ip_addr", queryStr), Matchers.contains(expectedResults));
+            assertThat(tester.runQuery("ip_addr", queryStr)).contains(expectedResults);
         }
     }
 }

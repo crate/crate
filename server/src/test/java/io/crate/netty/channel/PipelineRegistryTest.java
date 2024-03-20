@@ -21,8 +21,7 @@
 
 package io.crate.netty.channel;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -51,12 +50,12 @@ public class PipelineRegistryTest {
         pipelineRegistry.addBefore(channelPipelineItem("b", "c"));
 
         int size = pipelineRegistry.addBeforeList().size();
-        assertThat(size, is(4));
+        assertThat(size).isEqualTo(4);
 
         String[] names = new String[pipelineRegistry.addBeforeList().size()];
         for (int i = 0; i < size; i++) {
             names[i] = pipelineRegistry.addBeforeList().get(i).name;
         }
-        assertThat(names, is(new String[]{"b", "c", "d", "e"}));
+        assertThat(names).isEqualTo(new String[]{"b", "c", "d", "e"});
     }
 }
