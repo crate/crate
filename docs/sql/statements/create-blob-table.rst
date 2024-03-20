@@ -50,7 +50,9 @@ Clauses
 -------------
 
 Follows the same syntax as the :ref:`CREATE TABLE ... CLUSTERED
-<sql-create-table-clustered>` clause.
+<sql-create-table-clustered>` clause, except for what concerns the definition
+of the sharding key which is not applicable as blob tables are always
+sharded by the blobs' digests.
 
 
 .. _sql-create-blob-table-with:
