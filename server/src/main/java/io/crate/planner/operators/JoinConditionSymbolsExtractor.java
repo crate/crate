@@ -82,6 +82,14 @@ public final class JoinConditionSymbolsExtractor {
 
         @Override
         public Void visitFunction(Function function, Context context) {
+            // A join condition maybe an equi-join condition but its parts may not be.
+            // For example, consider `t1.a = t2.a AND t1.a = t1.a + t2.b`, as a whole
+            // it is an equi-join condition due to `t1.a = t2.b`
+            // but `t1.a = t1.a + t2.b` by itself is not an equi-join condition.
+            if (!EquiJoinDetector.isEquiJoin(function)) {
+                return null;
+            }
+
             String functionName = function.name();
             switch (functionName) {
                 case AndOperator.NAME:
