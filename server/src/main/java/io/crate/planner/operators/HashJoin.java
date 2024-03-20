@@ -286,7 +286,7 @@ public class HashJoin extends AbstractJoinPlan {
         var lhsHashSymbols = new ArrayList<Symbol>();
         var rhsHashSymbols = new ArrayList<Symbol>();
         for (var condition : QuerySplitter.split(symbol).entrySet()) {
-            for (var entry : HashJoinConditionSymbolsExtractor.extract(condition.getValue()).entrySet()) {
+            for (var entry : JoinConditionSymbolsExtractor.extract(condition.getValue()).entrySet()) {
                 var relationName = entry.getKey();
                 var symbols = entry.getValue();
                 if (symbols != null) {

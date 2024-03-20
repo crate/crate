@@ -100,3 +100,10 @@ Fixes
 
 - Fixed an issue that caused an inner join with a ``WHERE`` clause containing
   a ``CASE`` expression to return invalid results.
+
+- Fixed an issue that caused an inner join query to throw an
+  ``UnsupportedFeatureException`` when the join condition contains columns from
+  more than one table and the ``WHERE`` clause contains an expression better
+  suited as the join condition e.g.::
+
+    SELECT * FROM t1 INNER JOIN t2 ON (t1.a = t2.b + t1.a) WHERE t1.a = t2.b + 1
