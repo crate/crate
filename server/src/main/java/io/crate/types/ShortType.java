@@ -36,6 +36,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
 
@@ -144,6 +145,11 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     @Override
     public StorageSupport<Number> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Short> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Short.class, ShortType.this);
     }
 
     @Override

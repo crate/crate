@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,37 +21,25 @@
 
 package io.crate.statistics;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.Collection;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import io.crate.types.DataType;
 
-import io.crate.metadata.Reference;
+public final class StatsUtils {
 
-public final class FetchSampleResponse extends TransportResponse {
-
-    private final Samples samples;
-
-    FetchSampleResponse(Samples samples) {
-        this.samples = samples;
+    public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values) {
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
+        builder.addAll(values);
+        return builder.toStats();
     }
 
-    public FetchSampleResponse(List<Reference> references, StreamInput in) throws IOException {
-        this.samples = new Samples(references, in);
+    public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values, int nullCount) {
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
+        builder.addAll(values);
+        for (int i = 0; i < nullCount; i++) {
+            builder.add(null);
+        }
+        return builder.toStats();
     }
 
-    Samples samples() {
-        return samples;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        samples.writeTo(out);
-    }
-
-    public static FetchSampleResponse merge(FetchSampleResponse s1, FetchSampleResponse s2) {
-        return new FetchSampleResponse(Samples.merge(s1.samples(), s2.samples()));
-    }
 }

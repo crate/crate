@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.statistics.ColumnStatsSupport;
 
 public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType, Streamer<TimeTZ> {
 
@@ -128,5 +129,10 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     @Override
     public long valueBytes(TimeTZ value) {
         return TYPE_SIZE;
+    }
+
+    @Override
+    public ColumnStatsSupport<TimeTZ> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(TimeTZ.class, TimeTZType.this);
     }
 }

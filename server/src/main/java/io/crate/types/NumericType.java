@@ -263,8 +263,6 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
                Objects.equals(precision, that.precision);
     }
 
-
-
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), scale, precision);

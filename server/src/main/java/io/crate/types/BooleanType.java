@@ -46,6 +46,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
@@ -267,5 +268,10 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     @Override
     public StorageSupport<Boolean> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Boolean> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Boolean.class, BooleanType.this);
     }
 }
