@@ -118,4 +118,12 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
                 RelationName.fromIndexName("t1"),
                 RelationName.fromIndexName("t2"));
     }
+
+    @Test
+    public void test_can_skip_over_non_equi_join_part() {
+        Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t1.a + t2.b AND t1.a = t2.b");
+        Map<RelationName, List<Symbol>> symbolsPerRelation = JoinConditionSymbolsExtractor.extract(joinCondition);
+        assertThat(symbolsPerRelation.get(tr1.relationName())).satisfiesExactly(isReference("a"));
+        assertThat(symbolsPerRelation.get(tr2.relationName())).satisfiesExactly(isReference("b"));
+    }
 }
