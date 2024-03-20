@@ -21,9 +21,8 @@
 
 package io.crate.rest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -93,7 +92,7 @@ public abstract class AdminUIHttpIntegrationTest extends IntegTestCase {
 
     private CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
         CloseableHttpResponse resp = httpClient.execute(request);
-        assertThat(resp.containsHeader("Connection"), is(false));
+        assertThat(resp.containsHeader("Connection")).isFalse();
         return resp;
     }
 
