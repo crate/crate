@@ -58,7 +58,7 @@ public class EquiJoinDetector {
         return isEquiJoin(joinCondition);
     }
 
-    private static boolean isEquiJoin(Symbol joinCondition) {
+    public static boolean isEquiJoin(Symbol joinCondition) {
         assert joinCondition != null : "join condition must not be null on inner joins";
         Context context = new Context();
         joinCondition.accept(VISITOR, context);

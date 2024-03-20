@@ -57,7 +57,7 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
     @Test
     public void testExtractFromTopEqCondition() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.x = t2.y");
-        Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        Map<RelationName, List<Symbol>> symbolsPerRelation = JoinConditionSymbolsExtractor.extract(joinCondition);
         assertThat(symbolsPerRelation.get(tr1.relationName())).satisfiesExactly(isReference("x"));
         assertThat(symbolsPerRelation.get(tr2.relationName())).satisfiesExactly(isReference("y"));
     }
@@ -65,7 +65,7 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
     @Test
     public void testExtractFromNestedEqCondition() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.x > t2.y and t1.a = t2.b and not(t1.i = t2.i)");
-        Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        Map<RelationName, List<Symbol>> symbolsPerRelation = JoinConditionSymbolsExtractor.extract(joinCondition);
         assertThat(symbolsPerRelation.get(tr1.relationName())).satisfiesExactly(isReference("a"));
         assertThat(symbolsPerRelation.get(tr2.relationName())).satisfiesExactly(isReference("b"));
     }
@@ -74,7 +74,7 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
     public void testExtractSymbolsWithDuplicates() {
         Symbol joinCondition = sqlExpressions.asSymbol(
             "t1.a = t2.b and t1.i + 1::int = t2.i and t2.y = t1.i + 1::int");
-        Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        Map<RelationName, List<Symbol>> symbolsPerRelation = JoinConditionSymbolsExtractor.extract(joinCondition);
         assertThat(symbolsPerRelation.get(tr1.relationName())).satisfiesExactlyInAnyOrder(
             isReference("a"),
             isFunction(ArithmeticFunctions.Names.ADD, isReference("i"), isLiteral(1)));
@@ -86,7 +86,7 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
     public void testExtractRelationsOfFunctionsWithLiterals() {
         Symbol joinCondition = sqlExpressions.asSymbol(
             "t1.a = t2.b and t1.i + 1::int = t2.i and t2.y = 1::int + t1.i");
-        Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        Map<RelationName, List<Symbol>> symbolsPerRelation = JoinConditionSymbolsExtractor.extract(joinCondition);
         assertThat(symbolsPerRelation.get(tr1.relationName())).satisfiesExactlyInAnyOrder(
             isReference("a"),
             isFunction(ArithmeticFunctions.Names.ADD, isReference("i"), isLiteral(1)),
@@ -99,7 +99,7 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
     public void test_extract_symbols_per_relation_maintains_visit_order() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.i = t3.z AND t3.c = t2.b");
         Map<RelationName, List<Symbol>> symbolsPerRelation =
-            HashJoinConditionSymbolsExtractor.extract(joinCondition);
+            JoinConditionSymbolsExtractor.extract(joinCondition);
         assertThat(symbolsPerRelation.keySet()).containsExactly(
                 RelationName.fromIndexName("t1"),
                 RelationName.fromIndexName("t3"),
@@ -112,10 +112,18 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
     public void test_extract_symbols_per_relation_maintains_visit_order_when_removing_an_entry_from_result() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.i = t3.z AND t3.c = t2.b");
         Map<RelationName, List<Symbol>> symbolsPerRelation =
-            HashJoinConditionSymbolsExtractor.extract(joinCondition);
+            JoinConditionSymbolsExtractor.extract(joinCondition);
         symbolsPerRelation.remove(RelationName.fromIndexName("t3"));
         assertThat(symbolsPerRelation.keySet()).containsExactly(
                 RelationName.fromIndexName("t1"),
                 RelationName.fromIndexName("t2"));
+    }
+
+    @Test
+    public void test_can_skip_over_non_equi_join_part() {
+        Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t1.a + t2.b AND t1.a = t2.b");
+        Map<RelationName, List<Symbol>> symbolsPerRelation = JoinConditionSymbolsExtractor.extract(joinCondition);
+        assertThat(symbolsPerRelation.get(tr1.relationName())).satisfiesExactly(isReference("a"));
+        assertThat(symbolsPerRelation.get(tr2.relationName())).satisfiesExactly(isReference("b"));
     }
 }
