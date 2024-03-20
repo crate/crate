@@ -22,7 +22,7 @@ Synopsis
 ::
 
     CREATE BLOB TABLE table_name
-    [CUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
+    [CLUSTERED INTO num_shards SHARDS]
     [ WITH ( storage_parameter [= value] [, ... ] ) ]
 
 
