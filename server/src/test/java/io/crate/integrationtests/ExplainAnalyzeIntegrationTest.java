@@ -94,6 +94,7 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
 
     @SuppressWarnings("unchecked")
     @Test
+    @UseRandomizedOptimizerRules(0)
     public void test_explain_analyze_on_statement_with_subquery() {
         execute("explain analyze select * from locations where id = (select id from locations where name = 'foo')");
         Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
@@ -104,7 +105,7 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
         assertThat(subPlanAnalysis).containsKeys("Phases", "Total");
         Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) subPlanAnalysis.get("Phases");
         assertThat(phasesAnalysis).isNotNull();
-        assertThat(phasesAnalysis.keySet()).containsExactly("0-collect", "1-mergeOnHandler");
+        assertThat(phasesAnalysis.keySet()).containsExactly("0-collect", "1-mergeOnHandler", "2-fetchPhase");
 
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {
