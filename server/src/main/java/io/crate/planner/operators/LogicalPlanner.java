@@ -219,10 +219,7 @@ public class LogicalPlanner {
     }
 
     public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
-        CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
-        OptimizerTracer tracer = plannerContext.optimizerTracer();
         AnalyzedRelation relation = selectSymbol.relation();
-
         final int fetchSize;
         final UnaryOperator<LogicalPlan> maybeApplySoftLimit;
         ResultType resultType = selectSymbol.getResultType();
@@ -255,13 +252,37 @@ public class LogicalPlanner {
             plannerContext.clusterState()
         );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
-
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx, tracer);
+        return new RootRelationBoundary(optimize(maybeApplySoftLimit.apply(plan), relation, plannerContext, false));
+    }
+
+    private LogicalPlan optimize(LogicalPlan plan,
+                                 AnalyzedRelation relation,
+                                 PlannerContext plannerContext,
+                                 boolean avoidTopLevelFetch) {
+        CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
+        OptimizerTracer tracer = plannerContext.optimizerTracer();
+        LogicalPlan optimizedPlan = optimizer.optimize(plan, plannerContext.planStats(), txnCtx, tracer);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
-        assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
-        return new RootRelationBoundary(prunedPlan);
+        assert prunedPlan.outputs().equals(optimizedPlan.outputs())
+            : "Pruned plan must have the same outputs as original plan";
+        LogicalPlan fetchOptimized = fetchOptimizer.optimize(
+            prunedPlan,
+            plannerContext.planStats(),
+            txnCtx,
+            tracer
+        );
+        if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
+            return fetchOptimized;
+        }
+        // Doing a second pass here to also rewrite additional plan patterns to "Fetch"
+        // The `fetchOptimizer` operators on `Limit - X` fragments of a tree.
+        // This here instead operators on a narrow selection of top-level patterns
+        //
+        // The reason for this is that some plans are cheaper to execute as fetch
+        // even if there is no operator that reduces the number of records
+        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized);
     }
 
     // In case the subselect is inside an IN() or = ANY() apply a "natural" OrderBy to optimize
@@ -293,38 +314,14 @@ public class LogicalPlanner {
                             PlannerContext plannerContext,
                             SubqueryPlanner subqueryPlanner,
                             boolean avoidTopLevelFetch) {
-        CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
-        OptimizerTracer tracer = plannerContext.optimizerTracer();
-        PlanStats planStats = plannerContext.planStats();
         var planBuilder = new PlanBuilder(
             subqueryPlanner,
             foreignDataWrappers,
-            planStats,
+            plannerContext.planStats(),
             plannerContext.clusterState()
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
-        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx, tracer);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx, tracer);
-        assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
-        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
-        assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
-        LogicalPlan fetchOptimized = fetchOptimizer.optimize(
-            prunedPlan,
-            planStats,
-            coordinatorTxnCtx,
-            tracer
-        );
-        if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
-            return fetchOptimized;
-        }
-        assert logicalPlan.outputs().equals(fetchOptimized.outputs()) : "Fetch optimized plan must have the same outputs as original plan";
-        // Doing a second pass here to also rewrite additional plan patterns to "Fetch"
-        // The `fetchOptimizer` operators on `Limit - X` fragments of a tree.
-        // This here instead operators on a narrow selection of top-level patterns
-        //
-        // The reason for this is that some plans are cheaper to execute as fetch
-        // even if there is no operator that reduces the number of records
-        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized);
+        return optimize(logicalPlan, relation, plannerContext, avoidTopLevelFetch);
     }
 
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {

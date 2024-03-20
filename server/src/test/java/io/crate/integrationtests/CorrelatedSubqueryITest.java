@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -408,9 +409,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "    └ CorrelatedJoin[f1, f2, (SELECT 1 FROM (doc.b))]",
             "      └ Collect[doc.a | [f1, f2] | (f3 = ANY(['a', 'b', 'c']))]",
             "      └ SubPlan",
-            "        └ Eval[1]",
-            "          └ Limit[1;0]",
-            "            └ Collect[doc.b | [1] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
+            "        └ Limit[1;0]",
+            "          └ Collect[doc.b | [1] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
         );
         assertThat(execute(stmt)).hasRows(
             "1"

@@ -489,19 +489,16 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 AND
                 a.country = 'DE'
             """);
-        var expectedPlan =
-            """
-            Eval[mountain]
-              └ Filter[EXISTS (SELECT 1 FROM (b))]
-                └ CorrelatedJoin[mountain, height, (SELECT 1 FROM (b))]
-                  └ Rename[mountain, height] AS a
-                    └ Collect[sys.summits | [mountain, height] | (country = 'DE')]
-                  └ SubPlan
-                    └ Eval[1]
-                      └ Rename[1] AS b
-                        └ Limit[1;0]
-                          └ Collect[sys.summits | [1] | (height = height)]
-            """;
-        assertThat(plan).isEqualTo(expectedPlan);
+        assertThat(plan).hasOperators(
+            "Eval[mountain]",
+            "  └ Filter[EXISTS (SELECT 1 FROM (b))]",
+            "    └ CorrelatedJoin[mountain, height, (SELECT 1 FROM (b))]",
+            "      └ Rename[mountain, height] AS a",
+            "        └ Collect[sys.summits | [mountain, height] | (country = 'DE')]",
+            "      └ SubPlan",
+            "        └ Rename[1] AS b",
+            "          └ Limit[1;0]",
+            "            └ Collect[sys.summits | [1] | (height = height)]"
+        );
     }
 }
