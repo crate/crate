@@ -113,9 +113,6 @@ Performance and Resilience Improvements
 - Improved the performance of the :ref:`analyze` statement. CrateDB now uses much
   less memory when collecting column statistics.
 
-- The join optimizer rule that pushes down filters in join conditions for
-  nested loop joins, is expanded to also handle hash joins.
-
 Administration and Operations
 -----------------------------
 
