@@ -26,21 +26,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Priority;
 
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.fdw.ServersMetadata;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
-public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse> {
+public class DropRoleTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
 
     private final DropRoleRequest request;
-    private boolean alreadyExists = true;
+    private boolean isDropped;
 
     DropRoleTask(DropRoleRequest request) {
         super(Priority.URGENT, request);
@@ -52,20 +53,24 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
         Metadata currentMetadata = currentState.metadata();
         ensureUserDoesNotOwnForeignServers(currentMetadata, request.roleName());
         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-        alreadyExists = dropRole(
-            mdBuilder,
-            request.roleName()
-        );
+        isDropped = dropRole(mdBuilder, request);
+        if (!isDropped) {
+            if (request.ifExists()) {
+                return currentState;
+            }
+            throw new RoleUnknownException(request.roleName());
+        }
         return ClusterState.builder(currentState).metadata(mdBuilder).build();
     }
 
     @Override
-    protected WriteRoleResponse newResponse(boolean acknowledged) {
-        return new WriteRoleResponse(acknowledged, alreadyExists);
+    protected AcknowledgedResponse newResponse(boolean acknowledged) {
+        return new AcknowledgedResponse(acknowledged && isDropped);
     }
 
-    @VisibleForTesting
-    static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
+    private static boolean dropRole(Metadata.Builder mdBuilder, DropRoleRequest request) {
+        String roleNameToDrop = request.roleName();
+
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         if (oldUsersMetadata == null && oldRolesMetadata == null) {
@@ -82,8 +87,7 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
 
         assert !newMetadata.equals(oldRolesMetadata) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(RolesMetadata.TYPE, newMetadata);
-
-        return role != null;
+        return true;
     }
 
     private static void ensureHasNoDependencies(Collection<Role> roles, String roleNameToDrop) {

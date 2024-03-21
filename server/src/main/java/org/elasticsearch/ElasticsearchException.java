@@ -53,6 +53,7 @@ import org.elasticsearch.transport.TcpTransport;
 import io.crate.common.CheckedFunction;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.fdw.ServerAlreadyExistsException;
 import io.crate.fdw.UserMappingAlreadyExists;
@@ -1005,7 +1006,13 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             io.crate.exceptions.RoleAlreadyExistsException.class,
             io.crate.exceptions.RoleAlreadyExistsException::new,
             180,
-            Version.V_5_7_0);
+            Version.V_5_7_0),
+        ROLE_UNKNOWN(
+            RoleUnknownException.class,
+            RoleUnknownException::new,
+            181,
+            Version.V_5_7_0
+        );
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

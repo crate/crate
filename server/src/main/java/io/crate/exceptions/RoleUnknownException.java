@@ -21,11 +21,15 @@
 
 package io.crate.exceptions;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class RoleUnknownException extends RuntimeException implements ResourceUnknownException, UnscopedException {
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+public class RoleUnknownException extends ElasticsearchException implements ResourceUnknownException, UnscopedException {
 
     public RoleUnknownException(String roleName) {
         super(getMessage(Collections.singletonList(roleName)));
@@ -33,6 +37,10 @@ public class RoleUnknownException extends RuntimeException implements ResourceUn
 
     public RoleUnknownException(List<String> roleNames) {
         super(getMessage(roleNames));
+    }
+
+    public RoleUnknownException(StreamInput streamInput) throws IOException {
+        super(streamInput);
     }
 
     private static String getMessage(List<String> roleNames) {
