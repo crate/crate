@@ -127,15 +127,8 @@ public class RoleManagerService implements RoleManager {
     @Override
     public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
         ENSURE_DROP_ROLE_NOT_SUPERUSER.accept(roles.findUser(roleName));
-        return transportDropRoleAction.execute(new DropRoleRequest(roleName, suppressNotFoundError), r -> {
-            if (r.doesUserExist() == false) {
-                if (suppressNotFoundError) {
-                    return 0L;
-                }
-                throw new RoleUnknownException(roleName);
-            }
-            return 1L;
-        });
+        return transportDropRoleAction.execute(
+            new DropRoleRequest(roleName, suppressNotFoundError), r -> r.isAcknowledged() ? 1L : 0L);
     }
 
     @Override
