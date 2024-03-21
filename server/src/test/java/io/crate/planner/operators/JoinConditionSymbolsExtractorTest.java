@@ -40,7 +40,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 
-public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServiceUnitTest {
+public class JoinConditionSymbolsExtractorTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions sqlExpressions;
     private AnalyzedRelation tr1;
