@@ -47,6 +47,9 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue in filter-push-down for joins which prevented constant join
+  conditions to be pushed-down in hash-joins.
+
 - Fixed an issue that could cause ``SELECT`` statements on virtual tables or
   views and a ``WHERE`` clause to run with an expensive execution plan and not
   utilize the table's indices due to the ``merge_filter_and_collect`` optimizer
