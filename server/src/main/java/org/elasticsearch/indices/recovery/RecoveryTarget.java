@@ -19,6 +19,9 @@
 
 package org.elasticsearch.indices.recovery;
 
+import static org.elasticsearch.indices.recovery.RecoveryState.RED;
+import static org.elasticsearch.indices.recovery.RecoveryState.RESET;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -298,6 +301,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                                              ActionListener<Void> listener) {
         ActionListener.completeWith(listener, () -> {
             state().getIndex().setFileDetailsComplete(); // ops-based recoveries don't send the file details
+            logger.info(RED + "adding total in prepareForTranslogOperations" + RESET);
             state().getTranslog().totalOperations(totalTranslogOps);
             indexShard().openEngineAndSkipTranslogRecovery();
             return null;
@@ -352,6 +356,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                                         ActionListener<Long> listener) {
         ActionListener.completeWith(listener, () -> {
             final RecoveryState.Translog translog = state().getTranslog();
+            logger.info(RED + "adding total in indexTranslogOperations completion" + RESET);
             translog.totalOperations(totalTranslogOps);
             assert indexShard().recoveryState() == state();
             if (indexShard().state() != IndexShardState.RECOVERING) {
@@ -415,6 +420,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                 index.addFileDetail(phase1FileNames.get(i), phase1FileSizes.get(i), false);
             }
             index.setFileDetailsComplete();
+            logger.info(RED + "adding total in receiveFileInfo" + RESET);
             state().getTranslog().totalOperations(totalTranslogOps);
             state().getTranslog().totalOperationsOnStart(totalTranslogOps);
             return null;
@@ -427,6 +433,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                            Store.MetadataSnapshot sourceMetadata,
                            ActionListener<Void> listener) {
         ActionListener.completeWith(listener, () -> {
+            logger.info(RED + "adding total in cleanFiles completion" + RESET);
             state().getTranslog().totalOperations(totalTranslogOps);
             // first, we go and move files that were created with the recovery id suffix to
             // the actual names, its ok if we have a corrupted index here, since we have replicas
@@ -487,6 +494,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                                int totalTranslogOps,
                                ActionListener<Void> listener) {
         try {
+            logger.info(RED + "adding total in writeFileChunk" + RESET);
             state().getTranslog().totalOperations(totalTranslogOps);
             multiFileWriter.writeFileChunk(fileMetadata, position, content, lastChunk);
             listener.onResponse(null);

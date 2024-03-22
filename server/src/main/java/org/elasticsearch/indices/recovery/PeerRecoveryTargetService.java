@@ -21,6 +21,8 @@ package org.elasticsearch.indices.recovery;
 
 import static io.crate.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import static org.elasticsearch.indices.recovery.RecoveryState.RED;
+import static org.elasticsearch.indices.recovery.RecoveryState.RESET;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -199,7 +201,9 @@ public class PeerRecoveryTargetService implements IndexEventListener {
 
     protected void reestablishRecovery(final StartRecoveryRequest request, final String reason, TimeValue retryAfter) {
         final long recoveryId = request.recoveryId();
-        LOGGER.trace("will try to reestablish recovery with id [{}] in [{}] (reason [{}])", recoveryId, retryAfter, reason);
+
+
+        LOGGER.info("will try to reestablish recovery with id [{}] in [{}] (reason [{}])", recoveryId, retryAfter, reason);
         threadPool.scheduleUnlessShuttingDown(retryAfter, ThreadPool.Names.GENERIC, new RecoveryRunner(recoveryId, request));
     }
 
@@ -651,6 +655,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
 
             if (cause instanceof IllegalIndexShardStateException || cause instanceof IndexNotFoundException ||
                 cause instanceof ShardNotFoundException) {
+                LOGGER.info(RED + "retryRecovery IllegalIndexShardStateException or IndexNotFoundException or ShardNotFoundException {}" + RESET, cause.getClass().getName() + ":" + cause.getMessage());
                 // if the target is not ready yet, retry
                 retryRecovery(
                     recoveryId,
@@ -663,6 +668,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             // PeerRecoveryNotFound is returned when the source node cannot find the recovery requested by
             // the REESTABLISH_RECOVERY request. In this case, we delay and then attempt to restart.
             if (cause instanceof DelayRecoveryException || cause instanceof PeerRecoveryNotFound) {
+                LOGGER.info(RED + "retryRecovery DelayRecoveryException OR PeerRecoveryNotFound {}" + RESET, cause.getClass().getName() + ":" + cause.getMessage());
                 retryRecovery(recoveryId, cause, recoverySettings.retryDelayStateSync(),
                     recoverySettings.activityTimeout());
                 return;
@@ -672,8 +678,10 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                 LOGGER.info("recovery of {} from [{}] interrupted by network disconnect, will retry in [{}]; cause: [{}]",
                     request.shardId(), request.sourceNode(), recoverySettings.retryDelayNetwork(), cause.getMessage());
                 if (request.sourceNode().getVersion().onOrAfter(Version.V_5_1_0)) {
+                    LOGGER.info(RED + "reestablishRecovery ConnectTransportException" + RESET);
                     reestablishRecovery(request, cause.getMessage(), recoverySettings.retryDelayNetwork());
                 } else {
+                    LOGGER.info(RED + "retryRecovery ConnectTransportException" + RESET);
                     retryRecovery(recoveryId, cause.getMessage(), recoverySettings.retryDelayNetwork(),
                         recoverySettings.activityTimeout());
                 }
