@@ -130,7 +130,9 @@ public class ArrayAvgFunction {
 
 
         for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            if (supportedType != DataTypes.FLOAT && supportedType != DataTypes.DOUBLE) {
+            if (supportedType != DataTypes.FLOAT &&
+                supportedType != DataTypes.DOUBLE &&
+                supportedType != DataTypes.NUMERIC) {
                 builder.add(
                     Signature.scalar(
                         NAME,

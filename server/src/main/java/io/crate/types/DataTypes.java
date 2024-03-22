@@ -134,7 +134,8 @@ public final class DataTypes {
         BYTE,
         SHORT,
         INTEGER,
-        LONG
+        LONG,
+        NUMERIC
     );
 
     private static final Set<Integer> NUMERIC_PRIMITIVE_TYPE_IDS =
@@ -333,6 +334,8 @@ public final class DataTypes {
     @Nullable
     public static DataType<?> getIntegralReturnType(DataType<?> argumentType) {
         switch (argumentType.id()) {
+            case NumericType.ID:
+                return NUMERIC;
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:

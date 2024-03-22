@@ -1025,6 +1025,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     public void test_indexing_number_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
         var idx = 0;
         for (var dt : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            if (dt == DataTypes.NUMERIC) {
+                continue;
+            }
             var tableName = "tbl_" + idx++;
             SQLExecutor e = SQLExecutor.of(clusterService)
                     .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)");

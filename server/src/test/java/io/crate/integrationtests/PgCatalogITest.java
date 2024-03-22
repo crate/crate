@@ -341,13 +341,15 @@ public class PgCatalogITest extends IntegTestCase {
                 "WHERE proname = 'trunc' " +
                 "ORDER BY 1, 2 " +
                 "LIMIT 10;");
-        assertThat(response).hasRows("bigint| trunc",
-                                     "bigint| trunc",
-                                     "double precision| trunc",
-                                     "integer| trunc",
-                                     "integer| trunc",
-                                     "integer| trunc",
-                                     "integer| trunc");
+        assertThat(response).hasRows(
+            "bigint| trunc",
+            "bigint| trunc",
+            "double precision| trunc",
+            "integer| trunc",
+            "integer| trunc",
+            "integer| trunc",
+            "integer| trunc",
+            "numeric| trunc");
     }
 
     @Test
