@@ -21,9 +21,6 @@
 
 package io.crate.integrationtests;
 
-import static org.elasticsearch.indices.recovery.RecoveryState.RED;
-import static org.elasticsearch.indices.recovery.RecoveryState.RESET;
-
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -36,12 +33,10 @@ public class PendingWritesReproductionTest extends IntegTestCase {
     @Repeat(iterations = 100)
     public void reproduction() throws Exception {
         execute("create table doc.t1 (id int) with(number_of_replicas=3)");
-        execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
         execute("create table doc.t2 (id int)");
+        ensureGreen();
+        execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
         execute("insert into doc.t2 (id) select b from generate_series(1,100) a(b)");
-        logger.info(RED + "BEFORE waitNoPendingTasksOnAll" + RESET);
-        waitNoPendingTasksOnAll();
-        logger.info(RED + "AFTER waitNoPendingTasksOnAll" + RESET);
     }
 
 }
