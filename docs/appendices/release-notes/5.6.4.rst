@@ -47,4 +47,5 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that caused ``LIKE`` operator matching an empty string pattern
+  in ``WHERE`` clause to return invalid results.
