@@ -50,3 +50,9 @@ Fixes
 - Changed :ref:`scalar-has-database-priv` and :ref:`scalar-has-schema-priv`
   functions to be registered under :ref:`postgres-pg_catalog` schema, to be
   compatible with PostgreSQL behaviour.
+
+- Fixed an issue that caused ``LIKE`` operator matching an empty string pattern
+  in ``WHERE`` clause to return invalid results, e.g.::
+
+    SELECT * FROM t WHERE col LIKE ''
+
