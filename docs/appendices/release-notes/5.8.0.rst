@@ -73,7 +73,9 @@ None
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- `azatyamanaev <https://github.com/azatyamanaev>`_ added support for the
+   :ref:`sign <scalar-sign>` function.
+
 
 Performance and Resilience Improvements
 ---------------------------------------

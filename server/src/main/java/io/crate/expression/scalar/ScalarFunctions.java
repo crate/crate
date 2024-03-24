@@ -37,6 +37,7 @@ import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.arithmetic.RadiansDegreesFunctions;
 import io.crate.expression.scalar.arithmetic.RandomFunction;
 import io.crate.expression.scalar.arithmetic.RoundFunction;
+import io.crate.expression.scalar.arithmetic.SignFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
 import io.crate.expression.scalar.arithmetic.SubtractTimestampScalar;
 import io.crate.expression.scalar.arithmetic.TrigonometricFunctions;
@@ -139,6 +140,7 @@ public class ScalarFunctions implements FunctionsProvider {
         CeilFunction.register(builder);
         RandomFunction.register(builder);
         AbsFunction.register(builder);
+        SignFunction.register(builder);
         FloorFunction.register(builder);
         TruncFunction.register(builder);
         SquareRootFunction.register(builder);
