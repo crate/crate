@@ -24,7 +24,9 @@ package io.crate.expression.operator;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -129,6 +131,9 @@ public class LikeOperator extends Operator<String> {
             Object value = patternLiteral.value();
             assert value instanceof String
                 : "LikeOperator is registered for string types. Value must be a string";
+            if (((String) value).isEmpty()) {
+                return new TermQuery(new Term(ref.storageIdent(), ""));
+            }
             Character escapeChar = escapeFromSymbols.apply(args);
             return caseSensitivity.likeQuery(ref.storageIdent(),
                 (String) value,
