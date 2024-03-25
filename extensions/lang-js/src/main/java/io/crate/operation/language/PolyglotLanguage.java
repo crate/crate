@@ -80,7 +80,8 @@ public final class PolyglotLanguage implements UDFLanguage {
             getFunctionValue(graalLanguageId, meta.name(), meta.definition());
             return null;
         } catch (IllegalArgumentException | IOException | PolyglotException t) {
-            return String.format(Locale.ENGLISH, "Invalid JavaScript in function '%s.%s(%s)' AS '%s': %s",
+            return String.format(Locale.ENGLISH, "Invalid %s in function '%s.%s(%s)' AS '%s': %s",
+                verboseLanguage,
                 meta.schema(),
                 meta.name(),
                 meta.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", ")),

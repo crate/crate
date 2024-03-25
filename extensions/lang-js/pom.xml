@@ -34,6 +34,12 @@
       <version>${versions.graalvm}</version>
       <type>pom</type>
     </dependency>
+    <dependency>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>python-community</artifactId>
+      <version>${versions.graalvm}</version>
+      <type>pom</type>
+    </dependency>
 
     <dependency>
       <groupId>io.crate</groupId>

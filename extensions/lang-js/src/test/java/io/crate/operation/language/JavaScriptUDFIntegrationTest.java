@@ -21,6 +21,8 @@
 
 package io.crate.operation.language;
 
+
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
@@ -33,7 +35,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.module.JavaScriptLanguageModule;
+import io.crate.module.PolyglotLanguagesModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -45,7 +47,9 @@ public class JavaScriptUDFIntegrationTest extends IntegTestCase {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(JavaScriptLanguageModule.LANG_JS_ENABLED.getKey(), true).build();
+            .put(PolyglotLanguagesModule.LANG_JS_ENABLED.getKey(), true)
+            .put(PolyglotLanguagesModule.LANG_PYTHON_ENABLED.getKey(), true)
+            .build();
     }
 
     @Override
@@ -74,6 +78,28 @@ public class JavaScriptUDFIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][0]).isEqualTo(2L);
         assertThat(response.rows()[1][0]).isEqualTo(3L);
+    }
+
+    @Test
+    public void test_python_function() throws Exception {
+        execute("""
+            create function subtract_py(long, long)
+            returns long language python as $$
+def subtract_py(x, y):
+    return x - y
+$$
+            """
+        );
+        assertFunctionIsCreatedOnAll(
+            sqlExecutor.getCurrentSchema(),
+            "subtract_py",
+            List.of(DataTypes.LONG, DataTypes.LONG)
+        );
+        execute("SELECT subtract_py(a, b) FROM test ORDER BY a ASC");
+        assertThat(response).hasRows(
+            "2",
+            "3"
+        );
     }
 
     @Test

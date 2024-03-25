@@ -19,33 +19,42 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.plugin;
+package io.crate.module;
 
-import java.util.Collection;
 import java.util.List;
 
-import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
 
-import io.crate.module.PolyglotLanguagesModule;
+import io.crate.operation.language.JavaScriptLanguage;
+import io.crate.operation.language.PythonLanguage;
 
-public class JavaScriptLanguagePlugin extends Plugin {
+public class PolyglotLanguagesModule extends AbstractModule {
 
-    private final PolyglotLanguagesModule module;
+    public static final Setting<Boolean> LANG_JS_ENABLED =
+        Setting.boolSetting("lang.js.enabled", true, Setting.Property.NodeScope);
 
-    public JavaScriptLanguagePlugin(Settings settings) {
-        this.module = new PolyglotLanguagesModule(settings);
+    public static final Setting<Boolean> LANG_PYTHON_ENABLED =
+        Setting.boolSetting("lang.python.enabled", true, Setting.Property.NodeScope);
+
+    private final Settings settings;
+
+    public PolyglotLanguagesModule(Settings settings) {
+        this.settings = settings;
     }
 
     @Override
-    public Collection<Module> createGuiceModules() {
-        return List.of(module);
+    protected void configure() {
+        if (LANG_JS_ENABLED.get(settings)) {
+            bind(JavaScriptLanguage.class).asEagerSingleton();
+        }
+        if (LANG_PYTHON_ENABLED.get(settings)) {
+            bind(PythonLanguage.class).asEagerSingleton();
+        }
     }
 
-    @Override
-    public List<Setting<?>> getSettings() {
-        return module.settings();
+    public List<Setting<?>> settings() {
+        return List.of(LANG_JS_ENABLED, LANG_PYTHON_ENABLED);
     }
 }

@@ -19,35 +19,18 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module;
+package io.crate.operation.language;
 
-import java.util.List;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.expression.udf.UserDefinedFunctionService;
 
-import io.crate.operation.language.JavaScriptLanguage;
+@Singleton
+public class PythonLanguage {
 
-public class JavaScriptLanguageModule extends AbstractModule {
-
-    public static final Setting<Boolean> LANG_JS_ENABLED =
-        Setting.boolSetting("lang.js.enabled", true, Setting.Property.NodeScope);
-
-    private final Settings settings;
-
-    public JavaScriptLanguageModule(Settings settings) {
-        this.settings = settings;
-    }
-
-    @Override
-    protected void configure() {
-        if (LANG_JS_ENABLED.get(settings)) {
-            bind(JavaScriptLanguage.class).asEagerSingleton();
-        }
-    }
-
-    public List<Setting<?>> settings() {
-        return List.of(LANG_JS_ENABLED);
+    @Inject
+    public PythonLanguage(UserDefinedFunctionService udfService) {
+        udfService.registerLanguage(new PolyglotLanguage("python", "python"));
     }
 }
