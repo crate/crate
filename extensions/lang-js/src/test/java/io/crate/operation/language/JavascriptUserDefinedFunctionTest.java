@@ -56,7 +56,7 @@ import io.crate.types.DataTypes;
 
 public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
 
-    private static final String JS = JavaScriptLanguage.NAME;
+    private static final String JS = "javascript";
 
     private final Map<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
     private UserDefinedFunctionService udfService;
@@ -70,7 +70,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             new DocTableInfoFactory(sqlExpressions.nodeCtx),
             sqlExpressions.nodeCtx
         );
-        udfService.registerLanguage(new JavaScriptLanguage(udfService));
+        new JavaScriptLanguage(udfService);
     }
 
     private void registerUserDefinedFunction(String name,
