@@ -20,6 +20,8 @@
 package org.elasticsearch.index.shard;
 
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import static org.elasticsearch.indices.recovery.RecoveryState.RED;
+import static org.elasticsearch.indices.recovery.RecoveryState.RESET;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -1472,6 +1474,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         recoveryState.setStage(RecoveryState.Stage.TRANSLOG);
         final RecoveryState.Translog translogRecoveryStats = recoveryState.getTranslog();
         final Engine.TranslogRecoveryRunner translogRecoveryRunner = (engine, snapshot) -> {
+            logger.info(RED + "adding total in openEngineAndRecoverFromTranslog" + RESET);
             translogRecoveryStats.totalOperations(snapshot.totalOperations());
             translogRecoveryStats.totalOperationsOnStart(snapshot.totalOperations());
             return runTranslogRecovery(engine, snapshot, Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY,

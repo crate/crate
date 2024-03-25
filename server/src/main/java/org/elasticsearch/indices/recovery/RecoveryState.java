@@ -19,6 +19,8 @@
 
 package org.elasticsearch.indices.recovery;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -40,6 +42,11 @@ import java.util.Map;
  * Keeps track of state related to shard recovery.
  */
 public class RecoveryState implements Writeable {
+
+    public static final String RESET = "\033[0m";  // Text Reset
+
+    public static final String RED = "\033[0;31m";     // RED
+    private static final Logger LOGGER = LogManager.getLogger(RecoveryState.class);
 
     public enum Stage {
         INIT((byte) 0),
@@ -389,6 +396,7 @@ public class RecoveryState implements Writeable {
         }
 
         public synchronized void incrementRecoveredOperations(int ops) {
+            LOGGER.info(RED + "incrementRecoveredOperations adding {} to already recovered {}" + RESET, ops, recovered);
             recovered += ops;
             assert total == UNKNOWN || total >= recovered : "total, if known, should be > recovered. total [" + total + "], recovered [" + recovered + "]";
         }
@@ -415,6 +423,7 @@ public class RecoveryState implements Writeable {
         }
 
         public synchronized void totalOperations(int total) {
+            LOGGER.info(RED + "increasing total {}" + RESET, total);
             this.total = totalLocal == UNKNOWN ? total : totalLocal + total;
             assert total == UNKNOWN || this.total >= recovered
                 : "total, if known, should be > recovered. total [" + total + "], recovered [" + recovered + "]";
