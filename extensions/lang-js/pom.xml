@@ -24,9 +24,15 @@
       <version>${versions.annotations}</version>
     </dependency>
     <dependency>
-      <groupId>org.graalvm.js</groupId>
-      <artifactId>js</artifactId>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>polyglot</artifactId>
       <version>${versions.graalvm}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>js-community</artifactId>
+      <version>${versions.graalvm}</version>
+      <type>pom</type>
     </dependency>
 
     <dependency>
