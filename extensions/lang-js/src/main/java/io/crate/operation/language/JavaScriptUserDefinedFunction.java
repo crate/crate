@@ -71,8 +71,8 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
         try {
             var function = resolvePolyglotFunctionValue(signature.getName().name(), script);
-            Object[] values = PolyglotValuesConverter.toPolyglotValues(args, boundSignature.argTypes());
-            return PolyglotValuesConverter.toCrateObject(
+            Object[] values = PolyglotValues.toPolyglotValues(args, boundSignature.argTypes());
+            return PolyglotValues.toCrateObject(
                 function.execute(values),
                 boundSignature.returnType()
             );
@@ -97,9 +97,9 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         @Override
         @SafeVarargs
         public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
-            Object[] values = PolyglotValuesConverter.toPolyglotValues(args, boundSignature.argTypes());
+            Object[] values = PolyglotValues.toPolyglotValues(args, boundSignature.argTypes());
             try {
-                return PolyglotValuesConverter.toCrateObject(function.execute(values), boundSignature.returnType());
+                return PolyglotValues.toCrateObject(function.execute(values), boundSignature.returnType());
             } catch (PolyglotException e) {
                 throw new io.crate.exceptions.ScriptException(
                     e.getLocalizedMessage(),
