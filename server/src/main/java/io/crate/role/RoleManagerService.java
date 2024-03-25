@@ -33,7 +33,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
-import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -116,12 +115,10 @@ public class RoleManagerService implements RoleManager {
                                               boolean isUser,
                                               @Nullable SecureHash hashedPw,
                                               @Nullable JwtProperties jwtProperties) {
-        return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties), r -> {
-            if (r.doesUserExist()) {
-                throw new RoleAlreadyExistsException(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
-            }
-            return 1L;
-        });
+        return transportCreateRoleAction.execute(
+            new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties),
+            r -> r.isAcknowledged() ? 1L : 0L
+        );
     }
 
     @Override
