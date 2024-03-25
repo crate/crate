@@ -69,9 +69,8 @@ class Samples implements Writeable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().before(Version.V_5_7_0)) {
-            throw new UnsupportedOperationException("Cannot run ANALYZE in a mixed version cluster");
-        }
+        assert out.getVersion().onOrAfter(Version.V_5_7_0)
+            : "ANALYZE in mixed-version cluster should have been caught by FetchSampleRequest constructor";
         out.writeLong(numTotalDocs);
         out.writeLong(numTotalSizeInBytes);
         out.writeVInt(columnSketches.size());

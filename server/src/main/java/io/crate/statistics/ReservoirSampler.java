@@ -128,7 +128,7 @@ public final class ReservoirSampler {
         rateLimiter.setMBPerSec(newReadLimit.getMbFrac()); // mbPerSec is volatile in SimpleRateLimiter, one volatile write
     }
 
-    Samples getSamples(RelationName relationName, List<Reference> columns, int maxSamples) {
+    Samples getSamples(RelationName relationName, List<Reference> columns) {
         TableInfo table;
         try {
             table = schemas.getTableInfo(relationName);
@@ -148,7 +148,6 @@ public final class ReservoirSampler {
         try (SketchRamAccounting rla = new SketchRamAccounting(ramAccounting, rateLimiter)) {
             return getSamples(
                 columns,
-                maxSamples,
                 docTable,
                 rla,
                 random,
@@ -160,13 +159,12 @@ public final class ReservoirSampler {
     }
 
     private Samples getSamples(List<Reference> columns,
-                               int maxSamples,
                                DocTableInfo docTable,
                                SketchRamAccounting ramAccounting,
                                Random random,
                                Metadata metadata) throws IOException {
 
-        Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
+        Reservoir fetchIdSamples = new Reservoir(random);
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
