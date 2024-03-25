@@ -56,7 +56,7 @@ import io.crate.types.DataTypes;
 
 public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
 
-    private static final String JS = JavaScriptLanguage.NAME;
+    private static final String JS = "javascript";
 
     private final Map<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
     private UserDefinedFunctionService udfService;
@@ -70,7 +70,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             new DocTableInfoFactory(sqlExpressions.nodeCtx),
             sqlExpressions.nodeCtx
         );
-        udfService.registerLanguage(new JavaScriptLanguage(udfService));
+        new JavaScriptLanguage(udfService);
     }
 
     private void registerUserDefinedFunction(String name,
@@ -126,7 +126,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
 
         assertThat(udfService.getLanguage(JS).validate(udfMeta))
             .contains(
-                "Invalid JavaScript in function 'doc.f(double precision)' AS 'function f(a) " +
+                "Invalid javascript in function 'doc.f(double precision)' AS 'function f(a) " +
                 "{ return a[0]1*#?; }': SyntaxError: f:1:27 Expected ; but found 1");
     }
 

@@ -21,86 +21,14 @@
 
 package io.crate.operation.language;
 
-import io.crate.expression.udf.UDFLanguage;
-import io.crate.expression.udf.UserDefinedFunctionMetadata;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.BoundSignature;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.HostAccess;
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
 
-import org.jetbrains.annotations.Nullable;
-import javax.script.ScriptException;
-import java.io.IOException;
-import java.util.Locale;
-import java.util.stream.Collectors;
+import io.crate.expression.udf.UserDefinedFunctionService;
 
-public class JavaScriptLanguage implements UDFLanguage {
-
-    static final String NAME = "javascript";
-
-    private static final Engine ENGINE = Engine.newBuilder()
-        .option("js.foreign-object-prototype", "true")
-        .option("engine.WarnInterpreterOnly", "false")
-        .build();
-
-    private static final HostAccess HOST_ACCESS = HostAccess.newBuilder()
-        .allowListAccess(true)
-        .allowArrayAccess(true)
-        .allowMapAccess(true)
-        .build();
+public class JavaScriptLanguage {
 
     @Inject
     public JavaScriptLanguage(UserDefinedFunctionService udfService) {
-        udfService.registerLanguage(this);
-    }
-
-    public Scalar<?, ?> createFunctionImplementation(UserDefinedFunctionMetadata meta,
-                                                     Signature signature,
-                                                     BoundSignature boundSignature) throws ScriptException {
-        return new JavaScriptUserDefinedFunction(signature, boundSignature, meta.definition());
-    }
-
-    @Nullable
-    public String validate(UserDefinedFunctionMetadata meta) {
-        try {
-            resolvePolyglotFunctionValue(meta.name(), meta.definition());
-            return null;
-        } catch (IllegalArgumentException | IOException | PolyglotException t) {
-            return String.format(Locale.ENGLISH, "Invalid JavaScript in function '%s.%s(%s)' AS '%s': %s",
-                meta.schema(),
-                meta.name(),
-                meta.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", ")),
-                meta.definition(),
-                t.getMessage()
-            );
-        }
-    }
-
-    static Value resolvePolyglotFunctionValue(String functionName, String script) throws IOException {
-        var context = Context.newBuilder("js")
-            .engine(ENGINE)
-            .allowHostAccess(HOST_ACCESS)
-            .build();
-        var source = Source.newBuilder("js", script, functionName).build();
-        context.eval(source);
-        var polyglotFunctionValue = context.getBindings("js").getMember(functionName);
-        if (polyglotFunctionValue == null) {
-            throw new IllegalArgumentException(
-                "The name of the function signature '" + functionName + "' doesn't match " +
-                "the function name in the function definition.");
-        }
-        return polyglotFunctionValue;
-    }
-
-    public String name() {
-        return NAME;
+        udfService.registerLanguage(new PolyglotLanguage("javascript", "js"));
     }
 }
