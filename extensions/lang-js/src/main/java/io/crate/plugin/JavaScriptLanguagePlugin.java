@@ -21,31 +21,31 @@
 
 package io.crate.plugin;
 
-import io.crate.module.JavaScriptLanguageModule;
+import java.util.Collection;
+import java.util.List;
+
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import io.crate.module.JavaScriptLanguageModule;
 
 public class JavaScriptLanguagePlugin extends Plugin {
 
-    private final boolean isEnabled;
+    private final JavaScriptLanguageModule module;
 
     public JavaScriptLanguagePlugin(Settings settings) {
-        isEnabled = JavaScriptLanguageModule.LANG_JS_ENABLED.get(settings);
+        this.module = new JavaScriptLanguageModule(settings);
     }
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return isEnabled ? Collections.singletonList(new JavaScriptLanguageModule()) : Collections.emptyList();
+        return List.of(module);
     }
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(JavaScriptLanguageModule.LANG_JS_ENABLED);
+        return module.settings();
     }
 }
