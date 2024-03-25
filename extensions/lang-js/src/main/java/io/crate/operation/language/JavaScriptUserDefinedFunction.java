@@ -29,7 +29,6 @@ import java.util.List;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
-import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -39,7 +38,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.role.Roles;
 import io.crate.types.DataType;
-import io.crate.types.TypeSignature;
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
@@ -70,16 +68,15 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
+    @SafeVarargs
+    public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
         try {
             var function = resolvePolyglotFunctionValue(signature.getName().name(), script);
-            Object[] polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(
-                args,
-                Lists.map(signature.getArgumentTypes(), TypeSignature::createType)
-            );
+            Object[] values = PolyglotValuesConverter.toPolyglotValues(args, boundSignature.argTypes());
             return PolyglotValuesConverter.toCrateObject(
-                function.execute(polyglotValueArgs),
-                signature.getReturnType().createType());
+                function.execute(values),
+                boundSignature.returnType()
+            );
         } catch (PolyglotException | IOException e) {
             throw new io.crate.exceptions.ScriptException(
                 e.getLocalizedMessage(),
@@ -99,15 +96,11 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         }
 
         @Override
-        public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
-            Object[] polyglotValueArgs = PolyglotValuesConverter.toPolyglotValues(
-                args,
-                Lists.map(signature.getArgumentTypes(), TypeSignature::createType)
-            );
+        @SafeVarargs
+        public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
+            Object[] values = PolyglotValuesConverter.toPolyglotValues(args, boundSignature.argTypes());
             try {
-                return toCrateObject(
-                    function.execute(polyglotValueArgs),
-                    signature.getReturnType().createType());
+                return toCrateObject(function.execute(values), boundSignature.returnType());
             } catch (PolyglotException e) {
                 throw new io.crate.exceptions.ScriptException(
                     e.getLocalizedMessage(),
@@ -117,7 +110,6 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             }
         }
     }
-
 
     private static Object toCrateObject(Value value, DataType<?> type) {
         if ("undefined".equalsIgnoreCase(value.getClass().getSimpleName())) {
