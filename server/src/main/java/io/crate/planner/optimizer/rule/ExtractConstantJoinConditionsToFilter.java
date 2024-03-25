@@ -22,8 +22,11 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource;
+import static io.crate.sql.tree.JoinType.INNER;
+import static io.crate.sql.tree.JoinType.LEFT;
+import static io.crate.sql.tree.JoinType.RIGHT;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,6 +39,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.RelationNameCollector;
+import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
@@ -44,15 +48,19 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 
-public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
+public class ExtractConstantJoinConditionsToFilter implements Rule<JoinPlan> {
 
+    private static final Set<JoinType> SUPPORTED_JOIN_TYPES = EnumSet.of(INNER, LEFT, RIGHT);
     private final Pattern<JoinPlan> pattern;
 
-    public MoveConstantJoinConditionsBeneathJoin() {
+    public ExtractConstantJoinConditionsToFilter() {
         this.pattern = typeOf(JoinPlan.class)
-            .with(join -> join.joinType() == JoinType.INNER &&
+            .with(join ->
+                SUPPORTED_JOIN_TYPES.contains(join.joinType()) &&
                 !join.moveConstantJoinConditionRuleApplied() &&
-                hasConstantJoinConditions(join.joinCondition()));
+                join.joinCondition() != null &&
+                hasConstantJoinConditions(join.joinCondition())
+            );
     }
 
     private static boolean hasConstantJoinConditions(Symbol joinCondition) {
@@ -88,21 +96,17 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
             }
         }
         if (!constantConditions.isEmpty() && !nonConstantConditions.isEmpty()) {
-            // Push constant join condition down to source
-            var lhs = resolvePlan.apply(joinPlan.lhs());
-            var rhs = resolvePlan.apply(joinPlan.rhs());
-            var queryForLhs = constantConditions.remove(new HashSet<>(lhs.getRelationNames()));
-            var queryForRhs = constantConditions.remove(new HashSet<>(rhs.getRelationNames()));
-            var newLhs = getNewSource(queryForLhs, lhs);
-            var newRhs = getNewSource(queryForRhs, rhs);
-            joinPlan = new JoinPlan(
-                newLhs,
-                newRhs,
-                joinPlan.joinType(),
-                AndOperator.join(nonConstantConditions),
-                joinPlan.isFiltered(),
-                joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                joinPlan.isLookUpJoinRuleApplied()
+            return new Filter(
+                new JoinPlan(
+                    joinPlan.lhs(),
+                    joinPlan.rhs(),
+                    joinPlan.joinType(),
+                    AndOperator.join(nonConstantConditions),
+                    joinPlan.isFiltered(),
+                    joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                    joinPlan.isLookUpJoinRuleApplied(),
+                    true),
+                AndOperator.join(constantConditions.values())
             );
         }
         return joinPlan.withMoveConstantJoinConditionRuleApplied(true);
