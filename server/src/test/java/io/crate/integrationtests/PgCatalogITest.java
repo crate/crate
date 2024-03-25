@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -257,7 +256,6 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_reorder_nested_loop_join| true| Indicates if the optimizer rule ReorderNestedLoopJoin is activated.| NULL| NULL",
             "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.| NULL| NULL",
             "optimizer_rewrite_group_by_keys_limit_to_limit_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToLimitDistinct is activated.| NULL| NULL",
-            "optimizer_rewrite_nested_loop_join_to_hash_join| true| Indicates if the optimizer rule RewriteNestedLoopJoinToHashJoin is activated.| NULL| NULL",
             "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.| NULL| NULL",
             "search_path| doc| Sets the schema search order.| NULL| NULL",
             "server_version| 14.0| Reports the emulated PostgreSQL version number| NULL| NULL",
