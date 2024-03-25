@@ -37,7 +37,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.role.Roles;
-import io.crate.types.DataType;
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
@@ -100,7 +99,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
             Object[] values = PolyglotValuesConverter.toPolyglotValues(args, boundSignature.argTypes());
             try {
-                return toCrateObject(function.execute(values), boundSignature.returnType());
+                return PolyglotValuesConverter.toCrateObject(function.execute(values), boundSignature.returnType());
             } catch (PolyglotException e) {
                 throw new io.crate.exceptions.ScriptException(
                     e.getLocalizedMessage(),
@@ -108,14 +107,6 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
                     JavaScriptLanguage.NAME
                 );
             }
-        }
-    }
-
-    private static Object toCrateObject(Value value, DataType<?> type) {
-        if ("undefined".equalsIgnoreCase(value.getClass().getSimpleName())) {
-            return null;
-        } else {
-            return PolyglotValuesConverter.toCrateObject(value, type);
         }
     }
 }
