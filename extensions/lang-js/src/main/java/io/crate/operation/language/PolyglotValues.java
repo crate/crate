@@ -21,6 +21,14 @@
 
 package io.crate.operation.language;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.graalvm.polyglot.TypeLiteral;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyObject;
+
 import io.crate.data.Input;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -28,48 +36,46 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
-import org.graalvm.polyglot.TypeLiteral;
-import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.proxy.ProxyObject;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-class PolyglotValuesConverter {
+class PolyglotValues {
 
     private static final TypeLiteral<Number> NUMBER_TYPE_LITERAL = new TypeLiteral<>() {
     };
-    private static final TypeLiteral<Map> MAP_TYPE_LITERAL = new TypeLiteral<>() {
+    private static final TypeLiteral<Map<?, ?>> MAP_TYPE_LITERAL = new TypeLiteral<>() {
     };
+
+    private PolyglotValues() {
+    }
 
     static Object toCrateObject(Value value, DataType<?> type) {
         if (value == null) {
             return null;
         }
-        switch (type.id()) {
-            case ArrayType.ID:
+        return switch (type) {
+            case ArrayType<?> arrayType -> {
                 ArrayList<Object> items = new ArrayList<>((int) value.getArraySize());
                 for (int idx = 0; idx < value.getArraySize(); idx++) {
-                    var item = toCrateObject(value.getArrayElement(idx), ((ArrayType<?>) type).innerType());
+                    var item = toCrateObject(value.getArrayElement(idx), arrayType.innerType());
                     items.add(idx, item);
                 }
-                return type.implicitCast(items);
-            case ObjectType.ID:
-                return type.implicitCast(value.as(MAP_TYPE_LITERAL));
-            case GeoPointType.ID:
+                yield type.implicitCast(items);
+            }
+            case ObjectType objectType -> type.implicitCast(value.as(MAP_TYPE_LITERAL));
+            case GeoPointType geoPointType -> {
                 if (value.hasArrayElements()) {
-                    return type.implicitCast(toCrateObject(value, DataTypes.DOUBLE_ARRAY));
+                    yield type.implicitCast(toCrateObject(value, DataTypes.DOUBLE_ARRAY));
                 } else {
-                    return type.implicitCast(value.asString());
+                    yield type.implicitCast(value.asString());
                 }
-            case GeoShapeType.ID:
+            }
+            case GeoShapeType geoShapeType -> {
                 if (value.isString()) {
-                    return type.implicitCast(value.asString());
+                    yield type.implicitCast(value.asString());
                 } else {
-                    return type.implicitCast(value.as(MAP_TYPE_LITERAL));
+                    yield type.implicitCast(value.as(MAP_TYPE_LITERAL));
                 }
-            default:
+            }
+            default -> {
                 final Object polyglotValue;
                 if (value.isNumber()) {
                     polyglotValue = value.as(NUMBER_TYPE_LITERAL);
@@ -80,16 +86,17 @@ class PolyglotValuesConverter {
                 } else {
                     polyglotValue = value.asString();
                 }
-                return type.implicitCast(polyglotValue);
-        }
+                yield type.implicitCast(polyglotValue);
+            }
+        };
     }
 
+    @SuppressWarnings("unchecked")
     static Object[] toPolyglotValues(Input<Object>[] inputs, List<DataType<?>> dataTypes) {
         Object[] args = new Object[inputs.length];
         for (int i = 0; i < inputs.length; i++) {
             switch (dataTypes.get(i).id()) {
                 case ObjectType.ID, GeoShapeType.ID ->
-                    //noinspection unchecked
                     args[i] = ProxyObject.fromMap((Map<String, Object>) inputs[i].value());
                 default -> args[i] = Value.asValue(inputs[i].value());
             }
