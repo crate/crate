@@ -262,7 +262,7 @@
     <versions.aws>1.12.353</versions.aws>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>24.0.0</versions.graalvm>
+    <versions.graalvm>23.0.3</versions.graalvm>
     <versions.jwt>4.4.0</versions.jwt>
     <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
 
