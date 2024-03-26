@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
 import org.junit.Test;
 
@@ -149,5 +150,13 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("text_no_index ILIKE any(['%abc%'])");
         assertThat(query).hasToString("(text_no_index ILIKE ANY(['%abc%']))");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
+
+    // tracks a bug https://github.com/crate/crate/issues/15743
+    @Test
+    public void test_like_empty_string_results_in_term_query() {
+        Query query = convert("name like ''");
+        assertThat(query).hasToString("name:");
+        assertThat(query).isExactlyInstanceOf(TermQuery.class);
     }
 }
