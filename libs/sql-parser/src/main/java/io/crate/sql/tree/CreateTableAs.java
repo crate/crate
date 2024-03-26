@@ -68,7 +68,7 @@ public final class CreateTableAs<T> extends Statement {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, query);
+        return Objects.hash(name, query, ifNotExists);
     }
 
     @Override
