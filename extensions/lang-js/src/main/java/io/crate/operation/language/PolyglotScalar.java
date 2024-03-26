@@ -25,6 +25,7 @@ package io.crate.operation.language;
 import java.io.IOException;
 import java.util.List;
 
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
@@ -54,12 +55,7 @@ public final class PolyglotScalar extends Scalar<Object, Object> {
     @Override
     public Scalar<Object, Object> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         try {
-            String functionName = signature.getName().name();
-            return new CompiledFunction(
-                graalLanguageId,
-                signature,
-                boundSignature,
-                PolyglotLanguage.getFunctionValue(graalLanguageId, functionName, script));
+            return new CompiledFunction(graalLanguageId, signature, boundSignature, script);
         } catch (PolyglotException | IOException e) {
             // this should not happen if the script was validated upfront
             throw new io.crate.exceptions.ScriptException(
@@ -73,14 +69,16 @@ public final class PolyglotScalar extends Scalar<Object, Object> {
     @Override
     @SafeVarargs
     public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
-        try {
+        try (var context = PolyglotLanguage.newContext(graalLanguageId)) {
             String functionName = signature.getName().name();
-            var function = PolyglotLanguage.getFunctionValue(graalLanguageId, functionName, script);
-            Object[] values = PolyglotValues.toPolyglotValues(args, boundSignature.argTypes());
-            return PolyglotValues.toCrateObject(
-                function.execute(values),
-                boundSignature.returnType()
+            var function = PolyglotLanguage.getFunction(
+                context,
+                graalLanguageId,
+                functionName,
+                script
             );
+            Object[] values = PolyglotValues.toPolyglotValues(args, boundSignature.argTypes());
+            return PolyglotValues.toCrateObject(function.execute(values), boundSignature.returnType());
         } catch (PolyglotException | IOException e) {
             throw new io.crate.exceptions.ScriptException(
                 e.getLocalizedMessage(),
@@ -94,14 +92,16 @@ public final class PolyglotScalar extends Scalar<Object, Object> {
 
         private final String language;
         private final Value function;
+        private final Context context;
 
         private CompiledFunction(String language,
                                  Signature signature,
                                  BoundSignature boundSignature,
-                                 Value function) {
+                                 String script) throws IOException {
             super(signature, boundSignature);
             this.language = language;
-            this.function = function;
+            this.context = PolyglotLanguage.newContext(language);
+            this.function = PolyglotLanguage.getFunction(context, language, signature.getName().name(), script);
         }
 
         @Override
@@ -117,6 +117,11 @@ public final class PolyglotScalar extends Scalar<Object, Object> {
                     language
                 );
             }
+        }
+
+        @Override
+        public void close() {
+            context.close();
         }
     }
 }

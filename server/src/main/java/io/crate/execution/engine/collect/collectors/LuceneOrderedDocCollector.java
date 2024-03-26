@@ -76,6 +76,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final DummyScorer scorer;
     private final IndexSearcher searcher;
     private final AtomicReference<Throwable> killed = new AtomicReference<>();
+    private final List<? extends Input<?>> inputs;
 
     private int batchSize;
     private boolean batchSizeReduced = false;
@@ -109,6 +110,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         this.sort = sort;
         this.scorer = new DummyScorer();
         this.expressions = expressions;
+        this.inputs = inputs;
         this.rowFunction = new ScoreDocRowFunction(
             searcher.getIndexReader(),
             inputs,
@@ -142,6 +144,9 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     @Override
     public void close() {
+        for (var input : inputs) {
+            input.close();
+        }
     }
 
     @Override

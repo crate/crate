@@ -21,12 +21,12 @@
 
 package io.crate.expression;
 
+import java.util.Arrays;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-
-import java.util.Arrays;
+import io.crate.metadata.TransactionContext;
 
 public final class FunctionExpression<ReturnType, InputType> implements Input<ReturnType> {
 
@@ -55,5 +55,13 @@ public final class FunctionExpression<ReturnType, InputType> implements Input<Re
         return "FuncExpr{" +
                scalar.signature().getName() +
                ", args=" + Arrays.toString(arguments) + '}';
+    }
+
+    @Override
+    public void close() {
+        scalar.close();
+        for (int i = 0; i < arguments.length; i++) {
+            arguments[i].close();
+        }
     }
 }

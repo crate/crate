@@ -66,7 +66,9 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
                                   Row params,
                                   SubQueryResults subQueryValues) {
         SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, subQueryValues);
-        return symbol.accept(symbolEval, params).value();
+        try (Input<?> accept = symbol.accept(symbolEval, params)) {
+            return accept.value();
+        }
     }
 
     @Override
@@ -91,6 +93,10 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
     }
 
     public Function<Symbol, Object> bind(Row params) {
-        return x -> x.accept(this, params).value();
+        return x -> {
+            try (var input = x.accept(this, params)) {
+                return input.value();
+            }
+        };
     }
 }

@@ -209,7 +209,10 @@ public final class UpdateToInsert {
             int updateIdx = updateColumns.indexOf(ref);
             if (updateIdx >= 0) {
                 Symbol symbol = updateAssignments[updateIdx];
-                Object value = symbol.accept(eval, values).value();
+                Object value;
+                try (Input<?> input = symbol.accept(eval, values)) {
+                    value = input.value();
+                }
                 assert ref.column().isRoot()
                     : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                 insertValues[i] = value;

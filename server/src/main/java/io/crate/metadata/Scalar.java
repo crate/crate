@@ -63,7 +63,8 @@ import io.crate.role.Roles;
  *
  * @param <ReturnType> the class of the returned value
  */
-public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation, FunctionToQuery {
+public abstract class Scalar<ReturnType, InputType>
+    implements FunctionImplementation, FunctionToQuery, AutoCloseable {
 
     public static final Set<Feature> NO_FEATURES = Set.of();
     public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
@@ -86,6 +87,10 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
     @Override
     public BoundSignature boundSignature() {
         return boundSignature;
+    }
+
+    @Override
+    public void close() {
     }
 
     /**

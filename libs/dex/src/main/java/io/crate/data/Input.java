@@ -21,7 +21,12 @@
 
 package io.crate.data;
 
-public interface Input<T> {
+public interface Input<T> extends AutoCloseable {
 
     T value();
+
+
+    @Override
+    default void close() {
+    }
 }
