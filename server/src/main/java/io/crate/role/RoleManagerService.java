@@ -139,12 +139,7 @@ public class RoleManagerService implements RoleManager {
                                              boolean resetJwtProperties) {
         return transportAlterRoleAction.execute(
             new AlterRoleRequest(roleName, newHashedPw, newJwtProperties, resetPassword, resetJwtProperties),
-            r -> {
-                if (r.doesUserExist() == false) {
-                    throw new RoleUnknownException(roleName);
-                }
-                return 1L;
-            }
+            r -> r.isAcknowledged() ? 1L : 0L
         );
     }
 
