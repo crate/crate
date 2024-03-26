@@ -64,9 +64,8 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test
@@ -209,9 +208,8 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_explain_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)");
 
         ExplainPlan plan = e.plan("EXPLAIN (COSTS FALSE) SELECT * FROM ts1 WHERE ts = ts");
         var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
@@ -222,9 +220,8 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_explain_verbose_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)");
         PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
 
         ExplainPlan plan = e.plan("EXPLAIN (VERBOSE TRUE, COSTS FALSE) SELECT * FROM ts1 WHERE ts = ts");
@@ -246,10 +243,9 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_explain_costs_adds_estimated_rows_to_output() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.a (x int)")
-            .addTable("CREATE TABLE doc.b (x int)")
-            .build();
+            .addTable("CREATE TABLE doc.b (x int)");
 
         e.updateTableStats(Map.of(
             new RelationName("doc", "a"), new Stats(100, 100, Map.of()),
@@ -284,10 +280,9 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_explain_verbose_costs_adds_estimated_rows_to_output() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.a (x int)")
-            .addTable("CREATE TABLE doc.b (x int)")
-            .build();
+            .addTable("CREATE TABLE doc.b (x int)");
         PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
 
         e.updateTableStats(Map.of(

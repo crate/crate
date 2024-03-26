@@ -21,15 +21,9 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.Streamer;
-import io.crate.data.Input;
-import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.memory.MemoryManager;
-import io.crate.metadata.functions.BoundSignature;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -38,9 +32,16 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.crate.Streamer;
+import io.crate.data.Input;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 /**
  * string_agg :: text -> text -> text
@@ -64,8 +65,8 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         DataTypes.register(StringAggStateType.INSTANCE.id(), in -> StringAggStateType.INSTANCE);
     }
 
-    public static void register(AggregationImplModule mod) {
-        mod.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             SIGNATURE,
             StringAgg::new
         );

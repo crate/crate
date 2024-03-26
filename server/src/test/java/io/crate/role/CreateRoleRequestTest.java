@@ -34,7 +34,11 @@ public class CreateRoleRequestTest extends ESTestCase {
     @Test
     public void testStreaming() throws Exception {
         var crr1 =
-            new CreateRoleRequest("testUser", false, SecureHash.of(new SecureString("passwd".toCharArray())));
+            new CreateRoleRequest("testUser",
+                false,
+                SecureHash.of(new SecureString("passwd".toCharArray())),
+                new JwtProperties("https:dummy.org", "test", "test_aud")
+            );
 
         BytesStreamOutput out = new BytesStreamOutput();
         crr1.writeTo(out);
@@ -42,6 +46,11 @@ public class CreateRoleRequestTest extends ESTestCase {
         assertThat(crr2.roleName()).isEqualTo(crr1.roleName());
         assertThat(crr2.secureHash()).isEqualTo(crr1.secureHash());
         assertThat(crr2.isUser()).isFalse();
+        var jwtProps = crr2.jwtProperties();
+        assertThat(jwtProps).isNotNull();
+        assertThat(jwtProps.iss()).isEqualTo("https:dummy.org");
+        assertThat(jwtProps.username()).isEqualTo("test");
+        assertThat(jwtProps.aud()).isEqualTo("test_aud");
 
         out = new BytesStreamOutput();
         out.setVersion(Version.V_5_5_0);
@@ -52,5 +61,6 @@ public class CreateRoleRequestTest extends ESTestCase {
         assertThat(crr2.roleName()).isEqualTo(crr1.roleName());
         assertThat(crr2.secureHash()).isEqualTo(crr1.secureHash());
         assertThat(crr2.isUser()).isTrue();
+        assertThat(crr2.jwtProperties()).isNull();
     }
 }

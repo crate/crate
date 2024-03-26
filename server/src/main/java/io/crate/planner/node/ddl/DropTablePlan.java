@@ -28,7 +28,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import io.crate.analyze.AnalyzedDropTable;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;

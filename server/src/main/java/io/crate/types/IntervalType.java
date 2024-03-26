@@ -33,6 +33,7 @@ import org.joda.time.format.PeriodFormatterBuilder;
 
 import io.crate.Streamer;
 import io.crate.interval.IntervalParser;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
 
@@ -175,5 +176,10 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         result = result.add(BigInteger.valueOf(p.getMonths() * 30 * (long) DateTimeConstants.MILLIS_PER_DAY));
         result = result.add(BigInteger.valueOf(p.getYears() * 365 * (long) DateTimeConstants.MILLIS_PER_DAY));
         return result;
+    }
+
+    @Override
+    public ColumnStatsSupport<Period> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Period.class, IntervalType.this);
     }
 }

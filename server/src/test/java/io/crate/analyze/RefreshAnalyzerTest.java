@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -45,19 +46,18 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addBlobTable("create blob table blobs")
-            .build();
+            .addBlobTable("create blob table blobs");
     }
 
     @Test
     public void testRefreshSystemTable() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow REFRESH " +
-                                        "operations, as it is read-only.");
+                                        "operations");
         e.analyze("refresh table sys.shards");
     }
 
@@ -65,7 +65,7 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testRefreshBlobTable() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow REFRESH " +
-                                        "operations.");
+                                        "operations");
         e.analyze("refresh table blob.blobs");
     }
 
@@ -92,7 +92,7 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testRefreshSysPartitioned() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow REFRESH" +
-                                        " operations, as it is read-only.");
+                                        " operations");
         e.analyze("refresh table sys.shards partition (id='n')");
     }
 
@@ -100,7 +100,7 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testRefreshBlobPartitioned() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow REFRESH " +
-                                        "operations.");
+                                        "operations");
         e.analyze("refresh table blob.blobs partition (n='n')");
     }
 

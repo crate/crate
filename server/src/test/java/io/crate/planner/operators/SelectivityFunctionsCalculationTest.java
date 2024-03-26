@@ -34,6 +34,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
+import io.crate.statistics.StatsUtils;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -47,13 +48,10 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
         var numbers = IntStream.range(1, 20001)
             .boxed()
             .collect(Collectors.toList());
-        columnStats.put(
-            new ColumnIdent("x"),
-            ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, totalNumRows)
-        );
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table doc.tbl (x int)")
-            .build();
+        ColumnStats<Integer> cs = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
+        columnStats.put(new ColumnIdent("x"), cs);
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.tbl (x int)");
 
         Stats stats = new Stats(totalNumRows, DataTypes.INTEGER.fixedSize(), columnStats);
         e.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
@@ -64,9 +62,8 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
 
     @Test
     public void test_group_operator_adapt_expected_row_count_based_on_column_stats() throws Throwable {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table doc.tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.tbl (x int)");
 
         var samples = IntStream.concat(
             IntStream.generate(() -> 10).limit(50),
@@ -74,10 +71,11 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
         ).boxed().collect(Collectors.toList());
 
         long numDocs = 2_000L;
+        ColumnStats<Integer> cs = StatsUtils.statsFromValues(DataTypes.INTEGER, samples);
         Stats stats = new Stats(
             numDocs,
             DataTypes.INTEGER.fixedSize(),
-            Map.of(new ColumnIdent("x"), ColumnStats.fromSortedValues(samples, DataTypes.INTEGER, 0, numDocs))
+            Map.of(new ColumnIdent("x"), cs)
         );
 
         e.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));

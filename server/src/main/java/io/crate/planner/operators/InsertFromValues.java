@@ -64,7 +64,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.data.CollectionBucket;
@@ -107,7 +106,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -139,7 +137,7 @@ public class InsertFromValues implements LogicalPlan {
                         SubQueryResults subQueryResults) {
         DocTableInfo tableInfo = dependencies
             .schemas()
-            .getTableInfo(writerProjection.tableIdent(), Operation.INSERT);
+            .getTableInfo(writerProjection.tableIdent());
 
         // For instance, the target table of the insert from values
         // statement is the table with the following schema:
@@ -315,7 +313,7 @@ public class InsertFromValues implements LogicalPlan {
                                                      SubQueryResults subQueryResults) {
         final DocTableInfo tableInfo = dependencies
             .schemas()
-            .getTableInfo(writerProjection.tableIdent(), Operation.INSERT);
+            .getTableInfo(writerProjection.tableIdent());
 
         String[] updateColumnNames;
         Assignments assignments;
@@ -820,11 +818,6 @@ public class InsertFromValues implements LogicalPlan {
 
     @Override
     public List<Symbol> outputs() {
-        return List.of();
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
         return List.of();
     }
 

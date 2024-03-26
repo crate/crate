@@ -2484,6 +2484,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             case SqlBaseLexer.ASTERISK -> ArithmeticExpression.Type.MULTIPLY;
             case SqlBaseLexer.SLASH -> ArithmeticExpression.Type.DIVIDE;
             case SqlBaseLexer.PERCENT -> ArithmeticExpression.Type.MODULUS;
+            case SqlBaseLexer.CARET -> ArithmeticExpression.Type.POWER;
             default -> throw new UnsupportedOperationException(UNSUPPORTED_OP_STR + operator.getText());
         };
     }

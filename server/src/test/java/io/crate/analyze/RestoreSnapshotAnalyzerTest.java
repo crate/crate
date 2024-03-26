@@ -83,12 +83,11 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 .putCustom(RepositoriesMetadata.TYPE, repositoriesMetadata))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(USER_TABLE_DEFINITION)
             .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .addPartitionedTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addBlobTable("create blob table my_blobs")
-            .build();
+            .addBlobTable("create blob table my_blobs");
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
@@ -215,7 +214,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThatThrownBy(() -> analyze(e, "CREATE SNAPSHOT my_repo.my_snapshot TABLE sys.shards"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow " +
-                        "CREATE SNAPSHOT operations, as it is read-only.");
+                        "CREATE SNAPSHOT operations");
     }
 
     @Test
@@ -229,7 +228,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCreateSnapshotFromBlobTable() throws Exception {
         assertThatThrownBy(() -> analyze(e, "CREATE SNAPSHOT my_repo.my_snapshot TABLE blob.my_blobs"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"blob.my_blobs\" doesn't support or allow CREATE SNAPSHOT operations.");
+            .hasMessage("The relation \"blob.my_blobs\" doesn't support or allow CREATE SNAPSHOT operations");
     }
 
     @Test

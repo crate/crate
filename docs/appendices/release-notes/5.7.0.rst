@@ -48,6 +48,9 @@ Breaking Changes
 - Added ``CURRENT_ROLE`` as a reserved keyword. If you have a column or table
   named ``CURRENT_ROLE``, you must escape it using double quotes.
 
+- Changed :ref:`scalar-exp` to always return ``double`` type for its result,
+  independently of the input type.
+
 Deprecations
 ============
 
@@ -72,12 +75,13 @@ SQL Standard and PostgreSQL Compatibility
 - Added initial support for foreign data wrappers, including a ``jdbc``
   :ref:`foreign data wrapper <administration-fdw>`.
 
-- Added support for lower case ``yyyy`` format string to
-  :ref:`to_char <scalar-to_char>` scalar function, which behaves exactly the
-  same as uppercase ``YYYY``, to match PostgreSQL behaviour.
-
 - Added the :ref:`scalar-current_role` scalar function as an alias for
   :ref:`scalar-current_user`.
+
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the ``^``
+  operator as syntax sugar for the :ref:`scalar-power` scalar function. E.g.::
+
+    SELECT 5 ^ 2;
 
 Data Types
 ----------
@@ -87,28 +91,49 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- Removed the -1 to 1 value constraint from :ref:`scalar-atan`.
+
+- Added the :ref:`scalar-reverse` scalar function.
+
+- `rebdiaz <https://github.com/rebdiaz>`_ added support for lower case ``yyyy``
+  format string to :ref:`to_char <scalar-to_char>` scalar function, which
+  behaves exactly the same as uppercase ``YYYY`` to match PostgreSQL behaviour.
 
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Improved the performance for hash-joins when there is a large
+  imbalance between the size of the tables with a lookup-join optimization.
+  This optimization can be disabled if desired, with the session setting::
+
+      SET optimizer_equi_join_to_lookup_join = false
+
+    Note that this setting is experimental, and may change in the future.
+
+- Improved the performance of the :ref:`analyze` statement. CrateDB now uses much
+  less memory when collecting column statistics.
 
 Administration and Operations
 -----------------------------
 
-- Added the ability to set a
+- `meteoiker <https://github.com/meteoiker>`_ added the ability to set a
   :ref:`use_path_style_access <sql-create-repo-s3-use_path_style_access>` for
   S3 repositories.
+
+- `Herman Bergwerf <https://github.com/bergwerf>`_ added support for
+  :ref:`Google Cloud Storage repositories <sql-create-repo-gcs>` to write and
+  restore snapshots on Google Cloud Storage.
+
+- Added ``jwt`` column to :ref:`sys.users<sys-users>` table which lists JWT
+  authentication specific properties of the user.
+
+- Added support for :ref:`JWT token authentication <auth_jwt>`.
 
 User Interface
 --------------
 
 None
 
-External contributions
-----------------------
 
-- `Herman Bergwerf <https://github.com/bergwerf>`_ added support for
-  :ref:`Google Cloud Storage repositories <sql-create-repo-gcs>` to write and
-  restore snapshots on Google Cloud Storage.
+
+

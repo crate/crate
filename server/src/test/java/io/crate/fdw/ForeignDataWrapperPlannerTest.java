@@ -21,12 +21,15 @@
 
 package io.crate.fdw;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.CreateServerPlan;
 import io.crate.planner.CreateUserMappingPlan;
@@ -37,8 +40,7 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_creating_foreign_table_with_invalid_name_fails() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService);
 
         assertThatThrownBy(() -> e.plan("create foreign table sys.nope (x int) server pg"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -47,7 +49,7 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_create_server_fails_if_mandatory_options_are_missing() throws Exception {
-        var e = SQLExecutor.builder(clusterService).build();
+        var e = SQLExecutor.of(clusterService);
         CreateServerPlan plan = e.plan("create server pg foreign data wrapper jdbc");
         assertThatThrownBy(() -> e.execute(plan).getResult())
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -56,7 +58,7 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_cannot_use_unsupported_options_in_create_server() throws Exception {
-        var e = SQLExecutor.builder(clusterService).build();
+        var e = SQLExecutor.of(clusterService);
         CreateServerPlan plan = e.plan("create server pg foreign data wrapper jdbc options (url '', wrong_option 10)");
         assertThatThrownBy(() -> e.execute(plan).getResult())
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -65,7 +67,7 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_cannot_create_server_if_fdw_is_missing() throws Exception {
-        var e = SQLExecutor.builder(clusterService).build();
+        var e = SQLExecutor.of(clusterService);
         String stmt = "create server pg foreign data wrapper dummy options (host 'localhost', dbname 'doc', port '5432')";
         CreateServerPlan plan = e.plan(stmt);
         assertThatThrownBy(() -> e.execute(plan).getResult())
@@ -74,17 +76,9 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_cannot_add_foreign_table_with_invalid_options() throws Exception {
-        var e = SQLExecutor.builder(clusterService).build();
-        CreateServerRequest request = new CreateServerRequest(
-            "pg",
-            "jdbc",
-            "crate",
-            true,
-            Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build()
-        );
-        AddServerTask addServerTask = new AddServerTask(e.foreignDataWrappers, request);
-        ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterService.state()));
-
+        Settings options = Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options);
         String stmt = "create foreign table tbl (x int) server pg options (invalid 42)";
         CreateForeignTablePlan plan = e.plan(stmt);
         assertThatThrownBy(() -> e.execute(plan).getResult())
@@ -94,21 +88,57 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_cannot_create_user_mapping_with_invalid_options() throws Exception {
-        var e = SQLExecutor.builder(clusterService).build();
-        CreateServerRequest request = new CreateServerRequest(
-            "pg",
-            "jdbc",
-            "crate",
-            true,
-            Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build()
-        );
-        AddServerTask addServerTask = new AddServerTask(e.foreignDataWrappers, request);
-        ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterService.state()));
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options);
 
         String stmt = "CREATE USER MAPPING FOR crate SERVER pg OPTIONS (\"option1\" 'abc');";
         CreateUserMappingPlan plan = e.plan(stmt);
         assertThatThrownBy(() -> e.execute(plan).getResult())
             .hasMessageContaining(
                 "Invalid option 'option1' provided, the supported options are: [user, password]");
+    }
+
+    @Test
+    public void test_show_create_table_on_foreign_table() throws Exception {
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .addForeignTable("create foreign table tbl (x int) server pg options (schema_name 'doc')");
+
+        List<Object[]> result = e.execute("show create table tbl").getResult();
+        assertThat((String) result.get(0)[0]).startsWith(
+            """
+            CREATE FOREIGN TABLE IF NOT EXISTS "doc"."tbl" (
+               "x" INTEGER
+            ) SERVER pg OPTIONS (schema_name 'doc')
+            """.stripIndent().trim()
+        );
+    }
+
+    @Test
+    public void test_doc_table_operations_raise_helpful_error_on_foreign_tables() throws Exception {
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .addForeignTable("create foreign table doc.tbl (x int) server pg options (schema_name 'doc')");
+
+        assertThatThrownBy(() -> e.plan("optimize table doc.tbl"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.tbl\" doesn't support or allow OPTIMIZE operations");
+
+        assertThatThrownBy(() -> e.plan("refresh table doc.tbl"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.tbl\" doesn't support or allow REFRESH operations");
+
+        assertThatThrownBy(() -> e.plan("create publication pub1 for table doc.tbl"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.tbl\" doesn't support or allow CREATE PUBLICATION operations");
     }
 }

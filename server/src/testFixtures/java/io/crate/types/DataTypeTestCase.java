@@ -24,6 +24,7 @@ package io.crate.types;
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -82,9 +83,8 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         StorageSupport<? super T> storageSupport = type.storageSupport();
         assumeTrue("Data type " + type + " does not support storage", storageSupport != null);
 
-        var sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")")
-            .build();
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")");
 
         Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
@@ -146,9 +146,8 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
     public void test_translog_streaming_roundtrip() throws Exception {
         DataType<T> type = getType();
         assumeTrue("Data type " + type + " does not support storage", type.storageSupport() != null);
-        var sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")")
-            .build();
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")");
 
         Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");

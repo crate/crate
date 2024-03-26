@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -75,12 +76,11 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
             .addTable("create table b (y int)")
             .addTable("create table c (z int)")
-            .addTable("create table d (w int)")
-            .build();
+            .addTable("create table d (w int)");
 
         aDoc = e.resolveTableInfo("a");
         bDoc = e.resolveTableInfo("b");

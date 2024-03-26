@@ -46,14 +46,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -70,12 +69,6 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.data.Row;
 import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
-import io.crate.execution.engine.window.WindowFunctionModule;
-import io.crate.expression.operator.OperatorModule;
-import io.crate.expression.predicate.PredicateModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
@@ -87,7 +80,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
@@ -220,32 +214,15 @@ public class TestingHelpers {
         return sortedList;
     }
 
-    public static NodeContext createNodeContext(AbstractModule... additionalModules) {
-        return createNodeContext(List.of(Role.CRATE_USER), additionalModules);
+    public static NodeContext createNodeContext() {
+        return createNodeContext(List.of(Role.CRATE_USER));
     }
 
-    public static NodeContext createNodeContext(List<Role> roles, AbstractModule... additionalModules) {
+    public static NodeContext createNodeContext(List<Role> roles) {
         return new NodeContext(
-            prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class),
+            Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
             () -> roles
         );
-    }
-
-    private static ModulesBuilder prepareModulesBuilder(AbstractModule... additionalModules) {
-        ModulesBuilder modulesBuilder = new ModulesBuilder()
-            .add(new SessionSettingModule())
-            .add(new OperatorModule())
-            .add(new AggregationImplModule())
-            .add(new ScalarFunctionModule())
-            .add(new WindowFunctionModule())
-            .add(new TableFunctionModule(Settings.EMPTY))
-            .add(new PredicateModule());
-        if (additionalModules != null) {
-            for (AbstractModule module : additionalModules) {
-                modulesBuilder.add(module);
-            }
-        }
-        return modulesBuilder;
     }
 
     public static Reference createReference(String columnName, DataType<?> dataType) {

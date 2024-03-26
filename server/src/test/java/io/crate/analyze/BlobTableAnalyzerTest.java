@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).addBlobTable("create blob table blobs").build();
+        e = SQLExecutor.of(clusterService).addBlobTable("create blob table blobs");
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
@@ -268,7 +268,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAlterBlobTableRenameTable() {
         assertThatThrownBy(() -> e.analyze("alter blob table blobs rename to blobbier"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations.");
+            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations");
     }
 
     @Test
@@ -282,7 +282,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAlterBlobTableOpenClose() {
         assertThatThrownBy(() -> e.analyze("alter blob table blobs close"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations.");
+            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations");
     }
 
     @Test

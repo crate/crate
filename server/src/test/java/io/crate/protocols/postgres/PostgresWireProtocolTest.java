@@ -50,7 +50,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.SecureString;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
@@ -67,16 +66,17 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -104,9 +104,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        executor = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text not null)")
-            .build();
+        executor = SQLExecutor.of(clusterService)
+            .addTable("create table users (name text not null)");
         sqlOperations = executor.sqlOperations;
     }
 
@@ -552,7 +551,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 chPipeline -> {},
                 (user, connectionProperties) -> new AuthenticationMethod() {
                     @Override
-                    public Role authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties) {
+                    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
                         return RolesHelper.userOf("dummy");
                     }
 

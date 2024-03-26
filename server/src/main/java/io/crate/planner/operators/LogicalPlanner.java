@@ -33,6 +33,8 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
@@ -69,7 +71,11 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.fdw.ForeignDataWrapper;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.ForeignTableRelation;
+import io.crate.fdw.ServersMetadata;
+import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -86,11 +92,13 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.EliminateCrossJoin;
+import io.crate.planner.optimizer.rule.EquiJoinToLookupJoin;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.MergeFilterAndForeignCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathNestedLoop;
+import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathCorrelatedJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
@@ -129,6 +137,7 @@ public class LogicalPlanner {
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
+    private final ForeignDataWrappers foreignDataWrappers;
 
     // Be careful, the order of the rules matter
     public static final List<Rule<?>> ITERATIVE_OPTIMIZER_RULES = List.of(
@@ -148,6 +157,7 @@ public class LogicalPlanner {
         new MoveLimitBeneathRename(),
         new MoveLimitBeneathEval(),
         new MergeFilterAndCollect(),
+        new MergeFilterAndForeignCollect(),
         new RewriteFilterOnOuterJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
         new MoveOrderBeneathNestedLoop(),
@@ -156,8 +166,9 @@ public class LogicalPlanner {
         new DeduplicateOrder(),
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
-        new MoveConstantJoinConditionsBeneathNestedLoop(),
+        new MoveConstantJoinConditionsBeneathJoin(),
         new EliminateCrossJoin(),
+        new EquiJoinToLookupJoin(),
         new RewriteJoinPlan(),
         new RewriteNestedLoopJoinToHashJoin()
     );
@@ -169,6 +180,7 @@ public class LogicalPlanner {
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
         new RemoveRedundantEval(),
+        new MergeFilterAndCollect(),
         new RewriteToQueryThenFetch()
     );
 
@@ -178,7 +190,10 @@ public class LogicalPlanner {
     private static final List<Rule<?>> WRITE_OPTIMIZER_RULES =
         List.of(new RewriteInsertFromSubQueryToInsertFromValues());
 
-    public LogicalPlanner(NodeContext nodeCtx, Supplier<Version> minNodeVersionInCluster) {
+    public LogicalPlanner(NodeContext nodeCtx,
+                          ForeignDataWrappers foreignDataWrappers,
+                          Supplier<Version> minNodeVersionInCluster) {
+        this.foreignDataWrappers = foreignDataWrappers;
         this.optimizer = new IterativeOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
@@ -235,7 +250,12 @@ public class LogicalPlanner {
         }
         PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, fetchSize);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
-        var planBuilder = new PlanBuilder(subqueryPlanner, plannerContext.planStats());
+        var planBuilder = new PlanBuilder(
+            subqueryPlanner,
+            foreignDataWrappers,
+            plannerContext.planStats(),
+            plannerContext.clusterState()
+        );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
@@ -278,7 +298,12 @@ public class LogicalPlanner {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         OptimizerTracer tracer = plannerContext.optimizerTracer();
         PlanStats planStats = plannerContext.planStats();
-        var planBuilder = new PlanBuilder(subqueryPlanner, planStats);
+        var planBuilder = new PlanBuilder(
+            subqueryPlanner,
+            foreignDataWrappers,
+            planStats,
+            plannerContext.clusterState()
+        );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx, tracer);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx, tracer);
@@ -308,11 +333,17 @@ public class LogicalPlanner {
 
         private final SubqueryPlanner subqueryPlanner;
         private final PlanStats planStats;
+        private final ForeignDataWrappers foreignDataWrappers;
+        private final ClusterState clusterState;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
-                            PlanStats planStats) {
+                            ForeignDataWrappers foreignDataWrappers,
+                            PlanStats planStats,
+                            ClusterState clusterState) {
             this.subqueryPlanner = subqueryPlanner;
+            this.foreignDataWrappers = foreignDataWrappers;
             this.planStats = planStats;
+            this.clusterState = clusterState;
         }
 
         @Override
@@ -345,7 +376,16 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitForeignTable(ForeignTableRelation relation, List<Symbol> outputs) {
-            return new ForeignCollect(relation, outputs);
+            Metadata metadata = clusterState.metadata();
+            ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+            Server server = servers.get(relation.tableInfo().server());
+            ForeignDataWrapper foreignDataWrapper = foreignDataWrappers.get(server.fdw());
+            return new ForeignCollect(
+                foreignDataWrapper,
+                relation,
+                outputs,
+                WhereClause.MATCH_ALL
+            );
         }
 
         @Override

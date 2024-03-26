@@ -51,13 +51,12 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addBlobTable("create blob table blobs")
-            .build();
+            .addBlobTable("create blob table blobs");
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
@@ -76,7 +75,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testOptimizeSystemTable() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
-                                        "operations, as it is read-only.");
+                                        "operations");
         analyze("OPTIMIZE TABLE sys.shards");
     }
 
@@ -183,7 +182,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testOptimizeSysPartitioned() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
-                                        "operations, as it is read-only.");
+                                        "operations");
         analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')");
     }
 }

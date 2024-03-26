@@ -21,31 +21,30 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import static io.crate.metadata.functions.Signature.scalar;
+
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public class ExpFunction {
 
     public static final String NAME = "exp";
 
-    public static void register(ScalarFunctionModule module) {
-        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            var typeSignature = type.getTypeSignature();
-            module.register(
-                scalar(NAME, typeSignature, typeSignature)
-                    .withFeature(Scalar.Feature.NULLABLE),
-                (declaredSignature, boundSignature) ->
-                    new UnaryScalar<>(
-                        declaredSignature,
-                        boundSignature,
-                        type,
-                        x -> type.sanitizeValue(Math.exp(((Number) x).doubleValue()))
-                    )
-            );
-        }
+    public static void register(Functions.Builder module) {
+        var type = DataTypes.DOUBLE;
+        var signature = type.getTypeSignature();
+        module.add(
+            scalar(NAME, signature, signature)
+                .withFeature(Scalar.Feature.NULLABLE),
+            (declaredSignature, boundSignature) ->
+                new UnaryScalar<>(
+                    declaredSignature,
+                    boundSignature,
+                    type,
+                    x -> type.sanitizeValue(Math.exp(((Number) x).doubleValue()))
+                )
+        );
     }
 }

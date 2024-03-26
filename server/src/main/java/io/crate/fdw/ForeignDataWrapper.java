@@ -47,9 +47,20 @@ public interface ForeignDataWrapper {
         return List.of();
     }
 
+    /**
+     * Indicates if the query can be executed on the foreign server.
+     *
+     * If this returns `false` filtering must be done via dedicated filter operator
+     * because the query parameter to
+     * {@link #getIterator(Role, Server, ForeignTable, TransactionContext, List, Symbol)}
+     * is ignored.
+     **/
+    boolean supportsQueryPushdown(Symbol query);
+
     CompletableFuture<BatchIterator<Row>> getIterator(Role user,
                                                       Server server,
                                                       ForeignTable foreignTable,
                                                       TransactionContext txnCtx,
-                                                      List<Symbol> collect);
+                                                      List<Symbol> collect,
+                                                      Symbol query);
 }

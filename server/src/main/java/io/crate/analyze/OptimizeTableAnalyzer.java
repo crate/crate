@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.HashMap;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -33,8 +35,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Table;
-
-import java.util.HashMap;
 
 public class OptimizeTableAnalyzer {
 
@@ -58,7 +58,7 @@ public class OptimizeTableAnalyzer {
 
         HashMap<Table<Symbol>, TableInfo> analyzedOptimizeTables = new HashMap<>();
         for (Table<Symbol> table : analyzedStatement.tables()) {
-            TableInfo tableInfo = schemas.resolveTableInfo(
+            TableInfo tableInfo = schemas.findRelation(
                 table.getName(),
                 Operation.OPTIMIZE,
                 txnCtx.sessionSettings().sessionUser(),

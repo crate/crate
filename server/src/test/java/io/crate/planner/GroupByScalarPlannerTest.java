@@ -23,14 +23,12 @@ package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -50,9 +48,10 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test

@@ -22,6 +22,7 @@
 package io.crate.statistics;
 
 
+import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
@@ -40,7 +41,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 
@@ -97,6 +98,12 @@ public class TableStatsService implements Runnable {
               and this would lead to NullPointerException in the TransportExecutor.
              */
             LOGGER.debug("Could not retrieve table stats. localNode is not fully available yet.");
+            return;
+        }
+        if (clusterService.state().nodes().getMinNodeVersion().before(Version.V_5_7_0)) {
+            // Streaming format changed in 5.7.0, so wait until everything is upgraded before
+            // collecting stats
+            LOGGER.debug("Could not retrieve table stats.  Cluster not fully updated yet");
             return;
         }
         if (!clusterService.state().nodes().isLocalNodeElectedMaster()) {

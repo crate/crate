@@ -31,9 +31,10 @@ import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -41,15 +42,16 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.legacy.LegacySettings;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-import io.crate.role.Roles;
 
 public final class MatchesFunction extends TableFunctionImplementation<List<Object>> {
 
@@ -58,11 +60,11 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     private static final RowType LEGACY_ROW_TYPE = new RowType(List.of(DataTypes.STRING_ARRAY), List.of("groups"));
 
 
-    public static void register(TableFunctionModule module) {
+    public static void register(Functions.Builder builder, Settings settings) {
         final RowType returnType =
-            LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings()) ? LEGACY_ROW_TYPE : ROW_TYPE;
+            LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(settings) ? LEGACY_ROW_TYPE : ROW_TYPE;
 
-        module.register(
+        builder.add(
             Signature.table(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -75,7 +77,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
                 returnType
             )
         );
-        module.register(
+        builder.add(
             Signature.table(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),

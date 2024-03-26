@@ -36,6 +36,36 @@ For this to work, you'll need several parts:
   try to connect with the current user.
 
 
+Query clauses like ``GROUP BY``, ``HAVING``, ``LIMIT`` or ``ORDER BY`` are
+executed within CrateDB, not within the foreign system. ``WHERE`` clauses can in
+some circumstances be pushed to the foreign system, but that depends on the
+concrete foreign data wrapper implementation. You can check if this is the case
+by using the :ref:`ref-explain` statement.
+
+For example, in the following explain output there is a dedicated ``Filter``
+node, indicating that the filter is executed within CrateDB::
+
+    cr> explain select * from summits where mountain like 'H%';
+    +--------------------------------------------------------------------+
+    | QUERY PLAN                                                         |
+    +--------------------------------------------------------------------+
+    | Filter[(mountain LIKE 'H%')] (rows=0)                              |
+    |   └ ForeignCollect[doc.summits | [mountain] | true] (rows=unknown) |
+    +--------------------------------------------------------------------+
+
+Compare this to the following output, where the query became part of the
+``ForeignCollect`` node, indicating that it evaluates within the foreign
+system::
+
+
+    cr> explain select * from summits where mountain = 'Monte Verena';
+    +---------------------------------------------------------------------------------------+
+    | QUERY PLAN                                                                            |
+    +---------------------------------------------------------------------------------------+
+    | ForeignCollect[doc.summits | [mountain] | (mountain = 'Monte Verena')] (rows=unknown) |
+    +---------------------------------------------------------------------------------------+
+
+
 ``jdbc``
 ========
 
@@ -58,19 +88,17 @@ The JDBC foreign data wrapper supports the following ``OPTIONS`` for use with
   You should avoid specifying user and password information in the URL, and
   instead make use of the :ref:`ref-create-user-mapping` feature.
 
-.. note::
-
-  The default of ``127.0.0.1:5432`` only works for the ``crate`` super user. Any
-  other user is by default not allowed to connect to instances running on the
-  same host as CrateDB.
-
-  This is a security measure to prevent users from by-passing
-  :ref:`admin_hba` restrictions. See :ref:`fdw.allow_local`.
-
 Example::
 
   CREATE SERVER my_postgresql FOREIGN DATA WRAPPER jdbc
   OPTIONS (url 'jdbc:postgresql://example.com:5432/');
+
+.. note::
+
+  By default only the ``crate`` user can use server definitions that connect to
+  localhost. Other users are not allowed to connect to instances running on the
+  same host as CrateDB. This is a security measure to prevent users from
+  by-passing :ref:`admin_hba` restrictions. See :ref:`fdw.allow_local`.
 
 
 ``CREATE FOREIGN TABLE OPTIONS``

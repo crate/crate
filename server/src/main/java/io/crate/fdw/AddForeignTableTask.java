@@ -32,11 +32,11 @@ import org.elasticsearch.common.Priority;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 
-final class AddForeignTableTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
+public final class AddForeignTableTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
 
     private final CreateForeignTableRequest request;
 
-    AddForeignTableTask(CreateForeignTableRequest request) {
+    public AddForeignTableTask(CreateForeignTableRequest request) {
         super(Priority.NORMAL, request);
         this.request = request;
     }

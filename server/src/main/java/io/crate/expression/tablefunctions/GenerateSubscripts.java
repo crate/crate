@@ -30,6 +30,7 @@ import java.util.Locale;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -46,8 +47,8 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
     private static final RowType RETURN_TYPE = new RowType(List.of(INTEGER), List.of(NAME.name()));
 
 
-    public static void register(TableFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.table(
                     NAME,
                     TypeSignature.parse("array(E)"),
@@ -57,7 +58,7 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
                 .withFeature(Feature.NON_NULLABLE),
             GenerateSubscripts::new
         );
-        module.register(
+        builder.add(
             Signature.table(
                     NAME,
                     TypeSignature.parse("array(E)"),

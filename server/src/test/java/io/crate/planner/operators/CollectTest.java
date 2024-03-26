@@ -26,12 +26,14 @@ import static org.mockito.Mockito.mock;
 
 import java.util.Set;
 
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -42,14 +44,14 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE t (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t (x int)");
         PlannerContext plannerCtx = e.getPlannerContext(clusterService.state());
         ProjectionBuilder projectionBuilder = new ProjectionBuilder(e.nodeCtx);
         QueriedSelectRelation analyzedRelation = e.analyze("SELECT 123 AS alias, 456 AS alias2 FROM t ORDER BY alias, 2");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);

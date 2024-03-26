@@ -22,11 +22,13 @@
 package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 
 import org.junit.Test;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -35,15 +37,14 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_view_of_join_condition_containing_subscript_expressions() throws IOException {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int, o object as (i int))")
             .addView(new RelationName("doc", "v1"),
                 """
                 SELECT b.id, b.o['i']
                 FROM t1 g1
                 LEFT JOIN t1 b ON b.o['i'] = g1.o['i']
-                """)
-            .build();
+                """);
 
         var logicalPlan = e.logicalPlan("SELECT id FROM v1");
         var expectedPlan =
@@ -58,5 +59,19 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
                       └ Collect[doc.t1 | [id, o['i']] | true]
             """;
         assertThat(logicalPlan).isEqualTo(expectedPlan);
+    }
+
+    @Test
+    public void test_doc_table_operations_raise_helpful_error_on_views() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addView(new RelationName("doc", "v1"), "select * from sys.summits");
+
+        assertThatThrownBy(() -> e.plan("optimize table doc.v1"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.v1\" doesn't support or allow OPTIMIZE operations");
+
+        assertThatThrownBy(() -> e.plan("refresh table doc.v1"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.v1\" doesn't support or allow REFRESH operations");
     }
 }

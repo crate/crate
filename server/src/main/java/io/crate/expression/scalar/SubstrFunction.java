@@ -27,36 +27,37 @@ import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.role.Roles;
 
 public class SubstrFunction extends Scalar<String, Object> {
 
     public static final String NAME = "substr";
     public static final String ALIAS = "substring";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder builder) {
         TypeSignature stringType = DataTypes.STRING.getTypeSignature();
         TypeSignature intType = DataTypes.INTEGER.getTypeSignature();
         for (var name : List.of(NAME, ALIAS)) {
-            module.register(
+            builder.add(
                 Signature.scalar(name, stringType, intType, stringType),
                 SubstrFunction::new
             );
-            module.register(
+            builder.add(
                 Signature.scalar(name, stringType, intType, intType, stringType),
                 SubstrFunction::new
             );
-            module.register(
+            builder.add(
                 Signature.scalar(name, stringType, stringType, stringType),
                 SubstrExtractFunction::new
             );

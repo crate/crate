@@ -28,7 +28,8 @@ public class ArithmeticExpression
         SUBTRACT("-"),
         MULTIPLY("*"),
         DIVIDE("/"),
-        MODULUS("%");
+        MODULUS("%"),
+        POWER("^");
         private final String value;
 
         Type(String value) {

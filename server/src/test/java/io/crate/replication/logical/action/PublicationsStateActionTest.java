@@ -91,11 +91,10 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(),
                                                   Metadata.EMPTY_METADATA,
                                                   Version.V_4_8_0);
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t2 (id int) with (\"soft_deletes.enabled\" = false)")
-            .startShards("doc.t1", "doc.t2")
-            .build();
+            .startShards("doc.t1", "doc.t2");
         var publication = new Publication("some_user", true, List.of());
 
         var expectedLogMessage = "Table 'doc.t2' won't be replicated as the required table setting " +
@@ -133,11 +132,10 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t3 (id int)")
-            .startShards("doc.t1", "doc.t3")
-            .build();
+            .startShards("doc.t1", "doc.t3");
         var publication = new Publication("publisher", true, List.of());
 
         var resolvedRelations = publication.resolveCurrentRelations(
@@ -173,11 +171,10 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         };
 
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t3 (id int)")
-            .startShards("doc.t1", "doc.t2")
-            .build();
+            .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", true, List.of());
 
         var resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), roles, publicationOwner, subscriber, "dummy");
@@ -205,11 +202,10 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t2 (id int)")
-            .startShards("doc.t1", "doc.t2")
-            .build();
+            .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", false,
             List.of(
                 RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME),
@@ -242,11 +238,10 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t2 (id int)")
-            .startShards("doc.t1")      // <- only t1 has active primary shards
-            .build();
+            .startShards("doc.t1");      // <- only t1 has active primary shards;
         var publication = new Publication("some_user", true, List.of());
 
         var resolvedRelations = publication.resolveCurrentRelations(
@@ -275,11 +270,10 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
             .addTable("CREATE TABLE doc.t2 (id int)")
-            .startShards("doc.t1")      // <- only t1 has active primary shards
-            .build();
+            .startShards("doc.t1");      // <- only t1 has active primary shards;
         var publication = new Publication(
             "some_user",
             false,
@@ -312,12 +306,11 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 "CREATE TABLE doc.p1 (id int, p int) partitioned by (p)",
                 new PartitionName(new RelationName("doc", "p1"), singletonList("1")).asIndexName()
-            )
-            .build();
+            );
         var publication = new Publication("some_user", true, List.of());
 
         var resolvedRelations = publication.resolveCurrentRelations(
@@ -346,12 +339,11 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             }
         };
 
-        SQLExecutor.builder(clusterService)
+        SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 "CREATE TABLE doc.p1 (id int, p int) partitioned by (p)",
                 new PartitionName(new RelationName("doc", "p1"), singletonList("1")).asIndexName()
-            )
-            .build();
+            );
         var publication = new Publication(
             "some_user",
             false,

@@ -21,11 +21,17 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.predicate.NotPredicate;
-
 import java.util.Set;
 
-public class Operators {
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.predicate.NotPredicate;
+import io.crate.metadata.Functions;
+import io.crate.metadata.FunctionsProvider;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+
+public class Operators implements FunctionsProvider {
 
     public static final Set<String> LOGICAL_OPERATORS = Set.of(
         AndOperator.NAME, OrOperator.NAME, NotPredicate.NAME
@@ -37,4 +43,25 @@ public class Operators {
         LtOperator.NAME, LteOperator.NAME,
         CIDROperator.CONTAINED_WITHIN
     );
+
+    @Override
+    public void addFunctions(Settings settings,
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Functions.Builder builder) {
+        AndOperator.register(builder);
+        OrOperator.register(builder);
+        EqOperator.register(builder);
+        CIDROperator.register(builder);
+        LtOperator.register(builder);
+        LteOperator.register(builder);
+        GtOperator.register(builder);
+        GteOperator.register(builder);
+        RegexpMatchOperator.register(builder);
+        RegexpMatchCaseInsensitiveOperator.register(builder);
+
+        AnyOperator.register(builder);
+        AllOperator.register(builder);
+        LikeOperators.register(builder);
+        ExistsOperator.register(builder);
+    }
 }

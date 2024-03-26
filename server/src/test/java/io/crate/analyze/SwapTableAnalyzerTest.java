@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,10 +37,9 @@ public class SwapTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutorWithT1AndT2() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (x int)")
-            .addTable("create table t2 (x long)")
-            .build();
+            .addTable("create table t2 (x long)");
     }
 
     @Test
@@ -70,7 +70,7 @@ public class SwapTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSwapTableDoesNotWorkOnSystemTables() {
-        expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow ALTER operations, as it is read-only.");
+        expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow ALTER operations");
         e.analyze("alter cluster swap table sys.cluster to t2");
     }
 }

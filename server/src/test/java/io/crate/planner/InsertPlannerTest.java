@@ -33,7 +33,6 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.util.List;
 
-import org.elasticsearch.common.Randomness;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,10 +46,10 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -77,7 +76,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table parted_pks (" +
                 "   id int," +
@@ -97,8 +98,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone" +
                 ") clustered into 4 shards")
             .addTable("create table source (id int primary key, name string)")
-            .addPartitionedTable("CREATE TABLE double_parted(x int, y int) PARTITIONED BY (x, y)")
-            .build();
+            .addPartitionedTable("CREATE TABLE double_parted(x int, y int) PARTITIONED BY (x, y)");
     }
 
     @Test

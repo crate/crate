@@ -22,11 +22,12 @@
 package io.crate.planner.operators;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
+import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -57,7 +58,7 @@ public class EquiJoinDetector {
         return isEquiJoin(joinCondition);
     }
 
-    private static boolean isEquiJoin(Symbol joinCondition) {
+    public static boolean isEquiJoin(Symbol joinCondition) {
         assert joinCondition != null : "join condition must not be null on inner joins";
         Context context = new Context();
         joinCondition.accept(VISITOR, context);
@@ -65,65 +66,62 @@ public class EquiJoinDetector {
     }
 
     private static class Context {
+        boolean exit = false;
         boolean isHashJoinPossible = false;
-        boolean insideEqOperator = false;
-        Set<RelationName> usedRelationsPerEqOperatorArgument = new HashSet<>();
+        Set<RelationName> relations = new HashSet<>();
     }
 
     private static class Visitor extends SymbolVisitor<Context, Void> {
 
         @Override
         public Void visitFunction(Function function, Context context) {
+            if (context.exit) {
+                return null;
+            }
             String functionName = function.name();
             switch (functionName) {
-                case AndOperator.NAME:
+                case NotPredicate.NAME -> {
+                    return null;
+                }
+                case OrOperator.NAME -> {
+                    context.isHashJoinPossible = false;
+                    context.exit = true;
+                    return null;
+                }
+                case EqOperator.NAME -> {
+                    List<Symbol> arguments = function.arguments();
+
+                    var left = arguments.get(0);
+                    var leftContext = new Context();
+                    left.accept(this, leftContext);
+
+                    var right = arguments.get(1);
+                    var rightContext = new Context();
+                    right.accept(this, rightContext);
+                    if (leftContext.relations.size() == 1 &&
+                        rightContext.relations.size() == 1 &&
+                        !leftContext.relations.equals(rightContext.relations)) {
+                        context.isHashJoinPossible = true;
+                    }
+                }
+                default -> {
                     for (Symbol arg : function.arguments()) {
                         arg.accept(this, context);
                     }
-                    break;
-                case EqOperator.NAME:
-                    context.isHashJoinPossible = true;
-                    context.insideEqOperator = true;
-                    Set<RelationName> usedRelationsFromBothEqOperatorArgs = new HashSet<>();
-                    for (Symbol arg : function.arguments()) {
-                        arg.accept(this, context);
-                        if (context.usedRelationsPerEqOperatorArgument.size() != 1) {
-                            context.isHashJoinPossible = false;
-                        }
-                        usedRelationsFromBothEqOperatorArgs.addAll(context.usedRelationsPerEqOperatorArgument);
-                        context.usedRelationsPerEqOperatorArgument = new HashSet<>();
-                    }
-                    if (usedRelationsFromBothEqOperatorArgs.size() < 2) {
-                        context.isHashJoinPossible = false;
-                    }
-                    break;
-                default:
-                    if (context.insideEqOperator) {
-                        for (Symbol arg : function.arguments()) {
-                            arg.accept(this, context);
-                        }
-                    } else {
-                        context.isHashJoinPossible = false;
-                        return null;
-                    }
-                    break;
+                }
             }
             return null;
         }
 
         @Override
         public Void visitField(ScopedSymbol field, Context context) {
-            if (context.insideEqOperator) {
-                context.usedRelationsPerEqOperatorArgument.add(field.relation());
-            }
+            context.relations.add(field.relation());
             return null;
         }
 
         @Override
         public Void visitReference(Reference ref, Context context) {
-            if (context.insideEqOperator) {
-                context.usedRelationsPerEqOperatorArgument.add(ref.ident().tableIdent());
-            }
+            context.relations.add(ref.ident().tableIdent());
             return null;
         }
     }

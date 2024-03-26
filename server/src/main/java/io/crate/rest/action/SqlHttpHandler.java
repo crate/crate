@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,8 +56,9 @@ import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
+import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.breaker.TypedRowAccounting;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
@@ -294,8 +296,21 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             });
     }
 
+    /**
+     * Doesn't do authentication as it's already done
+     * in {@link HttpAuthUpstreamHandler} which is registered before this handler
+     * Checks user existence and if not possible to resolve from header (basic or jwt),
+     * returns trusted user from configuration.
+     */
     Role userFromAuthHeader(@Nullable String authHeaderValue) {
-        try (Credentials credentials = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue)) {
+        try (Credentials credentials = Headers.extractCredentialsFromHttpAuthHeader(authHeaderValue)) {
+            Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+            if (rolePredicate != null) {
+                Role role = roles.findUser(rolePredicate);
+                if (role != null) {
+                    credentials.setUsername(role.name());
+                }
+            }
             String username = credentials.username();
             // Fallback to trusted user from configuration
             if (username == null || username.isEmpty()) {

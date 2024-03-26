@@ -26,11 +26,12 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
 import org.joda.time.Period;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -40,8 +41,8 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
 
     public static final String NAME = "sum";
 
-    public static void register(AggregationImplModule mod) {
-        mod.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.aggregate(
                 NAME,
                 DataTypes.INTERVAL.getTypeSignature(),

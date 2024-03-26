@@ -67,8 +67,8 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.TypedRowAccounting;
 import io.crate.breaker.TypedCellsAccounting;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -120,7 +120,6 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.metadata.table.Operation;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.operators.PKAndVersion;
@@ -833,7 +832,7 @@ public class JobSetup {
                 localNodeId,
                 context.sharedShardContexts,
                 clusterService.state().metadata(),
-                relationName -> schemas.getTableInfo(relationName, Operation.READ),
+                relationName -> schemas.getTableInfo(relationName),
                 routings));
             return null;
         }

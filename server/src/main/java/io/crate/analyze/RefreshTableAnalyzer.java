@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.HashMap;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -33,8 +35,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Table;
-
-import java.util.HashMap;
 
 class RefreshTableAnalyzer {
 
@@ -56,13 +56,12 @@ class RefreshTableAnalyzer {
         HashMap<Table<Symbol>, DocTableInfo> analyzedTables = new HashMap<>();
         for (var table : refreshStatement.tables()) {
             var analyzedTable = table.map(t -> exprAnalyzerWithFieldsAsString.convert(t, exprCtx));
-
-            // resolve table info and validate whether a table exists
-            var tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+            DocTableInfo tableInfo = schemas.findRelation(
                 table.getName(),
                 Operation.REFRESH,
                 txnCtx.sessionSettings().sessionUser(),
-                txnCtx.sessionSettings().searchPath());
+                txnCtx.sessionSettings().searchPath()
+            );
             analyzedTables.put(analyzedTable, tableInfo);
         }
         return new AnalyzedRefreshTable(analyzedTables);

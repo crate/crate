@@ -76,8 +76,12 @@ class DropTableAnalyzer {
         RelationName tableName;
         boolean maybeCorrupt = false;
         try {
-            //noinspection unchecked
-            tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionSettings.sessionUser(), sessionSettings.searchPath());
+            tableInfo = schemas.findRelation(
+                name,
+                Operation.DROP,
+                sessionSettings.sessionUser(),
+                sessionSettings.searchPath()
+            );
             tableName = tableInfo.ident();
         } catch (SchemaUnknownException | RelationUnknown e) {
             tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());

@@ -31,9 +31,9 @@ public class ExpFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_exp_scalar() {
-        assertNormalize("exp(1)", isLiteral(2));
-        assertNormalize("exp(1::bigint)", isLiteral(2L));
-        assertNormalize("exp(1.0)", isLiteral(2.718281828459045d, 1E-15d));
-        assertNormalize("exp(1.0::real)", isLiteral(2.7182817F));
+        assertNormalize("exp(1)", isLiteral(2.718281828459045, 1E-15d));
+        assertNormalize("exp(1::bigint)", isLiteral(2.718281828459045, 1E-15d));
+        assertNormalize("exp(1.0)", isLiteral(2.718281828459045, 1E-15d));
+        assertNormalize("exp(1.0::real)", isLiteral(2.718281828459045, 1E-15d));
     }
 }

@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.costs;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -46,15 +47,16 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
+import io.crate.role.Role;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
+import io.crate.statistics.StatsUtils;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 
 
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
@@ -64,9 +66,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_collect() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table a (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table a (x int)");
 
         DocTableInfo a = e.resolveTableInfo("a");
 
@@ -87,9 +88,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_group_reference() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table a (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table a (x int)");
 
         DocTableInfo a = e.resolveTableInfo("a");
 
@@ -109,9 +109,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_limit() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table a (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table a (x int)");
 
         DocTableInfo a = e.resolveTableInfo("a");
 
@@ -141,10 +140,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_union() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
-            .addTable("create table b (y int)")
-            .build();
+            .addTable("create table b (y int)");
 
         DocTableInfo aDoc = e.resolveTableInfo("a");
         DocTableInfo bDoc = e.resolveTableInfo("b");
@@ -175,10 +173,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_hash_join() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
-            .addTable("create table b (y int)")
-            .build();
+            .addTable("create table b (y int)");
 
         DocTableInfo aDoc = e.resolveTableInfo("a");
         DocTableInfo bDoc = e.resolveTableInfo("b");
@@ -198,7 +195,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 9,
                 DataTypes.INTEGER,
-                MostCommonValues.EMPTY,
+                MostCommonValues.empty(),
                 List.of()
             ),
             new ColumnIdent("y"),
@@ -207,7 +204,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 1,
                 DataTypes.INTEGER,
-                MostCommonValues.EMPTY,
+                MostCommonValues.empty(),
                 List.of()
             )
         );
@@ -229,10 +226,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_nl_join() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
-            .addTable("create table b (y int)")
-            .build();
+            .addTable("create table b (y int)");
 
         DocTableInfo aDoc = e.resolveTableInfo("a");
         DocTableInfo bDoc = e.resolveTableInfo("b");
@@ -243,8 +239,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         DocTableRelation relation = new DocTableRelation(aDoc);
         var lhs = new Collect(relation, List.of(x), WhereClause.MATCH_ALL);
         var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
-        ColumnStats<Integer> xStats = ColumnStats.fromSortedValues(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9), DataTypes.INTEGER, 0, 9);
-        ColumnStats<Integer> yStats = ColumnStats.fromSortedValues(List.of(1), DataTypes.INTEGER, 0, 1);
+        ColumnStats<Integer> xStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
+        ColumnStats<Integer> yStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1));
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
@@ -255,7 +251,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         );
 
         var nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, false, false, false);
+            lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, false, false);
 
         var memo = new Memo(nestedLoopJoin);
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
@@ -266,13 +262,13 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
         var joinCondition = e.asSymbol("x = y");
         nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.INNER, joinCondition, false, false, false, false);
+            lhs, rhs, JoinType.INNER, joinCondition, false, false, false);
         result = planStats.get(nestedLoopJoin);
         assertThat(result.numDocs()).isEqualTo(1L);
         assertThat(result.sizeInBytes()).isEqualTo(32L);
 
         nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.CROSS, x, false, false, false, false);
+            lhs, rhs, JoinType.CROSS, x, false, false, false);
 
         memo = new Memo(nestedLoopJoin);
         planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
@@ -283,9 +279,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_filter() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         Symbol x = e.asSymbol("x");
         Collect source = new Collect(new DocTableRelation(tbl), List.of(x), WhereClause.MATCH_ALL);
@@ -299,7 +294,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.fixedSize(),
                 2500.0,
                 DataTypes.INTEGER,
-                new MostCommonValues(new Object[0], new double[0]),
+                MostCommonValues.empty(),
                 List.of()
             )
         );

@@ -21,17 +21,33 @@
 
 package io.crate.module;
 
-import io.crate.operation.language.JavaScriptLanguage;
+import java.util.List;
+
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.operation.language.JavaScriptLanguage;
 
 public class JavaScriptLanguageModule extends AbstractModule {
 
     public static final Setting<Boolean> LANG_JS_ENABLED =
         Setting.boolSetting("lang.js.enabled", true, Setting.Property.NodeScope);
 
+    private final Settings settings;
+
+    public JavaScriptLanguageModule(Settings settings) {
+        this.settings = settings;
+    }
+
     @Override
     protected void configure() {
-        bind(JavaScriptLanguage.class).asEagerSingleton();
+        if (LANG_JS_ENABLED.get(settings)) {
+            bind(JavaScriptLanguage.class).asEagerSingleton();
+        }
+    }
+
+    public List<Setting<?>> settings() {
+        return List.of(LANG_JS_ENABLED);
     }
 }

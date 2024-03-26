@@ -34,8 +34,8 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row1;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -49,10 +49,9 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(T3.T1_DEFINITION)
-            .build();
+            .addTable(T3.T1_DEFINITION);
     }
 
     @Test

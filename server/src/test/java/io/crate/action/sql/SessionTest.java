@@ -23,6 +23,7 @@ package io.crate.action.sql;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -128,12 +129,10 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_flush_triggers_deferred_executions_and_sets_active_execution() throws Exception {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text)")
-            .overridePlanner(mock(Planner.class, Answers.RETURNS_MOCKS))
-            .build();
-        DependencyCarrier dependencies = mock(DependencyCarrier.class);
-        when(dependencies.clusterService()).thenReturn(clusterService);
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).setPlanner(planner)
+            .build()
+            .addTable("create table users (name text)");
         Session session = Mockito.spy(sqlExecutor.createSession());
         session.parse("", "insert into users (name) values (?)", List.of());
         session.bind("", "", List.of("Arthur"), null);
@@ -275,9 +274,9 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void test_bulk_operations_result_in_jobslog_entries() throws Exception {
         Planner planner = mock(Planner.class);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x int)")
-            .overridePlanner(planner)
-            .build();
+            .setPlanner(planner)
+            .build()
+            .addTable("create table t1 (x int)");
         sqlExecutor.jobsLogsEnabled = true;
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(
@@ -321,7 +320,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void test_kills_query_if_not_completed_within_statement_timeout() throws Exception {
         Planner planner = mock(Planner.class);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .overridePlanner(planner)
+            .setPlanner(planner)
             .build();
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(

@@ -31,7 +31,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.where.DocKeys;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;

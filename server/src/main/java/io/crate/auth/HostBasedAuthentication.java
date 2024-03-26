@@ -21,13 +21,12 @@
 
 package io.crate.auth;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.role.Roles;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.apache.http.conn.DnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.Cidrs;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
@@ -96,11 +95,16 @@ public class HostBasedAuthentication implements Authentication {
     private final Roles roles;
     private final DnsResolver dnsResolver;
 
-    @Inject
-    public HostBasedAuthentication(Settings settings, Roles roles, DnsResolver dnsResolver) {
+    private final Supplier<String> clusterId;
+
+    public HostBasedAuthentication(Settings settings,
+                                   Roles roles,
+                                   DnsResolver dnsResolver,
+                                   Supplier<String> clusterId) {
         hbaConf = convertHbaSettingsToHbaConf(settings);
         this.roles = roles;
         this.dnsResolver = dnsResolver;
+        this.clusterId = clusterId;
     }
 
     @VisibleForTesting
@@ -113,6 +117,11 @@ public class HostBasedAuthentication implements Authentication {
             for (String name : hbaEntry.keySet()) {
                 map.put(name, hbaEntry.get(name));
             }
+            if (JWTAuthenticationMethod.NAME.equals(map.get("method"))) {
+                if (Protocol.HTTP.toString().equals(map.get("protocol")) == false) {
+                    throw new IllegalArgumentException("protocol must be set to http when using jwt auth method");
+                }
+            }
             hostBasedConf.put(entry.getKey(), map);
         }
         return Collections.unmodifiableSortedMap(hostBasedConf);
@@ -120,21 +129,23 @@ public class HostBasedAuthentication implements Authentication {
 
     @Nullable
     private AuthenticationMethod methodForName(String method) {
-        switch (method) {
-            case (TrustAuthenticationMethod.NAME):
-                return new TrustAuthenticationMethod(roles);
-            case (ClientCertAuth.NAME):
-                return new ClientCertAuth(roles);
-            case (PasswordAuthenticationMethod.NAME):
-                return new PasswordAuthenticationMethod(roles);
-            default:
-                return null;
-        }
+        return switch (method) {
+            case (TrustAuthenticationMethod.NAME) -> new TrustAuthenticationMethod(roles);
+            case (ClientCertAuth.NAME) -> new ClientCertAuth(roles);
+            case (PasswordAuthenticationMethod.NAME) -> new PasswordAuthenticationMethod(roles);
+            case (JWTAuthenticationMethod.NAME) ->
+                new JWTAuthenticationMethod(
+                    roles,
+                    JWTAuthenticationMethod::jwkProvider,
+                    clusterId
+                );
+            default -> null;
+        };
     }
 
     @Override
     @Nullable
-    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connProperties) {
+    public AuthenticationMethod resolveAuthenticationType(@Nullable String user, ConnectionProperties connProperties) {
         assert hbaConf != null : "hba configuration is missing";
         Optional<Map.Entry<String, Map<String, String>>> entry = getEntry(user, connProperties);
         if (entry.isPresent()) {
@@ -152,7 +163,7 @@ public class HostBasedAuthentication implements Authentication {
     }
 
     @VisibleForTesting
-    Optional<Map.Entry<String, Map<String, String>>> getEntry(String user, ConnectionProperties connectionProperties) {
+    Optional<Map.Entry<String, Map<String, String>>> getEntry(@Nullable String user, ConnectionProperties connectionProperties) {
         if (user == null || connectionProperties == null) {
             return Optional.empty();
         }

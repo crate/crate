@@ -35,8 +35,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.Expression;
@@ -56,13 +56,14 @@ class CopyAnalyzer {
     AnalyzedCopyFrom analyzeCopyFrom(CopyFrom<Expression> node,
                                      ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx txnCtx) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+        DocTableInfo tableInfo = schemas.findRelation(
             node.table().getName(),
             Operation.INSERT,
-            txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
-
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
+        var exprCtx = new ExpressionAnalysisContext(sessionSettings);
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
@@ -104,13 +105,14 @@ class CopyAnalyzer {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is not supported");
         }
 
-        TableInfo tableInfo = schemas.resolveTableInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             node.table().getName(),
             Operation.COPY_TO,
             txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
+            txnCtx.sessionSettings().searchPath()
+        );
         Operation.blockedRaiseException(tableInfo, Operation.READ);
-        DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             nodeCtx,

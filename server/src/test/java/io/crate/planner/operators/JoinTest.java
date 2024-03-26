@@ -28,16 +28,16 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,6 +46,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -71,14 +72,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(USER_TABLE_DEFINITION)
             .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .addTable(T3.T3_DEFINITION)
-            .addTable(T3.T4_DEFINITION)
-            .build();
+            .addTable(T3.T4_DEFINITION);
         projectionBuilder = new ProjectionBuilder(e.nodeCtx);
     }
 
@@ -90,6 +92,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan buildLogicalPlan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
@@ -124,7 +127,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(5_000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         var plannerCtx = e.getPlannerContext(clusterService.state());
@@ -133,7 +136,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(tableName(nl.left())).isEqualTo("locations");
         assertThat(tableName(nl.right())).isEqualTo("users");
 
-        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(5_000, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
@@ -163,10 +166,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_nestedloop_tables_are_not_switched_when_rhs_expected_numbers_of_rows_are_negative_on_a_single_node() throws IOException {
         resetClusterService();
-        e = SQLExecutor.builder(clusterService, 1, Randomness.get(), List.of())
+        e = SQLExecutor.of(clusterService)
             .addTable(USER_TABLE_DEFINITION)
-            .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
-            .build();
+            .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION);
 
         QueriedSelectRelation mss = e.analyze("select * from users left join locations on users.id = locations.id");
 
@@ -215,10 +217,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testNestedLoop_TablesAreSwitchedIfBlockJoinAndRightIsSmallerThanLeft() throws IOException {
         // blockNL is only possible on single node clusters
         resetClusterService();
-        e = SQLExecutor.builder(clusterService, 1, random(), List.of())
+        e = SQLExecutor.of(clusterService)
             .addTable("create table j.left_table (id int)")
-            .addTable("create table j.right_table (id int)")
-            .build();
+            .addTable("create table j.right_table (id int)");
         RelationName leftName = new RelationName("j", "left_table");
         RelationName rightName = new RelationName("j", "right_table");
 
@@ -248,7 +249,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(5_000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
@@ -263,7 +264,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testNestedLoop_TablesAreNotSwitchedAfterOrderByPushDown() {
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(1000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         QueriedSelectRelation mss = e.analyze("select users.id from users, locations " +
@@ -378,10 +379,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testBlockNestedLoopWhenTableSizeUnknownAndOneExecutionNode() throws IOException {
         // rebuild executor + cluster state with 1 node
         resetClusterService();
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T4_DEFINITION)
-            .build();
+            .addTable(T3.T4_DEFINITION);
 
         QueriedSelectRelation mss = e.analyze("select * from t1, t4");
 
@@ -404,10 +404,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         // rebuild executor + cluster state with 1 node
         resetClusterService();
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T4_DEFINITION)
-            .build();
+            .addTable(T3.T4_DEFINITION);
 
         QueriedSelectRelation mss = e.analyze("select * from t1, t4");
 
@@ -428,10 +427,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testBlockNestedLoopWhenRightSideIsSmallerAndOneExecutionNode() throws IOException {
         // rebuild executor + cluster state with 1 node
         resetClusterService();
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T4_DEFINITION)
-            .build();
+            .addTable(T3.T4_DEFINITION);
 
         e.updateTableStats(Map.of(
             T3.T1, new Stats(23, 64, Map.of()),
@@ -457,10 +455,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testNoBlockNestedLoopWithOrderBy() throws IOException {
         // rebuild executor + cluster state with 1 node
         resetClusterService();
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T4_DEFINITION)
-            .build();
+            .addTable(T3.T4_DEFINITION);
 
         e.updateTableStats(Map.of(
             T3.T1, new Stats(23, 64, Map.of()),
@@ -472,6 +469,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation mss = e.analyze("select * from t1, t4 order by t1.x");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
@@ -489,6 +487,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "JOIN t3 t3 on t3.c = t2.b");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
 
@@ -503,10 +502,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSameOutputIsNotDeDuplicated() throws Exception {
         resetClusterService(); // drop existing tables
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (x int)")
-            .addTable("create table t2 (x int)")
-            .build();
+            .addTable("create table t2 (x int)");
         String statement = "select * from (select * from t1, t2) tjoin";
         var logicalPlan = e.logicalPlan(statement);
         var expectedPlan =
@@ -590,7 +588,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_filter_on_aliased_symbol_is_moved_below_join_if_left_join_can_be_rewritten_to_inner_join() throws Exception {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("""
                 CREATE TABLE doc."metric_mini" (
                     "ts" TIMESTAMP WITH TIME ZONE,
@@ -607,8 +607,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                     ) last_record
                     LEFT JOIN metric_mini b ON "b".ts_production = "last_record"."max_ts"
                 """
-            )
-            .build();
+            );
 
         LogicalPlan plan = executor.logicalPlan(
             "SELECT * FROM v1 WHERE start >= '2021-12-01' and start <= '2021-12-01 00:59:59'");
@@ -664,14 +663,16 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_create_execution_plan_from_join_condition_depending_on_multiple_aliased_tables() throws Exception {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("""
                 CREATE TABLE IF NOT EXISTS sensor_readings (
                     "time" TIMESTAMP WITH TIME ZONE NOT NULL,
                     "sensor_id" INTEGER NOT NULL,
                     "battery_level" DOUBLE PRECISION)
             """
-            ).build();
+            );
         String statement = """
             SELECT
                 time_series."time",
@@ -710,9 +711,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
      */
     @Test
     public void test_constant_expression_in_left_join_condition_is_pushed_down_to_relation() throws Exception {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of()).build();
-
-        LogicalPlan logicalPlan = executor.logicalPlan(
+        LogicalPlan logicalPlan = e.logicalPlan(
             "select doc.t1.*, doc.t2.b from doc.t1 join doc.t2 on doc.t1.x = doc.t2.y and doc.t2.b = 'abc'");
 
         assertThat(logicalPlan).isEqualTo(
@@ -753,12 +752,13 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
      * <a href=https://github.com/crate/crate/issues/13592/>
      */
     public void test_correlated_subquery_can_access_all_tables_from_outer_query_that_joins_multiple_tables() throws IOException {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("create table a (x int, y int, z int)")
             .addTable("create table b (x int, y int, z int)")
             .addTable("create table c (x int, y int, z int)")
-            .addTable("create table d (x int, y int, z int)")
-            .build();
+            .addTable("create table d (x int, y int, z int)");
         LogicalPlan logicalPlan = executor.logicalPlan(
             "select (select 1 where a.x=1 and b.x=1 and c.x=1) from a,b,c,d"
         );
@@ -885,11 +885,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_multiple_nested_join_raises_error() throws Exception {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("create table a (x int)")
             .addTable("create table b (y int)")
-            .addTable("create table c (z int)")
-            .build();
+            .addTable("create table c (z int)");
 
         var stmt = """
             SELECT
@@ -912,10 +913,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_join_using_non_matching_column_types_raises_error() throws Exception {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("create table a (value int)")
-            .addTable("create table b (value string)")
-            .build();
+            .addTable("create table b (value string)");
 
         assertThatThrownBy(() -> executor.analyze("SELECT * FROM a INNER JOIN b USING (value)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -924,11 +926,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_nested_joins_with_using_duplicate_columns_raises_error() throws Exception {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("CREATE TABLE j1 (x INT)")
             .addTable("CREATE TABLE j2 (x INT)")
-            .addTable("CREATE TABLE j3 (x INT)")
-            .build();
+            .addTable("CREATE TABLE j3 (x INT)");
 
         assertThatThrownBy(() -> executor.analyze(
             """
@@ -956,11 +959,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_nested_joins_with_non_existing_columns_raises_error() throws Exception {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("CREATE TABLE j1 (x INT)")
             .addTable("CREATE TABLE j2 (z INT)")
-            .addTable("CREATE TABLE j3 (z INT)")
-            .build();
+            .addTable("CREATE TABLE j3 (z INT)");
 
         assertThatThrownBy(() -> executor.analyze(
             """
@@ -988,10 +992,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_using_clause_specifying_multiple_columns_with_a_non_existing_column_raises_error() throws IOException {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("CREATE TABLE j1 (x INT, y INT)")
-            .addTable("CREATE TABLE j2 (x INT)")
-            .build();
+            .addTable("CREATE TABLE j2 (x INT)");
 
         assertThatThrownBy(() -> executor.analyze("SELECT * FROM j1 JOIN j2 USING(x, y)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -1014,11 +1019,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
      */
     @Test
     public void test_nested_joins_with_explicit_and_implicit_join_condition() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
+        var executor = SQLExecutor.of(clusterService)
                 .addTable("CREATE TABLE j1 (x INT)")
                 .addTable("CREATE TABLE j2 (y INT)")
-                .addTable("CREATE TABLE j3 (z INT)")
-                .build();
+                .addTable("CREATE TABLE j3 (z INT)");
         LogicalPlan logicalPlan = executor.logicalPlan(
                 "SELECT *" +
                 " FROM j1 " +
@@ -1057,11 +1061,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_relationnames_order_in_nested_loop_join() throws Exception {
-        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+        var executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable("CREATE TABLE doc.t1 (a INT)")
             .addTable("CREATE TABLE doc.t2 (b INT)")
-            .addTable("CREATE TABLE doc.t3 (c INT)")
-            .build();
+            .addTable("CREATE TABLE doc.t3 (c INT)");
 
         // optimizer_reorder_nested_loop_join moves the smaller table to the right side,
         // therefore we make t2 bigger and it becomes the top-most-left-table

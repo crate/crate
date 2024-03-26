@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -2220,5 +2221,57 @@ public class TransportSQLActionTest extends IntegTestCase {
     public void test_subscripts_on_expressions() {
         execute("select [0, 1, 2, 3][2] as val");
         assertThat(response).hasRows("1");
+    }
+
+
+    @Test
+    @UseRandomizedOptimizerRules(0)
+    @UseRandomizedSchema(random = false)
+    public void test_filter_on_top_of_order_by_and_collect_works() throws Exception {
+        execute("CREATE TABLE t1 (ts TIMESTAMP, field1 TEXT, num DOUBLE)");
+        execute("INSERT INTO t1 (ts, field1, num) VALUES (now(), 'abc', 1.1)");
+        execute("refresh table t1");
+        execute(
+            """
+            CREATE VIEW v1
+            AS
+            SELECT field1, num
+            FROM (
+                SELECT
+                    field1,
+                    row_number() OVER (PARTITION BY date_bin('1 day'::interval,ts, 0)) "row_number",
+                    num
+                FROM t1
+                ORDER BY field1
+                ) x;
+            """
+        );
+        String stmt = "SELECT * FROM v1 WHERE field1 = 'xyz'";
+        execute("explain " + stmt);
+        assertThat(response)
+            .as("Filter is moved below OrderBy and merged into collect")
+            .hasLines(
+                "Rename[field1, num] AS doc.v1 (rows=unknown)",
+                "  └ Rename[field1, num] AS x (rows=unknown)",
+                "    └ OrderBy[field1 ASC] (rows=unknown)",
+                "      └ Collect[doc.t1 | [field1, num] | (field1 = 'xyz')] (rows=unknown)"
+            );
+        assertThat(execute(stmt)).isEmpty();
+        try (var session = sqlExecutor.newSession()) {
+            execute("set optimizer_merge_filter_and_collect = false", session);
+            execute("explain " + stmt, session);
+            // This results in a execution plan that has a filter _above_ a CollectPhase with OrderedBy.
+            // The filter can't be run on shard level
+            assertThat(response)
+                .as("Has OrderBy->Filter->Collect")
+                .hasLines(
+                    "Rename[field1, num] AS doc.v1 (rows=0)",
+                    "  └ Rename[field1, num] AS x (rows=0)",
+                    "    └ OrderBy[field1 ASC] (rows=0)",
+                    "      └ Filter[(field1 = 'xyz')] (rows=0)",
+                    "        └ Collect[doc.t1 | [field1, num] | true] (rows=unknown)"
+                );
+            assertThat(execute(stmt, session)).isEmpty();
+        }
     }
 }

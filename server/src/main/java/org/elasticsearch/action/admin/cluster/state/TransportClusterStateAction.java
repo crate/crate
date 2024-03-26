@@ -44,7 +44,7 @@ import org.elasticsearch.transport.TransportService;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 
 public class TransportClusterStateAction extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {

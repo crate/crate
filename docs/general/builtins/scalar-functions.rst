@@ -144,7 +144,7 @@ Returns: ``text``
 
 Extract a part from a string that matches a POSIX regular expression pattern.
 
-Returns:: ``text``.
+Returns: ``text``.
 
 If the pattern contains groups specified via parentheses it returns the first
 matching group.
@@ -167,7 +167,7 @@ If the pattern doesn't match, the function returns ``NULL``.
 .. _scalar-substring:
 
 ``substring(...)``
----------------...
+------------------
 
 Alias for :ref:`scalar-substr`.
 
@@ -797,6 +797,24 @@ Returns: ``text``
     +--------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-reverse:
+
+``reverse(text)``
+------------------
+
+Reverses the order of the string. Returns ``NULL`` if the argument is ``NULL``.
+
+Returns: ``text``
+
+::
+
+    cr> select reverse('abcde') as reverse;
+    +---------+
+    | reverse |
+    +---------+
+    |  edcba  |
+    +---------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-split_part:
 
@@ -2043,7 +2061,7 @@ Returns: ``double precision``
 Returns Euler's number ``e`` raised to the power of the given numeric value.
 The output will be cast to the given input type and thus may loose precision.
 
-Returns: Same as input type.
+Returns: ``double precision``
 
 ::
 
@@ -4479,5 +4497,5 @@ Example::
 .. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
 .. _Joda-Time: https://www.joda.org/joda-time/
 .. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
-.. _MySQL date_format: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. _MySQL date_format: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-format
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry

@@ -84,7 +84,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        SQLExecutor.Builder builder = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
             .addPartitionedTable(
@@ -121,8 +121,6 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "   name as concat(\"user\"['name'], 'bar')" +
                 ") partitioned by (name) "
             );
-
-        e = builder.build();
     }
 
     protected AnalyzedUpdateStatement analyze(String statement) {
@@ -170,7 +168,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateSysTables() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow UPDATE " +
-                                        "operations, as it is read-only.");
+                                        "operations");
         analyze("update sys.nodes set fs={\"free\"=0}");
     }
 
@@ -616,9 +614,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_object_columns_array_fields_by_element() throws IOException {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (o object as (a int[]))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t (o object as (a int[]))");
         AnalyzedUpdateStatement stmt = e.analyze("update t set o['a'][1] = 10;");
         assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("o['a']", DataTypes.INTEGER_ARRAY)),
@@ -630,9 +627,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_array_of_objects_subarray_by_elements() throws IOException {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a array(object as (b int[])))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a array(object as (b int[])))");
 
         assertThatThrownBy(() -> e.analyze("update t set a['b'][1][1] = 10;"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -668,9 +664,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_array_of_strict_objects_by_elements_dynamically() throws IOException {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a array(object(strict)))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a array(object(strict)))");
 
         assertThatThrownBy(() -> e.analyze("update t set a[1] = {c=1}"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
@@ -683,9 +678,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_array_of_dynamic_objects_by_elements_dynamically() throws IOException {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a array(object(dynamic)))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a array(object(dynamic)))");
 
         AnalyzedUpdateStatement stmt = e.analyze("update t set a[1] = {c=1}");
         assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
@@ -702,9 +696,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_repeated_updates_to_the_same_array() throws IOException {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (a int[])")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t (a int[])");
         assertThatThrownBy(() -> e.analyze("update t set a = [0,0,0], a[1] = 1"))
             .hasMessage("Target expression repeated: a")
             .isExactlyInstanceOf(IllegalArgumentException.class);

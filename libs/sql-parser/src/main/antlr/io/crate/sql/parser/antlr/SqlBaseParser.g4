@@ -299,9 +299,12 @@ predicate[ParserRuleContext value]
     | IS NOT? DISTINCT FROM right=valueExpression                                    #distinctFrom
     ;
 
+// Operators are declared in the order of their precedence.
 valueExpression
     : primaryExpression                                                              #valueExpressionDefault
     | operator=(MINUS | PLUS) valueExpression                                        #arithmeticUnary
+    | left=valueExpression operator=CARET
+            right=valueExpression                                                    #arithmeticBinary
     | left=valueExpression operator=(ASTERISK | SLASH | PERCENT)
         right=valueExpression                                                        #arithmeticBinary
     | left=valueExpression operator=(PLUS | MINUS) right=valueExpression             #arithmeticBinary

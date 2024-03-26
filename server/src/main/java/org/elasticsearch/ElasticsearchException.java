@@ -1000,7 +1000,12 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             UserMappingAlreadyExists.class,
             UserMappingAlreadyExists::new,
             179,
-            Version.V_5_7_0) ;
+            Version.V_5_7_0),
+        ROLE_ALREADY_EXISTS(
+            io.crate.exceptions.RoleAlreadyExistsException.class,
+            io.crate.exceptions.RoleAlreadyExistsException::new,
+            180,
+            Version.V_5_7_0);
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

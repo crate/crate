@@ -21,7 +21,15 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.planner.node.ddl.CreateRolePlan.JWT_PROPERTY_KEY;
+import static io.crate.planner.node.ddl.CreateRolePlan.PASSWORD_PROPERTY_KEY;
+import static io.crate.planner.node.ddl.CreateRolePlan.parse;
+
+import java.util.Map;
+
 import io.crate.analyze.AnalyzedAlterRole;
+import io.crate.common.collections.Maps;
+import io.crate.role.JwtProperties;
 import io.crate.role.RoleManager;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -54,13 +62,19 @@ public class AlterRolePlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        SecureHash newPassword = UserActions.generateSecureHash(
-                alterRole.properties(),
-                params,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext());
+        Map<String, Object> properties = parse(
+            alterRole.properties(),
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            params,
+            subQueryResults
+        );
+        SecureHash newPassword = UserActions.generateSecureHash(properties);
+        JwtProperties newJwtProperties = JwtProperties.fromMap(Maps.get(properties, JWT_PROPERTY_KEY));
+        boolean resetPassword = properties.containsKey(PASSWORD_PROPERTY_KEY) && newPassword == null;
+        boolean resetJwtProperties = properties.containsKey(JWT_PROPERTY_KEY) && newJwtProperties == null;
 
-        roleManager.alterRole(alterRole.roleName(), newPassword)
+        roleManager.alterRole(alterRole.roleName(), newPassword, newJwtProperties, resetPassword, resetJwtProperties)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

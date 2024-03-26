@@ -5,7 +5,8 @@
 ``SHOW CREATE TABLE``
 =====================
 
-Shows the ``CREATE TABLE`` statement that creates the named table.
+Shows the :ref:`sql-create-table` or :ref:`ref-create-foreign-table` statement
+that created the table.
 
 .. rubric:: Table of contents
 

@@ -46,6 +46,10 @@ If neither ``FOR TABLE`` nor ``FOR ALL TABLES`` is specified, then the publicati
 starts out with an empty set of tables. That is useful if tables are to be
 added later. The creation of a publication does not start any replication.
 
+It is not possible to use system tables or foreign tables in a publication.
+Using them in an explicit ``FOR TABLE`` clause results in an error. With the
+``FOR ALL TABLES`` clause they're excluded.
+
 .. _sql-create-publication-params:
 
 Parameters

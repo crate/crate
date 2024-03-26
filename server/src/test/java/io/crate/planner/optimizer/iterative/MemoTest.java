@@ -36,7 +36,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
@@ -308,13 +307,6 @@ public class MemoTest {
                                    SubQueryResults subQueryResults) {
             return null;
         }
-
-
-        @Override
-        public List<AbstractTableRelation<?>> baseTables() {
-            return List.of();
-        }
-
 
         @Override
         public LogicalPlan replaceSources(List<LogicalPlan> sources) {

@@ -21,11 +21,11 @@
 
 package io.crate.protocols.http;
 
-import static io.crate.protocols.http.Headers.extractCredentialsFromHttpBasicAuthHeader;
+import static io.crate.protocols.http.Headers.extractCredentialsFromHttpAuthHeader;
 import static io.crate.protocols.http.Headers.isAcceptJson;
 import static io.crate.protocols.http.Headers.isBrowser;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -35,42 +35,52 @@ public class HeadersTest {
 
     @Test
     public void testIsBrowser() {
-        assertThat(isBrowser(null), is(false));
-        assertThat(isBrowser("some header"), is(false));
-        assertThat(isBrowser("Mozilla/5.0 (X11; Linux x86_64)"), is(true));
+        assertThat(isBrowser(null)).isFalse();
+        assertThat(isBrowser("some header")).isFalse();
+        assertThat(isBrowser("Mozilla/5.0 (X11; Linux x86_64)")).isTrue();
     }
 
     @Test
     public void testIsAcceptJson() {
-        assertThat(isAcceptJson(null), is(false));
-        assertThat(isAcceptJson("text/html"), is(false));
-        assertThat(isAcceptJson("application/json"), is(true));
+        assertThat(isAcceptJson(null)).isFalse();
+        assertThat(isAcceptJson("text/html")).isFalse();
+        assertThat(isAcceptJson("application/json")).isTrue();
     }
 
     @Test
     public void testExtractUsernamePasswordFromHttpBasicAuthHeader() {
-        Credentials creds = extractCredentialsFromHttpBasicAuthHeader("");
-        assertThat(creds.username(), is(""));
-        assertThat(creds.password().toString(), is(""));
+        Credentials creds = extractCredentialsFromHttpAuthHeader("");
+        assertThat(creds.username()).isNull();
+        assertThat(creds.password()).isNull();
 
-        creds = extractCredentialsFromHttpBasicAuthHeader(null);
-        assertThat(creds.username(), is(""));
-        assertThat(creds.password().toString(), is(""));
+        creds = extractCredentialsFromHttpAuthHeader(null);
+        assertThat(creds.username()).isNull();
+        assertThat(creds.password()).isNull();
 
-        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
-        assertThat(creds.username(), is("Arthur"));
-        assertThat(creds.password().toString(), is("Excalibur"));
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
+        assertThat(creds.username()).isEqualTo("Arthur");
+        assertThat(creds.password()).hasToString("Excalibur");
 
-        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
-        assertThat(creds.username(), is("Arthur"));
-        assertThat(creds.password().toString(), is(":test:password:"));
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
+        assertThat(creds.username()).isEqualTo("Arthur");
+        assertThat(creds.password()).hasToString(":test:password:");
 
-        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOg==");
-        assertThat(creds.username(), is("Arthur"));
-        assertThat(creds.password().toString(), is(""));
+        creds = extractCredentialsFromHttpAuthHeader("Basic QXJ0aHVyOg==");
+        assertThat(creds.username()).isEqualTo("Arthur");
+        assertThat(creds.password()).isNull();
 
-        creds = extractCredentialsFromHttpBasicAuthHeader("Basic OnBhc3N3b3Jk");
-        assertThat(creds.username(), is(""));
-        assertThat(creds.password().toString(), is("password"));
+        creds = extractCredentialsFromHttpAuthHeader("Basic OnBhc3N3b3Jk");
+        assertThat(creds.username()).isEmpty();
+        assertThat(creds.password()).hasToString("password");
+        creds.close();
+    }
+
+    @Test
+    @SuppressWarnings("resource")
+    public void test_unsupported_schema_throws_error() {
+        assertThatThrownBy(
+            () -> extractCredentialsFromHttpAuthHeader("Dummy QXJ0aHVyOg=="))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Only basic or bearer HTTP Authentication schemes are allowed.");
     }
 }

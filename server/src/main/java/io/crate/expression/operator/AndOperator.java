@@ -35,6 +35,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -52,11 +53,8 @@ public class AndOperator extends Operator<Boolean> {
         DataTypes.BOOLEAN.getTypeSignature()
     );
 
-    public static void register(OperatorModule module) {
-        module.register(
-            SIGNATURE,
-            AndOperator::new
-        );
+    public static void register(Functions.Builder builder) {
+        builder.add(SIGNATURE, AndOperator::new);
     }
 
     public AndOperator(Signature signature, BoundSignature boundSignature) {

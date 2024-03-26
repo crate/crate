@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.SymbolEvaluator;
@@ -67,12 +68,12 @@ public class CreateForeignTablePlan implements Plan {
         return StatementType.DDL;
     }
 
-    @Override
-    public void executeOrFail(DependencyCarrier dependencies,
-                              PlannerContext plannerContext,
-                              RowConsumer consumer,
-                              Row params,
-                              SubQueryResults subQueryResults) throws Exception {
+    @VisibleForTesting
+    public static CreateForeignTableRequest toRequest(ForeignDataWrappers foreignDataWrappers,
+                                                      AnalyzedCreateForeignTable createTable,
+                                                      PlannerContext plannerContext,
+                                                      Row params,
+                                                      SubQueryResults subQueryResults) {
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         Function<Symbol, Object> toValue = new SymbolEvaluator(
             plannerContext.transactionContext(),
@@ -116,12 +117,28 @@ public class CreateForeignTablePlan implements Plan {
             var reference = refBuilder.build(columns, tableName, paramBinder, toValue);
             references.add(reference);
         }
-        CreateForeignTableRequest request = new CreateForeignTableRequest(
+        return new CreateForeignTableRequest(
             tableName,
             createTable.ifNotExists(),
             references,
             createTable.server(),
             optionsBuilder.build()
+        );
+    }
+
+
+    @Override
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) throws Exception {
+        var request = toRequest(
+            foreignDataWrappers,
+            createTable,
+            plannerContext,
+            params,
+            subQueryResults
         );
         dependencies.client()
             .execute(TransportCreateForeignTableAction.ACTION, request)

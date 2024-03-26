@@ -111,7 +111,7 @@ class InsertAnalyzer {
                 throw new IllegalArgumentException("column \"" + columnName + "\" specified more than once");
             }
         }
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             insert.table().getName(),
             Operation.INSERT,
             txnCtx.sessionSettings().sessionUser(),
@@ -214,11 +214,9 @@ class InsertAnalyzer {
             } catch (ColumnUnknownException e) {
                 // Needed for BWC; to keep supporting `\"o.id\"` style subscript definition
                 // Going through ExpressionAnalyzer again to still have a "column must exist" validation
-                if (x instanceof QualifiedNameReference) {
-                    QualifiedName name = ((QualifiedNameReference) x).getName();
-                    Expression subscriptExpression = MetadataToASTNodeResolver.expressionFromColumn(
-                        ColumnIdent.fromPath(name.toString())
-                    );
+                if (x instanceof QualifiedNameReference qnameRef) {
+                    QualifiedName name = qnameRef.getName();
+                    Expression subscriptExpression = ColumnIdent.fromPath(name.toString()).toExpression();
                     return expressionAnalyzer.convert(subscriptExpression, ctx);
                 }
                 throw e;

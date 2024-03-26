@@ -79,3 +79,29 @@ The following ``user_parameter`` are supported to define a new user account:
   ::
 
      CREATE USER john password 'foo'
+
+.. vale off
+
+.. _create-user-jwt:
+
+:jwt:
+  JWT properties map ('iss', 'username' and 'aud') entered as string literal. e.g.::
+
+     CREATE USER john WITH (jwt = {"iss" = 'https://example.com', "username" = 'test@example.com', "aud" = 'test_aud'})
+
+  `iss`_ is a JWK endpoint, containing public keys. Required field.
+
+  ``username`` is a user name in a third party app. Required field.
+
+  `aud`_ is a recipient that the JWT is intended for. Optional field. If not provided, the cluster id is used (default).
+
+  Combination of ``iss`` and ``username`` must be unique.
+
+.. SEEALSO::
+
+  :ref:`auth_jwt`
+
+.. vale on
+
+.. _iss: https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1
+.. _aud: https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3

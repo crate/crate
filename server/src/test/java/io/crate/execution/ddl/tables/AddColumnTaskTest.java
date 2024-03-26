@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -55,9 +56,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_add_child_column() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, o object)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(
             THREAD_POOL,
@@ -112,9 +112,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_add_geo_shape_array_column() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(
             THREAD_POOL,
@@ -183,9 +182,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
          * the version increases. Without no-op check this assertion would trip
          * if there are concurrent alter table (or more likely: Dynamic mapping updates due to concurrent inserts)
          */
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -218,9 +216,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_raises_error_if_column_already_exists_with_different_type() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -262,9 +259,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_supports_nested_arrays() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         try (IndexEnv indexEnv = new IndexEnv(
@@ -298,12 +294,11 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_table_version_less_than_5_5_oid_is_not_assigned() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable(
                 "create table tbl (x int)",
                 Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
-            )
-            .build();
+            );
 
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(
@@ -340,9 +335,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_cannot_add_column_that_clashes_with_index() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x text, index i using fulltext (x))")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x text, index i using fulltext (x))");
 
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(

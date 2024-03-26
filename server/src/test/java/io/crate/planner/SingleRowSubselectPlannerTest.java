@@ -43,11 +43,10 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test

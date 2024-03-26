@@ -51,9 +51,8 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (x int)");
     }
 
     @Test

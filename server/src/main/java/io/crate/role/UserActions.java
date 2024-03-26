@@ -21,22 +21,14 @@
 
 package io.crate.role;
 
-import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.data.Row;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.tree.GenericProperties;
+import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.planner.node.ddl.CreateRolePlan;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.SecureString;
 
 import org.jetbrains.annotations.Nullable;
 import java.security.GeneralSecurityException;
-import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
 
 public final class UserActions {
 
@@ -44,11 +36,8 @@ public final class UserActions {
     }
 
     @Nullable
-    public static SecureHash generateSecureHash(GenericProperties<Symbol> userStmtProperties,
-                                                Row parameters,
-                                                TransactionContext txnCtx,
-                                                NodeContext nodeCtx) throws GeneralSecurityException, IllegalArgumentException {
-        try (SecureString pw = getUserPasswordProperty(userStmtProperties, parameters, txnCtx, nodeCtx)) {
+    public static SecureHash generateSecureHash(Map<String, Object> properties) throws GeneralSecurityException, IllegalArgumentException {
+        try (SecureString pw = getUserPasswordProperty(properties)) {
             if (pw != null) {
                 if (pw.isEmpty()) {
                     throw new IllegalArgumentException("Password must not be empty");
@@ -61,31 +50,10 @@ public final class UserActions {
 
     @VisibleForTesting
     @Nullable
-    static SecureString getUserPasswordProperty(GenericProperties<Symbol> userStmtProperties,
-                                                Row parameters,
-                                                TransactionContext txnCtx,
-                                                NodeContext nodeCtx) throws IllegalArgumentException {
-        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
-            txnCtx,
-            nodeCtx,
-            x,
-            parameters,
-            SubQueryResults.EMPTY
-        );
-        Map<String, Object> properties = userStmtProperties.map(eval).properties();
-        final String PASSWORD_PROPERTY = "password";
-        for (var entry : properties.entrySet()) {
-            if (PASSWORD_PROPERTY.equals(entry.getKey())) {
-                String value = DataTypes.STRING.sanitizeValue(entry.getValue());
-                if (value != null) {
-                    return new SecureString(value.toCharArray());
-                }
-                // Password will be reset
-                return null;
-            } else {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "\"%s\" is not a valid user property", entry.getKey()));
-            }
+    static SecureString getUserPasswordProperty(Map<String, Object> properties) {
+        String value = DataTypes.STRING.sanitizeValue(properties.get(CreateRolePlan.PASSWORD_PROPERTY_KEY));
+        if (value != null) {
+            return new SecureString(value.toCharArray());
         }
         return null;
     }

@@ -21,8 +21,10 @@
 
 package io.crate.planner.node.management;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
 import io.crate.analyze.AnalyzedShowCreateTable;
-import io.crate.analyze.MetadataToASTNodeResolver;
+import io.crate.analyze.TableInfoToAST;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -32,9 +34,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.CreateTable;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public class ShowCreateTablePlan implements Plan {
 
@@ -57,7 +56,7 @@ public class ShowCreateTablePlan implements Plan {
                               SubQueryResults subQueryResults) {
         Row1 row;
         try {
-            CreateTable createTable = MetadataToASTNodeResolver.resolveCreateTable(statement.tableInfo());
+            var createTable = new TableInfoToAST(statement.tableInfo()).toStatement();
             row = new Row1(SqlFormatter.formatSql(createTable));
         } catch (Throwable t) {
             consumer.accept(null, t);

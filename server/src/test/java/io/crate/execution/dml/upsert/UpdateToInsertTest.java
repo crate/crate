@@ -65,9 +65,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_one_column_generates_all_insert_values() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -90,9 +89,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_can_use_excluded_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -115,9 +113,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_assign_value_to_object_child() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object as (y int))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, o object as (y int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -139,9 +136,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generated_columns_are_excluded() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int as x + 4)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int as x + 4)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -166,9 +162,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         /**
          * Checks can be ignored because the index operation afterwards will run them.
          **/
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int check (x > 10))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int check (x > 10))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -188,9 +183,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_add_new_top_level_columns_via_update() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int) with (column_policy = 'dynamic')")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -216,9 +210,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_adds_nested_primary_key_value_to_pkValues() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (x int primary key), y int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (x int primary key), y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -239,9 +232,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_cannot_assign_to_nested_column_if_parent_is_missing() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int) with (column_policy = 'dynamic')")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
         assertThatThrownBy(() -> new UpdateToInsert(
             e.nodeCtx,
@@ -255,9 +247,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_preserves_insert_column_order() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int, z int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int, z int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y = ?
@@ -295,9 +286,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
      */
     @Test
     public void test_preserves_insert_column_order_when_updating_sub_column() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-                .addTable("create table tbl (x int, y object as (a int), z int)")
-                .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+                .addTable("create table tbl (x int, y object as (a int), z int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y['a'] = ?
@@ -331,7 +321,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generates_missing_generated_pk_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     x int,
@@ -339,8 +329,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                     z int,
                     primary key (x, y)
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
@@ -374,7 +363,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generates_nested_missing_generated_pk_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     x int,
@@ -384,8 +373,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                     z int,
                     primary key (x, o['y'])
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = e.resolveTableInfo("tbl");
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
         Reference[] insertColumns = new Reference[] {
@@ -418,7 +406,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generates_missing_pk_columns_with_default() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     x int,
@@ -426,8 +414,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                     z int,
                     primary key (x, y)
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = e.resolveTableInfo("tbl");
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
         Reference[] insertColumns = new Reference[] {

@@ -40,7 +40,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -87,7 +88,13 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
                     public ClusterState execute(ClusterState currentState) throws Exception {
                         Metadata currentMetadata = currentState.metadata();
                         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                        alreadyExists = putRole(mdBuilder, request.roleName(), request.isUser(), request.secureHash());
+                        alreadyExists = putRole(
+                            mdBuilder,
+                            request.roleName(),
+                            request.isUser(),
+                            request.secureHash(),
+                            request.jwtProperties()
+                        );
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
 
@@ -109,15 +116,24 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
      * @return boolean true if the user already exists, otherwise false
      */
     @VisibleForTesting
-    static boolean putRole(Metadata.Builder mdBuilder, String roleName, boolean isUser, @Nullable SecureHash secureHash) {
+    static boolean putRole(Metadata.Builder mdBuilder,
+                           String roleName,
+                           boolean isUser,
+                           @Nullable SecureHash secureHash,
+                           @Nullable JwtProperties jwtProperties) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
 
         UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         boolean exists = true;
+        if (newMetadata.contains(jwtProperties)) {
+            throw new RoleAlreadyExistsException(
+                "Another role with the same combination of iss/username jwt properties already exists"
+            );
+        }
         if (newMetadata.contains(roleName) == false) {
-            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash));
+            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash, jwtProperties));
             exists = false;
         } else if (newMetadata.equals(oldRolesMetadata)) {
             // nothing changed, no need to update the cluster state

@@ -21,8 +21,7 @@
 
 package io.crate.blob;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,12 +54,12 @@ public class BlobContainerTest {
 
         Iterator<File> fileIterator = blobContainer.getFiles().iterator();
 
-        assertThat(fileIterator.hasNext(), is(true));
-        assertThat(fileIterator.next().exists(), is(true));
-        assertThat(fileIterator.hasNext(), is(true));
-        assertThat(fileIterator.next().exists(), is(true));
-        assertThat(fileIterator.next().exists(), is(true));
-        assertThat(fileIterator.hasNext(), is(false));
+        assertThat(fileIterator.hasNext()).isTrue();
+        assertThat(fileIterator.next().exists()).isTrue();
+        assertThat(fileIterator.hasNext()).isTrue();
+        assertThat(fileIterator.next().exists()).isTrue();
+        assertThat(fileIterator.next().exists()).isTrue();
+        assertThat(fileIterator.hasNext()).isFalse();
     }
 
     @Test
@@ -80,7 +79,7 @@ public class BlobContainerTest {
             }
         });
 
-        assertThat(blobsCount.get(), is(3));
+        assertThat(blobsCount).hasValue(3);
     }
 
     private static String digest(String content) {

@@ -22,8 +22,8 @@
 package io.crate.analyze;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.testing.Asserts.assertThat;
 import static java.util.Locale.ENGLISH;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -45,9 +45,8 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test
@@ -68,7 +67,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("drop table sys.cluster"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.cluster\" doesn't support or allow DROP " +
-                        "operations, as it is read-only.");
+                        "operations");
     }
 
     @Test
@@ -76,7 +75,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("drop table information_schema.tables"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"information_schema.tables\" doesn't support or allow " +
-                        "DROP operations, as it is read-only.");
+                        "DROP operations");
     }
 
     @Test

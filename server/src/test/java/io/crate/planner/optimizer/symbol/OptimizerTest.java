@@ -38,18 +38,16 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_like_on_numeric_columns_keeps_cast_around_reference() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("x like 10"), e.getPlannerContext(clusterService.state()));
         assertThat(symbol).isFunction("op_like", isFunction("_cast"), isLiteral("10"));
     }
 
     @Test
     public void test_cast_is_not_swapped_when_column_explicitly_casted() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (strCol string, intCol int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (strCol string, intCol int)");
 
         Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("strCol::bigint > 3"), e.getPlannerContext(clusterService.state()));
 
@@ -58,9 +56,8 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_implicit_cast_is_swapped_between_column_and_parameter() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (bytecol byte)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (bytecol byte)");
 
         // The symbol to optimize, because of ExpressionAnalyzer cast logic is
         // _cast(bytcol, smallint) = 3

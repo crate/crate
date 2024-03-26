@@ -37,9 +37,8 @@ public class MapBackedSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_convert_symbol_without_traversing() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
 
         Symbol x = e.asSymbol("x");
         Symbol x_source_lookup = e.asSymbol("_doc['x']");
@@ -57,9 +56,8 @@ public class MapBackedSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_convert_symbol_by_traversing() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
 
         Symbol x = e.asSymbol("x");
         Symbol x_source_lookup = e.asSymbol("_doc['x']");

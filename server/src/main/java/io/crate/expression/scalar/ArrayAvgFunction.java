@@ -30,6 +30,7 @@ import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.scalar.array.ArraySummationFunctions;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -80,12 +81,12 @@ public class ArrayAvgFunction {
         return sum == null ? null : sum.divide(BigDecimal.valueOf(size), MathContext.DECIMAL128);
     }
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder builder) {
 
         // All types except float and double have numeric average
         // https://www.postgresql.org/docs/13/functions-aggregate.html
 
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 new ArrayType<>(DataTypes.NUMERIC).getTypeSignature(),
@@ -99,7 +100,7 @@ public class ArrayAvgFunction {
             )
         );
 
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 new ArrayType<>(DataTypes.FLOAT).getTypeSignature(),
@@ -113,7 +114,7 @@ public class ArrayAvgFunction {
             )
         );
 
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 new ArrayType<>(DataTypes.DOUBLE).getTypeSignature(),
@@ -130,7 +131,7 @@ public class ArrayAvgFunction {
 
         for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             if (supportedType != DataTypes.FLOAT && supportedType != DataTypes.DOUBLE) {
-                module.register(
+                builder.add(
                     Signature.scalar(
                         NAME,
                         new ArrayType<>(supportedType).getTypeSignature(),

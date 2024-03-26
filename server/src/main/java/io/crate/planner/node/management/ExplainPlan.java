@@ -44,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.analyze.BoundCopyFrom;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;

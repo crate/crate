@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -53,13 +54,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        sqlExecutor = SQLExecutor.builder(clusterService)
+        sqlExecutor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
-            .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1")
-            .build();
+            .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
     }
 
     private LogicalPlan plan(String statement) {
@@ -75,7 +75,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
         ColumnStats<Integer> columnStats = new ColumnStats<>(
-            0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.EMPTY, List.of());
+            0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
         sqlExecutor.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(new ColumnIdent("x"), columnStats))));
 
         // stats present -> size derived FROM them (although bogus fake stats in this case)

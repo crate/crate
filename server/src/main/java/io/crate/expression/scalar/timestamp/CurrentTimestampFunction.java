@@ -27,7 +27,7 @@ import java.util.EnumSet;
 import java.util.Locale;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,15 +40,15 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
     public static final String NAME = "current_timestamp";
     public static final int DEFAULT_PRECISION = 3;
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.TIMESTAMPZ.getTypeSignature()
             ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             CurrentTimestampFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(),

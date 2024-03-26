@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
@@ -158,9 +159,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_index_object_with_dynamic_column_creation() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (x int))")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (x int))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(new ColumnIdent("o"));
         Indexer indexer = new Indexer(
@@ -197,9 +197,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_create_dynamic_object_with_nested_columns() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (x int))")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (x int))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(new ColumnIdent("o"));
         Indexer indexer = new Indexer(
@@ -238,9 +237,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_ignored_object_values_are_ignored_and_added_to_source() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object (ignored))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object (ignored))");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         var indexer = getIndexer(e, "tbl", c -> null, "o");
@@ -259,9 +257,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_create_dynamic_array() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (x int))")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (x int))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(new ColumnIdent("o"));
         Indexer indexer = new Indexer(
@@ -300,9 +297,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_adds_default_values() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int default 0)")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int default 0)");
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(executor.getSessionSettings());
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(new ColumnIdent("x"));
@@ -342,9 +338,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_adds_generated_column() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int as x + 2)")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int as x + 2)");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(new ColumnIdent("x"));
         Indexer indexer = new Indexer(
@@ -365,12 +360,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_generated_partitioned_column_is_not_indexed_or_included_in_source() throws Exception {
         String partition = new PartitionName(new RelationName("doc", "tbl"), List.of("3")).asIndexName();
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor executor = SQLExecutor.of(clusterService)
             .addPartitionedTable(
                 "create table doc.tbl (x int, p int as x + 2) partitioned by (p)",
                 partition
-            )
-            .build();
+            );
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(new ColumnIdent("x"));
         Indexer indexer = new Indexer(
@@ -390,9 +384,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_default_and_generated_column_within_object() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (x int default 0, y int as o['x'] + 2, z int))")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (x int default 0, y int as o['x'] + 2, z int))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(new ColumnIdent("o"));
         Indexer indexer = new Indexer(
@@ -421,9 +414,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
      *    parameters:  [default_expr : {"x"=10}]]}
      */
     public void test_default_for_full_object() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object as (x int) default {x=10})")
-            .build();
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, o object as (x int) default {x=10})");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(new ColumnIdent("x"));
         Indexer indexer = new Indexer(
@@ -448,9 +440,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_validates_user_provided_value_for_generated_columns() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int as x + 2, o object as (z int as x + 3))")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int as x + 2, o object as (z int as x + 3))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(new ColumnIdent("x"));
         Reference y = table.getReference(new ColumnIdent("y"));
@@ -482,9 +473,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_index_fails_if_not_null_column_has_null_value() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int not null, y int default 0 NOT NULL)")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int not null, y int default 0 NOT NULL)");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
@@ -508,15 +498,14 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_index_fails_if_check_constraint_returns_false() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     x int not null constraint c1 check (x > 10),
                     y int constraint c2 check (y < 3),
                     z int default 0 check (z > 0)
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
@@ -541,15 +530,14 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_does_not_allow_new_columns_in_strict_object() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     o object (strict) as (
                         x int
                     )
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
@@ -568,15 +556,14 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_dynamic_int_value_results_in_long_column() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     o object (dynamic) as (
                         x int
                     )
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
@@ -600,9 +587,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_generate_return_values() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int default 20)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int default 20)");
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
@@ -627,9 +613,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fields_are_ommitted_in_source_for_null_values() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object as (y int))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, o object as (y int))");
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
@@ -655,9 +640,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_indexing_float_results_in_float_field() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x float)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x float)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         var ref = table.getReference(new ColumnIdent("x"));
 
@@ -674,9 +658,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_index_fulltext_column() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x text index using fulltext with (analyzer = 'english'))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x text index using fulltext with (analyzer = 'english'))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         var ref = table.getReference(new ColumnIdent("x"));
 
@@ -731,9 +714,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         }
 
         String stmt = stmtBuilder.append(")").toString();
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable(stmt)
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(stmt);
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         try (var indexEnv = new IndexEnv(
@@ -768,9 +750,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_add_dynamic_ref_as_new_top_level_column() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int) with (column_policy = 'dynamic')")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
@@ -815,9 +796,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_cannot_add_dynamic_column_on_strict_table() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         assertThatThrownBy(() -> {
             new Indexer(
@@ -841,9 +821,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_source_includes_null_values_in_arrays() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs int[])")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs int[])");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         var indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "xs");
@@ -857,9 +836,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_have_ft_index_for_array() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs text[], index ft using fulltext (xs))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs text[], index ft using fulltext (xs))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         var refFt = table.indexColumn(new ColumnIdent("ft"));
         var indexer = getIndexer(e, "tbl", c -> KeywordFieldMapper.Defaults.FIELD_TYPE, "xs");
@@ -874,9 +852,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_empty_array_and_array_with_nulls_does_not_result_in_new_column() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
@@ -905,9 +882,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_leaves_out_generated_column_if_dependency_is_null() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int generated always as x + 1)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int generated always as x + 1)");
         Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "x");
         IndexItem item = item(new Object[] { null });
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
@@ -920,7 +896,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings("unchecked")
     public void test_adds_non_deterministic_defaults_and_generated_columns() throws Exception {
         long now = System.currentTimeMillis();
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     o object as (
@@ -929,8 +905,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                     ),
                     z timestamp default now()
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "o");
         IndexItem item = item(MapBuilder.newMapBuilder().put("y", 2).map());
@@ -950,7 +925,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings("unchecked")
     public void test_adds_non_deterministic_sub_columns_when_root_is_not_in_targets() throws Exception {
         long now = System.currentTimeMillis();
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     a int,
@@ -958,8 +933,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                         x int as round((random() + 1) * 100)
                     )
                 )
-                """)
-            .build();
+                """);
 
         // Object column "o" is not in the insert targets and value is not provided.
         Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "a");
@@ -974,9 +948,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fields_order_in_source_is_determinisitc() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object, y int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, o object, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "x", "o", "y");
         BytesReference source = null;
@@ -1053,9 +1026,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var idx = 0;
         for (var dt : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var tableName = "tbl_" + idx++;
-            SQLExecutor e = SQLExecutor.builder(clusterService)
-                    .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)")
-                    .build();
+            SQLExecutor e = SQLExecutor.of(clusterService)
+                    .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)");
 
             Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "x");
             ParsedDocument doc = indexer.index(item(1));
@@ -1090,9 +1062,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     public void test_indexing_ip_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
         var tableName = "tbl";
         var dt = IpType.INSTANCE;
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-                .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)")
-                .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+                .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)");
 
         Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "x");
 
@@ -1127,9 +1098,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     public void test_indexing_bitstring_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
         var tableName = "tbl";
         var dt = BitStringType.INSTANCE_ONE;
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-                .addTable("create table " + tableName + " (x " + dt.getName() + "(1) INDEX OFF)")
-                .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+                .addTable("create table " + tableName + " (x " + dt.getName() + "(1) INDEX OFF)");
 
         Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "x");
 
@@ -1165,9 +1135,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     public void test_indexing_boolean_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
         var tableName = "tbl";
         var dt = BooleanType.INSTANCE;
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-                .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)")
-                .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+                .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)");
 
         Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "x");
 
@@ -1201,9 +1170,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @Ignore(value = "We don't support dynamic creation of nested arrays due to translog restrictions")
     public void test_index_nested_array() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int) with (column_policy = 'dynamic')")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(new ColumnIdent("x"));
         Reference y = new DynamicReference(new ReferenceIdent(table.ident(), "y"), RowGranularity.DOC, 2);
@@ -1233,7 +1201,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_generated_column_can_refer_to_a_non_string_partitioned_by_column() throws Exception {
         String partition = new PartitionName(new RelationName("doc", "t"), List.of("2")).asIndexName();
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor executor = SQLExecutor.of(clusterService)
             .addPartitionedTable("""
              CREATE TABLE t (
                  a INT,
@@ -1241,7 +1209,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                  gen_from_parted INT as parted + 1
              ) PARTITIONED BY (parted)
              """
-            ).build();
+            );
         DocTableInfo table = executor.resolveTableInfo("t");
         Indexer indexer = new Indexer(
             partition,
@@ -1270,9 +1238,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_check_constraint_on_object_sub_column_is_verified() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (obj object as (x int check (obj['x'] > 10)))")
-            .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (obj object as (x int check (obj['x'] > 10)))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(new ColumnIdent("obj"));
         Indexer indexer = new Indexer(
@@ -1291,9 +1258,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_empty_arrays_are_prefixed_as_unknown() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-                .addTable("create table tbl (i int) with (column_policy='dynamic')")
-                .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+                .addTable("create table tbl (i int) with (column_policy='dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         var indexer = getIndexer(e, "tbl", null, "empty_arr");
@@ -1313,12 +1279,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_empty_arrays_are_not_prefixed_as_unknown_on_tables_created_less_5_5() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable(
                         "create table tbl (i int) with (column_policy='dynamic')",
                         Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
-                )
-                .build();
+                );
 
         var indexer = getIndexer(e, "tbl", c -> null, "empty_arr");
         ParsedDocument doc = indexer.index(item(List.of()));
@@ -1332,9 +1297,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @UseNewCluster
     @Test
     public void test_ignored_object_child_columns_are_prefixed() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-                .addTable("create table tbl (o object (ignored) as (i int))")
-                .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+                .addTable("create table tbl (o object (ignored) as (i int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         var indexer = getIndexer(e, "tbl", c -> null, "o");
@@ -1353,13 +1317,12 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_ignored_object_child_columns_are_not_prefixed_on_tables_created_less_5_5() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
                 // old tables created with CrateDB < 5.5.0 do not assign any OID, fake it here
                 .setColumnOidSupplier(() -> COLUMN_OID_UNASSIGNED)
                 .addTable("create table tbl (o object (ignored) as (i int))",
                         Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
-                )
-                .build();
+                );
 
         var indexer = getIndexer(e, "tbl", c -> null, "o");
         ParsedDocument doc = indexer.index(item(Map.of("i", 1, "ignored_col", "foo")));
@@ -1378,9 +1341,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_document_parser_can_read_source_with_oids() throws Exception {
         var tableName = "tbl";
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (i int, o object as (x int))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (i int, o object as (x int))");
 
         Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "i", "o");
 
@@ -1409,9 +1371,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_indexing_geo_shape_results_in_same_fields_as_document_mapper() throws Exception {
         for (var indexType : List.of(TREE_GEOHASH, TREE_QUADTREE, TREE_LEGACY_QUADTREE, TREE_BKD)) {
-            var sqlExecutor = SQLExecutor.builder(clusterService)
-                .addTable("create table tbl (x geo_shape index using " + indexType + ")")
-                .build();
+            var sqlExecutor = SQLExecutor.of(clusterService)
+                .addTable("create table tbl (x geo_shape index using " + indexType + ")");
 
             Supplier<Map<String, Object>> dataGenerator = DataTypeTesting.getDataGenerator(GeoShapeType.INSTANCE);
             DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");

@@ -137,7 +137,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
-import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -521,7 +520,7 @@ public class ProjectionToProjectorVisitor
         BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
             indexItem,
             indexName,
-            schemas.getTableInfo(projection.tableIdent(), Operation.INSERT),
+            schemas.getTableInfo(projection.tableIdent()),
             context.txnCtx,
             nodeCtx,
             validatorsCache,

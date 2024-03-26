@@ -24,17 +24,17 @@ package io.crate.expression.scalar.arithmetic;
 import static io.crate.metadata.Scalar.DETERMINISTIC_ONLY;
 import static io.crate.metadata.Scalar.Feature.NULLABLE;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.BinaryOperator;
+
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public class ArithmeticFunctions {
 
@@ -126,9 +126,9 @@ public class ArithmeticFunctions {
         }
     }
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder builder) {
         for (var op : Operations.values()) {
-            module.register(
+            builder.add(
                 Signature.scalar(
                         op.toString(),
                         DataTypes.INTEGER.getTypeSignature(),
@@ -140,7 +140,7 @@ public class ArithmeticFunctions {
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.integerFunction, signature, boundSignature, DataTypes.INTEGER)
             );
-            module.register(
+            builder.add(
                 Signature.scalar(
                         op.toString(),
                         DataTypes.LONG.getTypeSignature(),
@@ -154,7 +154,7 @@ public class ArithmeticFunctions {
             );
             if (op != Operations.SUBTRACT) {
                 for (var type : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
-                    module.register(
+                    builder.add(
                         Signature.scalar(
                                 op.toString(),
                                 type.getTypeSignature(),
@@ -168,7 +168,7 @@ public class ArithmeticFunctions {
                     );
                 }
             }
-            module.register(
+            builder.add(
                 Signature.scalar(
                         op.toString(),
                         DataTypes.FLOAT.getTypeSignature(),
@@ -180,7 +180,7 @@ public class ArithmeticFunctions {
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.floatFunction, signature, boundSignature, DataTypes.FLOAT)
             );
-            module.register(
+            builder.add(
                 Signature.scalar(
                         op.toString(),
                         DataTypes.DOUBLE.getTypeSignature(),
@@ -192,7 +192,7 @@ public class ArithmeticFunctions {
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.doubleFunction, signature, boundSignature, DataTypes.DOUBLE)
             );
-            module.register(
+            builder.add(
                 Signature.scalar(
                         op.toString(),
                         DataTypes.NUMERIC.getTypeSignature(),
@@ -206,7 +206,7 @@ public class ArithmeticFunctions {
             );
         }
 
-        module.register(
+        builder.add(
             Signature.scalar(
                     Names.POWER,
                     DataTypes.DOUBLE.getTypeSignature(),

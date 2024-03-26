@@ -23,6 +23,7 @@ package io.crate.types;
 
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -60,9 +61,8 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
     @Test
     public void test_index_structure() throws IOException {
         // create a table with a nested array
-        var sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (id int, x int[][])")
-            .build();
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (id int, x int[][])");
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
 
         // Parse a document using the table schema

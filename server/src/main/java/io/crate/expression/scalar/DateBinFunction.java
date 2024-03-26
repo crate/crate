@@ -28,20 +28,21 @@ import org.joda.time.Period;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
 import io.crate.role.Roles;
+import io.crate.types.DataTypes;
 
 public class DateBinFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "date_bin";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTERVAL.getTypeSignature(),
@@ -51,7 +52,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
             ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE)),
             DateBinFunction::new);
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTERVAL.getTypeSignature(),

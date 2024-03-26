@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
 import io.crate.common.FourFunction;
+import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.role.Permission;
@@ -119,9 +120,9 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
         return toCheck;
     }
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         // Signature without user, takes user from session.
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(), // Database
@@ -132,7 +133,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
         );
 
         // Signature without user, takes user from session.
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(), // Database
@@ -143,7 +144,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
                                                                             USER_BY_NAME, CHECK_BY_DB_OID)
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(), // User
@@ -155,7 +156,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
                                                                             USER_BY_NAME, CHECK_BY_DB_NAME)
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),  // User
@@ -167,7 +168,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
                                                                             USER_BY_NAME, CHECK_BY_DB_OID)
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(), // User
@@ -179,7 +180,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
                                                                             USER_BY_OID, CHECK_BY_DB_NAME)
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature(), // User

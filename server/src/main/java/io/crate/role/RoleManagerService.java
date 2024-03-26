@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
@@ -74,13 +75,14 @@ public class RoleManagerService implements RoleManager {
                               TransportPrivilegesAction transportPrivilegesAction,
                               SysTableRegistry sysTableRegistry,
                               Roles roles,
-                              DDLClusterStateService ddlClusterStateService) {
+                              DDLClusterStateService ddlClusterStateService,
+                              ClusterService clusterService) {
         this.transportCreateRoleAction = transportCreateRoleAction;
         this.transportDropRoleAction = transportDropRoleAction;
         this.transportAlterRoleAction = transportAlterRoleAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         this.roles = roles;
-        var userTable = SysUsersTableInfo.create();
+        var userTable = SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID());
         sysTableRegistry.registerSysTable(
             userTable,
             () -> CompletableFuture.completedFuture(
@@ -110,10 +112,13 @@ public class RoleManagerService implements RoleManager {
 
 
     @Override
-    public CompletableFuture<Long> createRole(String roleName, boolean isUser, @Nullable SecureHash hashedPw) {
-        return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw), r -> {
+    public CompletableFuture<Long> createRole(String roleName,
+                                              boolean isUser,
+                                              @Nullable SecureHash hashedPw,
+                                              @Nullable JwtProperties jwtProperties) {
+        return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties), r -> {
             if (r.doesUserExist()) {
-                throw new RoleAlreadyExistsException(roleName);
+                throw new RoleAlreadyExistsException(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
             }
             return 1L;
         });
@@ -134,13 +139,20 @@ public class RoleManagerService implements RoleManager {
     }
 
     @Override
-    public CompletableFuture<Long> alterRole(String roleName, @Nullable SecureHash newHashedPw) {
-        return transportAlterRoleAction.execute(new AlterRoleRequest(roleName, newHashedPw), r -> {
-            if (r.doesUserExist() == false) {
-                throw new RoleUnknownException(roleName);
+    public CompletableFuture<Long> alterRole(String roleName,
+                                             @Nullable SecureHash newHashedPw,
+                                             @Nullable JwtProperties newJwtProperties,
+                                             boolean resetPassword,
+                                             boolean resetJwtProperties) {
+        return transportAlterRoleAction.execute(
+            new AlterRoleRequest(roleName, newHashedPw, newJwtProperties, resetPassword, resetJwtProperties),
+            r -> {
+                if (r.doesUserExist() == false) {
+                    throw new RoleUnknownException(roleName);
+                }
+                return 1L;
             }
-            return 1L;
-        });
+        );
     }
 
     public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames,

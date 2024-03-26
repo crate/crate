@@ -26,129 +26,86 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import io.crate.Streamer;
-import io.crate.common.collections.Lists;
-import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.types.DataType;
 
 class Samples implements Writeable {
 
-    static final Samples EMPTY = new Samples(List.of(), List.of(), 0L, 0L);
+    static final Samples EMPTY = new Samples(List.of(), 0L, 0L);
 
-    @SuppressWarnings("rawtypes")
-    private final List<Streamer> recordStreamer;
-    private final List<Row> records;
+    private final List<ColumnSketchBuilder<?>> columnSketches;
     private final long numTotalDocs;
     private final long numTotalSizeInBytes;
 
-    @SuppressWarnings("rawtypes")
-    Samples(List<Row> records, List<Streamer> recordStreamer, long numTotalDocs, long numTotalSizeInBytes) {
-        this.records = records;
-        this.recordStreamer = recordStreamer;
+    Samples(List<ColumnSketchBuilder<?>> columnSketches, long numTotalDocs, long numTotalSizeInBytes) {
+        this.columnSketches = columnSketches;
         this.numTotalDocs = numTotalDocs;
         this.numTotalSizeInBytes = numTotalSizeInBytes;
     }
 
-    @SuppressWarnings("rawtypes")
-    public Samples(List<Streamer> recordStreamer, StreamInput in) throws IOException {
-        this.recordStreamer = recordStreamer;
+    public Samples(List<Reference> references, StreamInput in) throws IOException {
+        if (in.getVersion().before(Version.V_5_7_0)) {
+            throw new UnsupportedOperationException("Cannot run ANALYZE in a mixed version cluster");
+        }
         this.numTotalDocs = in.readLong();
         this.numTotalSizeInBytes = in.readLong();
         int numRecords = in.readVInt();
-        this.records = new ArrayList<>(numRecords);
+        if (numRecords != references.size()) {
+            throw new IllegalStateException(
+                "Expected to receive stats for " + numRecords + " columns but received " + numRecords);
+        }
+        this.columnSketches = new ArrayList<>(numRecords);
         for (int i = 0; i < numRecords; i++) {
-            Object[] cells = new Object[recordStreamer.size()];
-            for (int c = 0; c < cells.length; c++) {
-                cells[c] = recordStreamer.get(c).readValueFrom(in);
-            }
-            this.records.add(new RowN(cells));
+            Reference ref = references.get(i);
+            this.columnSketches.add(ref.valueType().columnStatsSupport().readSketchFrom(in));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        assert out.getVersion().onOrAfter(Version.V_5_7_0)
+            : "ANALYZE in mixed-version cluster should have been caught by FetchSampleRequest constructor";
         out.writeLong(numTotalDocs);
         out.writeLong(numTotalSizeInBytes);
-        out.writeVInt(records.size());
-        for (Row row : records) {
-            assert row.numColumns() == recordStreamer.size()
-                : "Number of columns in the row must match the number of streamers available";
-            for (int i = 0; i < row.numColumns(); i++) {
-                //noinspection unchecked
-                recordStreamer.get(i).writeValueTo(out, row.get(i));
-            }
+        out.writeVInt(columnSketches.size());
+        for (ColumnSketchBuilder<?> stats : columnSketches) {
+            stats.writeTo(out);
         }
     }
 
-    public static Samples merge(int maxSampleSize, Samples s1, Samples s2, Random random) {
-        List<Row> newSamples = createNewSamples(maxSampleSize, s1, s2, random);
+    public static Samples merge(Samples s1, Samples s2) {
+        if (s1 == Samples.EMPTY) {
+            return s2;
+        }
+        if (s2 == Samples.EMPTY) {
+            return s1;
+        }
+        if (s1.columnSketches.size() != s2.columnSketches.size()) {
+            throw new IllegalArgumentException("Column mismatch");
+        }
+        List<ColumnSketchBuilder<?>> mergedColumns = new ArrayList<>();
+        for (int i = 0; i < s1.columnSketches.size(); i++) {
+            var merged = s1.columnSketches.get(i).merge(s2.columnSketches.get(i));
+            mergedColumns.add(merged);
+        }
         return new Samples(
-            newSamples,
-            s1.recordStreamer.isEmpty() ? s2.recordStreamer : s1.recordStreamer,
+            mergedColumns,
             s1.numTotalDocs + s2.numTotalDocs,
             s1.numTotalSizeInBytes + s2.numTotalSizeInBytes
         );
     }
 
-    private static List<Row> createNewSamples(int maxSampleSize, Samples s1, Samples s2, Random random) {
-        if (s1.records.isEmpty()) {
-            return s2.records;
-        } else if (s2.records.isEmpty()) {
-            return s1.records;
-        }
-        if (s1.records.size() + s2.records.size() <= maxSampleSize) {
-            return Lists.concat(s1.records, s2.records);
-        }
-        // https://ballsandbins.wordpress.com/2014/04/13/distributedparallel-reservoir-sampling/
-        int s1Size = s1.records.size();
-        int s2Size = s2.records.size();
-        ArrayList<Row> newSamples = new ArrayList<>(maxSampleSize);
-        double p = (double) s2Size / (s2Size + s1Size);
-        for (int i = 0; i < maxSampleSize; i++) {
-            double j = random.nextDouble();
-            if (j <= p) {
-                newSamples.add(s1.records.get(random.nextInt(s1Size)));
-            } else {
-                newSamples.add(s2.records.get(random.nextInt(s2Size)));
-            }
-        }
-        return newSamples;
-    }
-
     public Stats createTableStats(List<Reference> primitiveColumns) {
-        List<Object> columnValues = new ArrayList<>(records.size());
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>();
         for (int i = 0; i < primitiveColumns.size(); i++) {
             Reference primitiveColumn = primitiveColumns.get(i);
-            columnValues.clear();
-            int nullCount = 0;
-            for (Row row : records) {
-                Object value = row.get(i);
-                if (value == null) {
-                    nullCount++;
-                } else {
-                    columnValues.add(value);
-                }
-            }
-            @SuppressWarnings("unchecked")
-            DataType<Object> dataType = (DataType<Object>) primitiveColumn.valueType();
-            columnValues.sort(dataType);
-            ColumnStats<?> columnStats = ColumnStats.fromSortedValues(
-                columnValues,
-                dataType,
-                nullCount,
-                numTotalDocs
-            );
-            statsByColumn.put(primitiveColumn.column(), columnStats);
+            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats());
         }
         return new Stats(numTotalDocs, numTotalSizeInBytes, statsByColumn);
     }

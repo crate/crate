@@ -37,8 +37,6 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
@@ -66,7 +64,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
 
     private final boolean isFiltered;
     private boolean orderByWasPushedDown = false;
-    private final boolean joinConditionOptimised;
     // this can be removed
     private boolean rewriteNestedLoopJoinToHashJoinDone = false;
 
@@ -74,11 +71,9 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                    LogicalPlan rhs,
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
-                   boolean isFiltered,
-                   boolean joinConditionOptimised) {
+                   boolean isFiltered) {
         super(lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered || joinCondition != null;
-        this.joinConditionOptimised = joinConditionOptimised;
     }
 
     public NestedLoopJoin(LogicalPlan lhs,
@@ -87,9 +82,8 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                           @Nullable Symbol joinCondition,
                           boolean isFiltered,
                           boolean orderByWasPushedDown,
-                          boolean joinConditionOptimised,
                           boolean rewriteEquiJoinToHashJoinDone) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, joinConditionOptimised);
+        this(lhs, rhs, joinType, joinCondition, isFiltered);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteNestedLoopJoinToHashJoinDone = rewriteEquiJoinToHashJoinDone;
     }
@@ -97,11 +91,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     public boolean isRewriteNestedLoopJoinToHashJoinDone() {
         return rewriteNestedLoopJoinToHashJoinDone;
     }
-
-    public boolean isJoinConditionOptimised() {
-        return joinConditionOptimised;
-    }
-
 
     public boolean isFiltered() {
         return isFiltered;
@@ -140,8 +129,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         ExecutionPlan right = rhs.build(
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
 
-        boolean hasDocTables = baseTables().stream().anyMatch(r -> r instanceof DocTableRelation);
-        boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
+        boolean isDistributed = supportsDistributedReads() && isFiltered && !joinType.isOuter();
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
@@ -212,11 +200,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists.concat(lhs.baseTables(), rhs.baseTables());
-    }
-
-    @Override
     public List<LogicalPlan> sources() {
         return List.of(lhs, rhs);
     }
@@ -230,7 +213,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             joinCondition,
             isFiltered,
             orderByWasPushedDown,
-            joinConditionOptimised,
             rewriteNestedLoopJoinToHashJoinDone
         );
     }
@@ -259,7 +241,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             joinCondition,
             isFiltered,
             orderByWasPushedDown,
-            joinConditionOptimised,
             rewriteNestedLoopJoinToHashJoinDone
         );
     }
@@ -294,7 +275,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                 joinCondition,
                 isFiltered,
                 orderByWasPushedDown,
-                joinConditionOptimised,
                 rewriteNestedLoopJoinToHashJoinDone
             )
         );

@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -52,12 +53,11 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
-                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .build();
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS);
     }
 
     @Test
@@ -76,7 +76,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("delete from sys.nodes where name='Trillian'"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.nodes\" doesn't support or allow DELETE " +
-                        "operations, as it is read-only.");
+                        "operations");
     }
 
     @Test
