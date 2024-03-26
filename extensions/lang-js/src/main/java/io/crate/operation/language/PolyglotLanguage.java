@@ -44,12 +44,12 @@ import io.crate.types.DataType;
 
 public final class PolyglotLanguage implements UDFLanguage {
 
-    private static final Engine ENGINE = Engine.newBuilder()
+    static final Engine ENGINE = Engine.newBuilder()
         .option("js.foreign-object-prototype", "true")
         .option("engine.WarnInterpreterOnly", "false")
         .build();
 
-    private static final HostAccess HOST_ACCESS = HostAccess.newBuilder()
+    static final HostAccess HOST_ACCESS = HostAccess.newBuilder()
         .allowListAccess(true)
         .allowArrayAccess(true)
         .allowMapAccess(true)

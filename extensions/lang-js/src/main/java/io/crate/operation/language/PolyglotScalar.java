@@ -23,19 +23,18 @@ package io.crate.operation.language;
 
 
 import java.io.IOException;
-import java.util.List;
 
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
 import io.crate.data.Input;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.role.Roles;
 
 public final class PolyglotScalar extends Scalar<Object, Object> {
 
@@ -51,31 +50,36 @@ public final class PolyglotScalar extends Scalar<Object, Object> {
         this.script = script;
     }
 
-    @Override
-    public Scalar<Object, Object> compile(List<Symbol> arguments, String currentUser, Roles roles) {
-        try {
-            String functionName = signature.getName().name();
-            return new CompiledFunction(
-                graalLanguageId,
-                signature,
-                boundSignature,
-                PolyglotLanguage.getFunctionValue(graalLanguageId, functionName, script));
-        } catch (PolyglotException | IOException e) {
-            // this should not happen if the script was validated upfront
-            throw new io.crate.exceptions.ScriptException(
-                "compile error",
-                e,
-                graalLanguageId
-            );
-        }
-    }
+    //@Override
+    //public Scalar<Object, Object> compile(List<Symbol> arguments, String currentUser, Roles roles) {
+    //    try {
+    //        String functionName = signature.getName().name();
+    //        return new CompiledFunction(
+    //            graalLanguageId,
+    //            signature,
+    //            boundSignature,
+    //            PolyglotLanguage.getFunctionValue(graalLanguageId, functionName, script));
+    //    } catch (PolyglotException | IOException e) {
+    //        // this should not happen if the script was validated upfront
+    //        throw new io.crate.exceptions.ScriptException(
+    //            "compile error",
+    //            e,
+    //            graalLanguageId
+    //        );
+    //    }
+    //}
 
     @Override
     @SafeVarargs
     public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
-        try {
-            String functionName = signature.getName().name();
-            var function = PolyglotLanguage.getFunctionValue(graalLanguageId, functionName, script);
+        String functionName = signature.getName().name();
+        try (var context = Context.newBuilder(graalLanguageId)
+                .engine(PolyglotLanguage.ENGINE)
+                .allowHostAccess(PolyglotLanguage.HOST_ACCESS)
+                .build()) {
+            var source = Source.newBuilder(graalLanguageId, script, functionName).build();
+            context.eval(source);
+            var function = context.getBindings(graalLanguageId).getMember(functionName);
             Object[] values = PolyglotValues.toPolyglotValues(args, boundSignature.argTypes());
             return PolyglotValues.toCrateObject(
                 function.execute(values),
