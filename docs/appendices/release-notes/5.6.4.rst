@@ -47,4 +47,6 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Changed :ref:`scalar-has-database-priv` and :ref:`scalar-has-schema-priv`
+  functions to be registered under :ref:`postgres-pg_catalog` schema, to be
+  compatible with PostgreSQL behaviour.
