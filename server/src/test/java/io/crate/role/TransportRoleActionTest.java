@@ -21,6 +21,7 @@
 
 package io.crate.role;
 
+import static io.crate.role.CreateRoleTask.putRole;
 import static io.crate.role.metadata.RolesHelper.DUMMY_USERS;
 import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES;
 import static io.crate.role.metadata.RolesHelper.DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD;
@@ -62,7 +63,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCreateFirstUser() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder();
-        TransportCreateRoleAction.putRole(mdBuilder,
+        putRole(mdBuilder,
             "root",
             true,
             null,
@@ -80,13 +81,13 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_user_with_matching_jwt_props_exists() throws Exception {
         // Users have different "aud" property values - still clashing as only iss/username matters.
         Metadata.Builder mdBuilder = new Metadata.Builder();
-        TransportCreateRoleAction.putRole(mdBuilder,
+        putRole(mdBuilder,
             "user1",
             true,
             null,
             new JwtProperties("https:dummy.org", "test", "aud1"));
 
-        assertThatThrownBy(() -> TransportCreateRoleAction.putRole(mdBuilder,
+        assertThatThrownBy(() -> putRole(mdBuilder,
                 "user2",
                 true,
                 null,
@@ -98,13 +99,13 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_create_user_with_existing_name_but_different_jwt_props() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder();
-        TransportCreateRoleAction.putRole(mdBuilder,
+        putRole(mdBuilder,
             "user1",
             true,
             null,
             new JwtProperties("https:dummy.org", "test", null));
 
-        boolean exists = TransportCreateRoleAction.putRole(mdBuilder,
+        boolean exists = putRole(mdBuilder,
             "user1",
             true,
             null,
@@ -116,14 +117,14 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
     public void testCreateUserAlreadyExists() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
-        assertThat(TransportCreateRoleAction.putRole(mdBuilder, "Arthur", true, null, null)).isTrue();
+        assertThat(putRole(mdBuilder, "Arthur", true, null, null)).isFalse();
     }
 
     @Test
     public void testCreateUser() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
-        TransportCreateRoleAction.putRole(mdBuilder, "Trillian", true, null, null);
+        putRole(mdBuilder, "Trillian", true, null, null);
         RolesMetadata newMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         assertThat(newMetadata.roleNames()).containsExactlyInAnyOrder("Trillian", "Arthur");
     }
@@ -135,8 +136,8 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        boolean res = TransportCreateRoleAction.putRole(mdBuilder, "RoleFoo", false, null, null);
-        assertThat(res).isFalse();
+        boolean res = putRole(mdBuilder, "RoleFoo", false, null, null);
+        assertThat(res).isTrue();
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
             Map.of("Arthur", DUMMY_USERS.get("Arthur"),
                 "Ford", DUMMY_USERS.get("Ford"),
