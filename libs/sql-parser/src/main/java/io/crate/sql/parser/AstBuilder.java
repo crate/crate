@@ -518,8 +518,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
         return new CreateTableAs<>(
             (Table<?>) visit(context.table()),
-            (Query) visit(context.insertSource().query())
-        );
+            (Query) visit(context.insertSource().query()),
+            context.EXISTS() != null);
     }
 
     @Override
