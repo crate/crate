@@ -62,6 +62,12 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_function_registered_under_pg_catalog() {
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
+        assertEvaluate("pg_catalog.has_schema_privilege('crate', 'sys', 'USAGE')", true);
+    }
+
+    @Test
     public void test_no_user_compile_gets_new_instance() {
         assertCompileAsSuperUser("has_schema_privilege(name, 'USAGE')", isNotSameInstance());
     }
