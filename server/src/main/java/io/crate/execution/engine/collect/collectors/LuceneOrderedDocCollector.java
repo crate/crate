@@ -34,6 +34,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.CollectorManager;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.LeafCollector;
@@ -43,6 +44,8 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopFieldCollector;
+import org.apache.lucene.search.TopFieldCollectorManager;
+import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
@@ -57,6 +60,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.lucene.WrappingCollectorManager;
 
 public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
@@ -160,12 +164,14 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             expression.setScorer(scorer);
         }
         ramAccounting.addBytes(batchSize * FIELD_DOC_SIZE);
-        TopFieldCollector topFieldCollector = TopFieldCollector.create(
+        TopFieldCollectorManager topFieldCollectorManager = new TopFieldCollectorManager(
             sort,
             batchSize,
-            0 // do not process any hits
+            null,
+            0, // do not process any hits
+            false
         );
-        return doSearch(topFieldCollector, minScore, query);
+        return doSearch(topFieldCollectorManager, minScore, query);
     }
 
     private KeyIterable<ShardId, Row> searchMore() throws IOException {
@@ -177,25 +183,35 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             LOGGER.debug("searchMore from [{}]", lastDoc);
         }
         ramAccounting.addBytes(batchSize * FIELD_DOC_SIZE);
-        TopFieldCollector topFieldCollector = TopFieldCollector.create(
+        TopFieldCollectorManager topFieldCollectorManager = new TopFieldCollectorManager(
             sort,
             batchSize,
             lastDoc,
-            0 // do not process any hits
+            0, // do not process any hits,
+            false
         );
-        return doSearch(topFieldCollector, minScore, query(lastDoc));
+        return doSearch(topFieldCollectorManager, minScore, query(lastDoc));
     }
 
-    private KeyIterable<ShardId, Row> doSearch(TopFieldCollector topFieldCollector,
+    private KeyIterable<ShardId, Row> doSearch(TopFieldCollectorManager topFieldCollectorManager,
                                                Float minScore,
                                                Query query) throws IOException {
-        Collector collector = topFieldCollector;
-        if (minScore != null) {
-            collector = new MinimumScoreCollector(collector, minScore);
+        CollectorManager<? extends Collector, TopFieldDocs> collectorManager;
+        if (minScore == null) {
+            collectorManager = new WrappingCollectorManager<>(
+                topFieldCollectorManager,
+                c -> new KillableCollector<>(c, this::raiseIfKilled),
+                c -> c.delegate
+            );
+        } else {
+            collectorManager = new WrappingCollectorManager<>(
+                topFieldCollectorManager,
+                c -> new KillableCollector<>(new MinimumScoreCollector<>(c, minScore), this::raiseIfKilled),
+                c -> c.delegate.delegate()
+            );
         }
-        collector = new KillableCollector(collector, this::raiseIfKilled);
-        searcher.search(query, collector);
-        ScoreDoc[] scoreDocs = topFieldCollector.topDocs().scoreDocs;
+        TopFieldDocs topFieldDocs = searcher.search(query, collectorManager);
+        ScoreDoc[] scoreDocs = topFieldDocs.scoreDocs;
         if (doDocsScores) {
             TopFieldCollector.populateScores(scoreDocs, searcher, query);
         }
@@ -228,12 +244,12 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         }
     }
 
-    private static class KillableCollector implements Collector {
+    private static class KillableCollector<C extends Collector> implements Collector {
 
-        private final Collector delegate;
+        private final C delegate;
         private final Runnable raiseIfKilled;
 
-        public KillableCollector(Collector delegate, Runnable raiseIfKilled) {
+        public KillableCollector(C delegate, Runnable raiseIfKilled) {
             this.delegate = delegate;
             this.raiseIfKilled = raiseIfKilled;
         }
