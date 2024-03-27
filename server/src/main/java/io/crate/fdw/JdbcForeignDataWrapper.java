@@ -144,20 +144,26 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
         Settings options = server.options();
         String url = urlSetting.get(options);
+        if (!url.startsWith("jdbc:")) {
+            throw new IllegalArgumentException("Invalid JDBC connection string provided");
+        }
         URI uri;
         try {
-            uri = new URI(url);
+            uri = new URI(url.substring(5));
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
-
-        InetAddress host;
+        String host = uri.getHost();
+        if (host == null) {
+            throw new IllegalArgumentException("Invalid JDBC connection string provided");
+        }
+        InetAddress inetAddress;
         try {
-            host = InetAddress.getByName(uri.getHost());
+            inetAddress = InetAddress.getByName(host);
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
-        if ((host.isAnyLocalAddress() || host.isLoopbackAddress())
+        if ((inetAddress.isAnyLocalAddress() || inetAddress.isLoopbackAddress())
                 && !currentUser.isSuperUser()
                 && !ForeignDataWrappers.ALLOW_LOCAL.get(settings)) {
             throw new UnsupportedOperationException(
