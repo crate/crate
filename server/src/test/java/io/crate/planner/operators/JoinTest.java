@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -1093,5 +1092,25 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result.getRelationNames().get(0).toString()).isEqualTo("doc.t2");
         assertThat(result.getRelationNames().get(1).toString()).isEqualTo("doc.t1");
         assertThat(result.getRelationNames().get(2).toString()).isEqualTo("doc.t3");
+    }
+
+    @Test
+    public void test_push_constant_join_conditions_beyond_outer_joins() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .build()
+            .addTable("CREATE TABLE doc.t1 (a INT)")
+            .addTable("CREATE TABLE doc.t2 (b INT)");
+
+        QueriedSelectRelation mss = e.analyze("SELECT * FROM t1 LEFT JOIN t2 ON t1.a = t2.b AND t1.a > 1");
+
+        var plannerCtx = executor.getPlannerContext(clusterService.state());
+        plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        NestedLoopJoin result = (NestedLoopJoin) buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "NestedLoopJoin[LEFT | (a = b)]",
+            "  ├ Collect[doc.t1 | [a] | (a > 1)]",
+            "  └ Collect[doc.t2 | [b] | true]"
+        );
     }
 }

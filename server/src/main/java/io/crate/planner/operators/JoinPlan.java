@@ -65,7 +65,7 @@ public class JoinPlan extends AbstractJoinPlan {
         this(lhs, rhs, joinType, joinCondition, false, false, false, false);
     }
 
-    private JoinPlan(LogicalPlan lhs,
+    public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition,

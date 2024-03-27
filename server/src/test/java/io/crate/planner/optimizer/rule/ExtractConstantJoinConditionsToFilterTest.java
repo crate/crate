@@ -21,7 +21,8 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static org.assertj.core.api.Assertions.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
@@ -47,7 +48,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 
-public class MoveConstantJoinConditionsBeneathJoinTest extends CrateDummyClusterServiceUnitTest {
+public class ExtractConstantJoinConditionsToFilterTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions sqlExpressions;
     private Map<RelationName, AnalyzedRelation> sources;
@@ -61,7 +62,7 @@ public class MoveConstantJoinConditionsBeneathJoinTest extends CrateDummyCluster
     }
 
     @Test
-    public void test_move_constant_join_condition_beneath_join_plan() {
+    public void test_extract_constant_join_condition_into_filter() {
         var t1 = (AbstractTableRelation<?>) sources.get(T3.T1);
         var t2 = (AbstractTableRelation<?>) sources.get(T3.T2);
 
@@ -70,17 +71,15 @@ public class MoveConstantJoinConditionsBeneathJoinTest extends CrateDummyCluster
 
         // This condition has a non-constant part `doc.t1.x = doc.t2.y` and a constant part `doc.t2.b = 'abc'`
         var joinCondition = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y and doc.t2.b = 'abc'");
-        var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
-        var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
         JoinPlan jp = new JoinPlan(c1, c2, JoinType.INNER, joinCondition);
-        var rule = new MoveConstantJoinConditionsBeneathJoin();
+        var rule = new ExtractConstantJoinConditionsToFilter();
         Match<JoinPlan> match = rule.pattern().accept(jp, Captures.empty());
 
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isEqualTo(jp);
 
-        JoinPlan result = (JoinPlan) rule.apply(
+        Filter result = (Filter) rule.apply(
             match.value(),
             match.captures(),
             planStats,
@@ -88,10 +87,12 @@ public class MoveConstantJoinConditionsBeneathJoinTest extends CrateDummyCluster
             sqlExpressions.nodeCtx,
             UnaryOperator.identity());
 
-        assertThat(result.joinCondition()).isEqualTo(nonConstantPart);
-        assertThat(result.lhs()).isEqualTo(c1);
-        Filter filter = (Filter) result.rhs();
-        assertThat(filter.source()).isEqualTo(c2);
-        assertThat(filter.query()).isEqualTo(constantPart);
+        assertThat(result).hasOperators(
+            "Filter[(b = 'abc')]",
+            "  └ Join[INNER | (x = y)]",
+            "    ├ Collect[doc.t1 | [] | true]",
+            "    └ Collect[doc.t2 | [] | true]"
+        );
     }
 }
+

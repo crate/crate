@@ -98,7 +98,7 @@ import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilterAndForeignCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathJoin;
+import io.crate.planner.optimizer.rule.ExtractConstantJoinConditionsToFilter;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathCorrelatedJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
@@ -165,7 +165,7 @@ public class LogicalPlanner {
         new DeduplicateOrder(),
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
-        new MoveConstantJoinConditionsBeneathJoin(),
+        new ExtractConstantJoinConditionsToFilter(),
         new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),
         new RewriteJoinPlan()
