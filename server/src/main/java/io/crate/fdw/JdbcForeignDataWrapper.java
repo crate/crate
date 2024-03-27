@@ -21,9 +21,9 @@
 
 package io.crate.fdw;
 
+import static org.postgresql.Driver.parseURL;
+
 import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -144,16 +144,15 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
         Settings options = server.options();
         String url = urlSetting.get(options);
-        URI uri;
-        try {
-            uri = new URI(url);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+
+        var parsedURL = parseURL(url, null);
+        if (parsedURL == null) {
+            throw new IllegalArgumentException("Invalid JDBC url provided: " + url);
         }
 
         InetAddress host;
         try {
-            host = InetAddress.getByName(uri.getHost());
+            host = InetAddress.getByName(parsedURL.getProperty("PGHOST"));
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
