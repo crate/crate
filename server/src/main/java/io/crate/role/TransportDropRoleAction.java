@@ -26,7 +26,6 @@ import java.util.Locale;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -39,7 +38,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.replication.logical.LogicalReplicationService;
 
-public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleRequest, AcknowledgedResponse> {
+public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleRequest, WriteRoleResponse> {
 
     private final LogicalReplicationService logicalReplicationService;
 
@@ -64,14 +63,14 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
     }
 
     @Override
-    protected AcknowledgedResponse read(StreamInput in) throws IOException {
-        return new AcknowledgedResponse(in);
+    protected WriteRoleResponse read(StreamInput in) throws IOException {
+        return new WriteRoleResponse(in);
     }
 
     @Override
     protected void masterOperation(DropRoleRequest request,
                                    ClusterState state,
-                                   ActionListener<AcknowledgedResponse> listener) throws Exception {
+                                   ActionListener<WriteRoleResponse> listener) throws Exception {
 
         if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0) == false) {
             throw new IllegalStateException("Cannot drop users/roles until all nodes are upgraded to 5.6");

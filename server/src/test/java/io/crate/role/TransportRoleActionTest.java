@@ -30,7 +30,7 @@ import static io.crate.role.metadata.RolesHelper.SINGLE_USER_ONLY;
 import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
@@ -46,7 +46,6 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
 import io.crate.exceptions.RoleAlreadyExistsException;
-import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
@@ -174,32 +173,25 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropUserNoUsersAtAll() throws Exception {
-        var currentState = clusterService.state();
-        DropRoleTask dropRoleTask = new DropRoleTask(new DropRoleRequest("root", true));
-        var updatedMetadata = dropRoleTask.execute(currentState).metadata();
-        // same Metadata instance should be returned if no role was dropped
-        assertThat(updatedMetadata).isSameAs(currentState.metadata());
+        assertThat(DropRoleTask.dropRole(Metadata.builder(), "root")).isFalse();
     }
 
     @Test
     public void testDropNonExistingUser() throws Exception {
-        Metadata metadata = Metadata.builder().putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY)).build();
-        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(metadata).build();
-
-        DropRoleTask dropRoleTask = new DropRoleTask(new DropRoleRequest("trillian", false));
-        assertThatThrownBy(() -> dropRoleTask.execute(clusterState))
-            .isExactlyInstanceOf(RoleUnknownException.class)
-            .hasMessage("Role 'trillian' does not exist");
+        boolean res = DropRoleTask.dropRole(
+                Metadata.builder().putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY)),
+                "trillian"
+        );
+        assertThat(res).isFalse();
     }
 
     @Test
     public void testDropUser() throws Exception {
-        Metadata metadata = Metadata.builder().putCustom(RolesMetadata.TYPE, new RolesMetadata(DUMMY_USERS)).build();
-        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(metadata).build();
-
-        DropRoleTask dropRoleTask = new DropRoleTask(new DropRoleRequest("Arthur", false));
-        var updatedMetadata = Metadata.builder(dropRoleTask.execute(clusterState).metadata());
-        assertThat(roles(updatedMetadata)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
+        RolesMetadata metadata = new RolesMetadata(DUMMY_USERS);
+        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
+        boolean res = DropRoleTask.dropRole(mdBuilder, "Arthur");
+        assertThat(roles(mdBuilder)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
+        assertThat(res).isTrue();
     }
 
     @Test
@@ -214,10 +206,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         );
         RolesMetadata metadata = new RolesMetadata(roles);
         Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
-        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(mdBuilder.build()).build();
-
-        DropRoleTask dropRoleTask = new DropRoleTask(new DropRoleRequest("role2", false));
-        assertThatThrownBy(() -> dropRoleTask.execute(clusterState))
+        assertThatThrownBy(() -> DropRoleTask.dropRole(mdBuilder, "role2"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot drop ROLE: role2 as it is granted on role: role3");
     }
@@ -229,11 +218,9 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(mdBuilder.build()).build();
-
-        DropRoleTask dropRoleTask = new DropRoleTask(new DropRoleRequest("Arthur", false));
-        var updatedMetadata = Metadata.builder(dropRoleTask.execute(clusterState).metadata());
-        assertThat(roles(updatedMetadata)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
+        boolean res = DropRoleTask.dropRole(mdBuilder, "Arthur");
+        assertThat(roles(mdBuilder)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
+        assertThat(res).isTrue();
     }
 
     @Test
