@@ -99,6 +99,9 @@ Scalar and Aggregation Functions
   format string to :ref:`to_char <scalar-to_char>` scalar function, which
   behaves exactly the same as uppercase ``YYYY`` to match PostgreSQL behaviour.
 
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the
+  :ref:`strpos <scalar-strpos>` scalar function.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
