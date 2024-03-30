@@ -66,6 +66,12 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_function_registered_under_pg_catalog() {
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
+        assertEvaluate("pg_catalog.has_database_privilege('crate', 'crate', 'CONNECT')", true);
+    }
+
+    @Test
     public void test_no_user_compile_gets_new_instance() {
         assertCompileAsSuperUser("has_database_privilege(name, 'CONNECT')", isNotSameInstance());
     }

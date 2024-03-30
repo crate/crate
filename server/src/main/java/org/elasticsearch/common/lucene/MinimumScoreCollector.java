@@ -19,6 +19,8 @@
 
 package org.elasticsearch.common.lucene;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
@@ -27,19 +29,21 @@ import org.apache.lucene.search.ScoreCachingWrappingScorer;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.SimpleCollector;
 
-import java.io.IOException;
+public class MinimumScoreCollector<T extends Collector> extends SimpleCollector {
 
-public class MinimumScoreCollector extends SimpleCollector {
-
-    private final Collector collector;
+    private final T collector;
     private final float minimumScore;
 
     private Scorable scorer;
     private LeafCollector leafCollector;
 
-    public MinimumScoreCollector(Collector collector, float minimumScore) {
+    public MinimumScoreCollector(T collector, float minimumScore) {
         this.collector = collector;
         this.minimumScore = minimumScore;
+    }
+
+    public T delegate() {
+        return collector;
     }
 
     @Override

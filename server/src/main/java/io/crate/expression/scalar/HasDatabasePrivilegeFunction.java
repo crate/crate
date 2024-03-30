@@ -30,9 +30,11 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
 import io.crate.common.FourFunction;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.role.Permission;
 import io.crate.role.Privilege;
 import io.crate.role.Role;
@@ -42,7 +44,7 @@ import io.crate.types.DataTypes;
 
 public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
-    public static final String NAME = "has_database_privilege";
+    public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_database_privilege");
 
     private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_DB_NAME =
         (roles, user, db, permissions) -> {

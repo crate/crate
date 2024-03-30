@@ -21,6 +21,8 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.common.collections.Iterables.getFirst;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,11 +32,9 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.planner.consumer.RelationNameCollector;
 
 /**
  * Extracts all symbols per relations from any EQ join conditions to use them for building hashes for the hash join
@@ -61,7 +61,6 @@ import io.crate.metadata.RelationName;
 public final class JoinConditionSymbolsExtractor {
 
     private static final SymbolExtractor SYMBOL_EXTRACTOR = new SymbolExtractor();
-    private static final RelationExtractor RELATION_EXTRACTOR = new RelationExtractor();
 
     /**
      * Extracts all symbols per relations from any EQ join conditions. See {@link JoinConditionSymbolsExtractor}
@@ -98,7 +97,8 @@ public final class JoinConditionSymbolsExtractor {
                     context.insideEqOperator = true;
                     int duplicatePos = 0;
                     for (Symbol arg : function.arguments()) {
-                        var relation = arg.accept(RELATION_EXTRACTOR, null);
+                        var relation = getFirst(RelationNameCollector.collect(arg), null);
+                        assert relation != null : "Join Condition must contain one reference to a relation";
                         List<Symbol> symbols = context.symbolsPerRelation.computeIfAbsent(relation, k -> new ArrayList<>());
                         if (symbols.contains(arg)) {
                             // duplicate detected, use the current size as the position of the other relation symbol we
@@ -127,30 +127,6 @@ public final class JoinConditionSymbolsExtractor {
                     }
 
             }
-        }
-    }
-
-    private static class RelationExtractor extends SymbolVisitor<Void, RelationName> {
-
-        @Override
-        public RelationName visitFunction(Function symbol, Void context) {
-            for (Symbol arg : symbol.arguments()) {
-                var relation = arg.accept(this, context);
-                if (relation != null) {
-                    return relation;
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public RelationName visitField(ScopedSymbol field, Void context) {
-            return field.relation();
-        }
-
-        @Override
-        public RelationName visitReference(Reference ref, Void context) {
-            return ref.ident().tableIdent();
         }
     }
 
