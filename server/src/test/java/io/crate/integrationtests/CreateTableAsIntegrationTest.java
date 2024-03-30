@@ -133,8 +133,6 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
     public void testCreateTableIfNotExists() {
         execute("create table if not exists doc.tbl (col_text text, col_int integer)");
         execute("create table if not exists doc.cpy as select * from doc.tbl");
-        assertThatThrownBy(() -> execute("create table if not exists doc.cpy as select * from doc.tbl"))
-            .isExactlyInstanceOf(RelationAlreadyExists.class)
-            .hasMessage("Relation 'doc.cpy' already exists.");
+        assertThat(execute("create table if not exists doc.cpy as select * from doc.tbl")).hasRowCount(0);
     }
 }
