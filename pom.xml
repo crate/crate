@@ -255,7 +255,7 @@
     <versions.jts>1.19.0</versions.jts>
     <versions.jna>5.13.0</versions.jna>
     <versions.tdigest>3.3</versions.tdigest>
-    <versions.datasketches>5.0.1</versions.datasketches>
+    <versions.datasketches>5.0.2</versions.datasketches>
     <versions.hdrhistogram>2.1.12</versions.hdrhistogram>
     <versions.caffeine>3.1.8</versions.caffeine>
     <versions.jodatime>2.12.5</versions.jodatime>
