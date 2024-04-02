@@ -46,8 +46,8 @@ public class FileWriterCountCollectorTest extends ESTestCase {
         columnIdentMap.put(new ColumnIdent("some", Arrays.asList("nested", "column")), "foo");
         Map<String, Object> convertedMap = FileWriterCountCollector.toNestedStringObjectMap(columnIdentMap);
 
-        Map someMap = (Map) convertedMap.get("some");
-        Map nestedMap = (Map) someMap.get("nested");
+        Map<?, ?> someMap = (Map<?, ?>) convertedMap.get("some");
+        Map<?, ?> nestedMap = (Map<?, ?>) someMap.get("nested");
         assertThat(nestedMap.get("column")).isEqualTo("foo");
     }
 

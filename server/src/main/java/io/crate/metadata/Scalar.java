@@ -129,6 +129,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      * This method will evaluate the function using the given scalar if all arguments are literals.
      * Otherwise it will return the function as is or NULL in case it contains a null literal
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     protected static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar,
                                                                        TransactionContext txnCtx,
                                                                        NodeContext nodeCtx,
@@ -145,7 +146,6 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             inputs[idx] = (Input<?>) arg;
             idx++;
         }
-        //noinspection unchecked
         return Literal.ofUnchecked(function.valueType(), scalar.evaluate(txnCtx, nodeCtx, inputs));
     }
 

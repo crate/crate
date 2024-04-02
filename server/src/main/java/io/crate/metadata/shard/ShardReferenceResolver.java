@@ -68,7 +68,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
                 "Unable to load PARTITIONED BY columns from partition %s", index.getName()), e);
         }
         RelationName relationName = partitionName.relationName();
-        MapBuilder<ColumnIdent, NestableInput> builder = MapBuilder.newMapBuilder();
+        MapBuilder<ColumnIdent, NestableInput<?>> builder = MapBuilder.newMapBuilder();
         try {
             DocTableInfo info = schemas.getTableInfo(relationName);
             assert info.isPartitioned() : "table must be partitioned";

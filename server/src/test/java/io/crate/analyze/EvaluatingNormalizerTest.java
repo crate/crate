@@ -67,7 +67,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
 
     @Before
     public void prepare() throws Exception {
-        Map<ColumnIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
+        Map<ColumnIdent, NestableInput<?>> referenceImplementationMap = new HashMap<>(1, 1);
 
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
         dummyLoadInfo = new SimpleReference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, 0, null);

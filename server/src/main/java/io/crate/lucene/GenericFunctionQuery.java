@@ -56,7 +56,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 public class GenericFunctionQuery extends Query {
 
     private final Function function;
-    private final LuceneCollectorExpression[] expressions;
+    private final LuceneCollectorExpression<?>[] expressions;
     private final Input<Boolean> condition;
 
     GenericFunctionQuery(Function function,
@@ -140,12 +140,12 @@ public class GenericFunctionQuery extends Query {
     private static class FilteredTwoPhaseIterator extends TwoPhaseIterator {
 
         private final Input<Boolean> condition;
-        private final LuceneCollectorExpression[] expressions;
+        private final LuceneCollectorExpression<?>[] expressions;
         private final Bits liveDocs;
 
         FilteredTwoPhaseIterator(LeafReader reader,
                                  Input<Boolean> condition,
-                                 LuceneCollectorExpression[] expressions) {
+                                 LuceneCollectorExpression<?>[] expressions) {
             super(DocIdSetIterator.all(reader.maxDoc()));
             this.liveDocs = reader.getLiveDocs() == null
                                 ? new Bits.MatchAllBits(reader.maxDoc())

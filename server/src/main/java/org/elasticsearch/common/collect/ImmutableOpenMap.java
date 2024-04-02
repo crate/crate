@@ -19,6 +19,9 @@
 
 package org.elasticsearch.common.collect;
 
+import java.util.Iterator;
+import java.util.Map;
+
 import com.carrotsearch.hppc.ObjectCollection;
 import com.carrotsearch.hppc.ObjectContainer;
 import com.carrotsearch.hppc.ObjectLookupContainer;
@@ -30,9 +33,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.carrotsearch.hppc.predicates.ObjectObjectPredicate;
 import com.carrotsearch.hppc.predicates.ObjectPredicate;
 import com.carrotsearch.hppc.procedures.ObjectObjectProcedure;
-
-import java.util.Iterator;
-import java.util.Map;
 
 /**
  * An immutable map implementation based on open hash map.
@@ -361,7 +361,7 @@ public final class ImmutableOpenMap<KType, VType> implements Iterable<ObjectObje
 
         @SuppressWarnings("unchecked")
         public <K, V> Builder<K, V> cast() {
-            return (Builder) this;
+            return (Builder<K, V>) this;
         }
 
         @Override

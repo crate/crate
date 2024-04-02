@@ -41,7 +41,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "timezone";
     private static final ZoneId UTC = ZoneId.of("UTC");
-    private final DataType returnType;
+    private final DataType<?> returnType;
 
     public static void register(Functions.Builder module) {
         module.add(
