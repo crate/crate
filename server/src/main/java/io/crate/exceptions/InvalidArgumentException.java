@@ -21,10 +21,12 @@
 
 package io.crate.exceptions;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class InvalidArgumentException extends ElasticsearchException implements CrateException {
 
@@ -38,5 +40,10 @@ public class InvalidArgumentException extends ElasticsearchException implements 
 
     public InvalidArgumentException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.FIELD_VALIDATION_FAILED;
     }
 }

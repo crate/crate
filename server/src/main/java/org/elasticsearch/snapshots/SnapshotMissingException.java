@@ -26,6 +26,7 @@ import org.elasticsearch.rest.RestStatus;
 
 import io.crate.exceptions.ClusterScopeException;
 import io.crate.exceptions.ResourceUnknownException;
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * Thrown if requested snapshot doesn't exist
@@ -51,5 +52,10 @@ public class SnapshotMissingException extends SnapshotException implements Resou
     @Override
     public RestStatus status() {
         return RestStatus.NOT_FOUND;
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.SNAPSHOT_UNKNOWN;
     }
 }
