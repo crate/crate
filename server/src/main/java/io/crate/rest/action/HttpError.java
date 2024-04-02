@@ -47,7 +47,6 @@ import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
-import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnavailableShardsException;
@@ -140,8 +139,6 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.PARTITION_UNKNOWN;
         } else if (throwable instanceof RelationsUnknown) {
             httpErrorStatus = HttpErrorStatus.RELATION_UNKNOWN;
-        } else if (throwable instanceof RoleUnknownException) {
-            httpErrorStatus = HttpErrorStatus.USER_UNKNOWN;
         } else if (throwable instanceof ReadOnlyException) {
             httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
         } else if (throwable instanceof DuplicateKeyException) {
