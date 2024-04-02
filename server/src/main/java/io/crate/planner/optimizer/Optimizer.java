@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -24,13 +24,10 @@ package io.crate.planner.optimizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
-import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -40,37 +37,27 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 
-public class Optimizer {
+public interface Optimizer {
 
-    private final List<Rule<?>> rules;
-    private final Supplier<Version> minNodeVersionInCluster;
-    private final NodeContext nodeCtx;
+    LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, OptimizerTracer tracer);
 
-    public Optimizer(NodeContext nodeCtx,
-                     Supplier<Version> minNodeVersionInCluster,
-                     List<Rule<?>> rules) {
-        this.rules = rules;
-        this.minNodeVersionInCluster = minNodeVersionInCluster;
-        this.nodeCtx = nodeCtx;
+    @Nullable
+    default <T> LogicalPlan tryMatchAndApply(Rule<T> rule,
+                                             LogicalPlan node,
+                                             PlanStats planStats,
+                                             NodeContext nodeCtx,
+                                             TransactionContext txnCtx,
+                                             UnaryOperator<LogicalPlan> resolvePlan,
+                                             OptimizerTracer tracer) {
+        Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
+        if (match.isPresent()) {
+            tracer.ruleMatched(rule);
+            return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
+        }
+        return null;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan,
-                                PlanStats planStats,
-                                CoordinatorTxnCtx txnCtx,
-                                OptimizerTracer tracer) {
-        var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx, tracer);
-        var optimizedSources = Lists.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, tracer));
-        return tryApplyRules(
-            applicableRules,
-            optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
-            planStats,
-            txnCtx,
-            tracer
-        );
-    }
-
-    public static List<Rule<?>> removeExcludedRules(List<Rule<?>> rules, Set<Class<? extends Rule<?>>> excludedRules) {
+    static List<Rule<?>> removeExcludedRules(List<Rule<?>> rules, Set<Class<? extends Rule<?>>> excludedRules) {
         if (excludedRules.isEmpty()) {
             return rules;
         }
@@ -85,51 +72,4 @@ public class Optimizer {
         return result;
     }
 
-    private LogicalPlan tryApplyRules(List<Rule<?>> rules,
-                                      LogicalPlan plan,
-                                      PlanStats planStats,
-                                      TransactionContext txnCtx,
-                                      OptimizerTracer tracer) {
-        LogicalPlan node = plan;
-        // Some rules may only become applicable after another rule triggered, so we keep
-        // trying to re-apply the rules as long as at least one plan was transformed.
-        boolean done = false;
-        int numIterations = 0;
-        UnaryOperator<LogicalPlan> resolvePlan = UnaryOperator.identity();
-        Version minVersion = minNodeVersionInCluster.get();
-        while (!done && numIterations < 10_000) {
-            done = true;
-            for (Rule<?> rule : rules) {
-                if (minVersion.before(rule.requiredVersion())) {
-                    continue;
-                }
-                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, resolvePlan, tracer);
-                if (transformedPlan != null) {
-                    tracer.ruleApplied(rule, transformedPlan, planStats);
-                    node = transformedPlan;
-                    done = false;
-                }
-            }
-            numIterations++;
-        }
-        assert numIterations < 10_000
-            : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
-        return node;
-    }
-
-    @Nullable
-    public static <T> LogicalPlan tryMatchAndApply(Rule<T> rule,
-                                                   LogicalPlan node,
-                                                   PlanStats planStats,
-                                                   NodeContext nodeCtx,
-                                                   TransactionContext txnCtx,
-                                                   UnaryOperator<LogicalPlan> resolvePlan,
-                                                   OptimizerTracer tracer) {
-        Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
-        if (match.isPresent()) {
-            tracer.ruleMatched(rule);
-            return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
-        }
-        return null;
-    }
 }

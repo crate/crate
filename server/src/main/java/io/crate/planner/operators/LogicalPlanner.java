@@ -86,7 +86,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
-import io.crate.planner.optimizer.Optimizer;
+import io.crate.planner.optimizer.TopDownOptimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
@@ -134,8 +134,8 @@ public class LogicalPlanner {
     // little interaction with the other rules and we want to avoid unnecessary pattern matches on them.
     private final IterativeOptimizer joinOrderOptimizer;
     private final Visitor statementVisitor = new Visitor();
-    private final Optimizer writeOptimizer;
-    private final Optimizer fetchOptimizer;
+    private final TopDownOptimizer writeOptimizer;
+    private final TopDownOptimizer fetchOptimizer;
     private final ForeignDataWrappers foreignDataWrappers;
 
     // Be careful, the order of the rules matter
@@ -202,12 +202,12 @@ public class LogicalPlanner {
             minNodeVersionInCluster,
             JOIN_ORDER_OPTIMIZER_RULES
         );
-        this.fetchOptimizer = new Optimizer(
+        this.fetchOptimizer = new TopDownOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
             FETCH_OPTIMIZER_RULES
         );
-        this.writeOptimizer = new Optimizer(
+        this.writeOptimizer = new TopDownOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
             WRITE_OPTIMIZER_RULES

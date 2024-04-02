@@ -26,12 +26,13 @@ import org.apache.logging.log4j.Logger;
 
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.PrintContext;
+import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 
 public class LoggingOptimizerTracer implements OptimizerTracer {
 
-    private static final Logger LOGGER = LogManager.getLogger(LoggingOptimizerTracer.class);
+    private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
 
     private static final LoggingOptimizerTracer INSTANCE = new LoggingOptimizerTracer();
 

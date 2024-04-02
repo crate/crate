@@ -21,7 +21,6 @@
 
 package io.crate.planner.optimizer.iterative;
 
-import static io.crate.planner.optimizer.Optimizer.removeExcludedRules;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -32,16 +31,16 @@ import org.elasticsearch.Version;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 
 /**
  * The optimizer takes an operator tree of logical plans and creates an optimized plan.
  * The optimization loop applies rules recursively until a fixpoint is reached.
  */
-public class IterativeOptimizer {
+public class IterativeOptimizer implements Optimizer {
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
@@ -70,7 +69,7 @@ public class IterativeOptimizer {
 
         tracer.optimizationStarted(plan, planStatsWithMemo);
 
-        var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
+        var applicableRules = Optimizer.removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
         exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo, tracer));
         return memo.extract();
     }
@@ -120,7 +119,7 @@ public class IterativeOptimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                LogicalPlan transformed = Optimizer.tryMatchAndApply(
+                LogicalPlan transformed = tryMatchAndApply(
                     rule,
                     node,
                     context.planStats,
