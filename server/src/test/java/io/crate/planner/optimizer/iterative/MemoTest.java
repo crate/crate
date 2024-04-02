@@ -275,7 +275,7 @@ public class MemoTest {
         return plan(ids.getAsInt(), children);
     }
 
-    static class TestPlan implements LogicalPlan {
+    public static class TestPlan implements LogicalPlan {
         private final List<LogicalPlan> sources;
         private final int id;
 

@@ -22,7 +22,6 @@
 package io.crate.planner.optimizer.costs;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -47,6 +46,7 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
+import io.crate.planner.optimizer.iterative.MemoTest;
 import io.crate.role.Role;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.ColumnStats;
@@ -306,5 +306,12 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, null);
         Stats stats = planStats.get(filter);
         assertThat(stats.numDocs()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_unsupported_plan_return_empty_stats() throws Exception {
+        MemoTest.TestPlan unsupportedPlan = new MemoTest.TestPlan(1, List.of());
+        PlanStats planStats = new PlanStats(nodeContext, txnCtx, new TableStats(), null);
+        assertThat(planStats.get(unsupportedPlan).isEmpty()).isTrue();
     }
 }
