@@ -19,10 +19,12 @@
 
 package org.elasticsearch.index.mapper;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class MapperParsingException extends MapperException {
 
@@ -45,5 +47,10 @@ public class MapperParsingException extends MapperException {
     @Override
     public RestStatus status() {
         return RestStatus.BAD_REQUEST;
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.FIELD_VALIDATION_FAILED;
     }
 }

@@ -30,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.metadata.RelationName;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class OperationOnInaccessibleRelationException extends ElasticsearchException implements TableScopeException {
 
@@ -54,5 +55,10 @@ public class OperationOnInaccessibleRelationException extends ElasticsearchExcep
     @Override
     public Collection<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.RELATION_OPERATION_NOT_SUPPORTED;
     }
 }

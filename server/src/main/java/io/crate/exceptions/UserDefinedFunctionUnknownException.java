@@ -21,15 +21,17 @@
 
 package io.crate.exceptions;
 
-import io.crate.types.DataType;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.rest.action.HttpErrorStatus;
+import io.crate.types.DataType;
 
 public class UserDefinedFunctionUnknownException extends ElasticsearchException implements ResourceUnknownException, SchemaScopeException {
 
@@ -56,5 +58,10 @@ public class UserDefinedFunctionUnknownException extends ElasticsearchException 
     @Override
     public String getSchemaName() {
         return schema;
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.USER_DEFINED_FUNCTION_UNKNOWN;
     }
 }

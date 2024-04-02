@@ -21,15 +21,17 @@
 
 package io.crate.exceptions;
 
-import io.crate.sql.Identifiers;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.rest.action.HttpErrorStatus;
+import io.crate.sql.Identifiers;
 
 public class SchemaUnknownException extends ElasticsearchException implements ResourceUnknownException, SchemaScopeException {
 
@@ -78,5 +80,10 @@ public class SchemaUnknownException extends ElasticsearchException implements Re
     @Override
     public String getSchemaName() {
         return schemaName;
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.SCHEMA_UNKNOWN;
     }
 }

@@ -23,6 +23,7 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
+import io.crate.rest.action.HttpErrorStatus;
 import io.crate.role.Permission;
 
 public class MissingPrivilegeException extends UnauthorizedException {
@@ -37,4 +38,8 @@ public class MissingPrivilegeException extends UnauthorizedException {
         super(String.format(Locale.ENGLISH, "Missing privilege for user '%s'", userName));
     }
 
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.MISSING_USER_PRIVILEGES;
+    }
 }
