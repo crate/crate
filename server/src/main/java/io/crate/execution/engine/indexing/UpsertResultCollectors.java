@@ -21,19 +21,22 @@
 
 package io.crate.execution.engine.indexing;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.execution.dml.ShardResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.ShardResponse.Failure;
 
 final class UpsertResultCollectors {
 
@@ -50,21 +53,6 @@ final class UpsertResultCollectors {
             "id", localNode.getId(),
             "name", localNode.getName()
         ));
-    }
-
-    static UpsertResultCollector newSummaryOnFailOrRowCountOnSuccessCollector(DiscoveryNode localNode) {
-        return new SummaryCollector(Map.of("id", localNode.getId(), "name", localNode.getName())) {
-            @Override
-            public Function<UpsertResults, Iterable<Row>> finisher() {
-                return r -> {
-                    if (r.containsErrors()) { // the collected summary is returned only if the results contain errors
-                        return r.rowsIterable();
-                    } else {
-                        return Collections.singletonList(new Row1(r.getSuccessRowCountForAllUris()));
-                    }
-                };
-            }
-        };
     }
 
     private static class ResultRowCollector implements UpsertResultCollector {
@@ -127,7 +115,7 @@ final class UpsertResultCollectors {
         public BinaryOperator<UpsertResults> combiner() {
             return (i, o) -> {
                 synchronized (lock) {
-                    i.addResult(o.getSuccessRowCountForNoUri());
+                    i.merge(o);
                 }
                 return i;
             };
@@ -138,12 +126,15 @@ final class UpsertResultCollectors {
             return r -> Collections.singletonList(new Row1(r.getSuccessRowCountForNoUri()));
         }
 
-        @SuppressWarnings("unused")
         void processShardResponse(UpsertResults upsertResults,
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfosIgnored) {
+            Failure failure = shardResponse.failures().stream()
+                .filter(x -> x != null && x.message() != null)
+                .findAny()
+                .orElse(null);
             synchronized (lock) {
-                upsertResults.addResult(shardResponse.successRowCount());
+                upsertResults.addResult(shardResponse.successRowCount(), failure);
             }
         }
     }
