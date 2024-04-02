@@ -1682,7 +1682,7 @@ public abstract class IntegTestCase extends ESTestCase {
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
         Roles roles = cluster().getInstance(Roles.class, node);
-        try (Session session = sqlOperations.newSession(schema, roles.findUser("crate"))) {
+        try (Session session = sqlOperations.newSession(schema, roles.getUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
         }
         return response;

@@ -31,6 +31,10 @@ public class RoleUnknownException extends RuntimeException implements ResourceUn
         super(getMessage(Collections.singletonList(roleName)));
     }
 
+    public RoleUnknownException(int oid) {
+        super(String.format(Locale.ENGLISH, "Role with OID %d does not exist", oid));
+    }
+
     public RoleUnknownException(List<String> roleNames) {
         super(getMessage(roleNames));
     }
