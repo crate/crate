@@ -23,8 +23,6 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 
-import java.util.Objects;
-
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -94,7 +92,7 @@ public abstract class BaseRolesIntegrationTest extends IntegTestCase {
     public SQLResponse executeAs(String stmt, String userName) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
         Roles roles = cluster().getInstance(Roles.class);
-        Role user = Objects.requireNonNull(roles.findUser(userName), "User " + userName + " must exist");
+        Role user = roles.getUser(userName);
         try (Session session = sqlOperations.newSession(null, user)) {
             return execute(stmt, null, session);
         }

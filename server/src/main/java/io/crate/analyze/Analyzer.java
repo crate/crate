@@ -788,11 +788,7 @@ public class Analyzer {
                 ? context.sessionSettings().userName()
                 : createUserMapping.userName();
 
-            Role user = roleManager.findUser(userName);
-            if (user == null) {
-                throw new IllegalArgumentException("Cannot create a user mapping for an unknown user: '" + userName + "'");
-            }
-
+            Role user = roleManager.getUser(userName);
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 context.transactionContext(),
                 nodeCtx,
