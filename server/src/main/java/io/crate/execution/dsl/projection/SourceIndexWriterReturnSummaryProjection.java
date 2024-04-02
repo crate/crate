@@ -25,12 +25,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -96,10 +95,6 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     public InputColumn lineNumber() {
         return lineNumber;
-    }
-
-    public boolean returnSummaryOnFailOnly() {
-        return AbstractIndexWriterProjection.OUTPUTS.equals(outputs());
     }
 
     @Override

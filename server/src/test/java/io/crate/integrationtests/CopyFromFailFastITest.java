@@ -91,7 +91,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
                 "COPY t FROM ? WITH (bulk_size = 1, fail_fast = true)", // fail_fast = true
                 new Object[]{target.toUri() + "*"}))
             .isExactlyInstanceOf(JobKilledException.class)
-            .hasMessageContaining("ERRORS: {Cannot cast value `fail here` to type `integer`");
+            .hasMessageContaining("Job killed. Cannot cast value `fail here` to type `integer`");
     }
 
     @UseRandomizedOptimizerRules(0)

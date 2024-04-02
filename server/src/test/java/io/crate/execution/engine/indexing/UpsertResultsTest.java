@@ -56,7 +56,7 @@ public class UpsertResultsTest {
     public void testContainsAnyErrorMethod() {
         UpsertResults upsertResults = new UpsertResults();
         assertThat(upsertResults.containsErrors(), is(false));
-        upsertResults.addResult(1);
+        upsertResults.addResult(1, null);
         assertThat(upsertResults.containsErrors(), is(false));
         upsertResults.addResult("dummyUri2", "failure test", 1);
         assertThat(upsertResults.containsErrors(), is(true));

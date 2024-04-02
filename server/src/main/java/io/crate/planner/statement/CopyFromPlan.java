@@ -43,6 +43,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -53,7 +54,6 @@ import io.crate.analyze.CopyFromParserProperties;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -263,9 +263,7 @@ public final class CopyFromPlan implements Plan {
 
         SourceIndexWriterProjection sourceIndexWriterProjection;
         List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;
-        boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
-        boolean failFast = boundedCopyFrom.settings().getAsBoolean("fail_fast", false);
-        if (returnSummary || failFast) {
+        if (copyFrom instanceof AnalyzedCopyFromReturnSummary returnSummary) {
             final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
             toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
 
@@ -278,10 +276,8 @@ public final class CopyFromPlan implements Plan {
             final InputColumn sourceParsingFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
             toCollect.add(SourceParsingFailureExpression.getReferenceForRelation(table.ident()));
 
-            if (returnSummary) {
-                List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
-                projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
-            }
+            List<? extends Symbol> fields = returnSummary.outputs();
+            projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
 
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),
@@ -351,7 +347,7 @@ public final class CopyFromPlan implements Plan {
         collect.addProjection(sourceIndexWriterProjection);
 
         List<Projection> handlerProjections;
-        if (returnSummary) {
+        if (copyFrom instanceof AnalyzedCopyFromReturnSummary) {
             handlerProjections = Collections.emptyList();
         } else {
             handlerProjections = List.of(MergeCountProjection.INSTANCE);
