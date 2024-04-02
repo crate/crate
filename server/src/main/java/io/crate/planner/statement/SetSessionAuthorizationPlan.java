@@ -60,10 +60,7 @@ public class SetSessionAuthorizationPlan implements Plan {
         String userName = setSessionAuthorization.user();
         Role user;
         if (userName != null) {
-            user = roles.findUser(userName);
-            if (user == null) {
-                throw new IllegalArgumentException("User '" + userName + "' does not exist.");
-            }
+            user = roles.getUser(userName);
         } else {
             user = sessionSettings.authenticatedUser();
         }

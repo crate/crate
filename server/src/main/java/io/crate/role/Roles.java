@@ -33,6 +33,7 @@ import java.util.function.Predicate;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.FourFunction;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.pgcatalog.OidHash;
 
 public interface Roles {
@@ -60,6 +61,17 @@ public interface Roles {
             return role;
         }
         return null;
+    }
+
+    /**
+     * Like {@link #findUser(String)} but throws {@link RoleUnknownException} if the user is not found.
+     **/
+    default Role getUser(String userName) {
+        Role user = findUser(userName);
+        if (user == null) {
+            throw new RoleUnknownException(userName);
+        }
+        return user;
     }
 
     /**

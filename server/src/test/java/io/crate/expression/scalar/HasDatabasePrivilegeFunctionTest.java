@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.crate.Constants;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
@@ -93,8 +94,8 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
     public void test_throws_error_when_user_is_not_found() {
         assertThatThrownBy(
             () -> assertEvaluate("has_database_privilege('not_existing_user', 'crate', ' CONNECT')", null))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("User not_existing_user does not exist");
+            .isExactlyInstanceOf(RoleUnknownException.class)
+            .hasMessage("Role 'not_existing_user' does not exist");
     }
 
     @Test

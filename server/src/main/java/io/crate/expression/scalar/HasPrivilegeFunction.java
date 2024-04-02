@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -32,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.FourFunction;
 import io.crate.data.Input;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -49,18 +49,13 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
     private final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege;
 
-    protected static final BiFunction<Roles, Object, Role> USER_BY_NAME = (roles, userName) -> {
-        var user = roles.findUser((String) userName);
-        if (user == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "User %s does not exist", userName));
-        }
-        return user;
-    };
+    protected static final BiFunction<Roles, Object, Role> USER_BY_NAME = (roles, userName) -> roles.getUser((String) userName);
 
     protected static final BiFunction<Roles, Object, Role> USER_BY_OID = (roles, userOid) -> {
-        var user = roles.findUser((Integer) userOid);
+        int oid = (int) userOid;
+        var user = roles.findUser(oid);
         if (user == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "User with OID %d does not exist", userOid));
+            throw new RoleUnknownException(oid);
         }
         return user;
     };

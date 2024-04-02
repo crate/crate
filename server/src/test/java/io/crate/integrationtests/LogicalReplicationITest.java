@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -30,7 +31,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,9 +47,9 @@ import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.testing.UseRandomizedSchema;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.testing.UseRandomizedSchema;
 
 
 @UseRandomizedSchema(random = false)
@@ -64,7 +64,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("GRANT AL TO " + publicationOwner);
         executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
         Roles roles = publisherCluster.getInstance(Roles.class);
-        Role user = Objects.requireNonNull(roles.findUser(publicationOwner), "User " + publicationOwner + " must exist");
+        Role user = roles.getUser(publicationOwner);
 
         executeOnPublisher("DROP USER " + publicationOwner);
         assertThatThrownBy(() -> executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user))
@@ -84,7 +84,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
         Roles roles = subscriberCluster.getInstance(Roles.class);
-        Role user = Objects.requireNonNull(roles.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Role user = roles.getUser(subscriptionOwner);
 
         executeOnSubscriber("DROP USER " + subscriptionOwner);
         assertThatThrownBy(() -> createSubscriptionAsUser("sub1", "pub1", user))
@@ -103,7 +103,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
 
         Roles roles = publisherCluster.getInstance(Roles.class);
-        Role user = Objects.requireNonNull(roles.findUser(publicationOwner), "User " + publicationOwner + " must exist");
+        Role user = roles.getUser(publicationOwner);
         executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user);
 
         assertThatThrownBy(() -> executeOnPublisher("DROP USER " + publicationOwner))
@@ -122,7 +122,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
         Roles roles = subscriberCluster.getInstance(Roles.class);
-        Role user = Objects.requireNonNull(roles.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Role user = roles.getUser(subscriptionOwner);
         createSubscriptionAsUser("sub1", "pub1", user);
 
         assertThatThrownBy(() -> executeOnSubscriber("DROP USER " + subscriptionOwner))
@@ -141,7 +141,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
         Roles roles = subscriberCluster.getInstance(Roles.class);
-        Role user = Objects.requireNonNull(roles.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Role user = roles.getUser(subscriptionOwner);
         var stmt = String.format(Locale.ENGLISH, "CREATE SUBSCRIPTION sub1 CONNECTION 'crate://localhost:12345/mydb?user=%s&mode=pg_tunnel'" +
                                                  " publication pub1", user.name());
         assertThatThrownBy(() -> subscriberSqlExecutor.executeAs(stmt, user))
