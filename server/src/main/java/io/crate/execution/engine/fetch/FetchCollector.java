@@ -42,7 +42,7 @@ import io.netty.util.collection.IntObjectHashMap;
 
 class FetchCollector {
 
-    private final LuceneCollectorExpression[] collectorExpressions;
+    private final LuceneCollectorExpression<?>[] collectorExpressions;
     private final InputRow row;
     private final Streamer<?>[] streamers;
     private final RamAccounting ramAccounting;

@@ -39,7 +39,7 @@ import io.crate.types.Regproc;
 
 final class DateType extends BaseTimestampType {
 
-    public static final PGType INSTANCE = new DateType();
+    public static final DateType INSTANCE = new DateType();
 
     private static final int OID = 1082;
     private static final String NAME = "date";

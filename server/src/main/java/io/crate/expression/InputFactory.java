@@ -210,7 +210,7 @@ public class InputFactory {
             for (Symbol aggInput : aggregation.inputs()) {
                 inputs.add(aggInput.accept(this, context));
             }
-            AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, filter, inputs);
+            AggregationContext aggregationContext = new AggregationContext((AggregationFunction<?, ?>) impl, filter, inputs);
             aggregationContexts.add(aggregationContext);
 
             // can't generate an input from an aggregation.
