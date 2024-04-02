@@ -281,7 +281,7 @@ public class PlanStats {
             if (sources.size() == 1) {
                 return sources.get(0).accept(this, context);
             }
-            throw new UnsupportedOperationException("Plan stats not available for " + logicalPlan.getClass().getSimpleName());
+            return Stats.EMPTY;
         }
     }
 }
