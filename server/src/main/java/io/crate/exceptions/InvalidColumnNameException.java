@@ -21,11 +21,13 @@
 
 package io.crate.exceptions;
 
+import java.io.IOException;
+import java.util.Locale;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import java.io.IOException;
-import java.util.Locale;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class InvalidColumnNameException extends ElasticsearchException implements ClusterScopeException {
 
@@ -35,5 +37,10 @@ public class InvalidColumnNameException extends ElasticsearchException implement
 
     public InvalidColumnNameException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.COLUMN_NAME_INVALID;
     }
 }

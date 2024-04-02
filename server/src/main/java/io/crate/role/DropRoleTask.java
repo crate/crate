@@ -74,7 +74,7 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
 
         UsersPrivilegesMetadata oldUserPrivilegesMetadata = (UsersPrivilegesMetadata) mdBuilder.getCustom(UsersPrivilegesMetadata.TYPE);
         RolesMetadata newMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
-        validateHasChildren(newMetadata.roles().values(), roleNameToDrop);
+        ensureHasNoDependencies(newMetadata.roles().values(), roleNameToDrop);
         var role = newMetadata.remove(roleNameToDrop);
         if (role == null && newMetadata.equals(oldRolesMetadata)) {
             return false;
@@ -86,7 +86,7 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
         return role != null;
     }
 
-    private static void validateHasChildren(Collection<Role> roles, String roleNameToDrop) {
+    private static void ensureHasNoDependencies(Collection<Role> roles, String roleNameToDrop) {
         for (Role role : roles) {
             if (role.grantedRoleNames().contains(roleNameToDrop)) {
                 throw new IllegalArgumentException(
