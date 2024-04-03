@@ -21,9 +21,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -103,14 +101,14 @@ public class TypeConversionTest extends ESTestCase {
         for (DataType<?> type : Lists.concat(
             DataTypes.PRIMITIVE_TYPES,
             List.of(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
-            assertThat(
-                "type '" + type + "' is not self convertible",
-                type.isConvertableTo(type, false), is(true));
+            assertThat(type.isConvertableTo(type, false))
+                .withFailMessage("type '" + type + "' is not self convertible")
+                .isTrue();
 
             ArrayType<?> arrayType = new ArrayType<>(type);
-            assertThat(
-                "type '" + arrayType + "' is not self convertible",
-                arrayType.isConvertableTo(arrayType, false), is(true));
+            assertThat(arrayType.isConvertableTo(arrayType, false))
+                .withFailMessage("type '" + type + "' is not self convertible")
+                .isTrue();
         }
     }
 
@@ -120,7 +118,7 @@ public class TypeConversionTest extends ESTestCase {
             DataTypes.PRIMITIVE_TYPES,
             Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
 
-            assertFalse(DataTypes.NOT_SUPPORTED.isConvertableTo(type, false));
+            assertThat(DataTypes.NOT_SUPPORTED.isConvertableTo(type, false)).isFalse();
         }
     }
 
@@ -129,59 +127,50 @@ public class TypeConversionTest extends ESTestCase {
         for (DataType<?> type : Lists.concat(
             DataTypes.PRIMITIVE_TYPES,
             Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
-            assertThat(type.isConvertableTo(DataTypes.UNDEFINED, false), is(false));
+            assertThat(type.isConvertableTo(DataTypes.UNDEFINED, false)).isFalse();
         }
-        assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED, false), is(true));
+        assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED, false)).isTrue();
     }
 
     @Test
     public void testGeoPointConversion() throws Exception {
-        assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType<>(DataTypes.DOUBLE), false), is(true));
-        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_POINT, false), is(true));
+        assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType<>(DataTypes.DOUBLE), false)).isTrue();
+        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_POINT, false)).isTrue();
     }
 
     @Test
     public void test_conversion_bigint_array_to_geo_point() {
-        assertThat(DataTypes.BIGINT_ARRAY.isConvertableTo(GeoPointType.INSTANCE, false), is(true));
+        assertThat(DataTypes.BIGINT_ARRAY.isConvertableTo(GeoPointType.INSTANCE, false)).isTrue();
     }
 
     @Test
     public void testGeoShapeConversion() throws Exception {
-        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_SHAPE, false), is(true));
-        assertThat(DataTypes.UNTYPED_OBJECT.isConvertableTo(DataTypes.GEO_SHAPE, false), is(true));
+        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_SHAPE, false)).isTrue();
+        assertThat(DataTypes.UNTYPED_OBJECT.isConvertableTo(DataTypes.GEO_SHAPE, false)).isTrue();
     }
 
     @Test
     public void testTimestampToDoubleConversion() {
-        assertThat(TimestampType.INSTANCE_WITH_TZ.isConvertableTo(DoubleType.INSTANCE, false),
-            is(true));
-        assertThat(TimestampType.INSTANCE_WITHOUT_TZ.isConvertableTo(DoubleType.INSTANCE, false),
-            is(true));
-
+        assertThat(TimestampType.INSTANCE_WITH_TZ.isConvertableTo(DoubleType.INSTANCE, false)).isTrue();
+        assertThat(TimestampType.INSTANCE_WITHOUT_TZ.isConvertableTo(DoubleType.INSTANCE, false)).isTrue();
     }
 
     @Test
     public void test_time_to_double_conversion() {
-        assertThat(TimeTZType.INSTANCE.isConvertableTo(DoubleType.INSTANCE, false),
-                   is(false));
-        assertThat(DoubleType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
-                   is(false));
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(DoubleType.INSTANCE, false)).isFalse();
+        assertThat(DoubleType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false)).isFalse();
     }
 
     @Test
     public void test_time_to_long_conversion() {
-        assertThat(TimeTZType.INSTANCE.isConvertableTo(LongType.INSTANCE, false),
-                   is(false));
-        assertThat(LongType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
-                   is(false));
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(LongType.INSTANCE, false)).isFalse();
+        assertThat(LongType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false)).isFalse();
     }
 
     @Test
     public void test_time_to_string_conversion() {
-        assertThat(TimeTZType.INSTANCE.isConvertableTo(StringType.INSTANCE, false),
-                   is(false));
-        assertThat(StringType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
-                   is(true));
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(StringType.INSTANCE, false)).isFalse();
+        assertThat(StringType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false)).isTrue();
     }
 
     @Test
@@ -189,8 +178,8 @@ public class TypeConversionTest extends ESTestCase {
         var objectTypeWithInner = ObjectType.builder().setInnerType("field", DataTypes.STRING).build();
         var objectTypeWithoutInner = DataTypes.UNTYPED_OBJECT;
 
-        assertThat(objectTypeWithInner.isConvertableTo(objectTypeWithoutInner, false), is(true));
-        assertThat(objectTypeWithoutInner.isConvertableTo(objectTypeWithInner, false), is(true));
+        assertThat(objectTypeWithInner.isConvertableTo(objectTypeWithoutInner, false)).isTrue();
+        assertThat(objectTypeWithoutInner.isConvertableTo(objectTypeWithInner, false)).isTrue();
     }
 
     @Test
@@ -198,7 +187,7 @@ public class TypeConversionTest extends ESTestCase {
         var thisObj = ObjectType.builder().setInnerType("field", DataTypes.GEO_POINT).build();
         var thatObj = ObjectType.builder().setInnerType("field", DataTypes.INTEGER).build();
 
-        assertThat(thisObj.isConvertableTo(thatObj, false), is(false));
+        assertThat(thisObj.isConvertableTo(thatObj, false)).isFalse();
     }
 
     @Test
@@ -213,20 +202,20 @@ public class TypeConversionTest extends ESTestCase {
             .setInnerType("y", DataTypes.INTEGER)
             .build();
 
-        assertThat(objX.isConvertableTo(objY, false), is(true));
-        assertThat(objY.isConvertableTo(objX, false), is(true));
+        assertThat(objX.isConvertableTo(objY, false)).isTrue();
+        assertThat(objY.isConvertableTo(objX, false)).isTrue();
     }
 
     @Test
     public void test_numeric_type_conversions_to_and_from_primitive_numeric_types() {
         for (DataType<?> type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            assertThat(
-                "numeric is not convertible to type '" + type + "'",
-                DataTypes.NUMERIC.isConvertableTo(type, false), is(true));
+            assertThat(DataTypes.NUMERIC.isConvertableTo(type, false))
+                .withFailMessage(" numeric is not convertible to type ' + type + ',")
+                .isTrue();
 
-            assertThat(
-                "'" + type + "' is not convertible to numeric type",
-                type.isConvertableTo(DataTypes.NUMERIC, false), is(true));
+            assertThat(type.isConvertableTo(DataTypes.NUMERIC, false))
+                .withFailMessage("'" + type + "' is not convertible to numeric type")
+                .isTrue();
         }
     }
 }
