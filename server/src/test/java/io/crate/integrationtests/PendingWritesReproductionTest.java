@@ -21,11 +21,23 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+
+import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
+import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
+import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
+import io.crate.metadata.IndexParts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 4, supportsDedicatedMasters = false, numClientNodes = 0)
 public class PendingWritesReproductionTest extends IntegTestCase {
@@ -34,8 +46,30 @@ public class PendingWritesReproductionTest extends IntegTestCase {
     @Repeat(iterations = 100)
     @TestLogging("org.elasticsearch.indices.recovery:TRACE, org.elasticsearch.index.translog:TRACE")
     public void reproduction() throws Exception {
-        execute("create table doc.t1 (id int) with(number_of_replicas = 3,  \"write.wait_for_active_shards\" = 'ALL')");
+        execute("create table doc.t1 (id int) with(number_of_replicas = 3)");
+
+        ensureGreen();
+
         execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
+
+
+        cluster().restartNode(clusterService().state().nodes().getMasterNode().getName(),
+            new TestCluster.RestartCallback() {
+                @Override
+                public Settings onNodeStopped(String nodeName) throws Exception {
+                    logger.info("--> request recoveries");
+                    String indexName = IndexParts.toIndexName("doc", "t1", null);
+                    RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
+
+                    List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(indexName);
+
+                    assertThat(recoveryStates).isNotEmpty();
+
+                    return super.onNodeStopped(nodeName);
+                }
+            });
+
+        ensureGreen();
     }
 
 }
