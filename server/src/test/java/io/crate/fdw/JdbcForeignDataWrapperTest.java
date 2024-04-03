@@ -57,7 +57,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         NodeContext nodeCtx = new NodeContext(functions, roles);
         var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
         Settings options = Settings.builder()
-            .put("url", "jdbc:postgresql://localhost:5432")
+            .put("url", "jdbc:postgresql://localhost:5432/")
             .build();
         Server server = new ServersMetadata.Server("self", "jdbc", "crate", Map.of(), options);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
@@ -73,6 +73,32 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
         assertThatThrownBy(() -> fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE))
             .hasMessage("Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
+    }
+
+    @Test
+    public void test_can_access_remote_as_regular_user() throws Exception {
+        Functions functions = new Functions(Map.of());
+        Role arthur = RolesHelper.userOf("arthur");
+        Roles roles = () -> List.of(arthur);
+        NodeContext nodeCtx = new NodeContext(functions, roles);
+        var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://192.0.2.0:5432/postgres")
+            .build();
+        Server server = new ServersMetadata.Server("self", "jdbc", "crate", Map.of(), options);
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        RelationName relationName = new RelationName("secret", "documents");
+        Reference nameRef = new SimpleReference(
+            new ReferenceIdent(relationName, "name"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            1,
+            null
+        );
+        Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
+        ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
+        // validates that no exception is thrown
+        fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE);
     }
 }
 
