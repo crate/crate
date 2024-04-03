@@ -34,7 +34,7 @@ public class PendingWritesReproductionTest extends IntegTestCase {
     @Repeat(iterations = 100)
     @TestLogging("org.elasticsearch.indices.recovery:TRACE, org.elasticsearch.index.translog:TRACE")
     public void reproduction() throws Exception {
-        execute("create table doc.t1 (id int) with(number_of_replicas=3)");
+        execute("create table doc.t1 (id int) with(number_of_replicas = 3,  \"write.wait_for_active_shards\" = 'ALL')");
         execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
     }
 
