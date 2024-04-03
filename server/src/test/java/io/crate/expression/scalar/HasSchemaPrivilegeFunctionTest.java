@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -89,8 +90,8 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
     public void test_throws_error_when_user_is_not_found() {
         assertThatThrownBy(
             () -> assertEvaluate("has_schema_privilege('not_existing_user', 'pg_catalog', ' USAGE')", null))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("User not_existing_user does not exist");
+            .isExactlyInstanceOf(RoleUnknownException.class)
+            .hasMessage("Role 'not_existing_user' does not exist");
     }
 
     @Test

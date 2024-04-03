@@ -21,18 +21,33 @@
 
 package io.crate.exceptions;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class RoleUnknownException extends RuntimeException implements ResourceUnknownException, UnscopedException {
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpErrorStatus;
+
+public class RoleUnknownException extends ElasticsearchException implements ResourceUnknownException, UnscopedException {
 
     public RoleUnknownException(String roleName) {
         super(getMessage(Collections.singletonList(roleName)));
     }
 
+    public RoleUnknownException(int oid) {
+        super(String.format(Locale.ENGLISH, "Role with OID %d does not exist", oid));
+    }
+
     public RoleUnknownException(List<String> roleNames) {
         super(getMessage(roleNames));
+    }
+
+    public RoleUnknownException(StreamInput in) throws IOException {
+        super(in);
     }
 
     private static String getMessage(List<String> roleNames) {
@@ -42,5 +57,15 @@ public class RoleUnknownException extends RuntimeException implements ResourceUn
             return String.format(Locale.ENGLISH, "Role '%s' does not exist", roleNames.get(0));
         }
         return String.format(Locale.ENGLISH, "Roles '%s' do not exist", String.join(", ", roleNames));
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.USER_UNKNOWN;
+    }
+
+    @Override
+    public PGErrorStatus pgErrorStatus() {
+        return PGErrorStatus.UNDEFINED_OBJECT;
     }
 }

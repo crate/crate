@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -36,7 +37,7 @@ public class CreateUserMappingAnalyzerTest extends CrateDummyClusterServiceUnitT
             .builder(clusterService)
             .build();
         assertThatThrownBy(() -> e.analyze("CREATE USER MAPPING FOR user1 SERVER pg"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Cannot create a user mapping for an unknown user: 'user1'");
+            .isExactlyInstanceOf(RoleUnknownException.class)
+            .hasMessage("Role 'user1' does not exist");
     }
 }

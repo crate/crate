@@ -154,7 +154,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         );
 
         var roles = cluster().getInstance(Roles.class);
-        Role trillian = roles.findUser("trillian");
+        Role trillian = roles.getUser("trillian");
         response = sqlExecutor.executeAs("select * from doc.dummy order by x asc", trillian);
         assertThat(response).hasRows(
             "1| 1",
@@ -343,7 +343,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         execute("grant al to arthur");
 
         var roles = cluster().getInstance(Roles.class);
-        Role trillian = roles.findUser("trillian");
+        Role trillian = roles.getUser("trillian");
         sqlExecutor.executeAs("""
             CREATE SERVER pg
             FOREIGN DATA WRAPPER jdbc
@@ -366,7 +366,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
 
         // arthur cannot see the pw because arthur is not being mapped nor is a superuser
         response = sqlExecutor.executeAs("select * from information_schema.user_mapping_options where option_name = 'password'",
-            roles.findUser("arthur"));
+            roles.getUser("arthur"));
         assertThat(response).hasRows("trillian| crate| pg| password| NULL");
 
         // superuser can see the pw

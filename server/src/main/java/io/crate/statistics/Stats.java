@@ -87,6 +87,10 @@ public class Stats implements Writeable {
         }
     }
 
+    public boolean isEmpty() {
+        return numDocs == -1 && sizeInBytes == -1 && statsByColumn.isEmpty();
+    }
+
     public Stats withNumDocs(long numDocs) {
         long sizePerRow = averageSizePerRowInBytes();
         if (sizePerRow < 1) {

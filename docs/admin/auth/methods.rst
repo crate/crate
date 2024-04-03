@@ -154,6 +154,11 @@ both values are compared and in case of a mismatch the token is rejected.
    JWT is supported only for the HTTP protocol. An :ref:`HBA <admin_hba>` entry
    for ``jwt`` MUST be combined with ``protocol: http``.
 
+.. NOTE::
+
+   Token is verified only when connection gets established. An expired token
+   might be used throughout the lifetime of the connection.
+
 .. SEEALSO::
 
   :ref:`admin_hba`

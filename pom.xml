@@ -301,7 +301,7 @@
     <versions.plugin.surefire>3.2.2</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.3.1</versions.plugin.checkstyle>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
-    <versions.plugin.jacoco>0.8.11</versions.plugin.jacoco>
+    <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.6</versions.plugin.forbiddenapis>
     <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
     <versions.plugin.assembly>3.6.0</versions.plugin.assembly>
