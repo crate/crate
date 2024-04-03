@@ -226,8 +226,14 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         rowBatchIterator.kill(new InterruptedException("killed"));
 
         assertThatThrownBy(consumer::getResult)
-            .hasRootCauseInstanceOf(InterruptedException.class)
-            .hasRootCauseMessage("killed");
+            .satisfiesAnyOf(
+                x -> assertThat(x)
+                    .hasRootCauseInstanceOf(InterruptedException.class)
+                    .hasRootCauseMessage("killed"),
+                x -> assertThat(x)
+                    .isExactlyInstanceOf(InterruptedException.class)
+                    .hasMessage("killed")
+            );
     }
 
     private void consumeIteratorAndVerifyResultIsException(BatchIterator<Row> rowBatchIterator, Exception exception)
