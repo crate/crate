@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -37,7 +36,7 @@ import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
-public class DropRoleTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
+public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse> {
 
     private final DropRoleRequest request;
     private boolean alreadyExists;
@@ -60,8 +59,8 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<AcknowledgedRespon
     }
 
     @Override
-    protected AcknowledgedResponse newResponse(boolean acknowledged) {
-        return new AcknowledgedResponse(acknowledged && alreadyExists);
+    protected WriteRoleResponse newResponse(boolean acknowledged) {
+        return new WriteRoleResponse(acknowledged, alreadyExists);
     }
 
     private static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
