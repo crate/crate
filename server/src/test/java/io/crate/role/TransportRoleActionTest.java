@@ -151,22 +151,26 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(UsersPrivilegesMetadata.TYPE, oldUsersPrivilegesMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(mdBuilder).build();
+
         var newPasswd = getSecureHash("arthurs-new-passwd");
-        boolean res = TransportAlterRoleAction.alterRole(mdBuilder,
-            "Arthur",
-            newPasswd,
-            null,
-            false,
-            false
+        AlterRoleTask alterRoleTask = new AlterRoleTask(
+            new AlterRoleRequest(
+                "Arthur",
+                newPasswd,
+                null,
+                false,
+                false
+            )
         );
-        assertThat(res).isTrue();
+        ClusterState updatedState = alterRoleTask.execute(clusterState);
 
         var newFordUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Ford")
                 .with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"));
         var newArthurUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Arthur")
                 .with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))
                 .with(newPasswd, null);
-        assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
+        assertThat(roles(Metadata.builder(updatedState.metadata()))).containsExactlyInAnyOrderEntriesOf(
             Map.of("Arthur", newArthurUser,
                 "Ford", newFordUser));
     }
@@ -266,25 +270,29 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(mdBuilder).build();
+
         // Set new password
-        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
-            mdBuilder,
-            "DummyRole",
-            getSecureHash("new-passwd"),
-            null,
-            false,
-            false))
+        assertThatThrownBy(() -> new AlterRoleTask(
+            new AlterRoleRequest(
+                "DummyRole",
+                getSecureHash("new-passwd"),
+                null,
+                false,
+                false))
+            .execute(clusterState))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Setting a password to a ROLE is not allowed");
 
         // Set NULL - reset
-        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
-            mdBuilder,
-            "DummyRole",
-            null,
-            null,
-            true,
-            false))
+        assertThatThrownBy(() -> new AlterRoleTask(
+            new AlterRoleRequest(
+                "DummyRole",
+                null,
+                null,
+                true,
+                false))
+            .execute(clusterState))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Setting a password to a ROLE is not allowed");
     }
@@ -294,25 +302,29 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(mdBuilder).build();
+
         // Set new jwt
-        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
-            mdBuilder,
-            "DummyRole",
-            null,
-            new JwtProperties("iss", "username", null),
-            false,
-            false))
+        assertThatThrownBy(() -> new AlterRoleTask(
+            new AlterRoleRequest(
+                "DummyRole",
+                null,
+                new JwtProperties("iss", "username", null),
+                false,
+                false))
+            .execute(clusterState))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Setting JWT properties to a ROLE is not allowed");
 
         // Set NULL - reset
-        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
-            mdBuilder,
-            "DummyRole",
-            null,
-            null,
-            false,
-            true))
+        assertThatThrownBy(() -> new AlterRoleTask(
+            new AlterRoleRequest(
+                "DummyRole",
+                null,
+                null,
+                false,
+                true))
+            .execute(clusterState))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Setting JWT properties to a ROLE is not allowed");
     }
@@ -331,16 +343,17 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        boolean exists = TransportAlterRoleAction.alterRole(
-            mdBuilder,
-            "John",
-            null,
-            new JwtProperties("new_issuer", "new_username", null),
-            false, // No reset, keep pwd
-            false
-        );
-        assertThat(exists).isTrue();
-        assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
+        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(mdBuilder).build();
+
+        var updatedState = new AlterRoleTask(
+            new AlterRoleRequest(
+                "John",
+                null,
+                new JwtProperties("new_issuer", "new_username", null),
+                false, // No reset, keep pwd
+                false
+            )).execute(clusterState);
+        assertThat(roles(Metadata.builder(updatedState.metadata()))).containsExactlyInAnyOrderEntriesOf(
             Map.of("John", userOf(
                     "John",
                     Set.of(),
@@ -366,16 +379,17 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        boolean exists = TransportAlterRoleAction.alterRole(
-            mdBuilder,
+        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(mdBuilder).build();
+
+        var updatedState = new AlterRoleTask(
+            new AlterRoleRequest(
             "John",
             null,
             null,
             true,
             true
-        );
-        assertThat(exists).isTrue();
-        assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
+        )).execute(clusterState);
+        assertThat(roles(Metadata.builder(updatedState.metadata()))).containsExactlyInAnyOrderEntriesOf(
             Map.of("John", userOf(
                     "John",
                     Set.of(),
@@ -408,13 +422,16 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
-            mdBuilder,
-            "John",
-            null,
-            new JwtProperties("https:dummy.org", "test", null),
-            false,
-            false))
+        ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(mdBuilder).build();
+
+        assertThatThrownBy(() -> new AlterRoleTask(
+            new AlterRoleRequest(
+                "John",
+                null,
+                new JwtProperties("https:dummy.org", "test", null),
+                false,
+                false))
+            .execute(clusterState))
             .isExactlyInstanceOf(RoleAlreadyExistsException.class)
             .hasMessage("Another role with the same combination of iss/username jwt properties already exists");
     }
