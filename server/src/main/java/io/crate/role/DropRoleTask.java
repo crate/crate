@@ -39,7 +39,7 @@ import io.crate.role.metadata.UsersPrivilegesMetadata;
 public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse> {
 
     private final DropRoleRequest request;
-    private boolean alreadyExists;
+    private boolean isDropped;
 
     DropRoleTask(DropRoleRequest request) {
         super(Priority.URGENT, request);
@@ -51,7 +51,7 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
         Metadata currentMetadata = currentState.metadata();
         ensureUserDoesNotOwnForeignServers(currentMetadata, request.roleName());
         Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-        alreadyExists = dropRole(
+        isDropped = dropRole(
             mdBuilder,
             request.roleName()
         );
@@ -60,7 +60,7 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
 
     @Override
     protected WriteRoleResponse newResponse(boolean acknowledged) {
-        return new WriteRoleResponse(acknowledged, alreadyExists);
+        return new WriteRoleResponse(acknowledged, isDropped);
     }
 
     private static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
