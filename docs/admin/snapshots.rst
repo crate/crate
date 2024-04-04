@@ -19,7 +19,8 @@ tables in a CrateDB cluster at the time the *Snapshot* was created. A
 
 .. CAUTION::
 
-   You cannot snapshot BLOB tables.
+   You cannot snapshot BLOB tables. Workaround is backing up the data folder
+   located in :ref:`blobs.path <blobs.path>`.
 
 Creating a repository
 .....................
