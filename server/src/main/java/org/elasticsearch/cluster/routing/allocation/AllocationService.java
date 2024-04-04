@@ -59,6 +59,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.gateway.PriorityComparator;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.snapshots.SnapshotsInfoService;
 
 /**
@@ -74,23 +75,31 @@ public class AllocationService {
     private final AllocationDeciders allocationDeciders;
     private Map<String, ExistingShardsAllocator> existingShardsAllocators;
     private final ShardsAllocator shardsAllocator;
+    private final ShardLimitValidator shardLimitValidator;
     private final ClusterInfoService clusterInfoService;
-    private SnapshotsInfoService snapshotsInfoService;
+    private final SnapshotsInfoService snapshotsInfoService;
 
     // only for tests that use the GatewayAllocator as the unique ExistingShardsAllocator
-    public AllocationService(AllocationDeciders allocationDeciders, GatewayAllocator gatewayAllocator,
-                             ShardsAllocator shardsAllocator, ClusterInfoService clusterInfoService,
+    public AllocationService(AllocationDeciders allocationDeciders,
+                             GatewayAllocator gatewayAllocator,
+                             ShardsAllocator shardsAllocator,
+                             ShardLimitValidator shardLimitValidator,
+                             ClusterInfoService clusterInfoService,
                              SnapshotsInfoService snapshotsInfoService) {
-        this(allocationDeciders, shardsAllocator, clusterInfoService, snapshotsInfoService);
+        this(allocationDeciders, shardsAllocator, shardLimitValidator, clusterInfoService, snapshotsInfoService);
         setExistingShardsAllocators(Collections.singletonMap(GatewayAllocator.ALLOCATOR_NAME, gatewayAllocator));
     }
 
-    public AllocationService(AllocationDeciders allocationDeciders, ShardsAllocator shardsAllocator,
-                             ClusterInfoService clusterInfoService, SnapshotsInfoService snapshotsInfoService) {
+    public AllocationService(AllocationDeciders allocationDeciders,
+                             ShardsAllocator shardsAllocator,
+                             ShardLimitValidator shardLimitValidator,
+                             ClusterInfoService clusterInfoService,
+                             SnapshotsInfoService snapshotsInfoService) {
         this.allocationDeciders = allocationDeciders;
         this.shardsAllocator = shardsAllocator;
         this.clusterInfoService = clusterInfoService;
         this.snapshotsInfoService = snapshotsInfoService;
+        this.shardLimitValidator = shardLimitValidator;
     }
 
     /**
@@ -235,7 +244,7 @@ public class AllocationService {
             allocator.applyFailedShards(failedShards, allocation);
         }
 
-        reroute(allocation);
+        reroute(allocation, clusterState);
         String failedShardsAsString
             = firstListElementsToCommaDelimitedString(failedShards, s -> s.getRoutingEntry().shardId().toString(), LOGGER.isDebugEnabled());
         return buildResultAndLogHealthChange(clusterState, allocation, "shards failed [" + failedShardsAsString + "]");
@@ -273,7 +282,7 @@ public class AllocationService {
         RoutingAllocation allocation = new RoutingAllocation(allocationDeciders, clusterState.getRoutingNodes(), clusterState,
             clusterInfoService.getClusterInfo(), snapshotsInfoService.snapshotShardSizes(), currentNanoTime());
         final Map<Integer, List<String>> autoExpandReplicaChanges =
-            AutoExpandReplicas.getAutoExpandReplicaChanges(clusterState.metadata(), allocation);
+            AutoExpandReplicas.getAutoExpandReplicaChanges(clusterState, allocation, shardLimitValidator);
         if (autoExpandReplicaChanges.isEmpty()) {
             return clusterState;
         } else {
@@ -297,7 +306,7 @@ public class AllocationService {
             }
             final ClusterState fixedState = ClusterState.builder(clusterState).routingTable(routingTableBuilder.build())
                 .metadata(metadataBuilder).build();
-            assert AutoExpandReplicas.getAutoExpandReplicaChanges(fixedState.metadata(), allocation).isEmpty();
+            assert AutoExpandReplicas.getAutoExpandReplicaChanges(fixedState, allocation, shardLimitValidator).isEmpty();
             return fixedState;
         }
     }
@@ -380,7 +389,7 @@ public class AllocationService {
         allocation.ignoreDisable(false);
         // the assumption is that commands will move / act on shards (or fail through exceptions)
         // so, there will always be shard "movements", so no need to check on reroute
-        reroute(allocation);
+        reroute(allocation, clusterState);
         return new CommandsResult(explanations, buildResultAndLogHealthChange(clusterState, allocation, "reroute commands"));
     }
 
@@ -397,7 +406,7 @@ public class AllocationService {
         routingNodes.unassigned().shuffle();
         RoutingAllocation allocation = new RoutingAllocation(allocationDeciders, routingNodes, fixedClusterState,
             clusterInfoService.getClusterInfo(), snapshotsInfoService.snapshotShardSizes(), currentNanoTime());
-        reroute(allocation);
+        reroute(allocation, clusterState);
         if (fixedClusterState == clusterState && allocation.routingNodesChanged() == false) {
             return clusterState;
         }
@@ -421,9 +430,9 @@ public class AllocationService {
         return false;
     }
 
-    private void reroute(RoutingAllocation allocation) {
+    private void reroute(RoutingAllocation allocation, ClusterState clusterState) {
         assert hasDeadNodes(allocation) == false : "dead nodes should be explicitly cleaned up. See deassociateDeadNodes";
-        assert AutoExpandReplicas.getAutoExpandReplicaChanges(allocation.metadata(), allocation).isEmpty() :
+        assert AutoExpandReplicas.getAutoExpandReplicaChanges(clusterState, allocation, shardLimitValidator).isEmpty() :
             "auto-expand replicas out of sync with number of nodes in the cluster";
         assert assertInitialized();
 

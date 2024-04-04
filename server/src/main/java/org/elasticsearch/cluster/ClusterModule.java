@@ -74,6 +74,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.gateway.GatewayAllocator;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.snapshots.SnapshotsInfoService;
 
@@ -103,7 +104,7 @@ public class ClusterModule extends AbstractModule {
         this.allocationDeciders = new AllocationDeciders(deciderList);
         this.shardsAllocator = createShardsAllocator(settings, clusterService.getClusterSettings(), clusterPlugins);
         this.clusterService = clusterService;
-        this.allocationService = new AllocationService(allocationDeciders, shardsAllocator, clusterInfoService, snapshotsInfoService);
+        this.allocationService = new AllocationService(allocationDeciders, shardsAllocator, new ShardLimitValidator(settings, clusterService), clusterInfoService, snapshotsInfoService);
     }
 
     public static List<Entry> getNamedWriteables() {

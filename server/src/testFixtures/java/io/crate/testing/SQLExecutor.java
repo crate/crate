@@ -86,6 +86,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -380,6 +381,7 @@ public class SQLExecutor {
                 ),
                 new TestGatewayAllocator(),
                 new BalancedShardsAllocator(settings),
+                new ShardLimitValidator(settings, clusterService),
                 EmptyClusterInfoService.INSTANCE,
                 EmptySnapshotsInfoService.INSTANCE
             );

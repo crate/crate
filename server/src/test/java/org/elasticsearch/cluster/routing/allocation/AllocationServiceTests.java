@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,6 +65,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayAllocator;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
@@ -140,7 +142,7 @@ public class AllocationServiceTests extends ESTestCase {
                 public ShardAllocationDecision decideShardAllocation(ShardRouting shard, RoutingAllocation allocation) {
                     return ShardAllocationDecision.NOT_TAKEN;
                 }
-            }, EmptyClusterInfoService.INSTANCE, EmptySnapshotsInfoService.INSTANCE);
+            }, mock(ShardLimitValidator.class), EmptyClusterInfoService.INSTANCE, EmptySnapshotsInfoService.INSTANCE);
 
         final String unrealisticAllocatorName = "unrealistic";
         final Map<String, ExistingShardsAllocator> allocatorMap = new HashMap<>();
@@ -234,7 +236,7 @@ public class AllocationServiceTests extends ESTestCase {
     }
 
     public void testExplainsNonAllocationOfShardWithUnknownAllocator() {
-        final AllocationService allocationService = new AllocationService(null, null, null, null);
+        final AllocationService allocationService = new AllocationService(null, null,null, null, null);
         allocationService.setExistingShardsAllocators(
             Collections.singletonMap(GatewayAllocator.ALLOCATOR_NAME, new TestGatewayAllocator()));
 

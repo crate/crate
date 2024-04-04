@@ -20,7 +20,11 @@
 package org.elasticsearch.cluster.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import io.crate.common.Booleans;
 import io.crate.types.DataTypes;
@@ -29,6 +33,7 @@ import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.indices.ShardLimitValidator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +47,8 @@ import java.util.OptionalInt;
  * based on the number of datanodes in the cluster. This class handles all the parsing and streamlines the access to these values.
  */
 public final class AutoExpandReplicas {
+
+    private static final Logger LOGGER = LogManager.getLogger(AutoExpandReplicas.class);
     // the value we recognize in the "max" position to mean all the nodes
     private static final String ALL_NODES_VALUE = "all";
 
@@ -152,19 +159,33 @@ public final class AutoExpandReplicas {
      * The map has the desired number of replicas as key and the indices to update as value, as this allows the result
      * of this method to be directly applied to RoutingTable.Builder#updateNumberOfReplicas.
      */
-    public static Map<Integer, List<String>> getAutoExpandReplicaChanges(Metadata metadata, RoutingAllocation allocation) {
+    public static Map<Integer, List<String>> getAutoExpandReplicaChanges(ClusterState clusterState,
+                                                                         RoutingAllocation allocation,
+                                                                         ShardLimitValidator shardLimitValidator) {
         Map<Integer, List<String>> nrReplicasChanged = new HashMap<>();
+        int[] totalNumberOfReplicas = {0};
 
-        for (final IndexMetadata indexMetadata : metadata) {
+        for (final IndexMetadata indexMetadata : clusterState.metadata()) {
             if (indexMetadata.getState() != IndexMetadata.State.CLOSE) {
                 AutoExpandReplicas autoExpandReplicas = SETTING.get(indexMetadata.getSettings());
                 autoExpandReplicas.getDesiredNumberOfReplicas(indexMetadata, allocation).ifPresent(numberOfReplicas -> {
                     if (numberOfReplicas != indexMetadata.getNumberOfReplicas()) {
+                        int numberOfReplicasToBeExpandedPerIndex = numberOfReplicas * indexMetadata.getNumberOfShards();
+                        totalNumberOfReplicas[0] += numberOfReplicasToBeExpandedPerIndex;
                         nrReplicasChanged.computeIfAbsent(numberOfReplicas, ArrayList::new).add(indexMetadata.getIndex().getName());
                     }
                 });
             }
         }
+
+        var error = shardLimitValidator.checkShardLimit(totalNumberOfReplicas[0], clusterState);
+        if (error.isPresent()) {
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(error);
+            }
+            return Map.of();
+        }
+
         return nrReplicasChanged;
     }
 }

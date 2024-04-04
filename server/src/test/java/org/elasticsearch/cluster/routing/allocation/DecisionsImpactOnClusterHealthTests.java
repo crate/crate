@@ -20,6 +20,7 @@
 package org.elasticsearch.cluster.routing.allocation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -45,6 +46,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 
@@ -156,6 +158,7 @@ public class DecisionsImpactOnClusterHealthTests extends ESAllocationTestCase {
         return new AllocationService(new AllocationDeciders(deciders),
                                      new TestGatewayAllocator(),
                                      new BalancedShardsAllocator(settings),
+                                     mock(ShardLimitValidator.class),
                                      EmptyClusterInfoService.INSTANCE,
                                      EmptySnapshotsInfoService.INSTANCE);
     }

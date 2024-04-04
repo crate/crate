@@ -50,6 +50,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsUtil;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.ESTestCase;
@@ -69,7 +70,8 @@ public class GatewayServiceTests extends ESTestCase {
         final AllocationService allocationService = new AllocationService(new AllocationDeciders(new HashSet<>(
             Arrays.asList(new SameShardAllocationDecider(Settings.EMPTY, new ClusterSettings(Settings.EMPTY,
                 ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)), new ReplicaAfterPrimaryActiveAllocationDecider()))),
-            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE,
+            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY),
+            new ShardLimitValidator(Settings.EMPTY, clusterService), EmptyClusterInfoService.INSTANCE,
             EmptySnapshotsInfoService.INSTANCE);
         return new GatewayService(settings.build(), allocationService, clusterService, null, null, null);
     }

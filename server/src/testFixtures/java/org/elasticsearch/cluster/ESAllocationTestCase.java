@@ -21,6 +21,7 @@ package org.elasticsearch.cluster;
 
 import static java.util.Collections.emptyMap;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
+import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +51,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayAllocator;
+import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.snapshots.SnapshotShardSizeInfo;
 import org.elasticsearch.snapshots.SnapshotsInfoService;
@@ -257,7 +259,13 @@ public abstract class ESAllocationTestCase extends ESTestCase {
                                      ShardsAllocator shardsAllocator,
                                      ClusterInfoService clusterInfoService,
                                      SnapshotsInfoService snapshotsInfoService) {
-            super(allocationDeciders, gatewayAllocator, shardsAllocator, clusterInfoService, snapshotsInfoService);
+            super(
+                allocationDeciders,
+                gatewayAllocator,
+                shardsAllocator,
+                mock(ShardLimitValidator.class),
+                clusterInfoService,
+                snapshotsInfoService);
         }
 
         public void setNanoTimeOverride(long nanoTime) {
