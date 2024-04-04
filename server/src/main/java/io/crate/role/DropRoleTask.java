@@ -26,21 +26,21 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Priority;
 
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.fdw.ServersMetadata;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
-public class DropRoleTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
+public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse> {
 
     private final DropRoleRequest request;
-    private boolean alreadyExists;
+    private boolean alreadyExists = true;
 
     DropRoleTask(DropRoleRequest request) {
         super(Priority.URGENT, request);
@@ -60,11 +60,12 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<AcknowledgedRespon
     }
 
     @Override
-    protected AcknowledgedResponse newResponse(boolean acknowledged) {
-        return new AcknowledgedResponse(acknowledged && alreadyExists);
+    protected WriteRoleResponse newResponse(boolean acknowledged) {
+        return new WriteRoleResponse(acknowledged, alreadyExists);
     }
 
-    private static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
+    @VisibleForTesting
+    static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         if (oldUsersMetadata == null && oldRolesMetadata == null) {
