@@ -518,12 +518,12 @@ T662	Underscores in numeric literals			YES
 M001	Datalinks			NO		
 M002	Datalinks via SQL/CLI			NO		
 M003	Datalinks via Embedded SQL			NO		
-M004	Foreign data support			NO		
-M005	Foreign schema support			NO		
+M004	Foreign data support			YES		
+M005	Foreign schema support			YES		
 M006	GetSQLString routine			NO		
 M007	TransmitRequest			NO		
 M009	GetOpts and GetStatistics routines			NO		
-M010	Foreign data wrapper support			NO		
+M010	Foreign data wrapper support			YES		
 M011	Datalinks via Ada			NO		
 M012	Datalinks via C			NO		
 M013	Datalinks via COBOL			NO		
