@@ -43,6 +43,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.collections.Maps;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.testing.UseRandomizedSchema;
@@ -50,7 +52,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
-
+@IntegTestCase.ClusterScope(numDataNodes = 3, numClientNodes = 0)
 @UseRandomizedSchema(random = false)
 public class DynamicMappingUpdateITest extends IntegTestCase {
 
@@ -465,5 +467,86 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         assertThatThrownBy(
             () -> execute("insert into t (n) values ([[1, 2], [3, 4]])")
         ).hasMessageContaining("Dynamic nested arrays are not supported");
+    }
+
+    @Repeat(iterations = 100)
+    @Test
+    public void foo() throws InterruptedException {
+        execute("set GLOBAL PERSISTENT \"cluster.max_shards_per_node\"=60;");
+
+        Thread concurrentUpdates1 = new Thread(() -> {
+            for (int i = 0; i < 6; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+        Thread concurrentUpdates2 = new Thread(() -> {
+            for (int i = 10; i < 15; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+        Thread concurrentUpdates3 = new Thread(() -> {
+            for (int i = 20; i < 25; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+        Thread concurrentUpdates4 = new Thread(() -> {
+            for (int i = 30; i < 35; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+        Thread concurrentUpdates5 = new Thread(() -> {
+            for (int i = 40; i < 45; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+        Thread concurrentUpdates6 = new Thread(() -> {
+            for (int i = 50; i < 55; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+        Thread concurrentUpdates7 = new Thread(() -> {
+            for (int i = 60; i < 65; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+        Thread concurrentUpdates8 = new Thread(() -> {
+            for (int i = 70; i < 75; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+        Thread concurrentUpdates9 = new Thread(() -> {
+            for (int i = 80; i < 85; i++) {
+                execute("create table t" + i + " (a int) clustered into 3 shards with (number_of_replicas = '0-1')");
+            }
+        });
+
+        concurrentUpdates1.start();
+        concurrentUpdates2.start();
+        concurrentUpdates3.start();
+        concurrentUpdates4.start();
+        concurrentUpdates5.start();
+        concurrentUpdates6.start();
+        concurrentUpdates7.start();
+        concurrentUpdates8.start();
+        concurrentUpdates9.start();
+
+        concurrentUpdates1.join();
+        concurrentUpdates2.join();
+        concurrentUpdates3.join();
+        concurrentUpdates4.join();
+        concurrentUpdates5.join();
+        concurrentUpdates6.join();
+        concurrentUpdates7.join();
+        concurrentUpdates8.join();
+        concurrentUpdates9.join();
+
+        //execute("show create table t0");
+        //assertThat(response).hasRows("aa");
+
+        execute("""
+            select count(*) from sys.shards group by node['name'], closed limit 100
+            """
+        );
+        assertThat(response).hasRows("45", "45", "45");
     }
 }
