@@ -1,20 +1,26 @@
-.. _version_5.6.4:
+.. _version_5.6.5:
 
-=============
-Version 5.6.4
-=============
+==========================
+Version 5.6.5 - Unreleased
+==========================
 
 
-Released on 2024-04-05.
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+
+.. NOTE::
+    In development. 5.6.5 isn't released yet. These are the release notes for
+    the upcoming release.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
-    before you upgrade to 5.6.4.
+    before you upgrade to 5.6.5.
 
     We recommend that you upgrade to the latest 5.5 release before moving to
-    5.6.4.
+    5.6.5.
 
-    A rolling upgrade from 5.5.x to 5.6.4 is supported.
+    A rolling upgrade from 5.5.x to 5.6.5 is supported.
 
     Before upgrading, you should `back up your data`_.
 
@@ -41,12 +47,4 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Changed :ref:`scalar-has-database-priv` and :ref:`scalar-has-schema-priv`
-  functions to be registered under :ref:`postgres-pg_catalog` schema, to be
-  compatible with PostgreSQL behaviour.
-
-- Fixed an issue that caused ``LIKE`` operator matching an empty string pattern
-  in ``WHERE`` clause to return invalid results, e.g.::
-
-    SELECT * FROM t WHERE col LIKE ''
-
+None
