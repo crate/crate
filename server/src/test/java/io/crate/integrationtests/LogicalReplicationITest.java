@@ -437,21 +437,13 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         createPublication("pub1", false, List.of("doc.t1"));
         executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
             " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
-        // Wait until empty partitioned table (template only) is replicated
-        assertBusy(() -> {
-            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
-                " WHERE table_name = 't1'" +
-                " ORDER BY ordinal_position");
-            assertThat(r).hasRows(
-                "id",
-                "p"
-            );
-        });
 
-        assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"))
-            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessageContaining(
-                    "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription.");
+        assertBusy(() -> {
+            assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"))
+                .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+                .hasMessageContaining(
+                        "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription.");
+        });
     }
 
     @Test
