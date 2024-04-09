@@ -21,14 +21,15 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
+
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public final class TableSettingsResolver {
 
@@ -53,7 +54,7 @@ public final class TableSettingsResolver {
         if (templateMetadata == null) {
             throw new RelationUnknown(relationName);
         }
-        return templateMetadata.getSettings();
+        return templateMetadata.settings();
     }
 
     private TableSettingsResolver() {

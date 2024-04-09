@@ -939,7 +939,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             if (indexTemplateMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create template via DocTableInfo.writeTo");
             }
-            Integer version = indexTemplateMetadata.getVersion();
+            Integer version = indexTemplateMetadata.version();
             var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
                 .putMapping(Strings.toString(JsonXContent.builder().map(mapping)))
                 .version(version == null ? 1 : version + 1)

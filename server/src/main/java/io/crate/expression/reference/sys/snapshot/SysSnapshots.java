@@ -40,8 +40,8 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.exceptions.Exceptions;
@@ -111,7 +111,7 @@ public class SysSnapshots {
             (metadata, snapshotInfo) -> {
                 List<String> partedTables = new ArrayList<>();
                 for (var template : metadata.templates().values()) {
-                    partedTables.add(RelationName.fqnFromIndexName(template.value.getName()));
+                    partedTables.add(RelationName.fqnFromIndexName(template.value.name()));
                 }
                 return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, partedTables);
             }).exceptionally(t -> {

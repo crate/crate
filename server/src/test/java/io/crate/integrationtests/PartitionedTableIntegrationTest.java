@@ -32,6 +32,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -304,7 +305,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             contains(is(templateName + "*")));
         assertThat(templatesResponse.getIndexTemplates().get(0).name(),
             is(templateName));
-        assertTrue(templatesResponse.getIndexTemplates().get(0).getAliases().get(getFqn("parted")) != null);
+        assertTrue(templatesResponse.getIndexTemplates().get(0).aliases().get(getFqn("parted")) != null);
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 13959981214861L});
@@ -1307,7 +1308,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         String templateName = PartitionName.templateName(defaultSchema, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
 
         execute("alter table quotes set (number_of_replicas=0)");
@@ -1315,7 +1316,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
         assertThat(templateSettings.getAsBoolean(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, true), is(false));
 
@@ -1356,7 +1357,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
 
 
@@ -1376,7 +1377,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
         assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
 
@@ -1385,7 +1386,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
         assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
 
@@ -1411,7 +1412,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
         assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
         assertBusy(() -> {
@@ -1450,7 +1451,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
         assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
     }
@@ -1824,7 +1825,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(3));
 
         execute("alter table quotes set (number_of_shards=6)");
@@ -1832,7 +1833,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(6));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",
@@ -1874,7 +1875,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         );
         templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(2));
     }
 

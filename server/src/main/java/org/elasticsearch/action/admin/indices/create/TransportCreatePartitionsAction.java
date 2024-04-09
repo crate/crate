@@ -77,17 +77,16 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Iterables;
 import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.XContentHelper;
-
-import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -170,8 +169,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
                                          "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
                                 request.indices(), request.timeout(),
-                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetadata.getSettings()),
-                                INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetadata.getSettings()));
+                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetadata.settings()),
+                                INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetadata.settings()));
                         }
                         listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
                     }, listener::onFailure);
@@ -361,7 +360,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                Map<String, AliasMetadata> templatesAliases,
                                List<String> templateNames,
                                IndexTemplateMetadata template) throws Exception {
-        templateNames.add(template.getName());
+        templateNames.add(template.name());
         XContentHelper.mergeDefaults(mapping, parseMapping(template.mapping().string()));
         for (ObjectObjectCursor<String, AliasMetadata> cursor : template.aliases()) {
             AliasMetadata aliasMetadata = cursor.value;

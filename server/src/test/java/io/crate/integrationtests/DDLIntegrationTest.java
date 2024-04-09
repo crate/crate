@@ -793,7 +793,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
         GetIndexTemplatesResponse templatesResponse =
             client().admin().indices().getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(5);
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",

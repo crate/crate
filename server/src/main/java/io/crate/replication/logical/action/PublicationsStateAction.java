@@ -229,7 +229,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             return relationsInPublications.values().stream()
                 .map(x -> x.template())
                 .filter(Objects::nonNull)
-                .map(x -> x.getName())
+                .map(x -> x.name())
                 .toList();
         }
 
