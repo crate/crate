@@ -811,7 +811,7 @@ public class RestoreService implements ClusterStateApplier {
                                 "Rename conflict for partitioned table `%s`. `%s` already exists. Cannot rename `%s` to the same name",
                                 new IndexParts(templateName).toRelationName().fqn(),
                                 templateName,
-                                previous.getName()
+                                previous.name()
                             )
                         );
                     }
