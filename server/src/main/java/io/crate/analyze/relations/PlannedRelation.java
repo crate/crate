@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.common.collections.Iterables.getFirst;
 import static io.crate.common.collections.Iterables.getOnlyElement;
 
 import java.util.List;
@@ -59,7 +60,7 @@ public class PlannedRelation implements AnalyzedRelation {
 
     @Override
     public RelationName relationName() {
-        return getOnlyElement(source.relationNames());
+        return getFirst(source.relationNames(), null);
     }
 
     @Override
