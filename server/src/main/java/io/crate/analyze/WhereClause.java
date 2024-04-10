@@ -21,6 +21,14 @@
 
 package io.crate.analyze;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.AndOperator;
@@ -28,13 +36,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.doc.DocSysColumns;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
 
 public class WhereClause {
 
@@ -122,7 +123,6 @@ public class WhereClause {
         return clusteredBy;
     }
 
-    @Nullable
     public Set<String> routingValues() {
         if (clusteredBy.isEmpty() == false) {
             HashSet<String> result = new HashSet<>(clusteredBy.size());
@@ -132,7 +132,7 @@ public class WhereClause {
             }
             return result;
         } else {
-            return null;
+            return Set.of();
         }
     }
 
