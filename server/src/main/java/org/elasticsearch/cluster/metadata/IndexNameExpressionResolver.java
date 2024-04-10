@@ -22,7 +22,6 @@ package org.elasticsearch.cluster.metadata;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +37,6 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexClosedException;
-
-import io.crate.common.collections.Tuple;
 
 public class IndexNameExpressionResolver {
 
@@ -213,85 +210,6 @@ public class IndexNameExpressionResolver {
             throw new IllegalArgumentException("unable to return a single index as the index and options provided got resolved to multiple indices");
         }
         return indices[0];
-    }
-
-    public static Map<String, Set<String>> resolveSearchRouting(ClusterState state, Set<String> routing, String... expressions) {
-        Context context = new Context(state.metadata(), IndicesOptions.lenientExpandOpen());
-        List<String> resolvedExpressions = EXPRESSION_RESOLVER.resolve(
-            context,
-            expressions != null ? Arrays.asList(expressions) : Collections.emptyList()
-        );
-        // TODO: it appears that this can never be true?
-        if (isAllIndices(resolvedExpressions)) {
-            return resolveSearchRoutingAllIndices(state.metadata(), routing);
-        }
-
-        Map<String, Set<String>> routings = null;
-        // List of indices that don't require any routing
-        Set<String> norouting = new HashSet<>();
-
-        for (String expression : resolvedExpressions) {
-            AliasOrIndex aliasOrIndex = state.metadata().getAliasAndIndexLookup().get(expression);
-            if (aliasOrIndex != null && aliasOrIndex.isAlias()) {
-                AliasOrIndex.Alias alias = (AliasOrIndex.Alias) aliasOrIndex;
-                for (Tuple<String, AliasMetadata> item : alias.getConcreteIndexAndAliasMetadatas()) {
-                    String concreteIndex = item.v1();
-                    if (!norouting.contains(concreteIndex)) {
-                        // Non-routing alias
-                        if (!norouting.contains(concreteIndex)) {
-                            norouting.add(concreteIndex);
-                            if (!routing.isEmpty()) {
-                                Set<String> r = new HashSet<>(routing);
-                                if (routings == null) {
-                                    routings = new HashMap<>();
-                                }
-                                routings.put(concreteIndex, r);
-                            } else {
-                                if (routings != null) {
-                                    routings.remove(concreteIndex);
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Index
-                if (!norouting.contains(expression)) {
-                    norouting.add(expression);
-                    if (!routing.isEmpty()) {
-                        Set<String> r = new HashSet<>(routing);
-                        if (routings == null) {
-                            routings = new HashMap<>();
-                        }
-                        routings.put(expression, r);
-                    } else {
-                        if (routings != null) {
-                            routings.remove(expression);
-                        }
-                    }
-                }
-            }
-
-        }
-        if (routings == null || routings.isEmpty()) {
-            return null;
-        }
-        return routings;
-    }
-
-    /**
-     * Sets the same routing for all indices
-     */
-    private static Map<String, Set<String>> resolveSearchRoutingAllIndices(Metadata metadata, Set<String> routing) {
-        if (!routing.isEmpty()) {
-            Map<String, Set<String>> routings = new HashMap<>();
-            String[] concreteIndices = metadata.getConcreteAllIndices();
-            for (String index : concreteIndices) {
-                routings.put(index, routing);
-            }
-            return routings;
-        }
-        return null;
     }
 
     /**
