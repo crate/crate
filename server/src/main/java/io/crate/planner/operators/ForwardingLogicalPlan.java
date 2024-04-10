@@ -58,8 +58,8 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
-        return source.getRelationNames();
+    public List<RelationName> relationNames() {
+        return source.relationNames();
     }
 
     @Override

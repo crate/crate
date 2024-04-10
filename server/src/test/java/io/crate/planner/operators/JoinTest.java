@@ -304,7 +304,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
         var hashJoin = plan.sources().get(0);
         assertThat(hashJoin).isExactlyInstanceOf(HashJoin.class);
-        assertThat(((HashJoin) hashJoin).rhs().getRelationNames())
+        assertThat(((HashJoin) hashJoin).rhs().relationNames())
             .as("Smaller table must be on the right-hand-side")
             .containsExactly(TEST_DOC_LOCATIONS_TABLE_IDENT);
 
@@ -333,7 +333,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan hashjoin = plan.sources().get(0).sources().get(0);
         assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
-        assertThat(((HashJoin) hashjoin).lhs().getRelationNames())
+        assertThat(((HashJoin) hashjoin).lhs().relationNames())
             .as("Smaller table must be on the left-hand-side")
             .containsExactly(TEST_DOC_LOCATIONS_TABLE_IDENT);
 
@@ -1090,8 +1090,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  │    └ Collect[doc.t1 | [a] | true]\n" +
             "  └ Collect[doc.t3 | [c] | true]"
         );
-        assertThat(result.getRelationNames().get(0).toString()).isEqualTo("doc.t2");
-        assertThat(result.getRelationNames().get(1).toString()).isEqualTo("doc.t1");
-        assertThat(result.getRelationNames().get(2).toString()).isEqualTo("doc.t3");
+        assertThat(result.relationNames().get(0).toString()).isEqualTo("doc.t2");
+        assertThat(result.relationNames().get(1).toString()).isEqualTo("doc.t1");
+        assertThat(result.relationNames().get(2).toString()).isEqualTo("doc.t3");
     }
 }

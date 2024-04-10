@@ -133,8 +133,8 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
         var lhs = join.lhs();
         var rhs = join.rhs();
 
-        var lhsRelations = new HashSet<>(lhs.getRelationNames());
-        var rhsRelations = new HashSet<>(rhs.getRelationNames());
+        var lhsRelations = new HashSet<>(lhs.relationNames());
+        var rhsRelations = new HashSet<>(rhs.relationNames());
 
         var leftQuery = splitQueries.remove(lhsRelations);
         var rightQuery = splitQueries.remove(rhsRelations);
