@@ -26,7 +26,6 @@ import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLU
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -46,7 +45,6 @@ import java.util.stream.Stream;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -357,23 +355,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         } else {
             indices = whereClause.partitions().toArray(new String[0]);
         }
-        Map<String, Set<String>> routingMap = null;
-        if (whereClause.clusteredBy().isEmpty() == false) {
-            Set<String> routing = whereClause.routingValues();
-            if (routing == null) {
-                routing = Collections.emptySet();
-            }
-            routingMap = IndexNameExpressionResolver.resolveSearchRouting(
-                state,
-                routing,
-                indices
-            );
-        }
-
-        if (routingMap == null) {
-            routingMap = Collections.emptyMap();
-        }
-        return routingProvider.forIndices(state, indices, routingMap, isPartitioned, shardSelection);
+        return routingProvider.forIndices(
+            state,
+            indices,
+            whereClause.routingValues(),
+            isPartitioned,
+            shardSelection
+        );
     }
 
     @Override
