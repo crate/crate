@@ -21,8 +21,12 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
+import java.util.SequencedMap;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -33,6 +37,8 @@ import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
@@ -42,11 +48,12 @@ import io.crate.planner.PlannerContext;
  * This is the {@link LogicalPlan} equivalent of the {@link MultiPhasePlan} plan.
  * It's used to describe that other logical plans needed to be executed first.
   */
-public class MultiPhase extends ForwardingLogicalPlan {
+public class MultiPhase implements LogicalPlan {
 
-    private final Map<LogicalPlan, SelectSymbol> subQueries;
+    private final LogicalPlan source;
+    private final SequencedMap<LogicalPlan, SelectSymbol> subQueries;
 
-    public static LogicalPlan createIfNeeded(Map<LogicalPlan, SelectSymbol> uncorrelatedSubQueries, LogicalPlan source) {
+    public static LogicalPlan createIfNeeded(SequencedMap<LogicalPlan, SelectSymbol> uncorrelatedSubQueries, LogicalPlan source) {
         if (uncorrelatedSubQueries.isEmpty()) {
             return source;
         } else {
@@ -54,8 +61,8 @@ public class MultiPhase extends ForwardingLogicalPlan {
         }
     }
 
-    private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
-        super(source);
+    private MultiPhase(LogicalPlan source, SequencedMap<LogicalPlan, SelectSymbol> subQueries) {
+        this.source = source;
         this.subQueries = subQueries;
     }
 
@@ -75,8 +82,40 @@ public class MultiPhase extends ForwardingLogicalPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return source.outputs();
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        var result = new ArrayList<LogicalPlan>();
+        result.add(source);
+        result.addAll(subQueries.sequencedKeySet());
+        return result;
+    }
+
+    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new MultiPhase(Lists.getOnlyElement(sources), subQueries);
+        assert sources.size() == subQueries.size() + 1 : "Invalid number of sources for MultiPhase";
+        var iterator = sources.iterator();
+        var newSource = iterator.next();
+        SequencedMap<LogicalPlan, SelectSymbol> newSubqueries = new LinkedHashMap<>();
+        for (var entries : this.subQueries.sequencedEntrySet()) {
+            newSubqueries.put(iterator.next(), entries.getValue());
+        }
+        return new MultiPhase(newSource, newSubqueries);
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
+        if (newSource == source) {
+            return this;
+        }
+        var newSources = new ArrayList<LogicalPlan>();
+        newSources.add(source);
+        newSources.addAll(subQueries.sequencedKeySet());
+        return replaceSources(newSources);
     }
 
     @Override
@@ -87,6 +126,16 @@ public class MultiPhase extends ForwardingLogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitMultiPhase(this, context);
+    }
+
+    @Override
+    public List<RelationName> relationNames() {
+        var result = new ArrayList<RelationName>();
+        result.addAll(source.relationNames());
+        for (var subQueries : subQueries.sequencedKeySet()) {
+            result.addAll(subQueries.relationNames());
+        }
+        return source.relationNames();
     }
 
     @Override

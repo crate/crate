@@ -23,6 +23,7 @@ package io.crate.planner;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -41,7 +42,7 @@ public class SubqueryPlanner {
         this.planSubSelects = planSubSelects;
     }
 
-    public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, Map<SelectSymbol, LogicalPlan> correlated) {
+    public record SubQueries(SequencedMap<LogicalPlan, SelectSymbol> uncorrelated, Map<SelectSymbol, LogicalPlan> correlated) {
 
         public LogicalPlan applyCorrelatedJoin(LogicalPlan source) {
             for (var entry : correlated.entrySet()) {

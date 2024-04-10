@@ -49,18 +49,38 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
     @UseRandomizedOptimizerRules(0)
     @UseHashJoins(1)
     @Test
-    public void test_basic_lookup_join() throws Exception {
+    public void test_lookup_join_with_two_collect_operators() throws Exception {
         var query = "select count(*) from doc.t1 join doc.t2 on t1.id = t2.id";
         execute("explain (costs false)" + query);
         assertThat(response).hasLines(
             "HashAggregate[count(*)]",
             "  └ HashJoin[(id = id)]",
             "    ├ MultiPhase",
-            "    │  └ Collect[doc.t1 | [id] | (id = ANY((SELECT id FROM (doc.t2))))]",
+            "    │  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
             "    │  └ Collect[doc.t2 | [id] | true]",
             "    └ Collect[doc.t2 | [id] | true]"
         );
         execute(query);
         assertThat(response).hasRows("100");
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    @Test
+    public void test_lookup_join_with_subquery_on_the_smaller_side() throws Exception {
+        var query = "select count(*) from doc.t1 join (select * from doc.t2 where doc.t2.id > 2) x on t1.id = x.id";
+        execute("explain (costs false)" + query);
+        assertThat(response).hasLines(
+            "HashAggregate[count(*)]",
+            "  └ HashJoin[(id = id)]",
+            "    ├ MultiPhase",
+            "    │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
+            "    │  └ Rename[id] AS x",
+            "    │    └ Collect[doc.t2 | [id] | (id > 2)]",
+            "    └ Rename[id] AS x",
+            "      └ Collect[doc.t2 | [id] | (id > 2)]"
+        );
+        execute(query);
+        assertThat(response).hasRows("98");
     }
 }
