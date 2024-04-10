@@ -19,15 +19,24 @@
 
 package org.elasticsearch.bootstrap;
 
-import com.sun.jna.Native;
-import com.sun.jna.Pointer;
-import com.sun.jna.WString;
+import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.bootstrap.JNAKernel32Library.SizeT;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
-import static org.elasticsearch.bootstrap.JNAKernel32Library.SizeT;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.WString;
 
 /**
  * This class performs the actual work with JNA and library bindings to call native methods. It should only be used after
@@ -114,12 +123,29 @@ class JNANatives {
             // on Linux the resource RLIMIT_NPROC means *the number of threads*
             // this is in opposition to BSD-derived OSes
             final int rlimit_nproc = 6;
-
-            final JNACLibrary.Rlimit rlimit = new JNACLibrary.Rlimit();
-            if (JNACLibrary.getrlimit(rlimit_nproc, rlimit) == 0) {
-                MAX_NUMBER_OF_THREADS = rlimit.rlim_cur.longValue();
+            Linker linker = Linker.nativeLinker();
+            Optional<MemorySegment> optionalGetrlimit = linker.defaultLookup().find("getrlimit");
+            if (optionalGetrlimit.isPresent()) {
+                MemorySegment getrlimit = optionalGetrlimit.get();
+                MethodHandle getrlimitHandle = linker.downcallHandle(
+                    getrlimit,
+                    FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS)
+                );
+                var rlimitLayout = MemoryLayout.structLayout(
+                    ValueLayout.JAVA_LONG.withName("cur"),
+                    ValueLayout.JAVA_LONG.withName("max")
+                );
+                try (var arena = Arena.ofConfined()) {
+                    MemorySegment rlimit = arena.allocate(rlimitLayout);
+                    int errno = (int) getrlimitHandle.invokeExact(rlimit_nproc, rlimit);
+                    if (errno == 0) {
+                        MAX_NUMBER_OF_THREADS = rlimit.getAtIndex(ValueLayout.JAVA_LONG, 0);
+                    }
+                } catch (Throwable t) {
+                    LOGGER.warn("unable to retrieve max number of threads [" + t.getMessage() + "]");
+                }
             } else {
-                LOGGER.warn("unable to retrieve max number of threads [" + JNACLibrary.strerror(Native.getLastError()) + "]");
+                LOGGER.warn("unable to retrieve max number of threads [getrlimit not found]");
             }
         }
     }
