@@ -333,7 +333,7 @@ public class MemoTest {
         }
 
         @Override
-        public List<RelationName> getRelationNames() {
+        public List<RelationName> relationNames() {
             return List.of();
         }
     }

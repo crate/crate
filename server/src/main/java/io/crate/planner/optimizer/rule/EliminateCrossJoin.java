@@ -66,7 +66,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              UnaryOperator<LogicalPlan> resolvePlan) {
-        if (join.getRelationNames().size() >= 3) {
+        if (join.relationNames().size() >= 3) {
             var joinGraph = JoinGraph.create(join, resolvePlan);
             if (joinGraph.hasCrossJoin()) {
                 var newOrder = eliminateCrossJoin(joinGraph);
@@ -166,7 +166,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
             if (criteria.isEmpty()) {
                 var errorMessage = new ArrayList<String>();
                 for (var plan : order) {
-                    for (var relationName : plan.getRelationNames()) {
+                    for (var relationName : plan.relationNames()) {
                         errorMessage.add(relationName.fqn());
                     }
                 }

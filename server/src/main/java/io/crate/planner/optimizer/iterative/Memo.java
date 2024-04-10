@@ -200,7 +200,7 @@ public class Memo {
                 .map(child -> new GroupReference(
                     insertRecursive(child),
                     child.outputs(),
-                    child.getRelationNames()))
+                    child.relationNames()))
                 .collect(Collectors.toList()));
     }
 

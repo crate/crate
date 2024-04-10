@@ -97,8 +97,8 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
-        return Lists.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
+    public List<RelationName> relationNames() {
+        return Lists.concatUnique(lhs.relationNames(), rhs.relationNames());
     }
 
     @Override

@@ -139,7 +139,7 @@ public class ForeignCollect implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of(relation.relationName());
     }
 
