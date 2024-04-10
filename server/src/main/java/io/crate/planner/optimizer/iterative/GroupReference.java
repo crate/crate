@@ -91,7 +91,7 @@ public class GroupReference implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return relationNames;
     }
 
