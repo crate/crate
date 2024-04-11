@@ -4532,6 +4532,36 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-vector:
+
+Vector functions
+================
+
+.. _scalar_vector_similarity:
+
+
+``vector_similarity(float_vector, float_vector)``
+--------------------------------------------------------
+
+Returns similarity of 2 :ref:`FLOAT_VECTORS <type-float_vector>`
+as a :ref:`FLOAT <type-real>` typed value.
+Similarity is based on euclidean distance and belongs to range ``(0,1]``.
+If 2 vectors coincide, function returns maximal possible similarity 1.
+The more distance between vectors is, the closer similarity gets to 0.
+If at least one argument is ``NULL``, function returns ``NULL``.
+
+An example::
+
+
+    cr> SELECT vector_similarity([1.2, 1.3], [10.2, 10.3]) AS vs;
+    +-------------+
+    |          vs |
+    +-------------+
+    | 0.006134969 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _3-valued logic: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
 .. _available time zones: https://www.joda.org/joda-time/timezones.html
 .. _CrateDB PDO: https://crate.io/docs/pdo/en/latest/connect.html
