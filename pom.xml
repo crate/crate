@@ -249,7 +249,7 @@
     <versions.antlr>4.13.1</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
-    <versions.netty>4.1.108.Final</versions.netty>
+    <versions.netty>4.1.109.Final</versions.netty>
     <versions.lucene>9.10.0</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>
