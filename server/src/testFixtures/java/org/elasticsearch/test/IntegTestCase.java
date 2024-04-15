@@ -129,7 +129,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
-import org.elasticsearch.index.mapper.MockFieldFilterPlugin;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesQueryCache;
@@ -1268,9 +1267,6 @@ public abstract class IntegTestCase extends ESTestCase {
             }
             if (addMockInternalEngine() && randomBoolean()) {
                 mocks.add(MockEngineFactoryPlugin.class);
-            }
-            if (randomBoolean()) {
-                mocks.add(MockFieldFilterPlugin.class);
             }
         }
 

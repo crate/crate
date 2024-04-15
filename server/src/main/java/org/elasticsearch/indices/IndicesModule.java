@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import org.elasticsearch.action.resync.TransportResyncReplicationAction;
 import org.elasticsearch.common.geo.ShapesAvailability;
@@ -74,8 +73,7 @@ public class IndicesModule extends AbstractModule {
     private final MapperRegistry mapperRegistry;
 
     public IndicesModule(List<MapperPlugin> mapperPlugins) {
-        this.mapperRegistry = new MapperRegistry(getMappers(mapperPlugins), getMetadataMappers(mapperPlugins),
-                getFieldFilter(mapperPlugins));
+        this.mapperRegistry = new MapperRegistry(getMappers(mapperPlugins), getMetadataMappers(mapperPlugins));
     }
 
     public static List<NamedWriteableRegistry.Entry> getNamedWriteables() {
@@ -162,37 +160,6 @@ public class IndicesModule extends AbstractModule {
         // we register _field_names here so that it has a chance to see all the other mappers, including from plugins
         metadataMappers.put(fieldNamesEntry.getKey(), fieldNamesEntry.getValue());
         return Collections.unmodifiableMap(metadataMappers);
-    }
-
-    private static Function<String, Predicate<String>> getFieldFilter(List<MapperPlugin> mapperPlugins) {
-        Function<String, Predicate<String>> fieldFilter = MapperPlugin.NOOP_FIELD_FILTER;
-        for (MapperPlugin mapperPlugin : mapperPlugins) {
-            fieldFilter = and(fieldFilter, mapperPlugin.getFieldFilter());
-        }
-        return fieldFilter;
-    }
-
-    private static Function<String, Predicate<String>> and(Function<String, Predicate<String>> first,
-                                                           Function<String, Predicate<String>> second) {
-        //the purpose of this method is to not chain no-op field predicates, so that we can easily find out when no plugins plug in
-        //a field filter, hence skip the mappings filtering part as a whole, as it requires parsing mappings into a map.
-        if (first == MapperPlugin.NOOP_FIELD_FILTER) {
-            return second;
-        }
-        if (second == MapperPlugin.NOOP_FIELD_FILTER) {
-            return first;
-        }
-        return index -> {
-            Predicate<String> firstPredicate = first.apply(index);
-            Predicate<String> secondPredicate = second.apply(index);
-            if (firstPredicate == MapperPlugin.NOOP_FIELD_PREDICATE) {
-                return secondPredicate;
-            }
-            if (secondPredicate == MapperPlugin.NOOP_FIELD_PREDICATE) {
-                return firstPredicate;
-            }
-            return firstPredicate.and(secondPredicate);
-        };
     }
 
     @Override

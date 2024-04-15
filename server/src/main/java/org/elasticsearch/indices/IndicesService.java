@@ -48,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -1098,16 +1097,6 @@ public class IndicesService extends AbstractLifecycleComponent
         (Index index, IndexSettings indexSettings) -> canDeleteIndexContents(index, indexSettings);
     private final IndexDeletionAllowedPredicate ALWAYS_TRUE = (Index index, IndexSettings indexSettings) -> true;
 
-    /**
-     * Returns a function which given an index name, returns a predicate which fields must match in order to be returned by get mappings,
-     * get index, get field mappings and field capabilities API. Useful to filter the fields that such API return.
-     * The predicate receives the the field name as input argument. In case multiple plugins register a field filter through
-     * {@link org.elasticsearch.plugins.MapperPlugin#getFieldFilter()}, only fields that match all the registered filters will be
-     * returned by get mappings, get index, get field mappings and field capabilities API.
-     */
-    public Function<String, Predicate<String>> getFieldFilter() {
-        return mapperRegistry.getFieldFilter();
-    }
 
     /**
      * Returns true if the provided field is a registered metadata field (including ones registered via plugins), false otherwise.
