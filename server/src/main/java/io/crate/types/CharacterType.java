@@ -159,9 +159,6 @@ public class CharacterType extends StringType {
 
     @Override
     public TypeSignature getTypeSignature() {
-        if (lengthLimit == 1) {
-            return new TypeSignature(NAME);
-        }
         return new TypeSignature(NAME, List.of(TypeSignature.of(lengthLimit)));
     }
 
