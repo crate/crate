@@ -526,7 +526,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             case DYNAMIC:
                 if (!forWrite) {
                     if (!errorOnUnknownObjectKey) {
-                        return new VoidReference(new ReferenceIdent(ident(), ident), rowGranularity(), position);
+                        return new VoidReference(new ReferenceIdent(ident(), ident), position);
                     }
                     return null;
                 }
