@@ -59,6 +59,7 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -219,7 +220,17 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             // Use only first index to validate that index can be created.
             // All indices share same template/settings so no need to repeat validation for each index.
             Settings commonIndexSettings = createCommonIndexSettings(currentState, template);
-            shardLimitValidator.validateShardLimit(commonIndexSettings, currentState);
+
+            final int numberOfShards = INDEX_NUMBER_OF_SHARDS_SETTING.get(commonIndexSettings);
+            final int numberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(commonIndexSettings);
+            // Shard limit check has to take to account all new partitions.
+            final int numShardsToCreate = numberOfShards * (1 + numberOfReplicas) * indicesToCreate.size();
+            shardLimitValidator.checkShardLimit(numShardsToCreate, currentState)
+                .ifPresent(err -> {
+                    final ValidationException e = new ValidationException();
+                    e.addValidationError(err);
+                    throw e;
+                });
             int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(commonIndexSettings);
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(firstIndex)
                 .setRoutingNumShards(routingNumShards);
