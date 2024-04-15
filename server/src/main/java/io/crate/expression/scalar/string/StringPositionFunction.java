@@ -30,7 +30,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-public final class StringPositionFucntion extends Scalar<Integer , String> {
+public final class StringPositionFunction extends Scalar<Integer , String> {
 
     public static void register(Functions.Builder module) {
         module.add(
@@ -40,11 +40,11 @@ public final class StringPositionFucntion extends Scalar<Integer , String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
-            StringPositionFucntion::new
+            StringPositionFunction::new
         );
     }
 
-    public StringPositionFucntion(Signature signature, BoundSignature boundSignature) {
+    public StringPositionFunction(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
     }
 
