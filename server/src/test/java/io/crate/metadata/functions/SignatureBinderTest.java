@@ -41,6 +41,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
@@ -577,6 +578,36 @@ public class SignatureBinderTest extends ESTestCase {
             .boundTo(NumericType.INSTANCE, NumericType.of(10, 2))
             .hasBoundSignature(expected);
     }
+
+    @Test
+    public void test_binding_doesnt_lose_integral_parameter_type_signature_info() {
+        // Functions having types with parameters as their arguments
+        // are registered with instance with default value of the parameter.
+        // Verify that parameter info is not lost and SignatureBinder doesn't throw an error
+        // "The signature type of the based data type parameters can only be: INTEGER_LITERAL_SIGNATURE".
+        DataType[] types = new DataType[]{
+            BitStringType.INSTANCE_ONE,
+            CharacterType.INSTANCE,
+            FloatVectorType.INSTANCE_ONE
+        };
+        for (int i = 0; i < types.length; i++) {
+            var type = types[i];
+            Signature dummyWithBitArg = functionSignature()
+                .returnType(TypeSignature.parse("boolean"))
+                .argumentTypes(type.getTypeSignature())
+                .build();
+
+            BoundSignature expected = new BoundSignature(
+                List.of(type),
+                DataTypes.BOOLEAN
+            );
+
+            assertThatSignature(dummyWithBitArg)
+                .boundTo(type)
+                .hasBoundSignature(expected);
+        }
+    }
+
 
     private DataType<?> type(String signature) {
         TypeSignature typeSignature = TypeSignature.parse(signature);
