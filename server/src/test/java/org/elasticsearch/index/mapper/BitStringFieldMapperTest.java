@@ -24,7 +24,6 @@ package org.elasticsearch.index.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 public class BitStringFieldMapperTest {
@@ -34,7 +33,7 @@ public class BitStringFieldMapperTest {
         BitStringFieldMapper.Builder builder = new BitStringFieldMapper.Builder("x");
         ContentPath contentPath = new ContentPath();
         contentPath.add("o");
-        var context = new Mapper.BuilderContext(Settings.EMPTY, contentPath);
+        var context = new Mapper.BuilderContext(contentPath);
         BitStringFieldMapper mapper = builder.build(context);
         assertThat(mapper.name()).isEqualTo("o.x");
     }
@@ -45,7 +44,7 @@ public class BitStringFieldMapperTest {
         builder.index(false);
         ContentPath contentPath = new ContentPath();
         contentPath.add("o");
-        var context = new Mapper.BuilderContext(Settings.EMPTY, contentPath);
+        var context = new Mapper.BuilderContext(contentPath);
         BitStringFieldMapper mapper = builder.build(context);
         assertThat(mapper.mappedFieldType.isSearchable()).isFalse();
     }
@@ -56,7 +55,7 @@ public class BitStringFieldMapperTest {
         builder.docValues(false);
         ContentPath contentPath = new ContentPath();
         contentPath.add("o");
-        var context = new Mapper.BuilderContext(Settings.EMPTY, contentPath);
+        var context = new Mapper.BuilderContext(contentPath);
         BitStringFieldMapper mapper = builder.build(context);
         assertThat(mapper.mappedFieldType.hasDocValues()).isFalse();
     }
@@ -64,7 +63,7 @@ public class BitStringFieldMapperTest {
     @Test
     public void test_field_mapper_cannot_have_empty_name() {
         ContentPath contentPath = new ContentPath();
-        var context = new Mapper.BuilderContext(Settings.EMPTY, contentPath);
+        var context = new Mapper.BuilderContext(contentPath);
         assertThatThrownBy(() -> new BitStringFieldMapper.Builder("").build(context))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("name cannot be empty string");

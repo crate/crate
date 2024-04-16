@@ -37,7 +37,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -62,8 +61,7 @@ public class DocumentMapper implements ToXContentFragment {
         private final Mapper.BuilderContext builderContext;
 
         public Builder(RootObjectMapper.Builder builder, MapperService mapperService) {
-            final Settings indexSettings = mapperService.getIndexSettings().getSettings();
-            this.builderContext = new Mapper.BuilderContext(indexSettings, new ContentPath(1));
+            this.builderContext = new Mapper.BuilderContext(new ContentPath(1));
             this.rootObjectMapper = builder.build(builderContext);
 
             DocumentMapper existingMapper = mapperService.documentMapper();
