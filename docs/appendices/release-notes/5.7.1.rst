@@ -46,4 +46,11 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that allowed ``INSERT INTO`` statements to create more shards
+  than allowed by :ref:`cluster.max_shards_per_node
+  <cluster.max_shards_per_node>` if the statement resulted in the creation of
+  many partitions at once.
+
+- Fixed an issue that resulted on the garbage collection logging environment
+  variables being ignored in Windows.
+
