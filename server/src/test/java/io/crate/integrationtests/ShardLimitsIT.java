@@ -77,4 +77,10 @@ public class ShardLimitsIT extends IntegTestCase {
                 .hasMessageContaining(
                         "this action would add [2] total shards, but this cluster currently has [2]/[2] maximum shards open;");
     }
+
+    @Test
+    public void test_auto_expanding_replicas() throws Exception {
+
+
+    }
 }
