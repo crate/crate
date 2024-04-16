@@ -467,7 +467,6 @@ public final class AnalysisRegistry implements Closeable {
                                 Map<String, CharFilterFactory> charFilterFactoryFactories,
                                 Map<String, TokenFilterFactory> tokenFilterFactoryFactories) {
 
-        Index index = indexSettings.getIndex();
         analyzerProviders = new HashMap<>(analyzerProviders);
         Map<String, NamedAnalyzer> analyzers = new HashMap<>();
         Map<String, NamedAnalyzer> normalizers = new HashMap<>();
@@ -495,6 +494,7 @@ public final class AnalysisRegistry implements Closeable {
         }
 
 
+        Index index = indexSettings.getIndex();
         NamedAnalyzer defaultAnalyzer = analyzers.get("default");
         if (defaultAnalyzer == null) {
             throw new IllegalArgumentException("no default analyzer configured");
