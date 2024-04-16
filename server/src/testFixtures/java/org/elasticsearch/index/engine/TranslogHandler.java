@@ -63,17 +63,9 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
 
     private void applyOperation(Engine engine, Engine.Operation operation) throws IOException {
         switch (operation.operationType()) {
-            case INDEX:
-                engine.index((Engine.Index) operation);
-                break;
-            case DELETE:
-                engine.delete((Engine.Delete) operation);
-                break;
-            case NO_OP:
-                engine.noOp((Engine.NoOp) operation);
-                break;
-            default:
-                throw new IllegalStateException("No operation defined for [" + operation + "]");
+            case DELETE -> engine.index((Engine.Index) operation);
+            case INDEX -> engine.delete((Engine.Delete) operation);
+            case NO_OP -> engine.noOp((Engine.NoOp) operation);
         }
     }
 
@@ -90,11 +82,11 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
     }
 
     private Engine.Operation convertToEngineOp(Translog.Operation operation, Engine.Operation.Origin origin) {
-        switch (operation.opType()) {
-            case INDEX:
+        return switch (operation.opType()) {
+            case CREATE, INDEX -> {
                 final Translog.Index index = (Translog.Index) operation;
                 final String indexName = mapperService.index().getName();
-                return IndexShard.prepareIndex(
+                yield IndexShard.prepareIndex(
                     docMapper(Constants.DEFAULT_MAPPING_TYPE),
                     new SourceToParse(
                         indexName,
@@ -112,9 +104,10 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     0
                 );
-            case DELETE:
+            }
+            case DELETE -> {
                 final Translog.Delete delete = (Translog.Delete) operation;
-                return new Engine.Delete(
+                yield new Engine.Delete(
                     delete.id(),
                     delete.uid(),
                     delete.seqNo(),
@@ -126,12 +119,11 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     0
                 );
-            case NO_OP:
+            }
+            case NO_OP -> {
                 final Translog.NoOp noOp = (Translog.NoOp) operation;
-                return new Engine.NoOp(noOp.seqNo(), noOp.primaryTerm(), origin, System.nanoTime(), noOp.reason());
-            default:
-                throw new IllegalStateException("No operation defined for [" + operation + "]");
-        }
+                yield new Engine.NoOp(noOp.seqNo(), noOp.primaryTerm(), origin, System.nanoTime(), noOp.reason());
+            }
+        };
     }
-
 }
