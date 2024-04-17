@@ -183,6 +183,6 @@ always improving and extending CrateDB and would love to hear your feedback.
 
 
 .. _Github: https://github.com/crate/crate
-.. _PostgreSQL wire protocol: https://crate.io/docs/crate/reference/en/latest/interfaces/postgres.html
-.. _SQL implementation: https://crate.io/docs/crate/reference/en/latest/appendices/compliance.html
-.. _standard SQL: https://crate.io/docs/crate/reference/en/4.2/appendices/compliance.html
+.. _PostgreSQL wire protocol: https://cratedb.com/docs/crate/reference/en/latest/interfaces/postgres.html
+.. _SQL implementation: https://cratedb.com/docs/crate/reference/en/latest/appendices/compliance.html
+.. _standard SQL: https://cratedb.com/docs/crate/reference/en/latest/appendices/compliance.html
