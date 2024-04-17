@@ -41,8 +41,8 @@ import org.elasticsearch.transport.RemoteCluster.ConnectionStrategy;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
-import io.crate.types.DataTypes;
 import io.crate.role.Role;
+import io.crate.types.DataTypes;
 
 
 public class ConnectionInfo implements Writeable {
@@ -81,8 +81,6 @@ public class ConnectionInfo implements Writeable {
 
     public static ConnectionInfo fromURL(String url) {
         try {
-            List<String> hosts = new ArrayList<>();
-
             String urlServer = url;
             String urlArgs = "";
 
@@ -142,6 +140,7 @@ public class ConnectionInfo implements Writeable {
 
             Settings settings = settingsBuilder.build();
             String[] addresses = urlServer.substring(0, slash).split(",");
+            List<String> hosts = new ArrayList<>();
             for (String address : addresses) {
                 int portIdx = address.lastIndexOf(':');
                 if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
