@@ -63,7 +63,7 @@
             <include>**/*Tests.java</include>
           </includes>
           <systemPropertyVariables>
-            <worker.id>$${surefire.forkNumber}</worker.id>
+            <worker-id>$${surefire.forkNumber}</worker-id>
           </systemPropertyVariables>
           <properties>
             <configurationParameters>
