@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
@@ -133,8 +134,7 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
     public void testCreateTableIfNotExists() {
         execute("create table if not exists doc.tbl (col_text text, col_int integer)");
         execute("create table if not exists doc.cpy as select * from doc.tbl");
-        assertThatThrownBy(() -> execute("create table if not exists doc.cpy as select * from doc.tbl"))
-            .isExactlyInstanceOf(RelationAlreadyExists.class)
-            .hasMessage("Relation 'doc.cpy' already exists.");  
+        execute("create table if not exists doc.cpy as select * from doc.tbl");
+        assertEquals(0, response.rowCount());
     }
 }
