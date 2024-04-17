@@ -39,7 +39,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
@@ -49,7 +48,6 @@ import org.elasticsearch.index.engine.Engine.Operation.Origin;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
@@ -251,9 +249,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     logger.debug("Failed to execute upsert on nodeName={}, shardId={} id={} error={}", clusterService.localNode().getName(), request.shardId(), item.id(), e);
                 }
 
-                // *mark* the item as failed by setting the source to null
+                // *mark* the item as failed by setting the sequence number
                 // to prevent the replica operation from processing this concrete item
-                item.source(null);
                 item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
                 if (!request.continueOnError()) {
@@ -284,67 +281,22 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return message != null ? message : e.getClass().getName();
     }
 
-    private WriteReplicaResult<ShardUpsertRequest> legacyReplicaOp(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
-        boolean traceEnabled = logger.isTraceEnabled();
-        Translog.Location location = null;
-        for (ShardUpsertRequest.Item item : request.items()) {
-            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA || item.source() == null) {
-                if (traceEnabled) {
-                    logger.trace(
-                        "[{} (R)] Document with id={}, marked as skip_on_replica",
-                        indexShard.shardId(),
-                        item.id()
-                    );
-                }
-                continue;
+    private static boolean shouldIgnoreAllItems(ShardUpsertRequest req) {
+        for (ShardUpsertRequest.Item item : req.items()) {
+            if (item.seqNo() != SequenceNumbers.SKIP_ON_REPLICA) {
+                return false;
             }
-            SourceToParse sourceToParse = new SourceToParse(
-                request.index(),
-                item.id(),
-                item.source(),
-                XContentType.JSON
-            );
-            IndexResult result = indexShard.applyIndexOperationOnReplica(
-                item.seqNo(),
-                item.primaryTerm(),
-                item.version(),
-                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                false,
-                sourceToParse
-            );
-            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                // Even though the primary waits on all nodes to ack the mapping changes to the master
-                // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
-                // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
-                // mapping update. Assume that that update is first applied on the primary, and only later on the replica
-                // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
-                // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
-                // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
-                // applied the new mapping, so there is no other option than to wait.
-                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
-            }
-            location = result.getTranslogLocation();
         }
-        return new WriteReplicaResult<>(location, null, indexShard);
+        return true;
     }
 
     @Override
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Reference[] insertColumns = request.insertColumns();
         if (insertColumns == null) {
-            return legacyReplicaOp(indexShard, request);
+            assert shouldIgnoreAllItems(request);
+            return new WriteReplicaResult<>(null, null, indexShard);
         }
-        // If an item has a source, parse it instead of using Indexer
-        // The request may come from an older node in a mixed cluster.
-        // In that case the insertColumns/values won't always include undeterministic generated columns
-        // and we'd risk generating new diverging values on the replica
-        for (var item : request.items()) {
-            if (item.source() != null) {
-                return legacyReplicaOp(indexShard, request);
-            }
-        }
-
 
         Translog.Location location = null;
         String indexName = request.index();
@@ -527,7 +479,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
                     // on conflict do nothing
                     item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
-                    item.source(null);
                     return null;
                 }
                 Symbol[] updateAssignments = item.updateAssignments();
