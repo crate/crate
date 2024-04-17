@@ -103,10 +103,6 @@ public class InformationPartitionsTableInfo {
                     .endObject()
                 .endObject()
 
-                .startObject("warmer")
-                    .add("enabled", BOOLEAN, fromSetting(IndexSettings.INDEX_WARMER_ENABLED_SETTING))
-                .endObject()
-
                 .startObject("unassigned")
                     .startObject("node_left")
                         .add("delayed_timeout", LONG, fromTimeValue(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING))

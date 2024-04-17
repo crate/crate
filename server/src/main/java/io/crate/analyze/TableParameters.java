@@ -96,7 +96,6 @@ public class TableParameters {
             IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
             ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
             MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
-            IndexSettings.INDEX_WARMER_ENABLED_SETTING,
             UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
             IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
             MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
@@ -129,7 +128,6 @@ public class TableParameters {
      */
     static final Set<Setting<?>> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
         IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
-        IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_SETTING,

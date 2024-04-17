@@ -57,7 +57,6 @@ public class TableSettingsTest extends IntegTestCase {
                 "\"routing.allocation.exclude.foo\" = 'bar' ," +
                 "\"translog.sync_interval\" = '3600ms', " +
                 "\"translog.flush_threshold_size\" = '1000000b', " +
-                "\"warmer.enabled\" = false, " +
                 "\"store.type\" = 'niofs', " +
                 "\"translog.sync_interval\" = '20s'," +
                 "\"refresh_interval\" = '1000ms'," +
@@ -82,7 +81,6 @@ public class TableSettingsTest extends IntegTestCase {
             assertTrue(((Map<String, Object>) row[0]).containsKey("mapping"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("routing"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("translog"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("warmer"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("refresh_interval"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("unassigned"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("write"));
@@ -104,7 +102,7 @@ public class TableSettingsTest extends IntegTestCase {
                 "where settings IS NULL");
         assertEquals(66L, response.rowCount());
         execute("select * from information_schema.tables " +
-                "where table_name = 'settings_table' and settings['warmer']['enabled'] IS NULL");
+                "where table_name = 'settings_table' and settings['blocks']['read'] IS NULL");
         assertEquals(0, response.rowCount());
     }
 
