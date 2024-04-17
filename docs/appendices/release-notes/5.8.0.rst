@@ -44,6 +44,11 @@ Version 5.8.0 - Unreleased
 Breaking Changes
 ================
 
+- Removed the ``index.warmer.enabled`` setting and its corresponding column
+  within the ``settings`` column of ``information_schema.tables`` and
+  ``information_schema.table_partitions``. The setting had been deprecated in
+  CrateDB 4.2.0.
+
 - Removed ``network`` column from :ref:`sys.nodes <sys-nodes>` table. The column
   was deprecated since `version_2.3.0_` and all of the sub-columns where
   returning 0.

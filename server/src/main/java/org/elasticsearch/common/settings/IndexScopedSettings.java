@@ -85,7 +85,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         MergePolicyConfig.INDEX_MERGE_POLICY_SEGMENTS_PER_TIER_SETTING,
         MergePolicyConfig.INDEX_MERGE_POLICY_RECLAIM_DELETES_WEIGHT_SETTING,
         IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
-        IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
         IndexSettings.MAX_NGRAM_DIFF_SETTING,
         IndexSettings.MAX_SHINGLE_DIFF_SETTING,
