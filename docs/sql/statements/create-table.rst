@@ -386,6 +386,13 @@ The number of replicas is defined like this::
   the number of data nodes in the cluster. If ``max_replicas`` is the string
   ``all`` then it will always be N-1.
 
+.. NOTE::
+
+   If the value is provided as a range or the default value ``0-1`` is used,
+   :ref:`cluster.c <cluster.max_shards_per_node>` and
+   :ref:`cluster.routing.allocation.total_shards_per_node
+   <cluster.routing.allocation.total_shards_per_node>` limits are not checked.
+
 .. SEEALSO::
 
     :ref:`ddl-replication`
