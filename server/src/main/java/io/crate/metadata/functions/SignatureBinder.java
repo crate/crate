@@ -45,6 +45,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerLiteralTypeSignature;
+import io.crate.types.FloatVectorType;
 import io.crate.types.ParameterTypeSignature;
 import io.crate.types.TypeSignature;
 import io.crate.types.UndefinedType;
@@ -81,7 +82,8 @@ public class SignatureBinder {
         DataTypes.NUMERIC.getName(),
         DataTypes.STRING.getName(),
         DataTypes.CHARACTER.getName(),
-        BitStringType.NAME
+        BitStringType.NAME,
+        FloatVectorType.NAME
     );
 
     public SignatureBinder(Signature declaredSignature, CoercionType coercionType) {
@@ -182,7 +184,6 @@ public class SignatureBinder {
                 new TypeSignature(baseType, parameters)
             );
         }
-
         return new TypeSignature(baseType, parameters);
     }
 

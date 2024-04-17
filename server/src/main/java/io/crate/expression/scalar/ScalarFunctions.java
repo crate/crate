@@ -248,5 +248,6 @@ public class ScalarFunctions implements FunctionsProvider {
         ParseURLFunction.register(builder);
 
         KnnMatch.register(builder);
+        VectorSimilarityFunction.register(builder);
     }
 }
