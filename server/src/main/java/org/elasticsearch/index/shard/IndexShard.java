@@ -1018,6 +1018,15 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return getEngine().getTranslogStats();
     }
 
+    public long estimateSize() {
+        try {
+            return store.estimateSize();
+        } catch (IOException e) {
+            failShard("Failing shard because of exception during storeStats", e);
+            throw new ElasticsearchException("io exception while building 'store stats'", e);
+        }
+    }
+
     public StoreStats storeStats() {
         try {
             final RecoveryState recoveryState = this.recoveryState;

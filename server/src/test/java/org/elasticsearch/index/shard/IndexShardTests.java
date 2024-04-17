@@ -1080,6 +1080,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 StoreStats storeStats = indexShard.storeStats();
                 assertThat(storeStats.sizeInBytes())
                            .isGreaterThan(numDoc * 100L); // A doc should be more than 100 bytes.
+                assertThat(storeStats.sizeInBytes()).isEqualTo(indexShard.estimateSize());
 
                 assertThat(docsStats.getTotalSizeInBytes())
                     .as("Estimated total document size is too small compared with the stored size")
