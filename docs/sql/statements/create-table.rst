@@ -384,7 +384,7 @@ The number of replicas is defined like this::
 
   The actual maximum number of replicas is max(num_replicas, N-1), where N is
   the number of data nodes in the cluster. If ``max_replicas`` is the string
-  ``all`` then it will always be N.
+  ``all`` then it will always be N-1.
 
 .. SEEALSO::
 
