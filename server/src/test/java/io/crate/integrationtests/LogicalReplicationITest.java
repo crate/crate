@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.junit.Rule;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -49,11 +50,15 @@ import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.testing.RetryRule;
 import io.crate.testing.UseRandomizedSchema;
 
 
 @UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
+
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Test
     public void test_create_publication_checks_owner_was_not_deleted_before_creation() {
