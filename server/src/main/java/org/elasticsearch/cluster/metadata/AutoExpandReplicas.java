@@ -19,6 +19,8 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.isIndexVerifiedBeforeClosed;
+
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -156,7 +158,7 @@ public final class AutoExpandReplicas {
         Map<Integer, List<String>> nrReplicasChanged = new HashMap<>();
 
         for (final IndexMetadata indexMetadata : metadata) {
-            if (indexMetadata.getState() != IndexMetadata.State.CLOSE) {
+            if (indexMetadata.getState() == IndexMetadata.State.OPEN || isIndexVerifiedBeforeClosed(indexMetadata)) {
                 AutoExpandReplicas autoExpandReplicas = SETTING.get(indexMetadata.getSettings());
                 autoExpandReplicas.getDesiredNumberOfReplicas(indexMetadata, allocation).ifPresent(numberOfReplicas -> {
                     if (numberOfReplicas != indexMetadata.getNumberOfReplicas()) {
