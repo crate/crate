@@ -51,3 +51,6 @@ Fixes
   <cluster.max_shards_per_node>` if the statement resulted in the creation of
   many partitions at once.
 
+- Fixed an issue that resulted on the garbage collection logging environment
+  variables being ignored in Windows.
+
