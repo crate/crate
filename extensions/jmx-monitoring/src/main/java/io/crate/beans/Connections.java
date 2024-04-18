@@ -21,38 +21,54 @@
 
 package io.crate.beans;
 
-import io.crate.protocols.ConnectionStats;
-import org.elasticsearch.http.HttpStats;
-
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+
+import io.crate.protocols.ConnectionStats;
 
 public final class Connections implements ConnectionsMBean {
 
     public static final String NAME = "io.crate.monitoring:type=Connections";
-    private final Supplier<HttpStats> httpStats;
+    private final Supplier<ConnectionStats> httpStats;
     private final Supplier<ConnectionStats> psqlStats;
-    private final LongSupplier transportConnections;
+    private final Supplier<ConnectionStats> transportStats;
 
-    public Connections(Supplier<HttpStats> httpStats,
+    public Connections(Supplier<ConnectionStats> httpStats,
                        Supplier<ConnectionStats> psqlStats,
-                       LongSupplier transportConnections) {
+                       Supplier<ConnectionStats> transportStats) {
         this.httpStats = httpStats;
         this.psqlStats = psqlStats;
-        this.transportConnections = transportConnections;
+        this.transportStats = transportStats;
     }
 
 
     @Override
     public long getHttpOpen() {
-        HttpStats httpStats = this.httpStats.get();
-        return httpStats == null ? 0L : httpStats.getServerOpen();
+        return httpStats.get().open();
     }
 
     @Override
     public long getHttpTotal() {
-        HttpStats httpStats = this.httpStats.get();
-        return httpStats == null ? 0L : httpStats.getTotalOpen();
+        return httpStats.get().total();
+    }
+
+    @Override
+    public long getHttpMessagesReceived() {
+        return httpStats.get().receivedMsgs();
+    }
+
+    @Override
+    public long getHttpBytesReceived() {
+        return httpStats.get().receivedBytes();
+    }
+
+    @Override
+    public long getHttpMessagesSent() {
+        return httpStats.get().sentMsgs();
+    }
+
+    @Override
+    public long getHttpBytesSent() {
+        return httpStats.get().sentBytes();
     }
 
     @Override
@@ -66,7 +82,52 @@ public final class Connections implements ConnectionsMBean {
     }
 
     @Override
+    public long getPsqlMessagesReceived() {
+        return psqlStats.get().receivedMsgs();
+    }
+
+    @Override
+    public long getPsqlBytesReceived() {
+        return psqlStats.get().receivedBytes();
+    }
+
+    @Override
+    public long getPsqlMessagesSent() {
+        return psqlStats.get().sentMsgs();
+    }
+
+    @Override
+    public long getPsqlBytesSent() {
+        return psqlStats.get().sentBytes();
+    }
+
+    @Override
     public long getTransportOpen() {
-        return transportConnections.getAsLong();
+        return transportStats.get().open();
+    }
+
+    @Override
+    public long getTransportTotal() {
+        return transportStats.get().total();
+    }
+
+    @Override
+    public long getTransportMessagesReceived() {
+        return transportStats.get().receivedMsgs();
+    }
+
+    @Override
+    public long getTransportBytesReceived() {
+        return transportStats.get().receivedBytes();
+    }
+
+    @Override
+    public long getTransportMessagesSent() {
+        return transportStats.get().sentMsgs();
+    }
+
+    @Override
+    public long getTransportBytesSent() {
+        return transportStats.get().sentBytes();
     }
 }

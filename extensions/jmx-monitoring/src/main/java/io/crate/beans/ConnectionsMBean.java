@@ -21,15 +21,45 @@
 
 package io.crate.beans;
 
+@SuppressWarnings("unused")
 public interface ConnectionsMBean {
 
+    // HTTP
     long getHttpOpen();
 
     long getHttpTotal();
 
+    long getHttpMessagesReceived();
+
+    long getHttpBytesReceived();
+
+    long getHttpMessagesSent();
+
+    long getHttpBytesSent();
+
+    // PSQL
     long getPsqlOpen();
 
     long getPsqlTotal();
 
+    long getPsqlMessagesReceived();
+
+    long getPsqlBytesReceived();
+
+    long getPsqlMessagesSent();
+
+    long getPsqlBytesSent();
+
+    // Transport
     long getTransportOpen();
+
+    long getTransportTotal();
+
+    long getTransportMessagesReceived();
+
+    long getTransportBytesReceived();
+
+    long getTransportMessagesSent();
+
+    long getTransportBytesSent();
 }

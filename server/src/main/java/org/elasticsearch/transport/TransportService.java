@@ -63,6 +63,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.protocols.ConnectionStats;
 
 public class TransportService extends AbstractLifecycleComponent implements TransportMessageListener, TransportConnectionListener {
 
@@ -256,7 +257,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         handleIncomingRequests.set(true);
     }
 
-    public TransportStats stats() {
+    public ConnectionStats stats() {
         return transport.getStats();
     }
 

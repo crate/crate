@@ -41,26 +41,32 @@ public class ShardInfo {
         this.size = size;
     }
 
+    @SuppressWarnings("unused")
     public int getShardId() {
         return shardId;
     }
 
+    @SuppressWarnings("unused")
     public String getTable() {
         return table;
     }
 
+    @SuppressWarnings("unused")
     public String getPartitionIdent() {
         return partitionIdent;
     }
 
+    @SuppressWarnings("unused")
     public String getRoutingState() {
         return routingState;
     }
 
+    @SuppressWarnings("unused")
     public String getState() {
         return state;
     }
 
+    @SuppressWarnings("unused")
     public long getSize() {
         return size;
     }

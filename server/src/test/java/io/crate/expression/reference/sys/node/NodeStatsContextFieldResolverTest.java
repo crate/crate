@@ -35,7 +35,6 @@ import java.util.Set;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
@@ -71,12 +70,12 @@ public class NodeStatsContextFieldResolverTest {
             () -> discoveryNode,
             monitorService,
             () -> null,
-            () -> new HttpStats(20L, 30L),
+            () -> new ConnectionStats(1, 2, 3, 4, 5, 6),
             mock(ThreadPool.class),
             new ExtendedNodeInfo(),
-            () -> new ConnectionStats(2L, 4L),
+            () -> new ConnectionStats(11, 22, 33, 44, 55, 66),
             () -> postgresAddress,
-            () -> 12L,
+            () -> new ConnectionStats(111, 222, 333, 444, 555, 666),
             () -> 1L
         );
     }
@@ -99,11 +98,11 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression http = (NestableCollectExpression) expression.getChild("http");
         NestableCollectExpression open = (NestableCollectExpression) http.getChild("open");
         open.setNextRow(statsContext);
-        assertThat(open.value()).isEqualTo(20L);
+        assertThat(open.value()).isEqualTo(1L);
 
         NestableCollectExpression total = (NestableCollectExpression) http.getChild("total");
         total.setNextRow(statsContext);
-        assertThat(total.value()).isEqualTo(30L);
+        assertThat(total.value()).isEqualTo(2L);
     }
 
     @SuppressWarnings("rawtypes")
@@ -119,11 +118,11 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("psql");
         NestableCollectExpression open = (NestableCollectExpression) psql.getChild("open");
         open.setNextRow(statsContext);
-        assertThat(open.value()).isEqualTo(2L);
+        assertThat(open.value()).isEqualTo(11L);
 
         NestableCollectExpression total = (NestableCollectExpression) psql.getChild("total");
         total.setNextRow(statsContext);
-        assertThat(total.value()).isEqualTo(4L);
+        assertThat(total.value()).isEqualTo(22L);
     }
 
     @SuppressWarnings("rawtypes")
@@ -139,7 +138,11 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("transport");
         NestableCollectExpression open = (NestableCollectExpression) psql.getChild("open");
         open.setNextRow(statsContext);
-        assertThat(open.value()).isEqualTo(12L);
+        assertThat(open.value()).isEqualTo(111L);
+
+        NestableCollectExpression total = (NestableCollectExpression) psql.getChild("total");
+        total.setNextRow(statsContext);
+        assertThat(total.value()).isEqualTo(222L);
     }
 
     @Test

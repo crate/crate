@@ -70,9 +70,11 @@ import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.transport.TransportStats;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.protocols.ConnectionStats;
 
 public class NodeConnectionsServiceTests extends ESTestCase {
 
@@ -98,6 +100,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         return builder.build();
     }
 
+    @Test
     public void testConnectAndDisconnect() throws Exception {
         final NodeConnectionsService service = new NodeConnectionsService(Settings.EMPTY, threadPool, transportService);
 
@@ -160,6 +163,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         ensureConnections(service);
     }
 
+    @Test
     public void testPeriodicReconnection() {
         final Settings.Builder settings = Settings.builder();
         final long reconnectIntervalMillis;
@@ -223,6 +227,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         assertConnectedExactlyToNodes(transportService, targetNodes);
     }
 
+    @Test
     public void testOnlyBlocksOnConnectionsToNewNodes() throws Exception {
         final NodeConnectionsService service = new NodeConnectionsService(Settings.EMPTY, threadPool, transportService);
 
@@ -308,6 +313,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
     }
 
     @TestLogging(value="org.elasticsearch.cluster.NodeConnectionsService:DEBUG")
+    @Test
     public void testDebugLogging() throws IllegalAccessException {
         final DeterministicTaskQueue deterministicTaskQueue
             = new DeterministicTaskQueue(builder().put(NODE_NAME_SETTING.getKey(), "node").build(), random());
@@ -589,7 +595,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         }
 
         @Override
-        public TransportStats getStats() {
+        public ConnectionStats getStats() {
             throw new UnsupportedOperationException();
         }
 
