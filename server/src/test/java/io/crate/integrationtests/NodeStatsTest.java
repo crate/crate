@@ -98,7 +98,7 @@ public class NodeStatsTest extends IntegTestCase {
 
         List<?> queues = (List<?>) response.rows()[0][1];
         assertThat(queues.size()).isGreaterThanOrEqualTo(1);
-        assertThat((Integer) queues.get(0)).isGreaterThanOrEqualTo(0);
+        assertThat((Integer) queues.getFirst()).isGreaterThanOrEqualTo(0);
     }
 
     @Test
@@ -111,15 +111,17 @@ public class NodeStatsTest extends IntegTestCase {
         assertThat((Long) results.get("timestamp")).isGreaterThan(0L);
         assertThat((Long) results.get("uptime")).isGreaterThanOrEqualTo(-1L);
 
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("system")).isGreaterThanOrEqualTo((short) -1);
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("system")).isLessThanOrEqualTo((short) 100);
+        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("system"))
+            .isGreaterThanOrEqualTo((short) -1)
+            .isLessThanOrEqualTo((short) 100);
 
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("user")).isGreaterThanOrEqualTo((short) -1);
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("user")).isLessThanOrEqualTo((short) 100);
+        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("user"))
+            .isGreaterThanOrEqualTo((short) -1)
+            .isLessThanOrEqualTo((short) 100);
 
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("used")).isGreaterThanOrEqualTo((short) -1);
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("used")).isLessThanOrEqualTo((short) 100);
-
+        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("used"))
+            .isGreaterThanOrEqualTo((short) -1)
+            .isLessThanOrEqualTo((short) 100);
     }
 
     @Test
@@ -219,7 +221,7 @@ public class NodeStatsTest extends IntegTestCase {
         }
 
         List<?> disks = (List<?>) fs.get("disks");
-        if (disks.size() > 0) {
+        if (disks.isEmpty() == false) {
             // on travis there are no accessible disks
             assertThat(disks.size()).isGreaterThanOrEqualTo(1);
             Map<String, Object> someDisk = (Map<String, Object>) disks.get(0);
@@ -232,7 +234,7 @@ public class NodeStatsTest extends IntegTestCase {
         }
 
         List<?> data = (List<?>) fs.get("data");
-        if (data.size() > 0) {
+        if (data.isEmpty() == false) {
             // without sigar, no data definition returned
             NodeEnvironment instance = cluster().getInstance(NodeEnvironment.class);
             int numDataPaths = instance.nodeDataPaths().length;
