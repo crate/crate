@@ -55,3 +55,6 @@ Fixes
 - Fixed an issue that resulted on the garbage collection logging environment
   variables being ignored in Windows.
 
+- Improved ingestion performance for partitioned tables where no primary keys
+  are defined by using an append only optimized ingestion strategy. The
+  performance improvement increases with the size of each shard.
