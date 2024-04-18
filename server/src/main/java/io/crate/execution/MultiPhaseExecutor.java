@@ -49,6 +49,7 @@ public final class MultiPhaseExecutor {
         IdentityHashMap<SelectSymbol, Object> valueBySubQuery = new IdentityHashMap<>();
         for (Map.Entry<LogicalPlan, SelectSymbol> entry : dependencies.entrySet()) {
             LogicalPlan depPlan = entry.getKey();
+            depPlan = plannerContext.optimize().apply(depPlan, plannerContext);
             SelectSymbol selectSymbol = entry.getValue();
 
             CollectingRowConsumer<?, ?> rowConsumer = getConsumer(selectSymbol.getResultType());

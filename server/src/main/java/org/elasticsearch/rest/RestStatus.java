@@ -19,15 +19,15 @@
 
 package org.elasticsearch.rest;
 
-import org.elasticsearch.action.ShardOperationFailedException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.Collections.unmodifiableMap;
+import org.elasticsearch.action.ShardOperationFailedException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 public enum RestStatus {
     /**
@@ -482,6 +482,7 @@ public enum RestStatus {
     INSUFFICIENT_STORAGE(507);
 
     private static final Map<Integer, RestStatus> CODE_TO_STATUS;
+
     static {
         RestStatus[] values = values();
         Map<Integer, RestStatus> codeToStatus = new HashMap<>(values.length);

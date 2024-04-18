@@ -181,7 +181,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     public static final String TEST_WORKER_VM_ID;
 
     // Set in pom.xml based on surefire.forkNumber
-    public static final String TEST_WORKER_SYS_PROPERTY = "worker.id";
+    public static final String TEST_WORKER_SYS_PROPERTY = "worker-id";
 
     public static final String DEFAULT_TEST_WORKER_ID = "--not-mvn--";
 

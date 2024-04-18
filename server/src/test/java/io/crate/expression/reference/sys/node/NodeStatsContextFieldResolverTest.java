@@ -21,13 +21,9 @@
 
 package io.crate.expression.reference.sys.node;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +87,7 @@ public class NodeStatsContextFieldResolverTest {
         assertDefaultDiscoveryContext(context);
     }
 
+    @SuppressWarnings("rawtypes")
     @Test
     public void testConnectionsHttpLookupAndExpression() {
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
@@ -102,13 +99,14 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression http = (NestableCollectExpression) expression.getChild("http");
         NestableCollectExpression open = (NestableCollectExpression) http.getChild("open");
         open.setNextRow(statsContext);
-        assertThat(open.value(), is(20L));
+        assertThat(open.value()).isEqualTo(20L);
 
         NestableCollectExpression total = (NestableCollectExpression) http.getChild("total");
         total.setNextRow(statsContext);
-        assertThat(total.value(), is(30L));
+        assertThat(total.value()).isEqualTo(30L);
     }
 
+    @SuppressWarnings("rawtypes")
     @Test
     public void testNumberOfPSqlConnectionsCanBeRetrieved() {
         // tests the resolver and the expression
@@ -121,13 +119,14 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("psql");
         NestableCollectExpression open = (NestableCollectExpression) psql.getChild("open");
         open.setNextRow(statsContext);
-        assertThat(open.value(), is(2L));
+        assertThat(open.value()).isEqualTo(2L);
 
         NestableCollectExpression total = (NestableCollectExpression) psql.getChild("total");
         total.setNextRow(statsContext);
-        assertThat(total.value(), is(4L));
+        assertThat(total.value()).isEqualTo(4L);
     }
 
+    @SuppressWarnings("rawtypes")
     @Test
     public void testNumberOfTransportConnectionsCanBeRetrieved() {
         // tests the resolver and the expression
@@ -140,7 +139,7 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("transport");
         NestableCollectExpression open = (NestableCollectExpression) psql.getChild("open");
         open.setNextRow(statsContext);
-        assertThat(open.value(), is(12L));
+        assertThat(open.value()).isEqualTo(12L);
     }
 
     @Test
@@ -149,16 +148,16 @@ public class NodeStatsContextFieldResolverTest {
             SysNodesTableInfo.Columns.ID,
             SysNodesTableInfo.Columns.NAME
         ));
-        assertThat(context.isComplete(), is(true));
-        assertThat(context.id(), is(notNullValue()));
-        assertThat(context.name(), is(notNullValue()));
-        assertThat(context.hostname(), is(nullValue()));
+        assertThat(context.isComplete()).isTrue();
+        assertThat(context.id()).isNotNull();
+        assertThat(context.name()).isNotNull();
+        assertThat(context.hostname()).isNull();
     }
 
     @Test
     public void testNoteStatsContextTimestampResolvedCorrectly() {
         NodeStatsContext context = resolver.forTopColumnIdents(Set.of(SysNodesTableInfo.Columns.OS));
-        assertThat(context.timestamp(), greaterThan(0L));
+        assertThat(context.timestamp()).isGreaterThan(0);
     }
 
     @Test
@@ -166,8 +165,8 @@ public class NodeStatsContextFieldResolverTest {
         NodeStatsContext context = resolver.forTopColumnIdents(Set.of(
             new ColumnIdent(SysNodesTableInfo.Columns.PORT.name())
         ));
-        assertThat(context.isComplete(), is(true));
-        assertThat(context.pgPort(), is(5432));
+        assertThat(context.isComplete()).isTrue();
+        assertThat(context.pgPort()).isEqualTo(5432);
     }
 
     @Test
@@ -175,31 +174,32 @@ public class NodeStatsContextFieldResolverTest {
         NodeStatsContext context = resolver.forTopColumnIdents(Set.of(
             new ColumnIdent(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION.name())
         ));
-        assertThat(context.isComplete(), is(true));
-        assertThat(context.clusterStateVersion(), is(1L));
+        assertThat(context.isComplete()).isTrue();
+        assertThat(context.clusterStateVersion()).isEqualTo(1L);
     }
 
     @Test
     public void testResolveForNonExistingColumnIdent() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> resolver.forTopColumnIdents(Set.of(SysNodesTableInfo.Columns.ID, new ColumnIdent("dummy"))),
-                     "Cannot resolve NodeStatsContext field for \"dummy\" column ident.");
+        assertThatThrownBy(() ->
+            resolver.forTopColumnIdents(Set.of(SysNodesTableInfo.Columns.ID, new ColumnIdent("dummy"))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot resolve NodeStatsContext field for \"dummy\" column ident.");
     }
 
     private void assertDefaultDiscoveryContext(NodeStatsContext context) {
-        assertThat(context.isComplete(), is(true));
-        assertThat(context.id(), is(nullValue()));
-        assertThat(context.name(), is(nullValue()));
-        assertThat(context.hostname(), is(nullValue()));
-        assertThat(context.build(), is(nullValue()));
-        assertThat(context.restUrl(), is(nullValue()));
-        assertThat(context.pgPort(), is(nullValue()));
-        assertThat(context.jvmStats(), is(nullValue()));
-        assertThat(context.osInfo(), is(nullValue()));
-        assertThat(context.processStats(), is(nullValue()));
-        assertThat(context.osStats(), is(nullValue()));
-        assertThat(context.extendedOsStats(), is(nullValue()));
-        assertThat(context.threadPools(), is(nullValue()));
-        assertThat(context.javaVersion(), is(notNullValue()));
+        assertThat(context.isComplete()).isTrue();
+        assertThat(context.id()).isNull();
+        assertThat(context.name()).isNull();
+        assertThat(context.hostname()).isNull();
+        assertThat(context.build()).isNull();
+        assertThat(context.restUrl()).isNull();
+        assertThat(context.pgPort()).isNull();
+        assertThat(context.jvmStats()).isNull();
+        assertThat(context.osInfo()).isNull();
+        assertThat(context.processStats()).isNull();
+        assertThat(context.osStats()).isNull();
+        assertThat(context.extendedOsStats()).isNull();
+        assertThat(context.threadPools()).isNull();
+        assertThat(context.javaVersion()).isNotNull();
     }
 }

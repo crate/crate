@@ -37,10 +37,8 @@ import java.util.Map;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.collect.CopyOnWriteHashMap;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.time.IsoLocale;
 
@@ -103,8 +101,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 isDropped,
                 context.path().pathAsText(pathName),
                 dynamic,
-                mappers,
-                context.indexSettings()
+                mappers
             );
             if (mapper instanceof RootObjectMapper rootObjectMapper) {
                 context.updateRootObjectMapperWithPositionInfo(rootObjectMapper);
@@ -120,9 +117,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
                                             boolean isDropped,
                                             String fullPath,
                                             Dynamic dynamic,
-                                            Map<String, Mapper> mappers,
-                                            @Nullable Settings settings) {
-            return new ObjectMapper(name, position, columnOID, isDropped, fullPath, dynamic, mappers, settings);
+                                            Map<String, Mapper> mappers) {
+            return new ObjectMapper(name, position, columnOID, isDropped, fullPath, dynamic, mappers);
         }
     }
 
@@ -250,10 +246,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
                  boolean isDropped,
                  String fullPath,
                  Dynamic dynamic,
-                 Map<String, Mapper> mappers,
-                 Settings settings) {
+                 Map<String, Mapper> mappers) {
         super(name, columnOID);
-        assert settings != null;
         this.fullPath = fullPath;
         this.position = position;
         this.isDropped = isDropped;

@@ -79,11 +79,19 @@ Scalar and Aggregation Functions
 - `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the
   :ref:`strpos <scalar-strpos>` scalar function.
 
+- Added a :ref:`vector_similarity <scalar_vector_similarity>` scalar.
 
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Extended the lookup-join optimization to make it applicable to more complex
+  queries when they include sub-queries, an inner-equi-join and if there is a
+  large imbalance in size between the joined tables. This optimization can be
+  disabled with the session setting::
+
+     SET optimizer_equi_join_to_lookup_join = false
+
+  Note that this setting is experimental, and may change in the future.
 
 Administration and Operations
 -----------------------------

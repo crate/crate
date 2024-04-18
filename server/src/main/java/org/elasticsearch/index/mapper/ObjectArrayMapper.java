@@ -21,14 +21,13 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /**
  * Mapper for array(object).
@@ -51,7 +50,7 @@ public class ObjectArrayMapper extends ObjectMapper {
 
         @Override
         public ObjectMapper build(BuilderContext context) {
-            return new ObjectArrayMapper(name, innerBuilder.build(context), context.indexSettings());
+            return new ObjectArrayMapper(name, innerBuilder.build(context));
         }
 
         @Override
@@ -61,27 +60,24 @@ public class ObjectArrayMapper extends ObjectMapper {
                                             boolean isDropped,
                                             String fullPath,
                                             Dynamic dynamic,
-                                            Map<String, Mapper> mappers,
-                                            Settings settings) {
+                                            Map<String, Mapper> mappers) {
             return new ObjectArrayMapper(
                 name,
-                super.createMapper(name, position, columnOID, isDropped, fullPath, dynamic, mappers, settings),
-                settings
+                super.createMapper(name, position, columnOID, isDropped, fullPath, dynamic, mappers)
             );
         }
     }
 
     private ObjectMapper innerMapper;
 
-    ObjectArrayMapper(String name, ObjectMapper innerMapper, Settings settings) {
+    ObjectArrayMapper(String name, ObjectMapper innerMapper) {
         super(name,
               innerMapper.position(),
               innerMapper.columnOID(),
               innerMapper.isDropped(),
               innerMapper.fullPath(),
               innerMapper.dynamic(),
-              Collections.emptyMap(),
-              settings);
+              Collections.emptyMap());
         this.innerMapper = innerMapper;
     }
 

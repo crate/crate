@@ -252,7 +252,8 @@ public class SQLExecutor {
             null,
             cursors,
             transactionState,
-            planStats
+            planStats,
+            planner::optimize
         );
     }
 
@@ -609,7 +610,8 @@ public class SQLExecutor {
             null,
             cursors,
             transactionState,
-            planStats
+            planStats,
+            planner::optimize
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan logicalPlan) {
@@ -1009,7 +1011,8 @@ public class SQLExecutor {
             null,
             cursors,
             TransactionState.IDLE,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            new PlanStats(nodeCtx, txnCtx, tableStats),
+            planner::optimize
         );
         var request = CreateForeignTablePlan.toRequest(
             foreignDataWrappers,

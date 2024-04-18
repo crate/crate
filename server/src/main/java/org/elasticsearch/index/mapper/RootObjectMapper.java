@@ -19,15 +19,14 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.Iterator;
 import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
-import org.elasticsearch.common.settings.Settings;
 
 import io.crate.Constants;
-
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 public class RootObjectMapper extends ObjectMapper {
 
@@ -51,14 +50,12 @@ public class RootObjectMapper extends ObjectMapper {
                                             boolean isDropped,
                                             String fullPath,
                                             Dynamic dynamic,
-                                            Map<String, Mapper> mappers,
-                                            Settings settings) {
+                                            Map<String, Mapper> mappers) {
             assert name.equals(Constants.DEFAULT_MAPPING_TYPE) : "Name of root mapper must match `default`: " + name;
             return new RootObjectMapper(
                 name,
                 dynamic,
-                mappers,
-                settings
+                mappers
             );
         }
     }
@@ -83,9 +80,8 @@ public class RootObjectMapper extends ObjectMapper {
 
     RootObjectMapper(String name,
                      Dynamic dynamic,
-                     Map<String, Mapper> mappers,
-                     Settings settings) {
-        super(name, NOT_TO_BE_POSITIONED, COLUMN_OID_UNASSIGNED, false, name, dynamic, mappers, settings);
+                     Map<String, Mapper> mappers) {
+        super(name, NOT_TO_BE_POSITIONED, COLUMN_OID_UNASSIGNED, false, name, dynamic, mappers);
     }
 
     @Override
