@@ -1774,7 +1774,8 @@ public abstract class IntegTestCase extends ESTestCase {
             null,
             Cursors.EMPTY,
             TransactionState.IDLE,
-            new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats)
+            new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats),
+            planner::optimize
         );
         Plan plan = planner.plan(
             analyzer.analyze(

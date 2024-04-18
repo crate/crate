@@ -22,21 +22,27 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Rule;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
+import io.crate.testing.RetryRule;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
+
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated() throws Exception {

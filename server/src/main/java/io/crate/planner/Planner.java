@@ -141,6 +141,7 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.node.management.VerboseOptimizerTracer;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
@@ -233,6 +234,10 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
      */
     public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
         return analyzedStatement.accept(this, plannerContext);
+    }
+
+    public LogicalPlan optimize(LogicalPlan plan, PlannerContext plannerContext) {
+        return logicalPlanner.optimize(plan, plannerContext);
     }
 
     @Override
