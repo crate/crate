@@ -85,15 +85,17 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.rest.RestUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BindTransportException;
-import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
+import org.elasticsearch.transport.StatsTracker;
+import org.elasticsearch.transport.netty4.Netty4InboundStatsHandler;
+import org.elasticsearch.transport.netty4.Netty4OutboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
@@ -101,6 +103,7 @@ import com.carrotsearch.hppc.IntSet;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
 import io.crate.netty.channel.PipelineRegistry;
+import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
@@ -214,8 +217,11 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     protected final List<Channel> serverChannels = new ArrayList<>();
 
     // package private for testing
-    Netty4OpenChannelsHandler serverOpenChannels;
-
+    private final StatsTracker statsTracker = new StatsTracker();
+    @Nullable
+    private Netty4InboundStatsHandler inboundStatsHandler;
+    @Nullable
+    private Netty4OutboundStatsHandler outboundStatsHandler;
 
     private final Netty4CorsConfig corsConfig;
 
@@ -280,7 +286,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     protected void doStart() {
         boolean success = false;
         try {
-            this.serverOpenChannels = new Netty4OpenChannelsHandler(logger);
+            inboundStatsHandler = new Netty4InboundStatsHandler(statsTracker, logger);
+            outboundStatsHandler = new Netty4OutboundStatsHandler(statsTracker, logger);
             eventLoopGroup = NettyBootstrap.newEventLoopGroup(settings);
             serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(eventLoopGroup);
@@ -455,9 +462,13 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             }
         }
 
-        if (serverOpenChannels != null) {
-            serverOpenChannels.close();
-            serverOpenChannels = null;
+        if (inboundStatsHandler != null) {
+            inboundStatsHandler.close();
+            inboundStatsHandler = null;
+        }
+        if (outboundStatsHandler != null) {
+            outboundStatsHandler.close();
+            outboundStatsHandler = null;
         }
         if (eventLoopGroup != null) {
             Future<?> future = eventLoopGroup.shutdownGracefully(0, 5, TimeUnit.SECONDS);
@@ -489,9 +500,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     }
 
     @Override
-    public HttpStats stats() {
-        Netty4OpenChannelsHandler channels = serverOpenChannels;
-        return new HttpStats(channels == null ? 0 : channels.numberOfOpenChannels(), channels == null ? 0 : channels.totalChannels());
+    public ConnectionStats stats() {
+        return statsTracker.stats();
     }
 
     public Netty4CorsConfig getCorsConfig() {
@@ -523,7 +533,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
         @Override
         public void initChannel(Channel ch) throws Exception {
-            ch.pipeline().addLast("openChannels", transport.serverOpenChannels);
+            ch.pipeline().addLast("inbound_stats", transport.inboundStatsHandler);
+            ch.pipeline().addLast("outbound_stats", transport.outboundStatsHandler);
             ch.pipeline().addLast("read_timeout", new ReadTimeoutHandler(transport.readTimeoutMillis, TimeUnit.MILLISECONDS));
             final HttpRequestDecoder decoder = new HttpRequestDecoder(
                 Math.toIntExact(transport.maxInitialLineLength.getBytes()),
@@ -560,8 +571,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
 
     public static InetAddress getRemoteAddress(Channel channel) {
-        if (channel.remoteAddress() instanceof InetSocketAddress) {
-            return ((InetSocketAddress) channel.remoteAddress()).getAddress();
+        if (channel.remoteAddress() instanceof InetSocketAddress isa) {
+            return isa.getAddress();
         }
         // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
         // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress

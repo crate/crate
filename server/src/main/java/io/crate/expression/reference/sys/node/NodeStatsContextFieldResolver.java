@@ -35,8 +35,6 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Build;
@@ -48,7 +46,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.monitor.jvm.JvmService;
@@ -57,8 +54,9 @@ import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
@@ -71,12 +69,12 @@ public class NodeStatsContextFieldResolver {
     private static final Logger LOGGER = LogManager.getLogger(NodeStatsContextFieldResolver.class);
     private final Supplier<DiscoveryNode> localNode;
     private final Supplier<TransportAddress> boundHttpAddress;
-    private final Supplier<HttpStats> httpStatsSupplier;
+    private final Supplier<ConnectionStats> httpStats;
     private final ThreadPool threadPool;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final Supplier<ConnectionStats> psqlStats;
     private final Supplier<TransportAddress> boundPostgresAddress;
-    private final LongSupplier numOpenTransportConnections;
+    private final Supplier<ConnectionStats> transportStats;
     private final ProcessService processService;
     private final OsService osService;
     private final JvmService jvmService;
@@ -99,7 +97,7 @@ public class NodeStatsContextFieldResolver {
             () -> httpServerTransport == null ? null : httpServerTransport.stats(),
             threadPool,
             extendedNodeInfo,
-            () -> new ConnectionStats(postgresNetty.openConnections(), postgresNetty.totalConnections()),
+            postgresNetty::stats,
             () -> {
                 BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
                 if (boundTransportAddress == null) {
@@ -107,7 +105,7 @@ public class NodeStatsContextFieldResolver {
                 }
                 return boundTransportAddress.publishAddress();
             },
-            () -> transportService.stats().getServerOpen(),
+            transportService::stats,
             () -> clusterService.state().version()
         );
     }
@@ -116,25 +114,25 @@ public class NodeStatsContextFieldResolver {
     NodeStatsContextFieldResolver(Supplier<DiscoveryNode> localNode,
                                   MonitorService monitorService,
                                   Supplier<TransportAddress> boundHttpAddress,
-                                  Supplier<HttpStats> httpStatsSupplier,
+                                  Supplier<ConnectionStats> httpStats,
                                   ThreadPool threadPool,
                                   ExtendedNodeInfo extendedNodeInfo,
                                   Supplier<ConnectionStats> psqlStats,
                                   Supplier<TransportAddress> boundPostgresAddress,
-                                  LongSupplier numOpenTransportConnections,
+                                  Supplier<ConnectionStats> transportStats,
                                   LongSupplier clusterStateVersion) {
         this.localNode = localNode;
         processService = monitorService.processService();
         osService = monitorService.osService();
         jvmService = monitorService.jvmService();
         fsService = monitorService.fsService();
-        this.httpStatsSupplier = httpStatsSupplier;
+        this.httpStats = httpStats;
         this.boundHttpAddress = boundHttpAddress;
         this.threadPool = threadPool;
         this.extendedNodeInfo = extendedNodeInfo;
         this.psqlStats = psqlStats;
         this.boundPostgresAddress = boundPostgresAddress;
-        this.numOpenTransportConnections = numOpenTransportConnections;
+        this.transportStats = transportStats;
         this.clusterStateVersion = clusterStateVersion;
     }
 
@@ -246,9 +244,9 @@ public class NodeStatsContextFieldResolver {
         entry(SysNodesTableInfo.Columns.CONNECTIONS, new Consumer<>() {
             @Override
             public void accept(NodeStatsContext nodeStatsContext) {
-                nodeStatsContext.httpStats(httpStatsSupplier.get());
+                nodeStatsContext.httpStats(httpStats.get());
                 nodeStatsContext.psqlStats(psqlStats.get());
-                nodeStatsContext.openTransportConnections(numOpenTransportConnections.getAsLong());
+                nodeStatsContext.transportStats(transportStats.get());
             }
         }),
         entry(SysNodesTableInfo.Columns.OS, new Consumer<>() {

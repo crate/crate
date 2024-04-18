@@ -48,8 +48,10 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
+import org.elasticsearch.transport.StatsTracker;
+import org.elasticsearch.transport.netty4.Netty4InboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4MessageChannelHandler;
-import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
+import org.elasticsearch.transport.netty4.Netty4OutboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,6 +62,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.Authentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.role.RoleManager;
@@ -106,8 +109,11 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final List<TransportAddress> boundAddresses = new ArrayList<>();
     @Nullable
     private BoundTransportAddress boundAddress;
+    private final StatsTracker statsTracker = new StatsTracker();
     @Nullable
-    private Netty4OpenChannelsHandler openChannels;
+    private Netty4InboundStatsHandler inboundStatsHandler;
+    @Nullable
+    private Netty4OutboundStatsHandler outboundStatsHandler;
 
     private final PageCacheRecycler pageCacheRecycler;
     private final Netty4Transport transport;
@@ -161,13 +167,15 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         }
         var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup();
         bootstrap = NettyBootstrap.newServerBootstrap(settings, eventLoopGroup);
-        this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
+        inboundStatsHandler = new Netty4InboundStatsHandler(statsTracker, LOGGER);
+        outboundStatsHandler = new Netty4OutboundStatsHandler(statsTracker, LOGGER);
 
         bootstrap.childHandler(new ChannelInitializer<>() {
             @Override
             protected void initChannel(Channel ch) {
                 ChannelPipeline pipeline = ch.pipeline();
-                pipeline.addLast("open_channels", PostgresNetty.this.openChannels);
+                pipeline.addLast("inbound_stats", PostgresNetty.this.inboundStatsHandler);
+                pipeline.addLast("outbound_stats", PostgresNetty.this.outboundStatsHandler);
                 PostgresWireProtocol postgresWireProtocol = new PostgresWireProtocol(
                     sqlOperations,
                     sessionSettingRegistry,
@@ -217,7 +225,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
         throw new BindHttpException(
             "Failed to auto-resolve psql publish port, multiple bound addresses " + boundAddresses +
-            " with distinct ports and none of them matched the publish address (" + publishInetAddress + "). ");
+                " with distinct ports and none of them matched the publish address (" + publishInetAddress + "). ");
     }
 
     private BoundTransportAddress resolveBindAddress() {
@@ -277,9 +285,13 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (bootstrap != null) {
             bootstrap = null;
         }
-        if (openChannels != null) {
-            openChannels.close();
-            openChannels = null;
+        if (inboundStatsHandler != null) {
+            inboundStatsHandler.close();
+            inboundStatsHandler = null;
+        }
+        if (outboundStatsHandler != null) {
+            outboundStatsHandler.close();
+            outboundStatsHandler = null;
         }
     }
 
@@ -288,11 +300,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         // nothing to close here, see doStop()
     }
 
-    public long openConnections() {
-        return openChannels == null ? 0L : openChannels.numberOfOpenChannels();
-    }
-
-    public long totalConnections() {
-        return openChannels == null ? 0L : openChannels.totalChannels();
+    public ConnectionStats stats() {
+        return statsTracker.stats();
     }
 }

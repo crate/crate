@@ -98,4 +98,11 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
-None
+- Extended :ref:`Connections JMX MBean <jmx_monitoring-connections>`, to expose
+  more detailed network statistics information. On top of the previously exposed
+  open and total connections, number of messages and bytes sent and received per
+  protocol are also available.
+
+- Added ``transport['total']`` column to :ref:`sys.nodes <sys-nodes>`
+  :ref:`connections <sys-nodes-connections>` column, which exposes the number of
+  total connections via the Transport protocol.

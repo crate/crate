@@ -605,6 +605,8 @@ Uptime limitations
 | ``os_info['jvm']['vm_version']``    | The version of the JVM                       | ``TEXT``    |
 +-------------------------------------+----------------------------------------------+-------------+
 
+.. _sys-nodes-connections:
+
 ``connections``
 ---------------
 
@@ -668,7 +670,17 @@ Uptime limitations
 |                                  | Transport       |                 |
 |                                  | protocol        |                 |
 +----------------------------------+-----------------+-----------------+
-
+| ``transport['total']``           | The total       | ``BIGINT``      |
+|                                  | number of       |                 |
+|                                  | connections     |                 |
+|                                  | that have been  |                 |
+|                                  | established via |                 |
+|                                  | Transport       |                 |
+|                                  | protocol over   |                 |
+|                                  | the life time   |                 |
+|                                  | of a CrateDB    |                 |
+|                                  | node            |                 |
++----------------------------------+-----------------+-----------------+
 
 ``process``
 -----------

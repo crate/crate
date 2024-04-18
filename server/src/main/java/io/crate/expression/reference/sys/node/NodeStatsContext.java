@@ -30,7 +30,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.OsInfo;
@@ -63,7 +62,7 @@ public class NodeStatsContext implements Writeable {
     private ExtendedOsStats extendedOsStats;
     private FsInfo fsInfo;
     private ThreadPoolStats threadPools;
-    private HttpStats httpStats;
+    private ConnectionStats httpStats;
     private ConnectionStats psqlStats;
 
     private String osName;
@@ -74,7 +73,7 @@ public class NodeStatsContext implements Writeable {
     private String jvmName;
     private String jvmVendor;
     private String jvmVersion;
-    private long openTransportConnections = 0L;
+    private ConnectionStats transportStats;
     private Integer transportPort;
     private Integer httpPort;
     private Integer pgPort;
@@ -196,7 +195,7 @@ public class NodeStatsContext implements Writeable {
         return jvmVersion;
     }
 
-    public HttpStats httpStats() {
+    public ConnectionStats httpStats() {
         return httpStats;
     }
 
@@ -204,8 +203,8 @@ public class NodeStatsContext implements Writeable {
         return psqlStats;
     }
 
-    public long openTransportConnections() {
-        return openTransportConnections;
+    public ConnectionStats transportStats() {
+        return transportStats;
     }
 
     public Integer httpPort() {
@@ -296,7 +295,7 @@ public class NodeStatsContext implements Writeable {
         this.threadPools = threadPools;
     }
 
-    public void httpStats(HttpStats httpStats) {
+    public void httpStats(ConnectionStats httpStats) {
         this.httpStats = httpStats;
     }
 
@@ -304,8 +303,8 @@ public class NodeStatsContext implements Writeable {
         this.psqlStats = psqlStats;
     }
 
-    void openTransportConnections(long openTransportConnections) {
-        this.openTransportConnections = openTransportConnections;
+    void transportStats(ConnectionStats transportStats) {
+        this.transportStats = transportStats;
     }
 
     public NodeStatsContext(StreamInput in, boolean complete) throws IOException {
@@ -330,9 +329,17 @@ public class NodeStatsContext implements Writeable {
         this.fsInfo = in.readOptionalWriteable(FsInfo::new);
         this.extendedOsStats = in.readOptionalWriteable(ExtendedOsStats::new);
         this.threadPools = in.readOptionalWriteable(ThreadPoolStats::new);
-        this.httpStats = in.readOptionalWriteable(HttpStats::new);
-        this.psqlStats = in.readOptionalWriteable(ConnectionStats::new);
-        this.openTransportConnections = in.readLong();
+        if (in.getVersion().onOrAfter(Version.V_5_8_0)) {
+            this.httpStats = in.readOptionalWriteable(ConnectionStats::new);
+            this.psqlStats = in.readOptionalWriteable(ConnectionStats::new);
+            this.transportStats = in.readOptionalWriteable(ConnectionStats::new);
+        } else {
+            // old stats were using only open and total connections, and for transport only open connections
+            this.httpStats = new ConnectionStats(in.readVLong(), in.readVLong(), -1, -1, -1, -1);
+            this.psqlStats = new ConnectionStats(in.readVLong(), in.readVLong(), -1, -1, -1, -1);
+            this.transportStats = new ConnectionStats(in.readLong(), -1, -1, -1, -1, -1);
+        }
+
         this.clusterStateVersion = in.readLong();
 
         this.osName = DataTypes.STRING.readValueFrom(in);
@@ -372,9 +379,20 @@ public class NodeStatsContext implements Writeable {
         out.writeOptionalWriteable(fsInfo);
         out.writeOptionalWriteable(extendedOsStats);
         out.writeOptionalWriteable(threadPools);
-        out.writeOptionalWriteable(httpStats);
+        if (out.getVersion().onOrAfter(Version.V_5_8_0)) {
+            out.writeOptionalWriteable(httpStats);
+        } else {
+            // old HttpStats was holding only open and total connections
+            out.writeVLong(httpStats.open());
+            out.writeVLong(httpStats.total());
+        }
         out.writeOptionalWriteable(psqlStats);
-        out.writeLong(openTransportConnections);
+        if (out.getVersion().onOrAfter(Version.V_5_8_0)) {
+            out.writeOptionalWriteable(transportStats);
+        } else {
+            // old transport stats was holding only open connections
+            out.writeLong(transportStats.open());
+        }
         out.writeLong(clusterStateVersion);
 
         DataTypes.STRING.writeValueTo(out, osName);
