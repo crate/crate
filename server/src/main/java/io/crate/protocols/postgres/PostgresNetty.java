@@ -32,8 +32,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -49,11 +47,11 @@ import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.http.BindHttpException;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.BindTransportException;
 import org.elasticsearch.transport.netty4.Netty4MessageChannelHandler;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4Transport;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
@@ -64,8 +62,8 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
-import io.crate.types.DataTypes;
 import io.crate.role.RoleManager;
+import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -81,7 +79,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         "psql.enabled", true, Setting.Property.NodeScope);
 
     // Explicit generic is required for eclipse JDT, otherwise it won't compile
-    public static final Setting<String> PSQL_PORT_SETTING = new Setting<String>(
+    public static final Setting<String> PSQL_PORT_SETTING = new Setting<>(
         "psql.port",
         "5432-5532",
         Function.identity(),
@@ -121,7 +119,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          Sessions sqlOperations,
                          RoleManager roleManager,
                          NetworkService networkService,
-                         Node node,
                          Authentication authentication,
                          NettyBootstrap nettyBootstrap,
                          Netty4Transport netty4Transport,
@@ -288,6 +285,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     @Override
     protected void doClose() {
+        // nothing to close here, see doStop()
     }
 
     public long openConnections() {
