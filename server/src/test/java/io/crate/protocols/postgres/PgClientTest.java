@@ -132,7 +132,6 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             sqlOperations,
             new StubRoleManager(),
             networkService,
-            null,
             authentication,
             nettyBootstrap,
             serverTransport,
