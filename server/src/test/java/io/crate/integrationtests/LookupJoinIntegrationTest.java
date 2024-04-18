@@ -22,11 +22,9 @@
 package io.crate.integrationtests;
 
 
-
 import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.UseHashJoins;
@@ -34,8 +32,10 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class LookupJoinIntegrationTest extends IntegTestCase {
 
-    @Before
-    public void setup() throws Exception {
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    @Test
+    public void test_lookup_join_with_two_collect_operators() throws Exception {
         execute("create table doc.t1 (id int) with(number_of_replicas=0)");
         execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
         execute("create table doc.t2 (id int)");
@@ -44,21 +44,74 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("analyze");
         waitNoPendingTasksOnAll();
-    }
-
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    @Test
-    public void test_basic_lookup_join() throws Exception {
         var query = "select count(*) from doc.t1 join doc.t2 on t1.id = t2.id";
         execute("explain (costs false)" + query);
         assertThat(response).hasLines(
             "HashAggregate[count(*)]",
             "  └ HashJoin[(id = id)]",
             "    ├ MultiPhase",
-            "    │  └ Collect[doc.t1 | [id] | (id = ANY((SELECT id FROM (doc.t2))))]",
+            "    │  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
             "    │  └ Collect[doc.t2 | [id] | true]",
             "    └ Collect[doc.t2 | [id] | true]"
+        );
+        execute(query);
+        assertThat(response).hasRows("100");
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    @Test
+    public void test_lookup_join_with_subquery_on_the_smaller_side() throws Exception {
+        execute("create table doc.t1 (id int) with(number_of_replicas=0)");
+        execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
+        execute("create table doc.t2 (id int)");
+        execute("insert into doc.t2 (id) select b from generate_series(1,100) a(b)");
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("analyze");
+        waitNoPendingTasksOnAll();
+        var query = "select count(*) from doc.t1 join (select * from doc.t2 where doc.t2.id > 0) x on t1.id = x.id";
+        execute("explain (costs false)" + query);
+        assertThat(response).hasLines(
+            "HashAggregate[count(*)]",
+            "  └ HashJoin[(id = id)]",
+            "    ├ MultiPhase",
+            "    │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
+            "    │  └ Rename[id] AS x",
+            "    │    └ Filter[(id > 0)]",
+            "    │      └ Collect[doc.t2 | [id] | true]",
+            "    └ Rename[id] AS x",
+            "      └ Collect[doc.t2 | [id] | (id > 0)]"
+        );
+        execute(query);
+        assertThat(response).hasRows("100");
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    @Test
+    public void test_lookup_join_with_subquery_on_the_larger_side() throws Exception {
+        execute("create table doc.t1 (id int) with(number_of_replicas=0)");
+        execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
+        execute("create table doc.t2 (id int)");
+        execute("insert into doc.t2 (id) select b from generate_series(1,100) a(b)");
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("analyze");
+        waitNoPendingTasksOnAll();
+        var query = "select count(*) from (select * from doc.t2 where doc.t2.id > 0) x join doc.t1 on t1.id = x.id";
+        execute("explain (costs false)" + query);
+        assertThat(response).hasLines(
+            "HashAggregate[count(*)]",
+                "  └ Eval[id, id]",
+                "    └ HashJoin[(id = id)]",
+                "      ├ MultiPhase",
+                "      │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
+                "      │  └ Rename[id] AS x",
+                "      │    └ Filter[(id > 0)]",
+                "      │      └ Collect[doc.t2 | [id] | true]",
+                "      └ Rename[id] AS x",
+                "        └ Collect[doc.t2 | [id] | (id > 0)]"
         );
         execute(query);
         assertThat(response).hasRows("100");

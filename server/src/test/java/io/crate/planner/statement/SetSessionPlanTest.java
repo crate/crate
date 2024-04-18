@@ -78,7 +78,8 @@ public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
                 Row.EMPTY,
                 new Cursors(),
                 TransactionState.IDLE,
-                mock(PlanStats.class)
+                mock(PlanStats.class),
+                (a,b) -> a
             ),
             consumer,
             Row.EMPTY,
