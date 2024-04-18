@@ -28,6 +28,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -37,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
+import io.crate.testing.UseRandomizedSchema;
 
 public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
@@ -324,5 +326,21 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             .hasHTTPError(BAD_REQUEST, 4007)
             .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow INSERT operations," +
                                                               " as it is currently closed.", getFqn("partitioned_table")));
+    }
+
+    @UseRandomizedSchema(random = false)
+    public void test_auto_expand_closed_tables() throws IOException {
+        execute("create table test(a int) clustered into 6 shards with (number_of_replicas = '0-all')");
+        ensureGreen();
+
+        execute("alter table test close");
+        ensureGreen();
+
+        allowNodes("test", 3);
+        ensureGreen();
+
+        execute("select count(*), primary from sys.shards where table_name = 'test' group by 2 order by 2 ");
+        // Used to be "6| true", ie no replicas were created after closing table and re-balancing a cluster.
+        assertThat(response).hasRows("12| false", "6| true");
     }
 }
