@@ -243,8 +243,6 @@ public class NodeStatsContextFieldResolver {
                 context.threadPools(threadPool.stats());
             }
         }),
-        entry(SysNodesTableInfo.Columns.NETWORK, context -> {
-        }),
         entry(SysNodesTableInfo.Columns.CONNECTIONS, new Consumer<>() {
             @Override
             public void accept(NodeStatsContext nodeStatsContext) {
