@@ -108,7 +108,8 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ MultiPhase",
-            "  │  └ Collect[doc.lhs | [x] | (x = ANY((SELECT y FROM (doc.rhs))))]",
+            "  │  └ Filter[(x = ANY((doc.rhs)))]",
+            "  │    └ Collect[doc.lhs | [x] | true]",
             "  │  └ Collect[doc.rhs | [y] | true]",
             "  └ Collect[doc.rhs | [y] | true]"
         );
@@ -147,7 +148,8 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
             "Join[INNER | (x = y)]",
             "  ├ Collect[doc.lhs | [x] | true]",
             "  └ MultiPhase",
-            "    └ Collect[doc.rhs | [y] | (y = ANY((SELECT x FROM (doc.lhs))))]",
+            "    └ Filter[(y = ANY((doc.lhs)))]",
+            "      └ Collect[doc.rhs | [y] | true]",
             "    └ Collect[doc.lhs | [x] | true]"
         );
     }
@@ -187,7 +189,8 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
             "Join[INNER | (x = y)]",
             "  ├ Collect[doc.lhs | [x] | (x > 0)]",
             "  └ MultiPhase",
-            "    └ Collect[doc.rhs | [y] | (y = ANY((SELECT x FROM (doc.lhs))))]",
+            "    └ Filter[(y = ANY((doc.lhs)))]",
+            "      └ Collect[doc.rhs | [y] | true]",
             "    └ Collect[doc.lhs | [x] | (x > 0)]"
         );
     }
@@ -226,7 +229,8 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ MultiPhase",
-            "  │  └ Collect[doc.lhs | [x] | ((x > 0) AND (x = ANY((SELECT y FROM (doc.rhs)))))]",
+            "  │  └ Filter[(x = ANY((doc.rhs)))]",
+            "  │    └ Collect[doc.lhs | [x] | (x > 0)]",
             "  │  └ Collect[doc.rhs | [y] | true]",
             "  └ Collect[doc.rhs | [y] | true]"
         );

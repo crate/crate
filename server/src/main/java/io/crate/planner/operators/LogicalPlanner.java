@@ -219,8 +219,6 @@ public class LogicalPlanner {
     }
 
     public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
-        CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
-        OptimizerTracer tracer = plannerContext.optimizerTracer();
         AnalyzedRelation relation = selectSymbol.relation();
 
         final int fetchSize;
@@ -257,11 +255,26 @@ public class LogicalPlanner {
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx, tracer);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer);
+        LogicalPlan optimizedPlan = optimize(maybeApplySoftLimit.apply(plan), plannerContext);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         return new RootRelationBoundary(prunedPlan);
+    }
+
+    public LogicalPlan optimize(LogicalPlan plan, PlannerContext plannerContext) {
+        LogicalPlan optimizedPlan = optimizer.optimize(
+            plan,
+            plannerContext.planStats(),
+            plannerContext.transactionContext(),
+            plannerContext.optimizerTracer()
+        );
+        optimizedPlan = joinOrderOptimizer.optimize(
+            optimizedPlan,
+            plannerContext.planStats(),
+            plannerContext.transactionContext(),
+            plannerContext.optimizerTracer()
+        );
+        return optimizedPlan;
     }
 
     // In case the subselect is inside an IN() or = ANY() apply a "natural" OrderBy to optimize
@@ -303,8 +316,7 @@ public class LogicalPlanner {
             plannerContext.clusterState()
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
-        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx, tracer);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx, tracer);
+        LogicalPlan optimizedPlan = optimize(logicalPlan, plannerContext);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
