@@ -22,10 +22,8 @@
 package io.crate.execution.engine.collect;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -56,8 +54,8 @@ public class RowShardResolverTest extends ESTestCase {
         return new ColumnIdent(ident);
     }
 
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-    private NodeContext nodeCtx = createNodeContext();
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final NodeContext nodeCtx = createNodeContext();
 
     @Test
     public void testNoPrimaryKeyNoRouting() {
@@ -66,8 +64,8 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row());
 
         // auto-generated id, no special routing
-        assertNotNull(rowShardResolver.id());
-        assertNull(rowShardResolver.routing());
+        assertThat(rowShardResolver.id()).isNotNull();
+        assertThat(rowShardResolver.routing()).isNull();
     }
 
     @Test
@@ -77,8 +75,8 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // auto-generated id, special routing
-        assertNotNull(rowShardResolver.id());
-        assertThat(rowShardResolver.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id()).isNotNull();
+        assertThat(rowShardResolver.routing()).isEqualTo("hoschi");
     }
 
     @Test
@@ -89,8 +87,8 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, no special routing
-        assertThat(rowShardResolver.id(), is("AgExBmhvc2NoaQ=="));
-        assertNull(rowShardResolver.routing());
+        assertThat(rowShardResolver.id()).isEqualTo("AgExBmhvc2NoaQ==");
+        assertThat(rowShardResolver.routing()).isNull();
     }
 
     @Test
@@ -101,8 +99,8 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, special routing
-        assertThat(rowShardResolver.id(), is("AgZob3NjaGkBMQ=="));
-        assertThat(rowShardResolver.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id()).isEqualTo("AgZob3NjaGkBMQ==");
+        assertThat(rowShardResolver.routing()).isEqualTo("hoschi");
     }
 
     @Test
@@ -112,12 +110,12 @@ public class RowShardResolverTest extends ESTestCase {
             new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
 
         rowShardResolver.setNextRow(row(1, "hoschi"));
-        assertThat(rowShardResolver.id(), is("AgZob3NjaGkBMQ=="));
-        assertThat(rowShardResolver.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id()).isEqualTo("AgZob3NjaGkBMQ==");
+        assertThat(rowShardResolver.routing()).isEqualTo("hoschi");
 
         rowShardResolver.setNextRow(row(2, "galoschi"));
-        assertThat(rowShardResolver.id(), is("AghnYWxvc2NoaQEy"));
-        assertThat(rowShardResolver.routing(), is("galoschi"));
+        assertThat(rowShardResolver.id()).isEqualTo("AghnYWxvc2NoaQEy");
+        assertThat(rowShardResolver.routing()).isEqualTo("galoschi");
     }
 
     @Test
@@ -128,29 +126,30 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row(1, "hoschi", null));
 
         // generated _id, special routing
-        assertNotNull(rowShardResolver.id());
-        assertThat(rowShardResolver.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id()).isNotNull();
+        assertThat(rowShardResolver.routing()).isEqualTo("hoschi");
     }
 
     @Test
     public void testPrimaryKeyNullException() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("A primary key value must not be NULL");
-
         List<Symbol> primaryKeySymbols = List.of(new InputColumn(0));
         RowShardResolver rowShardResolver =
             new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id")), primaryKeySymbols, null, null);
-        rowShardResolver.setNextRow(row(new Object[]{null}));
+
+        assertThatThrownBy(() -> rowShardResolver.setNextRow(row(new Object[]{null})))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("A primary key value must not be NULL");
     }
 
     @Test
     public void testMultiPrimaryKeyNullException() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("A primary key value must not be NULL");
-
         List<Symbol> primaryKeySymbols = List.of(new InputColumn(1), new InputColumn(0));
         RowShardResolver rowShardResolver =
             new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
-        rowShardResolver.setNextRow(row(1, null));
+
+        assertThatThrownBy(() -> rowShardResolver.setNextRow(row(1, null)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("A primary key value must not be NULL");
+    }
     }
 }
