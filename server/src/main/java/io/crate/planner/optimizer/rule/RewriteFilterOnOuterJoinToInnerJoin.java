@@ -132,8 +132,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         var sources = Lists.map(join.sources(), resolvePlan);
         LogicalPlan lhs = sources.get(0);
         LogicalPlan rhs = sources.get(1);
-        Set<RelationName> leftName = new HashSet<>(lhs.getRelationNames());
-        Set<RelationName> rightName = new HashSet<>(rhs.getRelationNames());
+        Set<RelationName> leftName = new HashSet<>(lhs.relationNames());
+        Set<RelationName> rightName = new HashSet<>(rhs.relationNames());
 
         Symbol leftQuery = splitQueries.remove(leftName);
         Symbol rightQuery = splitQueries.remove(rightName);

@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.role.Role;
@@ -77,7 +78,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
         var e = SQLExecutor.builder(clusterService).build();
         Plan plan = e.plan("SET SESSION AUTHORIZATION 'unknown_user'");
         assertThatThrownBy(() -> e.execute(plan).getResult())
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("User 'unknown_user' does not exist.");
+            .isExactlyInstanceOf(RoleUnknownException.class)
+            .hasMessage("Role 'unknown_user' does not exist");
     }
 }

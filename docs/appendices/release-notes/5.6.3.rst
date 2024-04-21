@@ -5,7 +5,7 @@ Version 5.6.3
 =============
 
 
-Released on 2023-03-22.
+Released on 2024-03-22.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher

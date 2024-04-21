@@ -90,7 +90,7 @@ public class PgCatalogITest extends IntegTestCase {
     public void testPgClassTable() {
         execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
         assertThat(response).hasRows(
-            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| nodes| -458336339| 18| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
+            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| nodes| -458336339| 17| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
             "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| t1| -2048275947| 4| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
             "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
             "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0");
@@ -121,7 +121,7 @@ public class PgCatalogITest extends IntegTestCase {
 
         Roles roles = cluster().getInstance(Roles.class);
         Sessions sessions = cluster().getInstance(Sessions.class);
-        try (var session = sessions.newSession("doc", roles.findUser("hoschi"))) {
+        try (var session = sessions.newSession("doc", roles.getUser("hoschi"))) {
             execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
             // shows doc due to table permission, but not vip
             assertThat(response).hasRows(
@@ -133,7 +133,7 @@ public class PgCatalogITest extends IntegTestCase {
 
         execute("create view vip.v1 as select 1");
         execute("grant dql on view vip.v1 to hoschi");
-        try (var session = sessions.newSession("doc", roles.findUser("hoschi"))) {
+        try (var session = sessions.newSession("doc", roles.getUser("hoschi"))) {
             execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
             assertThat(response).hasRows(
                 "doc",

@@ -21,13 +21,13 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
+import static org.elasticsearch.index.mapper.DocumentParser.getPositionEstimate;
 
 import java.io.IOException;
 
-import static org.elasticsearch.index.mapper.DocumentParser.getPositionEstimate;
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
 
 /**
  * Used when a document is parsed and a unknown field that contains an array value is encountered
@@ -37,7 +37,7 @@ import static org.elasticsearch.index.mapper.DocumentParser.getPositionEstimate;
 public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
 
     public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
-        Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
+        Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.path());
         try {
             Mapper.Builder innerBuilder = detectInnerMapper(context, name, context.parser());
             if (innerBuilder == null) {
@@ -46,7 +46,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
             innerBuilder.position(getPositionEstimate(context));
             Mapper innerMapper = innerBuilder.build(builderContext);
             if (innerMapper instanceof ObjectMapper objectMapper) {
-                return new ObjectArrayMapper(name, objectMapper, context.indexSettings().getSettings());
+                return new ObjectArrayMapper(name, objectMapper);
             }
             FieldMapper innerFieldMapper = (FieldMapper) innerMapper;
             ArrayFieldType mappedFieldType = new ArrayFieldType(innerFieldMapper.fieldType());

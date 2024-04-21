@@ -28,18 +28,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.PlannedRelation;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.EquiJoinDetector;
+import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinConditionSymbolsExtractor;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -47,6 +45,7 @@ import io.crate.planner.operators.MultiPhase;
 import io.crate.planner.operators.RootRelationBoundary;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
@@ -55,16 +54,30 @@ import io.crate.types.DataTypes;
 
 /**
  * This rule optimizes equi-inner-joins with a lookup-join if there is
- * a large imbalance between the two relations joined.
+ * a large imbalance between the two relations joined. This means
+ * the large table will be pre-filtered by the join condition
+ * with the smaller table to reduce the number of join operations e.g.:
+ * Join[INNER | (id = id)] (rows=100)
+ *  ├ Collect[doc.t1 | [id] | true] (rows=100000)
+ *  └ Collect[doc.t2 | [id] | true] (rows=1000)
+ * to:
+ * Join[INNER | (id = id)]
+ *  ├ MultiPhase
+ *  │  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]
+ *  │  └ Collect[doc.t2 | [id] | true]
+ *  └ Collect[doc.t2 | [id] | true]
  */
 public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
 
     private final Pattern<JoinPlan> pattern = typeOf(JoinPlan.class).with(j ->
-        j.isLookUpJoinRuleApplied() == false &&
+            j.isLookUpJoinRuleApplied() == false &&
             // only inner-equi-joins
             j.joinType() == JoinType.INNER &&
             j.joinCondition() != null &&
-            EquiJoinDetector.isEquiJoin(j.joinCondition())
+            EquiJoinDetector.isEquiJoin(j.joinCondition()) &&
+            // no nested subqueries
+            j.lhs().relationNames().size() == 1 &&
+            j.rhs().relationNames().size() == 1
     );
 
     @Override
@@ -80,12 +93,8 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
                              NodeContext nodeCtx,
                              UnaryOperator<LogicalPlan> resolvePlan) {
 
-        LogicalPlan lhs = resolvePlan.apply(plan.lhs());
-        LogicalPlan rhs = resolvePlan.apply(plan.rhs());
-
-        if (lhs instanceof Collect == false || rhs instanceof Collect == false) {
-            return null;
-        }
+        LogicalPlan lhs = plan.lhs();
+        LogicalPlan rhs = plan.rhs();
 
         long lhsNumDocs = planStats.get(lhs).numDocs();
         long rhsNumDocs = planStats.get(rhs).numDocs();
@@ -94,22 +103,24 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             return null;
         }
 
-        Collect smallerSide;
-        Collect largerSide;
+        LogicalPlan smallerSide;
+        LogicalPlan largerSide;
 
         boolean rhsIsLarger = rhsNumDocs > lhsNumDocs;
 
         if (rhsIsLarger) {
-            smallerSide = (Collect) lhs;
-            largerSide = (Collect) rhs;
+            smallerSide = lhs;
+            largerSide = rhs;
         } else {
-            smallerSide = (Collect) rhs;
-            largerSide = (Collect) lhs;
+            smallerSide = rhs;
+            largerSide = lhs;
         }
 
+        smallerSide = GroupReferenceResolver.resolveFully(resolvePlan, smallerSide);
+
         Map<RelationName, List<Symbol>> equiJoinCondition = JoinConditionSymbolsExtractor.extract(plan.joinCondition());
-        Symbol smallerRelationColumn = getOnlyElement(equiJoinCondition.get(smallerSide.relation().relationName()));
-        Symbol largerRelationColumn = getOnlyElement(equiJoinCondition.get(largerSide.relation().relationName()));
+        Symbol smallerRelationColumn = getOnlyElement(equiJoinCondition.get(getOnlyElement(smallerSide.relationNames())));
+        Symbol largerRelationColumn = getOnlyElement(equiJoinCondition.get(getOnlyElement(largerSide.relationNames())));
 
         LogicalPlan lookupJoin = createLookup(
             smallerSide,
@@ -142,26 +153,15 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
         );
     }
 
-    private static LogicalPlan createLookup(Collect smallerRelation,
+    private static LogicalPlan createLookup(LogicalPlan smallerSide,
                                             Symbol smallerRelationColumn,
-                                            Collect largerRelation,
+                                            LogicalPlan largerSide,
                                             Symbol largerRelationColumn,
                                             NodeContext nodeCtx,
                                             TransactionContext txnCtx) {
 
         var lookUpQuery = new SelectSymbol(
-            new QueriedSelectRelation(
-                false,
-                List.of(smallerRelation.relation()),
-                List.of(),
-                List.of(smallerRelationColumn),
-                Literal.BOOLEAN_TRUE,
-                List.of(),
-                null,
-                null,
-                null,
-                null
-            ),
+            new PlannedRelation(smallerSide),
             new ArrayType<>(smallerRelationColumn.valueType()),
             SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES,
             true
@@ -179,12 +179,10 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             List.of(largerRelationColumn, lookUpQuery),
             DataTypes.BOOLEAN
         );
-        WhereClause whereClause = largerRelation.where().add(anyEqFunction);
-        LogicalPlan largerSideWithLookup = new Collect(largerRelation.relation(), largerRelation.outputs(), whereClause);
-        LogicalPlan smallerSideIdLookup = new Collect(smallerRelation.relation(), List.of(smallerRelationColumn), smallerRelation.where());
-        smallerSideIdLookup = new RootRelationBoundary(smallerSideIdLookup);
-
-        return MultiPhase.createIfNeeded(Map.of(smallerSideIdLookup, lookUpQuery), largerSideWithLookup);
+        var largerSideWithLookup = new Filter(largerSide, anyEqFunction);
+        var smallerSideIdLookup = new RootRelationBoundary(smallerSide);
+        Map<LogicalPlan, SelectSymbol> subQueries = Map.of(smallerSideIdLookup, lookUpQuery);
+        return MultiPhase.createIfNeeded(subQueries, largerSideWithLookup);
     }
 
     private static boolean applyOptimization(long lhsNumDocs, long rhsNumDocs) {
@@ -193,7 +191,7 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             lhsNumDocs == rhsNumDocs) {
             return false;
         }
-        long smaller, larger;
+        double smaller, larger;
         if (lhsNumDocs > rhsNumDocs) {
             larger = lhsNumDocs;
             smaller = rhsNumDocs;
@@ -202,11 +200,11 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             larger = rhsNumDocs;
             smaller = lhsNumDocs;
         }
-        // Benchmarks revealed that the imbalance should be at least factor 10 with the larger table at least 10.000 rows
-        // See https://github.com/crate/crate/pull/15664 for details
         if (larger < 10_000) {
             return false;
         }
-        return larger / smaller >= 10;
+        double difference = larger - smaller;
+        double ratio = larger / smaller;
+        return difference >= 5000 && ratio > 1.0;
     }
 }

@@ -37,6 +37,7 @@ import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.arithmetic.RadiansDegreesFunctions;
 import io.crate.expression.scalar.arithmetic.RandomFunction;
 import io.crate.expression.scalar.arithmetic.RoundFunction;
+import io.crate.expression.scalar.arithmetic.SignFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
 import io.crate.expression.scalar.arithmetic.SubtractTimestampScalar;
 import io.crate.expression.scalar.arithmetic.TrigonometricFunctions;
@@ -79,6 +80,7 @@ import io.crate.expression.scalar.string.ReverseFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.string.StringLeftRightFunction;
 import io.crate.expression.scalar.string.StringPaddingFunction;
+import io.crate.expression.scalar.string.StringPositionFunction;
 import io.crate.expression.scalar.string.StringRepeatFunction;
 import io.crate.expression.scalar.string.StringSplitPartFunction;
 import io.crate.expression.scalar.string.TranslateFunction;
@@ -139,6 +141,7 @@ public class ScalarFunctions implements FunctionsProvider {
         CeilFunction.register(builder);
         RandomFunction.register(builder);
         AbsFunction.register(builder);
+        SignFunction.register(builder);
         FloorFunction.register(builder);
         TruncFunction.register(builder);
         SquareRootFunction.register(builder);
@@ -172,6 +175,7 @@ public class ScalarFunctions implements FunctionsProvider {
         TrimFunctions.register(builder);
         AsciiFunction.register(builder);
         EncodeDecodeFunction.register(builder);
+        StringPositionFunction.register(builder);
         StringRepeatFunction.register(builder);
         StringSplitPartFunction.register(builder);
         ChrFunction.register(builder);
@@ -244,5 +248,6 @@ public class ScalarFunctions implements FunctionsProvider {
         ParseURLFunction.register(builder);
 
         KnnMatch.register(builder);
+        VectorSimilarityFunction.register(builder);
     }
 }

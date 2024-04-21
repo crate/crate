@@ -91,8 +91,8 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
             // Push constant join condition down to source
             var lhs = resolvePlan.apply(joinPlan.lhs());
             var rhs = resolvePlan.apply(joinPlan.rhs());
-            var queryForLhs = constantConditions.remove(new HashSet<>(lhs.getRelationNames()));
-            var queryForRhs = constantConditions.remove(new HashSet<>(rhs.getRelationNames()));
+            var queryForLhs = constantConditions.remove(new HashSet<>(lhs.relationNames()));
+            var queryForRhs = constantConditions.remove(new HashSet<>(rhs.relationNames()));
             var newLhs = getNewSource(queryForLhs, lhs);
             var newRhs = getNewSource(queryForRhs, rhs);
             joinPlan = new JoinPlan(

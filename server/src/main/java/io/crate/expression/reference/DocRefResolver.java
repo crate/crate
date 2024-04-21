@@ -23,13 +23,9 @@ package io.crate.expression.reference;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 import io.crate.common.collections.Maps;
-import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.doc.lucene.SourceLookup;
@@ -37,9 +33,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.ObjectType;
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from {@link Doc}
@@ -111,36 +104,9 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                     if (response == null) {
                         return null;
                     }
-                    try {
-                        return ref.valueType().sanitizeValue(SourceLookup.extractValue(response.getSource(), column));
-                    } catch (ClassCastException | ConversionException e) {
-                        // due to a bug: https://github.com/crate/crate/issues/13990
-                        Object value = SourceLookup.extractValue(response.getSource(), column);
-                        return replaceArraysWithNull(value, ref.valueType(), e);
-                    }
+                    return ref.valueType().sanitizeValue(SourceLookup.extractValue(response.getSource(), column));
                 });
 
-        }
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Object replaceArraysWithNull(Object value, DataType<?> valueType, RuntimeException e)
-        throws RuntimeException {
-
-        if (value instanceof List<?> list && list.stream().allMatch(Objects::isNull) &&
-            valueType.id() != ArrayType.ID) {
-            return null;
-        } else if (value instanceof Map<?, ?> valueMap) {
-            Map newMap = new HashMap<>(valueMap.size());
-            for (var entry : valueMap.entrySet()) {
-                Object entryKey = entry.getKey();
-                Object entryValue = entry.getValue();
-                DataType<?> innerType = ((ObjectType) valueType).innerType((String) entryKey);
-                newMap.put(entryKey, replaceArraysWithNull(entryValue, innerType, e));
-            }
-            return newMap;
-        } else {
-            throw e;
         }
     }
 }

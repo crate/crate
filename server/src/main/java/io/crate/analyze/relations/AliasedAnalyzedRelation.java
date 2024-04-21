@@ -120,7 +120,6 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         if (field instanceof VoidReference voidReference) {
             return new VoidReference(
                 new ReferenceIdent(alias, voidReference.column()),
-                voidReference.granularity(),
                 voidReference.position());
         }
         ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field.valueType());

@@ -220,7 +220,8 @@ public class Session implements AutoCloseable {
             params,
             cursors,
             currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            new PlanStats(nodeCtx, txnCtx, tableStats),
+            planner::optimize
         );
         Plan plan;
         try {
@@ -274,7 +275,8 @@ public class Session implements AutoCloseable {
             params,
             cursors,
             currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            new PlanStats(nodeCtx, txnCtx, tableStats),
+            planner::optimize
         );
         Plan plan = planner.plan(stmt, plannerContext);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
@@ -651,7 +653,8 @@ public class Session implements AutoCloseable {
             null,
             cursors,
             currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            new PlanStats(nodeCtx, txnCtx, tableStats),
+            planner::optimize
         );
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
@@ -739,7 +742,8 @@ public class Session implements AutoCloseable {
             params,
             cursors,
             currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            new PlanStats(nodeCtx, txnCtx, tableStats),
+            planner::optimize
         );
         var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();

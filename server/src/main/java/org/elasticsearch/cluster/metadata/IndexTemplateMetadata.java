@@ -104,24 +104,11 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
     }
 
     @Nullable
-    public Integer getVersion() {
-        return version();
-    }
-
-    @Nullable
     public Integer version() {
         return version;
     }
 
-    public String getName() {
-        return this.name;
-    }
-
     public List<String> patterns() {
-        return this.patterns;
-    }
-
-    public List<String> getPatterns() {
         return this.patterns;
     }
 
@@ -129,19 +116,11 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         return this.settings;
     }
 
-    public Settings getSettings() {
-        return settings();
-    }
-
     public CompressedXContent mapping() {
         return this.mapping;
     }
 
     public ImmutableOpenMap<String, AliasMetadata> aliases() {
-        return this.aliases;
-    }
-
-    public ImmutableOpenMap<String, AliasMetadata> getAliases() {
         return this.aliases;
     }
 

@@ -226,7 +226,7 @@ public interface LogicalPlan extends Plan {
      *
      * @return RelationNames of the sources in order from left to right without duplicates
      */
-    List<RelationName> getRelationNames();
+    List<RelationName> relationNames();
 
     default void print(PrintContext printContext) {
         printContext

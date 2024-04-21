@@ -270,7 +270,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     }
 
     private synchronized DocumentMapper internalMerge(DocumentMapper mapper, MergeReason reason) {
-        Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
 
         assert mapper != null;
 
@@ -294,6 +293,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
         this.fieldTypes = new FieldTypeLookup(fieldMappers);
 
+        Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
         for (ObjectMapper objectMapper : objectMappers) {
             if (fullPathObjectMappers == this.fullPathObjectMappers) {
                 // first time through the loops

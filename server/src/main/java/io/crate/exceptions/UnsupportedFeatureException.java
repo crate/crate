@@ -21,10 +21,12 @@
 
 package io.crate.exceptions;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class UnsupportedFeatureException extends ElasticsearchException implements ClusterScopeException {
 
@@ -38,5 +40,10 @@ public class UnsupportedFeatureException extends ElasticsearchException implemen
 
     public UnsupportedFeatureException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPROTED_YET;
     }
 }

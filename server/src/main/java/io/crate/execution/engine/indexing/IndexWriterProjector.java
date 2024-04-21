@@ -125,9 +125,7 @@ public class IndexWriterProjector implements Projector {
         );
 
         Predicate<UpsertResults> earlyTerminationCondition = results -> failFast && results.containsErrors();
-
         Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator = UpsertResults::resultsToFailure;
-
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             (ignored1, ignored2) -> {},

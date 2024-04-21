@@ -458,7 +458,7 @@ public final class TestCluster implements Closeable {
                 List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>(indexTemplates.size());
                 for (IndexTemplateMetadata indexTemplate : indexTemplates) {
                     CompletableFuture<AcknowledgedResponse> deleteTemplate = indices
-                        .deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.getName()));
+                        .deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.name()));
                     futures.add(deleteTemplate);
                 }
                 return CompletableFutures.allAsList(futures);

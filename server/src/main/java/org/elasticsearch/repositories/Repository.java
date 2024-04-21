@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.elasticsearch.index.store.Store;
@@ -104,7 +103,6 @@ public interface Repository extends LifecycleComponent {
      *
      * @param snapshotId the snapshot id to load the index metadata from
      * @param indexId    the {@link IndexId} to load the metadata from
-     * @param listener   listener invoked on completion
      */
     CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId indexId);
 
@@ -114,7 +112,6 @@ public interface Repository extends LifecycleComponent {
      *
      * @param snapshotId the snapshot id to load the index metadata from
      * @param indexIds   the Collection of {@link IndexId} to load the metadata from
-     * @param listener   listener invoked on completion
      */
     CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds);
 
@@ -195,7 +192,6 @@ public interface Repository extends LifecycleComponent {
      * As snapshot process progresses, implementation of this method should update {@link IndexShardSnapshotStatus} object and check
      * {@link IndexShardSnapshotStatus#isAborted()} to see if the snapshot process should be aborted.
      * @param store                 store to be snapshotted
-     * @param mapperService         the shards mapper service
      * @param snapshotId            snapshot id
      * @param indexId               id for the index being snapshotted
      * @param snapshotIndexCommit   commit point
@@ -206,7 +202,7 @@ public interface Repository extends LifecycleComponent {
      * @param repositoryMetaVersion version of the updated repository metadata to write
      * @param listener              listener invoked on completion
      */
-    void snapshotShard(Store store, MapperService mapperService, SnapshotId snapshotId, IndexId indexId, IndexCommit snapshotIndexCommit,
+    void snapshotShard(Store store, SnapshotId snapshotId, IndexId indexId, IndexCommit snapshotIndexCommit,
                        @Nullable String shardStateIdentifier, IndexShardSnapshotStatus snapshotStatus, Version repositoryMetaVersion,
                        ActionListener<String> listener);
 

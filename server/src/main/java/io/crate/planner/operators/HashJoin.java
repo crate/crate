@@ -83,7 +83,7 @@ public class HashJoin extends AbstractJoinPlan {
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
-        var hashSymbols = createHashSymbols(lhs.getRelationNames(), rhs.getRelationNames(), joinCondition);
+        var hashSymbols = createHashSymbols(lhs.relationNames(), rhs.relationNames(), joinCondition);
 
         var lhsHashSymbols = hashSymbols.lhsHashSymbols();
         var rhsHashSymbols = hashSymbols.rhsHashSymbols();

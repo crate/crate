@@ -26,6 +26,7 @@ import org.elasticsearch.rest.RestStatus;
 
 import io.crate.exceptions.ClusterScopeException;
 import io.crate.exceptions.ResourceUnknownException;
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * Repository missing exception
@@ -43,5 +44,10 @@ public class RepositoryMissingException extends RepositoryException implements R
 
     public RepositoryMissingException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.REPOSITORY_UNKNOWN;
     }
 }

@@ -201,7 +201,12 @@ Shard limits
   | *Default:* 1000
   | *Runtime:* ``yes``
 
-  The maximum amount of shards per node.
+  The maximum number of open primary and replica shards per node. This setting
+  is checked on a shard creation and doesn't limit shards for individual nodes.
+  To limit the number of shards for each node, use
+  :ref:`cluster.routing.allocation.total_shards_per_node
+  <cluster.routing.allocation.total_shards_per_node>` setting.
+  The actual limit being checked is ``max_shards_per_node * number of data nodes``.
 
   Any operations that would result in the creation of additional shard copies
   that would exceed this limit are rejected.
@@ -218,8 +223,14 @@ Shard limits
 
 .. NOTE::
 
-   The maximum amount of shards per node setting is also used for the
+   The maximum number of shards per node setting is also used for the
    :ref:`sys-node_checks_max_shards_per_node` check.
+
+.. NOTE::
+
+   If a table is created with :ref:`sql-create-table-number-of-replicas`
+   provided as a range or default ``0-1`` value, the limit is not taken into
+   account.
 
 
 .. _conf_usage_data_collector:
@@ -911,13 +922,19 @@ nodes every 30 seconds. This can also be changed by setting the
    | *Default*: ``-1``
    | *Runtime*: ``yes``
 
-   Limits the number of shards that can be :ref:`allocated
+   Limits the number of primary and replica shards that can be :ref:`allocated
    <gloss-shard-allocation>` per node. A value of ``-1`` means unlimited.
 
    Setting this to ``1000``, for example, will prevent CrateDB from assigning
    more than 1000 shards per node. A node with 1000 shards would be excluded
    from allocation decisions and CrateDB would attempt to allocate shards to
    other nodes, or leave shards unassigned if no suitable node can be found.
+
+.. NOTE::
+
+   If a table is created with :ref:`sql-create-table-number-of-replicas`
+   provided as a range or default ``0-1`` value, the limit is not taken into
+   account.
 
 .. _indices.recovery:
 

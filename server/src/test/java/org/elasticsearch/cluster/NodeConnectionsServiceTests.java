@@ -20,13 +20,11 @@
 package org.elasticsearch.cluster;
 
 import static io.crate.common.unit.TimeValue.timeValueMillis;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING;
 import static org.elasticsearch.common.settings.Settings.builder;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,9 +70,11 @@ import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.transport.TransportStats;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.protocols.ConnectionStats;
 
 public class NodeConnectionsServiceTests extends ESTestCase {
 
@@ -100,6 +100,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         return builder.build();
     }
 
+    @Test
     public void testConnectAndDisconnect() throws Exception {
         final NodeConnectionsService service = new NodeConnectionsService(Settings.EMPTY, threadPool, transportService);
 
@@ -141,7 +142,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
                 }
                 service.disconnectFromNodesExcept(nodes);
 
-                assertTrue(stopDisrupting.compareAndSet(false, true));
+                assertThat(stopDisrupting.compareAndSet(false, true)).isTrue();
                 disruptionThread.join();
 
                 if (randomBoolean()) {
@@ -155,13 +156,14 @@ public class NodeConnectionsServiceTests extends ESTestCase {
                 }
             }
         } finally {
-            assertTrue(stopReconnecting.compareAndSet(false, true));
+            assertThat(stopReconnecting.compareAndSet(false, true)).isTrue();
             reconnectionThread.join();
         }
 
         ensureConnections(service);
     }
 
+    @Test
     public void testPeriodicReconnection() {
         final Settings.Builder settings = Settings.builder();
         final long reconnectIntervalMillis;
@@ -192,7 +194,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         final AtomicBoolean connectionCompleted = new AtomicBoolean();
         service.connectToNodes(targetNodes, () -> connectionCompleted.set(true));
         deterministicTaskQueue.runAllRunnableTasks();
-        assertTrue(connectionCompleted.get());
+        assertThat(connectionCompleted).isTrue();
 
         long maxDisconnectionTime = 0;
         for (int iteration = 0; iteration < 3; iteration++) {
@@ -225,6 +227,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         assertConnectedExactlyToNodes(transportService, targetNodes);
     }
 
+    @Test
     public void testOnlyBlocksOnConnectionsToNewNodes() throws Exception {
         final NodeConnectionsService service = new NodeConnectionsService(Settings.EMPTY, threadPool, transportService);
 
@@ -310,6 +313,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
     }
 
     @TestLogging(value="org.elasticsearch.cluster.NodeConnectionsService:DEBUG")
+    @Test
     public void testDebugLogging() throws IllegalAccessException {
         final DeterministicTaskQueue deterministicTaskQueue
             = new DeterministicTaskQueue(builder().put(NODE_NAME_SETTING.getKey(), "node").build(), random());
@@ -442,12 +446,12 @@ public class NodeConnectionsServiceTests extends ESTestCase {
 
     private void assertConnectedExactlyToNodes(TransportService transportService, DiscoveryNodes discoveryNodes) {
         assertConnected(transportService, discoveryNodes);
-        assertThat(transportService.getConnectionManager().size(), equalTo(discoveryNodes.getSize()));
+        assertThat(transportService.getConnectionManager().size()).isEqualTo(discoveryNodes.getSize());
     }
 
     private void assertConnected(TransportService transportService, Iterable<DiscoveryNode> nodes) {
         for (DiscoveryNode node : nodes) {
-            assertTrue("not connected to " + node, transportService.nodeConnected(node));
+            assertThat(transportService.nodeConnected(node)).as("not connected to " + node).isTrue();
         }
     }
 
@@ -591,7 +595,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         }
 
         @Override
-        public TransportStats getStats() {
+        public ConnectionStats getStats() {
             throw new UnsupportedOperationException();
         }
 

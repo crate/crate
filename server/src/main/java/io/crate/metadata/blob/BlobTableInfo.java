@@ -22,7 +22,6 @@
 package io.crate.metadata.blob;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -122,7 +121,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
                               CoordinatorSessionSettings sessionSettings) {
-        return routingProvider.forIndices(state, new String[] { index }, Collections.emptyMap(), false, shardSelection);
+        return routingProvider.forIndices(state, new String[] { index }, Set.of(), false, shardSelection);
     }
 
     @Override

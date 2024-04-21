@@ -275,7 +275,7 @@ public class MemoTest {
         return plan(ids.getAsInt(), children);
     }
 
-    static class TestPlan implements LogicalPlan {
+    public static class TestPlan implements LogicalPlan {
         private final List<LogicalPlan> sources;
         private final int id;
 
@@ -333,7 +333,7 @@ public class MemoTest {
         }
 
         @Override
-        public List<RelationName> getRelationNames() {
+        public List<RelationName> relationNames() {
             return List.of();
         }
     }

@@ -320,7 +320,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     }
 
     @Test
-    public void test_user_authentication_with_jwt_token_verified_per_request() throws Exception {
+    public void test_user_authentication_with_jwt_token_verified_per_connection() throws Exception {
         Roles roles = () -> List.of(JWT_USER);
         Authentication authentication = mock(Authentication.class);
         AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
@@ -343,7 +343,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         request2.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
         ch.writeInbound(request2);
         ch.releaseInbound();
-        verify(jwtAuth, times(2)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
+        verify(jwtAuth, times(1)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
     }
 
 }

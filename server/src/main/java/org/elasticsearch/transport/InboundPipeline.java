@@ -89,7 +89,7 @@ public class InboundPipeline implements Releasable {
 
     public void doHandleBytes(CloseableChannel channel, ReleasableBytesReference reference) throws IOException {
         channel.markAccessed(relativeTimeInMillis.getAsLong());
-        statsTracker.markBytesRead(reference.length());
+        statsTracker.incrementBytesReceived(reference.length());
         pending.add(reference.retain());
 
         final ArrayList<Object> fragments = FRAGMENT_LIST.get();
@@ -118,8 +118,8 @@ public class InboundPipeline implements Releasable {
                     forwardFragments(channel, fragments);
                 } finally {
                     for (Object fragment : fragments) {
-                        if (fragment instanceof ReleasableBytesReference) {
-                            ((ReleasableBytesReference) fragment).close();
+                        if (fragment instanceof ReleasableBytesReference rbb) {
+                            rbb.close();
                         }
                     }
                     fragments.clear();
@@ -130,16 +130,16 @@ public class InboundPipeline implements Releasable {
 
     private void forwardFragments(CloseableChannel channel, ArrayList<Object> fragments) throws IOException {
         for (Object fragment : fragments) {
-            if (fragment instanceof Header) {
+            if (fragment instanceof Header header) {
                 assert aggregator.isAggregating() == false;
-                aggregator.headerReceived((Header) fragment);
+                aggregator.headerReceived(header);
             } else if (fragment == InboundDecoder.PING) {
                 assert aggregator.isAggregating() == false;
                 messageHandler.accept(channel, PING_MESSAGE);
             } else if (fragment == InboundDecoder.END_CONTENT) {
                 assert aggregator.isAggregating();
                 try (InboundMessage aggregated = aggregator.finishAggregation()) {
-                    statsTracker.markMessageReceived();
+                    statsTracker.incrementMessagesReceived();
                     messageHandler.accept(channel, aggregated);
                 }
             } else {

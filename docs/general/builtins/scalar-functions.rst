@@ -797,6 +797,27 @@ Returns: ``text``
     +--------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-strpos:
+
+``strpos(string, substring)``
+-----------------------------
+
+Returns the first 1-based index of the specified substring within string.
+Returns zero if the substring is not found and ``NULL`` if any of the arguments
+is ``NULL``.
+
+Returns: ``integer``
+
+::
+
+    cr> SELECT strpos('crate' , 'ate');
+    +---+
+    | 3 |
+    +---+
+    | 3 |
+    +---+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-reverse:
 
 ``reverse(text)``
@@ -2000,6 +2021,33 @@ number::
     +-------------+---+--------+
     | 214748.0998 | 0 | 214748 |
     +-------------+---+--------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-sign:
+
+``sign(number)``
+----------------
+
+Returns the sign of a number.
+
+This function will return one of the following:
+    - If number > 0, it returns 1.0
+    - If number = 0, it returns 0.0
+    - If number < 0, it returns -1.0
+    - If number is NULL, it returns NULL
+
+The data type of the return value is ``numeric`` if the argument is ``numeric``
+and ``double precision`` for the rest of numeric types.
+
+For example::
+
+    cr> select sign(12.34) as a, sign(0) as b, sign (-77) as c, sign(NULL) as d;
+    +-----+-----+------+------+
+    |   a |   b |    c | d    |
+    +-----+-----+------+------+
+    | 1.0 | 0.0 | -1.0 | NULL |
+    +-----+-----+------+------+
     SELECT 1 row in set (... sec)
 
 
@@ -4481,6 +4529,36 @@ Example::
     +------+-------+-------+
     | TRUE | FALSE | FALSE |
     +------+-------+-------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-vector:
+
+Vector functions
+================
+
+.. _scalar_vector_similarity:
+
+
+``vector_similarity(float_vector, float_vector)``
+--------------------------------------------------------
+
+Returns similarity of 2 :ref:`FLOAT_VECTORS <type-float_vector>`
+as a :ref:`FLOAT <type-real>` typed value.
+Similarity is based on euclidean distance and belongs to range ``(0,1]``.
+If 2 vectors coincide, function returns maximal possible similarity 1.
+The more distance between vectors is, the closer similarity gets to 0.
+If at least one argument is ``NULL``, function returns ``NULL``.
+
+An example::
+
+
+    cr> SELECT vector_similarity([1.2, 1.3], [10.2, 10.3]) AS vs;
+    +-------------+
+    |          vs |
+    +-------------+
+    | 0.006134969 |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 

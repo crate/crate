@@ -192,7 +192,6 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         Reference r = new VoidReference(
             new ReferenceIdent(new RelationName("schema", "table"),
                                new ColumnIdent("column", Arrays.asList("path", "nested"))),
-            RowGranularity.DOC,
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }

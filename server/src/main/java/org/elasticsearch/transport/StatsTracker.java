@@ -21,39 +21,76 @@ package org.elasticsearch.transport;
 
 import java.util.concurrent.atomic.LongAdder;
 
+import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.metrics.MeanMetric;
+
+import io.crate.protocols.ConnectionStats;
 
 public class StatsTracker {
 
-    private final LongAdder bytesRead = new LongAdder();
-    private final LongAdder messagesReceived = new LongAdder();
-    private final MeanMetric writeBytesMetric = new MeanMetric();
+    private final CounterMetric openChannelsMetric = new CounterMetric();
+    private final CounterMetric totalChannelsMetric = new CounterMetric();
 
-    public void markBytesRead(long bytesReceived) {
-        bytesRead.add(bytesReceived);
+    private final LongAdder bytesReceivedMetric = new LongAdder();
+    /**
+     * Use an additional counter for messages received as one payload (which increases received bytes)
+     * can hold multiple messages/fragments. See {@link org.elasticsearch.transport.InboundPipeline}
+     */
+    private final CounterMetric messagesReceivedMetric = new CounterMetric();
+    private final MeanMetric bytesSentMetric = new MeanMetric();
+
+    public void incrementOpenChannels() {
+        openChannelsMetric.inc();
+        totalChannelsMetric.inc();
     }
 
-    public void markMessageReceived() {
-        messagesReceived.increment();
+    public void decrementOpenChannels() {
+        openChannelsMetric.dec();
     }
 
-    public void markBytesWritten(long bytesWritten) {
-        writeBytesMetric.inc(bytesWritten);
+    public void incrementBytesReceived(long bytesReceived) {
+        this.bytesReceivedMetric.add(bytesReceived);
     }
 
-    public long getBytesRead() {
-        return bytesRead.sum();
+    public void incrementMessagesReceived() {
+        messagesReceivedMetric.inc();
     }
 
-    public long getMessagesReceived() {
-        return messagesReceived.sum();
+    public void incrementBytesSent(long bytesSent) {
+        bytesSentMetric.inc(bytesSent);
     }
 
-    public long getBytesWritten() {
-        return writeBytesMetric.sum();
+    public long openConnections() {
+        return openChannelsMetric.count();
     }
 
-    public long getMessagesSent() {
-        return writeBytesMetric.count();
+    public long totalConnections() {
+        return totalChannelsMetric.count();
+    }
+
+    public long messagesReceived() {
+        return messagesReceivedMetric.count();
+    }
+
+    public long bytesReceived() {
+        return bytesReceivedMetric.sum();
+    }
+
+    public long bytesSent() {
+        return bytesSentMetric.sum();
+    }
+
+    public long messagesSent() {
+        return bytesSentMetric.count();
+    }
+
+    public ConnectionStats stats() {
+        return new ConnectionStats(
+            openConnections(),
+            totalConnections(),
+            messagesReceived(),
+            bytesReceived(),
+            messagesSent(),
+            bytesSent());
     }
 }

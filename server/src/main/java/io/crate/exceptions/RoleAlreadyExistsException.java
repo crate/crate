@@ -27,6 +27,8 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.rest.action.HttpErrorStatus;
+
 
 public class RoleAlreadyExistsException extends ElasticsearchException implements ConflictException, UnscopedException {
 
@@ -41,5 +43,10 @@ public class RoleAlreadyExistsException extends ElasticsearchException implement
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.USER_WITH_SAME_NAME_EXISTS_ALREADY;
     }
 }

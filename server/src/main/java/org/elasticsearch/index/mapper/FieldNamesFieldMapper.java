@@ -32,7 +32,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /**
@@ -90,9 +89,8 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
         @Override
         public MetadataFieldMapper getDefault(ParserContext context) {
-            final Settings indexSettings = context.mapperService().getIndexSettings().getSettings();
             return parse(NAME, Collections.emptyMap(), context)
-                    .build(new BuilderContext(indexSettings, new ContentPath(1)));
+                    .build(new BuilderContext(new ContentPath(1)));
         }
     }
 

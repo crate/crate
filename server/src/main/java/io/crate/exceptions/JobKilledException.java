@@ -21,11 +21,13 @@
 
 package io.crate.exceptions;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 public class JobKilledException extends ElasticsearchException implements UnscopedException {
 
@@ -47,4 +49,8 @@ public class JobKilledException extends ElasticsearchException implements Unscop
         super(MESSAGE);
     }
 
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.QUERY_KILLED_BY_STATEMENT;
+    }
 }

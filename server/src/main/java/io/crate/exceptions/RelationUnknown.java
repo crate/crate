@@ -33,6 +33,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.RelationName;
+import io.crate.rest.action.HttpErrorStatus;
 import io.crate.sql.Identifiers;
 
 public class RelationUnknown extends ElasticsearchException implements ResourceUnknownException, TableScopeException {
@@ -90,5 +91,10 @@ public class RelationUnknown extends ElasticsearchException implements ResourceU
     @Override
     public Collection<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.RELATION_UNKNOWN;
     }
 }

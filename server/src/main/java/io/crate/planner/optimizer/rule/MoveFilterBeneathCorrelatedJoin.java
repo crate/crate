@@ -69,7 +69,7 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
         var splitQuery = QuerySplitter.split(filter.query());
         assert join.sources().size() == 1 : "CorrelatedJoin operator must have 1 children, the input plan";
         var inputPlan = join.sources().get(0);
-        var inputQuery = splitQuery.remove(new HashSet<>(inputPlan.getRelationNames()));
+        var inputQuery = splitQuery.remove(new HashSet<>(inputPlan.relationNames()));
         if (inputQuery == null) {
             return null;
         }

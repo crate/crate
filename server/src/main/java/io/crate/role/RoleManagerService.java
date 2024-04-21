@@ -24,7 +24,6 @@ package io.crate.role;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -45,19 +44,20 @@ import io.crate.role.metadata.SysUsersTableInfo;
 @Singleton
 public class RoleManagerService implements RoleManager {
 
-    private static final Consumer<Role> ENSURE_DROP_ROLE_NOT_SUPERUSER = user -> {
+    private static final void ensureDropRoleTargetIsNotSuperUser(Role user) {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot drop a superuser '%s'", user.name()));
         }
-    };
+    }
 
-    private static final Consumer<Role> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER = user -> {
+    private static final void ensureAlterPrivilegeTargetIsNotSuperuser(Role user) {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot alter privileges for superuser '%s'", user.name()));
         }
-    };
+    }
+
 
     private static final RoleManagerDDLModifier DDL_MODIFIER = new RoleManagerDDLModifier();
 
@@ -126,7 +126,7 @@ public class RoleManagerService implements RoleManager {
 
     @Override
     public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
-        ENSURE_DROP_ROLE_NOT_SUPERUSER.accept(roles.findUser(roleName));
+        ensureDropRoleTargetIsNotSuperUser(roles.findUser(roleName));
         return transportDropRoleAction.execute(new DropRoleRequest(roleName, suppressNotFoundError), r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
@@ -158,7 +158,7 @@ public class RoleManagerService implements RoleManager {
     public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames,
                                                    Collection<Privilege> privileges,
                                                    GrantedRolesChange grantedRolesChange) {
-        roleNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(roles.findUser(s)));
+        roleNames.forEach(s -> ensureAlterPrivilegeTargetIsNotSuperuser(roles.findUser(s)));
         return transportPrivilegesAction.execute(new PrivilegesRequest(roleNames, privileges, grantedRolesChange), r -> {
             if (!r.unknownUserNames().isEmpty()) {
                 throw new RoleUnknownException(r.unknownUserNames());

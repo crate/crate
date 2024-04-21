@@ -129,7 +129,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
-import org.elasticsearch.index.mapper.MockFieldFilterPlugin;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesQueryCache;
@@ -1269,9 +1268,6 @@ public abstract class IntegTestCase extends ESTestCase {
             if (addMockInternalEngine() && randomBoolean()) {
                 mocks.add(MockEngineFactoryPlugin.class);
             }
-            if (randomBoolean()) {
-                mocks.add(MockFieldFilterPlugin.class);
-            }
         }
 
         if (addMockHttpTransport()) {
@@ -1682,7 +1678,7 @@ public abstract class IntegTestCase extends ESTestCase {
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
         Roles roles = cluster().getInstance(Roles.class, node);
-        try (Session session = sqlOperations.newSession(schema, roles.findUser("crate"))) {
+        try (Session session = sqlOperations.newSession(schema, roles.getUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
         }
         return response;
@@ -1778,7 +1774,8 @@ public abstract class IntegTestCase extends ESTestCase {
             null,
             Cursors.EMPTY,
             TransactionState.IDLE,
-            new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats)
+            new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats),
+            planner::optimize
         );
         Plan plan = planner.plan(
             analyzer.analyze(
