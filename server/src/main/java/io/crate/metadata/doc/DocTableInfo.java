@@ -472,7 +472,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return columnPolicy;
     }
 
-    @Nullable
+    @NotNull
     @Override
     public Version versionCreated() {
         return versionCreated;
