@@ -281,7 +281,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return message != null ? message : e.getClass().getName();
     }
 
-    private static boolean shouldIgnoreAllItems(ShardUpsertRequest req) {
+    private static boolean noItemsToIndexOnReplica(ShardUpsertRequest req) {
         for (ShardUpsertRequest.Item item : req.items()) {
             if (item.seqNo() != SequenceNumbers.SKIP_ON_REPLICA) {
                 return false;
@@ -294,7 +294,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Reference[] insertColumns = request.insertColumns();
         if (insertColumns == null) {
-            assert shouldIgnoreAllItems(request);
+            // On the primary, update columns get converted to insert columns, so
+            // if we encounter a request on the replica that has no insert columns,
+            // this should mean that there are either no items to index, or that
+            // all items on the primary errored out and so should be ignored.
+            assert noItemsToIndexOnReplica(request);
             return new WriteReplicaResult<>(null, null, indexShard);
         }
 
