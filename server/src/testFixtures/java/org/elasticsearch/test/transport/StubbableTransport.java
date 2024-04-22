@@ -41,7 +41,8 @@ import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportStats;
+
+import io.crate.protocols.ConnectionStats;
 
 public class StubbableTransport implements Transport {
 
@@ -170,7 +171,7 @@ public class StubbableTransport implements Transport {
     }
 
     @Override
-    public TransportStats getStats() {
+    public ConnectionStats getStats() {
         return delegate.getStats();
     }
 
@@ -299,7 +300,5 @@ public class StubbableTransport implements Transport {
 
         void messageReceived(TransportRequestHandler<Request> handler, Request request, TransportChannel channel)
             throws Exception;
-
-        default void clearCallback() {}
     }
 }

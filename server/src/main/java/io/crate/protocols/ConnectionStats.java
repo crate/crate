@@ -21,31 +21,56 @@
 
 package io.crate.protocols;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
 
 public final class ConnectionStats implements Writeable {
 
     private final long open;
     private final long total;
 
-    public ConnectionStats(long open, long total) {
+    private final long receivedMessages;
+
+    private final long receivedBytes;
+
+    private final long sentMessages;
+
+    private final long sentBytes;
+
+    public ConnectionStats(long open,
+                           long total,
+                           long receivedMessages,
+                           long receivedBytes,
+                           long sentMessages,
+                           long sentBytes) {
         this.open = open;
         this.total = total;
+        this.receivedMessages = receivedMessages;
+        this.receivedBytes = receivedBytes;
+        this.sentMessages = sentMessages;
+        this.sentBytes = sentBytes;
     }
 
     public ConnectionStats(StreamInput in) throws IOException {
         this.open = in.readVLong();
         this.total = in.readVLong();
+        this.receivedMessages = in.readVLong();
+        this.receivedBytes = in.readVLong();
+        this.sentMessages = in.readVLong();
+        this.sentBytes = in.readVLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVLong(open);
         out.writeVLong(total);
+        out.writeVLong(receivedMessages);
+        out.writeVLong(receivedBytes);
+        out.writeVLong(sentMessages);
+        out.writeVLong(sentBytes);
     }
 
     public long open() {
@@ -54,5 +79,21 @@ public final class ConnectionStats implements Writeable {
 
     public long total() {
         return total;
+    }
+
+    public long receivedMsgs() {
+        return receivedMessages;
+    }
+
+    public long receivedBytes() {
+        return receivedBytes;
+    }
+
+    public long sentMsgs() {
+        return sentMessages;
+    }
+
+    public long sentBytes() {
+        return sentBytes;
     }
 }

@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import java.util.UUID;
+import java.util.function.BiFunction;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -37,6 +38,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.tracer.LoggingOptimizerTracer;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
@@ -61,7 +63,8 @@ public class PlannerContext {
             context.cursors,
             context.transactionState,
             context.planStats,
-            context.optimizerTracer
+            context.optimizerTracer,
+            context.optimize
         );
     }
 
@@ -80,6 +83,7 @@ public class PlannerContext {
     private final Row params;
     private final PlanStats planStats;
     private final OptimizerTracer optimizerTracer;
+    private final BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize;
 
     /**
      * @param params See {@link #params()}
@@ -93,7 +97,8 @@ public class PlannerContext {
                           @Nullable Row params,
                           Cursors cursors,
                           TransactionState transactionState,
-                          PlanStats planStats) {
+                          PlanStats planStats,
+                          BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize) {
         this(
             clusterState,
             routingProvider,
@@ -106,7 +111,8 @@ public class PlannerContext {
             cursors,
             transactionState,
             planStats,
-            LoggingOptimizerTracer.getInstance()
+            LoggingOptimizerTracer.getInstance(),
+            optimize
         );
     }
 
@@ -121,7 +127,9 @@ public class PlannerContext {
                            Cursors cursors,
                            TransactionState transactionState,
                            PlanStats planStats,
-                           OptimizerTracer optimizerTracer) {
+                           OptimizerTracer optimizerTracer,
+                           BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize
+                           ) {
         this.routingProvider = routingProvider;
         this.nodeCtx = nodeCtx;
         this.params = params;
@@ -135,6 +143,7 @@ public class PlannerContext {
         this.transactionState = transactionState;
         this.planStats = planStats;
         this.optimizerTracer = optimizerTracer;
+        this.optimize = optimize;
     }
 
     public PlannerContext withOptimizerTracer(OptimizerTracer optimizerTracer) {
@@ -150,7 +159,8 @@ public class PlannerContext {
             cursors,
             transactionState,
             planStats,
-            optimizerTracer
+            optimizerTracer,
+            optimize
         );
     }
 
@@ -224,5 +234,9 @@ public class PlannerContext {
 
     public OptimizerTracer optimizerTracer() {
         return optimizerTracer;
+    }
+
+    public BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize() {
+        return optimize;
     }
 }

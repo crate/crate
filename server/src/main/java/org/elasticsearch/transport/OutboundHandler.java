@@ -67,7 +67,7 @@ public final class OutboundHandler {
             ChannelFuture future = channel.writeAndFlush(Unpooled.wrappedBuffer(bytes));
             future.addListener(f -> {
                 if (f.isSuccess()) {
-                    statsTracker.markBytesWritten(bytes.length);
+                    statsTracker.incrementBytesSent(bytes.length);
                 } else {
                     LOGGER.warn("send message failed [channel: {}]", channel, f.cause());
                 }
@@ -159,7 +159,7 @@ public final class OutboundHandler {
             BytesReference msg = networkMessage.serialize(bytesStreamOutput);
             ChannelFuture future = channel.writeAndFlush(Netty4Utils.toByteBuf(msg));
             future.addListener(f -> {
-                statsTracker.markBytesWritten(msg.length());
+                statsTracker.incrementBytesSent(msg.length());
                 bytesStreamOutput.close();
                 if (!f.isSuccess()) {
                     LOGGER.warn("send message failed [channel: {}]", channel, f.cause());

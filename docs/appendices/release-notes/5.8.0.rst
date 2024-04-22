@@ -44,7 +44,9 @@ Version 5.8.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Removed ``network`` column from :ref:`sys.nodes <sys-nodes>` table. The column
+  was deprecated since `version_2.3.0_` and all of the sub-columns where
+  returning 0.
 
 Deprecations
 ============
@@ -84,9 +86,23 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Extended the lookup-join optimization to make it applicable to more complex
+  queries when they include sub-queries, an inner-equi-join and if there is a
+  large imbalance in size between the joined tables. This optimization can be
+  disabled with the session setting::
+
+     SET optimizer_equi_join_to_lookup_join = false
+
+  Note that this setting is experimental, and may change in the future.
 
 Administration and Operations
 -----------------------------
 
-None
+- Extended :ref:`Connections JMX MBean <jmx_monitoring-connections>`, to expose
+  more detailed network statistics information. On top of the previously exposed
+  open and total connections, number of messages and bytes sent and received per
+  protocol are also available.
+
+- Added ``transport['total']`` column to :ref:`sys.nodes <sys-nodes>`
+  :ref:`connections <sys-nodes-connections>` column, which exposes the number of
+  total connections via the Transport protocol.
