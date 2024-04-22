@@ -118,7 +118,6 @@ public class Indexer {
 
     private final List<ValueIndexer<?>> valueIndexers;
     private final List<Reference> columns;
-    private final SymbolEvaluator symbolEval;
     private final Map<ColumnIdent, Synthetic> synthetics;
     private final List<CollectExpression<IndexItem, Object>> expressions;
     private final Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
@@ -127,7 +126,6 @@ public class Indexer {
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final BytesStreamOutput stream;
-    private final boolean writeOids;
     private final Function<ColumnIdent, Reference> getRef;
 
     /**
@@ -418,18 +416,17 @@ public class Indexer {
                    Function<String, FieldType> getFieldType,
                    List<Reference> targetColumns,
                    Symbol[] returnValues) {
-        this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
-        this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
-        this.getRef = columnIdent -> table.getReference(columnIdent);
+        boolean writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
+        this.getRef = table::getReference;
         this.getFieldType = getFieldType;
-        Function<ColumnIdent, Reference> getRef = table::getReference;
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
         InputFactory inputFactory = new InputFactory(nodeCtx);
+        SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);
         Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
