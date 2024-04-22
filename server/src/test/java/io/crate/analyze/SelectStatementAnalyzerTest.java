@@ -32,7 +32,6 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -209,7 +208,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "load",
             "mem",
             "name",
-            "network",
             "os",
             "os_info",
             "port",

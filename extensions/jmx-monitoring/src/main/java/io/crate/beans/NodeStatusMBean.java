@@ -30,6 +30,7 @@ package io.crate.beans;
  * @see <a href="https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html">
  *     https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html</a>
  */
+@SuppressWarnings("unused")
 public interface NodeStatusMBean {
 
     boolean isReady();

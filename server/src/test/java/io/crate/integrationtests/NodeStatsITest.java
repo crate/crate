@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
@@ -40,7 +39,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
-public class NodeStatsTest extends IntegTestCase {
+public class NodeStatsITest extends IntegTestCase {
 
     @Test
     public void testSysNodesMem() throws Exception {
@@ -99,68 +98,7 @@ public class NodeStatsTest extends IntegTestCase {
 
         List<?> queues = (List<?>) response.rows()[0][1];
         assertThat(queues.size()).isGreaterThanOrEqualTo(1);
-        assertThat((Integer) queues.get(0)).isGreaterThanOrEqualTo(0);
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testNetwork() throws Exception {
-        SQLResponse response = execute("select network from sys.nodes limit 1");
-        assertThat(response).hasRowCount(1L);
-
-        Map<String, Object> network = (Map<String, Object>) response.rows()[0][0];
-        assertThat(network).containsKey("tcp");
-        Map<String, Object> tcp = (Map<String, Object>) network.get("tcp");
-        assertNetworkTCP(tcp);
-
-
-        response = execute("select network['tcp'] from sys.nodes limit 1");
-        assertThat(response).hasRowCount(1L);
-        tcp = (Map<String, Object>) response.rows()[0][0];
-        assertNetworkTCP(tcp);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void assertNetworkTCP(Map<String, Object> tcp) {
-        assertThat(tcp).containsOnlyKeys("packets", "connections");
-
-        Map<String, Object> connections = (Map<String, Object>) tcp.get("connections");
-        assertThat(connections).containsOnlyKeys(
-            "initiated", "accepted", "curr_established", "dropped", "embryonic_dropped");
-
-        Map<String, Object> packets = (Map<String, Object>) tcp.get("packets");
-        assertThat(packets).containsOnlyKeys(
-            "sent", "received", "errors_received", "retransmitted", "rst_sent");
-    }
-
-    @Test
-    public void testNetworkTcpConnectionFields() throws Exception {
-        SQLResponse response = execute("select " +
-                                       "network['tcp']['connections']['initiated'], " +
-                                       "network['tcp']['connections']['accepted'], " +
-                                       "network['tcp']['connections']['curr_established']," +
-                                       "network['tcp']['connections']['dropped']," +
-                                       "network['tcp']['connections']['embryonic_dropped']" +
-                                       " from sys.nodes limit 1");
-        assertThat(response).hasRowCount(1L);
-        for (int i = 0; i < response.cols().length; i++) {
-            assertThat((Long) response.rows()[0][i]).isGreaterThanOrEqualTo(-1L);
-        }
-    }
-
-    @Test
-    public void testNetworkTcpPacketsFields() throws Exception {
-        SQLResponse response = execute("select " +
-                                       "network['tcp']['packets']['sent'], " +
-                                       "network['tcp']['packets']['received'], " +
-                                       "network['tcp']['packets']['retransmitted'], " +
-                                       "network['tcp']['packets']['errors_received'], " +
-                                       "network['tcp']['packets']['rst_sent'] " +
-                                       "from sys.nodes limit 1");
-        assertThat(response).hasRowCount(1L);
-        for (int i = 0; i < response.cols().length; i++) {
-            assertThat((Long) response.rows()[0][i]).isGreaterThanOrEqualTo(-1L);
-        }
+        assertThat((Integer) queues.getFirst()).isGreaterThanOrEqualTo(0);
     }
 
     @Test
@@ -173,15 +111,17 @@ public class NodeStatsTest extends IntegTestCase {
         assertThat((Long) results.get("timestamp")).isGreaterThan(0L);
         assertThat((Long) results.get("uptime")).isGreaterThanOrEqualTo(-1L);
 
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("system")).isGreaterThanOrEqualTo((short) -1);
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("system")).isLessThanOrEqualTo((short) 100);
+        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("system"))
+            .isGreaterThanOrEqualTo((short) -1)
+            .isLessThanOrEqualTo((short) 100);
 
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("user")).isGreaterThanOrEqualTo((short) -1);
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("user")).isLessThanOrEqualTo((short) 100);
+        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("user"))
+            .isGreaterThanOrEqualTo((short) -1)
+            .isLessThanOrEqualTo((short) 100);
 
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("used")).isGreaterThanOrEqualTo((short) -1);
-        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("used")).isLessThanOrEqualTo((short) 100);
-
+        assertThat((Short) ((Map<?, ?>) results.get("cpu")).get("used"))
+            .isGreaterThanOrEqualTo((short) -1)
+            .isLessThanOrEqualTo((short) 100);
     }
 
     @Test
@@ -281,7 +221,7 @@ public class NodeStatsTest extends IntegTestCase {
         }
 
         List<?> disks = (List<?>) fs.get("disks");
-        if (disks.size() > 0) {
+        if (disks.isEmpty() == false) {
             // on travis there are no accessible disks
             assertThat(disks.size()).isGreaterThanOrEqualTo(1);
             Map<String, Object> someDisk = (Map<String, Object>) disks.get(0);
@@ -294,7 +234,7 @@ public class NodeStatsTest extends IntegTestCase {
         }
 
         List<?> data = (List<?>) fs.get("data");
-        if (data.size() > 0) {
+        if (data.isEmpty() == false) {
             // without sigar, no data definition returned
             NodeEnvironment instance = cluster().getInstance(NodeEnvironment.class);
             int numDataPaths = instance.nodeDataPaths().length;

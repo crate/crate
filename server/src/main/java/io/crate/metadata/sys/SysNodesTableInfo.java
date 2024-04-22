@@ -57,7 +57,6 @@ public class SysNodesTableInfo {
     private static final String SYS_COL_HEAP = "heap";
     private static final String SYS_COL_VERSION = "version";
     private static final String SYS_COL_THREAD_POOLS = "thread_pools";
-    private static final String SYS_COL_NETWORK = "network";
     private static final String SYS_COL_OS = "os";
     private static final String SYS_COL_OS_INFO = "os_info";
     private static final String SYS_COL_PROCESS = "process";
@@ -82,8 +81,6 @@ public class SysNodesTableInfo {
         public static final ColumnIdent VERSION = new ColumnIdent(SYS_COL_VERSION);
 
         public static final ColumnIdent THREAD_POOLS = new ColumnIdent(SYS_COL_THREAD_POOLS);
-
-        public static final ColumnIdent NETWORK = new ColumnIdent(SYS_COL_NETWORK);
 
         public static final ColumnIdent CONNECTIONS = new ColumnIdent("connections");
 
@@ -148,36 +145,18 @@ public class SysNodesTableInfo {
                 .add("threads", INTEGER, ThreadPoolStats.Stats::getThreads)
                 .add("queue", INTEGER, ThreadPoolStats.Stats::getQueue)
             .endObjectArray()
-            .startObject("network")
-                .add("probe_timestamp", TIMESTAMPZ, x -> 0L)
-                .startObject("tcp")
-                    .startObject("connections")
-                        .add("initiated", LONG, x -> 0L)
-                        .add("accepted", LONG, x -> 0L)
-                        .add("curr_established", LONG, x -> 0L)
-                        .add("dropped", LONG, x -> 0L)
-                        .add("embryonic_dropped", LONG, x -> 0L)
-                    .endObject()
-                    .startObject("packets")
-                        .add("sent", LONG, x -> 0L)
-                        .add("received", LONG, x -> 0L)
-                        .add("retransmitted", LONG, x -> 0L)
-                        .add("errors_received", LONG, x -> 0L)
-                        .add("rst_sent", LONG, x -> 0L)
-                    .endObject()
-                .endObject()
-            .endObject()
             .startObject("connections")
                 .startObject("http")
-                    .add("open", LONG, x -> x.httpStats().getServerOpen())
-                    .add("total", LONG, x -> x.httpStats().getTotalOpen())
+                    .add("open", LONG, x -> x.httpStats().open())
+                    .add("total", LONG, x -> x.httpStats().total())
                 .endObject()
                 .startObject("psql")
                     .add("open", LONG, x -> x.psqlStats().open())
                     .add("total", LONG, x -> x.psqlStats().total())
                 .endObject()
                 .startObject("transport")
-                    .add("open", LONG, NodeStatsContext::openTransportConnections)
+                    .add("open", LONG, x -> x.transportStats().open())
+                    .add("total", LONG, x -> x.transportStats().total())
                 .endObject()
             .endObject()
             .startObject("os")

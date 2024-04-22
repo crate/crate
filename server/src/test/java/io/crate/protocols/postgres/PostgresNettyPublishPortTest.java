@@ -22,12 +22,11 @@
 package io.crate.protocols.postgres;
 
 import static io.crate.protocols.postgres.PostgresNetty.resolvePublishPort;
+import static io.crate.testing.Asserts.assertThat;
 import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 import java.net.UnknownHostException;
@@ -76,14 +75,17 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         int otherBoundPort = randomIntBetween(9200, 9300);
 
         int publishPort = resolvePublishPort(asList(address("127.0.0.1", boundPort), address("127.0.0.2", otherBoundPort)), getByName("127.0.0.1"));
-        assertThat("Publish port should be derived from matched address", publishPort, equalTo(boundPort));
+        assertThat(publishPort)
+            .as("Publish port should be derived from matched address").isEqualTo(boundPort);
 
         publishPort = resolvePublishPort(asList(address("127.0.0.1", boundPort), address("127.0.0.2", boundPort)), getByName("127.0.0.3"));
-        assertThat("Publish port should be derived from unique port of bound addresses", publishPort, equalTo(boundPort));
+        assertThat(publishPort)
+            .as("Publish port should be derived from unique port of bound addresses").isEqualTo(boundPort);
 
         publishPort = resolvePublishPort(asList(address("0.0.0.0", boundPort), address("127.0.0.2", otherBoundPort)),
             getByName("127.0.0.1"));
-        assertThat("Publish port should be derived from matching wildcard address", publishPort, equalTo(boundPort));
+        assertThat(publishPort)
+            .as("Publish port should be derived from matching wildcard address").isEqualTo(boundPort);
     }
 
     @Test
@@ -91,10 +93,10 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         int boundPort = randomIntBetween(9000, 9100);
         int otherBoundPort = randomIntBetween(9200, 9300);
 
-        expectedException.expect(BindHttpException.class);
-        expectedException.expectMessage("Failed to auto-resolve psql publish port, multiple bound addresses");
-        resolvePublishPort(asList(address("127.0.0.1", boundPort), address("127.0.0.2", otherBoundPort)),
-            getByName("127.0.0.3"));
+        assertThatThrownBy(() -> resolvePublishPort(
+            asList(address("127.0.0.1", boundPort), address("127.0.0.2", otherBoundPort)), getByName("127.0.0.3")))
+            .isExactlyInstanceOf(BindHttpException.class)
+            .hasMessageStartingWith("Failed to auto-resolve psql publish port, multiple bound addresses");
     }
 
     @Test
@@ -108,7 +110,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(Sessions.class),
             userManager,
             networkService,
-            null, new AlwaysOKAuthentication(userManager),
+            new AlwaysOKAuthentication(userManager),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
@@ -133,7 +135,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(Sessions.class),
             userManager,
             networkService,
-            null, new AlwaysOKAuthentication(userManager),
+            new AlwaysOKAuthentication(userManager),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
@@ -143,7 +145,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             fail("Should have failed due to custom hostname");
         } catch (BindPostgresException e) {
             // that's what we want
-            assertThat(e.getCause(), instanceOf(UnknownHostException.class));
+            assertThat(e.getCause()).isExactlyInstanceOf((UnknownHostException.class));
         } finally {
             psql.doStop();
             psql.close();
@@ -162,7 +164,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(Sessions.class),
             userManager,
             networkService,
-            null, new AlwaysOKAuthentication(userManager),
+            new AlwaysOKAuthentication(userManager),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
@@ -172,7 +174,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             fail("Should have failed due to custom hostname");
         } catch (BindPostgresException e) {
             // that's what we want
-            assertThat(e.getCause(), instanceOf(UnknownHostException.class));
+            assertThat(e.getCause()).isExactlyInstanceOf(UnknownHostException.class);
         } finally {
             psql.doStop();
             psql.close();
@@ -191,7 +193,6 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(Sessions.class),
             userManager,
             networkService,
-            null,
             new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
             nettyBootstrap,
             mock(Netty4Transport.class),
@@ -202,7 +203,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             fail("Should have failed due to custom hostname");
         } catch (BindTransportException e) {
             // that's what we want
-            assertThat(e.getCause(), instanceOf(UnknownHostException.class));
+            assertThat(e.getCause()).isExactlyInstanceOf(UnknownHostException.class);
         } finally {
             psql.doStop();
             psql.close();

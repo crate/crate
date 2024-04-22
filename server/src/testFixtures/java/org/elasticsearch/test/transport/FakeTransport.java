@@ -33,7 +33,8 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportStats;
+
+import io.crate.protocols.ConnectionStats;
 
 /**
  * A transport that does nothing. Normally wrapped by {@link StubbableTransport}.
@@ -83,8 +84,8 @@ public class FakeTransport extends AbstractLifecycleComponent implements Transpo
     }
 
     @Override
-    public TransportStats getStats() {
-        return null;
+    public ConnectionStats getStats() {
+        return new ConnectionStats(0, 0, 0, 0, 0, 0);
     }
 
     @Override

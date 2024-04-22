@@ -605,48 +605,7 @@ Uptime limitations
 | ``os_info['jvm']['vm_version']``    | The version of the JVM                       | ``TEXT``    |
 +-------------------------------------+----------------------------------------------+-------------+
 
-``network``
------------
-
-Network statistics are deprecated in CrateDB 2.3 and may completely be removed
-in subsequent versions. All ``BIGINT`` columns always return ``0``.
-
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| Column Name                                            | Description                                                                                | Return Type |
-+========================================================+============================================================================================+=============+
-| ``network``                                            | Statistics about network activity on the host.                                             | ``OBJECT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['probe_timestamp']``                         | Unix timestamp at the time of collection of the network probe.                             | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']``                                     | TCP network activity on the host.                                                          | ``OBJECT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['connections']``                      | Information about TCP network connections.                                                 | ``OBJECT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['connections']['initiated']``         | Total number of initiated TCP connections.                                                 | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['connections']['accepted']``          | Total number of accepted TCP connections.                                                  | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['connections']['curr_established']``  | Total number of currently established TCP connections.                                     | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['connections']['dropped']``           | Total number of dropped TCP connections.                                                   | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['connections']['embryonic_dropped']`` | Total number of TCP connections that have been dropped before they were accepted.          | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['packets']``                          | Information about TCP packets.                                                             | ``OBJECT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['packets']['sent']``                  | Total number of TCP packets sent.                                                          | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['packets']['received']``              | Total number of TCP packets received.                                                      | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['packets']['retransmitted']``         | Total number of TCP packets retransmitted due to an error.                                 | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['packets']['errors_received']``       | Total number of TCP packets that contained checksum errors, had a bad offset, were dropped | ``BIGINT``  |
-|                                                        | because of a lack of memory or were too short.                                             |             |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']]['packets']['rst_sent']``             | Total number of RST packets sent due to left unread                                        | ``BIGINT``  |
-|                                                        | data in queue when socket is closed.                                                       |             |
-|                                                        | See `tools.ietf.org <https://tools.ietf.org/html/rfc2525#page-50>`_.                       |             |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
+.. _sys-nodes-connections:
 
 ``connections``
 ---------------
@@ -711,7 +670,17 @@ in subsequent versions. All ``BIGINT`` columns always return ``0``.
 |                                  | Transport       |                 |
 |                                  | protocol        |                 |
 +----------------------------------+-----------------+-----------------+
-
+| ``transport['total']``           | The total       | ``BIGINT``      |
+|                                  | number of       |                 |
+|                                  | connections     |                 |
+|                                  | that have been  |                 |
+|                                  | established via |                 |
+|                                  | Transport       |                 |
+|                                  | protocol over   |                 |
+|                                  | the life time   |                 |
+|                                  | of a CrateDB    |                 |
+|                                  | node            |                 |
++----------------------------------+-----------------+-----------------+
 
 ``process``
 -----------
