@@ -117,7 +117,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 "  content text" +
                 ")" +
                 " clustered by (id)");
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     private <S> S analyze(String stmt, Object... arguments) {

@@ -237,23 +237,19 @@ public class SQLExecutor {
      * This can only be used if {@link com.carrotsearch.randomizedtesting.RandomizedContext} is available
      * (e.g. TestCase using {@link com.carrotsearch.randomizedtesting.RandomizedRunner}
      */
-    public PlannerContext getPlannerContext(ClusterState clusterState) {
-        return getPlannerContext(clusterState, Randomness.get());
+    public PlannerContext getPlannerContext() {
+        return getPlannerContext(Randomness.get());
     }
 
-    public PlannerContext getPlannerContext(ClusterState clusterState, Random random) {
-        return new PlannerContext(
-            clusterState,
+    public PlannerContext getPlannerContext(Random random) {
+        return planner.createContext(
             new RoutingProvider(random.nextInt(), emptyList()),
             UUID.randomUUID(),
             new CoordinatorTxnCtx(sessionSettings),
-            nodeCtx,
             -1,
             null,
             cursors,
-            transactionState,
-            planStats,
-            planner::optimize
+            transactionState
         );
     }
 
@@ -600,18 +596,14 @@ public class SQLExecutor {
     @SuppressWarnings("unchecked")
     private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int fetchSize, Row params) {
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             jobId,
             coordinatorTxnCtx,
-            nodeCtx,
             fetchSize,
             null,
             cursors,
-            transactionState,
-            planStats,
-            planner::optimize
+            transactionState
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan logicalPlan) {
@@ -639,7 +631,7 @@ public class SQLExecutor {
     @SuppressWarnings("unchecked")
     public <T extends LogicalPlan> T logicalPlan(String statement) {
         AnalyzedStatement stmt = analyze(statement, ParamTypeHints.EMPTY);
-        return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
+        return (T) planner.plan(stmt, getPlannerContext());
     }
 
     public <T> T plan(String statement) {
@@ -654,7 +646,7 @@ public class SQLExecutor {
         var consumer = new TestingRowConsumer();
         plan.execute(
             dependencyMock,
-            getPlannerContext(planner.currentClusterState()),
+            getPlannerContext(),
             consumer,
             new RowN(params),
             SubQueryResults.EMPTY
@@ -1001,18 +993,14 @@ public class SQLExecutor {
         var analyzedCreateForeignTable = FdwAnalyzer.analyze(analysis, nodeCtx, createTable);
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
         ClusterState currentState = clusterService.state();
-        PlannerContext plannerContext = new PlannerContext(
-            currentState,
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             UUIDs.dirtyUUID(),
             txnCtx,
-            nodeCtx,
             0,
             null,
             cursors,
-            TransactionState.IDLE,
-            new PlanStats(nodeCtx, txnCtx, tableStats),
-            planner::optimize
+            TransactionState.IDLE
         );
         var request = CreateForeignTablePlan.toRequest(
             foreignDataWrappers,

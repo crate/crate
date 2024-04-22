@@ -76,7 +76,7 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
         repositoryParamValidator = new RepositoryParamValidator(
             Map.of("s3", new TypeSettings(List.of(), S3Repository.optionalSettings()))
         );

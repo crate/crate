@@ -66,7 +66,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.of(clusterService).addBlobTable("create blob table blobs");
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     private Settings buildSettings(AnalyzedCreateBlobTable blobTable, Object... arguments) {
