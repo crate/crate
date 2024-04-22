@@ -22,13 +22,12 @@
 package io.crate.execution.engine.collect;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -40,6 +39,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class RowShardResolverTest extends ESTestCase {
 
@@ -56,8 +56,8 @@ public class RowShardResolverTest extends ESTestCase {
         return new ColumnIdent(ident);
     }
 
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-    private NodeContext nodeCtx = createNodeContext();
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final NodeContext nodeCtx = createNodeContext();
 
     @Test
     public void testNoPrimaryKeyNoRouting() {
@@ -66,8 +66,8 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row());
 
         // auto-generated id, no special routing
-        assertNotNull(rowShardResolver.id());
-        assertNull(rowShardResolver.routing());
+        assertThat(rowShardResolver.id()).isNotNull();
+        assertThat(rowShardResolver.routing()).isNull();
     }
 
     @Test
@@ -77,8 +77,8 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // auto-generated id, special routing
-        assertNotNull(rowShardResolver.id());
-        assertThat(rowShardResolver.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id()).isNotNull();
+        assertThat(rowShardResolver.routing()).isEqualTo("hoschi");
     }
 
     @Test
@@ -89,8 +89,8 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, no special routing
-        assertThat(rowShardResolver.id(), is("AgExBmhvc2NoaQ=="));
-        assertNull(rowShardResolver.routing());
+        assertThat(rowShardResolver.id()).isEqualTo("AgExBmhvc2NoaQ==");
+        assertThat(rowShardResolver.routing()).isNull();
     }
 
     @Test
@@ -101,8 +101,8 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, special routing
-        assertThat(rowShardResolver.id(), is("AgZob3NjaGkBMQ=="));
-        assertThat(rowShardResolver.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id()).isEqualTo("AgZob3NjaGkBMQ==");
+        assertThat(rowShardResolver.routing()).isEqualTo("hoschi");
     }
 
     @Test
@@ -112,12 +112,12 @@ public class RowShardResolverTest extends ESTestCase {
             new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
 
         rowShardResolver.setNextRow(row(1, "hoschi"));
-        assertThat(rowShardResolver.id(), is("AgZob3NjaGkBMQ=="));
-        assertThat(rowShardResolver.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id()).isEqualTo("AgZob3NjaGkBMQ==");
+        assertThat(rowShardResolver.routing()).isEqualTo("hoschi");
 
         rowShardResolver.setNextRow(row(2, "galoschi"));
-        assertThat(rowShardResolver.id(), is("AghnYWxvc2NoaQEy"));
-        assertThat(rowShardResolver.routing(), is("galoschi"));
+        assertThat(rowShardResolver.id()).isEqualTo("AghnYWxvc2NoaQEy");
+        assertThat(rowShardResolver.routing()).isEqualTo("galoschi");
     }
 
     @Test
@@ -128,29 +128,94 @@ public class RowShardResolverTest extends ESTestCase {
         rowShardResolver.setNextRow(row(1, "hoschi", null));
 
         // generated _id, special routing
-        assertNotNull(rowShardResolver.id());
-        assertThat(rowShardResolver.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id()).isNotNull();
+        assertThat(rowShardResolver.routing()).isEqualTo("hoschi");
     }
 
     @Test
     public void testPrimaryKeyNullException() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("A primary key value must not be NULL");
-
         List<Symbol> primaryKeySymbols = List.of(new InputColumn(0));
         RowShardResolver rowShardResolver =
             new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id")), primaryKeySymbols, null, null);
-        rowShardResolver.setNextRow(row(new Object[]{null}));
+
+        assertThatThrownBy(() -> rowShardResolver.setNextRow(row(new Object[]{null})))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("A primary key value must not be NULL");
     }
 
     @Test
     public void testMultiPrimaryKeyNullException() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("A primary key value must not be NULL");
-
         List<Symbol> primaryKeySymbols = List.of(new InputColumn(1), new InputColumn(0));
         RowShardResolver rowShardResolver =
             new RowShardResolver(txnCtx, nodeCtx, List.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
-        rowShardResolver.setNextRow(row(1, null));
+
+        assertThatThrownBy(() -> rowShardResolver.setNextRow(row(1, null)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("A primary key value must not be NULL");
+    }
+
+    @Test
+    public void test_auto_generated_timestamp_is_set_if_pk_is_internal_id() {
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(0));
+        var rowShardResolver = new RowShardResolver(
+            txnCtx,
+            nodeCtx,
+            List.of(DocSysColumns.ID),
+            primaryKeySymbols,
+            null,
+            null
+        );
+        rowShardResolver.setNextRow(row(1));
+
+        assertThat(rowShardResolver.autoGeneratedTimestamp()).isGreaterThan(Translog.UNSET_AUTO_GENERATED_TIMESTAMP);
+    }
+
+    @Test
+    public void test_auto_generated_timestamp_is_not_set_if_pk_is_not_internal_id() {
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(0));
+        var rowShardResolver = new RowShardResolver(
+            txnCtx,
+            nodeCtx,
+            List.of(new ColumnIdent("my_pk")),
+            primaryKeySymbols,
+            null,
+            null
+        );
+        rowShardResolver.setNextRow(row(1));
+        assertThat(rowShardResolver.autoGeneratedTimestamp()).isEqualTo(Translog.UNSET_AUTO_GENERATED_TIMESTAMP);
+    }
+
+    @Test
+    public void test_auto_generated_timestamp_is_not_set_if_multiple_pk_are_used() {
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(0), new InputColumn(1));
+        var rowShardResolver = new RowShardResolver(
+            txnCtx,
+            nodeCtx,
+            List.of(DocSysColumns.ID, new ColumnIdent("my_pk")),
+            primaryKeySymbols,
+            null,
+            null
+        );
+        rowShardResolver.setNextRow(row(1, "hoschi"));
+        assertThat(rowShardResolver.autoGeneratedTimestamp()).isEqualTo(Translog.UNSET_AUTO_GENERATED_TIMESTAMP);
+    }
+
+    /**
+     * Test partition table scenario, were no primary key is defined.
+     * See {@link io.crate.metadata.doc.DocTableInfo}
+     */
+    @Test
+    public void test_auto_generated_timestamp_is_set_if_no_pk_are_used() {
+        List<Symbol> primaryKeySymbols = List.of(new InputColumn(0));
+        var rowShardResolver = new RowShardResolver(
+            txnCtx,
+            nodeCtx,
+            List.of(),
+            primaryKeySymbols,
+            null,
+            null
+        );
+        rowShardResolver.setNextRow(row(1));
+        assertThat(rowShardResolver.autoGeneratedTimestamp()).isGreaterThan(Translog.UNSET_AUTO_GENERATED_TIMESTAMP);
     }
 }
