@@ -71,6 +71,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
+import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -107,7 +108,6 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
@@ -761,7 +761,7 @@ public class Node implements Closeable {
                     b.bind(RestoreService.class).toInstance(restoreService);
                     b.bind(BlobIndicesService.class).toInstance(blobIndicesService);
                     b.bind(BlobTransferTarget.class).toInstance(blobTransferTarget);
-                    b.bind(Discovery.class).toInstance(discoveryModule.getDiscovery());
+                    b.bind(Coordinator.class).toInstance(discoveryModule.getCoordinator());
                     {
                         processRecoverySettings(settingsModule.getClusterSettings(), recoverySettings);
                         b.bind(PeerRecoverySourceService.class).toInstance(
@@ -947,8 +947,8 @@ public class Node implements Closeable {
         clusterService.setNodeConnectionsService(nodeConnectionsService);
 
         injector.getInstance(GatewayService.class).start();
-        Discovery discovery = injector.getInstance(Discovery.class);
-        clusterService.getMasterService().setClusterStatePublisher(discovery::publish);
+        Coordinator coordinator = injector.getInstance(Coordinator.class);
+        clusterService.getMasterService().setClusterStatePublisher(coordinator::publish);
 
         HttpServerTransport httpServerTransport = injector.getInstance(HttpServerTransport.class);
         httpServerTransport.start();
@@ -996,13 +996,13 @@ public class Node implements Closeable {
                 .flatMap(p -> p.getBootstrapChecks().stream()).collect(Collectors.toList()));
 
         // start after transport service so the local disco is known
-        discovery.start(); // start before cluster service so that it can set initial state on ClusterApplierService
+        coordinator.start(); // start before cluster service so that it can set initial state on ClusterApplierService
         clusterService.start();
 
         assert clusterService.localNode().equals(localNodeFactory.getNode())
             : "clusterService has a different local node than the factory provided";
         transportService.acceptIncomingRequests();
-        discovery.startInitialJoin();
+        coordinator.startInitialJoin();
         final TimeValue initialStateTimeout = INITIAL_STATE_TIMEOUT_SETTING.get(settings);
         configureNodeAndClusterIdStateListener(clusterService);
 
@@ -1077,7 +1077,7 @@ public class Node implements Closeable {
         injector.getInstance(IndicesClusterStateService.class).stop();
         // close discovery early to not react to pings anymore.
         // This can confuse other nodes and delay things - mostly if we're the master and we're running tests.
-        injector.getInstance(Discovery.class).stop();
+        injector.getInstance(Coordinator.class).stop();
         // we close indices first, so operations won't be allowed on it
         injector.getInstance(ClusterService.class).stop();
         injector.getInstance(NodeConnectionsService.class).stop();
@@ -1158,7 +1158,7 @@ public class Node implements Closeable {
         toClose.add(() -> stopWatch.stop().start("node_connections_service"));
         toClose.add(injector.getInstance(NodeConnectionsService.class));
         toClose.add(() -> stopWatch.stop().start("discovery"));
-        toClose.add(injector.getInstance(Discovery.class));
+        toClose.add(injector.getInstance(Coordinator.class));
         toClose.add(() -> stopWatch.stop().start("monitor"));
         toClose.add(nodeService.getMonitorService());
         toClose.add(() -> stopWatch.stop().start("fsHealth"));

@@ -60,7 +60,7 @@ public class CreateSubscriptionPlanTest extends CrateDummyClusterServiceUnitTest
         TestingRowConsumer consumer = new TestingRowConsumer(true);
         plan.execute(
             mock(DependencyCarrier.class, Answers.RETURNS_MOCKS),
-            executor.getPlannerContext(clusterService.state()),
+            executor.getPlannerContext(),
             consumer,
             Row.EMPTY,
             SubQueryResults.EMPTY

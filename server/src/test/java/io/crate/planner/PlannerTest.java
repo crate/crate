@@ -125,7 +125,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> LogicalPlanner.getNodeOperationTree(
                 plan,
                 mock(DependencyCarrier.class),
-                e.getPlannerContext(clusterService.state()),
+                e.getPlannerContext(),
                 new Row1("foo"),
                 SubQueryResults.EMPTY
             ))

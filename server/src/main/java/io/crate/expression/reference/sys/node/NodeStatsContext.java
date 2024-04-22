@@ -381,18 +381,17 @@ public class NodeStatsContext implements Writeable {
         out.writeOptionalWriteable(threadPools);
         if (out.getVersion().onOrAfter(Version.V_5_8_0)) {
             out.writeOptionalWriteable(httpStats);
-        } else {
-            // old HttpStats was holding only open and total connections
-            out.writeVLong(httpStats.open());
-            out.writeVLong(httpStats.total());
-        }
-        out.writeOptionalWriteable(psqlStats);
-        if (out.getVersion().onOrAfter(Version.V_5_8_0)) {
+            out.writeOptionalWriteable(psqlStats);
             out.writeOptionalWriteable(transportStats);
         } else {
-            // old transport stats was holding only open connections
+            // old stats were using only open and total connections, and for transport only open connections
+            out.writeVLong(httpStats.open());
+            out.writeVLong(httpStats.total());
+            out.writeVLong(psqlStats.open());
+            out.writeVLong(psqlStats.total());
             out.writeLong(transportStats.open());
         }
+
         out.writeLong(clusterStateVersion);
 
         DataTypes.STRING.writeValueTo(out, osName);

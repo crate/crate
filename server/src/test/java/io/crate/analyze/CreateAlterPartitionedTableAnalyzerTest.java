@@ -103,7 +103,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 new PartitionName(multiPartName, Arrays.asList("1395961200000", "-100")).toString(),
                 new PartitionName(multiPartName, Arrays.asList(null, "-100")).toString()
             );
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     @SuppressWarnings("unchecked")

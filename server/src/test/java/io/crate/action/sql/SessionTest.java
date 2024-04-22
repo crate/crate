@@ -23,7 +23,6 @@ package io.crate.action.sql;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -272,7 +271,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_bulk_operations_result_in_jobslog_entries() throws Exception {
-        Planner planner = mock(Planner.class);
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
             .setPlanner(planner)
             .build()
@@ -318,7 +317,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_kills_query_if_not_completed_within_statement_timeout() throws Exception {
-        Planner planner = mock(Planner.class);
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
             .setPlanner(planner)
             .build();

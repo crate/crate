@@ -55,7 +55,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
         e = SQLExecutor.builder(clusterService)
             .setAnalysisPlugins(List.of(new CommonAnalysisPlugin()))
             .build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     private ClusterUpdateSettingsRequest analyze(String stmt, Object... arguments) {

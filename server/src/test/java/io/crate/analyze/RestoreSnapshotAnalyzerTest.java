@@ -88,7 +88,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .addPartitionedTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS)
             .addBlobTable("create blob table my_blobs");
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     @SuppressWarnings({"unchecked"})
