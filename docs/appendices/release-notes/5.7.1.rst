@@ -54,3 +54,8 @@ Fixes
 - Fixed an issue that resulted on the garbage collection logging environment
   variables being ignored in Windows.
 
+- Fixed an issue that caused assigning a wrong number of replicas to closed
+  tables after cluster was re-balanced (for example by adding a node), if
+  tables were created with :ref:`sql-create-table-number-of-replicas` specified
+  as a range.
+
