@@ -426,11 +426,13 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
             }
-            if (in.readBoolean()) {
-                throw new IllegalArgumentException("Cannot handle upsert request from a node running version " + in.getVersion());
-            } else if (in.getVersion().before(Version.V_5_3_0)) {
-                // Below 5.3.0 a NULL source indicates a item to be skipped instead of the later introduced marker.
-                seqNo = SequenceNumbers.SKIP_ON_REPLICA;
+            if (in.getVersion().before(Version.V_5_8_0)) {
+                if (in.readBoolean()) {
+                    throw new IllegalArgumentException("Cannot handle upsert request from a node running version " + in.getVersion());
+                } else if (in.getVersion().before(Version.V_5_3_0)) {
+                    // Below 5.3.0 a NULL source indicates a item to be skipped instead of the later introduced marker.
+                    seqNo = SequenceNumbers.SKIP_ON_REPLICA;
+                }
             }
             if (streamPkValues(in.getVersion())) {
                 pkValues = in.readList(StreamInput::readString);
@@ -467,7 +469,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             } else {
                 out.writeVInt(0);
             }
-            out.writeBoolean(false);    // redundant source unavailable flag
+            if (out.getVersion().before(Version.V_5_8_0)) {
+                out.writeBoolean(false);    // redundant source unavailable flag
+            }
             if (streamPkValues(out.getVersion())) {
                 out.writeStringCollection(pkValues);
             }
