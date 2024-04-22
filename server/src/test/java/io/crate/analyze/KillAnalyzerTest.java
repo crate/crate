@@ -45,7 +45,7 @@ public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     private UUID analyze(String stmt, Object... arguments) {

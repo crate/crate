@@ -88,17 +88,17 @@ public class PlannerContext {
     /**
      * @param params See {@link #params()}
      */
-    public PlannerContext(ClusterState clusterState,
-                          RoutingProvider routingProvider,
-                          UUID jobId,
-                          CoordinatorTxnCtx coordinatorTxnCtx,
-                          NodeContext nodeCtx,
-                          int fetchSize,
-                          @Nullable Row params,
-                          Cursors cursors,
-                          TransactionState transactionState,
-                          PlanStats planStats,
-                          BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize) {
+    PlannerContext(ClusterState clusterState,
+                   RoutingProvider routingProvider,
+                   UUID jobId,
+                   CoordinatorTxnCtx coordinatorTxnCtx,
+                   NodeContext nodeCtx,
+                   int fetchSize,
+                   @Nullable Row params,
+                   Cursors cursors,
+                   TransactionState transactionState,
+                   PlanStats planStats,
+                   BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize) {
         this(
             clusterState,
             routingProvider,

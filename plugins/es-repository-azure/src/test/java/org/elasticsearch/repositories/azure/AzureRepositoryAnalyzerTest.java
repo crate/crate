@@ -50,7 +50,7 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
         repositoryParamValidator = new RepositoryParamValidator(
             Map.of("azure", new TypeSettings(AzureRepository.mandatorySettings(), AzureRepository.optionalSettings()))
         );

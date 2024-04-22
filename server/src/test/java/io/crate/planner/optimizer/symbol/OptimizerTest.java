@@ -40,7 +40,7 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
     public void test_like_on_numeric_columns_keeps_cast_around_reference() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int)");
-        Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("x like 10"), e.getPlannerContext(clusterService.state()));
+        Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("x like 10"), e.getPlannerContext());
         assertThat(symbol).isFunction("op_like", isFunction("_cast"), isLiteral("10"));
     }
 
@@ -49,7 +49,7 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (strCol string, intCol int)");
 
-        Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("strCol::bigint > 3"), e.getPlannerContext(clusterService.state()));
+        Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("strCol::bigint > 3"), e.getPlannerContext());
 
         assertThat(symbol).isFunction(GtOperator.NAME, isFunction("cast"), isLiteral(3L));
     }
@@ -61,7 +61,7 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
 
         // The symbol to optimize, because of ExpressionAnalyzer cast logic is
         // _cast(bytcol, smallint) = 3
-        Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("bytecol = 3::short"), e.getPlannerContext(clusterService.state()));
+        Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("bytecol = 3::short"), e.getPlannerContext());
         assertThat(symbol).isFunction(EqOperator.NAME, isReference("bytecol"), isFunction("_cast"));
     }
 }

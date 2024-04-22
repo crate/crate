@@ -102,7 +102,7 @@ public final class QueryTester implements AutoCloseable {
                 .of(clusterService)
                 .setColumnOidSupplier(columnOidSupplier)
                 .addTable(createTableStmt);
-            plannerContext = sqlExecutor.getPlannerContext(clusterService.state());
+            plannerContext = sqlExecutor.getPlannerContext();
 
             var createTable = (CreateTable<?>) SqlParser.createStatement(createTableStmt);
             String tableName = Iterables.getLast(createTable.name().getName().getParts());

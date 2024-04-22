@@ -90,7 +90,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
         Map<RelationName, AnalyzedRelation> sources = Map.of(name, new TableRelation(tableInfo));
         e = new SqlExpressions(sources);
         tr1 = (AbstractTableRelation<?>) sources.get(tableInfo.ident());
-        plannerContext = SQLExecutor.builder(clusterService).build().getPlannerContext(clusterService.state());
+        plannerContext = SQLExecutor.builder(clusterService).build().getPlannerContext();
     }
 
     private Symbol toQuery(String query) {

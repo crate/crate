@@ -57,7 +57,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .addBlobTable("create blob table blobs");
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     private OptimizeTablePlan.BoundOptimizeTable analyze(String stmt, Object... arguments) {
