@@ -101,8 +101,9 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                 LogicalPlan lhs = nestedLoop.sources().get(0);
                 LogicalPlan newLhs = order.replaceSources(List.of(lhs));
                 return new NestedLoopJoin(
+                    nestedLoop.outputs(),
                     newLhs,
-                    nestedLoop.sources().get(1),
+                    nestedLoop.rhs(),
                     nestedLoop.joinType(),
                     nestedLoop.joinCondition(),
                     nestedLoop.isFiltered(),

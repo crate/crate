@@ -262,15 +262,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(plan).isEqualTo(
             """
-            Eval[i, cnt]
-              └ HashJoin[(cnt = cast(i AS bigint))]
-                ├ Rename[cnt] AS t1
-                │  └ Eval[count(*) AS cnt]
-                │    └ Count[doc.t1 | true]
-                └ Rename[i] AS t2
-                  └ Fetch[i]
-                    └ Limit[1::bigint;0]
-                      └ Collect[doc.t2 | [_fetchid] | true]
+            HashJoin[(cnt = cast(i AS bigint))]
+              ├ Rename[cnt] AS t1
+              │  └ Eval[count(*) AS cnt]
+              │    └ Count[doc.t1 | true]
+              └ Rename[i] AS t2
+                └ Fetch[i]
+                  └ Limit[1::bigint;0]
+                    └ Collect[doc.t2 | [_fetchid] | true]
             """);
     }
 
@@ -384,12 +383,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """);
         assertThat(plan).isEqualTo(
             """
-            Eval[x, a, x, a]
-              └ HashJoin[(x = x)]
-                ├ Rename[a, x] AS doc.v2
-                │  └ Collect[doc.t1 | [a, x] | true]
-                └ Rename[a, x] AS doc.v3
-                  └ Collect[doc.t1 | [a, x] | true]
+            HashJoin[(x = x)]
+              ├ Rename[a, x] AS doc.v2
+              │  └ Collect[doc.t1 | [a, x] | true]
+              └ Rename[a, x] AS doc.v3
+                └ Collect[doc.t1 | [a, x] | true]
             """);
     }
 

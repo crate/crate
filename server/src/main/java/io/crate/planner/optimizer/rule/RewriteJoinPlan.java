@@ -64,12 +64,14 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
         if (txnCtx.sessionSettings().hashJoinsEnabled() &&
             EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
             return new HashJoin(
+                join.outputs(),
                 join.lhs(),
                 join.rhs(),
                 join.joinCondition()
             );
         } else {
             return new NestedLoopJoin(
+                join.outputs(),
                 join.lhs(),
                 join.rhs(),
                 join.joinType(),

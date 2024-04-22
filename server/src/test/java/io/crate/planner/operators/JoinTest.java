@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -200,15 +199,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         e.updateTableStats(rowCountByTable);
 
         LogicalPlan plan = buildLogicalPlan(mss);
-        assertThat(plan).isEqualTo("Eval[name, id]\n" +
-                                   "  └ HashJoin[(id = id)]\n" +
-                                   "    ├ Collect[doc.users | [name, id] | true]\n" +
-                                   "    └ Collect[doc.locations | [id] | true]");
+        assertThat(plan).isEqualTo(
+                                   "HashJoin[(id = id)]\n" +
+                                   "  ├ Collect[doc.users | [name, id] | true]\n" +
+                                   "  └ Collect[doc.locations | [id] | true]");
 
-        var hashjoin = plan.sources().get(0);
-        assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
+        assertThat(plan).isExactlyInstanceOf(HashJoin.class);
 
-        Join join = buildJoin(hashjoin);
+        Join join = buildJoin(plan);
         assertThat(tableName(join.left())).isEqualTo("users");
         assertThat(tableName(join.right())).isEqualTo("locations");
     }
@@ -274,11 +272,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         context.transactionContext().sessionSettings().setHashJoinEnabled(false);
 
         LogicalPlan plan = buildLogicalPlan(mss, context);
-        assertThat(plan).isEqualTo("Eval[id]\n" +
-                                   "  └ NestedLoopJoin[INNER | (id = id)]\n" +
-                                   "    ├ OrderBy[id ASC]\n" +
-                                   "    │  └ Collect[doc.users | [id] | true]\n" +
-                                   "    └ Collect[doc.locations | [id] | true]");
+        assertThat(plan).isEqualTo(
+                                   "NestedLoopJoin[INNER | (id = id)]\n" +
+                                   "  ├ OrderBy[id ASC]\n" +
+                                   "  │  └ Collect[doc.users | [id] | true]\n" +
+                                   "  └ Collect[doc.locations | [id] | true]");
 
         var join = buildJoin(plan, context);
         assertThat(join.resultDescription().orderBy()).isNotNull();
@@ -297,12 +295,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = buildLogicalPlan(mss);
         assertThat(plan).isEqualTo(
-            "Eval[name, id]\n" +
-            "  └ HashJoin[(id = id)]\n" +
-            "    ├ Collect[doc.users | [name, id] | true]\n" +
-            "    └ Collect[doc.locations | [id] | true]"
+            "HashJoin[(id = id)]\n" +
+            "  ├ Collect[doc.users | [name, id] | true]\n" +
+            "  └ Collect[doc.locations | [id] | true]"
         );
-        var hashJoin = plan.sources().get(0);
+        var hashJoin = plan;
         assertThat(hashJoin).isExactlyInstanceOf(HashJoin.class);
         assertThat(((HashJoin) hashJoin).rhs().relationNames())
             .as("Smaller table must be on the right-hand-side")
@@ -325,20 +322,18 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         e.updateTableStats(rowCountByTable);
 
         LogicalPlan plan = buildLogicalPlan(mss);
-        assertThat(plan).isEqualTo("Eval[name, id]\n" +
-                                   "  └ Eval[name, id, id]\n" +
-                                   "    └ HashJoin[(id = id)]\n" +
-                                   "      ├ Collect[doc.locations | [id] | true]\n" +
-                                   "      └ Collect[doc.users | [name, id] | true]");
+        assertThat(plan).isEqualTo(
+                                   "HashJoin[(id = id)]\n" +
+                                   "  ├ Collect[doc.users | [name, id] | true]\n" +
+                                   "  └ Collect[doc.locations | [id] | true]");
 
-        LogicalPlan hashjoin = plan.sources().get(0).sources().get(0);
-        assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
-        assertThat(((HashJoin) hashjoin).lhs().relationNames())
+        assertThat(plan).isExactlyInstanceOf(HashJoin.class);
+        assertThat(((HashJoin) plan).lhs().relationNames())
             .as("Smaller table must be on the left-hand-side")
-            .containsExactly(TEST_DOC_LOCATIONS_TABLE_IDENT);
+            .containsExactly(USER_TABLE_IDENT);
 
-        Join join = buildJoin(hashjoin);
-        assertThat(tableName(join.left())).isEqualTo("locations");
+        Join join = buildJoin(plan);
+        assertThat(tableName(join.left())).isEqualTo("users");
     }
 
     @Test
@@ -564,10 +559,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                             " where t1.a = users.address['postcode']");
         var expectedPlan =
             """
-            Eval[name]
-              └ HashJoin[(a = address['postcode'])]
-                ├ Collect[doc.users | [name, address['postcode']] | true]
-                └ Collect[doc.t1 | [a] | true]
+            HashJoin[(a = address['postcode'])]
+              ├ Collect[doc.users | [name, address['postcode']] | true]
+              └ Collect[doc.t1 | [a] | true]
             """;
         assertThat(logicalPlan).isEqualTo(expectedPlan);
 
@@ -577,11 +571,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                         " where t1.a = u.address['postcode']");
         expectedPlan =
             """
-            Eval[name]
-              └ HashJoin[(a = address['postcode'])]
-                ├ Rename[name, address['postcode']] AS u
-                │  └ Collect[doc.users | [name, address['postcode']] | true]
-                └ Collect[doc.t1 | [a] | true]
+            HashJoin[(a = address['postcode'])]
+              ├ Rename[name, address['postcode']] AS u
+              │  └ Collect[doc.users | [name, address['postcode']] | true]
+              └ Collect[doc.t1 | [a] | true]
             """;
         assertThat(logicalPlan).isEqualTo(expectedPlan);
     }
@@ -652,12 +645,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t3.z = t1.x AND t3.z = t2.y
             """);
         assertThat(logicalPlan).hasOperators(
-            "Eval[a, x, i, b, y, i, c, z]",
-            "  └ HashJoin[(z = y)]",
-            "    ├ HashJoin[(z = x)]",
-            "    │  ├ Collect[doc.t1 | [a, x, i] | true]",
-            "    │  └ Collect[doc.t3 | [c, z] | true]",
-            "    └ Collect[doc.t2 | [b, y, i] | true]"
+            "HashJoin[(z = y)]",
+            "  ├ HashJoin[(z = x)]",
+            "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "  │  └ Collect[doc.t3 | [c, z] | true]",
+            "  └ Collect[doc.t2 | [b, y, i] | true]"
         );
     }
 
@@ -690,15 +682,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan logicalPlan = executor.logicalPlan(statement);
         assertThat(logicalPlan).isEqualTo(
             """
-            Eval[time, sensor_id, battery_level]
-              └ NestedLoopJoin[LEFT | ((time = time) AND (sensor_id = sensor_id))]
-                ├ NestedLoopJoin[CROSS]
-                │  ├ Rename[time] AS time_series
-                │  │  └ TableFunction[generate_series | [generate_series] | true]
-                │  └ Rename[sensor_id] AS sensors
-                │    └ TableFunction[unnest | [unnest] | true]
-                └ Rename[battery_level, time, sensor_id] AS readings
-                  └ Collect[doc.sensor_readings | [battery_level, time, sensor_id] | true]
+             NestedLoopJoin[LEFT | ((time = time) AND (sensor_id = sensor_id))]
+              ├ NestedLoopJoin[CROSS]
+              │  ├ Rename[time] AS time_series
+              │  │  └ TableFunction[generate_series | [generate_series] | true]
+              │  └ Rename[sensor_id] AS sensors
+              │    └ TableFunction[unnest | [unnest] | true]
+              └ Rename[battery_level, time, sensor_id] AS readings
+                └ Collect[doc.sensor_readings | [battery_level, time, sensor_id] | true]
             """
         );
 
@@ -716,10 +707,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(logicalPlan).isEqualTo(
             """
-            Eval[a, x, i, b]
-              └ HashJoin[(x = y)]
-                ├ Collect[doc.t1 | [a, x, i] | true]
-                └ Collect[doc.t2 | [b, y] | (b = 'abc')]
+            HashJoin[(x = y)]
+              ├ Collect[doc.t1 | [a, x, i] | true]
+              └ Collect[doc.t2 | [b, y] | (b = 'abc')]
             """);
     }
 
@@ -1084,10 +1074,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(result).isEqualTo(
             "NestedLoopJoin[INNER | (b = c)]\n" +
-            "  ├ Eval[a, b]\n" +
-            "  │  └ NestedLoopJoin[INNER | (a = b)]\n" +
-            "  │    ├ Collect[doc.t2 | [b] | true]\n" +
-            "  │    └ Collect[doc.t1 | [a] | true]\n" +
+            "  ├ NestedLoopJoin[INNER | (a = b)]\n" +
+            "  │  ├ Collect[doc.t2 | [b] | true]\n" +
+            "  │  └ Collect[doc.t1 | [a] | true]\n" +
             "  └ Collect[doc.t3 | [c] | true]"
         );
         assertThat(result.relationNames().get(0).toString()).isEqualTo("doc.t2");

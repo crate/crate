@@ -21,7 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SequencedCollection;
 import java.util.Set;
@@ -34,7 +33,6 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -47,25 +45,8 @@ public class JoinPlan extends AbstractJoinPlan {
     private final boolean lookUpJoinRuleApplied;
     private final boolean moveConstantJoinConditionRuleApplied;
 
-    public JoinPlan(LogicalPlan lhs,
-                    LogicalPlan rhs,
-                    JoinType joinType,
-                    @Nullable Symbol joinCondition,
-                    boolean isFiltered,
-                    boolean rewriteFilterOnOuterJoinToInnerJoinDone,
-                    boolean lookUpJoinRuleApplied) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, rewriteFilterOnOuterJoinToInnerJoinDone, lookUpJoinRuleApplied, false);
-    }
-
-    @VisibleForTesting
-    public JoinPlan(LogicalPlan lhs,
-                    LogicalPlan rhs,
-                    JoinType joinType,
-                    @Nullable Symbol joinCondition) {
-        this(lhs, rhs, joinType, joinCondition, false, false, false, false);
-    }
-
-    private JoinPlan(LogicalPlan lhs,
+    public JoinPlan(List<Symbol> outputs,
+                     LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition,
@@ -73,11 +54,19 @@ public class JoinPlan extends AbstractJoinPlan {
                     boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                     boolean lookUpJoinRuleApplied,
                     boolean moveConstantJoinConditionRuleApplied) {
-        super(lhs, rhs, joinCondition, joinType);
+        super(outputs, lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
         this.lookUpJoinRuleApplied = lookUpJoinRuleApplied;
         this.moveConstantJoinConditionRuleApplied = moveConstantJoinConditionRuleApplied;
+    }
+
+    @VisibleForTesting
+    public JoinPlan(LogicalPlan lhs,
+                    LogicalPlan rhs,
+                    JoinType joinType,
+                    @Nullable Symbol joinCondition) {
+        this(buildOutputs(lhs.outputs(), rhs.outputs(), joinType), lhs, rhs, joinType, joinCondition, false, false, false, false);
     }
 
     public boolean isLookUpJoinRuleApplied() {
@@ -98,6 +87,7 @@ public class JoinPlan extends AbstractJoinPlan {
 
     public JoinPlan withMoveConstantJoinConditionRuleApplied(boolean moveConstantJoinConditionRuleApplied) {
         return new JoinPlan(
+            outputs,
             lhs,
             rhs,
             joinType,
@@ -130,24 +120,14 @@ public class JoinPlan extends AbstractJoinPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
-        LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
-        for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
-        }
-        if (joinCondition != null) {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        }
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
-        if (newLhs == lhs && newRhs == rhs) {
+        PrunedOutputsResult pruned = pruneOutputs(outputsToKeep);
+        if (pruned == null) {
             return this;
         }
         return new JoinPlan(
-            newLhs,
-            newRhs,
+            List.copyOf(pruned.outputs()),
+            pruned.lhs(),
+            pruned.rhs(),
             joinType,
             joinCondition,
             isFiltered,
@@ -175,6 +155,7 @@ public class JoinPlan extends AbstractJoinPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new JoinPlan(
+            outputs,
             sources.get(0),
             sources.get(1),
             joinType,

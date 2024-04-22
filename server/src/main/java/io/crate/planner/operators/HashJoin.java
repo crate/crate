@@ -27,8 +27,6 @@ import static io.crate.planner.operators.NestedLoopJoin.createJoinProjection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SequencedCollection;
 import java.util.Set;
@@ -46,7 +44,6 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
@@ -63,7 +60,14 @@ public class HashJoin extends AbstractJoinPlan {
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
-        super(lhs, rhs, joinCondition, JoinType.INNER);
+        super(buildOutputs(lhs.outputs(), rhs.outputs(), JoinType.INNER), lhs, rhs, joinCondition, JoinType.INNER);
+    }
+
+    public HashJoin(List<Symbol> outputs,
+                    LogicalPlan lhs,
+                    LogicalPlan rhs,
+                    Symbol joinCondition) {
+        super(outputs, lhs, rhs, joinCondition, JoinType.INNER);
     }
 
     @Override
@@ -166,6 +170,7 @@ public class HashJoin extends AbstractJoinPlan {
 
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new HashJoin(
+            outputs,
             sources.get(0),
             sources.get(1),
             joinCondition
@@ -174,22 +179,14 @@ public class HashJoin extends AbstractJoinPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
-        LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
-        for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
-        }
-        SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-        SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
-        if (newLhs == lhs && newRhs == rhs) {
+        PrunedOutputsResult pruned = pruneOutputs(outputsToKeep);
+        if (pruned == null) {
             return this;
         }
         return new HashJoin(
-            newLhs,
-            newRhs,
+            pruned.outputs(),
+            pruned.lhs(),
+            pruned.rhs(),
             joinCondition
         );
     }
@@ -197,27 +194,17 @@ public class HashJoin extends AbstractJoinPlan {
     @Nullable
     @Override
     public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
-        LinkedHashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
-        LinkedHashSet<Symbol> usedFromRight = new LinkedHashSet<>();
-        for (Symbol usedColumn : usedColumns) {
-            SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
-            SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
-        }
-        SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
-        SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
-        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
-        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
-        if (lhsFetchRewrite == null && rhsFetchRewrite == null) {
+        RewriteToFetchResult result = fetchRewrite(usedColumns);
+        if (result == null) {
             return null;
         }
-        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>();
-        NestedLoopJoin.setReplacedOutputs(lhs, lhsFetchRewrite, allReplacedOutputs);
-        NestedLoopJoin.setReplacedOutputs(rhs, rhsFetchRewrite, allReplacedOutputs);
+
         return new FetchRewrite(
-            allReplacedOutputs,
+            result.allReplacedOutputs(),
             new HashJoin(
-                lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
-                rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
+                result.outputs(),
+                result.lhs(),
+                result.rhs(),
                 joinCondition)
         );
     }
@@ -231,7 +218,7 @@ public class HashJoin extends AbstractJoinPlan {
     public void print(PrintContext printContext) {
         printContext
             .text("HashJoin[")
-            .text(joinCondition.toString())
+                .text(joinCondition.toString())
             .text("]");
         printStats(printContext);
         printContext.nest(

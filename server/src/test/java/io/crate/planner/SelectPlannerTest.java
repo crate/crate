@@ -680,7 +680,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerJoin.joinPhase().joinCondition()).isNull();
         assertThat(outerJoin.joinPhase().projections()).satisfiesExactly(
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
     }
 
@@ -1310,12 +1309,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
             """
-            Eval[name]
-              └ HashJoin[(name = concat(name, $1))]
-                ├ Rename[name] AS u1
-                │  └ Collect[doc.users | [name] | true]
-                └ Rename[name] AS u2
-                  └ Collect[doc.users | [name] | true]
+             HashJoin[(name = concat(name, $1))]
+              ├ Rename[name] AS u1
+              │  └ Collect[doc.users | [name] | true]
+              └ Rename[name] AS u2
+                └ Collect[doc.users | [name] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
 
@@ -1334,12 +1332,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
             """
-            Eval[name]
-              └ NestedLoopJoin[INNER | (NOT (name = concat(name, $1)))]
-                ├ Rename[name] AS u1
-                │  └ Collect[doc.users | [name] | true]
-                └ Rename[name] AS u2
-                  └ Collect[doc.users | [name] | true]
+              NestedLoopJoin[INNER | (NOT (name = concat(name, $1)))]
+              ├ Rename[name] AS u1
+              │  └ Collect[doc.users | [name] | true]
+              └ Rename[name] AS u2
+                └ Collect[doc.users | [name] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
 

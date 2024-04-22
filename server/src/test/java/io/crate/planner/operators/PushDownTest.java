@@ -130,11 +130,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("SELECT t2.y, t2.b, t1.i FROM t1 INNER JOIN t2 ON t1.a = t2.b ORDER BY t1.x desc");
         assertThat(plan).isEqualTo(
             """
-            Eval[y, b, i]
-              └ NestedLoopJoin[INNER | (a = b)]
-                ├ OrderBy[x DESC]
-                │  └ Collect[doc.t1 | [i, x, a] | true]
-                └ Collect[doc.t2 | [y, b] | true]
+            NestedLoopJoin[INNER | (a = b)]
+              ├ OrderBy[x DESC]
+              │  └ Collect[doc.t1 | [i, x, a] | true]
+              └ Collect[doc.t2 | [y, b] | true]
             """);
     }
 
@@ -230,11 +229,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).isEqualTo(
             """
-            Eval[i, i]
-              └ NestedLoopJoin[INNER | (x = y)]
-                ├ OrderBy[lower(b) ASC]
-                │  └ Collect[doc.t2 | [i, b, y] | true]
-                └ Collect[doc.t1 | [i, x] | true]
+            NestedLoopJoin[INNER | (x = y)]
+              ├ OrderBy[lower(b) ASC]
+              │  └ Collect[doc.t2 | [i, b, y] | true]
+              └ Collect[doc.t1 | [i, x] | true]
             """
         );
     }

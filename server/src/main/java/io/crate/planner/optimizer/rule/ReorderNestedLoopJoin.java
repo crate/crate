@@ -64,6 +64,7 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
                 // therefore we add an Eval on top with original output order
                 return Eval.create(
                     new NestedLoopJoin(
+                        nestedLoop.outputs(),
                         nestedLoop.rhs(),
                         nestedLoop.lhs(),
                         nestedLoop.joinType().invert(),

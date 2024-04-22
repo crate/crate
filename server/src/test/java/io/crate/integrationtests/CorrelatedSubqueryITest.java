@@ -313,7 +313,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "  └ Limit[3::bigint;0]\n" +
             "    └ OrderBy[table_name ASC column_name DESC]\n" +
             "      └ Filter[(attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)))]\n" +
-            "        └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
+            "        └ CorrelatedJoin[table_name, column_name, attrelid, table_schema, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
             "          └ NestedLoopJoin[LEFT | (attname = column_name)]\n" +
             "            ├ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]\n" +
             "            └ Rename[attname, attrelid] AS col_attr\n" +

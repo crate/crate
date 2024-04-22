@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
@@ -49,7 +48,6 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -67,23 +65,24 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     // this can be removed
     private boolean rewriteNestedLoopJoinToHashJoinDone = false;
 
-    NestedLoopJoin(LogicalPlan lhs,
+    public NestedLoopJoin(LogicalPlan lhs,
                    LogicalPlan rhs,
                    JoinType joinType,
-                   @Nullable Symbol joinCondition,
-                   boolean isFiltered) {
-        super(lhs, rhs, joinCondition, joinType);
-        this.isFiltered = isFiltered || joinCondition != null;
+                   @Nullable Symbol joinCondition) {
+        super(buildOutputs(lhs.outputs(), rhs.outputs(), joinType), lhs, rhs, joinCondition, joinType);
+        this.isFiltered = joinCondition != null;
     }
 
-    public NestedLoopJoin(LogicalPlan lhs,
+    public NestedLoopJoin(List<Symbol> outputs,
+                          LogicalPlan lhs,
                           LogicalPlan rhs,
                           JoinType joinType,
                           @Nullable Symbol joinCondition,
                           boolean isFiltered,
                           boolean orderByWasPushedDown,
                           boolean rewriteEquiJoinToHashJoinDone) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered);
+        super(outputs, lhs, rhs, joinCondition, joinType);
+        this.isFiltered = isFiltered || joinCondition != null;
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteNestedLoopJoinToHashJoinDone = rewriteEquiJoinToHashJoinDone;
     }
@@ -171,7 +170,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             isDistributed ? "distributed-nested-loop" : "nested-loop",
-            Collections.singletonList(createJoinProjection(outputs(), joinOutputs)),
+            Collections.singletonList(createJoinProjection(outputs, joinOutputs)),
             joinExecutionNodesAndMergePhases.v2().get(0),
             joinExecutionNodesAndMergePhases.v2().get(1),
             leftLogicalPlan.outputs().size(),
@@ -207,6 +206,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new NestedLoopJoin(
+            outputs,
             sources.get(0),
             sources.get(1),
             joinType,
@@ -219,24 +219,14 @@ public class NestedLoopJoin extends AbstractJoinPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
-        LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
-        for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
-        }
-        if (joinCondition != null) {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        }
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
-        if (newLhs == lhs && newRhs == rhs) {
+        PrunedOutputsResult pruned = pruneOutputs(outputsToKeep);
+        if (pruned == null) {
             return this;
         }
         return new NestedLoopJoin(
-            newLhs,
-            newRhs,
+            pruned.outputs(),
+            pruned.lhs(),
+            pruned.rhs(),
             joinType,
             joinCondition,
             isFiltered,
@@ -248,29 +238,17 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     @Nullable
     @Override
     public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
-        LinkedHashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
-        LinkedHashSet<Symbol> usedFromRight = new LinkedHashSet<>();
-        for (Symbol usedColumn : usedColumns) {
-            SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
-            SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
-        }
-        if (joinCondition != null) {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
-        }
-        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
-        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
-        if (lhsFetchRewrite == null && rhsFetchRewrite == null) {
+        RewriteToFetchResult result = fetchRewrite(usedColumns);
+        if (result == null) {
             return null;
         }
-        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>();
-        setReplacedOutputs(lhs, lhsFetchRewrite, allReplacedOutputs);
-        setReplacedOutputs(rhs, rhsFetchRewrite, allReplacedOutputs);
+
         return new FetchRewrite(
-            allReplacedOutputs,
+            result.allReplacedOutputs(),
             new NestedLoopJoin(
-                lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
-                rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
+                result.outputs(),
+                result.lhs(),
+                result.rhs(),
                 joinType,
                 joinCondition,
                 isFiltered,

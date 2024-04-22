@@ -121,12 +121,16 @@ public class JoinPlanBuilder {
 
         boolean isFiltered = validWhereConditions.symbolType().isValueSymbol() == false;
 
+        LogicalPlan newLhs = plan.apply(lhs);
+        LogicalPlan newRhs = plan.apply(rhs);
         LogicalPlan joinPlan = new JoinPlan(
-            plan.apply(lhs),
-            plan.apply(rhs),
+            Lists.concat(newLhs.outputs(), newRhs.outputs()),
+            newLhs,
+            newRhs,
             joinType,
             validJoinConditions,
             isFiltered,
+            false,
             false,
             false);
 
@@ -237,11 +241,13 @@ public class JoinPlanBuilder {
         );
         boolean isFiltered = query.symbolType().isValueSymbol() == false;
         var joinPlan = new JoinPlan(
+            Lists.concat(source.outputs(), nextPlan.outputs()),
             source,
             nextPlan,
             type,
             AndOperator.join(conditions, null),
             isFiltered,
+            false,
             false,
             false);
         return Filter.create(joinPlan, query);

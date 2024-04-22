@@ -103,16 +103,15 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false)" + query);
         assertThat(response).hasLines(
             "HashAggregate[count(name)]",
-            "  └ Eval[name, id, id]",
-            "    └ HashJoin[(id = id)]",
-            "      ├ MultiPhase",
-            "      │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
-            "      │  └ Eval[id]",
-            "      │    └ Rename[name, id] AS x",
-            "      │      └ Filter[(name = '1')]",
-            "      │        └ Collect[doc.t2 | [name, id] | true]",
-            "      └ Rename[name, id] AS x",
-            "        └ Collect[doc.t2 | [name, id] | (name = '1')]");
+            "  └ HashJoin[(id = id)]",
+            "    ├ MultiPhase",
+            "    │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
+            "    │  └ Eval[id]",
+            "    │    └ Rename[name, id] AS x",
+            "    │      └ Filter[(name = '1')]",
+            "    │        └ Collect[doc.t2 | [name, id] | true]",
+            "    └ Rename[name, id] AS x",
+            "      └ Collect[doc.t2 | [name, id] | (name = '1')]");
         execute(query);
         assertThat(response).hasRows("25");
     }

@@ -27,7 +27,6 @@ import java.util.function.UnaryOperator;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
@@ -57,15 +56,11 @@ public class ReorderHashJoin implements Rule<HashJoin> {
         // We move the smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.
         if (expectedRowsAvailable && lhStats.numDocs() < rhStats.numDocs()) {
-            // We need to preserve the output order even when lhs/rhs are swapped
-            // therefore we add an Eval on top
-            return Eval.create(
-                new HashJoin(
-                    plan.rhs(),
-                    plan.lhs(),
-                    plan.joinCondition()
-                ),
-                plan.outputs()
+            new HashJoin(
+                plan.outputs(),
+                plan.rhs(),
+                plan.lhs(),
+                plan.joinCondition()
             );
         }
         return null;

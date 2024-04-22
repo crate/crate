@@ -96,13 +96,15 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
             var newLhs = getNewSource(queryForLhs, lhs);
             var newRhs = getNewSource(queryForRhs, rhs);
             joinPlan = new JoinPlan(
+                joinPlan.outputs(),
                 newLhs,
                 newRhs,
                 joinPlan.joinType(),
                 AndOperator.join(nonConstantConditions),
                 joinPlan.isFiltered(),
                 joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                joinPlan.isLookUpJoinRuleApplied()
+                joinPlan.isLookUpJoinRuleApplied(),
+                true
             );
         }
         return joinPlan.withMoveConstantJoinConditionRuleApplied(true);

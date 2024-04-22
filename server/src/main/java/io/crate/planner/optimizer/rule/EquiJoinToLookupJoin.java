@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.PlannedRelation;
+import io.crate.common.collections.Lists;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
@@ -144,13 +145,15 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
         }
 
         return new JoinPlan(
+            Lists.concat(newLhs.outputs(), newRhs.outputs()),
             newLhs,
             newRhs,
             plan.joinType(),
             plan.joinCondition(),
             plan.isFiltered(),
             plan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-            true
+            true,
+            plan.moveConstantJoinConditionRuleApplied()
         );
     }
 
