@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
@@ -129,7 +128,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
     }
 
     private ImmutableOpenMap<String, IndexMetadata> getIndicesMetadataOnNode(String nodeName) {
-        final Coordinator coordinator = (Coordinator) cluster().getInstance(Discovery.class, nodeName);
+        final Coordinator coordinator = cluster().getInstance(Coordinator.class, nodeName);
         return coordinator.getApplierState().metadata().indices();
     }
 }

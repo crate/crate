@@ -21,20 +21,21 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import io.crate.data.Input;
-import io.crate.expression.reference.sys.SysRowUpdater;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.sys.SysNodeChecksTableInfo;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.LifecycleListener;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.discovery.Discovery;
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BiConsumer;
+
+import org.elasticsearch.cluster.coordination.Coordinator;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.LifecycleListener;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
+import io.crate.data.Input;
+import io.crate.expression.reference.sys.SysRowUpdater;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.sys.SysNodeChecksTableInfo;
 
 @Singleton
 public class SysNodeChecks implements SysRowUpdater<SysNodeCheck>, Iterable<SysNodeCheck> {
@@ -44,10 +45,10 @@ public class SysNodeChecks implements SysRowUpdater<SysNodeCheck>, Iterable<SysN
         (row, input) -> row.acknowledged((Boolean) input.value());
 
     @Inject
-    public SysNodeChecks(Map<Integer, SysNodeCheck> checks, Discovery discovery, ClusterService clusterService) {
+    public SysNodeChecks(Map<Integer, SysNodeCheck> checks, Coordinator coordinator, ClusterService clusterService) {
         this.checks = new HashMap<>(checks.size());
         // we need to wait for the discovery to finish to have a local node id
-        discovery.addLifecycleListener(new LifecycleListener() {
+        coordinator.addLifecycleListener(new LifecycleListener() {
             @Override
             public void afterStart() {
                 String nodeId = clusterService.localNode().getId();
