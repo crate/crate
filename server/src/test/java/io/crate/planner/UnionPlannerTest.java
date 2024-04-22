@@ -229,7 +229,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(1, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
-        var context = e.getPlannerContext(clusterService.state());
+        var context = e.getPlannerContext();
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),

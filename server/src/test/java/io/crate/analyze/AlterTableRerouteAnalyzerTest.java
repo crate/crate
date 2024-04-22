@@ -60,7 +60,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
             );
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     @SuppressWarnings("unchecked")

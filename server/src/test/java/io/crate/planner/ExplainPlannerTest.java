@@ -181,7 +181,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExplainAnalyzeMultiPhasePlanNotSupported() {
         ExplainPlan plan = e.plan("EXPLAIN ANALYZE SELECT * FROM users WHERE name = (SELECT 'crate') or id = (SELECT 1)");
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+        PlannerContext plannerContext = e.getPlannerContext();
         CountDownLatch counter = new CountDownLatch(1);
 
         AtomicReference<BatchIterator<Row>> itRef = new AtomicReference<>();
@@ -212,7 +212,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)");
 
         ExplainPlan plan = e.plan("EXPLAIN (COSTS FALSE) SELECT * FROM ts1 WHERE ts = ts");
-        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "Collect[doc.ts1 | [ts] | true]"
         );
@@ -222,7 +222,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_explain_verbose_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)");
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+        PlannerContext plannerContext = e.getPlannerContext();
 
         ExplainPlan plan = e.plan("EXPLAIN (VERBOSE TRUE, COSTS FALSE) SELECT * FROM ts1 WHERE ts = ts");
         List<Object[]> rows = execute(plan, plannerContext);
@@ -253,7 +253,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
 
         ExplainPlan plan = e.plan("EXPLAIN SELECT COUNT(a.x) FROM a join b on a.x = b.x");
-        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)] (rows=1)\n" +
             "  └ HashJoin[(x = x)] (rows=0)\n" +
@@ -261,7 +261,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    └ Collect[doc.b | [x] | true] (rows=100)"
         );
         plan = e.plan("EXPLAIN (COSTS TRUE) SELECT COUNT(a.x) FROM a join b on a.x = b.x");
-        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)] (rows=1)\n" +
             "  └ HashJoin[(x = x)] (rows=0)\n" +
@@ -269,7 +269,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    └ Collect[doc.b | [x] | true] (rows=100)"
         );
         plan = e.plan("EXPLAIN (COSTS FALSE) SELECT COUNT(a.x) FROM a join b on a.x = b.x");
-        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)]\n" +
             "  └ HashJoin[(x = x)]\n" +
@@ -283,7 +283,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.a (x int)")
             .addTable("CREATE TABLE doc.b (x int)");
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+        PlannerContext plannerContext = e.getPlannerContext();
 
         e.updateTableStats(Map.of(
             new RelationName("doc", "a"), new Stats(100, 100, Map.of()),

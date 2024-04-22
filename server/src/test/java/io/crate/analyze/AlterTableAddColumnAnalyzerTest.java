@@ -50,7 +50,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     private SQLExecutor e;
 
     private AddColumnRequest analyze(String stmt) {
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+        PlannerContext plannerContext = e.getPlannerContext();
         AnalyzedAlterTableAddColumn analyze = e.analyze(stmt);
         return analyze.bind(
             plannerContext.nodeContext(),

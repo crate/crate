@@ -1764,18 +1764,14 @@ public abstract class IntegTestCase extends ESTestCase {
         );
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             UUID.randomUUID(),
             coordinatorTxnCtx,
-            nodeCtx,
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE,
-            new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats),
-            planner::optimize
+            TransactionState.IDLE
         );
         Plan plan = planner.plan(
             analyzer.analyze(

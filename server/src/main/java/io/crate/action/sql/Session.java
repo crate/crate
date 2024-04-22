@@ -79,7 +79,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
@@ -210,18 +209,14 @@ public class Session implements AutoCloseable {
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         mostRecentJobID = UUIDs.dirtyUUID();
         ClusterState clusterState = planner.currentClusterState();
-        PlannerContext plannerContext = new PlannerContext(
-            clusterState,
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             mostRecentJobID,
             txnCtx,
-            nodeCtx,
             0,
             params,
             cursors,
-            currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats),
-            planner::optimize
+            currentTransactionState
         );
         Plan plan;
         try {
@@ -249,8 +244,7 @@ public class Session implements AutoCloseable {
                     routingProvider,
                     new RowConsumerToResultReceiver(retryResultReceiver, 0, jobsLogsUpdateListener),
                     params,
-                    txnCtx,
-                    nodeCtx
+                    txnCtx
                 )
             );
         }
@@ -263,20 +257,15 @@ public class Session implements AutoCloseable {
                             RoutingProvider routingProvider,
                             RowConsumer consumer,
                             Row params,
-                            CoordinatorTxnCtx txnCtx,
-                            NodeContext nodeCtx) {
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
+                            CoordinatorTxnCtx txnCtx) {
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             jobId,
             txnCtx,
-            nodeCtx,
             0,
             params,
             cursors,
-            currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats),
-            planner::optimize
+            currentTransactionState
         );
         Plan plan = planner.plan(stmt, plannerContext);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
@@ -641,20 +630,15 @@ public class Session implements AutoCloseable {
         assert toExec.size() >= 1 : "Must have at least 1 deferred execution for bulk exec";
         mostRecentJobID = UUIDs.dirtyUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
-        var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionSettings);
-        var plannerContext = new PlannerContext(
-            clusterState,
+        var plannerContext = planner.createContext(
             routingProvider,
             mostRecentJobID,
             txnCtx,
-            nodeCtx,
             0,
             null,
             cursors,
-            currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats),
-            planner::optimize
+            currentTransactionState
         );
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
@@ -732,18 +716,14 @@ public class Session implements AutoCloseable {
         var txnCtx = new CoordinatorTxnCtx(sessionSettings);
         var nodeCtx = executor.nodeContext();
         var params = new RowN(portal.params().toArray());
-        var plannerContext = new PlannerContext(
-            clusterState,
+        var plannerContext = planner.createContext(
             routingProvider,
             mostRecentJobID,
             txnCtx,
-            nodeCtx,
             maxRows,
             params,
             cursors,
-            currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats),
-            planner::optimize
+            currentTransactionState
         );
         var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
@@ -775,8 +755,7 @@ public class Session implements AutoCloseable {
                         maxRows,
                         new JobsLogsUpdateListener(newJobId, jobsLogs)),
                     params,
-                    txnCtx,
-                    nodeCtx
+                    txnCtx
                 )
             );
         }

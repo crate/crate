@@ -100,7 +100,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateByQueryPlan() throws Exception {
         UpdatePlanner.Update plan = e.plan("update users set name='Vogon lyric fan'");
         Merge merge = (Merge) plan.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
+            e.getPlannerContext(), Row.EMPTY, SubQueryResults.EMPTY);
 
         Collect collect = (Collect) merge.subPlan();
 
@@ -175,7 +175,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateOnEmptyPartitionedTable() throws Exception {
         UpdatePlanner.Update update = e.plan("update empty_parted set name='Vogon lyric fan'");
         Collect collect = (Collect) update.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
+            e.getPlannerContext(), Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
     }
 
@@ -183,7 +183,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateUsingSeqNoRequiresPk() {
         UpdatePlanner.Update plan = e.plan("update users set name = 'should not update' where _seq_no = 11 and _primary_term = 1");
         assertThatThrownBy(() -> plan.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY))
+            e.getPlannerContext(), Row.EMPTY, SubQueryResults.EMPTY))
             .isExactlyInstanceOf(VersioningValidationException.class)
             .hasMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }

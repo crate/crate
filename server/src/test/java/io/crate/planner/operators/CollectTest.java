@@ -46,7 +46,7 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
     public void test() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE t (x int)");
-        PlannerContext plannerCtx = e.getPlannerContext(clusterService.state());
+        PlannerContext plannerCtx = e.getPlannerContext();
         ProjectionBuilder projectionBuilder = new ProjectionBuilder(e.nodeCtx);
         QueriedSelectRelation analyzedRelation = e.analyze("SELECT 123 AS alias, 456 AS alias2 FROM t ORDER BY alias, 2");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
