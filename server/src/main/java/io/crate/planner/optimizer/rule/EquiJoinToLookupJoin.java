@@ -180,7 +180,8 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             DataTypes.BOOLEAN
         );
         var largerSideWithLookup = new Filter(largerSide, anyEqFunction);
-        var smallerSideIdLookup = new RootRelationBoundary(smallerSide);
+        var smallerSidePruned = smallerSide.pruneOutputsExcept(List.of(smallerRelationColumn));
+        var smallerSideIdLookup = new RootRelationBoundary(smallerSidePruned);
         Map<LogicalPlan, SelectSymbol> subQueries = Map.of(smallerSideIdLookup, lookUpQuery);
         return MultiPhase.createIfNeeded(subQueries, largerSideWithLookup);
     }
