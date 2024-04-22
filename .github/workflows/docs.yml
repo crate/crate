@@ -40,6 +40,6 @@ jobs:
         uses: errata-ai/vale-action@v2.1.0
         with:
           files: docs/
-          version: 2.28.0
+          version: 3.4.1
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
