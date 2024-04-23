@@ -47,6 +47,10 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could prevent a :ref:`sql-restore-snapshot` from
+  restoring a partition if using the ``TABLE PARTITION (...)`` clause to restore
+  an individual partition of a table with more than one partition column.
+
 - Fixed an issue that allowed ``INSERT INTO`` statements to create more shards
   than allowed by :ref:`cluster.max_shards_per_node
   <cluster.max_shards_per_node>` if the statement resulted in the creation of
