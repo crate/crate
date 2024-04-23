@@ -508,8 +508,7 @@ public class SQLExecutor {
             () -> dependencyMock,
             jobsLogs,
             clusterService.getSettings(),
-            clusterService,
-            tableStats
+            clusterService
         );
         this.analyzer = analyzer;
         this.planner = planner;

@@ -57,7 +57,6 @@ import io.crate.role.Roles;
 import io.crate.role.Securable;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.sql.tree.Declare.Hold;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
@@ -77,8 +76,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             () -> dependencies,
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            clusterService,
-            new TableStats()
+            clusterService
         );
 
         KeyData keyData = new KeyData(10, 20);
@@ -147,8 +145,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             Settings.builder()
                 .put("statement_timeout", "30s")
                 .build(),
-            clusterService,
-            new TableStats()
+            clusterService
         );
         Session session = sessions.newSession("doc", Role.CRATE_USER);
         assertThat(session.sessionSettings().statementTimeout())
@@ -163,8 +160,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            clusterService,
-            new TableStats()
+            clusterService
         );
         return sessions;
     }
