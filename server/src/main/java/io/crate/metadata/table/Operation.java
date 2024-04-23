@@ -60,7 +60,14 @@ public enum Operation {
     public static final EnumSet<Operation> SYS_READ_ONLY = EnumSet.of(READ);
     public static final EnumSet<Operation> READ_ONLY = EnumSet.of(READ, ALTER_BLOCKS);
     public static final EnumSet<Operation> CLOSED_OPERATIONS = EnumSet.of(ALTER_OPEN, ALTER_CLOSE, ALTER_TABLE_RENAME, ALTER, ALTER_BLOCKS);
-    public static final EnumSet<Operation> BLOB_OPERATIONS = EnumSet.of(READ, OPTIMIZE, ALTER, ALTER_REROUTE, DROP);
+    public static final EnumSet<Operation> BLOB_OPERATIONS = EnumSet.of(
+        READ,
+        OPTIMIZE,
+        ALTER,
+        ALTER_BLOCKS,
+        ALTER_REROUTE,
+        DROP
+    );
     public static final EnumSet<Operation> READ_DISABLED_OPERATIONS = EnumSet.of(UPDATE, INSERT, DELETE, DROP, ALTER,
         ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, ALTER_BLOCKS, REFRESH, OPTIMIZE);
     public static final EnumSet<Operation> WRITE_DISABLED_OPERATIONS = EnumSet.of(READ, ALTER, ALTER_OPEN, ALTER_CLOSE,

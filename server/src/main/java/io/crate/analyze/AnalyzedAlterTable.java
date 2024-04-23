@@ -21,25 +21,25 @@
 
 package io.crate.analyze;
 
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.Assignment;
 
-import java.util.function.Consumer;
-
 public class AnalyzedAlterTable implements DDLStatement {
 
-    private final DocTableInfo tableInfo;
+    private final TableInfo tableInfo;
     private final AlterTable<Symbol> alterTable;
 
-    public AnalyzedAlterTable(DocTableInfo tableInfo,
+    public AnalyzedAlterTable(TableInfo tableInfo,
                               AlterTable<Symbol> alterTable) {
         this.tableInfo = tableInfo;
         this.alterTable = alterTable;
     }
 
-    public DocTableInfo tableInfo() {
+    public TableInfo tableInfo() {
         return tableInfo;
     }
 

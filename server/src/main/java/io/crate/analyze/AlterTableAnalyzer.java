@@ -32,12 +32,10 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.AlterBlobTable;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRenameTable;
@@ -64,31 +62,14 @@ class AlterTableAnalyzer {
         CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
         var exprCtx = new ExpressionAnalysisContext(sessionSettings);
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
-        DocTableInfo docTableInfo = schemas.findRelation(
+        TableInfo TableInfo = schemas.findRelation(
             alterTable.table().getName(),
             Operation.ALTER_BLOCKS,
             sessionSettings.sessionUser(),
             sessionSettings.searchPath()
         );
 
-        return new AnalyzedAlterTable(docTableInfo, alterTable);
-    }
-
-    AnalyzedAlterBlobTable analyze(AlterBlobTable<Expression> node,
-                                   ParamTypeHints paramTypeHints,
-                                   CoordinatorTxnCtx txnCtx) {
-        RelationName relationName = RelationName.fromBlobTable(node.table());
-
-        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
-
-        AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
-
-        assert BlobSchemaInfo.NAME.equals(relationName.schema()) : "schema name must be 'blob'";
-        BlobTableInfo tableInfo = schemas.getTableInfo(relationName);
-
-        return new AnalyzedAlterBlobTable(tableInfo, alterTable);
+        return new AnalyzedAlterTable(TableInfo, alterTable);
     }
 
 

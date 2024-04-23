@@ -49,7 +49,6 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
-import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRole;
@@ -259,14 +258,6 @@ public class Analyzer {
 
     @SuppressWarnings("unchecked")
     private class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
-
-        @Override
-        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable<?> node, Analysis context) {
-            return alterTableAnalyzer.analyze(
-                (AlterBlobTable<Expression>) node,
-                context.paramTypeHints(),
-                context.transactionContext());
-        }
 
         @Override
         public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> node,

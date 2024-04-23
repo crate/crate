@@ -49,6 +49,12 @@ public class Table<T> extends QueryBody {
         this.partitionProperties = partitionProperties;
     }
 
+    public Table<T> withName(QualifiedName name) {
+        return partitionProperties.isEmpty()
+            ? new Table<>(name, excludePartitions)
+            : new Table<>(name, partitionProperties);
+    }
+
     public QualifiedName getName() {
         return name;
     }

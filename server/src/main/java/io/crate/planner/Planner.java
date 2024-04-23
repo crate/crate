@@ -37,7 +37,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.Cursors;
-import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -114,7 +113,6 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.consumer.CreateTableAsPlan;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
-import io.crate.planner.node.ddl.AlterBlobTablePlan;
 import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
@@ -392,12 +390,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitAlterTable(AnalyzedAlterTable alterTable, PlannerContext context) {
         return new AlterTablePlan(alterTable);
-    }
-
-    @Override
-    public Plan visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis,
-                                            PlannerContext context) {
-        return new AlterBlobTablePlan(analysis);
     }
 
     @Override
