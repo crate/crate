@@ -44,6 +44,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -97,23 +98,33 @@ public class AlterTablePlan implements Plan {
             params,
             subQueryResults
         );
-        DocTableInfo docTableInfo = analyzedAlterTable.tableInfo();
+        TableInfo tableInfo = analyzedAlterTable.tableInfo();
         AlterTable<Object> alterTable = analyzedAlterTable.alterTable().map(eval);
         Table<Object> table = alterTable.table();
 
-        PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), docTableInfo);
-        TableParameters tableParameters = getTableParameterInfo(table, docTableInfo, partitionName);
+        boolean isPartitioned = false;
+        PartitionName partitionName = null;
+        TableParameters tableParameters;
+        if (tableInfo instanceof DocTableInfo docTableInfo) {
+            partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), docTableInfo);
+            isPartitioned = docTableInfo.isPartitioned();
+            tableParameters = getTableParameterInfo(table, tableInfo, partitionName);
+        } else {
+            assert tableInfo.ident().schema().equals(BlobSchemaInfo.NAME) : "If tableInfo is not a DocTableInfo, the schema must be `blob`";
+            tableParameters = TableParameters.ALTER_BLOB_TABLE_PARAMETERS;
+        }
         TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
-        maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
+        maybeRaiseBlockedException(tableInfo, tableParameter.settings());
         return new BoundAlterTable(
-            docTableInfo,
+            tableInfo,
             partitionName,
             tableParameter,
             table.excludePartitions(),
-            docTableInfo.isPartitioned());
+            isPartitioned
+        );
     }
 
-    private static TableParameters getTableParameterInfo(Table table, TableInfo tableInfo, @Nullable PartitionName partitionName) {
+    private static TableParameters getTableParameterInfo(Table<?> table, TableInfo tableInfo, @Nullable PartitionName partitionName) {
         if (isReplicated(tableInfo.parameters())) {
             return TableParameters.REPLICATED_TABLE_ALTER_PARAMETER_INFO;
         }
@@ -143,5 +154,4 @@ public class AlterTablePlan implements Plan {
             Operation.blockedRaiseException(tableInfo, Operation.ALTER);
         }
     }
-
 }

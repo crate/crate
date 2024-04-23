@@ -70,7 +70,6 @@ import io.crate.sql.parser.antlr.SqlBaseParserBaseVisitor;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
-import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRole;
@@ -1388,14 +1387,30 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new AlterTable(name, identsToStrings(context.ident()));
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({"unchecked"})
     @Override
     public Node visitAlterBlobTableProperties(SqlBaseParser.AlterBlobTablePropertiesContext context) {
-        Table<?> name = (Table<?>) visit(context.alterTableDefinition());
+        Table<Expression> table = (Table<Expression>) visit(context.alterTableDefinition());
+        QualifiedName name = table.getName();
+        List<String> parts = name.getParts();
+
+        table = switch (parts.size()) {
+            case 1 -> table.withName(new QualifiedName(List.of("blob", parts.getFirst())));
+            case 2 -> {
+                String schema = parts.get(0);
+                if (schema.equalsIgnoreCase("blob")) {
+                    yield table;
+                } else {
+                    throw new IllegalArgumentException(
+                        "The Schema \"" + schema + "\" isn't valid in a ALTER BLOB TABLE clause");
+                }
+            }
+            default -> throw new IllegalArgumentException("Invalid tableName \"" + name + "\"");
+        };
         if (context.SET() != null) {
-            return new AlterBlobTable(name, extractGenericProperties(context.genericProperties()));
+            return new AlterTable<>(table, extractGenericProperties(context.genericProperties()));
         }
-        return new AlterBlobTable(name, identsToStrings(context.ident()));
+        return new AlterTable<>(table, identsToStrings(context.ident()));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

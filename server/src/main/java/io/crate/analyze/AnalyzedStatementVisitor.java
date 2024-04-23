@@ -107,10 +107,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis, C context) {
-        return visitDDLStatement(analysis, context);
-    }
-
     public R visitAnalyzedAlterRole(AnalyzedAlterRole analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }

@@ -25,7 +25,6 @@ import static io.crate.role.Permission.READ_WRITE_DEFINE;
 
 import java.util.Locale;
 
-import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -561,18 +560,6 @@ public final class AccessControlImpl implements AccessControl {
                 Permission.DDL,
                 Securable.TABLE,
                 analysis.sourceName().fqn()
-            );
-            return null;
-        }
-
-        @Override
-        public Void visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.tableInfo().ident().toString()
             );
             return null;
         }

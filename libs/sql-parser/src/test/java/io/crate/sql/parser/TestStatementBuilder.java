@@ -871,6 +871,12 @@ public class TestStatementBuilder {
         printStatement("alter blob table screenshots set (number_of_replicas=3)");
         printStatement("alter blob table screenshots set (number_of_replicas='0-all')");
         printStatement("alter blob table screenshots reset (number_of_replicas)");
+
+        assertThatThrownBy(() -> printStatement("alter blob table notblob.screenshots reset (number_of_replicas)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> printStatement("alter blob table this.isnota.tablename reset (number_of_replicas)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

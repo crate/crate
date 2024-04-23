@@ -213,14 +213,14 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testAlterBlobTableWithInvalidProperty() {
-        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (foobar='2')");
+        AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (foobar='2')");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
     }
 
     @Test
     public void testAlterBlobTableWithReplicas() {
-        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
+        AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
         assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
@@ -229,7 +229,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_alter_setting_block_read_only() {
-        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (\"blocks.read_only_allow_delete\"=true)");
+        AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (\"blocks.read_only_allow_delete\"=true)");
         assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
@@ -238,7 +238,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAlterBlobTableWithPath() {
-        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (blobs_path=1)");
+        AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (blobs_path=1)");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         assertThatThrownBy(() -> getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS))
             .isExactlyInstanceOf(IllegalArgumentException.class)
