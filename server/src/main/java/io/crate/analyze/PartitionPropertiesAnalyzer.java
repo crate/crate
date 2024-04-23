@@ -27,8 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
+import io.crate.exceptions.PartitionUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -51,7 +50,6 @@ public class PartitionPropertiesAnalyzer {
     }
 
     public static PartitionName toPartitionName(RelationName relationName, List<Assignment<Object>> partitionProperties) {
-
         String[] values = new String[partitionProperties.size()];
         int idx = 0;
         for (Assignment<Object> o : partitionProperties) {
@@ -60,25 +58,42 @@ public class PartitionPropertiesAnalyzer {
         return new PartitionName(relationName, List.of(values));
     }
 
+
+    /**
+     * Return a {@link PartitionName} for the given partition properties.
+     *
+     * @throws PartitionUnknownException if the partition is missing from the table
+     * @throws IllegalArgumentException if the table is not partitioned, or if the properties don't match the partitionBy clause
+     */
     public static PartitionName toPartitionName(DocTableInfo tableInfo,
-                                                List<Assignment<Object>> partitionProperties) {
+                                                List<Assignment<Object>> partitionsProperties) {
+        PartitionName partitionName = toPartitionNameUnsafe(tableInfo, partitionsProperties);
+        if (tableInfo.partitions().contains(partitionName) == false) {
+            throw new PartitionUnknownException(partitionName);
+        }
+        return partitionName;
+    }
+
+    /**
+     * Like {@link #toPartitionName(DocTableInfo, List) but doesn't raise a
+     * PartitionUnknownException if the table doesn't contain the partition
+     */
+    public static PartitionName toPartitionNameUnsafe(DocTableInfo tableInfo, List<Assignment<Object>> partitionsProperties) {
         if (!tableInfo.isPartitioned()) {
             throw new IllegalArgumentException("table '" + tableInfo.ident().fqn() + "' is not partitioned");
         }
-        if (partitionProperties.size() != tableInfo.partitionedBy().size()) {
+        if (partitionsProperties.size() != tableInfo.partitionedBy().size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
                 tableInfo.ident().fqn(),
                 tableInfo.partitionedBy().size(),
-                partitionProperties.size()
+                partitionsProperties.size()
             ));
         }
-        Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties);
+        Map<ColumnIdent, Object> properties = assignmentsToMap(partitionsProperties);
         String[] values = new String[properties.size()];
-
         for (Map.Entry<ColumnIdent, Object> entry : properties.entrySet()) {
             Object value = entry.getValue();
-
             int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
             try {
                 Reference reference = tableInfo.partitionedByColumns().get(idx);
@@ -90,21 +105,5 @@ public class PartitionPropertiesAnalyzer {
             }
         }
         return new PartitionName(tableInfo.ident(), Arrays.asList(values));
-    }
-
-    @Nullable
-    public static PartitionName createPartitionName(List<Assignment<Object>> partitionsProperties,
-                                                    DocTableInfo tableInfo) {
-        if (partitionsProperties.isEmpty()) {
-            return null;
-        }
-        PartitionName partitionName = toPartitionName(
-            tableInfo,
-            partitionsProperties
-        );
-        if (tableInfo.partitions().contains(partitionName) == false) {
-            throw new IllegalArgumentException("Referenced partition \"" + partitionName + "\" does not exist.");
-        }
-        return partitionName;
     }
 }

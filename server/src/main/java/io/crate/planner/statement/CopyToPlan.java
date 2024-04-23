@@ -35,6 +35,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
@@ -42,11 +43,9 @@ import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -280,12 +279,7 @@ public final class CopyToPlan implements Plan {
         if (partitionProperties.isEmpty()) {
             return Collections.emptyList();
         }
-        var partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-            table,
-            partitionProperties);
-        if (!table.partitions().contains(partitionName)) {
-            throw new PartitionUnknownException(partitionName);
-        }
+        var partitionName = PartitionPropertiesAnalyzer.toPartitionName(table, partitionProperties);
         return List.of(partitionName.asIndexName());
     }
 }

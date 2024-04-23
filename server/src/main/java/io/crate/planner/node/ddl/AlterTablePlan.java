@@ -106,7 +106,9 @@ public class AlterTablePlan implements Plan {
         PartitionName partitionName = null;
         TableParameters tableParameters;
         if (tableInfo instanceof DocTableInfo docTableInfo) {
-            partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), docTableInfo);
+            partitionName = table.partitionProperties().isEmpty()
+                ? null
+                : PartitionPropertiesAnalyzer.toPartitionName(docTableInfo, table.partitionProperties());
             isPartitioned = docTableInfo.isPartitioned();
             tableParameters = getTableParameterInfo(table, tableInfo, partitionName);
         } else {

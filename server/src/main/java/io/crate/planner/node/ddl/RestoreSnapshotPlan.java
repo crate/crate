@@ -51,6 +51,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.BoundRestoreSnapshot;
+import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;
@@ -72,6 +73,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 
@@ -217,25 +219,20 @@ public class RestoreSnapshotPlan implements Plan {
                 table.getName(),
                 txnCtx.sessionSettings().searchPath().currentSchema());
 
+            List<Assignment<Object>> partitionProperties = Lists.map(table.partitionProperties(), x -> x.map(eval));
             try {
                 DocTableInfo docTableInfo = schemas.getTableInfo(relationName);
                 Operation.blockedRaiseException(docTableInfo, Operation.RESTORE_SNAPSHOT);
                 // Table existence check is done later after resolving indices and applying all table name/schema renaming options.
-                PartitionName partitionName = null;
-                if (table.partitionProperties().isEmpty() == false) {
-                    partitionName = toPartitionName(
-                        docTableInfo,
-                        Lists.map(table.partitionProperties(), x -> x.map(eval))
-                    );
-                }
+                PartitionName partitionName = partitionProperties.isEmpty()
+                    ? null
+                    : PartitionPropertiesAnalyzer.toPartitionNameUnsafe(docTableInfo, partitionProperties);
                 restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
             } catch (RelationUnknown | SchemaUnknownException e) {
                 if (table.partitionProperties().isEmpty()) {
                     restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, null));
                 } else {
-                    var partitionName = toPartitionName(
-                        relationName,
-                        Lists.map(table.partitionProperties(), x -> x.map(eval)));
+                    var partitionName = toPartitionName(relationName, partitionProperties);
                     restoreTables.add(
                         new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
                 }

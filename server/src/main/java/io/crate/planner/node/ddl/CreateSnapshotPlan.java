@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
@@ -40,6 +39,7 @@ import org.elasticsearch.snapshots.SnapshotState;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateSnapshot;
+import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;
@@ -182,23 +182,25 @@ public class CreateSnapshotPlan implements Plan {
                     );
                 }
 
+
                 if (table.partitionProperties().isEmpty()) {
                     snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
                 } else {
-                    var partitionName = toPartitionName(
-                        docTableInfo,
-                        Lists.map(table.partitionProperties(), x -> x.map(eval)));
-                    if (!docTableInfo.partitions().contains(partitionName)) {
-                        if (!ignoreUnavailable) {
-                            throw new PartitionUnknownException(partitionName);
-                        } else {
+                    try {
+                        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+                            docTableInfo,
+                            Lists.map(table.partitionProperties(), x -> x.map(eval))
+                        );
+                        snapshotIndices.add(partitionName.asIndexName());
+                    } catch (PartitionUnknownException ex) {
+                        if (ignoreUnavailable) {
                             LOGGER.info(
                                 "ignoring unknown partition of table '{}' with ident '{}'",
-                                partitionName.relationName(),
-                                partitionName.ident());
+                                ex.partitionName().relationName(),
+                                ex.partitionName().ident());
+                        } else {
+                            throw ex;
                         }
-                    } else {
-                        snapshotIndices.add(partitionName.asIndexName());
                     }
                 }
             }
