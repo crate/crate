@@ -159,16 +159,12 @@ public final class CopyFromPlan implements Plan {
             subQueryResults
         );
 
-        String partitionIdent;
-        if (!copyFrom.table().partitionProperties().isEmpty()) {
-            partitionIdent = PartitionPropertiesAnalyzer
-                .toPartitionName(
-                    copyFrom.tableInfo(),
-                    Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)))
-                .ident();
-        } else {
-            partitionIdent = null;
-        }
+        PartitionName partitionName = copyFrom.table().partitionProperties().isEmpty()
+            ? null
+            : PartitionPropertiesAnalyzer.toPartitionNameUnsafe(
+                copyFrom.tableInfo(),
+                Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)));
+        String partitionIdent = partitionName == null ? null : partitionName.ident();
         final var properties = copyFrom.properties().map(eval);
         final var nodeFiltersPredicate = discoveryNodePredicate(
             properties.properties().getOrDefault(NodeFilters.NAME, null));

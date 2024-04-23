@@ -26,7 +26,6 @@ import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
 import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
 import static io.crate.analyze.OptimizeTableSettings.SUPPORTED_SETTINGS;
 import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.ArrayList;
@@ -39,17 +38,17 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedOptimizeTable;
+import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
-import io.crate.exceptions.PartitionUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -142,19 +141,17 @@ public class OptimizeTablePlan implements Plan {
         for (Map.Entry<Table<Symbol>, TableInfo> table : optimizeTable.tables().entrySet()) {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
-            if (tableInfo instanceof BlobTableInfo) {
-                toOptimize.add(((BlobTableInfo) tableInfo).concreteIndices()[0]);
+            if (tableInfo instanceof BlobTableInfo blobTableInfo) {
+                toOptimize.add(blobTableInfo.concreteIndices()[0]);
             } else {
                 var docTableInfo = (DocTableInfo) tableInfo;
                 if (tableSymbol.partitionProperties().isEmpty()) {
                     toOptimize.addAll(Arrays.asList(docTableInfo.concreteOpenIndices()));
                 } else {
-                    var partitionName = toPartitionName(
+                    var partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                         docTableInfo,
-                        Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)));
-                    if (!docTableInfo.partitions().contains(partitionName)) {
-                        throw new PartitionUnknownException(partitionName);
-                    }
+                        Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval))
+                    );
                     toOptimize.add(partitionName.asIndexName());
                 }
             }

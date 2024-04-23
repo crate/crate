@@ -46,6 +46,7 @@ import org.junit.Test;
 
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.PartitionUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -378,7 +379,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     @Test
     public void testAlterPartitionedTableNonExistentPartition() {
         assertThatThrownBy(() -> analyze("alter table parted partition (date='1970-01-01') set (number_of_replicas='0-all')"))
-            .isExactlyInstanceOf(IllegalArgumentException.class);
+            .isExactlyInstanceOf(PartitionUnknownException.class);
     }
 
     @Test
