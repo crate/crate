@@ -52,7 +52,6 @@ import io.crate.protocols.postgres.KeyData;
 import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Securable;
-import io.crate.statistics.TableStats;
 
 
 @Singleton
@@ -83,7 +82,6 @@ public class Sessions {
     private final Provider<DependencyCarrier> executorProvider;
     private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
-    private final TableStats tableStats;
     private final boolean isReadOnly;
     private final AtomicInteger nextSessionId = new AtomicInteger();
     private final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
@@ -100,15 +98,13 @@ public class Sessions {
                     Provider<DependencyCarrier> executorProvider,
                     JobsLogs jobsLogs,
                     Settings settings,
-                    ClusterService clusterService,
-                    TableStats tableStats) {
+                    ClusterService clusterService) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
         this.jobsLogs = jobsLogs;
         this.clusterService = clusterService;
-        this.tableStats = tableStats;
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
         this.defaultStatementTimeout = STATEMENT_TIMEOUT.get(settings);
         this.memoryLimit = MEMORY_LIMIT.get(settings);
@@ -128,14 +124,12 @@ public class Sessions {
         int sessionId = nextSessionId.incrementAndGet();
         Session session = new Session(
             sessionId,
-            nodeCtx,
             analyzer,
             planner,
             jobsLogs,
             isReadOnly,
             executorProvider.get(),
             sessionSettings,
-            tableStats,
             () -> sessions.remove(sessionId)
         );
         sessions.put(sessionId, session);

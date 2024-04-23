@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -53,7 +54,6 @@ import io.crate.analyze.ParameterTypes;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -68,7 +68,6 @@ import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -90,7 +89,6 @@ import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DiscardStatement.Target;
 import io.crate.sql.tree.Statement;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 
 /**
@@ -151,37 +149,31 @@ public class Session implements AutoCloseable {
 
     private final int id;
     private final int secret;
-    private final NodeContext nodeCtx;
     private final Analyzer analyzer;
     private final Planner planner;
     private final JobsLogs jobsLogs;
     private final boolean isReadOnly;
     private final Runnable onClose;
-    private final TableStats tableStats;
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
 
 
     public Session(int sessionId,
-                   NodeContext nodeCtx,
                    Analyzer analyzer,
                    Planner planner,
                    JobsLogs jobsLogs,
                    boolean isReadOnly,
                    DependencyCarrier executor,
                    CoordinatorSessionSettings sessionSettings,
-                   TableStats tableStats,
                    Runnable onClose) {
         this.id = sessionId;
         this.secret = ThreadLocalRandom.current().nextInt();
-        this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
         this.jobsLogs = jobsLogs;
         this.isReadOnly = isReadOnly;
         this.executor = executor;
         this.sessionSettings = sessionSettings;
-        this.tableStats = tableStats;
         this.onClose = onClose;
     }
 
@@ -714,7 +706,6 @@ public class Session implements AutoCloseable {
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionSettings);
-        var nodeCtx = executor.nodeContext();
         var params = new RowN(portal.params().toArray());
         var plannerContext = planner.createContext(
             routingProvider,
