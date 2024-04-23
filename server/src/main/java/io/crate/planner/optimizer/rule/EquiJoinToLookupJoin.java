@@ -37,6 +37,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.EquiJoinDetector;
+import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinConditionSymbolsExtractor;
 import io.crate.planner.operators.JoinPlan;
@@ -181,7 +182,8 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
         );
         var largerSideWithLookup = new Filter(largerSide, anyEqFunction);
         var smallerSidePruned = smallerSide.pruneOutputsExcept(List.of(smallerRelationColumn));
-        var smallerSideIdLookup = new RootRelationBoundary(smallerSidePruned);
+        var eval = Eval.create(smallerSidePruned, List.of(smallerRelationColumn));
+        var smallerSideIdLookup = new RootRelationBoundary(eval);
         Map<LogicalPlan, SelectSymbol> subQueries = Map.of(smallerSideIdLookup, lookUpQuery);
         return MultiPhase.createIfNeeded(subQueries, largerSideWithLookup);
     }
