@@ -39,8 +39,8 @@ import io.crate.types.DataTypes;
 
 public class PartitionPropertiesAnalyzer {
 
-    public static Map<ColumnIdent, Object> assignmentsToMap(List<Assignment<Object>> assignments) {
-        Map<ColumnIdent, Object> map = new HashMap<>(assignments.size());
+    private static Map<ColumnIdent, Object> assignmentsToMap(List<Assignment<Object>> assignments) {
+        HashMap<ColumnIdent, Object> map = new HashMap<>(assignments.size());
         for (Assignment<Object> assignment : assignments) {
             map.put(
                 ColumnIdent.fromPath(assignment.columnName().toString()),
@@ -51,13 +51,11 @@ public class PartitionPropertiesAnalyzer {
     }
 
     public static PartitionName toPartitionName(RelationName relationName, List<Assignment<Object>> partitionProperties) {
-        // Because only RelationName is available, types of partitioned columns must be guessed
-        Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties);
-        String[] values = new String[properties.size()];
 
+        String[] values = new String[partitionProperties.size()];
         int idx = 0;
-        for (Object o : properties.values()) {
-            values[idx++] = DataTypes.STRING.implicitCast(o);
+        for (Assignment<Object> o : partitionProperties) {
+            values[idx++] = DataTypes.STRING.implicitCast(o.expression());
         }
         return new PartitionName(relationName, List.of(values));
     }
