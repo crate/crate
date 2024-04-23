@@ -389,9 +389,11 @@ The number of replicas is defined like this::
 .. NOTE::
 
    If the value is provided as a range or the default value ``0-1`` is used,
-   :ref:`cluster.c <cluster.max_shards_per_node>` and
+   :ref:`cluster.max_shards_per_node <cluster.max_shards_per_node>` and
    :ref:`cluster.routing.allocation.total_shards_per_node
-   <cluster.routing.allocation.total_shards_per_node>` limits are not checked.
+   <cluster.routing.allocation.total_shards_per_node>` limits account only for
+   primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed those limits.
 
 .. SEEALSO::
 
