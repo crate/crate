@@ -65,6 +65,10 @@ system::
     | ForeignCollect[doc.summits | [mountain] | (mountain = 'Monte Verena')] (rows=unknown) |
     +---------------------------------------------------------------------------------------+
 
+.. note::
+
+   Only `DQL` (Data Query Language) statements are supported on foreign tables.
+
 
 ``jdbc``
 ========
