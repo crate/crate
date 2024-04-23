@@ -64,24 +64,24 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
     public void test_lookup_join_with_subquery_on_the_smaller_side() throws Exception {
         execute("create table doc.t1 (id int) with(number_of_replicas=0)");
         execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
-        execute("create table doc.t2 (id int)");
-        execute("insert into doc.t2 (id) select b from generate_series(1,100) a(b)");
+        execute("create table doc.t2 (id int, name string)");
+        execute("insert into doc.t2 (id, name) select b, (b%4)::TEXT from generate_series(1,100) a(b)");
         execute("refresh table doc.t1");
         execute("refresh table doc.t2");
         execute("analyze");
         waitNoPendingTasksOnAll();
-        var query = "select count(*) from doc.t1 join (select * from doc.t2 where doc.t2.id > 0) x on t1.id = x.id";
+        var query = "select count(name) from doc.t1 join (select name, id from doc.t2 where doc.t2.id > 0) x on t1.id = x.id";
         execute("explain (costs false)" + query);
         assertThat(response).hasLines(
-            "HashAggregate[count(*)]",
+            "HashAggregate[count(name)]",
             "  └ HashJoin[(id = id)]",
             "    ├ MultiPhase",
             "    │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
             "    │  └ Rename[id] AS x",
             "    │    └ Filter[(id > 0)]",
             "    │      └ Collect[doc.t2 | [id] | true]",
-            "    └ Rename[id] AS x",
-            "      └ Collect[doc.t2 | [id] | (id > 0)]"
+            "    └ Rename[name, id] AS x",
+            "      └ Collect[doc.t2 | [name, id] | (id > 0)]"
         );
         execute(query);
         assertThat(response).hasRows("100");
@@ -99,20 +99,21 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("analyze");
         waitNoPendingTasksOnAll();
-        var query = "select count(name) from (select id,name from doc.t2 where doc.t2.id > 0) x join doc.t1 on t1.id = x.id";
+        var query = "select count(name) from (select name, id from doc.t2 where doc.t2.name = '1') x join doc.t1 on t1.id = x.id";
         execute("explain (costs false)" + query);
         assertThat(response).hasLines(
             "HashAggregate[count(name)]",
-            "  └ Eval[id, name, id]",
+            "  └ Eval[name, id, id]",
             "    └ HashJoin[(id = id)]",
             "      ├ MultiPhase",
             "      │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
-            "      │  └ Rename[id] AS x",
-            "      │    └ Filter[(id > 0)]",
-            "      │      └ Collect[doc.t2 | [id] | true]",
-            "      └ Rename[id, name] AS x",
-            "        └ Collect[doc.t2 | [id, name] | (id > 0)]");
+            "      │  └ Eval[id]",
+            "      │    └ Rename[name, id] AS x",
+            "      │      └ Filter[(name = '1')]",
+            "      │        └ Collect[doc.t2 | [name, id] | true]",
+            "      └ Rename[name, id] AS x",
+            "        └ Collect[doc.t2 | [name, id] | (name = '1')]");
         execute(query);
-        assertThat(response).hasRows("100");
+        assertThat(response).hasRows("25");
     }
 }
