@@ -229,8 +229,9 @@ Shard limits
 .. NOTE::
 
    If a table is created with :ref:`sql-create-table-number-of-replicas`
-   provided as a range or default ``0-1`` value, the limit is not taken into
-   account.
+   provided as a range or default ``0-1`` value, the limit check accounts only
+   for primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed the limit.
 
 
 .. _conf_usage_data_collector:
@@ -933,8 +934,9 @@ nodes every 30 seconds. This can also be changed by setting the
 .. NOTE::
 
    If a table is created with :ref:`sql-create-table-number-of-replicas`
-   provided as a range or default ``0-1`` value, the limit is not taken into
-   account.
+   provided as a range or default ``0-1`` value, the limit check accounts only
+   for primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed the limit.
 
 .. _indices.recovery:
 
