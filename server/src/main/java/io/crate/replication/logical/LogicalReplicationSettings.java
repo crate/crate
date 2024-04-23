@@ -122,7 +122,6 @@ public class LogicalReplicationSettings {
         ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
         MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
         UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
-        IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
         IndexSettings.INDEX_SEARCH_IDLE_AFTER,
         IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING,
