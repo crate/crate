@@ -21,10 +21,11 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -38,23 +39,42 @@ import io.crate.testing.SQLExecutor;
 
 public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private PartitionName getPartitionName(DocTableInfo tableInfo) {
-        return PartitionPropertiesAnalyzer.toPartitionName(
-            tableInfo,
-            Collections.singletonList(new Assignment<>(new QualifiedName("name"), "foo"))
+    @Test
+    public void testPartitionNameFromAssignmentsWithoutTable() {
+        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+            new RelationName("dummy", "tbl"),
+            List.of(
+                new Assignment<>(new QualifiedName("p1"), 10),
+                new Assignment<>(new QualifiedName("a"), 20)
+            )
         );
+        assertThat(partitionName.values()).containsExactly("10", "20");
+        assertThat(partitionName.asIndexName()).isEqualTo("dummy..partitioned.tbl.081j2c0368o0");
     }
 
     @Test
-    public void testPartitionNameFromAssignmentWithBytesRef() {
-        DocTableInfo tableInfo = SQLExecutor.partitionedTableInfo(
-            new RelationName("doc", "users"),
-            "create table doc.users (name text primary key) partitioned by (name)",
-            clusterService);
+    public void test_PartitionName_from_assignment_with_table() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable(
+                "create table doc.users (x int, p1 int) partitioned by (p1)",
+                ".partitioned.users.041j2c0"
+            )
+            .build();
 
-        PartitionName partitionName = getPartitionName(tableInfo);
-        assertThat(partitionName.values()).containsExactly("foo");
-        assertThat(partitionName.asIndexName()).isEqualTo(".partitioned.users.0426crrf");
+        DocTableInfo tableInfo = e.resolveTableInfo("doc.users");
+        PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(
+            List.of(
+                new Assignment<>(new QualifiedName("p1"), 10)
+            ),
+            tableInfo
+        );
+        assertThat(partitionName.values()).containsExactly("10");
+        assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices()[0]);
+
+        assertThatThrownBy(() -> PartitionPropertiesAnalyzer.createPartitionName(
+            List.of(new Assignment<>(new QualifiedName("p1"), 20)),
+            tableInfo
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -64,7 +84,10 @@ public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUni
             "create table doc.users (name text primary key)",
             clusterService);
 
-        assertThatThrownBy(() -> getPartitionName(tableInfo))
+        assertThatThrownBy(() -> PartitionPropertiesAnalyzer.toPartitionName(
+            tableInfo,
+            Collections.singletonList(new Assignment<>(new QualifiedName("name"), "foo"))
+        ))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("table 'doc.users' is not partitioned");
     }

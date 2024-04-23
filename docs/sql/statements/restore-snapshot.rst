@@ -124,15 +124,16 @@ exclusively.
     [ PARTITION ( partition_column = value [, ...] ) ]
 
 :partition_column:
-  One of the column names used for table partitioning
+  Column name used for table partitioning.
 
 :value:
   The respective column value.
 
 All :ref:`partition columns <gloss-partition-column>` (specified by the
 :ref:`sql-create-table-partitioned-by` clause) must be listed inside the
-parentheses along with their respective values using the ``partition_column =
-value`` syntax (separated by commas).
+parentheses in the order matching the ``PARTITION BY`` definition along with
+their respective values using the ``partition_column = value`` syntax (separated
+by commas).
 
 Because each partition corresponds to a unique set of :ref:`partition column
 <gloss-partition-column>` row values, this clause uniquely identifies a single
