@@ -335,8 +335,16 @@ public class NodeStatsContext implements Writeable {
             this.transportStats = in.readOptionalWriteable(ConnectionStats::new);
         } else {
             // old stats were using only open and total connections, and for transport only open connections
-            this.httpStats = new ConnectionStats(in.readVLong(), in.readVLong(), -1, -1, -1, -1);
-            this.psqlStats = new ConnectionStats(in.readVLong(), in.readVLong(), -1, -1, -1, -1);
+            if (in.readBoolean()) { // previously it was readOptionalWriteable
+                this.httpStats = new ConnectionStats(in.readVLong(), in.readVLong(), -1, -1, -1, -1);
+            } else {
+                this.httpStats = new ConnectionStats(-1, -1, -1, -1, -1, -1);
+            }
+            if (in.readBoolean()) { // previously it was readOptionalWriteable
+                this.psqlStats = new ConnectionStats(in.readVLong(), in.readVLong(), -1, -1, -1, -1);
+            } else {
+                this.psqlStats = new ConnectionStats(-1, -1, -1, -1, -1, -1);
+            }
             this.transportStats = new ConnectionStats(in.readLong(), -1, -1, -1, -1, -1);
         }
 
@@ -385,11 +393,25 @@ public class NodeStatsContext implements Writeable {
             out.writeOptionalWriteable(transportStats);
         } else {
             // old stats were using only open and total connections, and for transport only open connections
-            out.writeVLong(httpStats.open());
-            out.writeVLong(httpStats.total());
-            out.writeVLong(psqlStats.open());
-            out.writeVLong(psqlStats.total());
-            out.writeLong(transportStats.open());
+            if (httpStats != null) {
+                out.writeBoolean(true); // previously was writeOptionalWritable
+                out.writeVLong(httpStats.open());
+                out.writeVLong(httpStats.total());
+            } else {
+                out.writeBoolean(false); // previously was writeOptionalWritable
+            }
+            if (psqlStats != null) {
+                out.writeBoolean(true); // previously was writeOptionalWritable
+                out.writeVLong(psqlStats.open());
+                out.writeVLong(psqlStats.total());
+            } else {
+                out.writeBoolean(false); // previously was writeOptionalWritable
+            }
+            if (transportStats != null) {
+                out.writeLong(transportStats.open());
+            } else {
+                out.writeLong(-1);
+            }
         }
 
         out.writeLong(clusterStateVersion);
