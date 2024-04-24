@@ -31,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.BoundAlterTable;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
@@ -108,7 +107,7 @@ public class AlterTablePlan implements Plan {
         if (tableInfo instanceof DocTableInfo docTableInfo) {
             partitionName = table.partitionProperties().isEmpty()
                 ? null
-                : PartitionPropertiesAnalyzer.toPartitionName(docTableInfo, table.partitionProperties());
+                : PartitionName.ofAssignments(docTableInfo, table.partitionProperties());
             isPartitioned = docTableInfo.isPartitioned();
             tableParameters = getTableParameterInfo(table, tableInfo, partitionName);
         } else {

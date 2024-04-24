@@ -21,23 +21,103 @@
 
 package io.crate.metadata;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+
+import io.crate.exceptions.PartitionUnknownException;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.Assignment;
+import io.crate.types.DataTypes;
 
 public class PartitionName {
+
+    /**
+     * Create a {@link PartitionName} for the given assignments.
+     * Assignments usually represent a TABLE PARTITION (pcol1 = value [, ...]) clause.
+     *
+     * This doesn't check if the partition exists, and doesn't consider the partition column types.
+     * Use {@link #ofAssignments(DocTableInfo, List)} instead of possible.
+     */
+    public static PartitionName ofAssignments(RelationName relation, List<Assignment<Object>> assignments) {
+        String[] values = new String[assignments.size()];
+        int idx = 0;
+        for (Assignment<Object> o : assignments) {
+            values[idx++] = DataTypes.STRING.implicitCast(o.expression());
+        }
+        return new PartitionName(relation, List.of(values));
+    }
+
+    /**
+     * Create a {@link PartitionName} for the given assignments.
+     * Assignments usually represent a TABLE PARTITION (pcol1 = value [, ...]) clause.
+     *
+     * @throws PartitionUnknownException if the partition is missing from the table
+     * @throws IllegalArgumentException if the table is not partitioned, or if the properties don't match the partitionBy clause
+     */
+    public static PartitionName ofAssignments(DocTableInfo table, List<Assignment<Object>> assignments) {
+        PartitionName partitionName = ofAssignmentsUnsafe(table, assignments);
+        if (table.partitions().contains(partitionName) == false) {
+            throw new PartitionUnknownException(partitionName);
+        }
+        return partitionName;
+    }
+
+    /**
+     * Like {@link #ofAssignments(RelationName, List) but doesn't raise a
+     * {@link PartitionUnknownException} in case the table doesn't contain the
+     * partition.
+     *
+     * This should only be used if the action can create a new partition.
+     */
+    public static PartitionName ofAssignmentsUnsafe(DocTableInfo table, List<Assignment<Object>> assignments) {
+        if (!table.isPartitioned()) {
+            throw new IllegalArgumentException("table '" + table.ident().fqn() + "' is not partitioned");
+        }
+        if (assignments.size() != table.partitionedBy().size()) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
+                table.ident().fqn(),
+                table.partitionedBy().size(),
+                assignments.size()
+            ));
+        }
+        HashMap<ColumnIdent, Object> valueByColumn = new HashMap<>(assignments.size());
+        for (Assignment<Object> assignment : assignments) {
+            ColumnIdent column = ColumnIdent.fromPath(assignment.columnName().toString());
+            valueByColumn.put(column, assignment.expression());
+        }
+        String[] values = new String[valueByColumn.size()];
+        for (var entry : valueByColumn.entrySet()) {
+            Object value = entry.getValue();
+            ColumnIdent column = entry.getKey();
+            int idx = table.partitionedBy().indexOf(column);
+            try {
+                Reference reference = table.partitionedByColumns().get(idx);
+                Object converted = reference.valueType().implicitCast(value);
+                values[idx] = DataTypes.STRING.implicitCast(converted);
+            } catch (IndexOutOfBoundsException ex) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "\"%s\" is no known partition column", column.sqlFqn()));
+            }
+        }
+        return new PartitionName(table.ident(), Arrays.asList(values));
+    }
+
 
     private static final Base32 BASE32 = new Base32(true);
 
@@ -51,6 +131,7 @@ public class PartitionName {
 
     @Nullable
     private String ident;
+
 
     public PartitionName(RelationName relationName, @NotNull List<String> values) {
         this.relationName = relationName;

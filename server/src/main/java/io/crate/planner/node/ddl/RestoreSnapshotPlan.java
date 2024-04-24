@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
 import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
@@ -51,7 +50,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.BoundRestoreSnapshot;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;
@@ -226,13 +224,13 @@ public class RestoreSnapshotPlan implements Plan {
                 // Table existence check is done later after resolving indices and applying all table name/schema renaming options.
                 PartitionName partitionName = partitionProperties.isEmpty()
                     ? null
-                    : PartitionPropertiesAnalyzer.toPartitionNameUnsafe(docTableInfo, partitionProperties);
+                    : PartitionName.ofAssignmentsUnsafe(docTableInfo, partitionProperties);
                 restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
             } catch (RelationUnknown | SchemaUnknownException e) {
                 if (table.partitionProperties().isEmpty()) {
                     restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, null));
                 } else {
-                    var partitionName = toPartitionName(relationName, partitionProperties);
+                    var partitionName = PartitionName.ofAssignments(relationName, partitionProperties);
                     restoreTables.add(
                         new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
                 }
