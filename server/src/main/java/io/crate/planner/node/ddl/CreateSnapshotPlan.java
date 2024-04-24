@@ -39,7 +39,6 @@ import org.elasticsearch.snapshots.SnapshotState;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateSnapshot;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;
@@ -187,10 +186,7 @@ public class CreateSnapshotPlan implements Plan {
                     snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
                 } else {
                     try {
-                        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                            docTableInfo,
-                            Lists.map(table.partitionProperties(), x -> x.map(eval))
-                        );
+                        PartitionName partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(table.partitionProperties(), x -> x.map(eval)));
                         snapshotIndices.add(partitionName.asIndexName());
                     } catch (PartitionUnknownException ex) {
                         if (ignoreUnavailable) {

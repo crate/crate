@@ -41,7 +41,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedOptimizeTable;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
@@ -53,6 +52,7 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -148,10 +148,7 @@ public class OptimizeTablePlan implements Plan {
                 if (tableSymbol.partitionProperties().isEmpty()) {
                     toOptimize.addAll(Arrays.asList(docTableInfo.concreteOpenIndices()));
                 } else {
-                    var partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                        docTableInfo,
-                        Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval))
-                    );
+                    var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)));
                     toOptimize.add(partitionName.asIndexName());
                 }
             }

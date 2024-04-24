@@ -24,7 +24,6 @@ package io.crate.planner.node.ddl;
 import java.util.function.Function;
 
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -70,7 +69,7 @@ public class AlterTableOpenClosePlan implements Plan {
 
         PartitionName partitionName = table.partitionProperties().isEmpty()
             ? null
-            : PartitionPropertiesAnalyzer.toPartitionName(tableInfo, table.partitionProperties());
+            : PartitionName.ofAssignments(tableInfo, table.partitionProperties());
 
         dependencies.alterTableOperation()
             .executeAlterTableOpenClose(tableInfo.ident(), analyzedAlterTable.isOpenTable(), partitionName)

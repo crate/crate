@@ -51,7 +51,6 @@ import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.analyze.CopyFromParserProperties;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.common.collections.Lists;
@@ -161,9 +160,7 @@ public final class CopyFromPlan implements Plan {
 
         PartitionName partitionName = copyFrom.table().partitionProperties().isEmpty()
             ? null
-            : PartitionPropertiesAnalyzer.toPartitionNameUnsafe(
-                copyFrom.tableInfo(),
-                Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)));
+            : PartitionName.ofAssignmentsUnsafe(copyFrom.tableInfo(), Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)));
         String partitionIdent = partitionName == null ? null : partitionName.ident();
         final var properties = copyFrom.properties().map(eval);
         final var nodeFiltersPredicate = discoveryNodePredicate(

@@ -39,7 +39,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
@@ -62,6 +61,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -279,7 +279,7 @@ public final class CopyToPlan implements Plan {
         if (partitionProperties.isEmpty()) {
             return Collections.emptyList();
         }
-        var partitionName = PartitionPropertiesAnalyzer.toPartitionName(table, partitionProperties);
+        var partitionName = PartitionName.ofAssignments(table, partitionProperties);
         return List.of(partitionName.asIndexName());
     }
 }

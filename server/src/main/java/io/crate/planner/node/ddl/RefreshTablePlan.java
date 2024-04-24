@@ -33,7 +33,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 
 import io.crate.analyze.AnalyzedRefreshTable;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
@@ -84,10 +83,7 @@ public class RefreshTablePlan implements Plan {
             if (tableSymbol.partitionProperties().isEmpty()) {
                 toRefresh.addAll(Arrays.asList(tableInfo.concreteOpenIndices()));
             } else {
-                PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                    tableInfo,
-                    Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval))
-                );
+                PartitionName partitionName = PartitionName.ofAssignments(tableInfo, Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval)));
                 toRefresh.add(partitionName.asIndexName());
             }
         }

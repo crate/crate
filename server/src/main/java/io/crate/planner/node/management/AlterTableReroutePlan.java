@@ -43,7 +43,6 @@ import io.crate.analyze.AnalyzedRerouteCancelShard;
 import io.crate.analyze.AnalyzedRerouteMoveShard;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
@@ -53,6 +52,7 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.planner.DependencyCarrier;
@@ -230,7 +230,7 @@ public class AlterTableReroutePlan implements Plan {
                                               List<Assignment<Object>> partitionsProperties) {
             if (shardedTable instanceof DocTableInfo docTableInfo) {
                 if (docTableInfo.isPartitioned()) {
-                    var partitionName = PartitionPropertiesAnalyzer.toPartitionName(docTableInfo, partitionsProperties);
+                    var partitionName = PartitionName.ofAssignments(docTableInfo, partitionsProperties);
                     return partitionName.asIndexName();
                 } else {
                     return docTableInfo.ident().indexNameOrAlias();
