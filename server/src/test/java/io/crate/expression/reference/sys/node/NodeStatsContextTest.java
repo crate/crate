@@ -33,7 +33,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.DummyOsInfo;
@@ -68,42 +67,15 @@ public class NodeStatsContextTest extends ESTestCase {
 
     @Test
     public void testStreamContext() throws Exception {
-        NodeStatsContext ctx1 = new NodeStatsContext(true); // sets os/java/jvm automatically
-        ctx1.id("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18");
-        ctx1.name("crate1");
-        ctx1.hostname("crate1.example.com");
-        ctx1.timestamp(100L);
-        ctx1.version(Version.CURRENT);
-        ctx1.build(Build.CURRENT);
-        ctx1.restUrl("10.0.0.1:4200");
-        ctx1.attributes(Map.of("k1", "v1", "k2", "v2"));
-        ctx1.pgPort(5432);
-        ctx1.httpPort(4200);
-        ctx1.transportPort(4300);
-        ctx1.jvmStats(JvmStats.jvmStats());
-        ctx1.osInfo(DummyOsInfo.INSTANCE);
-        ProcessProbe processProbe = ProcessProbe.getInstance();
-        ctx1.processStats(processProbe.processStats());
-        OsProbe osProbe = OsProbe.getInstance();
-        ctx1.osStats(osProbe.osStats());
-        ctx1.fsInfo(new FsInfo(
-            123456789,
-            new FsInfo.IoStats(new FsInfo.DeviceStats[]{ new FsInfo.DeviceStats(1,2,"foo", 3, 4, 5, 6, null)}),
-            new FsInfo.Path[] {new FsInfo.Path("foo", "bar", 1, 2, 3)}));
-        ctx1.extendedOsStats(extendedNodeInfo.osStats());
-        ctx1.threadPools(threadPool.stats());
-        ctx1.httpStats(new ConnectionStats(1, 2, 3, 4, 5, 6));
-        ctx1.psqlStats(new ConnectionStats(11, 22, 33, 44, 55, 66));
-        ctx1.transportStats(new ConnectionStats(111, 222, 333, 444, 555, 666));
-        ctx1.clusterStateVersion(10L);
+        var ctx1 = generateNodeStatsContext();
 
-        ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-        StreamOutput out = new OutputStreamStreamOutput(outBuffer);
+        var outBuffer = new ByteArrayOutputStream();
+        var out = new OutputStreamStreamOutput(outBuffer);
         ctx1.writeTo(out);
 
-        ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
-        InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        NodeStatsContext ctx2 = new NodeStatsContext(in, true);
+        var inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
+        var in = new InputStreamStreamInput(inBuffer);
+        var ctx2 = new NodeStatsContext(in, true);
 
         assertThat(ctx2.id()).isEqualTo(ctx1.id());
         assertThat(ctx2.name()).isEqualTo(ctx1.name());
@@ -174,5 +146,72 @@ public class NodeStatsContextTest extends ESTestCase {
         assertThat(ctx2.jvmVersion()).isNull();
         assertThat(ctx2.jvmName()).isNull();
         assertThat(ctx2.jvmVendor()).isNull();
+    }
+
+    @Test
+    public void test_streaming_network_stats_bwc() throws Exception {
+        var ctx1 = generateNodeStatsContext();
+        var outBuffer = new ByteArrayOutputStream();
+        var out = new OutputStreamStreamOutput(outBuffer);
+        out.setVersion(Version.V_5_7_0);
+        ctx1.writeTo(out);
+
+        var inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
+        var in = new InputStreamStreamInput(inBuffer);
+        in.setVersion(Version.V_5_7_0);
+        var ctx2 = new NodeStatsContext(in, true);
+        assertThat(ctx2.httpStats().open()).isEqualTo(ctx1.httpStats().open());
+        assertThat(ctx2.httpStats().total()).isEqualTo(ctx1.httpStats().total());
+        assertThat(ctx2.httpStats().receivedBytes()).isEqualTo(-1);
+        assertThat(ctx2.httpStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.httpStats().sentBytes()).isEqualTo(-1);
+        assertThat(ctx2.httpStats().sentMsgs()).isEqualTo(-1);
+
+        assertThat(ctx2.psqlStats().open()).isEqualTo(ctx1.psqlStats().open());
+        assertThat(ctx2.psqlStats().total()).isEqualTo(ctx1.psqlStats().total());
+        assertThat(ctx2.psqlStats().receivedBytes()).isEqualTo(-1);
+        assertThat(ctx2.psqlStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.psqlStats().sentBytes()).isEqualTo(-1);
+        assertThat(ctx2.psqlStats().sentMsgs()).isEqualTo(-1);
+
+        assertThat(ctx2.transportStats().open()).isEqualTo(ctx1.transportStats().open());
+        assertThat(ctx2.transportStats().total()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().receivedBytes()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().sentBytes()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().sentMsgs()).isEqualTo(-1);
+    }
+
+    private NodeStatsContext generateNodeStatsContext() {
+        var ctx = new NodeStatsContext(true); // sets os/java/jvm automatically
+        ctx.id("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18");
+        ctx.name("crate1");
+        ctx.hostname("crate1.example.com");
+        ctx.timestamp(100L);
+        ctx.version(Version.CURRENT);
+        ctx.build(Build.CURRENT);
+        ctx.restUrl("10.0.0.1:4200");
+        ctx.attributes(Map.of("k1", "v1", "k2", "v2"));
+        ctx.pgPort(5432);
+        ctx.httpPort(4200);
+        ctx.transportPort(4300);
+        ctx.jvmStats(JvmStats.jvmStats());
+        ctx.osInfo(DummyOsInfo.INSTANCE);
+        ProcessProbe processProbe = ProcessProbe.getInstance();
+        ctx.processStats(processProbe.processStats());
+        OsProbe osProbe = OsProbe.getInstance();
+        ctx.osStats(osProbe.osStats());
+        ctx.fsInfo(new FsInfo(
+            123456789,
+            new FsInfo.IoStats(new FsInfo.DeviceStats[]{ new FsInfo.DeviceStats(1,2,"foo", 3, 4, 5, 6, null)}),
+            new FsInfo.Path[] {new FsInfo.Path("foo", "bar", 1, 2, 3)}));
+        ctx.extendedOsStats(extendedNodeInfo.osStats());
+        ctx.threadPools(threadPool.stats());
+        ctx.httpStats(new ConnectionStats(1, 2, 3, 4, 5, 6));
+        ctx.psqlStats(new ConnectionStats(11, 22, 33, 44, 55, 66));
+        ctx.transportStats(new ConnectionStats(111, 222, 333, 444, 555, 666));
+        ctx.clusterStateVersion(10L);
+
+        return ctx;
     }
 }
