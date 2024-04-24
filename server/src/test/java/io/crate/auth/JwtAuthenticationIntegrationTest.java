@@ -21,11 +21,12 @@
 
 package io.crate.auth;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.auth.RsaKeys.PRIVATE_KEY_256;
 import static io.crate.testing.auth.RsaKeys.PUBLIC_KEY_256;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPrivateKey;
@@ -186,8 +187,11 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_body_jwk_endpoint_not_responding_contains_error() throws Exception {
-        // HttpTestServer is not started in this test, use dummy port
-        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys", 1234);
+        int port;
+        try (ServerSocket socket = new ServerSocket(0)) {
+            port = socket.getLocalPort();
+        }
+        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys", port);
         String appUsername = "cloud_user";
         String jwt = JWT.create()
             .withHeader(Map.of("typ", "JWT", "alg", "RS256", "kid", KID))
