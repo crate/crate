@@ -245,7 +245,7 @@ public class PartitionName {
 
     public String asIndexName() {
         if (indexName == null) {
-            indexName = IndexParts.toIndexName(this);
+            indexName = IndexParts.toIndexName(relationName.schema(), relationName.name(), ident());
         }
         return indexName;
     }

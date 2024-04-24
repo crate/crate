@@ -31,11 +31,11 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -53,7 +53,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -107,7 +107,7 @@ public final class DeletePlanner {
             return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         if (table.isPartitioned() && query instanceof Input<?> input && DataTypes.BOOLEAN.sanitizeValue(input.value())) {
-            return new DeleteAllPartitions(Lists.map(table.partitions(), IndexParts::toIndexName));
+            return new DeleteAllPartitions(Lists.map(table.partitions(), PartitionName::asIndexName));
         }
 
         return new Delete(tableRel, detailedQuery);
