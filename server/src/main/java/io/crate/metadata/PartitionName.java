@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -78,7 +77,7 @@ public class PartitionName {
     }
 
     /**
-     * Like {@link #ofAssignments(RelationName, List) but doesn't raise a
+     * Like {@link #ofAssignments(RelationName, List)} but doesn't raise a
      * {@link PartitionUnknownException} in case the table doesn't contain the
      * partition.
      *
@@ -88,24 +87,20 @@ public class PartitionName {
         if (!table.isPartitioned()) {
             throw new IllegalArgumentException("table '" + table.ident().fqn() + "' is not partitioned");
         }
-        if (assignments.size() != table.partitionedBy().size()) {
+        List<ColumnIdent> partitionedBy = table.partitionedBy();
+        if (assignments.size() != partitionedBy.size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
                 table.ident().fqn(),
-                table.partitionedBy().size(),
+                partitionedBy.size(),
                 assignments.size()
             ));
         }
-        HashMap<ColumnIdent, Object> valueByColumn = new HashMap<>(assignments.size());
-        for (Assignment<Object> assignment : assignments) {
+        String[] values = new String[partitionedBy.size()];
+        for (var assignment : assignments) {
+            Object value = assignment.expression();
             ColumnIdent column = ColumnIdent.fromPath(assignment.columnName().toString());
-            valueByColumn.put(column, assignment.expression());
-        }
-        String[] values = new String[valueByColumn.size()];
-        for (var entry : valueByColumn.entrySet()) {
-            Object value = entry.getValue();
-            ColumnIdent column = entry.getKey();
-            int idx = table.partitionedBy().indexOf(column);
+            int idx = partitionedBy.indexOf(column);
             try {
                 Reference reference = table.partitionedByColumns().get(idx);
                 Object converted = reference.valueType().implicitCast(value);
