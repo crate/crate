@@ -21,8 +21,7 @@
 
 package io.crate.metadata.sys;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
@@ -60,14 +59,14 @@ public class SysSnapshotRestoreTableInfoTest {
             .snapshotsRestoreInProgress(new RestoreInProgress.Builder().add(entry).build())
             .iterator();
 
-        assertThat(restoreInProgressIt.hasNext(), is(true));
-        assertThat(restoreInProgressIt.next(), is(SysSnapshotRestoreInProgress.of(entry)));
-        assertThat(restoreInProgressIt.hasNext(), is(false));
+        assertThat(restoreInProgressIt.hasNext()).isTrue();
+        assertThat(restoreInProgressIt.next()).isEqualTo(SysSnapshotRestoreInProgress.of(entry));
+        assertThat(restoreInProgressIt.hasNext()).isFalse();
     }
 
     @Test
     public void test_convert_null_restore_in_progress_returns_empty_iterator() {
         var restoreInProgressIt = SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(null).iterator();
-        assertThat(restoreInProgressIt.hasNext(), is(false));
+        assertThat(restoreInProgressIt.hasNext()).isEqualTo(false);
     }
 }

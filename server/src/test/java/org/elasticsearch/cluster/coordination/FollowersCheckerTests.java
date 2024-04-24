@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.FollowersChecker.FOLLOWER_CHECK_ACTION_NAME;
 import static org.elasticsearch.cluster.coordination.FollowersChecker.FOLLOWER_CHECK_INTERVAL_SETTING;
 import static org.elasticsearch.cluster.coordination.FollowersChecker.FOLLOWER_CHECK_RETRY_COUNT_SETTING;
@@ -36,7 +37,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -301,7 +301,7 @@ public class FollowersCheckerTests extends ESTestCase {
         final MockTransport mockTransport = new MockTransport() {
             @Override
             protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
-                assertNotEquals(node, localNode);
+                assertThat(localNode).isNotEqualTo(node);
                 deterministicTaskQueue.scheduleNow(new Runnable() {
                     @Override
                     public void run() {

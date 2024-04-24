@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -180,9 +180,9 @@ public class NodeStatsITest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
 
         assertThat((Integer) results.get("available_processors")).isGreaterThan(0);
-        assertEquals(Constants.OS_NAME, results.get("name"));
-        assertEquals(Constants.OS_ARCH, results.get("arch"));
-        assertEquals(Constants.OS_VERSION, results.get("version"));
+        assertThat(results.get("name")).isEqualTo(Constants.OS_NAME);
+        assertThat(results.get("arch")).isEqualTo(Constants.OS_ARCH);
+        assertThat(results.get("version")).isEqualTo(Constants.OS_VERSION);
 
         Map<String, Object> jvmObj = new HashMap<>(4);
         java.lang.Runtime.Version version = Runtime.version();
@@ -190,7 +190,7 @@ public class NodeStatsITest extends IntegTestCase {
         jvmObj.put("vm_name", Constants.JVM_NAME);
         jvmObj.put("vm_vendor", Constants.JVM_VENDOR);
         jvmObj.put("vm_version", version.toString());
-        assertEquals(jvmObj, results.get("jvm"));
+        assertThat(results.get("jvm")).isEqualTo(jvmObj);
     }
 
     @Test

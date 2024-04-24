@@ -23,9 +23,9 @@ package io.crate.planner.optimizer;
 
 import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
 
 import java.util.List;
 import java.util.Set;
@@ -56,9 +56,9 @@ public class OptimizerRuleSessionSettingProviderTest {
     public void test_optimizer_rule_session_settings() {
         var sessionSetting = LoadedRules.buildRuleSessionSetting(MergeFilters.class);
 
-        assertThat(sessionSetting.name(), is("optimizer_merge_filters"));
-        assertThat(sessionSetting.description(), is("Indicates if the optimizer rule MergeFilters is activated."));
-        assertThat(sessionSetting.defaultValue(), is("true"));
+        assertThat(sessionSetting.name()).isEqualTo("optimizer_merge_filters");
+        assertThat(sessionSetting.description()).isEqualTo("Indicates if the optimizer rule MergeFilters is activated.");
+        assertThat(sessionSetting.defaultValue()).isEqualTo("true");
 
         SearchPath searchPath = SearchPath.createSearchPathFrom("dummySchema");
         var mergefilterSettings = new CoordinatorSessionSettings(
@@ -71,7 +71,7 @@ public class OptimizerRuleSessionSettingProviderTest {
             0
         );
 
-        assertThat(sessionSetting.getValue(mergefilterSettings), is("false"));
+        assertThat(sessionSetting.getValue(mergefilterSettings)).isEqualTo("false");
 
         var sessionSettings = new CoordinatorSessionSettings(RolesHelper.userOf("user"));
 
@@ -81,6 +81,6 @@ public class OptimizerRuleSessionSettingProviderTest {
 
         // Enable MergeFilters 'SET SESSION optimizer_merge_filters = true'
         sessionSetting.apply(sessionSettings, List.of(Literal.of(true)), eval);
-        assertThat(sessionSettings.excludedOptimizerRules().isEmpty(), is(true));
+        assertThat(sessionSettings.excludedOptimizerRules()).isEmpty();
     }
 }

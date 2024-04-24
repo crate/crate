@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
@@ -344,8 +345,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         Iterator<Row> values = result.iterator();
 
-        assertThat(values.next().get(0), Matchers.is(Float.NaN));
-        assertThat(values.next().get(0), Matchers.is(Float.NaN));
+        assertThat(values.next().get(0)).isEqualTo(Float.NaN);
+        assertThat(values.next().get(0)).isEqualTo(Float.NaN);
     }
 
     @Test
@@ -369,8 +370,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         Iterator<Row> values = result.iterator();
 
-        assertThat(values.next().get(0), Matchers.is(1.0F));
-        assertThat(values.next().get(0), Matchers.is(1.0F));
+        assertThat(values.next().get(0)).isEqualTo(1.0F);
+        assertThat(values.next().get(0)).isEqualTo(1.0F);
     }
 
     private static void addDoc(IndexWriter w, String name, FieldType fieldType, String value) throws IOException {

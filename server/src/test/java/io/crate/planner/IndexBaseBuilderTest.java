@@ -21,8 +21,7 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.TreeMap;
 
@@ -45,10 +44,10 @@ public class IndexBaseBuilderTest {
         builder.allocate("i3", IntArrayList.from(1, 3));
 
         TreeMap<String, Integer> bases = builder.build();
-        assertThat(bases.size(), is(3));
-        assertThat(bases.get("i1"), is(0));
-        assertThat(bases.get("i2"), is(6));
-        assertThat(bases.get("i3"), is(9));
+        assertThat(bases.size()).isEqualTo(3);
+        assertThat(bases.get("i1")).isEqualTo(0);
+        assertThat(bases.get("i2")).isEqualTo(6);
+        assertThat(bases.get("i3")).isEqualTo(9);
     }
 
     @Test
@@ -58,8 +57,8 @@ public class IndexBaseBuilderTest {
         builder.allocate("i1", IntArrayList.from(1, 4));
         builder.allocate("i2", IntArrayList.from(1, 5));
         TreeMap<String, Integer> bases = builder.build();
-        assertThat(bases.size(), is(2));
-        assertThat(bases.get("i1"), is(0));
-        assertThat(bases.get("i2"), is(5));
+        assertThat(bases.size()).isEqualTo(2);
+        assertThat(bases.get("i1")).isEqualTo(0);
+        assertThat(bases.get("i2")).isEqualTo(5);
     }
 }

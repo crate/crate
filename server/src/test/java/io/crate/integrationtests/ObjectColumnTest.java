@@ -27,7 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -165,15 +165,12 @@ public class ObjectColumnTest extends IntegTestCase {
         execute("select author, author['job'] from ot " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertEquals(
-            Map.of(
-                "name", Map.of(
-                    "first_name", "Douglas",
-                    "last_name", "Adams"),
-                "age", 49,
-                "job", "Writer"),
-            response.rows()[0][0]
-        );
+        assertThat(response.rows()[0][0]).isEqualTo(Map.of(
+            "name", Map.of(
+                "first_name", "Douglas",
+                "last_name", "Adams"),
+            "age", 49,
+            "job", "Writer"));
         assertThat(response.rows()[0][1]).isEqualTo("Writer");
     }
 

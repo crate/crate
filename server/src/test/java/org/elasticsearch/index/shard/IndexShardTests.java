@@ -20,11 +20,11 @@ package org.elasticsearch.index.shard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.common.lucene.Lucene.cleanLuceneIndex;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -1954,7 +1954,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         new ActionListener<>() {
                             @Override
                             public void onResponse(Releasable releasable) {
-                                fail();
+                                fail("onResponse must not be called");
                             }
 
                             @Override
@@ -2897,7 +2897,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
         try {
             indexDoc(shard, "1");
-            fail();
+            fail("Index is supposed to be closed");
         } catch (AlreadyClosedException ignored) {
 
         }
@@ -2912,7 +2912,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
         try {
             deleteDoc(shard, "1");
-            fail();
+            fail("Index is supposed to be closed");
         } catch (AlreadyClosedException ignored) {
 
         }

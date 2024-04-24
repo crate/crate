@@ -21,9 +21,6 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -155,32 +152,32 @@ public class OutboundHandlerTests extends ESTestCase {
 
         ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference reference = Netty4Utils.toBytesReference(msg);
-        assertEquals(node, nodeRef.get());
-        assertEquals(requestId, requestIdRef.get());
-        assertEquals(action, actionRef.get());
-        assertEquals(request, requestRef.get());
+        assertThat(nodeRef.get()).isEqualTo(node);
+        assertThat(requestIdRef.get()).isEqualTo(requestId);
+        assertThat(actionRef.get()).isEqualTo(action);
+        assertThat(requestRef.get()).isEqualTo(request);
 
         pipeline.handleBytes(channel, new ReleasableBytesReference(reference, () -> {
         }));
         final Tuple<Header, BytesReference> tuple = message.get();
         final Header header = tuple.v1();
         final TestRequest message = new TestRequest(tuple.v2().streamInput());
-        assertEquals(version, header.getVersion());
-        assertEquals(requestId, header.getRequestId());
-        assertTrue(header.isRequest());
-        assertFalse(header.isResponse());
+        assertThat(header.getVersion()).isEqualTo(version);
+        assertThat(header.getRequestId()).isEqualTo(requestId);
+        assertThat(header.isRequest()).isTrue();
+        assertThat(header.isResponse()).isFalse();
         if (isHandshake) {
-            assertTrue(header.isHandshake());
+            assertThat(header.isHandshake()).isTrue();
         } else {
-            assertFalse(header.isHandshake());
+            assertThat(header.isHandshake()).isFalse();
         }
         if (compress) {
-            assertTrue(header.isCompressed());
+            assertThat(header.isCompressed()).isTrue();
         } else {
-            assertFalse(header.isCompressed());
+            assertThat(header.isCompressed()).isFalse();
         }
 
-        assertEquals(value, message.value);
+        assertThat(message.value).isEqualTo(value);
     }
 
     @Test
@@ -208,33 +205,33 @@ public class OutboundHandlerTests extends ESTestCase {
 
         ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference reference = Netty4Utils.toBytesReference(msg);
-        assertEquals(requestId, requestIdRef.get());
-        assertEquals(action, actionRef.get());
-        assertEquals(response, responseRef.get());
+        assertThat(requestIdRef.get()).isEqualTo(requestId);
+        assertThat(actionRef.get()).isEqualTo(action);
+        assertThat(responseRef.get()).isEqualTo(response);
 
         pipeline.handleBytes(channel, new ReleasableBytesReference(reference, () -> {
         }));
         final Tuple<Header, BytesReference> tuple = message.get();
         final Header header = tuple.v1();
         final TestResponse message = new TestResponse(tuple.v2().streamInput());
-        assertEquals(version, header.getVersion());
-        assertEquals(requestId, header.getRequestId());
-        assertFalse(header.isRequest());
-        assertTrue(header.isResponse());
+        assertThat(header.getVersion()).isEqualTo(version);
+        assertThat(header.getRequestId()).isEqualTo(requestId);
+        assertThat(header.isRequest()).isFalse();
+        assertThat(header.isResponse()).isTrue();
         if (isHandshake) {
-            assertTrue(header.isHandshake());
+            assertThat(header.isHandshake()).isTrue();
         } else {
-            assertFalse(header.isHandshake());
+            assertThat(header.isHandshake()).isFalse();
         }
         if (compress) {
-            assertTrue(header.isCompressed());
+            assertThat(header.isCompressed()).isTrue();
         } else {
-            assertFalse(header.isCompressed());
+            assertThat(header.isCompressed()).isFalse();
         }
 
-        assertFalse(header.isError());
+        assertThat(header.isError()).isFalse();
 
-        assertEquals(value, message.value);
+        assertThat(message.value).isEqualTo(value);
     }
 
     @Test
@@ -259,27 +256,27 @@ public class OutboundHandlerTests extends ESTestCase {
 
         ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference reference = Netty4Utils.toBytesReference(msg);
-        assertEquals(requestId, requestIdRef.get());
-        assertEquals(action, actionRef.get());
-        assertEquals(error, responseRef.get());
+        assertThat(requestIdRef.get()).isEqualTo(requestId);
+        assertThat(actionRef.get()).isEqualTo(action);
+        assertThat(responseRef.get()).isEqualTo(error);
 
 
         pipeline.handleBytes(channel, new ReleasableBytesReference(reference, () -> {
         }));
         final Tuple<Header, BytesReference> tuple = message.get();
         final Header header = tuple.v1();
-        assertEquals(version, header.getVersion());
-        assertEquals(requestId, header.getRequestId());
-        assertFalse(header.isRequest());
-        assertTrue(header.isResponse());
-        assertFalse(header.isCompressed());
-        assertFalse(header.isHandshake());
-        assertTrue(header.isError());
+        assertThat(header.getVersion()).isEqualTo(version);
+        assertThat(header.getRequestId()).isEqualTo(requestId);
+        assertThat(header.isRequest()).isFalse();
+        assertThat(header.isResponse()).isTrue();
+        assertThat(header.isCompressed()).isFalse();
+        assertThat(header.isHandshake()).isFalse();
+        assertThat(header.isError()).isTrue();
 
         RemoteTransportException remoteException = tuple.v2().streamInput().readException();
         assertThat(remoteException.getCause()).isInstanceOf(ElasticsearchException.class);
-        assertEquals(remoteException.getCause().getMessage(), "boom");
-        assertEquals(action, remoteException.action());
-        assertEquals(channel.getLocalAddress(), remoteException.address().address());
+        assertThat("boom").isEqualTo(remoteException.getCause().getMessage());
+        assertThat(remoteException.action()).isEqualTo(action);
+        assertThat(remoteException.address().address()).isEqualTo(channel.getLocalAddress());
     }
 }

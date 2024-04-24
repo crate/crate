@@ -21,9 +21,9 @@
 
 package io.crate.execution.dsl.projection;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 
 import java.util.List;
 
@@ -47,9 +47,9 @@ public class UpdateProjectionTest {
         UpdateProjection u2 = new UpdateProjection(
             Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)},new Symbol[]{new InputColumn(0, DataTypes.STRING)}, null, null);
 
-        assertThat(u2.equals(u1), is(true));
-        assertThat(u1.equals(u2), is(true));
-        assertThat(u1.hashCode(), is(u2.hashCode()));
+        assertThat(u2.equals(u1)).isTrue();
+        assertThat(u1.equals(u2)).isTrue();
+        assertThat(u1.hashCode()).isEqualTo(u2.hashCode());
 
     }
 

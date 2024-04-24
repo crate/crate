@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -991,9 +991,9 @@ public class InformationSchemaTest extends IntegTestCase {
         Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04134", Map.of("par", 2), "2", 5, "0-1", "1"};
         Object[] row3 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04136", Map.of("par", 3), "3", 5, "0-1", "1"};
 
-        assertArrayEquals(row1, response.rows()[0]);
-        assertArrayEquals(row2, response.rows()[1]);
-        assertArrayEquals(row3, response.rows()[2]);
+        assertThat(response.rows()[0]).containsExactly(row1);
+        assertThat(response.rows()[1]).containsExactly(row2);
+        assertThat(response.rows()[2]).containsExactly(row3);
     }
 
     @Test
@@ -1098,11 +1098,11 @@ public class InformationSchemaTest extends IntegTestCase {
         Object[] row4 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08134136dtng", Map.of("par", 2, "par_str", "foo"), 5, "0-1"};
         Object[] row5 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "081341b1edi6c", Map.of("par", 2, "par_str", "asdf"), 4, "0-1"};
 
-        assertArrayEquals(row1, response.rows()[0]);
-        assertArrayEquals(row2, response.rows()[1]);
-        assertArrayEquals(row3, response.rows()[2]);
-        assertArrayEquals(row4, response.rows()[3]);
-        assertArrayEquals(row5, response.rows()[4]);
+        assertThat(response.rows()[0]).containsExactly(row1);
+        assertThat(response.rows()[1]).containsExactly(row2);
+        assertThat(response.rows()[2]).containsExactly(row3);
+        assertThat(response.rows()[3]).containsExactly(row4);
+        assertThat(response.rows()[4]).containsExactly(row5);
     }
 
     @Test

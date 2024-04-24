@@ -21,8 +21,7 @@
 
 package io.crate.protocols.postgres;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -39,6 +38,6 @@ public class DelayableWriteChannelTest {
         ByteBuf buffer = Unpooled.buffer();
         channel.write(buffer);
         channel.close();
-        assertThat(buffer.refCnt(), is(0));
+        assertThat(buffer.refCnt()).isEqualTo(0);
     }
 }

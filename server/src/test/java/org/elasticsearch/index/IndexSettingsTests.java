@@ -23,10 +23,8 @@ package org.elasticsearch.index;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -291,17 +289,17 @@ public class IndexSettingsTests extends ESTestCase {
         assertThat(settings.getNumberOfShards()).isEqualTo(numShards);
         assertThat(indexValue.get()).isEqualTo(0);
 
-        assertTrue(settings.updateIndexMetadata(newIndexMeta("index", Settings.builder().
+        assertThat(settings.updateIndexMetadata(newIndexMeta("index", Settings.builder().
             put("index.foo.bar", 42)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, numReplicas + 1)
-            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards).build())));
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards).build()))).isTrue();
 
         assertThat(indexValue.get()).isEqualTo(42);
-        assertSame(nodeSettings, settings.getNodeSettings());
+        assertThat(settings.getNodeSettings()).isSameAs(nodeSettings);
 
-        assertTrue(settings.updateIndexMetadata(newIndexMeta("index", Settings.builder()
+        assertThat(settings.updateIndexMetadata(newIndexMeta("index", Settings.builder()
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, numReplicas + 1)
-            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards).build())));
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards).build()))).isTrue();
         assertThat(indexValue.get()).isEqualTo(43);
 
     }
@@ -522,7 +520,7 @@ public class IndexSettingsTests extends ESTestCase {
                 (e, ex) -> {
                     assert false : "should not have been invoked, no invalid settings";
                 });
-        assertSame(settings, Settings.EMPTY);
+        assertThat(Settings.EMPTY).isSameAs(settings);
         settings =
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
                 Settings.builder().put("index.refresh_interval", "-200").build(),
@@ -536,7 +534,7 @@ public class IndexSettingsTests extends ESTestCase {
                         "failed to parse setting [index.refresh_interval] with value [-200] as a time value: negative durations are not supported");
                 });
         assertThat(settings.get("archived.index.refresh_interval")).isEqualTo("-200");
-        assertNull(settings.get("index.refresh_interval"));
+        assertThat(settings.get("index.refresh_interval")).isNull();
 
         Settings prevSettings = settings; // no double archive
         settings =
@@ -548,7 +546,7 @@ public class IndexSettingsTests extends ESTestCase {
                 (e, ex) -> {
                     assert false : "should not have been invoked, no invalid settings";
                 });
-        assertSame(prevSettings, settings);
+        assertThat(settings).isSameAs(prevSettings);
 
         settings =
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
