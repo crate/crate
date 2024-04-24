@@ -189,9 +189,13 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final Version V_5_5_2 = new Version(8_05_02_99, false, org.apache.lucene.util.Version.LUCENE_9_8_0);
     public static final Version V_5_5_3 = new Version(8_05_03_99, false, org.apache.lucene.util.Version.LUCENE_9_8_0);
     public static final Version V_5_5_4 = new Version(8_05_04_99, false, org.apache.lucene.util.Version.LUCENE_9_8_0);
-    public static final Version V_5_5_5 = new Version(8_05_05_99, true, org.apache.lucene.util.Version.LUCENE_9_8_0);
 
-    public static final Version CURRENT = V_5_5_5;
+    // Version 5_5_5 is skipped due to a hiccup with docker tags:
+    // Although we released 5.5.4, we accidentally tagged the docker image as 5.5.5:
+    // https://github.com/docker-library/official-images/pull/16181/files
+    public static final Version V_5_5_6 = new Version(8_05_06_99, true, org.apache.lucene.util.Version.LUCENE_9_8_0);
+
+    public static final Version CURRENT = V_5_5_6;
 
     private static final ImmutableOpenIntMap<Version> ID_TO_VERSION;
     private static final ImmutableOpenMap<String, Version> STRING_TO_VERSION;
