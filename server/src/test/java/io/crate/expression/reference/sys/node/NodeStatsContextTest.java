@@ -21,10 +21,7 @@
 
 package io.crate.expression.reference.sys.node;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -96,23 +93,23 @@ public class NodeStatsContextTest extends ESTestCase {
         InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
         NodeStatsContext ctx2 = new NodeStatsContext(in, true);
 
-        assertThat(ctx1.id(), is(ctx2.id()));
-        assertThat(ctx1.name(), is(ctx2.name()));
-        assertThat(ctx1.hostname(), is(ctx2.hostname()));
-        assertThat(ctx1.timestamp(), is(100L));
-        assertThat(ctx1.version(), is(ctx2.version()));
-        assertThat(ctx1.build().hash(), is(ctx2.build().hash()));
-        assertThat(ctx1.restUrl(), is(ctx2.restUrl()));
-        assertThat(ctx1.httpPort(), is(ctx2.httpPort()));
-        assertThat(ctx1.transportPort(), is(ctx2.transportPort()));
-        assertThat(ctx1.pgPort(), is(ctx2.pgPort()));
-        assertThat(ctx1.jvmStats().getTimestamp(), is(ctx2.jvmStats().getTimestamp()));
-        assertThat(ctx1.osInfo().getArch(), is(ctx2.osInfo().getArch()));
-        assertThat(ctx1.processStats().getTimestamp(), is(ctx2.processStats().getTimestamp()));
-        assertThat(ctx1.osStats().getTimestamp(), is(ctx2.osStats().getTimestamp()));
-        assertThat(ctx1.extendedOsStats().uptime(), is(ctx2.extendedOsStats().uptime()));
-        assertThat(ctx1.threadPools().iterator().next().getActive(), is(ctx2.threadPools().iterator().next().getActive()));
-        assertThat(ctx1.clusterStateVersion(), is(ctx2.clusterStateVersion()));
+        assertThat(ctx2.id()).isEqualTo(ctx1.id());
+        assertThat(ctx2.name()).isEqualTo(ctx1.name());
+        assertThat(ctx2.hostname()).isEqualTo(ctx1.hostname());
+        assertThat(ctx2.timestamp()).isEqualTo(100L);
+        assertThat(ctx2.version()).isEqualTo(ctx1.version());
+        assertThat(ctx2.build().hash()).isEqualTo(ctx1.build().hash());
+        assertThat(ctx2.restUrl()).isEqualTo(ctx1.restUrl());
+        assertThat(ctx2.httpPort()).isEqualTo(ctx1.httpPort());
+        assertThat(ctx2.transportPort()).isEqualTo(ctx1.transportPort());
+        assertThat(ctx2.pgPort()).isEqualTo(ctx1.pgPort());
+        assertThat(ctx2.jvmStats().getTimestamp()).isEqualTo(ctx1.jvmStats().getTimestamp());
+        assertThat(ctx2.osInfo().getArch()).isEqualTo(ctx1.osInfo().getArch());
+        assertThat(ctx2.processStats().getTimestamp()).isEqualTo(ctx1.processStats().getTimestamp());
+        assertThat(ctx2.osStats().getTimestamp()).isEqualTo(ctx1.osStats().getTimestamp());
+        assertThat(ctx2.extendedOsStats().uptime()).isEqualTo(ctx1.extendedOsStats().uptime());
+        assertThat(ctx2.threadPools().iterator().next().getActive()).isEqualTo(ctx1.threadPools().iterator().next().getActive());
+        assertThat(ctx2.clusterStateVersion()).isEqualTo(ctx1.clusterStateVersion());
     }
 
     @Test
@@ -124,19 +121,19 @@ public class NodeStatsContextTest extends ESTestCase {
         var in = out.bytes().streamInput();
         NodeStatsContext ctx2 = new NodeStatsContext(in, false);
 
-        assertNull(ctx2.id());
-        assertNull(ctx2.name());
-        assertNull(ctx2.hostname());
-        assertNull(ctx2.restUrl());
-        assertNull(ctx2.httpPort());
-        assertNull(ctx2.transportPort());
-        assertNull(ctx2.pgPort());
-        assertNull(ctx2.jvmStats());
-        assertNull(ctx2.osInfo());
-        assertNull(ctx2.processStats());
-        assertNull(ctx2.osStats());
-        assertNull(ctx2.extendedOsStats());
-        assertNull(ctx2.threadPools());
+        assertThat(ctx2.id()).isNull();
+        assertThat(ctx2.name()).isNull();
+        assertThat(ctx2.hostname()).isNull();
+        assertThat(ctx2.restUrl()).isNull();
+        assertThat(ctx2.httpPort()).isNull();
+        assertThat(ctx2.transportPort()).isNull();
+        assertThat(ctx2.pgPort()).isNull();
+        assertThat(ctx2.jvmStats()).isNull();
+        assertThat(ctx2.osInfo()).isNull();
+        assertThat(ctx2.processStats()).isNull();
+        assertThat(ctx2.osStats()).isNull();
+        assertThat(ctx2.extendedOsStats()).isNull();
+        assertThat(ctx2.threadPools()).isNull();
     }
 
     @Test
@@ -150,7 +147,7 @@ public class NodeStatsContextTest extends ESTestCase {
         var in = out.bytes().streamInput();
         NodeStatsContext ctx2 = new NodeStatsContext(in, false);
 
-        assertThat(ctx2.httpPort(), nullValue());
-        assertThat(ctx2.transportPort(), is(4300));
+        assertThat(ctx2.httpPort()).isNull();
+        assertThat(ctx2.transportPort()).isEqualTo(4300);
     }
 }
