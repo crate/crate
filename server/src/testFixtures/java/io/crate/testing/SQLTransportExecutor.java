@@ -69,6 +69,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
@@ -82,7 +83,6 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -98,9 +98,11 @@ import io.crate.protocols.postgres.types.PGArray;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.postgres.types.PgOidVectorType;
+import io.crate.role.Role;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
+import io.crate.types.JsonType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -433,6 +435,10 @@ public class SQLTransportExecutor {
             DataType<?>[] dataTypes = new DataType[metadata.getColumnCount()];
             for (int i = 0; i < metadata.getColumnCount(); i++) {
                 columnNames.add(metadata.getColumnName(i + 1));
+                String columnTypeName = metadata.getColumnTypeName(i + 1);
+                dataTypes[i] = columnTypeName.startsWith("_")
+                    ? new ArrayType<>(getDataType(columnTypeName.substring(1)))
+                    : getDataType(columnTypeName);
             }
             while (resultSet.next()) {
                 Object[] row = new Object[metadata.getColumnCount()];
@@ -466,6 +472,21 @@ public class SQLTransportExecutor {
                 updateCount
             );
         }
+    }
+
+    /**
+     * Map type name from jdbc response (metadata) to a DataType
+     * This roughly follows {@link PGTypes}
+     */
+    private static DataType<?> getDataType(String pgTypeName) {
+        DataType<?> dataType = switch (pgTypeName) {
+            case "int2" -> DataTypes.SHORT;
+            case "int4" -> DataTypes.INTEGER;
+            case "int8" -> DataTypes.LONG;
+            case "json" -> JsonType.INSTANCE;
+            default -> DataTypes.UNDEFINED;
+        };
+        return dataType;
     }
 
     /**
