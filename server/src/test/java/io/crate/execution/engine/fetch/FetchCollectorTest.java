@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.fetch;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.ESTestCase.randomIntBetween;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,12 +40,12 @@ public class FetchCollectorTest {
         for (int i = start; i < start + 10; i++) {
             sequential.add(i);
         }
-        assertThat(FetchCollector.isSequential(sequential), is(true));
+        assertThat(FetchCollector.isSequential(sequential)).isTrue();
 
         IntArrayList nonSequential = new IntArrayList();
         nonSequential.add(10);
         nonSequential.add(2);
         nonSequential.add(48);
-        assertThat(FetchCollector.isSequential(nonSequential), is(false));
+        assertThat(FetchCollector.isSequential(nonSequential)).isEqualTo(false);
     }
 }

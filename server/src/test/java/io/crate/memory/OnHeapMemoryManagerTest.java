@@ -21,8 +21,7 @@
 
 package io.crate.memory;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,10 +35,10 @@ public class OnHeapMemoryManagerTest {
         var memoryManager = new OnHeapMemoryManager(bytes::addAndGet);
 
         memoryManager.allocate(20);
-        assertThat(bytes.get(), is(20L));
+        assertThat(bytes.get()).isEqualTo(20L);
 
         // Closing the memoryManager doesn't de-account the bytes. That responsibility is delegated to the IntConsumer
         memoryManager.close();
-        assertThat(bytes.get(), is(20L));
+        assertThat(bytes.get()).isEqualTo(20L);
     }
 }

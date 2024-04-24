@@ -27,7 +27,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -95,12 +94,12 @@ public class IndexTemplateUpgraderTest {
         assertThat(upgradedTemplate.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
 
         // ensure all other attributes remains the same
-        assertThat(upgradedTemplate.mapping(), is(oldPartitionTemplate.mapping()));
-        assertThat(upgradedTemplate.patterns(), is(oldPartitionTemplate.patterns()));
-        assertThat(upgradedTemplate.aliases(), is(oldPartitionTemplate.aliases()));
+        assertThat(upgradedTemplate.mapping()).isEqualTo(oldPartitionTemplate.mapping());
+        assertThat(upgradedTemplate.patterns()).isEqualTo(oldPartitionTemplate.patterns());
+        assertThat(upgradedTemplate.aliases()).isEqualTo(oldPartitionTemplate.aliases());
 
         // ensure non partitioned table templates are untouched
-        assertThat(upgradedTemplates.get(nonPartitionTemplateName), is(oldNonPartitionTemplate));
+        assertThat(upgradedTemplates.get(nonPartitionTemplateName)).isEqualTo(oldNonPartitionTemplate);
     }
 
     @Test
@@ -116,11 +115,9 @@ public class IndexTemplateUpgraderTest {
         IndexTemplateUpgrader indexTemplateUpgrader = new IndexTemplateUpgrader();
         Map<String, IndexTemplateMetadata> result = indexTemplateUpgrader.apply(Collections.singletonMap(templateName, template));
 
-        assertThat(
-            "Outdated setting `index.recovery.initial_shards` must be removed",
-            result.get(templateName).settings().hasValue("index.recovery.initial_shards"),
-            is(false)
-        );
+        assertThat(result.get(templateName).settings().hasValue("index.recovery.initial_shards"))
+            .as("Outdated setting `index.recovery.initial_shards` must be removed")
+            .isFalse();
     }
 
     @Test
@@ -146,7 +143,7 @@ public class IndexTemplateUpgraderTest {
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
         CompressedXContent compressedXContent = updatedTemplate.mapping();
-        assertThat(compressedXContent.string(), is("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}"));
+        assertThat(compressedXContent.string()).isEqualTo("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}");
     }
 
     @Test
@@ -173,7 +170,7 @@ public class IndexTemplateUpgraderTest {
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
         CompressedXContent compressedXContent = updatedTemplate.mapping();
-        assertThat(compressedXContent.string(), is("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}"));
+        assertThat(compressedXContent.string()).isEqualTo("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}");
     }
 
 

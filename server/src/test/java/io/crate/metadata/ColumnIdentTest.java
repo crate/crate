@@ -25,7 +25,6 @@ import static junit.framework.TestCase.assertTrue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,23 +41,22 @@ public class ColumnIdentTest {
     @Test
     public void testSqlFqn() throws Exception {
         ColumnIdent ident = new ColumnIdent("foo", Arrays.asList("x", "y", "z"));
-        assertThat(ident.sqlFqn(), is("foo['x']['y']['z']"));
+        assertThat(ident.sqlFqn()).isEqualTo("foo['x']['y']['z']");
 
         ident = new ColumnIdent("a");
-        assertThat(ident.sqlFqn(), is("a"));
+        assertThat(ident.sqlFqn()).isEqualTo("a");
 
         ident = new ColumnIdent("a", Collections.singletonList(""));
-        assertThat(ident.sqlFqn(), is("a['']"));
+        assertThat(ident.sqlFqn()).isEqualTo("a['']");
 
         ident = new ColumnIdent("a.b", Collections.singletonList("c"));
-        assertThat(ident.sqlFqn(), is("a.b['c']"));
+        assertThat(ident.sqlFqn()).isEqualTo("a.b['c']");
     }
 
     @Test
     public void testShiftRight() throws Exception {
-        assertThat(new ColumnIdent("foo", "bar").shiftRight(), is(new ColumnIdent("bar")));
-        assertThat(new ColumnIdent("foo", Arrays.asList("x", "y", "z")).shiftRight(),
-            is(new ColumnIdent("x", Arrays.asList("y", "z"))));
+        assertThat(new ColumnIdent("foo", "bar").shiftRight()).isEqualTo(new ColumnIdent("bar"));
+        assertThat(new ColumnIdent("foo", Arrays.asList("x", "y", "z")).shiftRight()).isEqualTo(new ColumnIdent("x", Arrays.asList("y", "z")));
         assertThat(new ColumnIdent("foo").shiftRight(), Matchers.nullValue());
     }
 
@@ -69,24 +67,23 @@ public class ColumnIdentTest {
         ColumnIdent rootXY = new ColumnIdent("root", Arrays.asList("x", "y"));
         ColumnIdent rootYX = new ColumnIdent("root", Arrays.asList("y", "x"));
 
-        assertThat(root.isChildOf(root), is(false));
+        assertThat(root.isChildOf(root)).isFalse();
 
-        assertThat(rootX.isChildOf(root), is(true));
-        assertThat(rootXY.isChildOf(root), is(true));
-        assertThat(rootXY.isChildOf(rootX), is(true));
+        assertThat(rootX.isChildOf(root)).isTrue();
+        assertThat(rootXY.isChildOf(root)).isTrue();
+        assertThat(rootXY.isChildOf(rootX)).isTrue();
 
-        assertThat(rootYX.isChildOf(root), is(true));
-        assertThat(rootYX.isChildOf(rootX), is(false));
+        assertThat(rootYX.isChildOf(root)).isTrue();
+        assertThat(rootYX.isChildOf(rootX)).isFalse();
     }
 
     @Test
     public void testPrepend() throws Exception {
         ColumnIdent foo = new ColumnIdent("foo");
-        assertThat(foo.prepend(DocSysColumns.DOC.name()),
-            is(new ColumnIdent(DocSysColumns.DOC.name(), "foo")));
+        assertThat(foo.prepend(DocSysColumns.DOC.name())).isEqualTo(new ColumnIdent(DocSysColumns.DOC.name(), "foo"));
 
         ColumnIdent fooBar = new ColumnIdent("foo", "bar");
-        assertThat(fooBar.prepend("x"), is(new ColumnIdent("x", Arrays.asList("foo", "bar"))));
+        assertThat(fooBar.prepend("x")).isEqualTo(new ColumnIdent("x", Arrays.asList("foo", "bar")));
     }
 
     @Test

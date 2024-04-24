@@ -21,12 +21,11 @@
 
 package io.crate.metadata.sys;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 import java.util.function.LongSupplier;
 
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import io.crate.expression.reference.sys.operation.OperationContext;
@@ -49,6 +48,6 @@ public class SysOperationsLogTableInfoTest {
         String errorMessage = null;
         expression.setNextRow(new OperationContextLog(new OperationContext(id, jobId, name, started, bytesUsed), errorMessage));
         Object value = (String) expression.value();
-        assertThat(value, Matchers.is(jobId.toString()));
+        assertThat(value).isEqualTo(jobId.toString());
     }
 }

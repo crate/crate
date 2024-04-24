@@ -28,6 +28,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_FUNCTION;
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -95,12 +96,12 @@ public class ErrorMappingTest {
         var throwable = SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, t);
 
         var pgError = PGError.fromThrowable(throwable);
-        assertThat(pgError.status(), is(pgErrorStatus));
+        assertThat(pgError.status()).isEqualTo(pgErrorStatus);
         assertThat(pgError.message(), msg);
 
         var httpError = HttpError.fromThrowable(throwable);
-        assertThat(httpError.errorCode(), is(errorCode));
-        assertThat(httpError.httpResponseStatus(), is(httpResponseStatus));
+        assertThat(httpError.errorCode()).isEqualTo(errorCode);
+        assertThat(httpError.httpResponseStatus()).isEqualTo(httpResponseStatus);
         assertThat(httpError.message(), msg);
     }
 }

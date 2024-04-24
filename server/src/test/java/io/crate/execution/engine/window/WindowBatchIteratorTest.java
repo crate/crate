@@ -24,9 +24,9 @@ package io.crate.execution.engine.window;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -133,7 +133,7 @@ public class WindowBatchIteratorTest {
             args).get(5, TimeUnit.SECONDS).spliterator(), false)
             .collect(toList());
         var expectedBounds = new Tuple<>(0, 10);
-        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(new Object[] { i, expectedBounds})));
+        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i)).isEqualTo(new Object[]{i, expectedBounds}));
     }
 
     @Test
@@ -360,7 +360,7 @@ public class WindowBatchIteratorTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         // should've accounted for 10 integers of 48 bytes each (16 for the integer, 32 for the ArrayList element)
-        assertThat(ramAccounting.totalBytes(), is(480L));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(480L);
     }
 
     @Test

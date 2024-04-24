@@ -23,11 +23,11 @@ package io.crate.rest.action;
 
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -128,7 +128,7 @@ public class SqlHttpHandlerTest {
         verify(mockedRequest, atLeast(1)).headers();
         assertThat(session.sessionSettings().authenticatedUser(), is(dummyUser));
         assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("doc"));
-        assertTrue(session.sessionSettings().hashJoinsEnabled());
+        assertThat(session.sessionSettings().hashJoinsEnabled()).isTrue();
 
         // modify the session settings
         session.sessionSettings().setSearchPath("dummy_path");

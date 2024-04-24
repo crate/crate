@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Collections;
@@ -53,6 +54,6 @@ public class MapLookupByPathExpressionTest {
             new MapLookupByPathExpression<>(Function.identity(), Collections.singletonList("correct"), UnaryOperator.identity());
 
         expr.setNextRow(m);
-        assertThat(expr.value(), Matchers.is(10));
+        assertThat(expr.value()).isEqualTo(10);
     }
 }

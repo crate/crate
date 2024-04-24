@@ -26,8 +26,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING;
 import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -174,7 +172,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
 
         latch.countDown();
 
-        assertTrue(rerouteLatch.await(30L, TimeUnit.SECONDS));
+        assertThat(rerouteLatch.await(30L, TimeUnit.SECONDS)).isTrue();
         assertThat(snapshotsInfoService.numberOfKnownSnapshotShardSizes()).isEqualTo(numberOfShards);
         assertThat(snapshotsInfoService.numberOfUnknownSnapshotShardSizes()).isEqualTo(0);
         assertThat(snapshotsInfoService.numberOfFailedSnapshotShardSizes()).isEqualTo(0);
@@ -362,12 +360,12 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
             );
             applyClusterState("starting shards for " + indexName, clusterState ->
                     ESAllocationTestCase.startInitializingShardsAndReroute(allocationService, clusterState, indexName));
-            assertTrue(clusterService.state().routingTable().shardsWithState(ShardRoutingState.UNASSIGNED).isEmpty());
+            assertThat(clusterService.state().routingTable().shardsWithState(ShardRoutingState.UNASSIGNED).isEmpty()).isTrue();
 
         } else {
             // simulate deletion of the index
             applyClusterState("delete index " + indexName, clusterState -> deleteIndex(clusterState, indexName));
-            assertFalse(clusterService.state().metadata().hasIndex(indexName));
+            assertThat(clusterService.state().metadata().hasIndex(indexName)).isFalse();
         }
 
         assertThat(snapshotsInfoService.numberOfKnownSnapshotShardSizes()).isEqualTo(0);
