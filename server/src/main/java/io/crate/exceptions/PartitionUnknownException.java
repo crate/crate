@@ -21,15 +21,15 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-
 import java.util.Collections;
 import java.util.Locale;
 
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+
 public class PartitionUnknownException extends RuntimeException implements ResourceUnknownException, TableScopeException {
 
-    private RelationName relationName;
+    private final PartitionName partitionName;
 
     public PartitionUnknownException(PartitionName partitionName) {
         super(String.format(Locale.ENGLISH,
@@ -37,11 +37,15 @@ public class PartitionUnknownException extends RuntimeException implements Resou
             partitionName.relationName().fqn(),
             partitionName.ident()));
 
-        this.relationName = partitionName.relationName();
+        this.partitionName = partitionName;
+    }
+
+    public PartitionName partitionName() {
+        return partitionName;
     }
 
     @Override
     public Iterable<RelationName> getTableIdents() {
-        return Collections.singletonList(relationName);
+        return Collections.singletonList(partitionName.relationName());
     }
 }

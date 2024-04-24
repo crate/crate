@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.PartitionUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -61,19 +62,17 @@ public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUni
             );
 
         DocTableInfo tableInfo = e.resolveTableInfo("doc.users");
-        PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(
-            List.of(
-                new Assignment<>(new QualifiedName("p1"), 10)
-            ),
-            tableInfo
+        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+            tableInfo,
+            List.of(new Assignment<>(new QualifiedName("p1"), 10))
         );
         assertThat(partitionName.values()).containsExactly("10");
         assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices()[0]);
 
-        assertThatThrownBy(() -> PartitionPropertiesAnalyzer.createPartitionName(
-            List.of(new Assignment<>(new QualifiedName("p1"), 20)),
-            tableInfo
-        )).isExactlyInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> PartitionPropertiesAnalyzer.toPartitionName(
+            tableInfo,
+            List.of(new Assignment<>(new QualifiedName("p1"), 20))
+        )).isExactlyInstanceOf(PartitionUnknownException.class);
     }
 
     @Test

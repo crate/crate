@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimary
 import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
@@ -44,7 +45,6 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -53,7 +53,6 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.planner.DependencyCarrier;
@@ -229,20 +228,13 @@ public class AlterTableReroutePlan implements Plan {
 
         private static String getRerouteIndex(ShardedTable shardedTable,
                                               List<Assignment<Object>> partitionsProperties) {
-            if (shardedTable instanceof DocTableInfo) {
-                DocTableInfo docTableInfo = (DocTableInfo) shardedTable;
-
-                String indexName = docTableInfo.ident().indexNameOrAlias();
-                PartitionName partitionName = PartitionPropertiesAnalyzer
-                    .createPartitionName(partitionsProperties, docTableInfo);
-                if (partitionName != null) {
-                    indexName = partitionName.asIndexName();
-                } else if (docTableInfo.isPartitioned()) {
-                    throw new IllegalArgumentException(
-                        "table is partitioned however no partition clause has been specified");
+            if (shardedTable instanceof DocTableInfo docTableInfo) {
+                if (docTableInfo.isPartitioned()) {
+                    var partitionName = PartitionPropertiesAnalyzer.toPartitionName(docTableInfo, partitionsProperties);
+                    return partitionName.asIndexName();
+                } else {
+                    return docTableInfo.ident().indexNameOrAlias();
                 }
-
-                return indexName;
             }
 
             // Table is a blob table

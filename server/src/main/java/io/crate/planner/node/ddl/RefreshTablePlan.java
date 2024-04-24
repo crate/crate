@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.ArrayList;
@@ -34,15 +33,16 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.PartitionUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -84,12 +84,10 @@ public class RefreshTablePlan implements Plan {
             if (tableSymbol.partitionProperties().isEmpty()) {
                 toRefresh.addAll(Arrays.asList(tableInfo.concreteOpenIndices()));
             } else {
-                var partitionName = toPartitionName(
+                PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                     tableInfo,
-                    Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval)));
-                if (!tableInfo.partitions().contains(partitionName)) {
-                    throw new PartitionUnknownException(partitionName);
-                }
+                    Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval))
+                );
                 toRefresh.add(partitionName.asIndexName());
             }
         }
