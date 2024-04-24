@@ -177,7 +177,18 @@ public final class GeneratedColumnExpander {
             if (generatedReference != null &&
                 generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
 
-                Function generatedFunction = (Function) generatedReference.generatedExpression();
+                // Account for possible implicit cast
+                // which is added when return type of the generation expression doesn't match type of the generated column.
+                Symbol symbol = Symbols.unwrapReferenceFromCast(generatedReference.generatedExpression());
+                Function generatedFunction;
+                if (symbol instanceof Function fn) {
+                    generatedFunction = fn;
+                } else {
+                    // Generated column can be declared without type: "col1 AS cast(timestamp as TIMESTAMP WITH TIME ZONE)".
+                    // In this case we don't have extra implicit cast, so after unwrapping cast we end up with a Reference.
+                    // In this case we align with pre-5.8.0 behavior and don't apply optimization.
+                    return null;
+                }
 
                 String operatorName = function.name();
                 if (!operatorName.equals(EqOperator.NAME)) {

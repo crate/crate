@@ -102,6 +102,10 @@ Performance and Resilience Improvements
 
   Note that this setting is experimental, and may change in the future.
 
+- Improved the partition filtering logic to narrow partitions if the
+  partition is based on a generated column with a type not matching the return
+  type of the generated expression.
+
 Administration and Operations
 -----------------------------
 
