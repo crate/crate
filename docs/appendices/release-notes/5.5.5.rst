@@ -1,42 +1,18 @@
 .. _version_5.5.5:
 
-==========================
-Version 5.5.5 - Unreleased
-==========================
+============================
+Version 5.5.5 - Not released
+============================
 
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-
-.. NOTE::
-    In development. 5.5.5 isn't released yet. These are the release notes for
-    the upcoming release.
+.. comment This version will be skipped and instead a 5.5.6 will be released,
+.. comment if needed, see note below for details
 
 .. NOTE::
-    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
-    before you upgrade to 5.5.5.
-
-    We recommend that you upgrade to the latest 5.4 release before moving to
-    5.5.5.
-
-    A rolling upgrade from 5.4.x to 5.5.5 is supported.
-
-    Before upgrading, you should `back up your data`_.
-
-.. WARNING::
-
-    Tables that were created before CrateDB 4.x will not function with 5.x
-    and must be recreated before moving to 5.x.x.
-
-    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
-    `inserting the data into a new table`_.
-
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-
-.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
-
-.. rubric:: Table of contents
+    5.5.5 is not released and won't be released in the future. Please use
+    :ref:`version_5.5.4` instead. The :ref:`version_5.5.4` release was
+    accidentally marked as `5.5.5` in the relevant `Docker PR`_, and to remedy
+    this mistake, `5.5.6` will be released, if needed, in the future.
 
 .. contents::
    :local:
@@ -48,3 +24,5 @@ Fixes
 =====
 
 None
+
+.. _Docker PR: https://github.com/docker-library/official-images/pull/16181/files
