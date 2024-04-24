@@ -152,8 +152,6 @@ public class TableParameters {
             .filter(s -> s.isFinal() == false)
             .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
-    private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NUMBER_OF_REPLICAS);
-
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
         = MapBuilder.newMapBuilder(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT)
             .put(
@@ -241,13 +239,14 @@ public class TableParameters {
     public static Map<String, Object> tableParametersFromIndexMetadata(Settings settings) {
         MapBuilder<String, Object> builder = MapBuilder.newMapBuilder();
         for (Setting<?> setting : SUPPORTED_SETTINGS) {
-            boolean shouldBeExcluded = EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting);
-            if (shouldBeExcluded == false) {
-                if (setting instanceof Setting.AffixSetting) {
-                    flattenAffixSetting(builder, settings, (Setting.AffixSetting<?>) setting);
-                } else if (settings.hasValue(setting.getKey())) {
-                    builder.put(setting.getKey(), convertEsSettingType(setting.get(settings)));
-                }
+            if (setting instanceof Setting.AffixSetting) {
+                flattenAffixSetting(builder, settings, (Setting.AffixSetting<?>) setting);
+            } else if (setting instanceof NumberOfReplicasSetting) {
+                String numReplicas = NumberOfReplicas.fromSettings(settings);
+                builder.put(setting.getKey(), numReplicas);
+            } else if (settings.hasValue(setting.getKey())) {
+                Object value = setting.get(settings);
+                builder.put(setting.getKey(), convertEsSettingType(value));
             }
         }
         return builder.immutableMap();
