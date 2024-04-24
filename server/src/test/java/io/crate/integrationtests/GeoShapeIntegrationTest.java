@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,9 @@ import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.JsonType;
 
 public class GeoShapeIntegrationTest extends IntegTestCase {
 
@@ -81,8 +85,11 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
             assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
                 "{coordinates=[13.0, 52.4], type=Point}\n" +
                 "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n");
-//TODO: Re-enable once SQLResponse also includes the data types for the columns
-//        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
+            // PGTypes maps geo-shape to JSON
+            assertThat(response.columnTypes()[0]).satisfiesAnyOf(
+                x -> assertThat(x).isEqualTo(DataTypes.GEO_SHAPE),
+                x -> assertThat(x).isEqualTo(JsonType.INSTANCE)
+            );
             assertThat(response.rows()[0][0]).isInstanceOf(Map.class);
             assertThat(response.rows()[1][0]).isInstanceOf(Map.class);
         }
@@ -92,8 +99,12 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
             assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
                 "[{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}, " +
                 "{coordinates=[[2.0, 2.0], [3.0, 3.0]], type=LineString}]\n");
-//TODO: Re-enable once SQLResponse also includes the data types for the columns
-//        assertThat(response.columnTypes()[0], is((DataType) new ArrayType(DataTypes.GEO_SHAPE)));
+
+            // PGTypes maps geo-shape to JSON
+            assertThat(response.columnTypes()[0]).satisfiesAnyOf(
+                x -> assertThat(x).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE)),
+                x -> assertThat(x).isEqualTo(new ArrayType<>(JsonType.INSTANCE))
+            );
             assertThat(response.rows()[0][0]).isInstanceOf(List.class);
         }
     }
