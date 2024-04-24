@@ -65,7 +65,9 @@ Changes
 SQL Statements
 --------------
 
-None
+- `dshunter107 <https://github.com/dshunter107>`_ added support for the
+  ``IF NOT EXISTS`` clause to :ref:`CREATE TABLE AS <ref-create-table-as>`
+  statement.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

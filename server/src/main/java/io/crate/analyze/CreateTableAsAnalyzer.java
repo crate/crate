@@ -79,7 +79,7 @@ public final class CreateTableAsAnalyzer {
             Optional.empty(),
             Optional.empty(),
             GenericProperties.empty(),
-            false);
+            createTableAs.ifNotExists());
 
         // This is only a preliminary analysis to to have the source available for privilege checks.
         // It will be analyzed again with the target columns from the target table once

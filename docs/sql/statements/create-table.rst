@@ -254,7 +254,7 @@ Parameters
 =================
 
 If the optional ``IF NOT EXISTS`` clause is used, this statement won't do
-anything if the table exists already.
+anything if the table exists already, and ``0`` rows will be returned.
 
 
 .. _sql-create-table-clustered:

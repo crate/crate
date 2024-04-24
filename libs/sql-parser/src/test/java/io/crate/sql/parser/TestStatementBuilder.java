@@ -55,6 +55,7 @@ import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
@@ -763,6 +764,12 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 int, col2 timestamp without time zone not null)");
 
         printStatement("create table test (col1 string storage with (columnstore = false))");
+    }
+
+    @Test
+    public void testCreateTableAs() {
+        printStatement("create table test as select * from created");
+        printStatement("create table if not exists test  as Select * FROM created");
     }
 
     @Test
@@ -2199,6 +2206,7 @@ public class TestStatementBuilder {
         // TODO: support formatting all statement types
         if (statement instanceof Query ||
             statement instanceof CreateTable ||
+            statement instanceof CreateTableAs ||
             statement instanceof CreateForeignTable ||
             statement instanceof CopyFrom ||
             statement instanceof SwapTable ||
