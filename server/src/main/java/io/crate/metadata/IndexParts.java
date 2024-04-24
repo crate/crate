@@ -24,9 +24,9 @@ package io.crate.metadata;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.blob.BlobSchemaInfo;
 
@@ -125,11 +125,6 @@ public class IndexParts {
 
     public static String toIndexName(RelationName relationName, String partitionIdent) {
         return toIndexName(relationName.schema(), relationName.name(), partitionIdent);
-    }
-
-    public static String toIndexName(PartitionName partitionName) {
-        RelationName relationName = partitionName.relationName();
-        return toIndexName(relationName.schema(), relationName.name(), partitionName.ident());
     }
 
     /**
