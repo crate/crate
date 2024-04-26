@@ -24,11 +24,25 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.junit.Test;
 
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.OuterColumn;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.operators.Collect;
+import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -81,5 +95,45 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         String stmt = "SELECT (SELECT t.mountain), count(*) FROM sys.summits t HAVING (SELECT t.mountain) = 'Acherkogel'";
         assertThatThrownBy(() -> e.plan(stmt))
             .hasMessage("Cannot use correlated subquery in HAVING clause");
+    }
+
+
+    // Tracks https://github.com/crate/crate/issues/15901
+    @Test
+    public void test_prune_removes_unused_outputs_from_correlated_join() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (a int, b int)");
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        var tableRelation = new DocTableRelation(tbl);
+
+        Symbol a = e.asSymbol("a");
+        Symbol b = e.asSymbol("b");
+
+        var relation = new QueriedSelectRelation(
+            false,
+            List.of(tableRelation),
+            List.of(),
+            List.of(new OuterColumn(tableRelation, b)),
+            Literal.BOOLEAN_TRUE,
+            List.of(),
+            null,
+            null,
+            null,
+            null
+        );
+
+        Collect collect = new Collect(tableRelation, List.of(a, b), WhereClause.MATCH_ALL);
+        SelectSymbol selectSymbol = new SelectSymbol(
+            relation,
+            new ArrayType<>(DataTypes.INTEGER),
+            SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE,
+            true
+        );
+        CorrelatedJoin join = new CorrelatedJoin(collect, selectSymbol, null);
+        assertThat(join.outputs()).containsExactly(a, b, selectSymbol);
+        LogicalPlan pruned = join.pruneOutputsExcept(List.of(selectSymbol));
+        assertThat(pruned.outputs())
+            .as("removes unused a")
+            .containsExactly(b, selectSymbol);
     }
 }

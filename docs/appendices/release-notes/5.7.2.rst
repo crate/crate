@@ -55,3 +55,7 @@ Fixes
   ``schema_rename_pattern``, ``schema_rename_replacement``,
   ``table_rename_pattern`` or ``table_rename_replacement``. Renamed table was
   created but used to be empty.
+
+- Fixed an issue leading to a ``ArrayIndexOutOfBoundsException`` when using a
+  correlated sub-query where some of its outputs weren't used in a parent
+  query.
