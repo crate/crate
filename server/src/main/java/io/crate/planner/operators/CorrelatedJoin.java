@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -162,12 +163,18 @@ public class CorrelatedJoin implements LogicalPlan {
         if (inputPlan == newInputPlan) {
             return this;
         }
+        List<Symbol> newOutputs = new ArrayList<>();
+        for (Symbol output: outputs) {
+            if (toCollect.contains(output)) {
+                newOutputs.add(output);
+            }
+        }
 
         return new CorrelatedJoin(
             newInputPlan,
             selectSymbol,
             subQueryPlan,
-            outputs
+            newOutputs
         );
     }
 
