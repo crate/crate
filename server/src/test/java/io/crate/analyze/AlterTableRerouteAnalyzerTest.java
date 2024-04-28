@@ -81,7 +81,8 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
                     Map.of(),
                     Set.of(),
                     Version.CURRENT))
-                .build()
+                .build(),
+            plannerContext.clusterState().metadata()
         );
     }
 

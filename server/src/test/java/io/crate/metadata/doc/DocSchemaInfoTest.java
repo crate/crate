@@ -254,12 +254,9 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
             List.of(),
             List.of(),
             null,
-            new String[0],
-            new String[0],
             Settings.builder()
                 .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
                 .build(),
-            List.of(),
             List.of(),
             ColumnPolicy.DYNAMIC,
             Version.CURRENT,

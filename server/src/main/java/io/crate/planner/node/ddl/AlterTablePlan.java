@@ -26,6 +26,7 @@ import static io.crate.metadata.table.Operation.isReplicated;
 import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
@@ -78,7 +79,9 @@ public class AlterTablePlan implements Plan {
             plannerContext.transactionContext(),
             dependencies.nodeContext(),
             params,
-            subQueryResults);
+            subQueryResults,
+            plannerContext.clusterState().metadata()
+        );
 
 
         dependencies.alterTableOperation().executeAlterTable(stmt)
@@ -89,7 +92,8 @@ public class AlterTablePlan implements Plan {
                                        CoordinatorTxnCtx txnCtx,
                                        NodeContext nodeCtx,
                                        Row params,
-                                       SubQueryResults subQueryResults) {
+                                       SubQueryResults subQueryResults,
+                                       Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -101,7 +105,7 @@ public class AlterTablePlan implements Plan {
         AlterTable<Object> alterTable = analyzedAlterTable.alterTable().map(eval);
         Table<Object> table = alterTable.table();
 
-        PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), docTableInfo);
+        PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), docTableInfo, metadata);
         TableParameters tableParameters = getTableParameterInfo(table, docTableInfo, partitionName);
         TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
         maybeRaiseBlockedException(docTableInfo, tableParameter.settings());

@@ -211,7 +211,7 @@ public final class ReservoirSampler {
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
-        for (String index : docTable.concreteOpenIndices()) {
+        for (String index : docTable.concreteOpenIndices(metadata)) {
             var indexMetadata = metadata.index(index);
             if (indexMetadata == null) {
                 continue;
