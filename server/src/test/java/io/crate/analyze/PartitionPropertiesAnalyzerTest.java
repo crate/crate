@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Collections;
 import java.util.List;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
@@ -61,19 +62,22 @@ public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUni
             )
             .build();
 
+        Metadata metadata = clusterService.state().metadata();
         DocTableInfo tableInfo = e.resolveTableInfo("doc.users");
         PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(
             List.of(
                 new Assignment<>(new QualifiedName("p1"), 10)
             ),
-            tableInfo
+            tableInfo,
+            metadata
         );
         assertThat(partitionName.values()).containsExactly("10");
-        assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices()[0]);
+        assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices(metadata)[0]);
 
         assertThatThrownBy(() -> PartitionPropertiesAnalyzer.createPartitionName(
             List.of(new Assignment<>(new QualifiedName("p1"), 20)),
-            tableInfo
+            tableInfo,
+            metadata
         )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 

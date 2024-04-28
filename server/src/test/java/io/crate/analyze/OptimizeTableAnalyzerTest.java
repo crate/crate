@@ -68,7 +68,8 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             new RowN(arguments),
-            SubQueryResults.EMPTY
+            SubQueryResults.EMPTY,
+            plannerContext.clusterState().metadata()
         );
     }
 

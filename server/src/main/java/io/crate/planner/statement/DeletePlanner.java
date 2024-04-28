@@ -107,7 +107,7 @@ public final class DeletePlanner {
             return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         if (table.isPartitioned() && query instanceof Input<?> input && DataTypes.BOOLEAN.sanitizeValue(input.value())) {
-            return new DeleteAllPartitions(Lists.map(table.partitions(), IndexParts::toIndexName));
+            return new DeleteAllPartitions(Lists.map(table.getPartitions(context.clusterState().metadata()), IndexParts::toIndexName));
         }
 
         return new Delete(tableRel, detailedQuery);
@@ -141,7 +141,8 @@ public final class DeletePlanner {
                 params,
                 subQueryResults,
                 plannerContext.transactionContext(),
-                executor.nodeContext());
+                plannerContext.nodeContext(),
+                plannerContext.clusterState().metadata());
             if (!where.partitions().isEmpty()
                 && (!where.hasQuery() || Literal.BOOLEAN_TRUE.equals(where.query()))) {
                 DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
@@ -170,7 +171,8 @@ public final class DeletePlanner {
                     params,
                     subQueryResults,
                     plannerContext.transactionContext(),
-                    executor.nodeContext());
+                    executor.nodeContext(),
+                    plannerContext.clusterState().metadata());
                 ExecutionPlan executionPlan = deleteByQuery(table, plannerContext, where);
                 nodeOperationTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
             }

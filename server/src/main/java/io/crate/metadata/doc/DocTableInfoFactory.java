@@ -135,8 +135,6 @@ public class DocTableInfoFactory {
         } catch (IndexNotFoundException e) {
             throw new RelationUnknown(relation.fqn(), e);
         }
-        String[] concreteOpenIndices;
-        List<PartitionName> partitions;
         if (indexTemplateMetadata == null) {
             IndexMetadata index = metadata.index(relation.indexNameOrAlias());
             if (index == null) {
@@ -158,11 +156,9 @@ public class DocTableInfoFactory {
             state = index.getState();
             MappingMetadata mapping = index.mapping();
             mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
-            concreteOpenIndices = concreteIndices;
             if (concreteIndices.length == 0) {
                 throw new RelationUnknown(relation);
             }
-            partitions = List.of();
         } else {
             mappingSource = XContentHelper.toMap(
                 indexTemplateMetadata.mapping().compressedReference(),
@@ -175,17 +171,6 @@ public class DocTableInfoFactory {
             boolean isClosed = Maps.getOrDefault(
                 Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
             state = isClosed ? State.CLOSE : State.OPEN;
-            // We need all concrete open indices, as closed indices must not appear in the routing.
-            concreteOpenIndices = IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                IndicesOptions.fromOptions(true, true, true, false, IndicesOptions.strictExpandOpenAndForbidClosed()),
-                relation.indexNameOrAlias()
-            );
-            partitions = new ArrayList<>(concreteIndices.length);
-            for (String indexName : concreteIndices) {
-                partitions.add(PartitionName.fromIndexOrTemplate(indexName));
-            }
-
         }
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
@@ -253,11 +238,8 @@ public class DocTableInfoFactory {
             primaryKeys,
             checkConstraints,
             clusteredBy,
-            concreteIndices,
-            concreteOpenIndices,
             tableParameters,
             partitionedBy,
-            partitions,
             ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
             versionCreated,
             versionUpgraded,

@@ -81,6 +81,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.action.sql.BaseResultReceiver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
@@ -2443,5 +2444,48 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0].toString())
             .as("Column values must match: " + Arrays.toString(response.rows()[0]))
             .isEqualTo(response.rows()[0][1]);
+    }
+
+    @Test
+    public void can_reuse_prepared_statement_to_select_from_partitioned_tables_with_newly_created_partition() throws Exception {
+        execute("""
+            CREATE TABLE doc.t (
+                a int
+            ) PARTITIONED BY (a);
+            """);
+        execute(
+            """
+                CREATE TABLE doc.t2 (
+                    b int
+                );
+                """
+        );
+        // create a partition before creating a prepared statement
+        execute("INSERT INTO doc.t VALUES (1)");
+        refresh();
+
+        try (var session = sqlExecutor.newSession()) {
+            // create a prepared statement that selects from 'doc.t'
+            session.parse(
+                "preparedStatement",
+                "INSERT INTO doc.t2 SELECT a FROM doc.t",
+                List.of()
+            );
+
+            // create another partition for 'doc.t' after creating the prepared statement
+            execute("INSERT INTO doc.t VALUES (2)");
+            refresh();
+
+            // execute the prepared statement
+            session.bind("portalName", "preparedStatement", List.of(), null);
+            session.execute("portalName", 0, new BaseResultReceiver());
+            session.sync().get();
+        }
+        refresh();
+
+        // verify that '2' is inserted which implies that the prepared statement
+        // can access the latest partition info and select from it
+        execute("SELECT b FROM doc.t2 order by 1");
+        assertThat(printedTable(response.rows())).isEqualTo("1\n2\n");
     }
 }

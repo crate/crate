@@ -245,7 +245,8 @@ public class Collect implements LogicalPlan {
                     params,
                     subQueryResults,
                     plannerContext.transactionContext(),
-                    plannerContext.nodeContext()
+                    plannerContext.nodeContext(),
+                    plannerContext.clusterState().metadata()
                 );
             }
             Symbol query = GeneratedColumnExpander.maybeExpand(
@@ -269,7 +270,8 @@ public class Collect implements LogicalPlan {
             boundWhere,
             relation,
             plannerContext.transactionContext(),
-            plannerContext.nodeContext());
+            plannerContext.nodeContext(),
+            plannerContext.clusterState().metadata());
         if (mutableBoundWhere.hasVersions()) {
             throw VersioningValidationException.versionInvalidUsage();
         } else if (mutableBoundWhere.hasSeqNoAndPrimaryTerm()) {
