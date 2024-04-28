@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
@@ -190,7 +191,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public String[] concreteIndices() {
+    public String[] concreteIndices(Metadata metadata) {
         return new String[] { index };
     }
 

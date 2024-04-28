@@ -125,7 +125,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 new RowN(arguments),
-                SubQueryResults.EMPTY
+                SubQueryResults.EMPTY,
+                plannerContext.clusterState().metadata()
             );
         } else {
             throw new AssertionError("Statement of type " + analyzedStatement.getClass() + " not supported");
