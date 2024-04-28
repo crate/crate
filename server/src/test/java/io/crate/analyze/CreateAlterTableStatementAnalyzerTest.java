@@ -142,7 +142,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 new RowN(arguments),
-                SubQueryResults.EMPTY
+                SubQueryResults.EMPTY,
+                plannerContext.clusterState().metadata()
             );
         } else {
             return (S) analyzedStatement;

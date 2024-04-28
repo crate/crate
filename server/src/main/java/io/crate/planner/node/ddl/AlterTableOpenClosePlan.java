@@ -70,7 +70,7 @@ public class AlterTableOpenClosePlan implements Plan {
 
         PartitionName partitionName = null;
         if (tableInfo.isPartitioned()) {
-            partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), tableInfo);
+            partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), tableInfo, plannerContext.clusterState().metadata());
         }
 
         dependencies.alterTableOperation()
