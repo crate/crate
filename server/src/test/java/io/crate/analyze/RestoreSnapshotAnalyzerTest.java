@@ -101,7 +101,8 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 plannerContext.nodeContext(),
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
-                e.schemas());
+                e.schemas(),
+                e.getPlannerContext().clusterState().metadata());
         } else if (analyzedStatement instanceof AnalyzedRestoreSnapshot) {
             return (T) RestoreSnapshotPlan.bind(
                 (AnalyzedRestoreSnapshot) analyzedStatement,

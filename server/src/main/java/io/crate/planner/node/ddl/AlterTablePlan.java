@@ -26,6 +26,7 @@ import static io.crate.metadata.table.Operation.isReplicated;
 import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
@@ -78,7 +79,9 @@ public class AlterTablePlan implements Plan {
             plannerContext.transactionContext(),
             dependencies.nodeContext(),
             params,
-            subQueryResults);
+            subQueryResults,
+            plannerContext.clusterState().metadata()
+        );
 
 
         dependencies.alterTableOperation().executeAlterTable(stmt)
@@ -89,7 +92,8 @@ public class AlterTablePlan implements Plan {
                                        CoordinatorTxnCtx txnCtx,
                                        NodeContext nodeCtx,
                                        Row params,
-                                       SubQueryResults subQueryResults) {
+                                       SubQueryResults subQueryResults,
+                                       Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -107,7 +111,7 @@ public class AlterTablePlan implements Plan {
         if (tableInfo instanceof DocTableInfo docTableInfo) {
             partitionName = table.partitionProperties().isEmpty()
                 ? null
-                : PartitionName.ofAssignments(docTableInfo, table.partitionProperties());
+                : PartitionName.ofAssignments(docTableInfo, table.partitionProperties(), metadata);
             isPartitioned = docTableInfo.isPartitioned();
             tableParameters = getTableParameterInfo(table, tableInfo, partitionName);
         } else {

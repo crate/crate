@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Arrays;
 import java.util.List;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import io.crate.exceptions.PartitionUnknownException;
@@ -267,11 +268,12 @@ public class PartitionNameTest extends CrateDummyClusterServiceUnitTest {
             );
 
         DocTableInfo tableInfo = e.resolveTableInfo("doc.users");
-        PartitionName partitionName = PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 10)));
+        Metadata metadata = e.getPlannerContext().clusterState().metadata();
+        PartitionName partitionName = PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 10)), metadata);
         assertThat(partitionName.values()).containsExactly("10");
-        assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices()[0]);
+        assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices(metadata)[0]);
 
-        assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 20)))).isExactlyInstanceOf(PartitionUnknownException.class);
+        assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 20)), metadata)).isExactlyInstanceOf(PartitionUnknownException.class);
     }
 
     @Test
@@ -281,7 +283,7 @@ public class PartitionNameTest extends CrateDummyClusterServiceUnitTest {
             "create table doc.users (name text primary key)",
             clusterService);
 
-        assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("name"), "foo"))))
+        assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("name"), "foo")), Metadata.EMPTY_METADATA))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("table 'doc.users' is not partitioned");
     }

@@ -64,6 +64,10 @@ Fixes
   tables were created with :ref:`sql-create-table-number-of-replicas` specified
   as a range.
 
+- Fixed an issue that caused queries on partitioned tables via prepared
+  statements to return invalid results if the partitions of the table changed
+  after preparing the statements.
+
 - Improved ingestion performance for partitioned tables where no primary keys
   are defined by using an append only optimized ingestion strategy. The
   performance improvement increases with the size of each shard.
