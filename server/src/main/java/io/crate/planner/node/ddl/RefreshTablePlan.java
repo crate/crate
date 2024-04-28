@@ -82,12 +82,12 @@ public class RefreshTablePlan implements Plan {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
             if (tableSymbol.partitionProperties().isEmpty()) {
-                toRefresh.addAll(Arrays.asList(tableInfo.concreteOpenIndices()));
+                toRefresh.addAll(Arrays.asList(tableInfo.concreteOpenIndices(plannerContext.clusterState().metadata())));
             } else {
                 var partitionName = toPartitionName(
                     tableInfo,
                     Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval)));
-                if (!tableInfo.partitions().contains(partitionName)) {
+                if (!tableInfo.getPartitions(plannerContext.clusterState().metadata()).contains(partitionName)) {
                     throw new PartitionUnknownException(partitionName);
                 }
                 toRefresh.add(partitionName.asIndexName());

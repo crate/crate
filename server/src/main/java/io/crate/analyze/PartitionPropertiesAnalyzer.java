@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
@@ -94,7 +95,8 @@ public class PartitionPropertiesAnalyzer {
 
     @Nullable
     public static PartitionName createPartitionName(List<Assignment<Object>> partitionsProperties,
-                                                    DocTableInfo tableInfo) {
+                                                    DocTableInfo tableInfo,
+                                                    Metadata metadata) {
         if (partitionsProperties.isEmpty()) {
             return null;
         }
@@ -102,7 +104,7 @@ public class PartitionPropertiesAnalyzer {
             tableInfo,
             partitionsProperties
         );
-        if (tableInfo.partitions().contains(partitionName) == false) {
+        if (tableInfo.getPartitions(metadata).contains(partitionName) == false) {
             throw new IllegalArgumentException("Referenced partition \"" + partitionName + "\" does not exist.");
         }
         return partitionName;

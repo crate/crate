@@ -97,7 +97,8 @@ public class Count implements LogicalPlan {
             where.map(binder),
             tableRelation,
             plannerContext.transactionContext(),
-            plannerContext.nodeContext());
+            plannerContext.nodeContext(),
+            plannerContext.clusterState().metadata());
         Routing routing = plannerContext.allocateRouting(
             tableRelation.tableInfo(),
             boundWhere,

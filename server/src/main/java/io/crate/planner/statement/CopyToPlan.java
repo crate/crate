@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedCopyTo;
@@ -114,7 +115,9 @@ public final class CopyToPlan implements Plan {
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             params,
-            subQueryResults);
+            subQueryResults,
+            plannerContext.clusterState().metadata()
+        );
 
         ExecutionPlan executionPlan = planCopyToExecution(
             executor,
@@ -198,7 +201,8 @@ public final class CopyToPlan implements Plan {
                                    CoordinatorTxnCtx txnCtx,
                                    NodeContext nodeCtx,
                                    Row parameters,
-                                   SubQueryResults subQueryResults) {
+                                   SubQueryResults subQueryResults,
+                                   Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -210,8 +214,8 @@ public final class CopyToPlan implements Plan {
 
         List<String> partitions = resolvePartitions(
             Lists.map(copyTo.table().partitionProperties(), x -> x.map(eval)),
-            table
-        );
+            table,
+            metadata);
 
         List<Symbol> outputs = new ArrayList<>();
         Map<ColumnIdent, Symbol> overwrites = null;
@@ -276,14 +280,15 @@ public final class CopyToPlan implements Plan {
     }
 
     private static List<String> resolvePartitions(List<Assignment<Object>> partitionProperties,
-                                                  DocTableInfo table) {
+                                                  DocTableInfo table,
+                                                  Metadata metadata) {
         if (partitionProperties.isEmpty()) {
             return Collections.emptyList();
         }
         var partitionName = PartitionPropertiesAnalyzer.toPartitionName(
             table,
             partitionProperties);
-        if (!table.partitions().contains(partitionName)) {
+        if (!table.getPartitions(metadata).contains(partitionName)) {
             throw new PartitionUnknownException(partitionName);
         }
         return List.of(partitionName.asIndexName());
