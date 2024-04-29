@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster;
 
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
@@ -35,18 +34,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
 import io.crate.testing.UseRandomizedSchema;
 
 public class ClusterHealthIT extends IntegTestCase {
@@ -283,8 +280,14 @@ public class ClusterHealthIT extends IntegTestCase {
             cluster().restartNode(cluster().getMasterName(), TestCluster.EMPTY_CALLBACK);
         }
         if (withIndex) {
-            assertAcked(client().admin().indices().updateSettings(
-                new UpdateSettingsRequest(indexName).settings(Settings.builder().put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0))).get());
+            RelationName relationName = RelationName.fromIndexName(indexName);
+            String stmt = String.format(
+                Locale.ENGLISH,
+                "alter table \"%s\".\"%s\" set (number_of_replicas = 0)",
+                relationName.schema(),
+                relationName.name()
+            );
+            execute(stmt);
         }
         for (var responseFuture : responseFutures) {
             assertSame(responseFuture.get().getStatus(), ClusterHealthStatus.GREEN);
