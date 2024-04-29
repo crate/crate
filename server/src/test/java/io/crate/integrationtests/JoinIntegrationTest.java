@@ -1389,19 +1389,17 @@ public class JoinIntegrationTest extends IntegTestCase {
         // This should prevent the test case from becoming invalid
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response).hasLines(
-                   "OrderBy[z ASC x ASC]",
-                   "  └ NestedLoopJoin[LEFT | (z = x)]",
-                   "    ├ Rename[z] AS d",
-                   "    │  └ Rename[z] AS generated",
-                   "    │    └ Rename[z] AS z",
-                   "    │      └ TableFunction[unnest | [unnest] | true]",
-                   "    └ Rename[x] AS c",
-                   "      └ Rename[x] AS combined",
-                   "        └ Eval[x]",
-                   "          └ NestedLoopJoin[LEFT | (x = y)]",
-                   "            ├ Collect[doc.t1 | [x] | true]",
-                   "            └ Collect[doc.t2 | [y] | true]"
-        );
+            "OrderBy[z ASC x ASC]",
+            "  └ NestedLoopJoin[LEFT | (z = x)]",
+            "    ├ Rename[z] AS d",
+            "    │  └ Rename[z] AS generated",
+            "    │    └ Rename[z] AS z",
+            "    │      └ TableFunction[unnest | [unnest] | true]",
+            "    └ Rename[x] AS c",
+            "      └ Rename[x] AS combined",
+            "        └ NestedLoopJoin[LEFT | (x = y)]",
+            "          ├ Collect[doc.t1 | [x] | true]",
+            "          └ Collect[doc.t2 | [y] | true]");
 
         execute(stmt);
         assertThat(response).hasRows(
