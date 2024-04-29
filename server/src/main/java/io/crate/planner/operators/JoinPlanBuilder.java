@@ -124,7 +124,7 @@ public class JoinPlanBuilder {
         LogicalPlan newLhs = plan.apply(lhs);
         LogicalPlan newRhs = plan.apply(rhs);
         LogicalPlan joinPlan = new JoinPlan(
-            Lists.concat(newLhs.outputs(), newRhs.outputs()),
+            AbstractJoinPlan.buildOutputs(newLhs.outputs(), newRhs.outputs(), joinType),
             newLhs,
             newRhs,
             joinType,

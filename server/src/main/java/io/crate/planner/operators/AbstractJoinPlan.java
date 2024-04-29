@@ -69,7 +69,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         this.joinType = joinType;
     }
 
-    protected static List<Symbol> buildOutputs(List<Symbol> lhs, List<Symbol> rhs, JoinType joinType) {
+    static List<Symbol> buildOutputs(List<Symbol> lhs, List<Symbol> rhs, JoinType joinType) {
         if (joinType == JoinType.SEMI) {
             return lhs;
         }
@@ -111,7 +111,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
             return null;
         }
 
-        return new PrunedOutputsResult(lhs, rhs, newOutputs);
+        return new PrunedOutputsResult(newLhs, newRhs, newOutputs);
     }
 
     protected record PrunedOutputsResult(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {}

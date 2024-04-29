@@ -46,7 +46,7 @@ public class JoinPlan extends AbstractJoinPlan {
     private final boolean moveConstantJoinConditionRuleApplied;
 
     public JoinPlan(List<Symbol> outputs,
-                     LogicalPlan lhs,
+                    LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition,
