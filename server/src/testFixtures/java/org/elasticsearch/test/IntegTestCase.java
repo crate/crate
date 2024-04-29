@@ -89,7 +89,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
@@ -190,6 +189,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
@@ -200,7 +200,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
@@ -656,24 +655,21 @@ public abstract class IntegTestCase extends ESTestCase {
      * Yet if the shards can't be allocated on any other node shards for this index will remain allocated on
      * more than <code>n</code> nodes.
      */
-    public void allowNodes(String index, int n) {
+    public void allowNodes(String index, int num) {
         assert index != null;
-        cluster().ensureAtLeastNumDataNodes(n);
-        Settings.Builder builder = Settings.builder();
-        if (n > 0) {
-            getExcludeSettings(n, builder);
+        cluster().ensureAtLeastNumDataNodes(num);
+        if (num > 0) {
+            RelationName relation = RelationName.fromIndexName(index);
+            String exclude = String.join(",", cluster().allDataNodesButN(num));
+            logger.debug("allowNodes: updating [{}]'s routng.allocation.exclude._name to [{}]", index, exclude);
+            String stmt = String.format(
+                Locale.ENGLISH,
+                "alter table \"%s\".\"%s\" set (\"routing.allocation.exclude._name\" = ?)",
+                relation.schema(),
+                relation.name()
+            );
+            execute(stmt, new Object[] { exclude });
         }
-        Settings settings = builder.build();
-        if (!settings.isEmpty()) {
-            logger.debug("allowNodes: updating [{}]'s setting to [{}]", index, settings.toDelimitedString(';'));
-            FutureUtils.get(client().admin().indices().updateSettings(new UpdateSettingsRequest(settings, index)));
-        }
-    }
-
-    private Settings.Builder getExcludeSettings(int num, Settings.Builder builder) {
-        String exclude = String.join(",", cluster().allDataNodesButN(num));
-        builder.put("index.routing.allocation.exclude._name", exclude);
-        return builder;
     }
 
     /**
