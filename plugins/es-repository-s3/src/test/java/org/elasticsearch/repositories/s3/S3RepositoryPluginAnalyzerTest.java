@@ -49,9 +49,7 @@ import io.crate.data.Row;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -102,25 +100,25 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testValidateS3ConfigParams() {
-        Map<String, Expression> properties = new HashMap<>();
-        properties.put("access_key", new StringLiteral("foobar"));
-        properties.put("base_path", new StringLiteral("/data"));
-        properties.put("bucket", new StringLiteral("myBucket"));
-        properties.put("buffer_size", new StringLiteral("5mb"));
-        properties.put("canned_acl", new StringLiteral("cannedACL"));
-        properties.put("chunk_size", new StringLiteral("4g"));
-        properties.put("compress", new StringLiteral("true"));
-        properties.put("endpoint", new StringLiteral("myEndpoint"));
-        properties.put("max_retries", new StringLiteral("8"));
-        properties.put("protocol", new StringLiteral("http"));
-        properties.put("secret_key", new StringLiteral("thisIsASecretKey"));
-        properties.put("server_side_encryption", new StringLiteral("false"));
-        properties.put("storage_class", new StringLiteral("standard_ia"));
-        GenericProperties<Expression> genericProperties = new GenericProperties<>(properties);
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("access_key", "foobar");
+        properties.put("base_path", "/data");
+        properties.put("bucket", "myBucket");
+        properties.put("buffer_size", "5mb");
+        properties.put("canned_acl", "cannedACL");
+        properties.put("chunk_size", "4g");
+        properties.put("compress", "true");
+        properties.put("endpoint", "myEndpoint");
+        properties.put("max_retries", "8");
+        properties.put("protocol", "http");
+        properties.put("secret_key", "thisIsASecretKey");
+        properties.put("server_side_encryption", "false");
+        properties.put("storage_class", "standard_ia");
+        GenericProperties<Object> genericProperties = new GenericProperties<>(properties);
         repositoryParamValidator.validate(
             "s3",
             genericProperties,
-            toSettings(genericProperties));
+            Settings.builder().put(genericProperties).build());
     }
 
 
@@ -170,13 +168,5 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
                 .hasFieldOrPropertyWithValue("server_side_encryption", "false")
                 .hasFieldOrPropertyWithValue("readonly", "false")
                 .hasFieldOrPropertyWithValue("storage_class", "standard_ia");
-    }
-
-    private static Settings toSettings(GenericProperties<Expression> genericProperties) {
-        Settings.Builder builder = Settings.builder();
-        for (Map.Entry<String, Expression> property : genericProperties.properties().entrySet()) {
-            builder.put(property.getKey(), property.getValue().toString());
-        }
-        return builder.build();
     }
 }

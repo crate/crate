@@ -163,11 +163,10 @@ public final class CopyFromPlan implements Plan {
             : PartitionName.ofAssignmentsUnsafe(copyFrom.tableInfo(), Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)));
         String partitionIdent = partitionName == null ? null : partitionName.ident();
         final var properties = copyFrom.properties().map(eval);
-        final var nodeFiltersPredicate = discoveryNodePredicate(
-            properties.properties().getOrDefault(NodeFilters.NAME, null));
+        final var nodeFiltersPredicate = discoveryNodePredicate(properties.get(NodeFilters.NAME, null));
         final var settings = Settings.builder().put(properties).build();
 
-        if (properties.properties().containsKey("validation")) {
+        if (properties.contains("validation")) {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog(
                 "copy_from.validation",
                 "Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");

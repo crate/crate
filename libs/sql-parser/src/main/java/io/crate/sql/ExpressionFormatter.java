@@ -21,6 +21,20 @@
 
 package io.crate.sql;
 
+import static io.crate.sql.SqlFormatter.formatSql;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.TreeMap;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
@@ -77,20 +91,6 @@ import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
-
-import org.jetbrains.annotations.Nullable;
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.TreeMap;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-
-import static io.crate.sql.SqlFormatter.formatSql;
 
 public final class ExpressionFormatter {
 
@@ -574,7 +574,7 @@ public final class ExpressionFormatter {
             builder.append(")");
             if (node.matchType() != null) {
                 builder.append(" USING ").append(node.matchType()).append(" ");
-                if (node.properties().properties().isEmpty() == false) {
+                if (node.properties().isEmpty() == false) {
                     builder.append(node.properties().accept(this, parameters));
                 }
             }
@@ -593,7 +593,7 @@ public final class ExpressionFormatter {
         @Override
         public String visitGenericProperties(GenericProperties<?> node, @Nullable List<Expression> parameters) {
             return " WITH (" +
-                node.properties().entrySet().stream()
+                node.stream()
                     .map(prop -> prop.getKey() + "=" + ((Expression) prop.getValue()).accept(this, null))
                     .collect(COMMA_JOINER) +
                 ")";

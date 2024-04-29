@@ -53,7 +53,7 @@ public class AnalyzedAlterTable implements DDLStatement {
             consumer.accept(partitionProperty.expression());
             partitionProperty.expressions().forEach(consumer);
         }
-        alterTable.genericProperties().properties().values().forEach(consumer);
+        alterTable.genericProperties().forValues(consumer);
     }
 
     @Override
