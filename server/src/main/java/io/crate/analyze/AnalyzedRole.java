@@ -47,7 +47,7 @@ abstract class AnalyzedRole implements AnalyzedStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 
     @Override

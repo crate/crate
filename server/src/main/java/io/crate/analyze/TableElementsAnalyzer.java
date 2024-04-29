@@ -251,7 +251,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 defaultExpression = bindParameter.apply(defaultExpression);
             }
 
-            if (!indexSources.isEmpty() || indexType == IndexType.FULLTEXT || indexProperties.properties().containsKey("analyzer")) {
+            if (!indexSources.isEmpty() || indexType == IndexType.FULLTEXT || indexProperties.contains("analyzer")) {
                 List<Reference> sources = new ArrayList<>(indexSources.size());
                 for (Symbol indexSource : indexSources) {
                     if (!ArrayType.unnest(indexSource.valueType()).equals(DataTypes.STRING)) {
@@ -350,8 +350,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             if (generated != null) {
                 consumer.accept(generated);
             }
-            indexProperties.properties().values().forEach(consumer);
-            storageProperties.properties().values().forEach(consumer);
+            indexProperties.forValues(consumer);
+            storageProperties.forValues(consumer);
         }
     }
 

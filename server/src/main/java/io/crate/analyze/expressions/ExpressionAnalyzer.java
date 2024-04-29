@@ -1122,7 +1122,7 @@ public class ExpressionAnalyzer {
             String matchType = io.crate.expression.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
 
             List<Symbol> mapArgs = new ArrayList<>(node.properties().size() * 2);
-            for (Map.Entry<String, Expression> e : node.properties().properties().entrySet()) {
+            for (Map.Entry<String, Expression> e : node.properties()) {
                 mapArgs.add(Literal.of(e.getKey()));
                 mapArgs.add(e.getValue().accept(this, context));
             }

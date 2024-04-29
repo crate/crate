@@ -41,8 +41,6 @@ import io.crate.sql.tree.GenericProperties;
 
 public class CreateRolePlan implements Plan {
 
-
-
     private final AnalyzedCreateRole createRole;
     private final RoleManager roleManager;
 

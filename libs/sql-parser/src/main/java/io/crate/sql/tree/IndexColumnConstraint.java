@@ -88,6 +88,6 @@ public final class IndexColumnConstraint<T> extends ColumnConstraint<T> {
 
     @Override
     public void visit(Consumer<? super T> consumer) {
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 }

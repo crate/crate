@@ -65,7 +65,7 @@ public class AnalyzedCreateSubscription implements DDLStatement {
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
         consumer.accept(connectionInfo);
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 
     @Override

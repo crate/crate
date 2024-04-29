@@ -840,9 +840,9 @@ public final class SqlFormatter {
         public Void visitAlterRole(AlterRole<?> node, Integer indent) {
             builder.append("ALTER ROLE ");
             builder.append(quoteIdentifierIfNeeded(node.name()));
-            if (node.properties().properties().isEmpty() == false) {
+            if (node.properties().isEmpty() == false) {
                 builder.append("SET (");
-                appendProperties(node.properties().properties(), 0);
+                appendProperties(node.properties(), 0);
                 builder.append(")");
             }
             return null;
@@ -882,9 +882,9 @@ public final class SqlFormatter {
 
         @Override
         public Void visitGenericProperties(GenericProperties<?> node, Integer indent) {
-            if (node.properties().isEmpty() == false) {
+            if (node.isEmpty() == false) {
                 builder.append("WITH (\n");
-                appendProperties(node.properties(), indent);
+                appendProperties(node, indent);
                 append(indent, ")");
             }
             return null;
@@ -1497,10 +1497,10 @@ public final class SqlFormatter {
             return null;
         }
 
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        private void appendProperties(Map<String, ?> properties, Integer indent) {
+        @SuppressWarnings("unchecked")
+        private void appendProperties(GenericProperties<?> properties, Integer indent) {
             int count = 0;
-            TreeMap<String, Expression> sortedMap = new TreeMap(properties);
+            Map<String, Expression> sortedMap = ((GenericProperties<Expression>) properties).toMap(TreeMap::new);
             for (Map.Entry<String, Expression> propertyEntry : sortedMap.entrySet()) {
                 builder.append(indentString(indent + 1));
                 String key = propertyEntry.getKey();

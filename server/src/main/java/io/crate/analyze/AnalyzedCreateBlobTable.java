@@ -21,12 +21,12 @@
 
 package io.crate.analyze;
 
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
-
-import java.util.function.Consumer;
 
 public class AnalyzedCreateBlobTable implements AnalyzedStatement {
 
@@ -64,7 +64,7 @@ public class AnalyzedCreateBlobTable implements AnalyzedStatement {
             clusteredBy.column().ifPresent(consumer);
             clusteredBy.numberOfShards().ifPresent(consumer);
         }
-        createBlobTable.genericProperties().properties().values().forEach(consumer);
+        createBlobTable.genericProperties().forValues(consumer);
 
     }
 }
