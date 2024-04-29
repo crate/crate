@@ -37,6 +37,7 @@ import java.util.function.Function;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -92,7 +93,8 @@ public class OptimizeTablePlan implements Plan {
             plannerContext.transactionContext(),
             dependencies.nodeContext(),
             parameters,
-            subQueryResults
+            subQueryResults,
+            plannerContext.clusterState().metadata()
         );
 
         var settings = stmt.settings();
@@ -123,7 +125,8 @@ public class OptimizeTablePlan implements Plan {
                                           CoordinatorTxnCtx txnCtx,
                                           NodeContext nodeCtx,
                                           Row parameters,
-                                          SubQueryResults subQueryResults) {
+                                          SubQueryResults subQueryResults,
+                                          Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -142,13 +145,13 @@ public class OptimizeTablePlan implements Plan {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
             if (tableInfo instanceof BlobTableInfo blobTableInfo) {
-                toOptimize.add(blobTableInfo.concreteIndices()[0]);
+                toOptimize.add(blobTableInfo.concreteIndices(metadata)[0]);
             } else {
                 var docTableInfo = (DocTableInfo) tableInfo;
                 if (tableSymbol.partitionProperties().isEmpty()) {
-                    toOptimize.addAll(Arrays.asList(docTableInfo.concreteOpenIndices()));
+                    toOptimize.addAll(Arrays.asList(docTableInfo.concreteOpenIndices(metadata)));
                 } else {
-                    var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)));
+                    var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)), metadata);
                     toOptimize.add(partitionName.asIndexName());
                 }
             }

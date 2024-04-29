@@ -29,6 +29,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import org.elasticsearch.cluster.metadata.Metadata;
+
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.DocKeys;
@@ -112,7 +114,8 @@ public final class WhereClauseOptimizer {
                                               Row params,
                                               SubQueryResults subQueryResults,
                                               CoordinatorTxnCtx txnCtx,
-                                              NodeContext nodeCtx) {
+                                              NodeContext nodeCtx,
+                                              Metadata metadata) {
             SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
             Symbol boundQuery = binder.apply(query);
             HashSet<Symbol> clusteredBy = HashSet.newHashSet(clusteredByValues.size());
@@ -120,11 +123,11 @@ public final class WhereClauseOptimizer {
                 clusteredBy.add(binder.apply(clusteredByValue));
             }
             if (table.isPartitioned()) {
-                if (table.partitions().isEmpty()) {
+                if (table.getPartitions(metadata).isEmpty()) {
                     return WhereClause.NO_MATCH;
                 }
                 WhereClauseAnalyzer.PartitionResult partitionResult =
-                    WhereClauseAnalyzer.resolvePartitions(boundQuery, table, txnCtx, nodeCtx);
+                    WhereClauseAnalyzer.resolvePartitions(boundQuery, table, txnCtx, nodeCtx, metadata);
                 return new WhereClause(
                     partitionResult.query,
                     partitionResult.partitions,

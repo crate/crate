@@ -33,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
@@ -93,7 +94,8 @@ public class CreateSnapshotPlan implements Plan {
             dependencies.nodeContext(),
             parameters,
             subQueryResults,
-            dependencies.schemas());
+            dependencies.schemas(),
+            plannerContext.clusterState().metadata());
 
         dependencies.client().execute(CreateSnapshotAction.INSTANCE, request)
             .whenComplete(
@@ -126,7 +128,8 @@ public class CreateSnapshotPlan implements Plan {
                                                       NodeContext nodeCtx,
                                                       Row parameters,
                                                       SubQueryResults subQueryResults,
-                                                      Schemas schemas) {
+                                                      Schemas schemas,
+                                                      Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -183,10 +186,10 @@ public class CreateSnapshotPlan implements Plan {
 
 
                 if (table.partitionProperties().isEmpty()) {
-                    snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
+                    snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices(metadata)));
                 } else {
                     try {
-                        PartitionName partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(table.partitionProperties(), x -> x.map(eval)));
+                        PartitionName partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(table.partitionProperties(), x -> x.map(eval)), metadata);
                         snapshotIndices.add(partitionName.asIndexName());
                     } catch (PartitionUnknownException ex) {
                         if (ignoreUnavailable) {

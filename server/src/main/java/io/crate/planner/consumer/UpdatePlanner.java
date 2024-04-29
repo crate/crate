@@ -281,7 +281,7 @@ public final class UpdatePlanner {
             null);
 
         WhereClause where = detailedQuery.toBoundWhereClause(
-            tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext());
+            tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext(), plannerCtx.clusterState().metadata());
         if (where.hasVersions()) {
             throw VersioningValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {
