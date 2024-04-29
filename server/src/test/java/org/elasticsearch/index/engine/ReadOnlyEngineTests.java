@@ -318,7 +318,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 engine.flushAndClose();
             }
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, UnaryOperator.identity(), true)) {
-                TranslogHandler translogHandler = new TranslogHandler(xContentRegistry(), config.getIndexSettings());
+                TranslogHandler translogHandler = new TranslogHandler(config.getIndexSettings());
                 readOnlyEngine.recoverFromTranslog(translogHandler, randomNonNegativeLong());
                 int opsRecovered = translogHandler.run(
                     readOnlyEngine,

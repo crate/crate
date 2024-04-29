@@ -30,7 +30,6 @@ import java.util.List;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
@@ -47,7 +46,6 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
 
     private static DocumentMapperParser parser() throws IOException {
         MapperService mapperService = MapperTestUtils.newMapperService(
-            NamedXContentRegistry.EMPTY,
             createTempDir(),
             Settings.EMPTY,
             new IndicesModule(List.of()),

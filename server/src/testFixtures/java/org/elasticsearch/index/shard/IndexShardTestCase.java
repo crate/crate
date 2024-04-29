@@ -513,7 +513,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
         try {
             var queryCache = DisabledQueryCache.instance();
             MapperService mapperService = MapperTestUtils.newMapperService(
-                xContentRegistry(),
                 createTempDir(),
                 indexSettings.getSettings(),
                 "index"
