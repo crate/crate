@@ -29,6 +29,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.jetbrains.annotations.Nullable;
+
 
 /**
  * these are a kind of map/dictionary with string keys and expression values.
@@ -65,8 +67,24 @@ public class GenericProperties<T> extends Node {
         return properties;
     }
 
+    @Nullable
     public T get(String key) {
         return properties.get(key);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Nullable
+    public <U> U getUnsafe(String key) {
+        return (U) properties.get(key);
+    }
+
+    @Nullable
+    public T get(String key, T defaultValue) {
+        return properties.getOrDefault(key, defaultValue);
+    }
+
+    public boolean contains(String key) {
+        return properties.containsKey(key);
     }
 
     public boolean isEmpty() {
@@ -133,4 +151,5 @@ public class GenericProperties<T> extends Node {
         }
         return this;
     }
+
 }

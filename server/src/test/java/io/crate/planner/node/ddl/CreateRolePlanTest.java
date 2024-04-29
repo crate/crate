@@ -27,50 +27,40 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.crate.common.collections.Maps;
-import io.crate.data.Row;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.SubQueryResults;
-import io.crate.role.JwtProperties;
+import io.crate.role.Role;
 import io.crate.sql.tree.GenericProperties;
 
 public class CreateRolePlanTest {
 
-    private static final NodeContext NODE_CTX = new NodeContext(new Functions(Map.of()), null);
-
-    TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-
     @Test
     public void test_invalid_password_property() throws Exception {
-        GenericProperties<Symbol> properties = new GenericProperties<>(Map.of("invalid", Literal.of("password")));
-        assertThatThrownBy(() -> CreateRolePlan.parse(properties, txnCtx, NODE_CTX, Row.EMPTY, SubQueryResults.EMPTY))
+        GenericProperties<Object> properties = new GenericProperties<>(Map.of("invalid", "password"));
+        assertThatThrownBy(() -> Role.Properties.of(true, properties))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("\"invalid\" is not a valid user property");
+            .hasMessage("Setting 'invalid' is not supported");
+    }
+
+    @Test
+    public void test_empty_password_string_is_rejected() throws Exception {
+        GenericProperties<Object> properties = new GenericProperties<>(Map.of("password", ""));
+        assertThatThrownBy(() -> Role.Properties.of(true, properties))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Password must not be empty");
     }
 
     @Test
     public void test_invalid_jwt_property() throws Exception {
         // Missing jwt property
-        GenericProperties<Symbol> properties = new GenericProperties<>(Map.of("jwt", Literal.of(Map.of("iss", "dummy.org"))));
-        Map<String, Object> parsedProperties = CreateRolePlan.parse(properties, txnCtx, NODE_CTX, Row.EMPTY, SubQueryResults.EMPTY);
-        final Map<String, Object> jwtProperties = Maps.getOrDefault(parsedProperties, "jwt", Map.of());
-        assertThatThrownBy(() -> JwtProperties.fromMap(jwtProperties))
+        GenericProperties<Object> properties = new GenericProperties<>(Map.of("jwt", Map.of("iss", "dummy.org")));
+        assertThatThrownBy(() -> Role.Properties.of(true, properties))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("JWT property 'username' must have a non-null value");
 
         // Invalid jwt property
-        properties = new GenericProperties<>(Map.of("jwt",
-            Literal.of(Map.of("iss", "dummy.org", "username", "test", "dummy_property", "dummy_val"))));
-        parsedProperties = CreateRolePlan.parse(properties, txnCtx, NODE_CTX, Row.EMPTY, SubQueryResults.EMPTY);
-        final Map<String, Object> invalidJwtProperties = Maps.getOrDefault(parsedProperties, "jwt", Map.of());
-        assertThatThrownBy(() -> JwtProperties.fromMap(invalidJwtProperties))
+        GenericProperties<Object> properties2 = new GenericProperties<>(Map.of("jwt",
+            Map.of("iss", "dummy.org", "username", "test", "dummy_property", "dummy_val")));
+        assertThatThrownBy(() -> Role.Properties.of(true, properties2))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Only 'iss', 'username' and 'aud' JWT properties are allowed");
     }
-
 }
