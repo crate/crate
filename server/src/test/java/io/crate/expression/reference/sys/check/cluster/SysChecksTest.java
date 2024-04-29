@@ -46,6 +46,7 @@ import io.crate.metadata.table.SchemaInfo;
 
 public class SysChecksTest extends ESTestCase {
 
+    private final Schemas schemas = mock(Schemas.class);
     private final SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
     private final DocTableInfo docTableInfo = mock(DocTableInfo.class);
     private final ClusterService clusterService = mock(ClusterService.class);
@@ -54,9 +55,10 @@ public class SysChecksTest extends ESTestCase {
     @Test
     public void testNumberOfPartitionCorrectPartitioning() {
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
-            mock(Schemas.class),
+            schemas,
             clusterService);
 
+        when(schemas.iterator()).thenReturn(List.of(docSchemaInfo).iterator());
         when(clusterService.state()).thenReturn(ClusterState.EMPTY_STATE);
         when(docSchemaInfo.getTables()).thenReturn(List.of(docTableInfo, docTableInfo));
         when(docTableInfo.isPartitioned()).thenReturn(true);
@@ -67,16 +69,17 @@ public class SysChecksTest extends ESTestCase {
 
         assertThat(numberOfPartitionsSysCheck.id(), is(2));
         assertThat(numberOfPartitionsSysCheck.severity(), is(Severity.MEDIUM));
-        assertThat(numberOfPartitionsSysCheck.validateDocTablesPartitioning(docSchemaInfo), is(true));
+        assertThat(numberOfPartitionsSysCheck.isValid(), is(true));
     }
 
     @Test
     public void testNumberOfPartitionsWrongPartitioning() {
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
-            mock(Schemas.class),
+            schemas,
             clusterService);
         List<PartitionName> partitions = buildPartitions(1001);
 
+        when(schemas.iterator()).thenReturn(List.of(docSchemaInfo).iterator());
         when(clusterService.state()).thenReturn(ClusterState.EMPTY_STATE);
         when(docSchemaInfo.getTables()).thenReturn(List.of(docTableInfo));
         when(docTableInfo.isPartitioned()).thenReturn(true);
@@ -84,7 +87,7 @@ public class SysChecksTest extends ESTestCase {
 
         assertThat(numberOfPartitionsSysCheck.id(), is(2));
         assertThat(numberOfPartitionsSysCheck.severity(), is(Severity.MEDIUM));
-        assertThat(numberOfPartitionsSysCheck.validateDocTablesPartitioning(docSchemaInfo), is(false));
+        assertThat(numberOfPartitionsSysCheck.isValid(), is(false));
     }
 
     private List<PartitionName> buildPartitions(int size) {

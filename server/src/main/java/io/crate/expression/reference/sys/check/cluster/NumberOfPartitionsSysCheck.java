@@ -25,7 +25,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -54,23 +53,18 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean isValid() {
-        for (SchemaInfo schemaInfo : schemas) {
-            if (schemaInfo instanceof DocSchemaInfo && !validateDocTablesPartitioning(schemaInfo)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    boolean validateDocTablesPartitioning(SchemaInfo schemaInfo) {
         Metadata metadata = clusterService.state().metadata();
-        for (TableInfo tableInfo : schemaInfo.getTables()) {
-            DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
-            if (docTableInfo.isPartitioned() && docTableInfo.getPartitions(metadata).size() > PARTITIONS_THRESHOLD) {
-                return false;
+        for (SchemaInfo schemaInfo : schemas) {
+            if (!(schemaInfo instanceof DocSchemaInfo docSchemaInfo)) {
+                continue;
+            }
+            for (var table : docSchemaInfo.getTables()) {
+                DocTableInfo docTableInfo = (DocTableInfo) table;
+                if (docTableInfo.isPartitioned() && docTableInfo.getPartitions(metadata).size() > PARTITIONS_THRESHOLD) {
+                    return false;
+                }
             }
         }
         return true;
     }
-
 }
