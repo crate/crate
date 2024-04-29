@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
@@ -35,17 +34,14 @@ import io.crate.server.xcontent.XContentHelper;
 public class DocumentMapperParser {
 
     final MapperService mapperService;
-    private final NamedXContentRegistry xContentRegistry;
     private final RootObjectMapper.TypeParser rootObjectTypeParser = new RootObjectMapper.TypeParser();
 
     private final Map<String, Mapper.TypeParser> typeParsers;
     private final Map<String, MetadataFieldMapper.TypeParser> rootTypeParsers;
 
     public DocumentMapperParser(MapperService mapperService,
-                                NamedXContentRegistry xContentRegistry,
                                 MapperRegistry mapperRegistry) {
         this.mapperService = mapperService;
-        this.xContentRegistry = xContentRegistry;
         this.typeParsers = mapperRegistry.getMapperParsers();
         this.rootTypeParsers = mapperRegistry.getMetadataMapperParsers();
     }
@@ -158,9 +154,5 @@ public class DocumentMapperParser {
             result = root;
         }
         return result;
-    }
-
-    NamedXContentRegistry getXContentRegistry() {
-        return xContentRegistry;
     }
 }

@@ -25,7 +25,6 @@ import static java.util.Collections.emptyMap;
 import java.io.IOException;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalyzerScope;
@@ -47,12 +46,12 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
 
     private final MapperService mapperService;
 
-    public TranslogHandler(NamedXContentRegistry xContentRegistry, IndexSettings indexSettings) {
+    public TranslogHandler(IndexSettings indexSettings) {
         NamedAnalyzer defaultAnalyzer = new NamedAnalyzer("default", AnalyzerScope.INDEX, new StandardAnalyzer());
         IndexAnalyzers indexAnalyzers =
                 new IndexAnalyzers(indexSettings, defaultAnalyzer, defaultAnalyzer, defaultAnalyzer, emptyMap(), emptyMap(), emptyMap());
         MapperRegistry mapperRegistry = new IndicesModule(emptyList()).getMapperRegistry();
-        mapperService = new MapperService(indexSettings, indexAnalyzers, xContentRegistry, mapperRegistry);
+        mapperService = new MapperService(indexSettings, indexAnalyzers, mapperRegistry);
     }
 
     private DocumentMapper docMapper(String type) {

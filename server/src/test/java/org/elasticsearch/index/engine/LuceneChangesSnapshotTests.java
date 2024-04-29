@@ -240,7 +240,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             this.leader = leader;
             this.isDone = isDone;
             this.readLatch = readLatch;
-            this.translogHandler = new TranslogHandler(xContentRegistry(), IndexSettingsModule.newIndexSettings(shardId.getIndexName(),
+            this.translogHandler = new TranslogHandler(IndexSettingsModule.newIndexSettings(shardId.getIndexName(),
                                                                                                                 leader.engineConfig.getIndexSettings().getSettings()));
             this.engine = createEngine(createStore(), createTempDir());
         }

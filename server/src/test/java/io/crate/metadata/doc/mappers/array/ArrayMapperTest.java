@@ -42,7 +42,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -78,7 +77,6 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     public static DocumentMapper mapper(String indexName, String mapping) throws IOException {
         IndicesModule indicesModule = new IndicesModule(List.of());
         MapperService mapperService = MapperTestUtils.newMapperService(
-            NamedXContentRegistry.EMPTY,
             createTempDir(),
             Settings.EMPTY,
             indicesModule,

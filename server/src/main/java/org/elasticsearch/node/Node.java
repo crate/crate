@@ -504,10 +504,8 @@ public class Node implements Closeable {
                 clusterService,
                 pluginsService,
                 nodeEnvironment,
-                xContentRegistry,
                 analysisModule.getAnalysisRegistry(),
                 indicesModule.getMapperRegistry(),
-                namedWriteableRegistry,
                 threadPool,
                 settingsModule.getIndexScopedSettings(),
                 circuitBreakerService,
@@ -592,7 +590,6 @@ public class Node implements Closeable {
                 indexTemplateMetadataUpgraders);
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
                 settings,
-                xContentRegistry,
                 indicesModule.getMapperRegistry(),
                 settingsModule.getIndexScopedSettings(),
                 indexMetadataUpgraders);

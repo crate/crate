@@ -54,7 +54,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractAsyncTask;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.gateway.MetadataStateFormat;
@@ -114,7 +113,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             IndexSettings indexSettings,
             IndexCreationContext indexCreationContext,
             NodeEnvironment nodeEnv,
-            NamedXContentRegistry xContentRegistry,
             ShardStoreDeleter shardStoreDeleter,
             AnalysisRegistry registry,
             Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
@@ -137,7 +135,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             this.mapperService = new MapperService(
                 indexSettings,
                 registry.build(indexSettings),
-                xContentRegistry,
                 mapperRegistry
             );
             this.queryCache = queryCache;

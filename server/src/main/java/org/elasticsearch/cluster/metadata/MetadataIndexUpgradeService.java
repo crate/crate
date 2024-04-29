@@ -33,7 +33,6 @@ import org.apache.lucene.analysis.Analyzer;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
@@ -54,18 +53,15 @@ public class MetadataIndexUpgradeService {
     private static final Logger LOGGER = LogManager.getLogger(MetadataIndexUpgradeService.class);
 
     private final Settings settings;
-    private final NamedXContentRegistry xContentRegistry;
     private final MapperRegistry mapperRegistry;
     private final IndexScopedSettings indexScopedSettings;
     private final BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgraders;
 
     public MetadataIndexUpgradeService(Settings settings,
-                                       NamedXContentRegistry xContentRegistry,
                                        MapperRegistry mapperRegistry,
                                        IndexScopedSettings indexScopedSettings,
                                        Collection<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders) {
         this.settings = settings;
-        this.xContentRegistry = xContentRegistry;
         this.mapperRegistry = mapperRegistry;
         this.indexScopedSettings = indexScopedSettings;
         this.upgraders = (indexMetadata, indexTemplateMetadata) -> {
@@ -169,7 +165,6 @@ public class MetadataIndexUpgradeService {
                 try (var mapperService = new MapperService(
                         indexSettings,
                         fakeIndexAnalzyers,
-                        xContentRegistry,
                         mapperRegistry)) {
                     mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
                 }
