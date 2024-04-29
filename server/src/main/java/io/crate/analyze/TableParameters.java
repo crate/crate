@@ -154,35 +154,13 @@ public class TableParameters {
 
     private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NUMBER_OF_REPLICAS);
 
-    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
-        = MapBuilder.newMapBuilder(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT)
-            .put(
-                stripIndexPrefix(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()),
-                IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING
-            ).immutableMap();
-
     private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
-
-    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES = SUPPORTED_SETTINGS
-        .stream()
-        .filter(Setting::isReplicatedIndexScope)
-        .filter(s -> s.isFinal() == false)
-        .collect(Collectors.toMap(s -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
     public static final TableParameters TABLE_CREATE_PARAMETER_INFO
         = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
 
-    public static final TableParameters REPLICATED_TABLE_ALTER_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES, Map.of());
-
-    public static final TableParameters TABLE_ALTER_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);
-
     public static final TableParameters PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
         = new TableParameters(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT, Map.of());
-
-    public static final TableParameters PARTITION_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, Map.of());
 
     public static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
         Map.of(

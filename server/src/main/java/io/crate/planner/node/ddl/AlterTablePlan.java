@@ -21,21 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.metadata.table.Operation.isReplicated;
-
 import java.util.function.Function;
 
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.TableParameter;
-import io.crate.analyze.TableParameters;
-import io.crate.analyze.TableProperties;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -44,9 +36,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -101,62 +91,17 @@ public class AlterTablePlan implements Plan {
             params,
             subQueryResults
         );
-        TableInfo tableInfo = analyzedAlterTable.tableInfo();
         AlterTable<Object> alterTable = analyzedAlterTable.alterTable().map(eval);
-        Table<Object> table = alterTable.table();
-
+        TableInfo tableInfo = analyzedAlterTable.tableInfo();
         boolean isPartitioned = false;
         PartitionName partitionName = null;
-        TableParameters tableParameters;
         if (tableInfo instanceof DocTableInfo docTableInfo) {
+            Table<Object> table = alterTable.table();
             partitionName = table.partitionProperties().isEmpty()
                 ? null
                 : PartitionName.ofAssignments(docTableInfo, table.partitionProperties(), metadata);
             isPartitioned = docTableInfo.isPartitioned();
-            tableParameters = getTableParameterInfo(table, tableInfo, partitionName);
-        } else {
-            assert tableInfo.ident().schema().equals(BlobSchemaInfo.NAME) : "If tableInfo is not a DocTableInfo, the schema must be `blob`";
-            tableParameters = TableParameters.ALTER_BLOB_TABLE_PARAMETERS;
         }
-        TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
-        maybeRaiseBlockedException(tableInfo, tableParameter.settings());
-        return new BoundAlterTable(
-            tableInfo,
-            partitionName,
-            tableParameter,
-            table.excludePartitions(),
-            isPartitioned
-        );
-    }
-
-    private static TableParameters getTableParameterInfo(Table<?> table, TableInfo tableInfo, @Nullable PartitionName partitionName) {
-        if (isReplicated(tableInfo.parameters())) {
-            return TableParameters.REPLICATED_TABLE_ALTER_PARAMETER_INFO;
-        }
-        if (partitionName == null) {
-            return TableParameters.TABLE_ALTER_PARAMETER_INFO;
-        }
-        assert !table.excludePartitions() : "Alter table ONLY not supported when using a partition";
-        return TableParameters.PARTITION_PARAMETER_INFO;
-    }
-
-    public static TableParameter getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
-        TableParameter tableParameter = new TableParameter();
-        if (!node.genericProperties().isEmpty()) {
-            TableProperties.analyze(tableParameter, tableParameters, node.genericProperties(), false);
-        } else if (!node.resetProperties().isEmpty()) {
-            TableProperties.analyzeResetProperties(tableParameter, tableParameters, node.resetProperties());
-        }
-        return tableParameter;
-    }
-
-    // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
-    static void maybeRaiseBlockedException(TableInfo tableInfo, Settings tableSettings) {
-        if (tableSettings.size() != 1 ||
-            (tableSettings.get(IndexMetadata.SETTING_BLOCKS_METADATA) == null &&
-             tableSettings.get(IndexMetadata.SETTING_READ_ONLY) == null)) {
-
-            Operation.blockedRaiseException(tableInfo, Operation.ALTER);
-        }
+        return new BoundAlterTable(analyzedAlterTable, alterTable, isPartitioned, partitionName);
     }
 }

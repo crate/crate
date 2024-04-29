@@ -43,8 +43,7 @@ public final class TableProperties {
 
     public static void analyze(TableParameter tableParameter,
                                TableParameters tableParameters,
-                               GenericProperties<Object> properties,
-                               boolean withDefaults) {
+                               GenericProperties<Object> properties) {
         Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
         Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
 
@@ -52,7 +51,6 @@ public final class TableProperties {
             tableParameter.settingsBuilder(),
             properties,
             settingMap,
-            withDefaults,
             mappingsMap::containsKey,
             INVALID_MESSAGE);
 
@@ -60,7 +58,6 @@ public final class TableProperties {
             tableParameter.mappingsBuilder(),
             properties,
             mappingsMap,
-            withDefaults,
             settingMap::containsKey,
             INVALID_MESSAGE);
     }
@@ -68,12 +65,9 @@ public final class TableProperties {
     private static void settingsFromProperties(Settings.Builder builder,
                                                GenericProperties<Object> properties,
                                                Map<String, Setting<?>> supportedSettings,
-                                               boolean setDefaults,
                                                Predicate<String> ignoreProperty,
                                                String invalidMessage) {
-        if (setDefaults) {
-            setDefaults(builder, supportedSettings);
-        }
+        setDefaults(builder, supportedSettings);
         for (Map.Entry<String, Object> entry : properties) {
             String settingName = entry.getKey();
             if (ignoreProperty.test(settingName)) {

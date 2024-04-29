@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -47,7 +48,6 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
     private String[] indices;
     private IndicesOptions indicesOptions = IndicesOptions.fromOptions(false, false, true, true);
     private Settings settings = EMPTY_SETTINGS;
-    private boolean preserveExisting = false;
 
     /**
      * Constructs a new request to update settings for one or more indices
@@ -79,20 +79,14 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         return this;
     }
 
-    /**
-     * Returns <code>true</code> iff the settings update should only add but not update settings. If the setting already exists
-     * it should not be overwritten by this update. The default is <code>false</code>
-     */
-    public boolean isPreserveExisting() {
-        return preserveExisting;
-    }
-
     public UpdateSettingsRequest(StreamInput in) throws IOException {
         super(in);
         indices = in.readStringArray();
         indicesOptions = IndicesOptions.readIndicesOptions(in);
         settings = readSettingsFromStream(in);
-        preserveExisting = in.readBoolean();
+        if (in.getVersion().before(Version.V_5_8_0)) {
+            in.readBoolean(); // preserveExisting
+        }
     }
 
     @Override
@@ -101,7 +95,9 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         out.writeStringArrayNullable(indices);
         indicesOptions.writeIndicesOptions(out);
         writeSettingsToStream(out, settings);
-        out.writeBoolean(preserveExisting);
+        if (out.getVersion().before(Version.V_5_8_0)) {
+            out.writeBoolean(false); // preserveExisting
+        }
     }
 
     @Override
@@ -130,13 +126,12 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
                 && timeout.equals(that.timeout)
                 && Objects.equals(settings, that.settings)
                 && Objects.equals(indicesOptions, that.indicesOptions)
-                && Objects.equals(preserveExisting, that.preserveExisting)
                 && Arrays.equals(indices, that.indices);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(masterNodeTimeout, timeout, settings, indicesOptions, preserveExisting, Arrays.hashCode(indices));
+        return Objects.hash(masterNodeTimeout, timeout, settings, indicesOptions, Arrays.hashCode(indices));
     }
 
 }

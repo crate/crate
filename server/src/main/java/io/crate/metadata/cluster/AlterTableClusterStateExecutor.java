@@ -21,8 +21,6 @@
 
 package io.crate.metadata.cluster;
 
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,7 +44,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.common.ValidationException;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -55,9 +52,9 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.TableParameters;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -90,10 +87,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
     @Override
     protected ClusterState execute(ClusterState currentState, AlterTableRequest request) throws Exception {
+        Map<String, Object> mappingDeltaAsMap = request.mappingDeltaAsMap();
         if (request.isPartitioned()) {
             if (request.partitionIndexName() != null) {
-                assert request.mappingDelta() == null
-                    : "Cannot SET column policy to a single partition.";
+                assert mappingDeltaAsMap.isEmpty() : "Cannot SET column policy to a single partition.";
                 Index[] concreteIndices = resolveIndices(currentState, request.partitionIndexName());
                 currentState = updateSettings(currentState, request.settings(), concreteIndices);
             } else {
@@ -102,7 +99,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     currentState,
                     request.tableIdent(),
                     request.settings(),
-                    request.mappingDeltaAsMap(), // In case of SET COLUMN column_policy delta in request will be not null and will contain a new policy.
+                    mappingDeltaAsMap, // In case of SET COLUMN column_policy delta in request will be not null and will contain a new policy.
                     (name, settings) -> validateSettings(name,
                                                          settings,
                                                          indexScopedSettings,
@@ -123,12 +120,12 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     supportedSettings.add(AutoExpandReplicas.SETTING);
 
                     currentState = updateSettings(currentState, filterSettings(request.settings(), supportedSettings), concreteIndices);
-                    currentState = updateMapping(currentState, concreteIndices, request.mappingDeltaAsMap());
+                    currentState = updateMapping(currentState, concreteIndices, mappingDeltaAsMap);
                 }
             }
         } else {
             Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
-            currentState = updateMapping(currentState, concreteIndices, request.mappingDeltaAsMap());
+            currentState = updateMapping(currentState, concreteIndices, mappingDeltaAsMap);
             currentState = updateSettings(currentState, request.settings(), concreteIndices);
         }
 
@@ -181,7 +178,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
      */
     private ClusterState updateSettings(final ClusterState currentState, final Settings settings, Index[] concreteIndices) {
         final Settings normalizedSettings = Settings.builder()
-            .put(markArchivedSettings(settings))
+            .put(settings)
             .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
             .build();
 
@@ -191,13 +188,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
         for (String key : normalizedSettings.keySet()) {
             Setting<?> setting = indexScopedSettings.get(key);
-            boolean isWildcard = setting == null && Regex.isSimpleMatchPattern(key);
-            assert setting != null // we already validated the normalized settings
-                   || (isWildcard && normalizedSettings.hasValue(key) == false)
-                : "unknown setting: " + key + " isWildcard: " + isWildcard + " hasValue: " +
-                  normalizedSettings.hasValue(key);
+            assert setting != null || (normalizedSettings.hasValue(key) == false)
+                : "unknown setting: " + key + " hasValue: " + normalizedSettings.hasValue(key);
             settingsForClosedIndices.copy(key, normalizedSettings);
-            if (isWildcard || setting.isDynamic()) {
+            if (setting.isDynamic()) {
                 settingsForOpenIndices.copy(key, normalizedSettings);
             } else {
                 skippedSettings.add(key.replace("index.", ""));
@@ -205,15 +199,12 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
         final Settings closedSettings = settingsForClosedIndices.build();
         final Settings openSettings = settingsForOpenIndices.build();
-
-        boolean preserveExisting = false;
         return updateSettingsService.updateState(
             currentState,
             concreteIndices,
             skippedSettings,
             closedSettings,
-            openSettings,
-            preserveExisting
+            openSettings
         );
     }
 
@@ -287,17 +278,5 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING,
             indexExpressions
         );
-    }
-
-    /**
-     * Mark possible archived settings to be removed, they are not allowed to be written.
-     * (Private settings are already filtered out later at the meta data update service.)
-     */
-    @VisibleForTesting
-    static Settings markArchivedSettings(Settings settings) {
-        return Settings.builder()
-            .put(settings)
-            .putNull(ARCHIVED_SETTINGS_PREFIX + "*")
-            .build();
     }
 }

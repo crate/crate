@@ -21,49 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
-
 import org.jetbrains.annotations.Nullable;
-import java.util.Optional;
 
-public class BoundAlterTable {
+import io.crate.metadata.PartitionName;
+import io.crate.sql.tree.AlterTable;
 
-    private final TableInfo tableInfo;
-    private final PartitionName partitionName;
-    private final TableParameter tableParameter;
-    private final boolean excludePartitions;
-    private final boolean partitioned;
-
-    public BoundAlterTable(TableInfo tableInfo,
-                           @Nullable PartitionName partitionName,
-                           TableParameter tableParameter,
-                           boolean excludePartitions,
-                           boolean partitioned) {
-        this.tableInfo = tableInfo;
-        this.partitionName = partitionName;
-        this.tableParameter = tableParameter;
-        this.excludePartitions = excludePartitions;
-        this.partitioned = partitioned;
-    }
-
-    public TableInfo table() {
-        return tableInfo;
-    }
-
-    public Optional<PartitionName> partitionName() {
-        return Optional.ofNullable(partitionName);
-    }
-
-    public boolean excludePartitions() {
-        return excludePartitions;
-    }
-
-    public TableParameter tableParameter() {
-        return tableParameter;
-    }
-
-    public boolean isPartitioned() {
-        return partitioned;
-    }
+public record BoundAlterTable(AnalyzedAlterTable analyzedAlterTable,
+                              AlterTable<Object> boundAlterTable,
+                              boolean isPartitioned,
+                              @Nullable PartitionName partitionName) {
 }

@@ -25,10 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_PREFIX;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -81,14 +79,6 @@ public class AlterTableClusterStateExecutorTest {
 
         IndexTemplateMetadata template = result.metadata().templates().get(templateName);
         assertThat(template.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
-    }
-
-    @Test
-    public void testMarkArchivedSettings() {
-        Settings.Builder builder = Settings.builder()
-            .put(SETTING_NUMBER_OF_SHARDS, 4);
-        Settings preparedSettings = AlterTableClusterStateExecutor.markArchivedSettings(builder.build());
-        assertThat(preparedSettings.keySet(), containsInAnyOrder(SETTING_NUMBER_OF_SHARDS, ARCHIVED_SETTINGS_PREFIX + "*"));
     }
 
     @Test

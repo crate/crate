@@ -144,7 +144,7 @@ public record AnalyzedCreateTable(
         }
 
         TableProperties.analyze(
-            tableParameter, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue), true);
+            tableParameter, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue));
 
         Optional<ColumnIdent> optClusteredBy = clusteredBy
             .flatMap(ClusteredBy::column)

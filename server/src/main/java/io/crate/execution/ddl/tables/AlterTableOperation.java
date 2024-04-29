@@ -24,13 +24,11 @@ package io.crate.execution.ddl.tables;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_WRITE_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -50,13 +48,12 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
 import io.crate.action.sql.Sessions;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
@@ -68,6 +65,8 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Publication;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.types.DataTypes;
 
 @Singleton
 public class AlterTableOperation {
@@ -180,15 +179,21 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTable(BoundAlterTable analysis) {
-        validateSettingsForPublishedTables(analysis.table().ident(),
-                                           analysis.tableParameter().settings(),
-                                           logicalReplicationService.publications(),
-                                           indexScopedSettings);
+        TableInfo table = analysis.analyzedAlterTable().tableInfo();
+        Settings settings = Settings.builder()
+            .put(analysis.boundAlterTable().genericProperties())
+            .build();
 
-        final Settings settings = analysis.tableParameter().settings();
-        final boolean includesNumberOfShardsSetting = settings.hasValue(SETTING_NUMBER_OF_SHARDS);
+        validateSettingsForPublishedTables(
+            table.ident(),
+            settings,
+            logicalReplicationService.publications(),
+            indexScopedSettings
+        );
+
+        final boolean includesNumberOfShardsSetting = settings.hasValue("number_of_shards");
         final boolean isResizeOperationRequired = includesNumberOfShardsSetting &&
-                                                  (!analysis.isPartitioned() || analysis.partitionName().isPresent());
+                                                  (!analysis.isPartitioned() || analysis.partitionName() != null);
 
         if (isResizeOperationRequired) {
             if (settings.size() > 1) {
@@ -196,35 +201,27 @@ public class AlterTableOperation {
             }
             return executeAlterTableChangeNumberOfShards(analysis);
         }
-        return executeAlterTableSetOrReset(analysis);
-    }
-
-    private CompletableFuture<Long> executeAlterTableSetOrReset(BoundAlterTable analysis) {
-        try {
-            AlterTableRequest request = new AlterTableRequest(
-                analysis.table().ident(),
-                analysis.partitionName().map(PartitionName::asIndexName).orElse(null),
-                analysis.isPartitioned(),
-                analysis.excludePartitions(),
-                analysis.tableParameter().settings(),
-                analysis.tableParameter().mappings()
-            );
-            return transportAlterTableAction.execute(request, r -> -1L);
-        } catch (IOException e) {
-            return FutureActionListener.failedFuture(e);
-        }
+        AlterTableRequest request = new AlterTableRequest(
+            table.ident(),
+            analysis.partitionName(),
+            analysis.isPartitioned(),
+            analysis.boundAlterTable().table().excludePartitions(),
+            settings,
+            analysis.boundAlterTable().resetProperties()
+        );
+        return transportAlterTableAction.execute(request, r -> -1L);
     }
 
     private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(BoundAlterTable analysis) {
-        final TableInfo table = analysis.table();
+        final TableInfo table = analysis.analyzedAlterTable().tableInfo();
         final boolean isPartitioned = analysis.isPartitioned();
         String sourceIndexName;
         String sourceIndexAlias;
         if (isPartitioned) {
-            Optional<PartitionName> partitionName = analysis.partitionName();
-            assert partitionName.isPresent() : "Resizing operations for partitioned tables " +
+            PartitionName partitionName = analysis.partitionName();
+            assert partitionName != null : "Resizing operations for partitioned tables " +
                                                "are only supported at partition level";
-            sourceIndexName = partitionName.get().asIndexName();
+            sourceIndexName = partitionName.asIndexName();
             sourceIndexAlias = table.ident().indexNameOrAlias();
         } else {
             sourceIndexName = table.ident().indexNameOrAlias();
@@ -233,7 +230,7 @@ public class AlterTableOperation {
 
         final ClusterState currentState = clusterService.state();
         final IndexMetadata sourceIndexMetadata = currentState.metadata().index(sourceIndexName);
-        final int targetNumberOfShards = getNumberOfShards(analysis.tableParameter().settings());
+        final int targetNumberOfShards = getNumberOfShards(analysis.boundAlterTable().genericProperties());
         validateForResizeRequest(sourceIndexMetadata, targetNumberOfShards);
 
         final List<ChainableAction<Long>> actions = new ArrayList<>();
@@ -281,9 +278,9 @@ public class AlterTableOperation {
     }
 
     @VisibleForTesting
-    static int getNumberOfShards(final Settings settings) {
+    static int getNumberOfShards(GenericProperties<Object> properties) {
         return Objects.requireNonNull(
-            settings.getAsInt(SETTING_NUMBER_OF_SHARDS, null),
+            DataTypes.INTEGER.implicitCast(properties.get("number_of_shards")),
             "Setting 'number_of_shards' is missing"
         );
     }

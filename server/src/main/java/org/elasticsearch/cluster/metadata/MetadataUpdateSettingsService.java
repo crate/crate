@@ -106,7 +106,6 @@ public class MetadataUpdateSettingsService {
         }
         final Settings closedSettings = settingsForClosedIndices.build();
         final Settings openSettings = settingsForOpenIndices.build();
-        final boolean preserveExisting = request.isPreserveExisting();
 
         AckedClusterStateUpdateTask<ClusterStateUpdateResponse> updateTask = new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(Priority.URGENT, request, listener) {
 
@@ -123,8 +122,7 @@ public class MetadataUpdateSettingsService {
                     concreteIndices,
                     skippedSettings,
                     closedSettings,
-                    openSettings,
-                    preserveExisting
+                    openSettings
                 );
             }
         };
@@ -135,8 +133,7 @@ public class MetadataUpdateSettingsService {
                                     Index[] concreteIndices,
                                     final Set<String> skippedSettings,
                                     final Settings closedSettings,
-                                    final Settings openSettings,
-                                    final boolean preserveExisting) {
+                                    final Settings openSettings) {
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
 
@@ -164,31 +161,29 @@ public class MetadataUpdateSettingsService {
 
         if (IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.exists(openSettings)) {
             final int updatedNumberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(openSettings);
-            if (preserveExisting == false) {
-                // Verify that this won't take us over the cluster shard limit.
-                int totalNewShards = Arrays.stream(concreteIndices)
-                        .mapToInt(i -> getTotalNewShards(i, currentState, updatedNumberOfReplicas))
-                        .sum();
-                Optional<String> error = shardLimitValidator.checkShardLimit(totalNewShards, currentState);
-                if (error.isPresent()) {
-                    ValidationException ex = new ValidationException();
-                    ex.addValidationError(error.get());
-                    throw ex;
-                }
-
-                /*
-                 * We do not update the in-sync allocation IDs as they will be removed upon the
-                 * first index operation which makes
-                 * these copies stale.
-                 *
-                 * TODO: should we update the in-sync allocation IDs once the data is deleted by
-                 * the node?
-                 */
-                routingTableBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
-                metadataBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
-                LOGGER.info("updating number_of_replicas to [{}] for indices {}", updatedNumberOfReplicas,
-                        actualIndices);
+            // Verify that this won't take us over the cluster shard limit.
+            int totalNewShards = Arrays.stream(concreteIndices)
+                    .mapToInt(i -> getTotalNewShards(i, currentState, updatedNumberOfReplicas))
+                    .sum();
+            Optional<String> error = shardLimitValidator.checkShardLimit(totalNewShards, currentState);
+            if (error.isPresent()) {
+                ValidationException ex = new ValidationException();
+                ex.addValidationError(error.get());
+                throw ex;
             }
+
+            /*
+                * We do not update the in-sync allocation IDs as they will be removed upon the
+                * first index operation which makes
+                * these copies stale.
+                *
+                * TODO: should we update the in-sync allocation IDs once the data is deleted by
+                * the node?
+                */
+            routingTableBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
+            metadataBuilder.updateNumberOfReplicas(updatedNumberOfReplicas, actualIndices);
+            LOGGER.info("updating number_of_replicas to [{}] for indices {}", updatedNumberOfReplicas,
+                    actualIndices);
         }
 
         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
@@ -208,9 +203,6 @@ public class MetadataUpdateSettingsService {
             Settings.Builder updates = Settings.builder();
             Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
             if (indexScopedSettings.updateDynamicSettings(openSettings, indexSettings, updates, index.getName())) {
-                if (preserveExisting) {
-                    indexSettings.put(indexMetadata.getSettings());
-                }
                 Settings finalSettings = indexSettings.build();
                 indexScopedSettings.validate(
                         finalSettings.filter(k -> indexScopedSettings.isPrivateSetting(k) == false), true);
@@ -223,9 +215,6 @@ public class MetadataUpdateSettingsService {
             Settings.Builder updates = Settings.builder();
             Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
             if (indexScopedSettings.updateSettings(closedSettings, indexSettings, updates, index.getName())) {
-                if (preserveExisting) {
-                    indexSettings.put(indexMetadata.getSettings());
-                }
                 Settings finalSettings = indexSettings.build();
                 indexScopedSettings.validate(
                         finalSettings.filter(k -> indexScopedSettings.isPrivateSetting(k) == false), true);
