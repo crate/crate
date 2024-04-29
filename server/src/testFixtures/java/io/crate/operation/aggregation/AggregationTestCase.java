@@ -516,7 +516,6 @@ public abstract class AggregationTestCase extends ESTestCase {
             new DummyShardLock(shardPath.getShardId())
         );
         var mapperService = MapperTestUtils.newMapperService(
-            DEFAULT_NAMED_X_CONTENT_REGISTRY,
             createTempDir(),
             indexSettings.getSettings(),
             routing.getIndexName()

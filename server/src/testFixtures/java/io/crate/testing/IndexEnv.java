@@ -39,7 +39,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
@@ -98,7 +97,6 @@ public final class IndexEnv implements AutoCloseable {
         mapperService = new MapperService(
             idxSettings,
             indexAnalyzers,
-            NamedXContentRegistry.EMPTY,
             mapperRegistry
         );
         IndexMetadata indexMetadata = clusterState.metadata().index(indexName);
@@ -117,7 +115,6 @@ public final class IndexEnv implements AutoCloseable {
         indexService = indexModule.newIndexService(
             IndexCreationContext.CREATE_INDEX,
             nodeEnvironment,
-            NamedXContentRegistry.EMPTY,
             new IndexService.ShardStoreDeleter() {
                 @Override
                 public void deleteShardStore(String reason, ShardLock lock, IndexSettings indexSettings) throws IOException {

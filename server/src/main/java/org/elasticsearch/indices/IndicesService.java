@@ -70,7 +70,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.FileSystemUtils;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -81,7 +80,6 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.env.ShardLockObtainFailedException;
@@ -138,7 +136,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final ClusterService clusterService;
     private final PluginsService pluginsService;
     private final NodeEnvironment nodeEnv;
-    private final NamedXContentRegistry xContentRegistry;
     private final TimeValue shardsClosedTimeout;
     private final AnalysisRegistry analysisRegistry;
     private final IndexScopedSettings indexScopedSettings;
@@ -177,10 +174,8 @@ public class IndicesService extends AbstractLifecycleComponent
                           ClusterService clusterService,
                           PluginsService pluginsService,
                           NodeEnvironment nodeEnv,
-                          NamedXContentRegistry xContentRegistry,
                           AnalysisRegistry analysisRegistry,
                           MapperRegistry mapperRegistry,
-                          NamedWriteableRegistry namedWriteableRegistry,
                           ThreadPool threadPool,
                           IndexScopedSettings indexScopedSettings,
                           CircuitBreakerService circuitBreakerService,
@@ -194,7 +189,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.threadPool = threadPool;
         this.pluginsService = pluginsService;
         this.nodeEnv = nodeEnv;
-        this.xContentRegistry = xContentRegistry;
         this.shardsClosedTimeout = settings.getAsTime(INDICES_SHARDS_CLOSED_TIMEOUT, new TimeValue(1, TimeUnit.DAYS));
         this.analysisRegistry = analysisRegistry;
         this.indicesQueryCache = IndicesQueryCache.createCache(settings);
@@ -462,7 +456,6 @@ public class IndicesService extends AbstractLifecycleComponent
         return indexModule.newIndexService(
             indexCreationContext,
             nodeEnv,
-            xContentRegistry,
             this,
             circuitBreakerService,
             bigArrays,
@@ -482,7 +475,7 @@ public class IndicesService extends AbstractLifecycleComponent
         final IndexSettings idxSettings = new IndexSettings(indexMetadata, this.settings, indexScopedSettings);
         final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, engineFactoryProviders, directoryFactories);
         pluginsService.onIndexModule(indexModule);
-        return indexModule.newIndexMapperService(xContentRegistry, mapperRegistry);
+        return indexModule.newIndexMapperService(mapperRegistry);
     }
 
     /**

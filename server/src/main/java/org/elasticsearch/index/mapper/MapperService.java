@@ -94,14 +94,12 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     public MapperService(IndexSettings indexSettings,
                          IndexAnalyzers indexAnalyzers,
-                         NamedXContentRegistry xContentRegistry,
                          MapperRegistry mapperRegistry) {
         super(indexSettings);
         this.indexAnalyzers = indexAnalyzers;
         this.fieldTypes = new FieldTypeLookup();
         this.documentParser = new DocumentMapperParser(
             this,
-            xContentRegistry,
             mapperRegistry
         );
         this.indexAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultIndexAnalyzer(), MappedFieldType::indexAnalyzer);

@@ -40,7 +40,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
@@ -270,7 +269,6 @@ public final class IndexModule {
     public IndexService newIndexService(
             IndexService.IndexCreationContext indexCreationContext,
             NodeEnvironment environment,
-            NamedXContentRegistry xContentRegistry,
             IndexService.ShardStoreDeleter shardStoreDeleter,
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
@@ -291,7 +289,6 @@ public final class IndexModule {
             indexSettings,
             indexCreationContext,
             environment,
-            xContentRegistry,
             shardStoreDeleter,
             analysisRegistry,
             engineFactoryProviders,
@@ -339,11 +336,10 @@ public final class IndexModule {
      * creates a new mapper service to do administrative work like mapping updates. This *should not* be used for document parsing.
      * doing so will result in an exception.
      */
-    public MapperService newIndexMapperService(NamedXContentRegistry xContentRegistry, MapperRegistry mapperRegistry) throws IOException {
+    public MapperService newIndexMapperService(MapperRegistry mapperRegistry) throws IOException {
         return new MapperService(
             indexSettings,
             analysisRegistry.build(indexSettings),
-            xContentRegistry,
             mapperRegistry
         );
     }

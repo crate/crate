@@ -22,16 +22,13 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.MapperTestUtils;
 import org.junit.Test;
 
@@ -130,7 +127,6 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "tbl"), List.of("3", "4")).asIndexName());
         DocTableInfo tbl = e.resolveTableInfo("doc.tbl");
         var renameColumnTask = new AlterTableTask<>(e.nodeCtx, imd -> MapperTestUtils.newMapperService(
-            new NamedXContentRegistry(ClusterModule.getNamedXWriteables()),
             createTempDir(),
             Settings.EMPTY,
             "doc.tbl"),
