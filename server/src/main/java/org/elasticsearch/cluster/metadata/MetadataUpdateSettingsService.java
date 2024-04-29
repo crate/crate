@@ -44,7 +44,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -81,23 +80,25 @@ public class MetadataUpdateSettingsService {
     }
 
     public void updateSettings(final UpdateSettingsRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
-        final Settings normalizedSettings = Settings.builder().put(request.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX).build();
+        final Settings normalizedSettings = Settings.builder()
+            .put(request.settings())
+            .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
+            .build();
         Settings.Builder settingsForClosedIndices = Settings.builder();
         Settings.Builder settingsForOpenIndices = Settings.builder();
         final Set<String> skippedSettings = new HashSet<>();
 
         indexScopedSettings.validate(
-                normalizedSettings.filter(s -> Regex.isSimpleMatchPattern(s) == false), // don't validate wildcards
-                false, // don't validate dependencies here we check it below never allow to change the number of shards
-                true); // validate internal or private index settings
+            normalizedSettings,
+            false, // don't validate dependencies here we check it below never allow to change the number of shards
+            true // validate internal or private index settings
+        );
         for (String key : normalizedSettings.keySet()) {
             Setting<?> setting = indexScopedSettings.get(key);
-            boolean isWildcard = setting == null && Regex.isSimpleMatchPattern(key);
             assert setting != null // we already validated the normalized settings
-                || (isWildcard && normalizedSettings.hasValue(key) == false)
-                : "unknown setting: " + key + " isWildcard: " + isWildcard + " hasValue: " + normalizedSettings.hasValue(key);
+                : "unknown setting: " + key + " hasValue: " + normalizedSettings.hasValue(key);
             settingsForClosedIndices.copy(key, normalizedSettings);
-            if (isWildcard || setting.isDynamic()) {
+            if (setting.isDynamic()) {
                 settingsForOpenIndices.copy(key, normalizedSettings);
             } else {
                 skippedSettings.add(key.replace("index.", ""));
@@ -202,37 +203,33 @@ public class MetadataUpdateSettingsService {
         maybeUpdateClusterBlock(actualIndices, blocks, IndexMetadata.INDEX_READ_BLOCK,
                 IndexMetadata.INDEX_BLOCKS_READ_SETTING, openSettings);
 
-        if (!openIndices.isEmpty()) {
-            for (Index index : openIndices) {
-                IndexMetadata indexMetadata = metadataBuilder.getSafe(index);
-                Settings.Builder updates = Settings.builder();
-                Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
-                if (indexScopedSettings.updateDynamicSettings(openSettings, indexSettings, updates, index.getName())) {
-                    if (preserveExisting) {
-                        indexSettings.put(indexMetadata.getSettings());
-                    }
-                    Settings finalSettings = indexSettings.build();
-                    indexScopedSettings.validate(
-                            finalSettings.filter(k -> indexScopedSettings.isPrivateSetting(k) == false), true);
-                    metadataBuilder.put(IndexMetadata.builder(indexMetadata).settings(finalSettings));
+        for (Index index : openIndices) {
+            IndexMetadata indexMetadata = metadataBuilder.getSafe(index);
+            Settings.Builder updates = Settings.builder();
+            Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
+            if (indexScopedSettings.updateDynamicSettings(openSettings, indexSettings, updates, index.getName())) {
+                if (preserveExisting) {
+                    indexSettings.put(indexMetadata.getSettings());
                 }
+                Settings finalSettings = indexSettings.build();
+                indexScopedSettings.validate(
+                        finalSettings.filter(k -> indexScopedSettings.isPrivateSetting(k) == false), true);
+                metadataBuilder.put(IndexMetadata.builder(indexMetadata).settings(finalSettings));
             }
         }
 
-        if (!closeIndices.isEmpty()) {
-            for (Index index : closeIndices) {
-                IndexMetadata indexMetadata = metadataBuilder.getSafe(index);
-                Settings.Builder updates = Settings.builder();
-                Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
-                if (indexScopedSettings.updateSettings(closedSettings, indexSettings, updates, index.getName())) {
-                    if (preserveExisting) {
-                        indexSettings.put(indexMetadata.getSettings());
-                    }
-                    Settings finalSettings = indexSettings.build();
-                    indexScopedSettings.validate(
-                            finalSettings.filter(k -> indexScopedSettings.isPrivateSetting(k) == false), true);
-                    metadataBuilder.put(IndexMetadata.builder(indexMetadata).settings(finalSettings));
+        for (Index index : closeIndices) {
+            IndexMetadata indexMetadata = metadataBuilder.getSafe(index);
+            Settings.Builder updates = Settings.builder();
+            Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
+            if (indexScopedSettings.updateSettings(closedSettings, indexSettings, updates, index.getName())) {
+                if (preserveExisting) {
+                    indexSettings.put(indexMetadata.getSettings());
                 }
+                Settings finalSettings = indexSettings.build();
+                indexScopedSettings.validate(
+                        finalSettings.filter(k -> indexScopedSettings.isPrivateSetting(k) == false), true);
+                metadataBuilder.put(IndexMetadata.builder(indexMetadata).settings(finalSettings));
             }
         }
 
