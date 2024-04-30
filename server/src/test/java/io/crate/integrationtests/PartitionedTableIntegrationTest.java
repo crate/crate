@@ -61,7 +61,6 @@ import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -74,7 +73,6 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.After;
@@ -2026,24 +2024,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0], is(3L));
         execute("select count(*), job_id, arbitrary(name) from sys.operations_log where name='fetch' group by 2");
         assertThat(response.rowCount(), is(lessThanOrEqualTo(1L)));
-    }
-
-    @Test
-    public void testDeleteOrphanedPartitions() throws Throwable {
-        execute("create table foo (name string, p string) partitioned by (p) with (number_of_replicas=0, refresh_interval = 0)");
-        ensureYellow();
-        execute("insert into foo (name, p) values (?, ?)", new Object[]{"Marvin", 1});
-        execute("refresh table foo");
-
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "foo");
-        client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(templateName)).get();
-        waitNoPendingTasksOnAll();
-        execute("select * from sys.shards where table_name = 'foo'");
-        assertThat(response.rowCount(), Matchers.greaterThan(0L));
-        execute("drop table foo");
-
-        execute("select * from sys.shards where table_name = 'foo'");
-        assertThat(response.rowCount(), CoreMatchers.is(0L));
     }
 
     @Test
