@@ -449,33 +449,15 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     public List<PartitionName> getPartitions(Metadata metadata) {
-        String[] concreteIndices = concreteIndices(metadata);
         if (!isPartitioned) {
-            IndexMetadata index = metadata.index(ident.indexNameOrAlias());
-            if (index == null) {
-                if (concreteIndices.length > 0) {
-                    index = metadata.index(concreteIndices[0]);
-                    LOGGER.info(
-                        "Found indices={} for relation={} without index template. Orphaned partition?",
-                        concreteIndices,
-                        ident
-                    );
-                }
-                if (index == null) {
-                    throw new RelationUnknown(ident);
-                }
-            }
-            if (concreteIndices.length == 0) {
-                throw new RelationUnknown(ident);
-            }
-            return List.of();
-        } else {
-            List<PartitionName> partitions = new ArrayList<>(concreteIndices.length);
-            for (String indexName : concreteIndices) {
-                partitions.add(PartitionName.fromIndexOrTemplate(indexName));
-            }
-            return partitions;
+            throw new IllegalArgumentException("Relation " + ident + " isn't partitioned, cannot get partitions");
         }
+        String[] concreteIndices = concreteIndices(metadata);
+        ArrayList<PartitionName> partitions = new ArrayList<>(concreteIndices.length);
+        for (String indexName : concreteIndices) {
+            partitions.add(PartitionName.fromIndexOrTemplate(indexName));
+        }
+        return partitions;
     }
 
     /**
