@@ -432,21 +432,14 @@ public class IndexServiceTests extends IntegTestCase {
 
     @Test
     public void testUpdateSyncIntervalDynamically() throws Exception {
-        execute("create table test(x int) clustered into 1 shards with(\"translog.sync_interval\" = '10s')");
+        execute("create table test (x int) clustered into 1 shards with (\"translog.sync_interval\" = '10s')");
         IndexService indexService = getIndexService("test");
         var indexName = indexService.index().getName();
 
         ensureGreen(indexName);
         assertNull(indexService.getFsyncTask());
 
-        Settings.Builder builder = Settings.builder().put(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey(), "5s")
-            .put(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey(), Translog.Durability.ASYNC.name());
-
-        client()
-            .admin()
-            .indices()
-            .updateSettings(new UpdateSettingsRequest(builder.build(), indexName))
-            .get();
+        execute("alter table test set (\"translog.sync_interval\" = '5s', \"translog.durability\" = 'async')");
 
         assertNotNull(indexService.getFsyncTask());
         assertTrue(indexService.getFsyncTask().mustReschedule());
@@ -457,14 +450,7 @@ public class IndexServiceTests extends IntegTestCase {
         assertEquals("5s", indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()));
 
         execute("alter table test close");
-        client()
-            .admin()
-            .indices()
-            .updateSettings(new UpdateSettingsRequest(
-                Settings.builder().put(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey(), "20s").build(),
-                indexName
-            ))
-            .get();
+        execute("alter table test set (\"translog.sync_interval\" = '20s')");
         indexMetadata = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get().getState().metadata().index(indexName);
