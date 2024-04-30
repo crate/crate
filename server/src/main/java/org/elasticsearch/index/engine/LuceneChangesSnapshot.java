@@ -45,7 +45,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.translog.Translog;
@@ -77,13 +76,12 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
      * Creates a new "translog" snapshot from Lucene for reading operations whose seq# in the specified range.
      *
      * @param engineSearcher    the internal engine searcher which will be taken over if the snapshot is opened successfully
-     * @param mapperService     the mapper service which will be mainly used to resolve the document's type and uid
      * @param searchBatchSize   the number of documents should be returned by each search
      * @param fromSeqNo         the min requesting seq# - inclusive
      * @param toSeqNo           the maximum requesting seq# - inclusive
      * @param requiredFullRange if true, the snapshot will strictly check for the existence of operations between fromSeqNo and toSeqNo
      */
-    LuceneChangesSnapshot(Engine.Searcher engineSearcher, MapperService mapperService, int searchBatchSize,
+    LuceneChangesSnapshot(Engine.Searcher engineSearcher, int searchBatchSize,
                           long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException {
         if (fromSeqNo < 0 || toSeqNo < 0 || fromSeqNo > toSeqNo) {
             throw new IllegalArgumentException("Invalid range; from_seqno [" + fromSeqNo + "], to_seqno [" + toSeqNo + "]");

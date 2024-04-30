@@ -903,7 +903,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         }
         final Engine engine = shard.getEngineOrNull();
         if (engine != null) {
-            EngineTestCase.assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, shard.mapperService());
+            EngineTestCase.assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine);
         }
     }
 

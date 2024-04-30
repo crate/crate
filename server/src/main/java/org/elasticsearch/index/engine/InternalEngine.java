@@ -95,7 +95,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
@@ -535,10 +534,10 @@ public class InternalEngine extends Engine {
      */
     @Override
     public Translog.Snapshot readHistoryOperations(String reason, HistorySource historySource,
-                                                   MapperService mapperService, long startingSeqNo) throws IOException {
+                                                   long startingSeqNo) throws IOException {
         if (historySource == HistorySource.INDEX) {
             ensureSoftDeletesEnabled();
-            return newChangesSnapshot(reason, mapperService, Math.max(0, startingSeqNo), Long.MAX_VALUE, false);
+            return newChangesSnapshot(reason, Math.max(0, startingSeqNo), Long.MAX_VALUE, false);
         } else {
             return getTranslog().newSnapshot(startingSeqNo, Long.MAX_VALUE);
         }
@@ -549,10 +548,10 @@ public class InternalEngine extends Engine {
      */
     @Override
     public int estimateNumberOfHistoryOperations(String reason, HistorySource historySource,
-                                                 MapperService mapperService, long startingSeqNo) throws IOException {
+                                                 long startingSeqNo) throws IOException {
         if (historySource == HistorySource.INDEX) {
             ensureSoftDeletesEnabled();
-            try (Translog.Snapshot snapshot = newChangesSnapshot(reason, mapperService, Math.max(0, startingSeqNo),
+            try (Translog.Snapshot snapshot = newChangesSnapshot(reason, Math.max(0, startingSeqNo),
                 Long.MAX_VALUE, false)) {
                 return snapshot.totalOperations();
             }
@@ -2626,7 +2625,7 @@ public class InternalEngine extends Engine {
     }
 
     @Override
-    public Translog.Snapshot newChangesSnapshot(String source, MapperService mapperService,
+    public Translog.Snapshot newChangesSnapshot(String source,
                                                 long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException {
         ensureSoftDeletesEnabled();
         ensureOpen();
@@ -2634,7 +2633,7 @@ public class InternalEngine extends Engine {
         Searcher searcher = acquireSearcher(source, SearcherScope.INTERNAL);
         try {
             LuceneChangesSnapshot snapshot = new LuceneChangesSnapshot(
-                searcher, mapperService, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE, fromSeqNo, toSeqNo, requiredFullRange);
+                searcher, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE, fromSeqNo, toSeqNo, requiredFullRange);
             searcher = null;
             return snapshot;
         } catch (Exception e) {
@@ -2651,7 +2650,7 @@ public class InternalEngine extends Engine {
 
     @Override
     public boolean hasCompleteOperationHistory(String reason, HistorySource historySource,
-                                               MapperService mapperService, long startingSeqNo) throws IOException {
+                                               long startingSeqNo) throws IOException {
         if (historySource == HistorySource.INDEX) {
             ensureSoftDeletesEnabled();
             return getMinRetainedSeqNo() <= startingSeqNo;

@@ -75,7 +75,6 @@ import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVers
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.seqno.SeqNoStats;
@@ -634,7 +633,7 @@ public abstract class Engine implements Closeable {
     /**
      * Creates a new history snapshot from Lucene for reading operations whose seqno in the requesting seqno range (both inclusive)
      */
-    public abstract Translog.Snapshot newChangesSnapshot(String source, MapperService mapperService,
+    public abstract Translog.Snapshot newChangesSnapshot(String source,
                                                          long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException;
 
     /**
@@ -642,19 +641,19 @@ public abstract class Engine implements Closeable {
      * The returned snapshot can be retrieved from either Lucene index or translog files.
      */
     public abstract Translog.Snapshot readHistoryOperations(String reason, HistorySource historySource,
-                                                            MapperService mapperService, long startingSeqNo) throws IOException;
+                                                            long startingSeqNo) throws IOException;
 
     /**
      * Returns the estimated number of history operations whose seq# at least {@code startingSeqNo}(inclusive) in this engine.
      */
     public abstract int estimateNumberOfHistoryOperations(String reason, HistorySource historySource,
-                                                          MapperService mapperService, long startingSeqNo) throws IOException;
+                                                          long startingSeqNo) throws IOException;
 
     /**
      * Checks if this engine has every operations since  {@code startingSeqNo}(inclusive) in its history (either Lucene or translog)
      */
     public abstract boolean hasCompleteOperationHistory(String reason, HistorySource historySource,
-                                                        MapperService mapperService, long startingSeqNo) throws IOException;
+                                                        long startingSeqNo) throws IOException;
 
     /**
      * Gets the minimum retained sequence number for this engine.
