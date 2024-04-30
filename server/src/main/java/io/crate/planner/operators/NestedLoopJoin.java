@@ -72,7 +72,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
                    boolean isFiltered) {
-        super(lhs, rhs, joinCondition, joinType);
+        super(lhs, rhs, joinCondition, joinType, false, false);
         this.isFiltered = isFiltered || joinCondition != null;
     }
 
@@ -82,8 +82,11 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                           @Nullable Symbol joinCondition,
                           boolean isFiltered,
                           boolean orderByWasPushedDown,
-                          boolean rewriteEquiJoinToHashJoinDone) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered);
+                          boolean rewriteEquiJoinToHashJoinDone,
+                          boolean lhsIsLookup,
+                          boolean rhsIsLookup) {
+        super(lhs, rhs,joinCondition, joinType, lhsIsLookup, rhsIsLookup);
+        this.isFiltered = isFiltered || joinCondition != null;
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteNestedLoopJoinToHashJoinDone = rewriteEquiJoinToHashJoinDone;
     }
@@ -213,7 +216,9 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             joinCondition,
             isFiltered,
             orderByWasPushedDown,
-            rewriteNestedLoopJoinToHashJoinDone
+            rewriteNestedLoopJoinToHashJoinDone,
+            lhsIsLookup,
+            rhsIsLookup
         );
     }
 
@@ -225,9 +230,20 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
             SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
         }
+
         if (joinCondition != null) {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            // If the outputs come only from one side and we have a lookup-join in place
+            // we can drop the join and return only the lookup-side
+            if (lhsToKeep.isEmpty() && rhsIsLookup) {
+                SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+                return rhs.pruneOutputsExcept(rhsToKeep);
+            } else if (rhsToKeep.isEmpty() && lhsIsLookup) {
+                SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+                return lhs.pruneOutputsExcept(lhsToKeep);
+            } else {
+                SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+                SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            }
         }
         LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
         LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
@@ -241,7 +257,9 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             joinCondition,
             isFiltered,
             orderByWasPushedDown,
-            rewriteNestedLoopJoinToHashJoinDone
+            rewriteNestedLoopJoinToHashJoinDone,
+            lhsIsLookup,
+            rhsIsLookup
         );
     }
 
@@ -275,7 +293,9 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                 joinCondition,
                 isFiltered,
                 orderByWasPushedDown,
-                rewriteNestedLoopJoinToHashJoinDone
+                rewriteNestedLoopJoinToHashJoinDone,
+                lhsIsLookup,
+                rhsIsLookup
             )
         );
     }

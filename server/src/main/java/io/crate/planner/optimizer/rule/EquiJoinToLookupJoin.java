@@ -134,13 +134,17 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
 
         LogicalPlan newLhs;
         LogicalPlan newRhs;
+        boolean lhsIsLookup = false;
+        boolean rhsIsLookup = false;
 
         if (rhsIsLarger) {
             newLhs = lhs;
             newRhs = lookupJoin;
+            rhsIsLookup = true;
         } else {
             newLhs = lookupJoin;
             newRhs = rhs;
+            lhsIsLookup = true;
         }
 
         return new JoinPlan(
@@ -150,7 +154,9 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             plan.joinCondition(),
             plan.isFiltered(),
             plan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-            true
+            plan.moveConstantJoinConditionRuleApplied(),
+            lhsIsLookup,
+            rhsIsLookup
         );
     }
 

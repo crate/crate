@@ -63,7 +63,15 @@ public class HashJoin extends AbstractJoinPlan {
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
-        super(lhs, rhs, joinCondition, JoinType.INNER);
+        super(lhs, rhs, joinCondition, JoinType.INNER, false, false);
+    }
+
+    public HashJoin(LogicalPlan lhs,
+                    LogicalPlan rhs,
+                    Symbol joinCondition,
+                    boolean lhsIsLookup,
+                    boolean rhsIsLookup) {
+        super(lhs, rhs, joinCondition, JoinType.INNER, lhsIsLookup, rhsIsLookup);
     }
 
     @Override
@@ -168,7 +176,9 @@ public class HashJoin extends AbstractJoinPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
-            joinCondition
+            joinCondition,
+            lhsIsLookup,
+            rhsIsLookup
         );
     }
 
@@ -180,18 +190,30 @@ public class HashJoin extends AbstractJoinPlan {
             SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
             SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
         }
-        SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-        SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
-        if (newLhs == lhs && newRhs == rhs) {
-            return this;
+        // If the outputs come only from one side and we have a lookup-join in place
+        // we can drop the join and return only the lookup-side
+        if (lhsToKeep.isEmpty() && rhsIsLookup) {
+            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            return rhs.pruneOutputsExcept(rhsToKeep);
+        } else if (rhsToKeep.isEmpty() && lhsIsLookup) {
+            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            return lhs.pruneOutputsExcept(lhsToKeep);
+        } else {
+            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
+            LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
+            if (newLhs == lhs && newRhs == rhs) {
+                return this;
+            }
+            return new HashJoin(
+                newLhs,
+                newRhs,
+                joinCondition,
+                lhsIsLookup,
+                rhsIsLookup
+            );
         }
-        return new HashJoin(
-            newLhs,
-            newRhs,
-            joinCondition
-        );
     }
 
     @Nullable
@@ -218,7 +240,10 @@ public class HashJoin extends AbstractJoinPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
-                joinCondition)
+                joinCondition,
+                lhsIsLookup,
+                rhsIsLookup
+            )
         );
     }
 

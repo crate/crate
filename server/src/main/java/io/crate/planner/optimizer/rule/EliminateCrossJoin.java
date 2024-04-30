@@ -180,6 +180,8 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 AndOperator.join(criteria, null),
                 false,
                 false,
+                false,
+                false,
                 false
             );
         }

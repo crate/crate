@@ -66,7 +66,9 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
             return new HashJoin(
                 join.lhs(),
                 join.rhs(),
-                join.joinCondition()
+                join.joinCondition(),
+                join.lhsIsLookup(),
+                join.rhsIsLookup()
             );
         } else {
             return new NestedLoopJoin(
@@ -76,7 +78,9 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                 join.joinCondition(),
                 join.isFiltered(),
                 false,
-                false
+                false,
+                join.lhsIsLookup(),
+                join.rhsIsLookup()
             );
         }
     }

@@ -63,7 +63,9 @@ public class ReorderHashJoin implements Rule<HashJoin> {
                 new HashJoin(
                     plan.rhs(),
                     plan.lhs(),
-                    plan.joinCondition()
+                    plan.joinCondition(),
+                    plan.rhsIsLookup(),
+                    plan.lhsIsLookup()
                 ),
                 plan.outputs()
             );

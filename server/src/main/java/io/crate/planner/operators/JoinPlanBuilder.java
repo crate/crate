@@ -128,6 +128,8 @@ public class JoinPlanBuilder {
             validJoinConditions,
             isFiltered,
             false,
+            false,
+            false,
             false);
 
         joinPlan = Filter.create(joinPlan, validWhereConditions);
@@ -242,6 +244,8 @@ public class JoinPlanBuilder {
             type,
             AndOperator.join(conditions, null),
             isFiltered,
+            false,
+            false,
             false,
             false);
         return Filter.create(joinPlan, query);

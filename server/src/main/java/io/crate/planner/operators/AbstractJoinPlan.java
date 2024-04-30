@@ -48,15 +48,21 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     @Nullable
     protected final Symbol joinCondition;
     protected final JoinType joinType;
+    protected final boolean lhsIsLookup;
+    protected final boolean rhsIsLookup;
 
     protected AbstractJoinPlan(LogicalPlan lhs,
                                LogicalPlan rhs,
                                @Nullable Symbol joinCondition,
-                               JoinType joinType) {
+                               JoinType joinType,
+                               boolean lhsIsLookup,
+                               boolean rhsIsLookup) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.joinCondition = joinCondition;
         this.joinType = joinType;
+        this.lhsIsLookup = lhsIsLookup;
+        this.rhsIsLookup = rhsIsLookup;
     }
 
     public LogicalPlan lhs() {
@@ -65,6 +71,14 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
 
     public LogicalPlan rhs() {
         return rhs;
+    }
+
+    public boolean rhsIsLookup() {
+        return rhsIsLookup;
+    }
+
+    public boolean lhsIsLookup() {
+        return lhsIsLookup;
     }
 
     @Override
