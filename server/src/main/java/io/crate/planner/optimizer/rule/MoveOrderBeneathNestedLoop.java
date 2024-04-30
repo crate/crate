@@ -40,6 +40,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
@@ -107,7 +108,8 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                     nestedLoop.joinCondition(),
                     nestedLoop.isFiltered(),
                     true,
-                    nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
+                    nestedLoop.isRewriteNestedLoopJoinToHashJoinDone(),
+                    AbstractJoinPlan.LookUpJoin.NONE
                 );
             }
         }

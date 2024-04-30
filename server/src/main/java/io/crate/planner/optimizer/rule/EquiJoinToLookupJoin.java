@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.EquiJoinDetector;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
@@ -134,13 +135,16 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
 
         LogicalPlan newLhs;
         LogicalPlan newRhs;
+        AbstractJoinPlan.LookUpJoin lookUpJoin;
 
         if (rhsIsLarger) {
             newLhs = lhs;
             newRhs = lookupJoin;
+            lookUpJoin = AbstractJoinPlan.LookUpJoin.RIGHT;
         } else {
             newLhs = lookupJoin;
             newRhs = rhs;
+            lookUpJoin = AbstractJoinPlan.LookUpJoin.LEFT;
         }
 
         return new JoinPlan(
@@ -150,7 +154,8 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             plan.joinCondition(),
             plan.isFiltered(),
             plan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-            true
+            plan.moveConstantJoinConditionRuleApplied(),
+            lookUpJoin
         );
     }
 

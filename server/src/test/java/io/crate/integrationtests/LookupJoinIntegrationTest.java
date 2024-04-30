@@ -44,18 +44,50 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("analyze");
         waitNoPendingTasksOnAll();
-        var query = "select count(*) from doc.t1 join doc.t2 on t1.id = t2.id";
+        var query = "select t1.id, t2.id from doc.t1 join doc.t2 on t1.id = t2.id";
         execute("explain (costs false)" + query);
         assertThat(response).hasLines(
-            "HashAggregate[count(*)]",
-            "  └ HashJoin[(id = id)]",
-            "    ├ MultiPhase",
-            "    │  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
-            "    │  └ Collect[doc.t2 | [id] | true]",
-            "    └ Collect[doc.t2 | [id] | true]"
+            "HashJoin[(id = id)]",
+            "  ├ MultiPhase",
+            "  │  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
+            "  │  └ Collect[doc.t2 | [id] | true]",
+            "  └ Collect[doc.t2 | [id] | true]"
         );
         execute(query);
-        assertThat(response).hasRows("100");
+        assertThat(response).hasRowCount(100);
+
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @Test
+    public void test_drop_join_on_top_of_lookup_join() throws Exception {
+        execute("create table doc.t1 (id int) with(number_of_replicas=0)");
+        execute("insert into doc.t1 (id) select b from generate_series(1,10000) a(b)");
+        execute("create table doc.t2 (id int)");
+        execute("insert into doc.t2 (id) select b from generate_series(1,100) a(b)");
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("analyze");
+        waitNoPendingTasksOnAll();
+        var query = "select t1.id from doc.t1 join doc.t2 on t1.id = t2.id";
+        execute("explain (costs false)" + query);
+        assertThat(response).hasLines(
+            "MultiPhase",
+            "  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
+            "  └ Collect[doc.t2 | [id] | true]"
+        );
+        execute(query);
+        assertThat(response).hasRowCount(100);
+
+        execute("SET enable_hashjoin=false");
+        execute("explain (costs false)" + query);
+        assertThat(response).hasLines(
+            "MultiPhase",
+            "  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
+            "  └ Collect[doc.t2 | [id] | true]"
+        );
+        execute(query);
+        assertThat(response).hasRowCount(100);
     }
 
     @UseRandomizedOptimizerRules(0)
