@@ -46,6 +46,11 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that allowed creating tables named ``_all``, which is a
+  reversed name that has special effects - like expanding to *all* table names.
+  Because of these special semantics, statements like ``DROP TABLE _all`` would
+  delete all tables instead of only ``_all``.
+
 - Fixed an issue that could prevent a :ref:`sql-restore-snapshot` from
   restoring a partition if using the ``TABLE PARTITION (...)`` clause to restore
   an individual partition of a table with more than one partition column.
