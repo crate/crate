@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -52,9 +51,8 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
         @Override
         public ValueIndexer<Point> valueIndexer(RelationName table,
                                                 Reference ref,
-                                                Function<String, FieldType> getFieldType,
                                                 Function<ColumnIdent, Reference> getRef) {
-            return new GeoPointIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new GeoPointIndexer(ref);
         }
     };
 

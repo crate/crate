@@ -33,7 +33,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -133,18 +132,13 @@ public class StringType extends DataType<String> implements Streamer<String> {
     ) {
 
         @Override
-        @SuppressWarnings({"rawtypes", "unchecked"})
+        @SuppressWarnings({"rawtypes"})
         public ValueIndexer<Object> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            FieldType fieldType = getFieldType.apply(ref.storageIdent());
-            if (fieldType == null) {
-                return (ValueIndexer) new StringIndexer(ref, fieldType);
-            }
             return switch (ref.indexType()) {
-                case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref, fieldType);
-                case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref, fieldType);
+                case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref);
+                case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref);
             };
         }
     };

@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
@@ -57,7 +56,6 @@ import io.crate.types.UndefinedType;
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
     private final ReferenceIdent refIdent;
-    private final Function<String, FieldType> getFieldType;
     private Function<ColumnIdent, Reference> getRef;
     private final int position;
     private DataType<?> type = null;
@@ -67,11 +65,9 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
 
     public DynamicIndexer(ReferenceIdent refIdent,
                           int position,
-                          Function<String, FieldType> getFieldType,
                           Function<ColumnIdent, Reference> getRef,
                           @Nullable String storageIdentPrefixForEmptyArrays) {
         this.refIdent = refIdent;
-        this.getFieldType = getFieldType;
         this.getRef = getRef;
         this.position = position;
         this.storageIdentPrefixForEmptyArrays = storageIdentPrefixForEmptyArrays;
@@ -113,7 +109,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
                 refIdent.tableIdent(),
                 newColumn,
-                getFieldType,
                 getRef
             );
             onDynamicColumn.accept(newColumn);
@@ -188,7 +183,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
                 refIdent.tableIdent(),
                 newColumn,
-                getFieldType,
                 getRef
             );
         }

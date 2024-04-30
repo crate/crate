@@ -23,7 +23,6 @@ package io.crate.types;
 
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -66,7 +65,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
 
         // Parse a document using the table schema
-        Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), f -> null, "x");
+        Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
         Object[] insertValues = new Object[] { (List.of(List.of(1, 2), List.of(3, 4))) };
         ParsedDocument doc
             = indexer.index(new IndexItem.StaticItem("id", List.of(), insertValues, 0, 0));

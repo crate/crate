@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -249,10 +248,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     @Nullable
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
                                                       Reference ref,
-                                                      Function<String, FieldType> getFieldType,
                                                       Function<ColumnIdent, Reference> getRef) {
         StorageSupport<? super T> storageSupport = storageSupportSafe();
-        return storageSupport.valueIndexer(table, ref, getFieldType, getRef);
+        return storageSupport.valueIndexer(table, ref, getRef);
     }
 
 

@@ -23,7 +23,6 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
@@ -38,12 +37,10 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
@@ -57,12 +54,9 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
-import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -109,7 +103,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     public static Indexer getIndexer(SQLExecutor e,
                                      String tableName,
-                                     Function<String, FieldType> getFieldType,
                                      String ... columns) {
         DocTableInfo table = e.resolveTableInfo(tableName);
         return new Indexer(
@@ -117,7 +110,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            getFieldType,
             Stream.of(columns)
                 .map(x -> table.resolveColumn(x, true, false))
                 .toList(),
@@ -168,7 +160,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(o),
             null
         );
@@ -206,7 +197,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(o),
             null
         );
@@ -241,7 +231,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (o object (ignored))");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
-        var indexer = getIndexer(e, "tbl", c -> null, "o");
+        var indexer = getIndexer(e, "tbl", "o");
         ParsedDocument doc = indexer.index(item(Map.of("x", 10)));
         assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
             """
@@ -266,7 +256,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(o),
             null
         );
@@ -308,7 +297,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             txnCtx,
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(y),
             null
         );
@@ -324,7 +312,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             txnCtx,
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
             null
         );
@@ -347,7 +334,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
             null
         );
@@ -372,7 +358,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
             null
         );
@@ -393,7 +378,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(o),
             null
         );
@@ -423,7 +407,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
             null
         );
@@ -451,7 +434,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x, y),
             null
         );
@@ -463,7 +445,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x, o),
             null
         );
@@ -481,7 +462,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("x"))
             ),
@@ -512,7 +492,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("x")),
                 table.getReference(new ColumnIdent("z"))
@@ -544,7 +523,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("o"))
             ),
@@ -570,7 +548,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("o"))
             ),
@@ -596,7 +573,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("x"))
             ),
@@ -622,7 +598,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("x")),
                 table.getReference(new ColumnIdent("o"))
@@ -645,7 +620,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         var ref = table.getReference(new ColumnIdent("x"));
 
-        Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "x");
+        Indexer indexer = getIndexer(e, "tbl", "x");
         ParsedDocument doc = indexer.index(item(42.2f));
         IndexableField[] fields = doc.doc().getFields(ref.storageIdent());
         assertThat(fields).satisfiesExactly(
@@ -663,7 +638,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         var ref = table.getReference(new ColumnIdent("x"));
 
-        var indexer = getIndexer(e, "tbl", c -> TextFieldMapper.Defaults.FIELD_TYPE, "x");
+        var indexer = getIndexer(e, "tbl", "x");
         ParsedDocument doc = indexer.index(item("Hello World"));
         IndexableField[] fields = doc.doc().getFields(ref.storageIdent());
         assertThat(fields).satisfiesExactly(
@@ -724,13 +699,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 clusterService.state(),
                 Version.CURRENT)) {
 
-            MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
                 table.ident().indexNameOrAlias(),
                 table,
                 new CoordinatorTxnCtx(e.getSessionSettings()),
                 e.nodeCtx,
-                mapperService::getLuceneFieldType,
                 Lists.map(columns, c -> table.getReference(c)),
                 null
             );
@@ -759,7 +732,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("x")),
                 table.getDynamic(new ColumnIdent("y"), true, false),
@@ -805,7 +777,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 table,
                 new CoordinatorTxnCtx(e.getSessionSettings()),
                 e.nodeCtx,
-                column -> NumberFieldMapper.FIELD_TYPE,
                 List.<Reference>of(
                     new DynamicReference(
                         new ReferenceIdent(table.ident(), "y"),
@@ -825,7 +796,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (xs int[])");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
-        var indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "xs");
+        var indexer = getIndexer(e, "tbl", "xs");
         ParsedDocument doc = indexer.index(item(Arrays.asList(1, 42, null, 21)));
         assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
             """
@@ -840,7 +811,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (xs text[], index ft using fulltext (xs))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         var refFt = table.indexColumn(new ColumnIdent("ft"));
-        var indexer = getIndexer(e, "tbl", c -> KeywordFieldMapper.Defaults.FIELD_TYPE, "xs");
+        var indexer = getIndexer(e, "tbl", "xs");
         ParsedDocument doc = indexer.index(item(List.of("foo", "bar", "baz")));
         assertThat(doc.doc().getFields(refFt.storageIdent())).hasSize(3);
         assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
@@ -860,7 +831,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("o")),
                 table.getDynamic(new ColumnIdent("n1"), true, false),
@@ -884,7 +854,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     public void test_leaves_out_generated_column_if_dependency_is_null() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int generated always as x + 1)");
-        Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "x");
+        Indexer indexer = getIndexer(e, "tbl", "x");
         IndexItem item = item(new Object[] { null });
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         ParsedDocument doc = indexer.index(item);
@@ -907,7 +877,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 )
                 """);
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "o");
+        Indexer indexer = getIndexer(e, "tbl", "o");
         IndexItem item = item(MapBuilder.newMapBuilder().put("y", 2).map());
         ParsedDocument doc = indexer.index(item);
         Map<String, Object> source = sourceMap(doc, table);
@@ -936,7 +906,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 """);
 
         // Object column "o" is not in the insert targets and value is not provided.
-        Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "a");
+        Indexer indexer = getIndexer(e, "tbl", "a");
         IndexItem item = item(1);
 
         assertThat(indexer.hasUndeterministicSynthetics()).isTrue();
@@ -951,7 +921,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, o object, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer indexer = getIndexer(e, "tbl", c -> NumberFieldMapper.FIELD_TYPE, "x", "o", "y");
+        Indexer indexer = getIndexer(e, "tbl", "x", "o", "y");
         BytesReference source = null;
         List<String> keys = new ArrayList<>();
         for (int i = 0; i < randomIntBetween(4, 7); i++) {
@@ -993,7 +963,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             newTable,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of("x", "o", "y").stream()
                 .map(x -> newTable.getReference(new ColumnIdent(x)))
                 .toList(),
@@ -1029,7 +998,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             SQLExecutor e = SQLExecutor.of(clusterService)
                     .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)");
 
-            Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "x");
+            Indexer indexer = getIndexer(e, tableName, "x");
             ParsedDocument doc = indexer.index(item(1));
             IndexableField[] fields = doc.doc().getFields("x");
 
@@ -1065,7 +1034,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)");
 
-        Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "x");
+        Indexer indexer = getIndexer(e, tableName, "x");
 
         ParsedDocument doc = indexer.index(item("127.0.0.1"));
         IndexableField[] fields = doc.doc().getFields("x");
@@ -1101,7 +1070,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable("create table " + tableName + " (x " + dt.getName() + "(1) INDEX OFF)");
 
-        Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "x");
+        Indexer indexer = getIndexer(e, tableName, "x");
 
         ParsedDocument doc = indexer.index(item(BitString.ofRawBits("1")));
         IndexableField[] fields = doc.doc().getFields("x");
@@ -1138,7 +1107,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)");
 
-        Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "x");
+        Indexer indexer = getIndexer(e, tableName, "x");
 
         ParsedDocument doc = indexer.index(item(true));
         IndexableField[] fields = doc.doc().getFields("x");
@@ -1180,7 +1149,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x, y),
             null
         );
@@ -1216,7 +1184,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("a"))
                 // 'Parted' is not in targets to imitate insert-from-subquery behavior
@@ -1247,7 +1214,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
             null
         );
@@ -1262,7 +1228,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 .addTable("create table tbl (i int) with (column_policy='dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
-        var indexer = getIndexer(e, "tbl", null, "empty_arr");
+        var indexer = getIndexer(e, "tbl", "empty_arr");
         ParsedDocument doc = indexer.index(item(List.of()));
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
                 """
@@ -1285,7 +1251,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                         Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
                 );
 
-        var indexer = getIndexer(e, "tbl", c -> null, "empty_arr");
+        var indexer = getIndexer(e, "tbl", "empty_arr");
         ParsedDocument doc = indexer.index(item(List.of()));
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
                 """
@@ -1301,7 +1267,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 .addTable("create table tbl (o object (ignored) as (i int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
-        var indexer = getIndexer(e, "tbl", c -> null, "o");
+        var indexer = getIndexer(e, "tbl", "o");
         ParsedDocument doc = indexer.index(item(Map.of("i", 1, "ignored_col", "foo")));
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
                 """
@@ -1324,7 +1290,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                         Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
                 );
 
-        var indexer = getIndexer(e, "tbl", c -> null, "o");
+        var indexer = getIndexer(e, "tbl", "o");
         ParsedDocument doc = indexer.index(item(Map.of("i", 1, "ignored_col", "foo")));
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
                 """
@@ -1344,7 +1310,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (i int, o object as (x int))");
 
-        Indexer indexer = getIndexer(e, tableName, c -> NumberFieldMapper.FIELD_TYPE, "i", "o");
+        Indexer indexer = getIndexer(e, tableName, "i", "o");
 
         ParsedDocument doc = indexer.index(item(1, Map.of("x", 2)));
         // Ensure source contains OID's instead of column names
@@ -1386,7 +1352,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
                 Map<String, Object> value = dataGenerator.get();
                 MapperService mapperService = indexEnv.mapperService();
-                Indexer indexer = getIndexer(sqlExecutor, "tbl", mapperService::getLuceneFieldType, "x");
+                Indexer indexer = getIndexer(sqlExecutor, "tbl", "x");
                 ParsedDocument doc = indexer.index(item(value));
 
                 ParsedDocument parsedDocument = mapperService.documentMapper().parse(new SourceToParse(

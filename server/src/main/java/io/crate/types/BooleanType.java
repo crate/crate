@@ -27,7 +27,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.FieldExistsQuery;
@@ -153,9 +152,8 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         @Override
         public ValueIndexer<Boolean> valueIndexer(RelationName table,
                                                   Reference ref,
-                                                  Function<String, FieldType> getFieldType,
                                                   Function<ColumnIdent, Reference> getRef) {
-            return new BooleanIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new BooleanIndexer(ref);
         }
     };
 

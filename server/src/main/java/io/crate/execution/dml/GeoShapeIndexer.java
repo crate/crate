@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
@@ -59,7 +58,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     private final IndexableFieldsFactory indexableFieldsFactory;
     private final String name;
 
-    public GeoShapeIndexer(Reference ref, FieldType fieldType) {
+    public GeoShapeIndexer(Reference ref) {
         assert ref instanceof GeoReference : "GeoShapeIndexer requires GeoReference";
         GeoReference geoReference = (GeoReference) ref;
         this.name = ref.storageIdent();

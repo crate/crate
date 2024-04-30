@@ -27,10 +27,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
@@ -46,13 +44,11 @@ import io.crate.metadata.Reference;
 public class IpIndexer implements ValueIndexer<String> {
 
     private final Reference ref;
-    private final FieldType fieldType;
     private final String name;
 
-    public IpIndexer(Reference ref, FieldType fieldType) {
+    public IpIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType;
     }
 
     @Override
@@ -73,9 +69,6 @@ public class IpIndexer implements ValueIndexer<String> {
                 FieldNamesFieldMapper.NAME,
                 name,
                 FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-        }
-        if (fieldType.stored()) {
-            addField.accept(new StoredField(name, new BytesRef(InetAddressPoint.encode(address))));
         }
     }
 }
