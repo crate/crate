@@ -128,7 +128,8 @@ public class JoinPlanBuilder {
             validJoinConditions,
             isFiltered,
             false,
-            false);
+            false,
+            AbstractJoinPlan.LookUpJoin.NONE);
 
         joinPlan = Filter.create(joinPlan, validWhereConditions);
         while (it.hasNext()) {
@@ -243,7 +244,9 @@ public class JoinPlanBuilder {
             AndOperator.join(conditions, null),
             isFiltered,
             false,
-            false);
+            false,
+            AbstractJoinPlan.LookUpJoin.NONE
+        );
         return Filter.create(joinPlan, query);
     }
 

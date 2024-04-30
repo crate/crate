@@ -38,6 +38,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
@@ -250,8 +251,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             )
         );
 
-        var nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, false, false);
+        var nestedLoopJoin = new NestedLoopJoin(lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, false, false, AbstractJoinPlan.LookUpJoin.NONE);
 
         var memo = new Memo(nestedLoopJoin);
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
@@ -261,14 +261,12 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result.sizeInBytes()).isEqualTo(288L);
 
         var joinCondition = e.asSymbol("x = y");
-        nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.INNER, joinCondition, false, false, false);
+        nestedLoopJoin = new NestedLoopJoin(lhs, rhs, JoinType.INNER, joinCondition, false, false, false, AbstractJoinPlan.LookUpJoin.NONE);
         result = planStats.get(nestedLoopJoin);
         assertThat(result.numDocs()).isEqualTo(1L);
         assertThat(result.sizeInBytes()).isEqualTo(32L);
 
-        nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.CROSS, x, false, false, false);
+        nestedLoopJoin = new NestedLoopJoin(lhs, rhs, JoinType.CROSS, x, false, false, false, AbstractJoinPlan.LookUpJoin.NONE);
 
         memo = new Memo(nestedLoopJoin);
         planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);

@@ -39,6 +39,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
@@ -180,7 +181,8 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 AndOperator.join(criteria, null),
                 false,
                 false,
-                false
+                false,
+                AbstractJoinPlan.LookUpJoin.NONE
             );
         }
 

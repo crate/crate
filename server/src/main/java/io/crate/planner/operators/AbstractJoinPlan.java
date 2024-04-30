@@ -48,15 +48,30 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     @Nullable
     protected final Symbol joinCondition;
     protected final JoinType joinType;
+    protected final LookUpJoin lookupJoin;
+
+    public enum LookUpJoin {
+        LEFT, RIGHT, NONE;
+
+        public LookUpJoin invert() {
+            return switch (this) {
+                case LEFT -> RIGHT;
+                case RIGHT -> LEFT;
+                case NONE -> NONE;
+            };
+        }
+    }
 
     protected AbstractJoinPlan(LogicalPlan lhs,
                                LogicalPlan rhs,
                                @Nullable Symbol joinCondition,
-                               JoinType joinType) {
+                               JoinType joinType,
+                               LookUpJoin lookupJoin) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.joinCondition = joinCondition;
         this.joinType = joinType;
+        this.lookupJoin = lookupJoin;
     }
 
     public LogicalPlan lhs() {
@@ -65,6 +80,10 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
 
     public LogicalPlan rhs() {
         return rhs;
+    }
+
+    public LookUpJoin lookUpJoin() {
+        return lookupJoin;
     }
 
     @Override

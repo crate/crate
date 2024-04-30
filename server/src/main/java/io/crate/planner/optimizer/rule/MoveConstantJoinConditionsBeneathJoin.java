@@ -102,7 +102,8 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
                 AndOperator.join(nonConstantConditions),
                 joinPlan.isFiltered(),
                 joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                joinPlan.isLookUpJoinRuleApplied()
+                joinPlan.isLookUpJoinRuleApplied(),
+                joinPlan.lookUpJoin()
             );
         }
         return joinPlan.withMoveConstantJoinConditionRuleApplied(true);
