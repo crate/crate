@@ -88,6 +88,16 @@ public class RelationNameTest extends ESTestCase {
     }
 
     @Test
+    public void test__all_cannot_be_used() throws Exception {
+        // conflicts with `_all` wildcard, causing havoc in some operations ("drop table _all" would delete _all_ tables)
+
+        RelationName relationName = new RelationName("doc", "_all");
+        assertThatThrownBy(() -> relationName.ensureValidForRelationCreation())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"_all\" cannot be used as schema or table name");
+    }
+
+    @Test
     public void testFqnFromIndexNameUnsupported3Parts() throws Exception {
         assertThatThrownBy(() -> RelationName.fqnFromIndexName("my_schema.t1.foo"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
