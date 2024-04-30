@@ -46,10 +46,8 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.Version;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -59,7 +57,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.metadata.PartitionName;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -373,33 +370,6 @@ public class SysShardsTest extends IntegTestCase {
         String nodeName = response.rows()[0][1].toString();
         assertEquals("node_s0", nodeName);
         assertEquals("node_s0", fullNode.get("name"));
-    }
-
-    @Test
-    public void testOrphanedPartitionExpression() throws Exception {
-        try {
-            execute("create table c.orphan_test (id int primary key, p string primary key) " +
-                    "partitioned by (p) " +
-                    "clustered into 1 shards " +
-                    "with (number_of_replicas = 0)"
-            );
-            execute("insert into c.orphan_test (id, p) values (1, 'foo')");
-            ensureYellow();
-
-            SQLResponse response = execute(
-                "select orphan_partition from sys.shards where table_name = 'orphan_test'");
-            assertThat(TestingHelpers.printedTable(response.rows()), is("false\n"));
-
-            client().admin().indices()
-                .deleteTemplate(new DeleteIndexTemplateRequest(PartitionName.templateName("c", "orphan_test")))
-                .get(1, TimeUnit.SECONDS);
-
-            response = execute(
-                "select orphan_partition from sys.shards where table_name = 'orphan_test'");
-            assertThat(TestingHelpers.printedTable(response.rows()), is("true\n"));
-        } finally {
-            execute("drop table c.orphan_test");
-        }
     }
 
     @Test

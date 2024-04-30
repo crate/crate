@@ -138,17 +138,7 @@ public class DocTableInfoFactory {
         if (indexTemplateMetadata == null) {
             IndexMetadata index = metadata.index(relation.indexNameOrAlias());
             if (index == null) {
-                if (concreteIndices.length > 0) {
-                    index = metadata.index(concreteIndices[0]);
-                    LOGGER.info(
-                        "Found indices={} for relation={} without index template. Orphaned partition?",
-                        concreteIndices,
-                        relation
-                    );
-                }
-                if (index == null) {
-                    throw new RelationUnknown(relation);
-                }
+                throw new RelationUnknown(relation);
             }
             tableParameters = index.getSettings();
             versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
