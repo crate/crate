@@ -422,17 +422,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (!isPartitioned) {
             IndexMetadata index = metadata.index(ident.indexNameOrAlias());
             if (index == null) {
-                if (concreteIndices.length > 0) {
-                    index = metadata.index(concreteIndices[0]);
-                    LOGGER.info(
-                        "Found indices={} for relation={} without index template. Orphaned partition?",
-                        concreteIndices,
-                        ident
-                    );
-                }
-                if (index == null) {
-                    throw new RelationUnknown(ident);
-                }
+                throw new RelationUnknown(ident);
             }
             if (concreteIndices.length == 0) {
                 throw new RelationUnknown(ident);
