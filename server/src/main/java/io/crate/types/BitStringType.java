@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -105,9 +104,8 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         @Override
         public ValueIndexer<BitString> valueIndexer(RelationName table,
                                                     Reference ref,
-                                                    Function<String, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
-            return new BitStringIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new BitStringIndexer(ref);
         }
     };
 

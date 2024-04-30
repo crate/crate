@@ -24,7 +24,6 @@ package io.crate.types;
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -98,9 +97,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                 Version.CURRENT)) {
             T value = dataGenerator.get();
 
-            MapperService mapperService = indexEnv.mapperService();
-
-            Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), mapperService::getLuceneFieldType, "x");
+            Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
             ParsedDocument doc = indexer.index(item(value));
             IndexWriter writer = indexEnv.writer();
             writer.addDocument(doc.doc().getFields());
@@ -163,7 +160,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
             MapperService mapperService = indexEnv.mapperService();
 
-            Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), mapperService::getLuceneFieldType, "x");
+            Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
             ParsedDocument doc = indexer.index(item(value));
 
             // going through the document mapper must create the same fields

@@ -40,10 +40,8 @@ import java.util.function.Function;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -54,6 +52,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
+import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
 
@@ -73,6 +72,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -128,12 +128,7 @@ public class Indexer {
     private final BytesStreamOutput stream;
     private final Function<ColumnIdent, Reference> getRef;
 
-    /**
-     * Function to resolve a field type based on the columns {@link Reference#storageIdent()}.
-     */
-    private final Function<String, FieldType> getFieldType;
-
-    record IndexColumn(Reference reference, FieldType fieldType, List<Input<?>> inputs) {
+    record IndexColumn(Reference reference, List<Input<?>> inputs) {
     }
 
     static class RefResolver implements ReferenceResolver<CollectExpression<IndexItem, Object>> {
@@ -406,14 +401,13 @@ public class Indexer {
     }
 
     /**
-     * @param getFieldType  A function to resolve a {@link FieldType} by {@link Reference#storageIdent()}
+     *
      */
     @SuppressWarnings("unchecked")
     public Indexer(String indexName,
                    DocTableInfo table,
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
-                   Function<String, FieldType> getFieldType,
                    List<Reference> targetColumns,
                    Symbol[] returnValues) {
         this.columns = targetColumns;
@@ -421,7 +415,6 @@ public class Indexer {
         this.stream = new BytesStreamOutput();
         boolean writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
         this.getRef = table::getReference;
-        this.getFieldType = getFieldType;
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
@@ -447,13 +440,12 @@ public class Indexer {
                 }
                 // Empty arrays are not registered as known references, such they are stored in the source as unknown columns
                 var storageIdentPrefixForEmptyArrays = writeOids ? UNKNOWN_COLUMN_PREFIX : null;
-                valueIndexer = new DynamicIndexer(ref.ident(), position, getFieldType, getRef, storageIdentPrefixForEmptyArrays);
+                valueIndexer = new DynamicIndexer(ref.ident(), position, getRef, storageIdentPrefixForEmptyArrays);
                 position--;
             } else {
                 valueIndexer = ref.valueType().valueIndexer(
                     table.ident(),
                     ref,
-                    getFieldType,
                     getRef
                 );
             }
@@ -487,7 +479,6 @@ public class Indexer {
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
                 table.ident(),
                 ref,
-                getFieldType,
                 getRef
             );
             Synthetic synthetic = new Synthetic(ref, input, valueIndexer);
@@ -511,7 +502,6 @@ public class Indexer {
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
                 table.ident(),
                 ref,
-                getFieldType,
                 getRef
             );
             Synthetic synthetic = new Synthetic(ref, input, valueIndexer);
@@ -524,7 +514,6 @@ public class Indexer {
         this.indexColumns = new ArrayList<>(table.indexColumns().size());
         for (var ref : table.indexColumns()) {
             ArrayList<Input<?>> indexInputs = new ArrayList<>(ref.columns().size());
-            FieldType fieldType = getFieldType.apply(ref.storageIdent());
 
             for (var sourceRef : ref.columns()) {
                 Reference reference = table.getReference(sourceRef.column());
@@ -533,8 +522,8 @@ public class Indexer {
                 Input<?> input = ctxForRefs.add(sourceRef);
                 indexInputs.add(input);
             }
-            if (fieldType.indexOptions() != IndexOptions.NONE) {
-                indexColumns.add(new IndexColumn(ref, fieldType, indexInputs));
+            if (ref.indexType() != IndexType.NONE) {
+                indexColumns.add(new IndexColumn(ref, indexInputs));
             }
         }
         if (returnValues == null) {
@@ -588,7 +577,6 @@ public class Indexer {
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) parentRef.valueType().valueIndexer(
                 table.ident(),
                 parentRef,
-                getFieldType,
                 getRef
             );
             Synthetic synthetic = new Synthetic(parentRef, input, valueIndexer);
@@ -624,7 +612,6 @@ public class Indexer {
                     valueIndexers.set(idx, newRef.valueType().valueIndexer(
                             newRef.ident().tableIdent(),
                             newRef,
-                            getFieldType,
                             getRef
                     ));
                 }
@@ -817,11 +804,11 @@ public class Indexer {
                             if (val == null) {
                                 continue;
                             }
-                            Field field = new Field(fqn, val.toString(), indexColumn.fieldType);
+                            Field field = new Field(fqn, val.toString(), TextFieldMapper.Defaults.FIELD_TYPE);
                             doc.add(field);
                         }
                     } else {
-                        Field field = new Field(fqn, value.toString(), indexColumn.fieldType);
+                        Field field = new Field(fqn, value.toString(), TextFieldMapper.Defaults.FIELD_TYPE);
                         doc.add(field);
                     }
                 }

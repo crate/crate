@@ -37,7 +37,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -72,9 +71,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
-                                                              Function<String, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {
-            return new ObjectIndexer(table, ref, getFieldType, getRef);
+            return new ObjectIndexer(table, ref, getRef);
         }
     };
 

@@ -25,12 +25,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -38,16 +34,15 @@ import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 
 public class StringIndexer implements ValueIndexer<String> {
 
     private final Reference ref;
-    private final FieldType fieldType;
 
-    public StringIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public StringIndexer(Reference ref) {
         this.ref = ref;
-        this.fieldType = fieldType == null ? KeywordFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 
     @Override
@@ -59,10 +54,10 @@ public class StringIndexer implements ValueIndexer<String> {
         xcontentBuilder.value(value);
         String name = ref.storageIdent();
         BytesRef binaryValue = new BytesRef(value);
-        if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-            Field field = new Field(name, binaryValue, fieldType);
+        if (ref.indexType() != IndexType.NONE) {
+            Field field = new Field(name, binaryValue, KeywordFieldMapper.Defaults.FIELD_TYPE);
             addField.accept(field);
-            if (ref.hasDocValues() == false && fieldType.omitNorms()) {
+            if (ref.hasDocValues() == false) {
                 addField.accept(new Field(
                     FieldNamesFieldMapper.NAME,
                     name,

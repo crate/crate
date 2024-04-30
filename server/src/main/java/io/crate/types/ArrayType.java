@@ -34,7 +34,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -98,10 +97,9 @@ public class ArrayType<T> extends DataType<List<T>> {
 
                 @Override
                 public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
-                                                    Function<String, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
                     return new ArrayIndexer<>(
-                        innerStorage.valueIndexer(table, ref, getFieldType, getRef));
+                        innerStorage.valueIndexer(table, ref, getRef));
                 }
             };
         }

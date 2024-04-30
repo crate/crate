@@ -26,10 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -133,8 +131,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));
-        var mapperService = indexShard.mapperService();
-        Function<String, FieldType> getFieldType = mapperService::getLuceneFieldType;
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
         // Refresh insertColumns References from table, they could be stale (dynamic references already added)
@@ -161,7 +157,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             tableInfo,
             txnCtx,
             nodeCtx,
-            getFieldType,
             insertColumns,
             request.returnValues()
         );
@@ -173,7 +168,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 tableInfo,
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 updateToInsert.columns(),
                 request.returnValues()
             );
@@ -205,7 +199,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 tableInfo,
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 request.returnValues(),
                 List.of() // Non deterministic synthetics is not needed on primary
             );
@@ -307,8 +300,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         boolean traceEnabled = logger.isTraceEnabled();
         RelationName relationName = RelationName.fromIndexName(indexName);
         DocTableInfo tableInfo = schemas.getTableInfo(relationName);
-        var mapperService = indexShard.mapperService();
-        Function<String, FieldType> getFieldType = mapperService::getLuceneFieldType;
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
         // Refresh insertColumns References from cluster state because ObjectType
@@ -334,7 +325,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 tableInfo,
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 null,
                 targetColumns.subList(1, targetColumns.size()) // expanded refs (non-deterministic synthetics)
             );
@@ -345,7 +335,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 tableInfo,
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 targetColumns,
                 null
             );

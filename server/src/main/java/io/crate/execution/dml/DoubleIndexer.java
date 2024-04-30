@@ -28,15 +28,11 @@ import java.util.function.Consumer;
 import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
@@ -47,12 +43,10 @@ import io.crate.metadata.Reference;
 public class DoubleIndexer implements ValueIndexer<Number> {
 
     private final Reference ref;
-    private final FieldType fieldType;
     private final String name;
 
-    public DoubleIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public DoubleIndexer(Reference ref) {
         this.ref = ref;
-        this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
         this.name = ref.storageIdent();
     }
 
@@ -65,7 +59,7 @@ public class DoubleIndexer implements ValueIndexer<Number> {
         xcontentBuilder.value(value);
         double doubleValue = value.doubleValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            addField.accept(new DoubleField(name, doubleValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
+            addField.accept(new DoubleField(name, doubleValue, Field.Store.NO));
         } else {
             if (ref.indexType() != IndexType.NONE) {
                 addField.accept(new DoublePoint(name, doubleValue));
@@ -79,9 +73,6 @@ public class DoubleIndexer implements ValueIndexer<Number> {
                         FieldNamesFieldMapper.NAME,
                         name,
                         FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-            }
-            if (fieldType.stored()) {
-                addField.accept(new StoredField(name, doubleValue));
             }
         }
     }

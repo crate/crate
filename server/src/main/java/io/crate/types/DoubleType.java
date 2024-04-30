@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.apache.lucene.document.DoublePoint;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.NumericUtils;
@@ -115,9 +114,8 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         @Override
         public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new DoubleIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new DoubleIndexer(ref);
         }
     };
 

@@ -26,14 +26,11 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -45,13 +42,11 @@ import io.crate.metadata.Reference;
 public class GeoPointIndexer implements ValueIndexer<Point> {
 
     private final Reference ref;
-    private final FieldType fieldType;
     private final String name;
 
-    public GeoPointIndexer(Reference ref, FieldType fieldType) {
+    public GeoPointIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType == null ? GeoShapeFieldMapper.FIELD_TYPE : fieldType;
     }
 
     @Override
@@ -67,10 +62,6 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
             .endArray();
         if (ref.indexType() != IndexType.NONE) {
             addField.accept(new LatLonPoint(name, point.getLat(), point.getLon()));
-        }
-        if (fieldType.stored()) {
-            String value = point.getLat() + ", " + point.getLon();
-            addField.accept(new StoredField(name, value));
         }
         if (ref.hasDocValues()) {
             addField.accept(new LatLonDocValuesField(name, point.getLat(), point.getLon()));

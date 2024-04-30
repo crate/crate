@@ -26,7 +26,6 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.search.Query;
@@ -118,9 +117,8 @@ public class IpType extends DataType<String> implements Streamer<String> {
         @Override
         public ValueIndexer<String> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new IpIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new IpIndexer(ref);
         }
     };
 

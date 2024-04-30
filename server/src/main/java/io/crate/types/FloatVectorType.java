@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.VectorSimilarityFunction;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -87,9 +86,8 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
         @Override
         public ValueIndexer<? super float[]> valueIndexer(RelationName table,
                                                           Reference ref,
-                                                          Function<String, FieldType> getFieldType,
                                                           Function<ColumnIdent, Reference> getRef) {
-            return new FloatVectorIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new FloatVectorIndexer(ref);
         }
     };
 

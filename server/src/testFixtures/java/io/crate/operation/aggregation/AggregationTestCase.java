@@ -381,7 +381,6 @@ public abstract class AggregationTestCase extends ESTestCase {
             table,
             CoordinatorTxnCtx.systemTransactionContext(),
             nodeCtx,
-            column -> shard.mapperService().getLuceneFieldType(column),
             targetColumns,
             null
         );
