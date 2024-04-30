@@ -76,7 +76,7 @@ public record AnalyzedCreateTable(
         for (AnalyzedCheck check : checks.values()) {
             consumer.accept(check.check());
         }
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
         partitionedBy.ifPresent(x -> x.columns().forEach(consumer));
         clusteredBy.ifPresent(x -> {
             x.column().ifPresent(consumer);

@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ScalarsAndRefsToTrue;
@@ -58,7 +59,8 @@ public class WhereClauseAnalyzer {
     public static WhereClause resolvePartitions(WhereClause where,
                                                 AbstractTableRelation<?> tableRelation,
                                                 CoordinatorTxnCtx coordinatorTxnCtx,
-                                                NodeContext nodeCtx) {
+                                                NodeContext nodeCtx,
+                                                Metadata metadata) {
         if (!where.hasQuery() || !(tableRelation instanceof DocTableRelation) || where.query().equals(Literal.BOOLEAN_TRUE)) {
             return where;
         }
@@ -66,10 +68,10 @@ public class WhereClauseAnalyzer {
         if (!table.isPartitioned()) {
             return where;
         }
-        if (table.partitions().isEmpty()) {
+        if (table.getPartitions(metadata).isEmpty()) {
             return WhereClause.NO_MATCH;
         }
-        PartitionResult partitionResult = resolvePartitions(where.queryOrFallback(), table, coordinatorTxnCtx, nodeCtx);
+        PartitionResult partitionResult = resolvePartitions(where.queryOrFallback(), table, coordinatorTxnCtx, nodeCtx, metadata);
         if (!where.partitions().isEmpty()
             && !partitionResult.partitions.isEmpty()
             && !partitionResult.partitions.equals(where.partitions())) {
@@ -102,9 +104,10 @@ public class WhereClauseAnalyzer {
     public static PartitionResult resolvePartitions(Symbol query,
                                                     DocTableInfo tableInfo,
                                                     CoordinatorTxnCtx coordinatorTxnCtx,
-                                                    NodeContext nodeCtx) {
+                                                    NodeContext nodeCtx,
+                                                    Metadata metadata) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
-        assert !tableInfo.partitions().isEmpty() : "table must have at least one partition";
+        assert !tableInfo.getPartitions(metadata).isEmpty() : "table must have at least one partition";
 
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
             tableInfo.partitionedByColumns());
@@ -114,7 +117,7 @@ public class WhereClauseAnalyzer {
         Symbol normalized;
         Map<Symbol, List<Literal<?>>> queryPartitionMap = new HashMap<>();
 
-        for (PartitionName partitionName : tableInfo.partitions()) {
+        for (PartitionName partitionName : tableInfo.getPartitions(metadata)) {
             for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
                 partitionExpression.setNextRow(partitionName);
             }
@@ -146,7 +149,7 @@ public class WhereClauseAnalyzer {
             return partitionResult == null
                 // if partitionResult is null we can't narrow the partitions and keep the full query + use all partitions
                 // the query will then be evaluated correctly within each partition to see whether it matches or not
-                ? new PartitionResult(query, Lists.map(tableInfo.partitions(), PartitionName::asIndexName))
+                ? new PartitionResult(query, Lists.map(tableInfo.getPartitions(metadata), PartitionName::asIndexName))
                 : partitionResult;
         } else {
             return new PartitionResult(Literal.BOOLEAN_FALSE, Collections.emptyList());

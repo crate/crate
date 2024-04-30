@@ -895,7 +895,7 @@ public final class Settings implements ToXContentFragment {
         }
 
         public Builder put(GenericProperties<Object> properties) {
-            for (Entry<String,Object> entry : properties.properties().entrySet()) {
+            for (Entry<String,Object> entry : properties) {
                 String settingName = entry.getKey();
                 putStringOrList(settingName, entry.getValue());
             }

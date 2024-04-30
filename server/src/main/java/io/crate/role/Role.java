@@ -25,6 +25,7 @@ import static io.crate.role.Securable.CLUSTER;
 import static io.crate.role.Securable.SCHEMA;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,12 +37,15 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.types.DataTypes;
 
 public class Role implements Writeable, ToXContent {
 
@@ -55,6 +59,25 @@ public class Role implements Writeable, ToXContent {
     public record Properties(boolean login,
                              @Nullable SecureHash password,
                              @Nullable JwtProperties jwtProperties) implements Writeable, ToXContent {
+
+        public static final String PASSWORD_KEY = "password";
+        public static final String JWT_KEY = "jwt";
+
+        public static Properties of(boolean login, GenericProperties<Object> properties) throws GeneralSecurityException {
+            properties.ensureContainsOnly(Set.of(PASSWORD_KEY, JWT_KEY));
+            SecureHash hash = null;
+            String pw = DataTypes.STRING.implicitCast(properties.get(PASSWORD_KEY, null));
+            if (pw != null) {
+                try (SecureString secureString = new SecureString(pw.toCharArray())) {
+                    if (secureString.isEmpty()) {
+                        throw new IllegalArgumentException("Password must not be empty");
+                    }
+                    hash = SecureHash.of(secureString);
+                }
+            }
+            JwtProperties jwtProperties = JwtProperties.fromMap(properties.getUnsafe(JWT_KEY));
+            return new Properties(login, hash, jwtProperties);
+        }
 
         public static Properties fromXContent(XContentParser parser) throws IOException {
             boolean login = false;

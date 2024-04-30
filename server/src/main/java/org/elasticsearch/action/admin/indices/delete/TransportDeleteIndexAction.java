@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -45,17 +44,14 @@ import org.elasticsearch.transport.TransportService;
 public class TransportDeleteIndexAction extends TransportMasterNodeAction<DeleteIndexRequest, AcknowledgedResponse> {
 
     private final MetadataDeleteIndexService deleteIndexService;
-    private final DestructiveOperations destructiveOperations;
 
     @Inject
     public TransportDeleteIndexAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      MetadataDeleteIndexService deleteIndexService,
-                                      DestructiveOperations destructiveOperations) {
+                                      MetadataDeleteIndexService deleteIndexService) {
         super(DeleteIndexAction.NAME, transportService, clusterService, threadPool, DeleteIndexRequest::new);
         this.deleteIndexService = deleteIndexService;
-        this.destructiveOperations = destructiveOperations;
     }
 
     @Override
@@ -66,12 +62,6 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
     @Override
     protected AcknowledgedResponse read(StreamInput in) throws IOException {
         return new AcknowledgedResponse(in);
-    }
-
-    @Override
-    protected void doExecute(DeleteIndexRequest request, ActionListener<AcknowledgedResponse> listener) {
-        destructiveOperations.failDestructive(request.indices());
-        super.doExecute(request, listener);
     }
 
     @Override

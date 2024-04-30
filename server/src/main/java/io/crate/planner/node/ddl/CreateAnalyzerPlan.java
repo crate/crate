@@ -37,10 +37,10 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsActi
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -205,7 +205,7 @@ public class CreateAnalyzerPlan implements Plan {
             // transform name as tokenizer is not publicly available
             name = String.format(Locale.ENGLISH, "%s_%s", analyzerIdent, name);
             Settings.Builder builder = Settings.builder();
-            for (Map.Entry<String, Symbol> property : properties.properties().entrySet()) {
+            for (Map.Entry<String, Symbol> property : properties) {
                 String settingName = TOKENIZER.buildSettingChildName(name, property.getKey());
                 builder.putStringOrList(settingName, eval.apply(property.getValue()));
             }
@@ -254,7 +254,7 @@ public class CreateAnalyzerPlan implements Plan {
                     builder.put(TOKEN_FILTER.buildSettingChildName(fullName, "type"), name);
                 }
 
-                for (Map.Entry<String, Symbol> property : properties.properties().entrySet()) {
+                for (Map.Entry<String, Symbol> property : properties) {
                     String settingName = TOKEN_FILTER.buildSettingChildName(fullName, property.getKey());
                     builder.putStringOrList(settingName, eval.apply(property.getValue()));
                 }
@@ -294,7 +294,7 @@ public class CreateAnalyzerPlan implements Plan {
                 // transform name as char-filter is not publicly available
                 name = String.format(Locale.ENGLISH, "%s_%s", analyzerIdent, name);
                 Settings.Builder builder = Settings.builder();
-                for (Map.Entry<String, Symbol> charFilterProperty : properties.properties().entrySet()) {
+                for (Map.Entry<String, Symbol> charFilterProperty : properties) {
                     String settingName = CHAR_FILTER.buildSettingChildName(name, charFilterProperty.getKey());
                     builder.putStringOrList(settingName, eval.apply(charFilterProperty.getValue()));
                 }
@@ -308,7 +308,7 @@ public class CreateAnalyzerPlan implements Plan {
                                                           String analyzerIdent,
                                                           Function<? super Symbol, Object> eval) {
         Settings.Builder builder = Settings.builder();
-        for (Map.Entry<String, Symbol> property : properties.properties().entrySet()) {
+        for (Map.Entry<String, Symbol> property : properties) {
             String settingName = ANALYZER.buildSettingChildName(analyzerIdent, property.getKey());
             builder.putStringOrList(settingName, eval.apply(property.getValue()));
         }

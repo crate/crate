@@ -25,8 +25,10 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
+
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -40,31 +42,29 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
 
     private static final int PARTITIONS_THRESHOLD = 1000;
     private final Schemas schemas;
+    private final ClusterService clusterService;
 
     @Inject
-    public NumberOfPartitionsSysCheck(Schemas schemas) {
+    public NumberOfPartitionsSysCheck(Schemas schemas, ClusterService clusterService) {
         super(ID, DESCRIPTION, Severity.MEDIUM);
         this.schemas = schemas;
+        this.clusterService = clusterService;
     }
 
     @Override
     public boolean isValid() {
+        Metadata metadata = clusterService.state().metadata();
         for (SchemaInfo schemaInfo : schemas) {
-            if (schemaInfo instanceof DocSchemaInfo && !validateDocTablesPartitioning(schemaInfo)) {
-                return false;
+            if (!(schemaInfo instanceof DocSchemaInfo docSchemaInfo)) {
+                continue;
+            }
+            for (var table : docSchemaInfo.getTables()) {
+                DocTableInfo docTableInfo = (DocTableInfo) table;
+                if (docTableInfo.isPartitioned() && docTableInfo.getPartitions(metadata).size() > PARTITIONS_THRESHOLD) {
+                    return false;
+                }
             }
         }
         return true;
     }
-
-    boolean validateDocTablesPartitioning(SchemaInfo schemaInfo) {
-        for (TableInfo tableInfo : schemaInfo.getTables()) {
-            DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
-            if (docTableInfo.isPartitioned() && docTableInfo.partitions().size() > PARTITIONS_THRESHOLD) {
-                return false;
-            }
-        }
-        return true;
-    }
-
 }

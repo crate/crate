@@ -32,6 +32,7 @@ import java.util.Objects;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.UnicodeUtil;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -50,7 +51,7 @@ public class PartitionName {
      * Assignments usually represent a TABLE PARTITION (pcol1 = value [, ...]) clause.
      *
      * This doesn't check if the partition exists, and doesn't consider the partition column types.
-     * Use {@link #ofAssignments(DocTableInfo, List)} instead of possible.
+     * Use {@link #ofAssignments(DocTableInfo, List, Metadata)} instead of possible.
      */
     public static PartitionName ofAssignments(RelationName relation, List<Assignment<Object>> assignments) {
         String[] values = new String[assignments.size()];
@@ -68,9 +69,9 @@ public class PartitionName {
      * @throws PartitionUnknownException if the partition is missing from the table
      * @throws IllegalArgumentException if the table is not partitioned, or if the properties don't match the partitionBy clause
      */
-    public static PartitionName ofAssignments(DocTableInfo table, List<Assignment<Object>> assignments) {
+    public static PartitionName ofAssignments(DocTableInfo table, List<Assignment<Object>> assignments, Metadata metadata) {
         PartitionName partitionName = ofAssignmentsUnsafe(table, assignments);
-        if (table.partitions().contains(partitionName) == false) {
+        if (table.getPartitions(metadata).contains(partitionName) == false) {
             throw new PartitionUnknownException(partitionName);
         }
         return partitionName;

@@ -89,7 +89,9 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             e.getPlannerContext().transactionContext(),
             e.getPlannerContext().nodeContext(),
             Row.EMPTY,
-            SubQueryResults.EMPTY);
+            SubQueryResults.EMPTY,
+            e.getPlannerContext().clusterState().metadata()
+        );
         //noinspection unchecked
         return (T) CopyToPlan.planCopyToExecution(
             mock(DependencyCarrier.class),

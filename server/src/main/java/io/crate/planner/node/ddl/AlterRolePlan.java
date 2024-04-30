@@ -21,26 +21,26 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.planner.node.ddl.CreateRolePlan.JWT_PROPERTY_KEY;
-import static io.crate.planner.node.ddl.CreateRolePlan.PASSWORD_PROPERTY_KEY;
-import static io.crate.planner.node.ddl.CreateRolePlan.parse;
 
-import java.util.Map;
+import java.util.function.Function;
 
 import io.crate.analyze.AnalyzedAlterRole;
-import io.crate.common.collections.Maps;
-import io.crate.role.JwtProperties;
-import io.crate.role.RoleManager;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.role.JwtProperties;
+import io.crate.role.Role;
+import io.crate.role.Role.Properties;
+import io.crate.role.RoleManager;
 import io.crate.role.SecureHash;
-import io.crate.role.UserActions;
+import io.crate.sql.tree.GenericProperties;
 
 public class AlterRolePlan implements Plan {
 
@@ -62,17 +62,19 @@ public class AlterRolePlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        Map<String, Object> properties = parse(
-            alterRole.properties(),
+        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
+            x,
             params,
             subQueryResults
         );
-        SecureHash newPassword = UserActions.generateSecureHash(properties);
-        JwtProperties newJwtProperties = JwtProperties.fromMap(Maps.get(properties, JWT_PROPERTY_KEY));
-        boolean resetPassword = properties.containsKey(PASSWORD_PROPERTY_KEY) && newPassword == null;
-        boolean resetJwtProperties = properties.containsKey(JWT_PROPERTY_KEY) && newJwtProperties == null;
+        GenericProperties<Object> evaluatedProperties = alterRole.properties().map(eval);
+        Properties roleProperties = Role.Properties.of(false, evaluatedProperties);
+        SecureHash newPassword = roleProperties.password();
+        boolean resetPassword = evaluatedProperties.contains(Properties.PASSWORD_KEY) && newPassword == null;
+        JwtProperties newJwtProperties = roleProperties.jwtProperties();
+        boolean resetJwtProperties = evaluatedProperties.contains(Properties.JWT_KEY) && newJwtProperties == null;
 
         roleManager.alterRole(alterRole.roleName(), newPassword, newJwtProperties, resetPassword, resetJwtProperties)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));

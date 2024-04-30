@@ -130,7 +130,7 @@ public final class QueryTester implements AutoCloseable {
 
         public Builder indexValue(String column, Object value) throws IOException {
             Indexer indexer = new Indexer(
-                table.concreteIndices()[0],
+                table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
@@ -145,7 +145,7 @@ public final class QueryTester implements AutoCloseable {
 
         public Builder indexValues(List<String> columns, Object ... values) throws IOException {
             Indexer indexer = new Indexer(
-                table.concreteIndices()[0],
+                table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
