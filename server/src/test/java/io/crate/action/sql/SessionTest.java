@@ -90,7 +90,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             assertThat(session.getParamType("S_1", 1)).isEqualTo(DataTypes.INTEGER);
 
             DescribeResult describe = session.describe('S', "S_1");
-            assertThat(describe.getParameters()).isEqualTo(new DataType[] { DataTypes.INTEGER, DataTypes.INTEGER });
+            assertThat(describe.getParameters()).isEqualTo(new DataType[]{DataTypes.INTEGER, DataTypes.INTEGER});
 
             assertThat(session.getParamType("S_1", 0)).isEqualTo(DataTypes.INTEGER);
             assertThat(session.getParamType("S_1", 1)).isEqualTo(DataTypes.INTEGER);
@@ -279,6 +279,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .overridePlanner(planner)
             .build();
         sqlExecutor.jobsLogsEnabled = true;
+        Session session = sqlExecutor.createSession();
+        when(planner.currentClusterState()).thenReturn(clusterService.state());
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(
                 new Plan() {
@@ -293,6 +295,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                                               RowConsumer consumer,
                                               Row params,
                                               SubQueryResults subQueryResults) throws Exception {
+                        // Make sure `quickExec()` below completes, and its job is moved to jobs_log
+                        consumer.completionFuture().complete(null);
                     }
 
                     @Override
@@ -300,11 +304,12 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                                                                      PlannerContext plannerContext,
                                                                      List<Row> bulkParams,
                                                                      SubQueryResults subQueryResults) {
+                        // Do another execution to overwrite `mostRecentJobID`
+                        session.quickExec("SELECT 1", new BaseResultReceiver(), null);
                         return List.of(completedFuture(1L), completedFuture(1L));
                     }
                 }
             );
-        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "INSERT INTO t1 (x) VALUES (1)", List.of());
         session.bind("P_1", "S_1", List.of(), null);
@@ -314,7 +319,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.execute("P_1", 0, new BaseResultReceiver());
 
         session.sync().get(5, TimeUnit.SECONDS);
-        assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount()).isEqualTo(1L);
+        assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount()).isEqualTo(2L);
+        assertThat(sqlExecutor.jobsLogs.activeJobs().iterator().hasNext()).isFalse();
     }
 
     @Test
@@ -357,7 +363,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
             @Override
             public ScheduledFuture<?> answer(InvocationOnMock invocation) throws Throwable {
-                Runnable runnable = (Runnable) invocation.getArgument(0);
+                Runnable runnable = invocation.getArgument(0);
                 runnable.run();
                 return null;
             }
