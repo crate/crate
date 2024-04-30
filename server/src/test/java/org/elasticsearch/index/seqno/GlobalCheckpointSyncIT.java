@@ -19,14 +19,12 @@
 
 package org.elasticsearch.index.seqno;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.function.BiConsumer;
@@ -34,14 +32,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
@@ -50,8 +45,10 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
 
 public class GlobalCheckpointSyncIT extends IntegTestCase {
 
@@ -63,6 +60,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                 .collect(Collectors.toList());
     }
 
+    @Test
     public void testGlobalCheckpointSyncWithAsyncDurability() throws Exception {
         cluster().ensureAtLeastNumDataNodes(2);
         execute(
@@ -75,23 +73,33 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
 
         assertBusy(() -> {
             execute("select seq_no_stats['global_checkpoint'], seq_no_stats['max_seq_no'] from sys.shards where table_name = 'test'");
-            assertThat(response.rowCount(), is(greaterThan(0L)));
+            assertThat(response.rowCount()).isGreaterThan(0L);
             for (var row : response.rows()) {
-                assertThat("global checkpoint and max seq# must be in sync", row[0], is(row[1]));
+                assertThat(row[0])
+                    .as("global checkpoint and max seq# must be in sync")
+                    .isEqualTo(row[1]);
             }
         });
     }
 
+    @Test
     public void testPostOperationGlobalCheckpointSync() throws Exception {
         // set the sync interval high so it does not execute during this test. This only allows the global checkpoint to catch up
         // on a post-operation background sync if translog durability is set to sync. Async durability relies on a scheduled global
         // checkpoint sync to allow the information about persisted local checkpoints to be transferred to the primary.
+        //
         runGlobalCheckpointSyncTest(
             TimeValue.timeValueHours(24),
-            (indexName, client) -> FutureUtils.get(client.admin().indices().updateSettings(new UpdateSettingsRequest(
-                Settings.builder().put(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey(), Translog.Durability.REQUEST).build(),
-                indexName
-            ))),
+            (indexName, client) -> {
+                RelationName relationName = RelationName.fromIndexName(indexName);
+                String stmt = String.format(
+                    Locale.ENGLISH,
+                    "alter table \"%s\".\"%s\" set (\"translog.durability\" = ?)",
+                    relationName.schema(),
+                    relationName.name()
+                );
+                execute(stmt, new Object[] { Translog.Durability.REQUEST.name() });
+            },
             (indexName, client) -> {}
         );
     }
@@ -207,11 +215,11 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
 
         assertBusy(() -> {
             execute("select seq_no_stats['global_checkpoint'], seq_no_stats['max_seq_no'] from " + "sys.shards where table_name='test' and primary=true");
-            assertThat(response.rowCount(), is(greaterThan(0L)));
+            assertThat(response.rowCount()).isGreaterThan(0L);
             for(var row : response.rows()) {
                 var globalCheckpoint = row[0];
                 var maxSeqNo = row[1];
-                assertThat(globalCheckpoint, is(maxSeqNo));
+                assertThat(globalCheckpoint).isEqualTo(maxSeqNo);
             }
         });
 
@@ -248,9 +256,9 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                 for (IndexService indexService : indicesService) {
                     for (IndexShard shard : indexService) {
                         final SeqNoStats seqNoStats = shard.seqNoStats();
-                        assertThat(seqNoStats.getLocalCheckpoint(), equalTo(seqNoStats.getMaxSeqNo()));
-                        assertThat(shard.getLastKnownGlobalCheckpoint(), equalTo(seqNoStats.getMaxSeqNo()));
-                        assertThat(shard.getLastSyncedGlobalCheckpoint(), equalTo(seqNoStats.getMaxSeqNo()));
+                        assertThat(seqNoStats.getLocalCheckpoint()).isEqualTo(seqNoStats.getMaxSeqNo());
+                        assertThat(shard.getLastKnownGlobalCheckpoint()).isEqualTo(seqNoStats.getMaxSeqNo());
+                        assertThat(shard.getLastSyncedGlobalCheckpoint()).isEqualTo(seqNoStats.getMaxSeqNo());
                     }
                 }
             }
@@ -278,8 +286,8 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
             for (IndexService indexService : indicesService) {
                 for (IndexShard shard : indexService) {
                     final SeqNoStats seqNoStats = shard.seqNoStats();
-                    assertThat(maxSeqNo, equalTo(seqNoStats.getMaxSeqNo()));
-                    assertThat(seqNoStats.getLocalCheckpoint(), equalTo(seqNoStats.getMaxSeqNo()));;
+                    assertThat(maxSeqNo).isEqualTo(seqNoStats.getMaxSeqNo());
+                    assertThat(seqNoStats.getLocalCheckpoint()).isEqualTo(seqNoStats.getMaxSeqNo());
                 }
             }
         }
