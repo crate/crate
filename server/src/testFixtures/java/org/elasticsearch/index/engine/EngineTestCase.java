@@ -97,13 +97,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
@@ -286,14 +284,14 @@ public abstract class EngineTestCase extends ESTestCase {
         try {
             if (engine != null && engine.isClosed.get() == false) {
                 engine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
-                assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, createMapperService("test"));
+                assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine);
                 assertNoInFlightDocuments(engine);
                 assertMaxSeqNoInCommitUserData(engine);
                 assertAtMostOneLuceneDocumentPerSequenceNumber(engine);
             }
             if (replicaEngine != null && replicaEngine.isClosed.get() == false) {
                 replicaEngine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
-                assertConsistentHistoryBetweenTranslogAndLuceneIndex(replicaEngine, createMapperService("test"));
+                assertConsistentHistoryBetweenTranslogAndLuceneIndex(replicaEngine);
                 assertNoInFlightDocuments(replicaEngine);
                 assertMaxSeqNoInCommitUserData(replicaEngine);
                 assertAtMostOneLuceneDocumentPerSequenceNumber(replicaEngine);
@@ -1157,10 +1155,10 @@ public abstract class EngineTestCase extends ESTestCase {
      * Reads all engine operations that have been processed by the engine from Lucene index.
      * The returned operations are sorted and de-duplicated, thus each sequence number will be have at most one operation.
      */
-    public static List<Translog.Operation> readAllOperationsInLucene(Engine engine, MapperService mapper) throws IOException {
+    public static List<Translog.Operation> readAllOperationsInLucene(Engine engine) throws IOException {
         final List<Translog.Operation> operations = new ArrayList<>();
         long maxSeqNo = Math.max(0, ((InternalEngine) engine).getLocalCheckpointTracker().getMaxSeqNo());
-        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapper, 0, maxSeqNo, false)) {
+        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", 0, maxSeqNo, false)) {
             Translog.Operation op;
             while ((op = snapshot.next()) != null) {
                 operations.add(op);
@@ -1172,7 +1170,7 @@ public abstract class EngineTestCase extends ESTestCase {
     /**
      * Asserts the provided engine has a consistent document history between translog and Lucene index.
      */
-    public static void assertConsistentHistoryBetweenTranslogAndLuceneIndex(Engine engine, MapperService mapper) throws IOException {
+    public static void assertConsistentHistoryBetweenTranslogAndLuceneIndex(Engine engine) throws IOException {
         if (engine.config().getIndexSettings().isSoftDeleteEnabled() == false || (engine instanceof InternalEngine) == false) {
             return;
         }
@@ -1187,7 +1185,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 translogOps.put(op.seqNo(), op);
             }
         }
-        final Map<Long, Translog.Operation> luceneOps = readAllOperationsInLucene(engine, mapper).stream()
+        final Map<Long, Translog.Operation> luceneOps = readAllOperationsInLucene(engine).stream()
             .collect(Collectors.toMap(Translog.Operation::seqNo, Function.identity()));
         final long globalCheckpoint = EngineTestCase.getTranslog(engine).getLastSyncedGlobalCheckpoint();
         final long retainedOps = engine.config().getIndexSettings().getSoftDeleteRetentionOperations();
@@ -1265,19 +1263,6 @@ public abstract class EngineTestCase extends ESTestCase {
                 }
             }
         }
-    }
-
-    public static MapperService createMapperService(String type) throws IOException {
-        IndexMetadata indexMetadata = IndexMetadata.builder("test")
-            .settings(Settings.builder()
-                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1).put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1))
-            .putMapping("{\"properties\": {}}")
-            .build();
-        MapperService mapperService = MapperTestUtils.newMapperService(
-            createTempDir(), Settings.EMPTY, "test");
-        mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
-        return mapperService;
     }
 
     /**

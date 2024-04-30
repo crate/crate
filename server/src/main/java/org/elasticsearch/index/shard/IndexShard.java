@@ -1869,7 +1869,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * Returns the estimated number of history operations whose seq# at least the provided seq# in this shard.
      */
     public int estimateNumberOfHistoryOperations(String reason, Engine.HistorySource source, long startingSeqNo) throws IOException {
-        return getEngine().estimateNumberOfHistoryOperations(reason, source, mapperService, startingSeqNo);
+        return getEngine().estimateNumberOfHistoryOperations(reason, source, startingSeqNo);
     }
 
     /**
@@ -1877,7 +1877,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * The returned snapshot can be retrieved from either Lucene index or translog files.
      */
     public Translog.Snapshot getHistoryOperations(String reason, Engine.HistorySource source, long startingSeqNo) throws IOException {
-        return getEngine().readHistoryOperations(reason, source, mapperService, startingSeqNo);
+        return getEngine().readHistoryOperations(reason, source, startingSeqNo);
     }
 
     /**
@@ -1885,7 +1885,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * This method should be called after acquiring the retention lock; See {@link #acquireHistoryRetentionLock(Engine.HistorySource)}
      */
     public boolean hasCompleteHistoryOperations(String reason, Engine.HistorySource source, long startingSeqNo) throws IOException {
-        return getEngine().hasCompleteOperationHistory(reason, source, mapperService, startingSeqNo);
+        return getEngine().hasCompleteOperationHistory(reason, source, startingSeqNo);
     }
 
     /**
@@ -1909,7 +1909,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      *                          This parameter should be only enabled when the entire requesting range is below the global checkpoint.
      */
     public Translog.Snapshot newChangesSnapshot(String source, long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException {
-        return getEngine().newChangesSnapshot(source, mapperService, fromSeqNo, toSeqNo, requiredFullRange);
+        return getEngine().newChangesSnapshot(source, fromSeqNo, toSeqNo, requiredFullRange);
     }
 
     public List<Segment> segments(boolean verbose) {
