@@ -46,6 +46,10 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could result in completed jobs to not be marked with an
+  ``ended`` timestamp and be moved to ``sys.jobs_log``, but stay "forever"
+  (until node restart) in :ref:`sys-jobs` table.
+
 - Fixed an issue that allowed creating tables named ``_all``, which is a
   reversed name that has special effects - like expanding to *all* table names.
   Because of these special semantics, statements like ``DROP TABLE _all`` would
