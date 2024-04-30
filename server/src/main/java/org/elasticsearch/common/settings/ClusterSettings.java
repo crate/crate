@@ -26,7 +26,6 @@ import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
-import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.bootstrap.BootstrapSettings;
@@ -235,7 +234,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SameShardAllocationDecider.CLUSTER_ROUTING_ALLOCATION_SAME_HOST_SETTING,
         InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING,
         InternalSnapshotsInfoService.INTERNAL_SNAPSHOT_INFO_MAX_CONCURRENT_FETCHES_SETTING,
-        DestructiveOperations.REQUIRES_NAME_SETTING,
         NoMasterBlockService.NO_MASTER_BLOCK_SETTING,
         GatewayService.EXPECTED_DATA_NODES_SETTING,
         GatewayService.EXPECTED_MASTER_NODES_SETTING,

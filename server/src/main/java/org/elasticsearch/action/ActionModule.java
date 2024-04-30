@@ -83,7 +83,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesActi
 import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.NamedRegistry;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -148,11 +147,9 @@ import io.crate.replication.logical.action.UpdateSubscriptionAction;
 public class ActionModule extends AbstractModule {
 
     private final Map<String, ActionHandler<?, ?>> actions;
-    private final DestructiveOperations destructiveOperations;
 
     public ActionModule(Settings settings, ClusterSettings clusterSettings, List<ActionPlugin> actionPlugins) {
         actions = setupActions(actionPlugins);
-        destructiveOperations = new DestructiveOperations(settings, clusterSettings);
     }
 
     public Map<String, ActionHandler<?, ?>> getActions() {
@@ -257,7 +254,6 @@ public class ActionModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(DestructiveOperations.class).toInstance(destructiveOperations);
 
         // register ActionType -> transportAction Map used by NodeClient
         @SuppressWarnings("rawtypes")
