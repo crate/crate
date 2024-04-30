@@ -439,13 +439,11 @@ public class Session implements AutoCloseable {
     }
 
     @Nullable
-    @SuppressWarnings("unchecked")
     private RelationInfo resolveTableFromSelect(AnalyzedStatement stmt) {
         // See description of {@link DescribeResult#relation()}
         // It is only populated if it is a SELECT on a single table
-        if (stmt instanceof QueriedSelectRelation) {
-            var relation = ((QueriedSelectRelation) stmt);
-            List<AnalyzedRelation> from = relation.from();
+        if (stmt instanceof QueriedSelectRelation qsr) {
+            List<AnalyzedRelation> from = qsr.from();
             if (from.size() == 1 && from.get(0) instanceof AbstractTableRelation) {
                 return ((AbstractTableRelation<? extends TableInfo>) from.get(0)).tableInfo();
             }
@@ -478,8 +476,8 @@ public class Session implements AutoCloseable {
             cursors.close(cursor -> cursor.hold() == Hold.WITHOUT);
             resultReceiver.allFinished();
             return resultReceiver.completionFuture();
-        } else if (analyzedStmt instanceof AnalyzedDeallocate) {
-            String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
+        } else if (analyzedStmt instanceof AnalyzedDeallocate ad) {
+            String stmtToDeallocate = ad.preparedStmtName();
             if (stmtToDeallocate != null) {
                 close((byte) 'S', stmtToDeallocate);
             } else {
@@ -489,8 +487,7 @@ public class Session implements AutoCloseable {
                 preparedStatements.clear();
             }
             resultReceiver.allFinished();
-        } else if (analyzedStmt instanceof AnalyzedDiscard) {
-            AnalyzedDiscard discard = (AnalyzedDiscard) analyzedStmt;
+        } else if (analyzedStmt instanceof AnalyzedDiscard discard) {
             // We don't cache plans, don't have sequences or temporary tables
             // See https://www.postgresql.org/docs/current/sql-discard.html
             if (discard.target() == Target.ALL) {
@@ -637,7 +634,7 @@ public class Session implements AutoCloseable {
     }
 
     private CompletableFuture<?> bulkExec(List<DeferredExecution> toExec) {
-        assert toExec.size() >= 1 : "Must have at least 1 deferred execution for bulk exec";
+        assert !toExec.isEmpty() : "Must have at least 1 deferred execution for bulk exec";
         mostRecentJobID = UUIDs.dirtyUUID();
         final UUID jobId = mostRecentJobID;
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
