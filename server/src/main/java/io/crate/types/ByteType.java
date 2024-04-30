@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -50,9 +49,8 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         @Override
         public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new IntIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new IntIndexer(ref);
         }
     };
 

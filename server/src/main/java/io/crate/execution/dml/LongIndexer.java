@@ -26,16 +26,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -45,11 +41,9 @@ public class LongIndexer implements ValueIndexer<Long> {
 
     private final Reference ref;
     private final String name;
-    private final FieldType fieldType;
 
-    public LongIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public LongIndexer(Reference ref) {
         this.ref = ref;
-        this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
         this.name = ref.storageIdent();
     }
 
@@ -60,9 +54,9 @@ public class LongIndexer implements ValueIndexer<Long> {
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
-        long longValue = value.longValue();
+        long longValue = value;
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            addField.accept(new LongField(name, longValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
+            addField.accept(new LongField(name, longValue, Field.Store.NO));
         } else {
             if (ref.indexType() != IndexType.NONE) {
                 addField.accept(new LongPoint(name, longValue));
@@ -74,9 +68,6 @@ public class LongIndexer implements ValueIndexer<Long> {
                         FieldNamesFieldMapper.NAME,
                         name,
                         FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-            }
-            if (fieldType.stored()) {
-                addField.accept(new StoredField(name, longValue));
             }
         }
     }

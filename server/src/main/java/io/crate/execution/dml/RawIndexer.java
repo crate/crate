@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.jetbrains.annotations.NotNull;
@@ -51,7 +50,6 @@ public class RawIndexer {
     private final DocTableInfo table;
     private final TransactionContext txnCtx;
     private final NodeContext nodeCtx;
-    private final Function<String, FieldType> getFieldType;
     private final Symbol[] returnValues;
 
     private final Map<Set<String>, Indexer> indexers = new HashMap<>();
@@ -65,14 +63,12 @@ public class RawIndexer {
                       DocTableInfo table,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
-                      Function<String, FieldType> getFieldType,
                       Symbol[] returnValues,
                       @NotNull List<Reference> nonDeterministicSynthetics) {
         this.indexName = indexName;
         this.table = table;
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
-        this.getFieldType = getFieldType;
         this.returnValues = returnValues;
         this.nonDeterministicSynthetics = nonDeterministicSynthetics;
     }
@@ -104,7 +100,6 @@ public class RawIndexer {
                 table,
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 targetRefs,
                 returnValues
             );

@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -103,7 +102,6 @@ public class IndexerBenchmark {
             table,
             new CoordinatorTxnCtx(session.sessionSettings()),
             injector.getInstance(NodeContext.class),
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
                 table.getReference(new ColumnIdent("x")),
                 table.getReference(new ColumnIdent("y"))

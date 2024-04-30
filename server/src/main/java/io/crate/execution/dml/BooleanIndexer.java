@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -43,12 +42,10 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
 
     private final Reference ref;
     private final String name;
-    private final FieldType fieldType;
 
-    public BooleanIndexer(Reference ref, FieldType fieldType) {
+    public BooleanIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType == null ? BooleanFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 
     @Override
@@ -58,8 +55,8 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.value(value);
-        if (ref.indexType() != IndexType.NONE || fieldType.stored()) {
-            addField.accept(new Field(name, value ? "T" : "F", fieldType));
+        if (ref.indexType() != IndexType.NONE) {
+            addField.accept(new Field(name, value ? "T" : "F", BooleanFieldMapper.Defaults.FIELD_TYPE));
         }
         if (ref.hasDocValues()) {
             addField.accept(new SortedNumericDocValuesField(name, value ? 1 : 0));

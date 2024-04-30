@@ -37,7 +37,6 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -130,13 +129,11 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public Builder indexValue(String column, Object value) throws IOException {
-            MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
                 table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                mapperService::getLuceneFieldType,
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
                 null
             );
@@ -147,13 +144,11 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public Builder indexValues(List<String> columns, Object ... values) throws IOException {
-            MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
                 table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                mapperService::getLuceneFieldType,
                 Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
                 null
             );

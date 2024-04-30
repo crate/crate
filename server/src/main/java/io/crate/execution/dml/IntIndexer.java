@@ -25,18 +25,13 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -46,12 +41,10 @@ public class IntIndexer implements ValueIndexer<Number> {
 
     private final String name;
     private final Reference ref;
-    private final FieldType fieldType;
 
-    public IntIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public IntIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
     }
 
     @Override
@@ -63,7 +56,7 @@ public class IntIndexer implements ValueIndexer<Number> {
         xContentBuilder.value(value);
         int intValue = value.intValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            addField.accept(new IntField(name, intValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
+            addField.accept(new IntField(name, intValue, Field.Store.NO));
         } else {
             if (ref.indexType() != IndexType.NONE) {
                 addField.accept(new IntPoint(name, intValue));
@@ -75,9 +68,6 @@ public class IntIndexer implements ValueIndexer<Number> {
                         FieldNamesFieldMapper.NAME,
                         name,
                         FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-            }
-            if (fieldType.stored()) {
-                addField.accept(new StoredField(name, intValue));
             }
         }
     }

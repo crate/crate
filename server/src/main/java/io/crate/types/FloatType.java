@@ -27,7 +27,6 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.Query;
@@ -115,9 +114,8 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         @Override
         public ValueIndexer<Float> valueIndexer(RelationName table,
                                                 Reference ref,
-                                                Function<String, FieldType> getFieldType,
                                                 Function<ColumnIdent, Reference> getRef) {
-            return new FloatIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new FloatIndexer(ref);
         }
     };
 

@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
@@ -46,15 +45,11 @@ import io.crate.sql.tree.BitString;
 public class BitStringIndexer implements ValueIndexer<BitString> {
 
     private final Reference ref;
-    private final FieldType fieldType;
     private final String name;
 
-    public BitStringIndexer(Reference ref, FieldType fieldType) {
+    public BitStringIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType == null
-            ? BitStringFieldMapper.Defaults.FIELD_TYPE
-            : fieldType;
     }
 
     @Override
@@ -69,7 +64,7 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
 
         BytesRef binaryValue = new BytesRef(bytes);
         if (ref.indexType() != IndexType.NONE) {
-            addField.accept(new Field(name, binaryValue, fieldType));
+            addField.accept(new Field(name, binaryValue, BitStringFieldMapper.Defaults.FIELD_TYPE));
         }
 
         if (ref.hasDocValues()) {
