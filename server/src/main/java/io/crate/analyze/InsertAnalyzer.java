@@ -313,7 +313,12 @@ class InsertAnalyzer {
             fieldProvider = new NameFieldProvider(targetTable);
         }
         var expressionAnalyzer = new ExpressionAnalyzer(txnCtx, nodeCtx, paramTypeHints, fieldProvider, null);
-        var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, targetTable);
+        var normalizer = new EvaluatingNormalizer(
+            nodeCtx,
+            RowGranularity.CLUSTER,
+            null,
+            targetTable,
+            f -> f.signature().isDeterministic());
         Map<Reference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
         for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
             Reference targetCol = (Reference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
