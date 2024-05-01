@@ -77,6 +77,9 @@ Fixes
   statements to return invalid results if the partitions of the table changed
   after preparing the statements.
 
+- Fixed an issue that caused prepared statements to cache values of
+  non-deterministic functions and use the same value for each execution.
+
 - Improved ingestion performance for partitioned tables where no primary keys
   are defined by using an append only optimized ingestion strategy. The
   performance improvement increases with the size of each shard.
