@@ -112,7 +112,11 @@ public class WhereClauseAnalyzer {
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
             tableInfo.partitionedByColumns());
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            nodeCtx, RowGranularity.PARTITION, partitionReferenceResolver, null);
+            nodeCtx,
+            RowGranularity.PARTITION,
+            partitionReferenceResolver,
+            null,
+            f -> f.signature().isDeterministic());
 
         Symbol normalized;
         Map<Symbol, List<Literal<?>>> queryPartitionMap = new HashMap<>();

@@ -80,3 +80,6 @@ Fixes
 - Fixed an issue that caused queries on partitioned tables via prepared
   statements to return invalid results if the partitions of the table changed
   after preparing the statements.
+
+- Fixed an issue that caused prepared statements to cache values of
+  non-deterministic functions and use the same value for each execution.
