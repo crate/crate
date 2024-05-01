@@ -22,23 +22,20 @@
 package io.crate.expression.reference.doc.lucene;
 
 import static io.crate.metadata.DocReferences.toSourceLookup;
-import static io.crate.types.ArrayType.unnest;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.lucene.search.Scorable;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.common.collections.Maps;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.symbol.SymbolType;
-import io.crate.lucene.FieldTypeLookup;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -53,27 +50,21 @@ import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
-import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
-import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
-    private static final Set<Integer> NO_FIELD_TYPES_IDS = Set.of(ObjectType.ID, GeoShapeType.ID);
-    private final FieldTypeLookup fieldTypeLookup;
     private final List<Reference> partitionColumns;
     private final String indexName;
 
     public LuceneReferenceResolver(final String indexName,
-                                   final FieldTypeLookup fieldTypeLookup,
                                    final List<Reference> partitionColumns) {
         this.indexName = indexName;
-        this.fieldTypeLookup = fieldTypeLookup;
         this.partitionColumns = partitionColumns;
     }
 
@@ -127,7 +118,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                     );
                 }
                 return maybeInjectPartitionValue(
-                    typeSpecializedExpression(fieldTypeLookup, ref),
+                    typeSpecializedExpression(ref),
                     indexName,
                     partitionColumns,
                     column
@@ -155,55 +146,32 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         return result;
     }
 
-    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup,
-                                                                          final Reference ref) {
+    private static LuceneCollectorExpression<?> typeSpecializedExpression(final Reference ref) {
         final String fqn = ref.storageIdent();
-        final MappedFieldType fieldType = fieldTypeLookup.get(fqn);
-        if (fieldType == null) {
-            return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)
-                ? DocCollectorExpression.create(toSourceLookup(ref))
-                : new LiteralValueExpression(null);
+        // non-ignored dynamic references should have been resolved to void references by this point
+        if (ref instanceof VoidReference) {
+            return new LiteralValueExpression(null);
         }
-        if (!fieldType.hasDocValues()) {
+        assert ref instanceof DynamicReference == false || ref.columnPolicy() == ColumnPolicy.IGNORED;
+        if (ref.hasDocValues() == false) {
             return DocCollectorExpression.create(toSourceLookup(ref));
         }
-        switch (ref.valueType().id()) {
-            case BitStringType.ID:
-                return new BitStringColumnReference(fqn, ((BitStringType) ref.valueType()).length());
-            case ByteType.ID:
-                return new ByteColumnReference(fqn);
-            case ShortType.ID:
-                return new ShortColumnReference(fqn);
-            case IpType.ID:
-                return new IpColumnReference(fqn);
-            case StringType.ID:
-            case CharacterType.ID:
-                return new BytesRefColumnReference(fqn);
-            case DoubleType.ID:
-                return new DoubleColumnReference(fqn);
-            case BooleanType.ID:
-                return new BooleanColumnReference(fqn);
-            case FloatType.ID:
-                return new FloatColumnReference(fqn);
-            case LongType.ID:
-            case TimestampType.ID_WITH_TZ:
-            case TimestampType.ID_WITHOUT_TZ:
-                return new LongColumnReference(fqn);
-            case IntegerType.ID:
-                return new IntegerColumnReference(fqn);
-            case GeoPointType.ID:
-                return new GeoPointColumnReference(fqn);
-            case ArrayType.ID:
-                return DocCollectorExpression.create(toSourceLookup(ref));
-            case FloatVectorType.ID:
-                return new FloatVectorColumnReference(fqn);
-            default:
-                throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
-        }
-    }
-
-    private static boolean isIgnoredDynamicReference(final Reference ref) {
-        return ref.symbolType() == SymbolType.DYNAMIC_REFERENCE && ref.columnPolicy() == ColumnPolicy.IGNORED;
+        return switch (ref.valueType().id()) {
+            case BitStringType.ID -> new BitStringColumnReference(fqn, ((BitStringType) ref.valueType()).length());
+            case ByteType.ID -> new ByteColumnReference(fqn);
+            case ShortType.ID -> new ShortColumnReference(fqn);
+            case IpType.ID -> new IpColumnReference(fqn);
+            case StringType.ID, CharacterType.ID -> new BytesRefColumnReference(fqn);
+            case DoubleType.ID -> new DoubleColumnReference(fqn);
+            case BooleanType.ID -> new BooleanColumnReference(fqn);
+            case FloatType.ID -> new FloatColumnReference(fqn);
+            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> new LongColumnReference(fqn);
+            case IntegerType.ID -> new IntegerColumnReference(fqn);
+            case GeoPointType.ID -> new GeoPointColumnReference(fqn);
+            case ArrayType.ID -> DocCollectorExpression.create(toSourceLookup(ref));
+            case FloatVectorType.ID -> new FloatVectorColumnReference(fqn);
+            default -> throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
+        };
     }
 
     static class LiteralValueExpression extends LuceneCollectorExpression<Object> {

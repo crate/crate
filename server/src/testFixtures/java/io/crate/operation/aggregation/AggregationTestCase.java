@@ -208,10 +208,8 @@ public abstract class AggregationTestCase extends ESTestCase {
         }
         List<Reference> targetColumns = toReference(actualArgumentTypes);
         var shard = newStartedPrimaryShard(targetColumns, threadPool);
-        var mapperService = shard.mapperService();
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
-            mapperService::fieldType,
             List.of()
         );
 

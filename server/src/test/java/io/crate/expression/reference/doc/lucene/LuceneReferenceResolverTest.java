@@ -25,12 +25,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.elasticsearch.index.mapper.KeywordFieldMapper.KeywordFieldType;
 import org.junit.Test;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -46,11 +46,9 @@ import io.crate.types.DataTypes;
 
 public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTest {
 
-    // just return any fieldType to get passt the null check
     private static final RelationName RELATION_NAME = new RelationName("s", "t");
     private static final LuceneReferenceResolver LUCENE_REFERENCE_RESOLVER = new LuceneReferenceResolver(
         RELATION_NAME.indexNameOrAlias(),
-        i -> new KeywordFieldType("dummy", true, false),
         List.of()
     );
 
@@ -91,6 +89,17 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_void_references_are_resolved_as_null_literals() {
+        Reference voidRef = new VoidReference(
+            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), 0);
+
+        LuceneCollectorExpression<?> exp = LUCENE_REFERENCE_RESOLVER.getImplementation(voidRef);
+        assertThat(exp).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
+        LuceneReferenceResolver.LiteralValueExpression typeExp = (LuceneReferenceResolver.LiteralValueExpression) exp;
+        assertThat(typeExp.value()).isNull();
+    }
+
+    @Test
     public void test_can_lookup_generated_partition_column_if_casted() throws Exception {
         // See https://github.com/crate/crate/issues/14307
         SQLExecutor e = SQLExecutor.of(clusterService)
@@ -106,7 +115,6 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("2023"));
         LuceneReferenceResolver refResolver = new LuceneReferenceResolver(
             partitionName.asIndexName(),
-            i -> new KeywordFieldType("dummy", true, false),
             table.partitionedByColumns()
         );
         Reference year = table.getReference(new ColumnIdent("year"));
