@@ -74,7 +74,8 @@ class CopyAnalyzer {
             nodeCtx,
             RowGranularity.CLUSTER,
             null,
-            new TableRelation(tableInfo));
+            new TableRelation(tableInfo),
+            f -> f.signature().isDeterministic());
 
         Table<Symbol> table = node.table().map(t -> exprAnalyzerWithFieldsAsString.convert(t, exprCtx));
         GenericProperties<Symbol> properties = node.properties().map(t -> exprAnalyzerWithoutFields.convert(t,
@@ -118,7 +119,8 @@ class CopyAnalyzer {
             nodeCtx,
             RowGranularity.CLUSTER,
             null,
-            tableRelation);
+            tableRelation,
+            f -> f.signature().isDeterministic());
 
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         var expressionAnalyzer = new ExpressionAnalyzer(

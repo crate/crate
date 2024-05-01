@@ -107,7 +107,12 @@ public final class UpdateAnalyzer {
             throw new UnsupportedOperationException("UPDATE is only supported on base-tables");
         }
         AbstractTableRelation<?> table = (AbstractTableRelation<?>) relation;
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, table);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            nodeCtx,
+            RowGranularity.CLUSTER,
+            null,
+            table,
+            f -> f.signature().isDeterministic());
         SubqueryAnalyzer subqueryAnalyzer =
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnCtx));
 
