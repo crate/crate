@@ -74,7 +74,6 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -240,11 +239,8 @@ public final class ReservoirSampler {
         DocTableInfo docTable,
         List<Reference> columns
     ) {
-        var mapperService = indexService.mapperService();
-        FieldTypeLookup fieldTypeLookup = mapperService::fieldType;
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
             indexService.index().getName(),
-            fieldTypeLookup,
             docTable.partitionedByColumns()
         );
         List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(

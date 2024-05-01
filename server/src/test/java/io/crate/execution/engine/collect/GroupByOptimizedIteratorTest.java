@@ -243,7 +243,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             new InputFactory(nodeCtx),
             new DocInputFactory(
                 nodeCtx,
-                new LuceneReferenceResolver(shard.shardId().getIndexName(), fieldTypeLookup, List.of())
+                new LuceneReferenceResolver(shard.shardId().getIndexName(), List.of())
             ),
             collectPhase,
             collectTask

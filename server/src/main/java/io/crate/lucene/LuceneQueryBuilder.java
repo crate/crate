@@ -97,7 +97,6 @@ public class LuceneQueryBuilder {
                            QueryCache queryCache) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
             indexName,
-            mapperService::fieldType,
             table.partitionedByColumns()
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
@@ -149,12 +148,10 @@ public class LuceneQueryBuilder {
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
             this.queryShardContext = queryShardContext;
-            FieldTypeLookup typeLookup = mapperService::fieldType;
             this.docInputFactory = new DocInputFactory(
                 nodeCtx,
                 new LuceneReferenceResolver(
                     indexName,
-                    typeLookup,
                     partitionColumns
                 )
             );

@@ -117,7 +117,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         DocTableInfo table = schemas.getTableInfo(relationName);
         this.referenceResolver = new LuceneReferenceResolver(
             indexShard.shardId().getIndexName(),
-            fieldTypeLookup,
             table.partitionedByColumns()
         );
         this.docInputFactory = new DocInputFactory(nodeCtx, referenceResolver);
