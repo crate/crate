@@ -38,13 +38,19 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.expression.scalar.CurrentDateFunction;
 import io.crate.expression.scalar.SubstrFunction;
+import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.Reference;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -508,5 +514,32 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("insert into users (id, id) values (1, 1)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("column \"id\" specified more than once");
+    }
+
+    @Test
+    public void test_non_deterministic_function_is_not_normalized() {
+        AnalyzedInsertStatement analyzedInsertStatement =
+            e.analyze("insert into users(id) values(now()) on conflict (id) do update set date = curdate()");
+        TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) analyzedInsertStatement.subQueryRelation();
+        assertThat(tableFunctionRelation.function())
+            .isFunction(
+                ValuesFunction.NAME,
+                isFunction(
+                    ArrayFunction.NAME,
+                    isFunction(
+                        ImplicitCastFunction.NAME,
+                        isFunction(NowFunction.NAME),
+                        isLiteral("bigint")
+                    )
+                )
+            );
+        assertThat(analyzedInsertStatement.onDuplicateKeyAssignments().values())
+            .satisfiesExactly(
+                isFunction(
+                    ImplicitCastFunction.NAME,
+                    isFunction(CurrentDateFunction.NAME),
+                    isLiteral("timestamp with time zone")
+                )
+            );
     }
 }
