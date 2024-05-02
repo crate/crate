@@ -25,6 +25,8 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -45,6 +47,9 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.expression.scalar.ConcatFunction;
+import io.crate.expression.scalar.CurrentDateFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -407,5 +412,29 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> analyze("copy tbl from '/*' with (wait_for_completion = false) return summary"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
+    }
+
+    @Test
+    public void test_non_deterministic_function_is_not_normalized() {
+        AnalyzedCopyFrom analyzedCopyFrom = e.analyze("copy users from '/tmp/t_' || curdate()");
+        assertThat(analyzedCopyFrom.uri()).isFunction(
+            ConcatFunction.NAME,
+            isLiteral("/tmp/t_"),
+            isFunction(
+                ImplicitCastFunction.NAME,
+                isFunction(CurrentDateFunction.NAME),
+                isLiteral("text")
+            )
+        );
+        AnalyzedCopyTo analyzedCopyTo = e.analyze("copy users to directory '/tmp/' || curdate()");
+        assertThat(analyzedCopyTo.uri()).isFunction(
+            ConcatFunction.NAME,
+            isLiteral("/tmp/"),
+            isFunction(
+                ImplicitCastFunction.NAME,
+                isFunction(CurrentDateFunction.NAME),
+                isLiteral("text")
+            )
+        );
     }
 }

@@ -58,7 +58,10 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.LtOperator;
 import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.scalar.CurrentDateFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Literal;
@@ -704,5 +707,29 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("update t set a[1] = 1, a = [0,0,0]"))
             .hasMessage("Target expression repeated: a")
             .isExactlyInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void test_non_deterministic_function_is_not_normalized() {
+        AnalyzedUpdateStatement analyzedUpdateStatement =
+            e.analyze("update users set date = curdate() where id < curdate()");
+        assertThat(analyzedUpdateStatement.query())
+            .isFunction(
+                LtOperator.NAME,
+                isReference("id"),
+                isFunction(
+                    ImplicitCastFunction.NAME,
+                    isFunction(CurrentDateFunction.NAME),
+                    isLiteral("bigint")
+                )
+            );
+        assertThat(analyzedUpdateStatement.assignmentByTargetCol().values())
+            .satisfiesExactly(
+                isFunction(
+                    ImplicitCastFunction.NAME,
+                    isFunction(CurrentDateFunction.NAME),
+                    isLiteral("timestamp with time zone")
+                )
+            );
     }
 }
