@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.codec.CodecService;
@@ -67,7 +66,7 @@ public class IndexingMemoryControllerIT extends IntegTestCase {
             IndexSettings indexSettings = new IndexSettings(config.getIndexSettings().getIndexMetadata(), settings);
             return new EngineConfig(config.getShardId(), config.getThreadPool(),
                                     indexSettings, config.getStore(), config.getMergePolicy(), config.getAnalyzer(),
-                                    new CodecService(null, LogManager.getLogger(IndexingMemoryControllerIT.class)),
+                                    new CodecService(),
                                     config.getEventListener(), config.getQueryCache(),
                                     config.getQueryCachingPolicy(), config.getTranslogConfig(), config.getFlushMergesAfter(),
                                     config.getExternalRefreshListener(), config.getInternalRefreshListener(),

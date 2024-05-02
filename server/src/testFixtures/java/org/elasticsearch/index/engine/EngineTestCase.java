@@ -170,7 +170,7 @@ public abstract class EngineTestCase extends ESTestCase {
     public void setUp() throws Exception {
         super.setUp();
         primaryTerm.set(randomLongBetween(1, Long.MAX_VALUE));
-        CodecService codecService = new CodecService(null, logger);
+        CodecService codecService = new CodecService();
         String name = Codec.getDefault().getName();
         if (Arrays.asList(codecService.availableCodecs()).contains(name)) {
             // some codecs are read only so we only take the ones that we have in the service and randomly
@@ -214,7 +214,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getStore(),
             config.getMergePolicy(),
             config.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),
@@ -238,7 +238,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getStore(),
             config.getMergePolicy(),
             analyzer,
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),
@@ -261,7 +261,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getStore(),
             mergePolicy,
             config.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),
@@ -698,7 +698,7 @@ public abstract class EngineTestCase extends ESTestCase {
             store,
             mergePolicy,
             iwc.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             eventListener,
             IndexSearcher.getDefaultQueryCache(),
             IndexSearcher.getDefaultQueryCachingPolicy(),
@@ -733,7 +733,7 @@ public abstract class EngineTestCase extends ESTestCase {
             store,
             config.getMergePolicy(),
             config.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),

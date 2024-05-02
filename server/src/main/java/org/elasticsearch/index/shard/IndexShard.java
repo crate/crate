@@ -263,7 +263,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert shardRouting.initializing();
         this.shardRouting = shardRouting;
         final Settings settings = indexSettings.getSettings();
-        this.codecService = new CodecService(mapperService, logger);
+        this.codecService = new CodecService();
         Objects.requireNonNull(store, "Store must be provided to the index shard");
         this.engineFactoryProviders = engineFactoryProviders;
         this.engineFactory = getEngineFactory();
