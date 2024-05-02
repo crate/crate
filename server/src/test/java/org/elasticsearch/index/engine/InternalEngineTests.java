@@ -2922,7 +2922,7 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testSettings() {
-        CodecService codecService = new CodecService(null, logger);
+        CodecService codecService = new CodecService();
         LiveIndexWriterConfig currentIndexWriterConfig = engine.getCurrentIndexWriterConfig();
 
         assertEquals(engine.config().getCodec().getName(), codecService.codec(codecName).getName());
@@ -3270,7 +3270,7 @@ public class InternalEngineTests extends EngineTestCase {
             store,
             newMergePolicy(),
             config.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             IndexSearcher.getDefaultQueryCache(),
             IndexSearcher.getDefaultQueryCachingPolicy(),
