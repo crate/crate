@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.7.1</version>
+    <version>5.7.2</version>
   </parent>
 
   <artifactId>crate-app</artifactId>
