@@ -58,29 +58,17 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              UnaryOperator<LogicalPlan> resolvePlan) {
-
-//        if (txnCtx.sessionSettings().hashJoinsEnabled() &&
-//            EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
-//            return new HashJoin(
-//                join.lhs(),
-//                join.rhs(),
-//                join.joinCondition(),
-//                join.lhsIsLookup(),
-//                join.rhsIsLookup()
-//            );
-//        } else {
-            return new NestedLoopJoin(
-                join.lhs(),
-                join.rhs(),
-                join.joinType(),
-                join.joinCondition(),
-                join.isFiltered(),
-                false,
-                false,
-                join.lhsIsLookup(),
-                join.rhsIsLookup()
-            );
-//        }
+        return new NestedLoopJoin(
+            join.lhs(),
+            join.rhs(),
+            join.joinType(),
+            join.joinCondition(),
+            join.isFiltered(),
+            false,
+            false,
+            join.lhsIsLookup(),
+            join.rhsIsLookup()
+        );
     }
 
 }
