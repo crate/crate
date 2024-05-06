@@ -27,8 +27,6 @@ import java.util.function.UnaryOperator;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.EquiJoinDetector;
-import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
@@ -61,16 +59,16 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                              NodeContext nodeCtx,
                              UnaryOperator<LogicalPlan> resolvePlan) {
 
-        if (txnCtx.sessionSettings().hashJoinsEnabled() &&
-            EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
-            return new HashJoin(
-                join.lhs(),
-                join.rhs(),
-                join.joinCondition(),
-                join.lhsIsLookup(),
-                join.rhsIsLookup()
-            );
-        } else {
+//        if (txnCtx.sessionSettings().hashJoinsEnabled() &&
+//            EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
+//            return new HashJoin(
+//                join.lhs(),
+//                join.rhs(),
+//                join.joinCondition(),
+//                join.lhsIsLookup(),
+//                join.rhsIsLookup()
+//            );
+//        } else {
             return new NestedLoopJoin(
                 join.lhs(),
                 join.rhs(),
@@ -82,7 +80,7 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                 join.lhsIsLookup(),
                 join.rhsIsLookup()
             );
-        }
+//        }
     }
 
 }
