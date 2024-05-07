@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.metadata.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,20 +27,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class NumberOfReplicasTest extends ESTestCase {
+public class NumberOfReplicasTest {
 
     @Test
     public void testFromEmptySettings() throws Exception {
-        String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.EMPTY);
+        String numberOfResplicas = NumberOfReplicas.getVirtualValue(Settings.EMPTY);
         assertThat(numberOfResplicas).isEqualTo("1");
     }
 
     @Test
     public void testNumber() throws Exception {
-        String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
+        String numberOfResplicas = NumberOfReplicas.getVirtualValue(Settings.builder()
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 4)
             .build());
         assertThat(numberOfResplicas).isEqualTo("4");
@@ -48,7 +47,7 @@ public class NumberOfReplicasTest extends ESTestCase {
 
     @Test
     public void testAutoExpandSettingsTakePrecedence() throws Exception {
-        String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
+        String numberOfResplicas = NumberOfReplicas.getVirtualValue(Settings.builder()
             .put(AutoExpandReplicas.SETTING_KEY, "0-all")
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
             .build());
@@ -58,7 +57,7 @@ public class NumberOfReplicasTest extends ESTestCase {
     @Test
     public void testInvalidAutoExpandSettings() throws Exception {
         assertThatThrownBy(() ->
-            NumberOfReplicas.fromSettings(Settings.builder()
+            NumberOfReplicas.getVirtualValue(Settings.builder()
                 .put(AutoExpandReplicas.SETTING_KEY, "abc")
                 .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
                 .build()))
@@ -66,3 +65,4 @@ public class NumberOfReplicasTest extends ESTestCase {
             .hasMessage("The \"number_of_replicas\" range \"abc\" isn't valid");
     }
 }
+

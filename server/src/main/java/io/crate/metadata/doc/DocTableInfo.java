@@ -65,7 +65,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.DropColumn;
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -97,6 +96,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.TableColumn;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
@@ -269,7 +269,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             throw new IllegalArgumentException("must specify numberOfShards for " + ident);
         }
         this.numberOfShards = maybeNumberOfShards;
-        this.numberOfReplicas = NumberOfReplicas.fromSettings(tableParameters);
+        this.numberOfReplicas = NumberOfReplicas.getVirtualValue(tableParameters);
         this.tableParameters = tableParameters;
         isPartitioned = !partitionedByColumns.isEmpty();
         this.partitionedBy = partitionedBy;

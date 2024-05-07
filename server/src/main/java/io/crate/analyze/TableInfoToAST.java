@@ -43,6 +43,7 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
@@ -302,7 +303,7 @@ public class TableInfoToAST {
         Map<String, Expression> properties = new HashMap<>();
         if (tableInfo instanceof DocTableInfo docTable) {
             Expression numReplicas = new StringLiteral(docTable.numberOfReplicas());
-            properties.put(TableParameters.stripIndexPrefix(TableParameters.NUMBER_OF_REPLICAS.getKey()), numReplicas);
+            properties.put(TableParameters.stripIndexPrefix(NumberOfReplicas.SETTING.getKey()), numReplicas);
             properties.put("column_policy", new StringLiteral(docTable.columnPolicy().lowerCaseName()));
         }
         Map<String, Object> tableParameters = TableParameters.tableParametersFromIndexMetadata(tableInfo.parameters());
