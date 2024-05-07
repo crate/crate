@@ -19,6 +19,8 @@
 
 package org.elasticsearch.common.settings;
 
+import static io.crate.analyze.TableParameters.stripIndexPrefix;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1267,10 +1269,12 @@ public class Setting<T> implements ToXContentObject {
     public static int parseInt(String s, int minValue, int maxValue, String key) {
         int value = Integer.parseInt(s);
         if (value < minValue) {
-            throw new IllegalArgumentException("Failed to parse value [" + s + "] for setting [" + key + "] must be >= " + minValue);
+            throw new IllegalArgumentException(
+                "Failed to parse value [" + s + "] for setting [" + stripIndexPrefix(key) + "] must be >= " + minValue);
         }
         if (value > maxValue) {
-            throw new IllegalArgumentException("Failed to parse value [" + s + "] for setting [" + key + "] must be <= " + maxValue);
+            throw new IllegalArgumentException(
+                "Failed to parse value [" + s + "] for setting [" + stripIndexPrefix(key) + "] must be <= " + maxValue);
         }
         return value;
     }
@@ -1278,7 +1282,8 @@ public class Setting<T> implements ToXContentObject {
     public static long parseLong(String s, long minValue, String key) {
         long value = Long.parseLong(s);
         if (value < minValue) {
-            throw new IllegalArgumentException("Failed to parse value [" + s + "] for setting [" + key + "] must be >= " + minValue);
+            throw new IllegalArgumentException(
+                "Failed to parse value [" + s + "] for setting [" + stripIndexPrefix(key) + "] must be >= " + minValue);
         }
         return value;
     }
@@ -1286,7 +1291,8 @@ public class Setting<T> implements ToXContentObject {
     public static TimeValue parseTimeValue(String s, TimeValue minValue, String key) {
         TimeValue timeValue = TimeValue.parseTimeValue(s, null, key);
         if (timeValue.millis() < minValue.millis()) {
-            throw new IllegalArgumentException("Failed to parse value [" + s + "] for setting [" + key + "] must be >= " + minValue);
+            throw new IllegalArgumentException(
+                "Failed to parse value [" + s + "] for setting [" + stripIndexPrefix(key) + "] must be >= " + minValue);
         }
         return timeValue;
     }

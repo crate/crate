@@ -21,8 +21,6 @@
 
 package io.crate.metadata.settings;
 
-import static io.crate.analyze.TableParameters.stripIndexPrefix;
-
 import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
@@ -55,7 +53,7 @@ public class NumberOfReplicasSetting extends Setting<Settings> {
 
         NumberOfReplicas numberOfReplicas;
         try {
-            Integer numReplicas = parseInt(val, 0, stripIndexPrefix(NAME));
+            Integer numReplicas = parseInt(val, 0, NAME);
             numberOfReplicas = new NumberOfReplicas(numReplicas);
         } catch (NumberFormatException e) {
             numberOfReplicas = new NumberOfReplicas(val);
