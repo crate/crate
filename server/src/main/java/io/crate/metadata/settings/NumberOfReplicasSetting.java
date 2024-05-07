@@ -39,8 +39,7 @@ public class NumberOfReplicasSetting extends Setting<Settings> {
 
     private static final Settings DEFAULT = Settings.builder()
         .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-        .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS,
-             IndexMetadata.INDEX_AUTO_EXPAND_REPLICAS_SETTING.getDefaultRaw(Settings.EMPTY))
+        .put(AutoExpandReplicas.SETTING_KEY, AutoExpandReplicas.SETTING.getDefaultRaw(Settings.EMPTY))
         .build();
 
     public NumberOfReplicasSetting() {

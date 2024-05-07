@@ -172,8 +172,6 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             },
             Property.IndexScope, Property.Final);
 
-    public static final String SETTING_AUTO_EXPAND_REPLICAS = "index.auto_expand_replicas";
-    public static final Setting<AutoExpandReplicas> INDEX_AUTO_EXPAND_REPLICAS_SETTING = AutoExpandReplicas.SETTING;
     public static final String SETTING_READ_ONLY = "index.blocks.read_only";
     public static final Setting<Boolean> INDEX_READ_ONLY_SETTING =
         Setting.boolSetting(SETTING_READ_ONLY, false, Property.Dynamic, Property.IndexScope);

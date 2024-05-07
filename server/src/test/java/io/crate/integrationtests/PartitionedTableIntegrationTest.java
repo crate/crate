@@ -64,6 +64,7 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -1308,7 +1309,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("0-all"));
 
         execute("alter table quotes set (number_of_replicas=0)");
         ensureYellow();
@@ -1317,7 +1318,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
-        assertThat(templateSettings.getAsBoolean(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, true), is(false));
+        assertThat(templateSettings.getAsBoolean(AutoExpandReplicas.SETTING_KEY, true), is(false));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L,
@@ -1357,7 +1358,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         templatesResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
+        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("1-all"));
 
 
         execute("select number_of_replicas from information_schema.table_partitions");
@@ -1378,7 +1379,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("false"));
 
         execute("alter table quotes reset (number_of_replicas)");
         ensureYellow();
@@ -1387,7 +1388,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
+        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("0-1"));
 
     }
 
@@ -1413,7 +1414,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
+        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("0-1"));
         assertBusy(() -> {
             execute("select number_of_replicas from information_schema.table_partitions");
             assertThat(
@@ -1452,7 +1453,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("false"));
     }
 
     @Test

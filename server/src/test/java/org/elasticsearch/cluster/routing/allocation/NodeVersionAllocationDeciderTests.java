@@ -381,7 +381,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         final IndexMetadata.Builder indexMetadata = IndexMetadata.builder("test")
             .settings(
                 settings(Version.CURRENT)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")
             )
             .numberOfShards(numberOfShards)
             .numberOfReplicas(randomIntBetween(0, 3));

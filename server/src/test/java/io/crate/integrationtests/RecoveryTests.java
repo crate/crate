@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -172,7 +173,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             // SETTING_AUTO_EXPAND_REPLICAS is enabled by default
             // but for this test it needs to be disabled so we can have 0 replicas
-            .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
+            .put(AutoExpandReplicas.SETTING_KEY, "false")
             .build();
 
         blobAdminClient.createBlobTable("test", indexSettings).get();

@@ -23,6 +23,7 @@ package io.crate.replication.logical;
 
 import java.util.Set;
 
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -106,7 +107,7 @@ public class LogicalReplicationSettings {
      */
     public static final Set<Setting<?>> NON_REPLICATED_SETTINGS = Set.of(
         IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING,
-        IndexMetadata.INDEX_AUTO_EXPAND_REPLICAS_SETTING,
+        AutoExpandReplicas.SETTING,
         IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING,
         IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING,
         IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING,
