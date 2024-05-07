@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collector;
 
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.AsyncFlatMapBatchIterator;
 import io.crate.data.AsyncFlatMapper;
 import io.crate.data.BatchIterator;
@@ -75,7 +76,7 @@ public final class CorrelatedJoinProjector implements Projector {
         private final Collector<Row, ?, ?> collector;
 
         public BindAndExecuteSubQuery() {
-            this.collector = FirstColumnConsumers.getCollector(correlatedSubQuery.getResultType());
+            this.collector = FirstColumnConsumers.getCollector(correlatedSubQuery.getResultType(), TypedRowAccounting.NO_ACCOUNTING);
         }
 
         @Override

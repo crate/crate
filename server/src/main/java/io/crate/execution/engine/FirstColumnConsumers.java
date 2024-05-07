@@ -33,6 +33,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
 
 /**
@@ -42,9 +43,10 @@ public class FirstColumnConsumers {
 
     private static class AllValues implements Collector<Row, List<Object>, List<Object>> {
 
-        public static final AllValues INSTANCE = new AllValues();
+        private final RowAccounting<Row> rowAccounting;
 
-        private AllValues() {
+        private AllValues(RowAccounting<Row> rowAccounting) {
+            this.rowAccounting = rowAccounting;
         }
 
         @Override
@@ -55,6 +57,7 @@ public class FirstColumnConsumers {
         @Override
         public BiConsumer<List<Object>, Row> accumulator() {
             return (agg, row) -> {
+                rowAccounting.accountForAndMaybeBreak(row);
                 agg.add(row.get(0));
             };
         }
@@ -123,11 +126,10 @@ public class FirstColumnConsumers {
 
     }
 
-    public static Collector<Row, ?, ?> getCollector(ResultType resultType) {
-        return switch (resultType) {
-            case SINGLE_COLUMN_MULTIPLE_VALUES -> AllValues.INSTANCE;
-            case SINGLE_COLUMN_SINGLE_VALUE -> SingleValue.INSTANCE;
-            case SINGLE_COLUMN_EXISTS -> AllValues.INSTANCE;
-        };
+    public static Collector<Row, ?, ?> getCollector(ResultType resultType, RowAccounting<Row> rowAccounting) {
+        if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
+            return SingleValue.INSTANCE;
+        }
+        return new AllValues(rowAccounting);
     }
 }
