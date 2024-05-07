@@ -53,7 +53,6 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.TypedCellsAccounting;
 import io.crate.common.collections.Iterables;
@@ -136,6 +135,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
@@ -450,7 +450,7 @@ public class ProjectionToProjectorVisitor
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
 
         int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
+        int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableSettings, state.nodes());
 
         UpsertResultContext upsertResultContext;
         if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
@@ -514,7 +514,7 @@ public class ProjectionToProjectorVisitor
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
 
         int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
+        int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableSettings, state.nodes());
 
         final Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(

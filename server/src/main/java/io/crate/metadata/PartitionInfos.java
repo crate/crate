@@ -38,7 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.analyze.NumberOfReplicas;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -74,7 +74,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
             Map<String, Object> mappingMap = mappingMetadata.sourceAsMap();
             Map<String, Object> valuesMap = buildValuesMap(partitionName, mappingMap);
             Settings settings = indexMetadata.getSettings();
-            String numberOfReplicas = NumberOfReplicas.fromSettings(settings);
+            String numberOfReplicas = NumberOfReplicas.getVirtualValue(settings);
             return new PartitionInfo(
                     partitionName,
                     indexMetadata.getNumberOfShards(),

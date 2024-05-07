@@ -42,7 +42,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -65,6 +64,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.types.DataTypes;
 
 public class IndexWriterProjectorTest extends IntegTestCase {
@@ -95,7 +95,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             new NodeContext(cluster().getInstance(Functions.class), null),
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
-            NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize()),
+            NumberOfReplicas.effectiveNumReplicas(tableSettings, state.nodes()),
             cluster().client(),
             IndexNameResolver.forTable(bulkImportIdent),
             new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
