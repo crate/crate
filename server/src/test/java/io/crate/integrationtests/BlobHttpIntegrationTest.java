@@ -54,6 +54,7 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
@@ -93,7 +94,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2)
             // SETTING_AUTO_EXPAND_REPLICAS is enabled by default
             // but for this test it needs to be disabled so we can have 0 replicas
-            .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
+            .put(AutoExpandReplicas.SETTING_KEY, "false")
             .build();
         blobAdminClient.createBlobTable("test", indexSettings).get();
         blobAdminClient.createBlobTable("test_blobs2", indexSettings).get();

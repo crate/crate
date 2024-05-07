@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.util.function.Function;
 
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -100,7 +101,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.relationName().name()).isEqualTo("screenshots");
         assertThat(analysis.relationName().schema()).isEqualTo(BlobSchemaInfo.NAME);
         assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(10);
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
+        assertThat(settings.get(AutoExpandReplicas.SETTING_KEY)).isEqualTo("0-all");
     }
 
     @Test
@@ -127,7 +128,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(analysis.relationName().name()).isEqualTo("screenshots");
         assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(10);
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
+        assertThat(settings.get(AutoExpandReplicas.SETTING_KEY)).isEqualTo("0-all");
     }
 
     @Test
@@ -254,7 +255,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.relationName().name()).isEqualTo("screenshots");
         assertThat(analysis.relationName().schema()).isEqualTo(BlobSchemaInfo.NAME);
         assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(2);
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
+        assertThat(settings.get(AutoExpandReplicas.SETTING_KEY)).isEqualTo("0-all");
     }
 
     @Test

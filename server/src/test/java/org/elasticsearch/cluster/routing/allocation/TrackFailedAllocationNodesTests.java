@@ -30,6 +30,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ESAllocationTestCase;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -48,7 +49,7 @@ public class TrackFailedAllocationNodesTests extends ESAllocationTestCase {
             .put(IndexMetadata.builder("idx").settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
+                    .put(AutoExpandReplicas.SETTING_KEY, false)
                     .build()
                 ).numberOfShards(1).numberOfReplicas(1)
             )

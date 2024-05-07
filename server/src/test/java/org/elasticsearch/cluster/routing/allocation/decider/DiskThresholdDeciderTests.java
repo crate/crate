@@ -43,6 +43,7 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.ESAllocationTestCase;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -115,7 +116,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .build();
 
         final RoutingTable initialRoutingTable = RoutingTable.builder()
@@ -299,7 +300,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 2)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .build();
 
         RoutingTable initialRoutingTable = RoutingTable.builder()
@@ -509,7 +510,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
     public void testDiskThresholdWithShardSizes() {
         Settings diskSettings = Settings.builder()
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey(), true)
-            .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
+            .put(AutoExpandReplicas.SETTING_KEY, "false")
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING.getKey(), 0.7)
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING.getKey(), "71%").build();
 
@@ -543,7 +544,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")
                     .build()))
             .build();
 
@@ -612,7 +613,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .build();
 
         RoutingTable routingTable = RoutingTable.builder()
@@ -704,12 +705,12 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .put(IndexMetadata.builder("foo").settings(
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .build();
 
         RoutingTable initialRoutingTable = RoutingTable.builder()

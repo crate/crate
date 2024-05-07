@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.ExistingShardsAllocator;
@@ -61,7 +62,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING,
         IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING,
         IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING,
-        IndexMetadata.INDEX_AUTO_EXPAND_REPLICAS_SETTING,
+        AutoExpandReplicas.SETTING,
         IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING,
         IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING,
         IndexMetadata.INDEX_ROUTING_PARTITION_SIZE_SETTING,
