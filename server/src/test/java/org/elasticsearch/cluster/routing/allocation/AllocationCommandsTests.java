@@ -45,6 +45,7 @@ import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ESAllocationTestCase;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -94,7 +95,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             .put(IndexMetadata.builder("test").settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
+                    .put(AutoExpandReplicas.SETTING_KEY, false)
                     .build()
                 )
                 .numberOfShards(1)
@@ -674,7 +675,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             .put(IndexMetadata.builder(index1).settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
+                    .put(AutoExpandReplicas.SETTING_KEY, false)
                     .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                     .build()
                 ).numberOfShards(1).numberOfReplicas(1)
@@ -683,7 +684,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             .put(IndexMetadata.builder(index2).settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
+                    .put(AutoExpandReplicas.SETTING_KEY, false)
                     .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                     .build()
                 ).numberOfShards(1).numberOfReplicas(1)
@@ -692,7 +693,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             .put(IndexMetadata.builder(index3).settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, false)
+                    .put(AutoExpandReplicas.SETTING_KEY, false)
                     .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                     .build()
                 ).numberOfShards(1).numberOfReplicas(1)

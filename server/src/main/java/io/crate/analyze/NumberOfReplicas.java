@@ -21,25 +21,23 @@
 
 package io.crate.analyze;
 
-import io.crate.common.Booleans;
+import java.util.Objects;
+import java.util.regex.Pattern;
+
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Objects;
-import java.util.regex.Pattern;
+import io.crate.common.Booleans;
 
 public class NumberOfReplicas {
-
-    public static final String NUMBER_OF_REPLICAS = IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-    public static final String AUTO_EXPAND_REPLICAS = IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 
     private static final Pattern EXPAND_REPLICA_PATTERN = Pattern.compile("\\d+\\-(all|\\d+)");
     private final String esSettingKey;
     private final String esSettingsValue;
 
     public NumberOfReplicas(Integer numReplicas) {
-        this.esSettingKey = NUMBER_OF_REPLICAS;
+        this.esSettingKey = IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
         this.esSettingsValue = numReplicas.toString();
     }
 
@@ -47,7 +45,7 @@ public class NumberOfReplicas {
         assert numReplicas != null : "numReplicas must not be null";
         validateExpandReplicaSetting(numReplicas);
 
-        this.esSettingKey = AUTO_EXPAND_REPLICAS;
+        this.esSettingKey = AutoExpandReplicas.SETTING_KEY;
         this.esSettingsValue = numReplicas;
     }
 
@@ -67,18 +65,18 @@ public class NumberOfReplicas {
 
     public static String fromSettings(Settings settings) {
         String numberOfReplicas;
-        String autoExpandReplicas = settings.get(AUTO_EXPAND_REPLICAS);
+        String autoExpandReplicas = settings.get(AutoExpandReplicas.SETTING_KEY);
         if (autoExpandReplicas != null && !Booleans.isFalse(autoExpandReplicas)) {
             validateExpandReplicaSetting(autoExpandReplicas);
             numberOfReplicas = autoExpandReplicas;
         } else {
-            numberOfReplicas = Objects.requireNonNullElse(settings.get(NUMBER_OF_REPLICAS), "1");
+            numberOfReplicas = Objects.requireNonNullElse(settings.get(IndexMetadata.SETTING_NUMBER_OF_REPLICAS), "1");
         }
         return numberOfReplicas;
     }
 
     public static int fromSettings(Settings settings, int dataNodeCount) {
-        AutoExpandReplicas autoExpandReplicas = IndexMetadata.INDEX_AUTO_EXPAND_REPLICAS_SETTING.get(settings);
+        AutoExpandReplicas autoExpandReplicas = AutoExpandReplicas.SETTING.get(settings);
         if (autoExpandReplicas.isEnabled()) {
             final int min = autoExpandReplicas.getMinReplicas();
             final int max = autoExpandReplicas.getMaxReplicas(dataNodeCount);

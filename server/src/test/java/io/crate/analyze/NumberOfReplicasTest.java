@@ -21,9 +21,11 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -39,7 +41,7 @@ public class NumberOfReplicasTest extends ESTestCase {
     @Test
     public void testNumber() throws Exception {
         String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
-            .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 4)
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 4)
             .build());
         assertThat(numberOfResplicas).isEqualTo("4");
     }
@@ -47,8 +49,8 @@ public class NumberOfReplicasTest extends ESTestCase {
     @Test
     public void testAutoExpandSettingsTakePrecedence() throws Exception {
         String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
-            .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "0-all")
-            .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
+            .put(AutoExpandReplicas.SETTING_KEY, "0-all")
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
             .build());
         assertThat(numberOfResplicas).isEqualTo("0-all");
     }
@@ -57,8 +59,8 @@ public class NumberOfReplicasTest extends ESTestCase {
     public void testInvalidAutoExpandSettings() throws Exception {
         assertThatThrownBy(() ->
             NumberOfReplicas.fromSettings(Settings.builder()
-                .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "abc")
-                .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
+                .put(AutoExpandReplicas.SETTING_KEY, "abc")
+                .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
                 .build()))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The \"number_of_replicas\" range \"abc\" isn't valid");
