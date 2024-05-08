@@ -28,13 +28,13 @@ import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.FourFunction;
 import io.crate.data.Input;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -43,41 +43,36 @@ import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
 
-public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
+public class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
-    private final BiFunction<Roles, Object, Role> getUser;
+    public static Role userByName(Roles roles, Object userName) {
+        return roles.getUser((String) userName);
+    }
 
-    private final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege;
-
-    protected static final BiFunction<Roles, Object, Role> USER_BY_NAME = (roles, userName) -> roles.getUser((String) userName);
-
-    protected static final BiFunction<Roles, Object, Role> USER_BY_OID = (roles, userOid) -> {
+    public static Role userByOid(Roles roles, Object userOid) {
         int oid = (int) userOid;
         var user = roles.findUser(oid);
         if (user == null) {
             throw new RoleUnknownException(oid);
         }
         return user;
-    };
+    }
 
-    /**
-     * @param permissionNames is a comma separated list.
-     * Valid permissionNames are 'CREATE' and 'USAGE' which map to DDL and DQL correspondingly.
-     * Extra whitespaces between privilege names and repetition of a valid argument are allowed.
-     *
-     * @throws IllegalArgumentException if privilege contains invalid permission.
-     * @return collection of permissions parsed
-     */
-    @Nullable
-    protected abstract Collection<Permission> parsePermissions(String permissionNames);
+    private final ParsePermissions parsePermissions;
 
-    protected HasPrivilegeFunction(Signature signature,
-                                   BoundSignature boundSignature,
-                                   BiFunction<Roles, Object, Role> getUser,
-                                   FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege) {
+    private final BiFunction<Roles, Object, Role> getUser;
+
+    private final CheckPrivilege checkPrivilege;
+
+    public HasPrivilegeFunction(Signature signature,
+                                BoundSignature boundSignature,
+                                BiFunction<Roles, Object, Role> getUser,
+                                CheckPrivilege checkPrivilege,
+                                ParsePermissions parsePermissions) {
         super(signature, boundSignature);
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
+        this.parsePermissions = parsePermissions;
     }
 
     @Override
@@ -112,7 +107,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         // can mean that privilege string is not null but not Literal either.
         // When we pass NULL to the compiled version, it treats last argument like regular evaluate:
         // does null check and parses privileges string.
-        var sessionUser = USER_BY_NAME.apply(roles, currentUser);
+        var sessionUser = userByName(roles, currentUser);
         Role user = getUser.apply(roles, userValue);
         validateCallPrivileges(roles, sessionUser, user);
         return new CompiledHasPrivilege(roles, signature, boundSignature, sessionUser, user, compiledPermissions);
@@ -129,7 +124,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             if (value == null) {
                 return null;
             }
-            return parsePermissions((String) value);
+            return parsePermissions.parse((String) value);
         }
         return null;
     }
@@ -139,7 +134,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         Object userNameOrOid, schemaNameOrOid, privileges;
         Roles roles = nodeCtx.roles();
 
-        var sessionUser = USER_BY_NAME.apply(nodeCtx.roles(), txnCtx.sessionSettings().userName());
+        var sessionUser = userByName(nodeCtx.roles(), txnCtx.sessionSettings().userName());
         Role user;
         if (args.length == 2) {
             schemaNameOrOid = args[0].value();
@@ -159,7 +154,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         if (schemaNameOrOid == null || privileges == null) {
             return null;
         }
-        return checkPrivilege.apply(roles, user, schemaNameOrOid, parsePermissions((String) privileges));
+        return checkPrivilege.check(roles, user, schemaNameOrOid, parsePermissions.parse((String) privileges), nodeCtx.schemas());
     }
 
     private class CompiledHasPrivilege extends Scalar<Boolean, Object> {
@@ -185,7 +180,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             if (compiledPermissions != null) {
                 getPermissions = s -> compiledPermissions;
             } else {
-                getPermissions = s -> parsePermissions((String) s);
+                getPermissions = s -> parsePermissions.parse((String) s);
             }
         }
 
@@ -206,7 +201,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             if (schema == null || privilege == null) {
                 return null;
             }
-            return checkPrivilege.apply(roles, user, schema, getPermissions.apply(privilege));
+            return checkPrivilege.check(roles, user, schema, getPermissions.apply(privilege), nodeContext.schemas());
         }
     }
 
@@ -217,5 +212,22 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             && roles.hasPrivilege(sessionUser, Permission.AL, Securable.CLUSTER, "crate") == false) {
             throw new MissingPrivilegeException(sessionUser.name());
         }
+    }
+
+    public interface CheckPrivilege {
+        Boolean check(Roles roles, Role user, Object object, Collection<Permission> permissions, Schemas schemas);
+    }
+
+    public interface ParsePermissions {
+
+        /**
+         * @param permissionNames is a comma separated list that will be mapped to a collection of {@link Permission}.
+         * Refer to the concrete implementations for exact mappings.
+         * Extra whitespaces between privilege names and repetition of a valid argument are allowed.
+         *
+         * @throws IllegalArgumentException if privilege contains invalid permission.
+         * @return collection of permissions parsed
+         */
+        Collection<Permission> parse(String permissionNames);
     }
 }

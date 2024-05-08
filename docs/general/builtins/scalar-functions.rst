@@ -3962,6 +3962,39 @@ Example::
     +----------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-has-table-priv:
+
+``has_table_privilege([user,] table, privilege text)``
+------------------------------------------------------
+
+Returns ``boolean`` or ``NULL`` if at least one argument is ``NULL``.
+
+First argument is ``TEXT`` user name or ``INTEGER`` user OID. If user is not
+specified current user is used as an argument.
+
+Second argument is ``TEXT`` table name or ``INTEGER`` table OID.
+
+Third argument is privilege(s) to check. Multiple privileges can be provided as
+a comma separated list, in which case the result will be ``true`` if any of the
+listed privileges is held. Allowed privilege types are ``SELECT`` which
+corresponds to CrateDB's ``DQL`` and ``INSERT``, ``UPDATE``, ``DELETE`` which
+all correspond to CrateDB's ``DML``. Privilege string is case insensitive and
+extra whitespace is allowed between privilege names. Duplicate entries in
+privilege string are allowed.
+
+Example::
+
+    cr> select has_table_privilege('sys.summits', ' Select  ')
+    ... as has_priv;
+    +----------+
+    | has_priv |
+    +----------+
+    | TRUE     |
+    +----------+
+    SELECT 1 row in set (... sec)
+    
+    
 .. _scalar-pg_backend_pid:
 
 ``pg_backend_pid()``

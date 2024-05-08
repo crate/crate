@@ -22,7 +22,6 @@
 package io.crate.testing;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.Map;
@@ -46,6 +45,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.role.Role;
@@ -71,14 +71,15 @@ public class SqlExpressions {
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           Role sessionUser) {
-        this(sources, fieldResolver, sessionUser, List.of());
+        this(sources, fieldResolver, sessionUser, List.of(), null);
     }
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           Role sessionUser,
-                          List<Role> additionalUsers) {
-        this.nodeCtx = createNodeContext(null, Lists.concat(additionalUsers, sessionUser));
+                          List<Role> additionalUsers,
+                          Schemas schemas) {
+        this.nodeCtx = createNodeContext(schemas, Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
         var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? Role.CRATE_USER : sessionUser);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
