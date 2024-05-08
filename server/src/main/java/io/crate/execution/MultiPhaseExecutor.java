@@ -22,7 +22,6 @@
 package io.crate.execution;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;

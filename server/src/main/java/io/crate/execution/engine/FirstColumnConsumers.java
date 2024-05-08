@@ -34,7 +34,6 @@ import java.util.stream.Collector;
 
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.data.breaker.RowAccounting;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
 import io.crate.types.DataType;
 
