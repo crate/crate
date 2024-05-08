@@ -62,12 +62,14 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.View;
+import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.role.Role;
@@ -514,5 +516,29 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     public boolean viewExists(RelationName relationName) {
         ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
         return views != null && views.getView(relationName) != null;
+    }
+
+    @Nullable
+    public RelationName getRelation(int oid) {
+        for (SchemaInfo schema : this) {
+            for (RelationInfo relation : schema.getTables()) {
+                if (oid == OidHash.relationOid(relation)) {
+                    return relation.ident();
+                }
+            }
+            for (ViewInfo view : schema.getViews()) {
+                if (oid == OidHash.relationOid(view)) {
+                    return view.ident();
+                }
+            }
+        }
+        Metadata metadata = clusterService.state().metadata();
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
+        for (ForeignTable foreignTable : foreignTables) {
+            if (oid == OidHash.relationOid(foreignTable)) {
+                return foreignTable.ident();
+            }
+        }
+        return null;
     }
 }

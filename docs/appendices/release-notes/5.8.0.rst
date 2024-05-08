@@ -90,6 +90,8 @@ Scalar and Aggregation Functions
 
 - Added a :ref:`vector_similarity <scalar_vector_similarity>` scalar.
 
+- Added a :ref:`has_table_privilege <scalar-has-table-priv>` scalar.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
