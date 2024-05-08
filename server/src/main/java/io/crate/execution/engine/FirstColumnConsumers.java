@@ -32,8 +32,10 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 
+import org.elasticsearch.common.breaker.CircuitBreaker;
+
 import io.crate.data.Row;
-import io.crate.data.breaker.RamAccounting;
+import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
 import io.crate.types.DataType;
 
@@ -42,13 +44,50 @@ import io.crate.types.DataType;
  */
 public class FirstColumnConsumers {
 
+    private static class AllValuesInstance implements Collector<Row, List<Object>, List<Object>> {
+
+
+        private AllValuesInstance() {
+        }
+
+        @Override
+        public Supplier<List<Object>> supplier() {
+            return () -> new ArrayList<>(1);
+        }
+
+        @Override
+        public BiConsumer<List<Object>, Row> accumulator() {
+            return (agg, row) -> {
+                agg.add(row.get(0));
+            };
+        }
+
+        @Override
+        public BinaryOperator<List<Object>> combiner() {
+            throw new IllegalStateException("Combine is not implemented on this collector");
+        }
+
+        @Override
+        public UnaryOperator<List<Object>> finisher() {
+            return UnaryOperator.identity();
+        }
+
+        @Override
+        public Set<Characteristics> characteristics() {
+            return Collections.emptySet();
+        }
+    }
+
     private static class AllValues implements Collector<Row, List<Object>, List<Object>> {
 
-        private final RamAccounting ramAccounting;
+        private final BlockBasedRamAccounting ramAccounting;
         private final DataType<Object> dataType;
 
-        private AllValues(RamAccounting ramAccounting, DataType<?> dataType) {
-            this.ramAccounting = ramAccounting;
+        private AllValues(CircuitBreaker circuitBreaker, DataType<?> dataType) {
+            this.ramAccounting = new BlockBasedRamAccounting(
+                bytes -> circuitBreaker.addEstimateBytesAndMaybeBreak(bytes, "all-values"),
+                BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES
+            );
             this.dataType = (DataType<Object>) dataType;
         }
 
@@ -73,6 +112,7 @@ public class FirstColumnConsumers {
 
         @Override
         public UnaryOperator<List<Object>> finisher() {
+            ramAccounting.release();
             return UnaryOperator.identity();
         }
 
@@ -95,7 +135,7 @@ public class FirstColumnConsumers {
 
         @Override
         public Supplier<Object[]> supplier() {
-            return () -> new Object[] { SENTINEL };
+            return () -> new Object[]{SENTINEL};
         }
 
         @Override
@@ -130,10 +170,17 @@ public class FirstColumnConsumers {
 
     }
 
-    public static Collector<Row, ?, ?> getCollector(ResultType resultType, DataType<?> dataType, RamAccounting ramAccounting) {
+    public static Collector<Row, ?, ?> getCollector(ResultType resultType) {
         if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
             return SingleValue.INSTANCE;
         }
-        return new AllValues(ramAccounting, dataType);
+        return new AllValuesInstance();
+    }
+
+    public static Collector<Row, ?, ?> getCollector(ResultType resultType, DataType<?> dataType, CircuitBreaker circuitBreaker) {
+        if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
+            return SingleValue.INSTANCE;
+        }
+        return new AllValues(circuitBreaker, dataType);
     }
 }
