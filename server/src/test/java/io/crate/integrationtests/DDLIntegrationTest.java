@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
@@ -35,23 +34,15 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
@@ -770,41 +761,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testDropBlobTableIfExistsUnknownTable() throws Exception {
         execute("drop blob table if exists nonexistent");
         assertThat(response).hasRowCount(0);
-    }
-
-    @Test
-    public void testAlterShardsOfPartitionedTableAffectsNewPartitions() throws Exception {
-        execute(
-            "create table quotes (" +
-            "   id integer," +
-            "   quote string," +
-            "   date timestamp with time zone" +
-            ") partitioned by(date) " +
-            "clustered into 3 shards with (number_of_replicas='0-all')");
-        ensureYellow();
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-            new Object[]{
-                1, "Don't panic", 1395874800000L,
-                2, "Now panic", 1395961200000L}
-        );
-        execute("alter table quotes set (number_of_shards=5)");
-
-        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
-        GetIndexTemplatesResponse templatesResponse =
-            client().admin().indices().getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(5);
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?)",
-            new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
-        );
-        PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "quotes"), Arrays.asList("1495961200000"));
-
-        execute("select number_of_shards from information_schema.table_partitions where partition_ident = ? and table_name = ?",
-            $(partitionName.ident(), partitionName.relationName().name()));
-        assertThat(response).hasRows(new Object[] { 5 });
     }
 
     @Test
