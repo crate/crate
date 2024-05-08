@@ -21,10 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
-
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -32,9 +29,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
@@ -63,7 +57,6 @@ public class TableCreator {
     }
 
     public CompletableFuture<Long> create(BoundCreateTable createTable, Version minNodeVersion) {
-        var templateName = createTable.templateName();
         var relationName = createTable.tableName();
         CreateTableRequest createTableRequest;
 
@@ -86,32 +79,7 @@ public class TableCreator {
                 createTable.partitionedBy()
             );
         } else {
-            // TODO: Remove BWC branch in 5.5.
-            var mapping = createMapping(
-                MappingUtil.AllocPosition.forNewTable(),
-                null,
-                new ArrayList<>(references.values()),
-                pKeysIndices,
-                createTable.getCheckConstraints(),
-                createTable.partitionedBy(),
-                tableColumnPolicy,
-                routingColumn
-            );
-            createTableRequest = templateName == null
-                ? new CreateTableRequest(
-                    new CreateIndexRequest(
-                        relationName.indexNameOrAlias(),
-                        createTable.tableParameter().settings()
-                    ).mapping(mapping)
-            )
-                : new CreateTableRequest(
-                    new PutIndexTemplateRequest(templateName)
-                        .mapping(mapping)
-                        .create(true)
-                        .settings(createTable.tableParameter().settings())
-                        .patterns(Collections.singletonList(createTable.templatePrefix()))
-                        .alias(new Alias(relationName.indexNameOrAlias()))
-            );
+            throw new UnsupportedOperationException("All nodes in the cluster must at least have version 5.4.0");
         }
         return transportCreateTableAction.execute(createTableRequest, resp -> {
             if (!resp.isAllShardsAcked() && LOGGER.isWarnEnabled()) {

@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
@@ -53,7 +52,6 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.NodeContext;
@@ -115,7 +113,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         var relationName = request.getTableName();
         assert relationName != null : "relationName must not be null";
 
-        var isPartitioned = request.getPutIndexTemplateRequest() != null || request.partitionedBy().isEmpty() == false;
+        var isPartitioned = request.partitionedBy().isEmpty() == false;
         if (isPartitioned) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         } else {
@@ -138,22 +136,10 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
         validateSettings(createTableRequest.settings(), state);
 
-        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_4_0)) {
-            if (createTableRequest.partitionedBy().isEmpty()) {
-                createIndex(createTableRequest, listener, null);
-            } else {
-                createTemplate(createTableRequest, listener, null);
-            }
+        if (createTableRequest.partitionedBy().isEmpty()) {
+            createIndex(createTableRequest, listener);
         } else {
-            // TODO: Remove BWC branch in 5.5
-            assert createTableRequest.getCreateIndexRequest() != null || createTableRequest.getPutIndexTemplateRequest() != null : "Unknown request type";
-            if (createTableRequest.getCreateIndexRequest() != null) {
-                assert createTableRequest.getCreateIndexRequest().mapping() != null : "Pre 5.4 createTableRequest must have not-null mapping.";
-                createIndex(createTableRequest, listener, createTableRequest.getCreateIndexRequest().mapping());
-            } else {
-                assert createTableRequest.getPutIndexTemplateRequest().mapping() != null : "Pre 5.4 createTableRequest must have not-null mapping.";
-                createTemplate(createTableRequest, listener, createTableRequest.getPutIndexTemplateRequest().mapping());
-            }
+            createTemplate(createTableRequest, listener);
         }
     }
 
@@ -164,7 +150,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
      * @param mapping is NOT NULL if passed mapping without OID-s can be used directly (for Pre 5.4 code)
      * or NULL if we have to build it and assign OID out of references.
      */
-    private void createIndex(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener, @Nullable String mapping) {
+    private void createIndex(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener) {
         ActionListener<CreateIndexResponse> wrappedListener = ActionListener.wrap(
             response -> listener.onResponse(new CreateTableResponse(response.isShardsAcknowledged())),
             listener::onFailure
@@ -177,7 +163,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             .ackTimeout(DEFAULT_ACK_TIMEOUT) // Before we used CreateIndexRequest with default ack timeout.
             .masterNodeTimeout(createTableRequest.masterNodeTimeout())
             .settings(createTableRequest.settings())
-            .mapping(mapping)
             .aliases(new HashSet<>()) // Before we used CreateIndexRequest with an empty set, it's changed only on resizing indices.
             .waitForActiveShards(ActiveShardCount.DEFAULT); // Before we used CreateIndexRequest with default active shards count, it's changed only on resizing indices.
 
@@ -198,7 +183,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
      * @param mapping is NOT NULL if passed mapping without OID-s can be used directly (for Pre 5.4 code)
      * or NULL if we have to build it and assign OID out of references.
      */
-    private void createTemplate(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener, @Nullable String mapping) {
+    private void createTemplate(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener) {
         ActionListener<AcknowledgedResponse> wrappedListener = ActionListener.wrap(
             response -> listener.onResponse(new CreateTableResponse(response.isAcknowledged())),
             listener::onFailure
@@ -214,7 +199,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                     relationName.schema(),
                     relationName.name())))
                 .settings(templateSettingsBuilder.build())
-                .mapping(mapping)
                 .aliases(Set.of(new Alias(relationName.indexNameOrAlias()))) // We used PutIndexTemplateRequest which creates a single alias
                 .create(true) // We used PutIndexTemplateRequest with explicit 'true'
                 .masterTimeout(createTableRequest.masterNodeTimeout())

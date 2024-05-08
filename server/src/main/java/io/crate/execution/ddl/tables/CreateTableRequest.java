@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -69,11 +67,6 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     private final ColumnPolicy tableColumnPolicy; // The only setting which is set as a "mapping" change (see TableParameter.mappings()), 'strict' by default.
     private final List<List<String>> partitionedBy;
 
-    @Deprecated
-    private CreateIndexRequest createIndexRequest;
-    @Deprecated
-    private PutIndexTemplateRequest putIndexTemplateRequest;
-
     public CreateTableRequest(RelationName relationName,
                               @Nullable String pkConstraintName,
                               List<Reference> colsToAdd,
@@ -92,51 +85,6 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         this.routingColumn = routingColumn;
         this.tableColumnPolicy = tableColumnPolicy;
         this.partitionedBy = partitionedBy;
-
-        this.createIndexRequest = null;
-        this.putIndexTemplateRequest = null;
-    }
-
-    @Deprecated
-    public CreateTableRequest(CreateIndexRequest createIndexRequest) {
-        this(RelationName.fromIndexName(createIndexRequest.index()),
-            null,
-            List.of(),
-            new IntArrayList(),
-            Map.of(),
-            Settings.EMPTY,
-            null,
-            ColumnPolicy.STRICT,
-            List.of()
-        );
-        this.createIndexRequest = createIndexRequest;
-        this.putIndexTemplateRequest = null;
-    }
-
-    @Deprecated
-    public CreateTableRequest(PutIndexTemplateRequest putIndexTemplateRequest) {
-        this(RelationName.fromIndexName(putIndexTemplateRequest.aliases().iterator().next().name()),
-            null,
-            List.of(),
-            new IntArrayList(),
-            Map.of(),
-            Settings.EMPTY,
-            null,
-            ColumnPolicy.STRICT,
-            List.of()
-        );
-        this.createIndexRequest = null;
-        this.putIndexTemplateRequest = putIndexTemplateRequest;
-    }
-
-    @Nullable
-    public CreateIndexRequest getCreateIndexRequest() {
-        return createIndexRequest;
-    }
-
-    @Nullable
-    public PutIndexTemplateRequest getPutIndexTemplateRequest() {
-        return putIndexTemplateRequest;
     }
 
     @NotNull
@@ -161,41 +109,20 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         } else {
             this.pkConstraintName = null;
         }
-        if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
-            this.relationName = new RelationName(in);
-            this.checkConstraints = in.readMap(
-                LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
-            this.colsToAdd = in.readList(Reference::fromStream);
-            int numPKIndices = in.readVInt();
-            this.pKeyIndices = new IntArrayList(numPKIndices);
-            for (int i = 0; i < numPKIndices; i++) {
-                pKeyIndices.add(in.readVInt());
-            }
-
-            this.settings = readSettingsFromStream(in);
-            this.routingColumn = in.readOptionalString();
-            this.tableColumnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
-            this.partitionedBy = in.readList(StreamInput::readStringList);
-
-            createIndexRequest = null;
-            putIndexTemplateRequest = null;
-        } else {
-            if (in.readBoolean()) {
-                createIndexRequest = new CreateIndexRequest(in);
-                putIndexTemplateRequest = null;
-            } else {
-                putIndexTemplateRequest = new PutIndexTemplateRequest(in);
-                createIndexRequest = null;
-            }
-            this.relationName = null;
-            this.colsToAdd = null;
-            this.pKeyIndices = null;
-            this.checkConstraints = null;
-            this.settings = null;
-            this.routingColumn = null;
-            this.tableColumnPolicy = null;
-            this.partitionedBy = null;
+        this.relationName = new RelationName(in);
+        this.checkConstraints = in.readMap(
+            LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
+        this.colsToAdd = in.readList(Reference::fromStream);
+        int numPKIndices = in.readVInt();
+        this.pKeyIndices = new IntArrayList(numPKIndices);
+        for (int i = 0; i < numPKIndices; i++) {
+            pKeyIndices.add(in.readVInt());
         }
+
+        this.settings = readSettingsFromStream(in);
+        this.routingColumn = in.readOptionalString();
+        this.tableColumnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
+        this.partitionedBy = in.readList(StreamInput::readStringList);
     }
 
     @Override
@@ -204,24 +131,17 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         if (out.getVersion().onOrAfter(Version.V_5_6_0)) {
             out.writeOptionalString(pkConstraintName);
         }
-        if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
-            relationName.writeTo(out);
-            out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
-            out.writeCollection(colsToAdd, Reference::toStream);
-            out.writeVInt(pKeyIndices.size());
-            for (int i = 0; i < pKeyIndices.size(); i++) {
-                out.writeVInt(pKeyIndices.get(i));
-            }
-            writeSettingsToStream(out, settings);
-            out.writeOptionalString(routingColumn);
-            out.writeVInt(tableColumnPolicy.ordinal());
-            out.writeCollection(partitionedBy, StreamOutput::writeStringCollection);
-        } else {
-            boolean isIndexRequest = createIndexRequest != null;
-            out.writeBoolean(isIndexRequest);
-            var request = isIndexRequest ? createIndexRequest : putIndexTemplateRequest;
-            request.writeTo(out);
+        relationName.writeTo(out);
+        out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
+        out.writeCollection(colsToAdd, Reference::toStream);
+        out.writeVInt(pKeyIndices.size());
+        for (int i = 0; i < pKeyIndices.size(); i++) {
+            out.writeVInt(pKeyIndices.get(i));
         }
+        writeSettingsToStream(out, settings);
+        out.writeOptionalString(routingColumn);
+        out.writeVInt(tableColumnPolicy.ordinal());
+        out.writeCollection(partitionedBy, StreamOutput::writeStringCollection);
     }
 
     @NotNull
