@@ -81,8 +81,6 @@ import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplat
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemplatesAction;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.NamedRegistry;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -192,7 +190,6 @@ public class ActionModule extends AbstractModule {
         actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
         actions.register(PutMappingAction.INSTANCE, TransportPutMappingAction.class);
         actions.register(UpdateSettingsAction.INSTANCE, TransportUpdateSettingsAction.class);
-        actions.register(PutIndexTemplateAction.INSTANCE, TransportPutIndexTemplateAction.class);
         actions.register(GetIndexTemplatesAction.INSTANCE, TransportGetIndexTemplatesAction.class);
         actions.register(DeleteIndexTemplateAction.INSTANCE, TransportDeleteIndexTemplateAction.class);
         actions.register(RefreshAction.INSTANCE, TransportRefreshAction.class);
