@@ -77,12 +77,8 @@ import org.elasticsearch.action.admin.indices.shrink.ResizeAction;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.TransportIndicesStatsAction;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateAction;
-import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemplatesAction;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.NamedRegistry;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -107,6 +103,7 @@ import io.crate.blob.TransportStartBlobAction;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.ddl.tables.RenameColumnAction;
+import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.tables.TransportRenameColumnAction;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
@@ -192,9 +189,7 @@ public class ActionModule extends AbstractModule {
         actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
         actions.register(PutMappingAction.INSTANCE, TransportPutMappingAction.class);
         actions.register(UpdateSettingsAction.INSTANCE, TransportUpdateSettingsAction.class);
-        actions.register(PutIndexTemplateAction.INSTANCE, TransportPutIndexTemplateAction.class);
         actions.register(GetIndexTemplatesAction.INSTANCE, TransportGetIndexTemplatesAction.class);
-        actions.register(DeleteIndexTemplateAction.INSTANCE, TransportDeleteIndexTemplateAction.class);
         actions.register(RefreshAction.INSTANCE, TransportRefreshAction.class);
         actions.register(SyncedFlushAction.INSTANCE, TransportSyncedFlushAction.class);
         actions.register(ForceMergeAction.INSTANCE, TransportForceMergeAction.class);
@@ -248,6 +243,8 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportDropServerAction.ACTION, TransportDropServerAction.class);
         actions.register(TransportDropForeignTableAction.ACTION, TransportDropForeignTableAction.class);
         actions.register(TransportDropUserMapping.ACTION, TransportDropUserMapping.class);
+
+        actions.register(TransportDropTableAction.ACTION, TransportDropTableAction.class);
 
         return unmodifiableMap(actions.getRegistry());
     }
