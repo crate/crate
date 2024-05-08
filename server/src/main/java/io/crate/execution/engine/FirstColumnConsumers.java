@@ -44,40 +44,6 @@ import io.crate.types.DataType;
  */
 public class FirstColumnConsumers {
 
-    private static class AllValuesInstance implements Collector<Row, List<Object>, List<Object>> {
-
-
-        private AllValuesInstance() {
-        }
-
-        @Override
-        public Supplier<List<Object>> supplier() {
-            return () -> new ArrayList<>(1);
-        }
-
-        @Override
-        public BiConsumer<List<Object>, Row> accumulator() {
-            return (agg, row) -> {
-                agg.add(row.get(0));
-            };
-        }
-
-        @Override
-        public BinaryOperator<List<Object>> combiner() {
-            throw new IllegalStateException("Combine is not implemented on this collector");
-        }
-
-        @Override
-        public UnaryOperator<List<Object>> finisher() {
-            return UnaryOperator.identity();
-        }
-
-        @Override
-        public Set<Characteristics> characteristics() {
-            return Collections.emptySet();
-        }
-    }
-
     private static class AllValues implements Collector<Row, List<Object>, List<Object>> {
 
         private final BlockBasedRamAccounting ramAccounting;
@@ -168,13 +134,6 @@ public class FirstColumnConsumers {
             return Collections.emptySet();
         }
 
-    }
-
-    public static Collector<Row, ?, ?> getCollector(ResultType resultType) {
-        if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
-            return SingleValue.INSTANCE;
-        }
-        return new AllValuesInstance();
     }
 
     public static Collector<Row, ?, ?> getCollector(ResultType resultType, DataType<?> dataType, CircuitBreaker circuitBreaker) {

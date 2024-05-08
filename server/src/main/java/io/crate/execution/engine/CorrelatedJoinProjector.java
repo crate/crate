@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collector;
 
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
 import io.crate.data.AsyncFlatMapBatchIterator;
 import io.crate.data.AsyncFlatMapper;
 import io.crate.data.BatchIterator;
@@ -75,7 +77,8 @@ public final class CorrelatedJoinProjector implements Projector {
         private final Collector<Row, ?, ?> collector;
 
         public BindAndExecuteSubQuery() {
-            this.collector = FirstColumnConsumers.getCollector(correlatedSubQuery.getResultType());
+            var breaker = executor.circuitBreaker(HierarchyCircuitBreakerService.QUERY);
+            this.collector = FirstColumnConsumers.getCollector(correlatedSubQuery.getResultType(), correlatedSubQuery.innerType(), breaker);
         }
 
         @Override
