@@ -74,12 +74,9 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteReposito
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ClusterBootstrapService;
@@ -98,6 +95,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -157,7 +155,10 @@ import io.crate.action.sql.Sessions;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.tables.DropTableRequest;
+import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.jobs.TasksService;
+import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -452,19 +453,17 @@ public final class TestCluster implements Closeable {
      */
     public void wipeAllTemplates() {
         if (size() > 0) {
-            IndicesAdminClient indices = client().admin().indices();
-            var result = indices.getTemplates(new GetIndexTemplatesRequest()).thenCompose(response -> {
-                List<IndexTemplateMetadata> indexTemplates = response.getIndexTemplates();
-                List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>(indexTemplates.size());
-                for (IndexTemplateMetadata indexTemplate : indexTemplates) {
-                    CompletableFuture<AcknowledgedResponse> deleteTemplate = indices
-                        .deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.name()));
-                    futures.add(deleteTemplate);
-                }
-                return CompletableFutures.allAsList(futures);
-            });
+            ClusterState state = clusterService().state();
+            ImmutableOpenMap<String, IndexTemplateMetadata> templates = state.metadata().templates();
+            List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>(templates.size());
+            for (var cursor : templates) {
+                String templateName = cursor.key;
+                RelationName relationName = RelationName.fromIndexName(templateName);
+                futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relationName, true)));
+            }
+            CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);
             try {
-                List<AcknowledgedResponse> responses = result.get();
+                List<AcknowledgedResponse> responses = allResponses.get();
                 responses.forEach(r -> assertAcked(r));
             } catch (Exception ignore) {
             }
