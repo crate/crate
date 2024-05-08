@@ -30,6 +30,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.NumberOfShards;
@@ -37,7 +38,6 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TableProperties;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -114,8 +114,7 @@ public class CreateBlobTablePlan implements Plan {
         TableProperties.analyze(
             tableParameter,
             TableParameters.CREATE_BLOB_TABLE_PARAMETERS,
-            properties,
-            true
+            properties
         );
         Settings.Builder builder = Settings.builder();
         builder.put(tableParameter.settings());

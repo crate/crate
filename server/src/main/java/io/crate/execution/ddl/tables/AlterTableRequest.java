@@ -26,18 +26,18 @@ import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.server.xcontent.XContentHelper;
 
@@ -49,21 +49,25 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
     private final boolean isPartitioned;
     private final boolean excludePartitions;
     private final Settings settings;
+    private final List<String> resetProperties;
+
+    @Deprecated
     @Nullable
     private final String mappingDelta;
 
-    public AlterTableRequest(RelationName tableIdent,
-                             @Nullable String partitionIndexName,
+    public AlterTableRequest(RelationName relation,
+                             @Nullable PartitionName partitionName,
                              boolean isPartitioned,
                              boolean excludePartitions,
-                             Settings settings,
-                             Map<String, Object> mappingDelta) throws IOException {
-        this.tableIdent = tableIdent;
-        this.partitionIndexName = partitionIndexName;
+                             Settings setProperties,
+                             List<String> resetProperties) {
+        this.tableIdent = relation;
+        this.partitionIndexName = partitionName == null ? null : partitionName.asIndexName();
         this.isPartitioned = isPartitioned;
         this.excludePartitions = excludePartitions;
-        this.settings = settings;
-        this.mappingDelta = mapToJson(mappingDelta);
+        this.settings = setProperties;
+        this.mappingDelta = "{}";
+        this.resetProperties = resetProperties;
     }
 
     public AlterTableRequest(StreamInput in) throws IOException {
@@ -73,7 +77,28 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         isPartitioned = in.readBoolean();
         excludePartitions = in.readBoolean();
         settings = readSettingsFromStream(in);
-        mappingDelta = in.readOptionalString();
+        if (in.getVersion().onOrAfter(Version.V_5_8_0)) {
+            resetProperties = in.readStringList();
+            mappingDelta = "{}";
+        } else {
+            mappingDelta = in.readOptionalString();
+            resetProperties = List.of();
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        tableIdent.writeTo(out);
+        out.writeOptionalString(partitionIndexName);
+        out.writeBoolean(isPartitioned);
+        out.writeBoolean(excludePartitions);
+        writeSettingsToStream(out, settings);
+        if (out.getVersion().onOrAfter(Version.V_5_8_0)) {
+            out.writeStringCollection(resetProperties);
+        } else {
+            out.writeOptionalString(mappingDelta);
+        }
     }
 
     public RelationName tableIdent() {
@@ -97,36 +122,10 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         return settings;
     }
 
-    @Nullable
-    private static String mapToJson(Map<String, Object> mapping) throws IOException {
-        if (mapping.isEmpty()) {
-            return null;
-        }
-        XContentBuilder builder = JsonXContent.builder();
-        builder.map(mapping);
-        return BytesReference.bytes(builder).utf8ToString();
-    }
-
-    @Nullable
-    public String mappingDelta() {
-        return mappingDelta;
-    }
-
     public Map<String, Object> mappingDeltaAsMap() {
         if (mappingDelta == null) {
             return Collections.emptyMap();
         }
         return XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, mappingDelta, false);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        tableIdent.writeTo(out);
-        out.writeOptionalString(partitionIndexName);
-        out.writeBoolean(isPartitioned);
-        out.writeBoolean(excludePartitions);
-        writeSettingsToStream(out, settings);
-        out.writeOptionalString(mappingDelta);
     }
 }
