@@ -223,8 +223,8 @@ public class TestingHelpers {
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
             () -> roles,
-            clusterService
-        );
+            clusterService,
+            null);
     }
 
     public static Reference createReference(String columnName, DataType<?> dataType) {

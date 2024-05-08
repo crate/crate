@@ -63,7 +63,7 @@ import io.crate.types.DataTypes;
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
     private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-    private NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of(Role.CRATE_USER), clusterService);
+    private NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of(Role.CRATE_USER), clusterService, null);
 
     @Test
     public void test_collect() throws Exception {

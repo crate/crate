@@ -329,8 +329,8 @@ public class SQLExecutor {
             var nodeCtx = new NodeContext(
                 Functions.load(settings, sessionSettingRegistry),
                 roleManager,
-                clusterService
-            );
+                clusterService,
+                null);
             var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             var udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();

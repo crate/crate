@@ -25,14 +25,14 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
-import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.inject.Provider;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.FiveFunction;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -47,8 +47,8 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_schema_privilege");
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_SCHEMA_NAME =
-        (roles, user, schema, permissions, clusterState) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_SCHEMA_NAME =
+        (roles, user, schema, permissions, schemasProvider) -> {
             String schemaName = (String) schema;
             boolean result = false;
             for (Permission permission : permissions) {
@@ -62,8 +62,8 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
             return result;
         };
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_SCHEMA_OID =
-        (roles, user, schema, permissions, clusterState) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_SCHEMA_OID =
+        (roles, user, schema, permissions, schemasProvider) -> {
             Integer schemaOid = (Integer) schema;
             boolean result = false;
             for (Permission permission : permissions) {
@@ -172,7 +172,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
     protected HasSchemaPrivilegeFunction(Signature signature,
                                          BoundSignature boundSignature,
                                          BiFunction<Roles, Object, Role> getUser,
-                                         FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> checkPrivilege) {
+                                         FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

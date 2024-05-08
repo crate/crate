@@ -26,6 +26,7 @@ import io.crate.role.Roles;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
 @Singleton
@@ -35,13 +36,15 @@ public class NodeContext {
     private final long serverStartTimeInMs;
     private final Roles roles;
     private final ClusterService clusterService;
+    private final Provider<Schemas> schemasProvider;
 
     @Inject
-    public NodeContext(Functions functions, Roles roles, ClusterService clusterService) {
+    public NodeContext(Functions functions, Roles roles, ClusterService clusterService, Provider<Schemas> schemasProvider) {
         this.functions = functions;
         this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();
         this.roles = roles;
         this.clusterService = clusterService;
+        this.schemasProvider = schemasProvider;
     }
 
     public Functions functions() {
@@ -58,5 +61,9 @@ public class NodeContext {
 
     public ClusterState clusterState() {
         return clusterService.state();
+    }
+
+    public Provider<Schemas> schemasProvider() {
+        return schemasProvider;
     }
 }

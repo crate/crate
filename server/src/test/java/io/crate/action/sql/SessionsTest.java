@@ -65,7 +65,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
         Functions functions = new Functions(Map.of());
         Roles roles = () -> List.of(Role.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService);
+        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService, null);
         DependencyCarrier dependencies = mock(DependencyCarrier.class);
         ElasticsearchClient client = mock(ElasticsearchClient.class, Answers.RETURNS_MOCKS);
         when(dependencies.client()).thenReturn(client);
@@ -91,7 +91,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_super_user_and_al_privileges_can_view_all_cursors() throws Exception {
         Functions functions = new Functions(Map.of());
         Roles roles = () -> List.of(Role.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService);
+        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService, null);
         Sessions sessions = newSessions(nodeCtx);
         Session session1 = sessions.newSession("doc", RolesHelper.userOf("Arthur"));
         session1.cursors.add("c1", newCursor());
@@ -116,7 +116,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_user_can_only_view_their_own_cursors() throws Exception {
         Functions functions = new Functions(Map.of());
         Roles roles = () -> List.of(Role.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService);
+        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService, null);
         Sessions sessions = newSessions(nodeCtx);
 
         Role arthur = RolesHelper.userOf("Arthur");
@@ -135,7 +135,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_uses_global_statement_timeout_as_default_for() throws Exception {
         Functions functions = new Functions(Map.of());
         Roles roles = () -> List.of(Role.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService);
+        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService, null);
         Sessions sessions = new Sessions(
             nodeCtx,
             mock(Analyzer.class),

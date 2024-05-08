@@ -23,14 +23,14 @@ package io.crate.expression.scalar;
 
 import java.util.Collection;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
-import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.inject.Provider;
 
 import io.crate.common.FiveFunction;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -44,8 +44,8 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_table_privilege");
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_TABLE_NAME =
-        (roles, user, table, permissions, clusterState) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_TABLE_NAME =
+        (roles, user, table, permissions, schemasProvider) -> {
             String tableFqn = RelationName.fqnFromIndexName((String) table);
             boolean result = false;
             for (Permission permission : permissions) {
@@ -54,10 +54,13 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
             return result;
         };
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_TABLE_OID =
-        (roles, user, table, permissions, clusterState) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_TABLE_OID =
+        (roles, user, table, permissions, schemasProvider) -> {
             int tableOid = (int) table;
-            String tableFqn = clusterState.get().getRelationName(tableOid).fqn();
+            String tableFqn = schemasProvider.get().oidToName(tableOid);
+            if (tableFqn == null) {
+                throw new IllegalArgumentException("Cannot find corresponding relation name by the given oid");
+            }
             boolean result = false;
             for (Permission permission : permissions) {
                 result |= roles.hasPrivilege(user, permission, Securable.TABLE, tableFqn);
@@ -136,7 +139,7 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
     protected HasTablePrivilegeFunction(Signature signature,
                                         BoundSignature boundSignature,
                                         BiFunction<Roles, Object, Role> getUser,
-                                        FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> checkPrivilege) {
+                                        FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

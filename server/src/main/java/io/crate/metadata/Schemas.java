@@ -63,6 +63,7 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
@@ -512,5 +513,20 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     public boolean viewExists(RelationName relationName) {
         ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
         return views != null && views.getView(relationName) != null;
+    }
+
+    public String oidToName(int oid) {
+        for (SchemaInfo schema : this) {
+            if (oid == OidHash.schemaOid(schema.name())) {
+                return schema.name();
+            }
+            for (RelationInfo relation : schema.getTables()) {
+                if (oid == OidHash.relationOid(relation)) {
+                    return relation.ident().sqlFqn();
+                }
+            }
+        }
+        // view, foreign table, system table
+        return null;
     }
 }

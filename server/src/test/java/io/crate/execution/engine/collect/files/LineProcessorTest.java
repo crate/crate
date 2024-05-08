@@ -50,7 +50,7 @@ import io.crate.role.Roles;
 public class LineProcessorTest {
 
     Roles roles = () -> List.of(Role.CRATE_USER);
-    NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), roles, null);
+    NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), roles, null, null);
     InputFactory inputFactory = new InputFactory(nodeCtx);
 
     @Test

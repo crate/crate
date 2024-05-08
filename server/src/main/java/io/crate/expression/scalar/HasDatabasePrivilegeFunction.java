@@ -25,15 +25,15 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
-import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.inject.Provider;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
 import io.crate.common.FiveFunction;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -48,8 +48,8 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_database_privilege");
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_DB_NAME =
-        (roles, user, db, permissions, clusterState) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_DB_NAME =
+        (roles, user, db, permissions, schemasProvider) -> {
             if (Constants.DB_NAME.equals(db) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "database \"%s\" does not exist",
@@ -58,8 +58,8 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return checkPrivileges(user, permissions);
         };
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_DB_OID =
-        (roles, user, db, privileges, clusterState) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_DB_OID =
+        (roles, user, db, privileges, schemasProvider) -> {
             if (Constants.DB_OID != (Integer) db) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "database with OID \"%s\" does not exist",
@@ -200,7 +200,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
     protected HasDatabasePrivilegeFunction(Signature signature,
                                            BoundSignature boundSignature,
                                            BiFunction<Roles, Object, Role> getUser,
-                                           FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> checkPrivilege) {
+                                           FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }
