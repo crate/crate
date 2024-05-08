@@ -25,6 +25,7 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
@@ -55,9 +57,9 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.TableParameters;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -113,14 +115,14 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
 
                     // These settings only apply for already existing partitions
-                    List<Setting<?>> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
-                        .supportedSettings()
-                        .values()
-                        .stream()
-                        .collect(Collectors.toList());
-
-                    // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
-                    supportedSettings.add(AutoExpandReplicas.SETTING);
+                    Set<String> supportedSettings = Stream.concat(
+                        TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+                            .supportedSettings()
+                            .values()
+                            .stream(),
+                        // add internal settings for the virtual NumberOfReplicas.SETTING
+                        Stream.of(AutoExpandReplicas.SETTING, IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING)
+                    ).map(Setting::getKey).collect(Collectors.toSet());
 
                     currentState = updateSettings(currentState, filterSettings(request.settings(), supportedSettings), concreteIndices);
                     currentState = updateMapping(currentState, concreteIndices, request.mappingDeltaAsMap());
@@ -261,26 +263,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
     }
 
-    @VisibleForTesting
-    static Settings filterSettings(Settings settings, List<Setting<?>> settingsFilter) {
-        Settings.Builder settingsBuilder = Settings.builder();
-        for (Setting<?> setting : settingsFilter) {
-            if (setting.isGroupSetting()) {
-                String prefix = setting.getKey(); // getKey() returns prefix for a group setting
-                var settingsGroup = settings.getByPrefix(prefix);
-                for (String name : settingsGroup.keySet()) {
-                    settingsBuilder.put(prefix + name, settingsGroup.get(name)); // No dot added as prefix already has dot at the end.
-                }
-            } else {
-                String value = settings.get(setting.getKey());
-                if (value != null) {
-                    settingsBuilder.put(setting.getKey(), value);
-                }
-            }
-        }
-        return settingsBuilder.build();
-    }
-
     public static Index[] resolveIndices(ClusterState currentState, String indexExpressions) {
         return IndexNameExpressionResolver.concreteIndices(
             currentState.metadata(),
@@ -299,5 +281,11 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             .put(settings)
             .putNull(ARCHIVED_SETTINGS_PREFIX + "*")
             .build();
+    }
+
+    public static Settings filterSettings(Settings settingToFilter, Collection<String> supportedSettings) {
+        return settingToFilter.filter(settingName ->
+                supportedSettings.contains(settingName)
+            || supportedSettings.stream().anyMatch(supported -> settingName.startsWith(supported)));
     }
 }

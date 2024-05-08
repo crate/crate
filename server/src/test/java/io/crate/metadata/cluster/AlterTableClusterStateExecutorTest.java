@@ -33,7 +33,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -97,11 +96,12 @@ public class AlterTableClusterStateExecutorTest {
         Settings settingToFilter = Settings.builder()
             .put(fullName , "node1").build();
 
-        List<Setting<?>> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+        List<String> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
             .supportedSettings()
             .values()
             .stream()
-            .collect(Collectors.toList());
+            .map(Setting::getKey)
+            .toList();
 
         Settings filteredSettings = AlterTableClusterStateExecutor.filterSettings(settingToFilter, supportedSettings);
         assertThat(filteredSettings.isEmpty()).isFalse();
