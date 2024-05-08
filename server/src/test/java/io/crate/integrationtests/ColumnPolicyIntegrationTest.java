@@ -23,35 +23,22 @@ package io.crate.integrationtests;
 
 import static io.crate.common.collections.Maps.getByPath;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.Constants;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
-import io.crate.server.xcontent.ParsedXContent;
-import io.crate.server.xcontent.XContentHelper;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseRandomizedOptimizerRules;
 
@@ -78,77 +65,12 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testInsertNewColumnTableStrictColumnPolicy() throws Exception {
-        execute("create table strict_table (" +
-                "  id integer primary key, " +
-                "  name string" +
-                ") with (column_policy='strict', number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into strict_table (id, name) values (1, 'Ford')");
-        execute("refresh table strict_table");
-
-        execute("select * from strict_table");
-        assertThat(response).hasColumns("id", "name");
-        assertThat(response).hasRows("1| Ford");
-
-        Asserts.assertSQLError(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"))
-            .hasPGError(UNDEFINED_COLUMN)
-            .hasHTTPError(NOT_FOUND, 4043)
-            .hasMessageContaining("Column boo unknown");
-    }
-
-    @Test
-    public void testUpdateNewColumnTableStrictColumnPolicy() throws Exception {
-        execute("create table strict_table (" +
-                "  id integer primary key, " +
-                "  name string" +
-                ") with (column_policy='strict', number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into strict_table (id, name) values (1, 'Ford')");
-        execute("refresh table strict_table");
-
-        execute("select * from strict_table");
-        assertThat(response).hasColumns("id", "name");
-        assertThat(response).hasRows("1| Ford");
-
-        Asserts.assertSQLError(() -> execute("update strict_table set name='Trillian', boo=true where id=1"))
-            .hasPGError(UNDEFINED_COLUMN)
-            .hasHTTPError(NOT_FOUND, 4043)
-            .hasMessageContaining("Column boo unknown");
-    }
-
-    @Test
     public void testCopyFromFileStrictTable() throws Exception {
         execute("create table quotes (id int primary key) with (column_policy='strict', number_of_replicas = 0)");
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response).hasRowCount(0);
-    }
-
-    @Test
-    public void testInsertNewColumnTableDynamic() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer primary key, " +
-                "  name string" +
-                ") with (column_policy='dynamic', number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into dynamic_table (id, name) values (1, 'Ford')");
-        execute("refresh table dynamic_table");
-
-        execute("select * from dynamic_table");
-        assertThat(response).hasColumns("id", "name");
-        assertThat(response).hasRows("1| Ford");
-
-        execute("insert into dynamic_table (id, name, boo) values (2, 'Trillian', true)");
-        execute("refresh table dynamic_table");
-
-        execute("select * from dynamic_table order by id");
-        assertThat(response).hasColumns("id", "name", "boo");
-        assertThat(response).hasRows(
-            "1| Ford| NULL",
-            "2| Trillian| true"
-        );
     }
 
     @Test
@@ -275,317 +197,86 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testUpdateNewColumnTableDynamic() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer primary key, " +
-                "  name string" +
-                ") with (column_policy='dynamic', number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into dynamic_table (id, name) values (1, 'Ford')");
-        execute("refresh table dynamic_table");
+    public void test_cannot_create_implicit_columns_with_strict_column_policy() throws Exception {
+        execute("create table tbl (x int, p int) partitioned by (p) with (column_policy = 'strict')");
 
-        execute("select * from dynamic_table");
-        assertThat(response)
-            .hasColumns("id", "name")
-            .hasRows("1| Ford");
+        assertSQLError(() -> execute("insert into tbl (x, p, new_col) values (1, 2, 3)"))
+            .hasMessageContaining("Column new_col unknown");
 
-        execute("update dynamic_table set name='Trillian', boo=true where name='Ford'");
-        execute("refresh table dynamic_table");
+        // create a partition
+        execute("insert into tbl (x, p) values (1, 1)");
 
-        execute("select * from dynamic_table");
-        assertThat(response)
-            .hasColumns("id", "name", "boo")
-            .hasRows("1| Trillian| true");
-    }
+        execute("select column_policy from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("strict");
 
-    @Test
-    public void testInsertNewColumnTableDefault() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer primary key, " +
-                "  score double" +
-                ") with (number_of_replicas=0, column_policy='dynamic')");
-        ensureYellow();
-        execute("insert into dynamic_table (id, score) values (1, 42.24)");
-        execute("refresh table dynamic_table");
+        // try again after concrete partition exists
+        assertSQLError(() -> execute("insert into tbl (x, p, new_col) values (1, 1, 3)"))
+            .hasMessageContaining("Column new_col unknown");
 
-        execute("select * from dynamic_table");
-        assertThat(response)
-            .hasColumns("id", "score")
-            .hasRows("1| 42.24");
-
-        execute("insert into dynamic_table (id, score, good) values (2, -0.01, false)");
-        execute("refresh table dynamic_table");
-
-        execute("select * from dynamic_table order by id");
-        assertThat(response).hasColumns("id", "score", "good");
-        assertThat(response).hasRows(
-            "1| 42.24| NULL",
-            "2| -0.01| false"
-        );
-    }
-
-    @Test
-    public void testUpdateNewColumnTableDefault() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer primary key, " +
-                "  score double" +
-                ") with (number_of_replicas=0, column_policy='dynamic')");
-        ensureYellow();
-        execute("insert into dynamic_table (id, score) values (1, 4656234.345)");
-        execute("refresh table dynamic_table");
-
-        execute("select * from dynamic_table");
-        assertThat(response)
-            .hasColumns("id", "score")
-            .hasRows("1| 4656234.345");
-
-        execute("update dynamic_table set name='Trillian', good=true where score > 0.0");
-        execute("refresh table dynamic_table");
-
-        execute("select * from dynamic_table");
-        assertThat(response)
-            .hasColumns("id", "score", "name", "good")
-            .hasRows("1| 4656234.345| Trillian| true");
-    }
-
-    @Test
-    public void testStrictPartitionedTableInsert() throws Exception {
-        execute("create table numbers (" +
-                "  num int, " +
-                "  odd boolean," +
-                "  prime boolean" +
-                ") partitioned by (odd) with (column_policy='strict', number_of_replicas=0)");
-        ensureYellow();
-
-        GetIndexTemplatesResponse response = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
-            .get();
-        assertThat(response.getIndexTemplates()).hasSize(1);
-        IndexTemplateMetadata template = response.getIndexTemplates().get(0);
-        CompressedXContent mappingStr = template.mapping();
-        assertThat(mappingStr).isNotNull();
-        ParsedXContent typeAndMap =
-            XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(ColumnPolicy.fromMappingValue(mapping.get(ColumnPolicy.MAPPING_KEY)))
-            .isEqualTo(ColumnPolicy.STRICT);
-
-        execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
-            new Object[]{6, true, false});
-        execute("refresh table numbers");
-
-        Map<String, Object> sourceMap = getSourceMap(
-            new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
-        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY)))
-            .isEqualTo(ColumnPolicy.STRICT);
-
-        Asserts.assertSQLError(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
-                                   new Object[]{28, true, false, true}))
-            .hasPGError(UNDEFINED_COLUMN)
-            .hasHTTPError(NOT_FOUND, 4043)
-            .hasMessageContaining("Column perfect unknown");
-    }
-
-    @Test
-    public void testStrictPartitionedTableUpdate() throws Exception {
-        execute("create table numbers (" +
-                "  num int, " +
-                "  odd boolean," +
-                "  prime boolean" +
-                ") partitioned by (odd) with (column_policy='strict', number_of_replicas=0)");
-        ensureYellow();
-
-        GetIndexTemplatesResponse response = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
-            .get();
-        assertThat(response.getIndexTemplates()).hasSize(1);
-        IndexTemplateMetadata template = response.getIndexTemplates().get(0);
-        CompressedXContent mappingStr = template.mapping();
-        assertThat(mappingStr).isNotNull();
-        ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(ColumnPolicy.fromMappingValue(mapping.get(ColumnPolicy.MAPPING_KEY)))
-            .isEqualTo(ColumnPolicy.STRICT);
-
-        execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
-            new Object[]{6, true, false});
-        execute("refresh table numbers");
-
-        Map<String, Object> sourceMap = getSourceMap(
-            new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
-        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.STRICT);
-
-        Asserts.assertSQLError(() -> execute("update numbers set num=?, perfect=? where num=6",
-                                   new Object[]{28, true}))
-            .hasPGError(UNDEFINED_COLUMN)
-            .hasHTTPError(NOT_FOUND, 4043)
-            .hasMessageContaining("Column perfect unknown");
-    }
-
-    @Test
-    public void testDynamicPartitionedTable() throws Exception {
-        execute("create table numbers (" +
-                "  num int, " +
-                "  odd boolean," +
-                "  prime boolean" +
-                ") partitioned by (odd) with (column_policy='dynamic', number_of_replicas=0)");
-        ensureYellow();
-
-        GetIndexTemplatesResponse templateResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
-            .get();
-        assertThat(templateResponse.getIndexTemplates()).hasSize(1);
-        IndexTemplateMetadata template = templateResponse.getIndexTemplates().get(0);
-        CompressedXContent mappingStr = template.mapping();
-        assertThat(mappingStr).isNotNull();
-        ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(mapping.get("dynamic")).isEqualTo("true");
-
-        execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
-            new Object[]{6, true, false});
-        execute("refresh table numbers");
-
-        Map<String, Object> sourceMap = getSourceMap(
-            new PartitionName(new RelationName("doc", "numbers"), Collections.singletonList("true")).asIndexName());
-        assertThat(sourceMap.get("dynamic")).isEqualTo("true");
-
-        execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
-            new Object[]{28, true, false, true});
-        ensureYellow();
-        execute("refresh table numbers");
-
-        execute("select * from numbers order by num");
-        assertThat(response).hasColumns("num", "odd", "prime", "perfect");
-        assertThat(response).hasRows(
-            "6| true| false| NULL",
-            "28| true| false| true"
-        );
-
-        execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
-        assertThat(response).hasRowCount(1);
-
-    }
-
-    @Test
-    public void testAlterDynamicTable() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer primary key, " +
-                "  score double" +
-                ") with (number_of_replicas=0)");
-        ensureYellow();
-        execute("alter table dynamic_table set (column_policy = 'strict')");
-        waitNoPendingTasksOnAll();
-        Asserts.assertSQLError(() -> execute(
-                "insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')"))
-            .hasPGError(UNDEFINED_COLUMN)
-            .hasHTTPError(NOT_FOUND, 4043)
+        assertSQLError(() -> execute("update tbl set new_col = 1"))
             .hasMessageContaining("Column new_col unknown");
     }
 
     @Test
-    public void testAlterTable() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer primary key, " +
-                "  score double" +
-                ") with (number_of_replicas=0, column_policy='strict')");
-        ensureYellow();
-        execute("insert into dynamic_table (id, score) values (1, 42)");
-        execute("alter table dynamic_table set (column_policy = 'dynamic')");
-        waitNoPendingTasksOnAll();
-        execute("insert into dynamic_table (id, score, new_col) values (2, 4656234.345, 'hello')");
+    public void test_can_create_column_with_dynamic_column_policy() throws Exception {
+        execute("create table tbl (x int, p int) partitioned by (p) with (column_policy = 'dynamic')");
+        execute("select column_policy from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("dynamic");
+
+        // can add column via insert or update
+        execute("insert into tbl (x, p, col1) values (1, 1, 1)");
+        execute("refresh table tbl");
+        execute("update tbl set col1 = 2, col2 = 3 where x = 1");
+
+        execute("""
+            select
+                ordinal_position,
+                column_name
+            from information_schema.columns
+            where table_name = 'tbl'
+            order by ordinal_position
+            """);
+        assertThat(response).hasRows(
+            "1| x",
+            "2| p",
+            "3| col1",
+            "4| col2"
+        );
     }
 
     @Test
-    public void testResetColumnPolicy() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer, " +
-                "  score double" +
-                ") with (number_of_replicas=0)");
-        ensureYellow();
-        execute("alter table dynamic_table set (column_policy = 'dynamic')");
-        waitNoPendingTasksOnAll();
-        assertThat(ColumnPolicy.fromMappingValue(getSourceMap("dynamic_table").get(ColumnPolicy.MAPPING_KEY)))
-            .isEqualTo(ColumnPolicy.DYNAMIC);
-        execute("alter table dynamic_table reset (column_policy)");
-        waitNoPendingTasksOnAll();
-        assertThat(ColumnPolicy.fromMappingValue(getSourceMap("dynamic_table").get(ColumnPolicy.MAPPING_KEY)))
-            .isEqualTo(ColumnPolicy.STRICT);
+    public void test_can_change_column_policy() throws Exception {
+        String createTable = "create table tbl (x int, p int)";
+        if (randomBoolean()) {
+            createTable += " partitioned by (p)";
+        }
+
+        execute(createTable);
+
+        // if partitioned this will create two partitions up-front
+        execute("insert into tbl (x, p) values (1, 1), (2, 2)");
+
+        execute("select column_policy from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("strict");
+
+        assertSQLError(() -> execute("insert into tbl (x, p, col1) values (1, 1, 3)"))
+            .hasMessageContaining("Column col1 unknown");
+
+        execute("alter table tbl set (column_policy = 'dynamic')");
+        execute("select column_policy from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("dynamic");
+
+        // if partitioned this will hit an existing partition, and a new partition
+        execute("insert into tbl (x, p, col1) values (1, 1, 1), (3, 3, 3)");
+        execute("alter table tbl reset (column_policy)");
+
+        execute("select column_policy from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("strict");
+
+        assertSQLError(() -> execute("insert into tbl (x, p, col2) values (1, 1, 3)"))
+            .hasMessageContaining("Column col2 unknown");
+
+        assertSQLError(() -> execute("insert into tbl (x, p, col2) values (4, 4, 3)"))
+            .hasMessageContaining("Column col2 unknown");
     }
-
-    @Test
-    public void testResetColumnPolicyPartitioned() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer, " +
-                "  score double" +
-                ") partitioned by (score) with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into dynamic_table (id, score) values (1, 10)");
-        execute("refresh table dynamic_table");
-        execute("alter table dynamic_table set (column_policy = 'dynamic')");
-        waitNoPendingTasksOnAll();
-        String indexName = new PartitionName(
-            new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName();
-        Map<String, Object> sourceMap = getSourceMap(indexName);
-        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.DYNAMIC);
-        execute("alter table dynamic_table reset (column_policy)");
-        waitNoPendingTasksOnAll();
-        sourceMap = getSourceMap(indexName);
-        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.STRICT);
-    }
-
-    @Test
-    public void testAlterColumnPolicyOnPartitionedTableWithExistingPartitions() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer, " +
-                "  score double" +
-                ") partitioned by (score) with (number_of_replicas=0, column_policy='strict')");
-        ensureYellow();
-        // create at least 2 partitions to test real multi partition logic (1 partition would behave similar to 1 normal table)
-        execute("insert into dynamic_table (id, score) values (1, 10)");
-        execute("insert into dynamic_table (id, score) values (1, 20)");
-        execute("refresh table dynamic_table");
-        ensureYellow();
-        execute("alter table dynamic_table set (column_policy = 'dynamic')");
-        waitNoPendingTasksOnAll();
-        // After changing the column_policy it's possible to add new columns to existing and new
-        // partitions
-        execute("insert into dynamic_table (id, score, comment) values (2, 10, 'this is a new column')");
-        execute("insert into dynamic_table (id, score, new_comment) values (2, 5, 'this is a new column on a new partition')");
-        execute("refresh table dynamic_table");
-        ensureYellow();
-        GetIndexTemplatesResponse response = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "dynamic_table")))
-            .get();
-        assertThat(response.getIndexTemplates()).hasSize(1);
-        IndexTemplateMetadata template = response.getIndexTemplates().get(0);
-        CompressedXContent mappingStr = template.mapping();
-        assertThat(mappingStr).isNotNull();
-        ParsedXContent typeAndMap =
-            XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(ColumnPolicy.fromMappingValue(mapping.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
-
-        execute("insert into dynamic_table (id, score, new_col) values (?, ?, ?)",
-            new Object[]{6, 3, "hello"});
-        execute("refresh table dynamic_table");
-        ensureYellow();
-
-        Map<String, Object> sourceMap = getSourceMap(
-            new PartitionName(new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName());
-        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.DYNAMIC);
-
-        sourceMap = getSourceMap(new PartitionName(
-            new RelationName("doc", "dynamic_table"), Arrays.asList("5.0")).asIndexName());
-        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.DYNAMIC);
-
-        sourceMap = getSourceMap(new PartitionName(
-            new RelationName("doc", "dynamic_table"), Arrays.asList("3.0")).asIndexName());
-        assertThat(ColumnPolicy.fromMappingValue(sourceMap.get(ColumnPolicy.MAPPING_KEY))).isEqualTo(ColumnPolicy.DYNAMIC);
-    }
-
 }
