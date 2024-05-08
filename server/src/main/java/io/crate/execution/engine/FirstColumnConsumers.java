@@ -33,8 +33,10 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
+import io.crate.types.DataType;
 
 /**
  * Collectors to retrieve either {@link AllValues} or a {@link SingleValue} of the first column of each row.
@@ -43,10 +45,12 @@ public class FirstColumnConsumers {
 
     private static class AllValues implements Collector<Row, List<Object>, List<Object>> {
 
-        private final RowAccounting<Row> rowAccounting;
+        private final RamAccounting ramAccounting;
+        private final DataType<Object> dataType;
 
-        private AllValues(RowAccounting<Row> rowAccounting) {
-            this.rowAccounting = rowAccounting;
+        private AllValues(RamAccounting ramAccounting, DataType<?> dataType) {
+            this.ramAccounting = ramAccounting;
+            this.dataType = (DataType<Object>) dataType;
         }
 
         @Override
@@ -57,8 +61,9 @@ public class FirstColumnConsumers {
         @Override
         public BiConsumer<List<Object>, Row> accumulator() {
             return (agg, row) -> {
-                rowAccounting.accountForAndMaybeBreak(row);
-                agg.add(row.get(0));
+                Object value = row.get(0);
+                ramAccounting.addBytes(dataType.valueBytes(value));
+                agg.add(value);
             };
         }
 
@@ -126,10 +131,10 @@ public class FirstColumnConsumers {
 
     }
 
-    public static Collector<Row, ?, ?> getCollector(ResultType resultType, RowAccounting<Row> rowAccounting) {
+    public static Collector<Row, ?, ?> getCollector(ResultType resultType, DataType<?> dataType, RamAccounting ramAccounting) {
         if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
             return SingleValue.INSTANCE;
         }
-        return new AllValues(rowAccounting);
+        return new AllValues(ramAccounting, dataType);
     }
 }

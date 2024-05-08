@@ -83,7 +83,6 @@ public final class MultiPhaseExecutor {
     }
 
     private static CollectingRowConsumer<?, ?> getConsumer(SelectSymbol selectSymbol, RamAccounting ramAccounting) {
-        var rowAccounting = new TypedRowAccounting(List.of(selectSymbol.innerType()), ramAccounting);
-        return new CollectingRowConsumer<>(FirstColumnConsumers.getCollector(selectSymbol.getResultType(), rowAccounting));
+        return new CollectingRowConsumer<>(FirstColumnConsumers.getCollector(selectSymbol.getResultType(), selectSymbol.innerType(), ramAccounting));
     }
 }

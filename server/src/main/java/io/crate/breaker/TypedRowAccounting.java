@@ -35,19 +35,6 @@ import io.crate.types.DataType;
  */
 public class TypedRowAccounting implements RowAccounting<Row> {
 
-    public static RowAccounting<Row> NO_ACCOUNTING = new RowAccounting<>() {
-
-        @Override
-        public long accountForAndMaybeBreak(Row row) {
-            return -1;
-        }
-
-        @Override
-        public void release() {
-
-        }
-    };
-
     private final RamAccounting ramAccounting;
     private final CellsSizeEstimator estimateRowSize;
     private int extraSizePerRow = 0;

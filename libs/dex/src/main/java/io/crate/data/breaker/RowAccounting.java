@@ -21,11 +21,26 @@
 
 package io.crate.data.breaker;
 
+import io.crate.data.Row;
+
 /**
  * Accounts for memory of rows representations to avoid OutOfMemoryErrors.
  * Calculated memory usage can be released.
  */
 public interface RowAccounting<T> {
+
+    RowAccounting<Row> NO_ACCOUNTING = new RowAccounting<>() {
+
+        @Override
+        public long accountForAndMaybeBreak(Row row) {
+            return -1;
+        }
+
+        @Override
+        public void release() {
+
+        }
+    };
 
     /**
      * Accounts memory usage of the supplied row representation.

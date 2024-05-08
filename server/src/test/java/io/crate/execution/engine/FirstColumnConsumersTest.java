@@ -30,34 +30,45 @@ import org.junit.Test;
 
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.data.breaker.RowAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.types.DataTypes;
 
 
 public class FirstColumnConsumersTest {
 
     @Test
     public void test_accounting_for_all_consumer() {
-        TestingRowAccounting accounting = new TestingRowAccounting();
+        TestingRamAccounting accounting = new TestingRamAccounting();
         Collector<Row, List<Object>, ?> collector = (Collector<Row, List<Object>, ?>) FirstColumnConsumers
-            .getCollector(SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES, accounting);
+            .getCollector(SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES, DataTypes.INTEGER, accounting);
         List<Object> supllier = collector.supplier().get();
         collector.accumulator().accept(supllier, new Row1(1));
         assertThat(accounting.calls).isEqualTo(1);
     }
 
-    static class TestingRowAccounting implements RowAccounting<Row> {
+    static class TestingRamAccounting implements RamAccounting {
 
         int calls;
 
         @Override
-        public long accountForAndMaybeBreak(Row row) {
+        public void addBytes(long bytes) {
             calls++;
-            return calls;
+        }
+
+        @Override
+        public long totalBytes() {
+            return 0;
         }
 
         @Override
         public void release() {
+
+        }
+
+        @Override
+        public void close() {
+
         }
     }
 }
