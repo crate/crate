@@ -32,8 +32,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 /**
@@ -89,9 +87,4 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Update indices settings.
      */
     CompletableFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request);
-
-    /**
-     * Gets index template.
-     */
-    CompletableFuture<GetIndexTemplatesResponse> getTemplates(GetIndexTemplatesRequest request);
 }
