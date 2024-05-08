@@ -194,9 +194,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     public static final String SETTING_VERSION_UPGRADED = "index.version.upgraded";
     public static final String SETTING_CREATION_DATE = "index.creation_date";
-    public static final String SETTING_PRIORITY = "index.priority";
-    public static final Setting<Integer> INDEX_PRIORITY_SETTING =
-        Setting.intSetting("index.priority", 1, 0, Property.Dynamic, Property.IndexScope);
     public static final String SETTING_CREATION_DATE_STRING = "index.creation_date_string";
     public static final String SETTING_INDEX_UUID = "index.uuid";
     public static final String SETTING_HISTORY_UUID = "index.history.uuid";
