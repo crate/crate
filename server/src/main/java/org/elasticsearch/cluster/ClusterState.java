@@ -64,6 +64,10 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.Constants;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.view.ViewsMetadata;
 import io.crate.server.xcontent.XContentHelper;
 
 /**
@@ -291,6 +295,34 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
         return this.nodes().getMasterNodeId() != null && this.nodes().getMasterNodeId().equals(other.nodes().getMasterNodeId())
             && this.version() > other.version();
 
+    }
+
+    public RelationName getRelationName(int oid) {
+        for (var cursor : metadata.indices().keys()) {
+            String indexName = cursor.value;
+            RelationName relationName = RelationName.fromIndexName(indexName);
+            if (oid == OidHash.relationOid(OidHash.Type.TABLE, relationName)) {
+                return relationName;
+            }
+        }
+        for (var cursor : metadata.templates().keys()) {
+            String templateName = cursor.value;
+            RelationName relationName = PartitionName.fromIndexOrTemplate(templateName).relationName();
+            if (oid == OidHash.relationOid(OidHash.Type.TABLE, relationName)) {
+                return relationName;
+            }
+        }
+        ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
+        if (viewsMetadata != null) {
+            for (String viewName : viewsMetadata.names()) {
+                RelationName relationName = RelationName.fromIndexName(viewName);
+                if (oid == OidHash.relationOid(OidHash.Type.VIEW, relationName)) {
+                    return relationName;
+                }
+            }
+        }
+        // foreign tables
+        return null;
     }
 
     public enum Metric {

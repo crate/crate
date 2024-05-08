@@ -288,7 +288,7 @@ public class UserDefinedFunctionService {
         // The iteration of schemas/tables must happen on the node context WITHOUT the UDF already removed.
         // Otherwise the lazy table factories will already fail while evaluating generated functionsMetadata.
         // To avoid that, a copy of the node context with the removed UDF function is used on concrete expression evaluation.
-        var nodeCtxWithRemovedFunction = new NodeContext(nodeCtx.functions().copyOf(), nodeCtx.roles());
+        var nodeCtxWithRemovedFunction = new NodeContext(nodeCtx.functions().copyOf(), nodeCtx.roles(), clusterService);
         updateImplementations(schema, functionsMetadata.functionsMetadata().stream(), nodeCtxWithRemovedFunction);
 
         var metadata = currentState.metadata();

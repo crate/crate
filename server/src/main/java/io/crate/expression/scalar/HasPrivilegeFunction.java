@@ -25,10 +25,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.FourFunction;
+import io.crate.common.FiveFunction;
 import io.crate.data.Input;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RoleUnknownException;
@@ -47,7 +49,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
     private final BiFunction<Roles, Object, Role> getUser;
 
-    private final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege;
+    private final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> checkPrivilege;
 
     protected static final BiFunction<Roles, Object, Role> USER_BY_NAME = (roles, userName) -> roles.getUser((String) userName);
 
@@ -74,7 +76,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     protected HasPrivilegeFunction(Signature signature,
                                    BoundSignature boundSignature,
                                    BiFunction<Roles, Object, Role> getUser,
-                                   FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege) {
+                                   FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> checkPrivilege) {
         super(signature, boundSignature);
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
@@ -159,7 +161,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         if (schemaNameOrOid == null || privileges == null) {
             return null;
         }
-        return checkPrivilege.apply(roles, user, schemaNameOrOid, parsePermissions((String) privileges));
+        return checkPrivilege.apply(roles, user, schemaNameOrOid, parsePermissions((String) privileges), nodeCtx::clusterState);
     }
 
     private class CompiledHasPrivilege extends Scalar<Boolean, Object> {
@@ -206,7 +208,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             if (schema == null || privilege == null) {
                 return null;
             }
-            return checkPrivilege.apply(roles, user, schema, getPermissions.apply(privilege));
+            return checkPrivilege.apply(roles, user, schema, getPermissions.apply(privilege), nodeContext::clusterState);
         }
     }
 

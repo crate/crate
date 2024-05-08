@@ -53,6 +53,7 @@ import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -215,13 +216,14 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext() {
-        return createNodeContext(List.of(Role.CRATE_USER));
+        return createNodeContext(List.of(Role.CRATE_USER), null);
     }
 
-    public static NodeContext createNodeContext(List<Role> roles) {
+    public static NodeContext createNodeContext(List<Role> roles, ClusterService clusterService) {
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
-            () -> roles
+            () -> roles,
+            clusterService
         );
     }
 

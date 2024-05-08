@@ -328,7 +328,8 @@ public class SQLExecutor {
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
             var nodeCtx = new NodeContext(
                 Functions.load(settings, sessionSettingRegistry),
-                roleManager
+                roleManager,
+                clusterService
             );
             var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             var udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);

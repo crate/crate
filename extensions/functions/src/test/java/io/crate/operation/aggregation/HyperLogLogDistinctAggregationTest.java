@@ -60,7 +60,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     public void prepareFunctions() {
         Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         Roles roles = () -> List.of(Role.CRATE_USER);
-        nodeCtx = new NodeContext(functions, roles);
+        nodeCtx = new NodeContext(functions, roles, null);
     }
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {

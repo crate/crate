@@ -383,7 +383,7 @@ public class Node implements Closeable {
             resourcesToClose.add(clusterService);
 
             final Roles roles = new RolesService(clusterService);
-            final NodeContext nodeContext = new NodeContext(functions, roles);
+            final NodeContext nodeContext = new NodeContext(functions, roles, clusterService);
 
             SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
             final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(

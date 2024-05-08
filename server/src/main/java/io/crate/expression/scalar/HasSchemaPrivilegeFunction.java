@@ -25,10 +25,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.FourFunction;
+import io.crate.common.FiveFunction;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
@@ -45,8 +47,8 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_schema_privilege");
 
-    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_SCHEMA_NAME =
-        (roles, user, schema, permissions) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_SCHEMA_NAME =
+        (roles, user, schema, permissions, clusterState) -> {
             String schemaName = (String) schema;
             boolean result = false;
             for (Permission permission : permissions) {
@@ -60,8 +62,8 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
             return result;
         };
 
-    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_SCHEMA_OID =
-        (roles, user, schema, permissions) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_SCHEMA_OID =
+        (roles, user, schema, permissions, clusterState) -> {
             Integer schemaOid = (Integer) schema;
             boolean result = false;
             for (Permission permission : permissions) {
@@ -170,7 +172,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
     protected HasSchemaPrivilegeFunction(Signature signature,
                                          BoundSignature boundSignature,
                                          BiFunction<Roles, Object, Role> getUser,
-                                         FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege) {
+                                         FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

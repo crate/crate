@@ -92,7 +92,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),
-            new NodeContext(cluster().getInstance(Functions.class), null),
+            new NodeContext(cluster().getInstance(Functions.class), null, clusterService()),
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
             NumberOfReplicas.effectiveNumReplicas(tableSettings, state.nodes()),

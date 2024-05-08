@@ -89,7 +89,7 @@ public class FileCollectSourceTest extends CrateDummyClusterServiceUnitTest {
 
         Roles roles = () -> List.of(Role.CRATE_USER);
         FileCollectSource fileCollectSource = new FileCollectSource(
-            new NodeContext(new Functions(Map.of()), roles),
+            new NodeContext(new Functions(Map.of()), roles, clusterService),
             clusterService,
             Map.of(),
             THREAD_POOL,

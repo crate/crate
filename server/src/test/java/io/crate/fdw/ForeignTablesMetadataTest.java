@@ -86,7 +86,7 @@ public class ForeignTablesMetadataTest extends ESTestCase {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             Strings.toString(builder));
         parser.nextToken();
-        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), () -> List.of());
+        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), () -> List.of(), null);
         ForeignTablesMetadata deserializedTables = ForeignTablesMetadata.fromXContent(nodeCtx, parser);
 
         assertThat(deserializedTables).isEqualTo(foreignTables);

@@ -63,7 +63,7 @@ public class CustomMetadataTest {
 
         String xContent = xContentFromMetadata(metadata);
 
-        NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of());
+        NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of(), null);
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             new NamedXContentRegistry(MetadataModule.getNamedXContents(nodeContext)),
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,

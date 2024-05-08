@@ -112,7 +112,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
     private Function<Symbol, Object> symbolEvaluator(Row row) {
         return x -> SymbolEvaluator.evaluate(
             TransactionContext.of(new SessionSettings("", SearchPath.createSearchPathFrom(""))),
-            new NodeContext(new Functions(Map.of()), null),
+            new NodeContext(new Functions(Map.of()), null, null),
             x,
             row,
             SubQueryResults.EMPTY);

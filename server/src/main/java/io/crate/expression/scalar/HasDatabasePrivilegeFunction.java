@@ -25,11 +25,13 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
-import io.crate.common.FourFunction;
+import io.crate.common.FiveFunction;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
@@ -46,8 +48,8 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_database_privilege");
 
-    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_DB_NAME =
-        (roles, user, db, permissions) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_DB_NAME =
+        (roles, user, db, permissions, clusterState) -> {
             if (Constants.DB_NAME.equals(db) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "database \"%s\" does not exist",
@@ -56,8 +58,8 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return checkPrivileges(user, permissions);
         };
 
-    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_DB_OID =
-        (roles, user, db, privileges) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> CHECK_BY_DB_OID =
+        (roles, user, db, privileges, clusterState) -> {
             if (Constants.DB_OID != (Integer) db) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "database with OID \"%s\" does not exist",
@@ -198,7 +200,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
     protected HasDatabasePrivilegeFunction(Signature signature,
                                            BoundSignature boundSignature,
                                            BiFunction<Roles, Object, Role> getUser,
-                                           FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege) {
+                                           FiveFunction<Roles, Role, Object, Collection<Permission>, Supplier<ClusterState>, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }
