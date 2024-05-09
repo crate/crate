@@ -33,7 +33,9 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
+import io.crate.types.DataType;
 
 /**
  * Collectors to retrieve either {@link AllValues} or a {@link SingleValue} of the first column of each row.
@@ -42,9 +44,13 @@ public class FirstColumnConsumers {
 
     private static class AllValues implements Collector<Row, List<Object>, List<Object>> {
 
-        public static final AllValues INSTANCE = new AllValues();
+        private final RamAccounting ramAccounting;
+        private final DataType<Object> dataType;
 
-        private AllValues() {
+        @SuppressWarnings("unchecked")
+        private AllValues(RamAccounting ramAccounting, DataType<?> dataType) {
+            this.ramAccounting = ramAccounting;
+            this.dataType = (DataType<Object>) dataType;
         }
 
         @Override
@@ -55,7 +61,9 @@ public class FirstColumnConsumers {
         @Override
         public BiConsumer<List<Object>, Row> accumulator() {
             return (agg, row) -> {
-                agg.add(row.get(0));
+                Object value = row.get(0);
+                ramAccounting.addBytes(dataType.valueBytes(value));
+                agg.add(value);
             };
         }
 
@@ -123,11 +131,10 @@ public class FirstColumnConsumers {
 
     }
 
-    public static Collector<Row, ?, ?> getCollector(ResultType resultType) {
-        return switch (resultType) {
-            case SINGLE_COLUMN_MULTIPLE_VALUES -> AllValues.INSTANCE;
-            case SINGLE_COLUMN_SINGLE_VALUE -> SingleValue.INSTANCE;
-            case SINGLE_COLUMN_EXISTS -> AllValues.INSTANCE;
-        };
+    public static Collector<Row, ?, ?> getCollector(ResultType resultType, DataType<?> dataType, RamAccounting ramAccounting) {
+        if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
+            return SingleValue.INSTANCE;
+        }
+        return new AllValues(ramAccounting, dataType);
     }
 }
