@@ -46,4 +46,6 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Added memory accounting for multi-phase execution to prevent out-of-memory
+  errors caused by sub-queries such as ''SELECT * FROM t1 WHERE id IN
+  (SELECT id FROM t2)'' or lookup-joins with large intermediate results.
