@@ -70,6 +70,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.View;
+import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.role.Role;
@@ -522,7 +523,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             }
             for (RelationInfo relation : schema.getTables()) {
                 if (oid == OidHash.relationOid(relation)) {
-                    return relation.ident().sqlFqn();
+                    return relation.ident().fqn();
+                }
+            }
+            for (ViewInfo view : schema.getViews()) {
+                RelationName viewIdent = view.ident();
+                if (oid == OidHash.relationOid(OidHash.Type.fromRelationType(view.relationType()), viewIdent)) {
+                    return viewIdent.fqn();
                 }
             }
         }

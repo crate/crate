@@ -51,6 +51,11 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
             for (Permission permission : permissions) {
                 result |= roles.hasPrivilege(user, permission, Securable.TABLE, tableFqn);
             }
+            if (!result) {
+                for (Permission permission : permissions) {
+                    result |= roles.hasPrivilege(user, permission, Securable.VIEW, tableFqn);
+                }
+            }
             return result;
         };
 
@@ -64,6 +69,11 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
             boolean result = false;
             for (Permission permission : permissions) {
                 result |= roles.hasPrivilege(user, permission, Securable.TABLE, tableFqn);
+            }
+            if (!result) {
+                for (Permission permission : permissions) {
+                    result |= roles.hasPrivilege(user, permission, Securable.VIEW, tableFqn);
+                }
             }
             return result;
         };

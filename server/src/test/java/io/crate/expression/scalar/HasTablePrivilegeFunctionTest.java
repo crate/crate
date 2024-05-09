@@ -126,7 +126,12 @@ public class HasTablePrivilegeFunctionTest extends ScalarTestCase {
         assertEvaluate("has_table_privilege(" + usersTableOid + ", 'USAGE')", true);
     }
 
-    // test system schema/tables views foreign tables partitioned tables
+    @Test
+    public void test_view() {
+
+    }
+
+    // test views foreign tables partitioned tables
 
     // inherited roles ?
 
