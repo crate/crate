@@ -184,10 +184,9 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
                                             NodeContext nodeCtx,
                                             TransactionContext txnCtx,
                                             PlanStats planStats) {
-        DataType<?> dataType = smallerRelationColumn.valueType();
         var lookUpQuery = new SelectSymbol(
             new PlannedRelation(smallerSide),
-            new ArrayType<>(dataType),
+            new ArrayType<>(smallerRelationColumn.valueType()),
             SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES,
             true
         );
@@ -206,15 +205,17 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
         );
         var largerSideWithLookup = new Filter(largerSide, anyEqFunction);
         var smallerSidePruned = smallerSide.pruneOutputsExcept(List.of(smallerRelationColumn));
-        Stats stats = planStats.get(smallerSidePruned);
-        ColumnStats<?> columnStats = stats.statsByColumn().values().iterator().next();
-        double estimatedMemoryForLookup = columnStats.averageSizeInBytes() * columnStats.approxDistinct();
+
+        var stats = planStats.get(smallerSidePruned);
+        var columnStats = stats.statsByColumn().values().iterator().next();
+        double estimatedMemoryForLookupInBytes = columnStats.averageSizeInBytes() * columnStats.approxDistinct();
         int memoryLimitInBytes = txnCtx.sessionSettings().memoryLimitInBytes();
-        if (memoryLimitInBytes != 0 && estimatedMemoryForLookup > memoryLimitInBytes) {
+        if (memoryLimitInBytes != 0 && estimatedMemoryForLookupInBytes > memoryLimitInBytes) {
             return null;
         }
 
         var eval = Eval.create(smallerSidePruned, List.of(smallerRelationColumn));
+
         var smallerSideIdLookup = new RootRelationBoundary(eval);
         Map<LogicalPlan, SelectSymbol> subQueries = Map.of(smallerSideIdLookup, lookUpQuery);
         return MultiPhase.createIfNeeded(subQueries, largerSideWithLookup);
