@@ -18,23 +18,15 @@
  */
 package org.elasticsearch.cluster.routing.allocation;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus.DECIDERS_NO;
-import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_INCOMING_RECOVERIES_SETTING;
-import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_OUTGOING_RECOVERIES_SETTING;
-import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -43,28 +35,19 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.IndexRoutingTable;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
-import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayAllocator;
-import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Test;
@@ -113,124 +96,6 @@ public class AllocationServiceTests extends ESTestCase {
         final String abbreviated = AllocationService.firstListElementsToCommaDelimitedString(strings, s -> "formatted", randomBoolean());
         assertThat(abbreviated, containsString("formatted"));
         assertThat(abbreviated, not(containsString("original")));
-    }
-
-    public void testAssignsPrimariesInPriorityOrderThenReplicas() {
-        // throttle (incoming) recoveries in order to observe the order of operations, but do not throttle outgoing recoveries since
-        // the effects of that depend on the earlier (random) allocations
-        final Settings settings = Settings.builder()
-            .put(CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING.getKey(), 1)
-            .put(CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_INCOMING_RECOVERIES_SETTING.getKey(), 1)
-            .put(CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_OUTGOING_RECOVERIES_SETTING.getKey(), Integer.MAX_VALUE)
-            .build();
-        final ClusterSettings clusterSettings = new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-        final AllocationService allocationService = new AllocationService(
-            new AllocationDeciders(Arrays.asList(
-                new SameShardAllocationDecider(settings, clusterSettings),
-                new ThrottlingAllocationDecider(settings, clusterSettings))),
-            new ShardsAllocator() {
-                @Override
-                public void allocate(RoutingAllocation allocation) {
-                    // all primaries are handled by existing shards allocators in these tests; even the invalid allocator prevents shards
-                    // from falling through to here
-                    assertThat(allocation.routingNodes().unassigned().getNumPrimaries(), equalTo(0));
-                }
-
-                @Override
-                public ShardAllocationDecision decideShardAllocation(ShardRouting shard, RoutingAllocation allocation) {
-                    return ShardAllocationDecision.NOT_TAKEN;
-                }
-            }, EmptyClusterInfoService.INSTANCE, EmptySnapshotsInfoService.INSTANCE);
-
-        final String unrealisticAllocatorName = "unrealistic";
-        final Map<String, ExistingShardsAllocator> allocatorMap = new HashMap<>();
-        final TestGatewayAllocator testGatewayAllocator = new TestGatewayAllocator();
-        allocatorMap.put(GatewayAllocator.ALLOCATOR_NAME, testGatewayAllocator);
-        allocatorMap.put(unrealisticAllocatorName, new UnrealisticAllocator());
-        allocationService.setExistingShardsAllocators(allocatorMap);
-
-        final DiscoveryNodes.Builder nodesBuilder = DiscoveryNodes.builder();
-        nodesBuilder.add(new DiscoveryNode("node1", buildNewFakeTransportAddress(), Version.CURRENT));
-        nodesBuilder.add(new DiscoveryNode("node2", buildNewFakeTransportAddress(), Version.CURRENT));
-        nodesBuilder.add(new DiscoveryNode("node3", buildNewFakeTransportAddress(), Version.CURRENT));
-
-        // Need to add a UUID otherwise "_na_" will be used which will result to getting the same metadata (same prio)
-        // through PriorityComparator.getAllocationComparator()->allocation.metadata().getIndexSafe()->IndexMetadata.index()
-        // which gets the index by UUID from the map
-        final Metadata.Builder metaData = Metadata.builder()
-            // create 3 indices with different priorities. The high and low priority indices use the default allocator which (in this test)
-            // does not allocate any replicas, whereas the medium priority one uses the unrealistic allocator which does allocate replicas
-            .put(indexMetadata("highPriority", Settings.builder()
-                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-                .put(IndexMetadata.SETTING_PRIORITY, 10)))
-            .put(indexMetadata("mediumPriority", Settings.builder()
-                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-                .put(IndexMetadata.SETTING_PRIORITY, 5)
-                .put(ExistingShardsAllocator.EXISTING_SHARDS_ALLOCATOR_SETTING.getKey(), unrealisticAllocatorName)))
-            .put(indexMetadata("lowPriority", Settings.builder()
-                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-                .put(IndexMetadata.SETTING_PRIORITY, 3)))
-
-            // also create a 4th index with arbitrary priority and an invalid allocator that we expect to ignore
-            .put(indexMetadata("invalid", Settings.builder()
-                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-                .put(IndexMetadata.SETTING_PRIORITY, between(0, 15))
-                .put(ExistingShardsAllocator.EXISTING_SHARDS_ALLOCATOR_SETTING.getKey(), "unknown")));
-
-        final RoutingTable.Builder routingTableBuilder = RoutingTable.builder()
-            .addAsRecovery(metaData.get("highPriority"))
-            .addAsRecovery(metaData.get("mediumPriority"))
-            .addAsRecovery(metaData.get("lowPriority"))
-            .addAsRecovery(metaData.get("invalid"));
-
-        final ClusterState clusterState = ClusterState.builder(ClusterName.DEFAULT)
-            .nodes(nodesBuilder)
-            .metadata(metaData)
-            .routingTable(routingTableBuilder.build())
-            .build();
-
-        // permit the testGatewayAllocator to allocate primaries to every node
-        for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
-            for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
-                final ShardRouting primaryShard = indexShardRoutingTable.primaryShard();
-                for (DiscoveryNode node : clusterState.nodes()) {
-                    testGatewayAllocator.addKnownAllocation(primaryShard.initialize(node.getId(), FAKE_IN_SYNC_ALLOCATION_ID, 0L));
-                }
-            }
-        }
-
-        final ClusterState reroutedState1 = rerouteAndStartShards(allocationService, clusterState);
-        final RoutingTable routingTable1 = reroutedState1.routingTable();
-        // the test harness only permits one recovery per node, so we must have allocated all the high-priority primaries and one of the
-        // medium-priority ones
-        assertThat(routingTable1.shardsWithState(ShardRoutingState.INITIALIZING), empty());
-        assertThat(routingTable1.shardsWithState(ShardRoutingState.RELOCATING), empty());
-        assertTrue(routingTable1.shardsWithState(ShardRoutingState.STARTED).stream().allMatch(ShardRouting::primary));
-        assertThat(routingTable1.index("highPriority").primaryShardsActive(), equalTo(2));
-        assertThat(routingTable1.index("mediumPriority").primaryShardsActive(), equalTo(1));
-        assertThat(routingTable1.index("lowPriority").shardsWithState(ShardRoutingState.STARTED), empty());
-        assertThat(routingTable1.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
-
-        final ClusterState reroutedState2 = rerouteAndStartShards(allocationService, reroutedState1);
-        final RoutingTable routingTable2 = reroutedState2.routingTable();
-        // this reroute starts the one remaining medium-priority primary and both of the low-priority ones, but no replicas
-        assertThat(routingTable2.shardsWithState(ShardRoutingState.INITIALIZING), empty());
-        assertThat(routingTable2.shardsWithState(ShardRoutingState.RELOCATING), empty());
-        assertTrue(routingTable2.shardsWithState(ShardRoutingState.STARTED).stream().allMatch(ShardRouting::primary));
-        assertTrue(routingTable2.index("highPriority").allPrimaryShardsActive());
-        assertTrue(routingTable2.index("mediumPriority").allPrimaryShardsActive());
-        assertTrue(routingTable2.index("lowPriority").allPrimaryShardsActive());
-        assertThat(routingTable2.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
-
-        final ClusterState reroutedState3 = rerouteAndStartShards(allocationService, reroutedState2);
-        final RoutingTable routingTable3 = reroutedState3.routingTable();
-        // this reroute starts the two medium-priority replicas since their allocator permits this
-        assertThat(routingTable3.shardsWithState(ShardRoutingState.INITIALIZING), empty());
-        assertThat(routingTable3.shardsWithState(ShardRoutingState.RELOCATING), empty());
-        assertTrue(routingTable3.index("highPriority").allPrimaryShardsActive());
-        assertThat(routingTable3.index("mediumPriority").shardsWithState(ShardRoutingState.UNASSIGNED), empty());
-        assertTrue(routingTable3.index("lowPriority").allPrimaryShardsActive());
-        assertThat(routingTable3.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
     }
 
     public void testExplainsNonAllocationOfShardWithUnknownAllocator() {

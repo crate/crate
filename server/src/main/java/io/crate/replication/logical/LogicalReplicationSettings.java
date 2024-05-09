@@ -116,7 +116,6 @@ public class LogicalReplicationSettings {
         IndexMetadata.INDEX_BLOCKS_WRITE_SETTING,
         IndexMetadata.INDEX_BLOCKS_METADATA_SETTING,
         IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
-        IndexMetadata.INDEX_PRIORITY_SETTING,
         IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
         EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING,
         EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING,
