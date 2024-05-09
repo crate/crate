@@ -475,7 +475,7 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedXContent().stream()),
                 ClusterModule.getNamedXWriteables().stream(),
-                MetadataModule.getNamedXContents(new NodeContext(functions, roles, null)).stream())
+                MetadataModule.getNamedXContents(NodeContext.withoutSchemas(functions, roles)).stream())
                 .flatMap(Function.identity()).collect(Collectors.toList()));
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
             final PersistedClusterStateService persistedClusterStateService

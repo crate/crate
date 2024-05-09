@@ -35,6 +35,15 @@ public class NodeContext {
     private final Roles roles;
     private final Provider<Schemas> schemasProvider;
 
+    public static NodeContext withoutSchemas(Functions functions, Roles roles) {
+        return new NodeContext(functions, roles, null) {
+            @Override
+            public Provider<Schemas> schemasProvider() {
+                throw new IllegalStateException("The current nodeContext instance does not hold Schemas");
+            }
+        };
+    }
+
     @Inject
     public NodeContext(Functions functions, Roles roles, Provider<Schemas> schemasProvider) {
         this.functions = functions;
