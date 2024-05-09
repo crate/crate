@@ -110,7 +110,7 @@ public class NodeStatsTest extends ESTestCase {
 
         nodes.add(newNode("nodeOne"));
         nodes.add(newNode("nodeTwo"));
-        nodeCtx = createNodeContext();
+        nodeCtx = createNodeContext(null);
     }
 
     @Test

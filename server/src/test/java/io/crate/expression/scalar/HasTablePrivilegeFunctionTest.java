@@ -21,12 +21,16 @@
 
 package io.crate.expression.scalar;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
@@ -112,15 +116,18 @@ public class HasTablePrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_table_parameter_as_oid() {
-        // todo : drop doc?
-        int usersTableOid = OidHash.relationOid(OidHash.Type.TABLE, new RelationName("doc", "users"));
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_USERS_TABLE_DQL, List.of(), clusterService);
+        final RelationName usersTable = new RelationName("doc", "users");
+        final int usersTableOid = OidHash.relationOid(OidHash.Type.TABLE, usersTable);
+
+        Schemas schemas = mock(Schemas.class);
+        when(schemas.oidToName(usersTableOid)).thenReturn(usersTable.fqn());
+
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_USERS_TABLE_DQL, List.of(), schemas);
         assertEvaluate("has_table_privilege(" + usersTableOid + ", 'USAGE')", true);
     }
 
+    // test system schema/tables views foreign tables partitioned tables
 
+    // inherited roles ?
 
-    // test system schema/tables as oids since they are not part of cluster state
-
-    // test doc schema?
 }

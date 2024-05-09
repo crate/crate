@@ -54,7 +54,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         Functions functions = new Functions(Map.of());
         Role arthur = RolesHelper.userOf("arthur");
         Roles roles = () -> List.of(arthur);
-        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService, null);
+        NodeContext nodeCtx = new NodeContext(functions, roles, null);
         var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
         Settings options = Settings.builder()
             .put("url", "jdbc:postgresql://localhost:5432/")
@@ -80,7 +80,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         Functions functions = new Functions(Map.of());
         Role arthur = RolesHelper.userOf("arthur");
         Roles roles = () -> List.of(arthur);
-        NodeContext nodeCtx = new NodeContext(functions, roles, clusterService, null);
+        NodeContext nodeCtx = new NodeContext(functions, roles, null);
         var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
         Settings options = Settings.builder()
             .put("url", "jdbc:postgresql://192.0.2.0:5432/postgres")

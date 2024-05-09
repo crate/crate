@@ -74,7 +74,7 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
         );
         var fetchRows = FetchRows.create(
             CoordinatorTxnCtx.systemTransactionContext(),
-            createNodeContext(),
+            createNodeContext(null),
             fetchSources,
             List.of(
                 new FetchReference(new InputColumn(0, DataTypes.LONG), x),

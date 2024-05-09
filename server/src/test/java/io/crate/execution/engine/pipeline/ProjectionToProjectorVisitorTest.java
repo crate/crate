@@ -98,7 +98,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
 
     @Before
     public void prepare() {
-        nodeCtx = createNodeContext();
+        nodeCtx = createNodeContext(null);
         MockitoAnnotations.initMocks(this);
         visitor = new ProjectionToProjectorVisitor(
             clusterService,

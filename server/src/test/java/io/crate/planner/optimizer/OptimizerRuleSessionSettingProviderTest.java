@@ -44,7 +44,7 @@ import io.crate.role.metadata.RolesHelper;
 
 public class OptimizerRuleSessionSettingProviderTest {
 
-    private NodeContext nodeCtx = createNodeContext();
+    private NodeContext nodeCtx = createNodeContext(null);
 
     private Function<Symbol, Object> eval = x -> evaluateWithoutParams(
         CoordinatorTxnCtx.systemTransactionContext(),

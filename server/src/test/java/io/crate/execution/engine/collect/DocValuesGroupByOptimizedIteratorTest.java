@@ -98,7 +98,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
 
     @Before
     public void setup() throws IOException {
-        var nodeContext = createNodeContext();
+        var nodeContext = createNodeContext(null);
         functions = nodeContext.functions();
 
         var indexWriter = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig());
@@ -278,7 +278,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         IndexShard shard = newStartedPrimaryShard(List.of(reference), THREAD_POOL);
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
-        var nodeCtx = createNodeContext();
+        var nodeCtx = createNodeContext(null);
         FieldTypeLookup fieldTypeLookup = shard.mapperService()::fieldType;
         var referenceResolver = new LuceneReferenceResolver(shard.shardId().getIndexName(), List.of());
 

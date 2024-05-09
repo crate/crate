@@ -92,7 +92,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        NodeContext nodeCtx = createNodeContext();
+        NodeContext nodeCtx = createNodeContext(null);
         indexShard = mockIndexShard();
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(
             clusterService,

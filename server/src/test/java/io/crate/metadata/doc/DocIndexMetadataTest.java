@@ -125,7 +125,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setupNodeCtx() {
-        nodeCtx = createNodeContext();
+        nodeCtx = createNodeContext(null);
         docTableFactory = new DocTableInfoFactory(nodeCtx);
     }
 

@@ -59,8 +59,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
     NodeContext nodeContext = new NodeContext(
         Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of())),
         () -> List.of(Role.CRATE_USER),
-        clusterService,
-        null);
+            null);
     TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     private long estimate(Stats stats, Symbol symbol) {

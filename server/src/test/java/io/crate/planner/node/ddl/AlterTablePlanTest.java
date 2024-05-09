@@ -80,7 +80,7 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
         return AlterTablePlan.bind(
             plan.alterTable,
             CoordinatorTxnCtx.systemTransactionContext(),
-            createNodeContext(),
+            createNodeContext(null),
             Row.EMPTY,
             SubQueryResults.EMPTY,
             e.getPlannerContext().clusterState().metadata()

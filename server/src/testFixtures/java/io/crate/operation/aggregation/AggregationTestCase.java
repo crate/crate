@@ -149,7 +149,7 @@ public abstract class AggregationTestCase extends ESTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        nodeCtx = createNodeContext();
+        nodeCtx = createNodeContext(null);
         threadPool = new TestThreadPool(getClass().getName(), Settings.EMPTY);
         memoryManager = new OnHeapMemoryManager(RAM_ACCOUNTING::addBytes);
     }

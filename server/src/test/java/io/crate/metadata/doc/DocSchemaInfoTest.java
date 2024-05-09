@@ -70,7 +70,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setup() throws Exception {
-        nodeCtx = createNodeContext();
+        nodeCtx = createNodeContext(null);
         var docTableFactory = new DocTableInfoFactory(nodeCtx);
         udfService = new UserDefinedFunctionService(clusterService, docTableFactory, nodeCtx);
         udfService.registerLanguage(new UDFLanguage() {

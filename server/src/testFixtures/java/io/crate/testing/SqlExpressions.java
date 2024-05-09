@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.cluster.service.ClusterService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -80,8 +79,8 @@ public class SqlExpressions {
                           @Nullable FieldResolver fieldResolver,
                           Role sessionUser,
                           List<Role> additionalUsers,
-                          ClusterService clusterService) {
-        this.nodeCtx = createNodeContext(Lists.concat(additionalUsers, sessionUser), clusterService);
+                          Schemas schemas) {
+        this.nodeCtx = createNodeContext(schemas, Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
         var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? Role.CRATE_USER : sessionUser);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);

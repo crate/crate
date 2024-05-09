@@ -55,7 +55,7 @@ import io.crate.types.DataTypes;
 
 
 public class SimplifyEqualsOperationOnIdenticalReferencesTest {
-    private static final NodeContext NODE_CONTEXT = TestingHelpers.createNodeContext();
+    private static final NodeContext NODE_CONTEXT = TestingHelpers.createNodeContext(null);
     private static final FunctionSymbolResolver FUNCTION_SYMBOL_RESOLVER = (f, args) -> {
         try {
             return ExpressionAnalyzer.allocateFunction(

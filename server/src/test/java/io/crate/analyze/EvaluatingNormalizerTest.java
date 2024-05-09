@@ -73,7 +73,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         dummyLoadInfo = new SimpleReference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, 0, null);
 
         referenceImplementationMap.put(dummyLoadIdent.columnIdent(), constant(0.08d));
-        nodeCtx = createNodeContext();
+        nodeCtx = createNodeContext(null);
         referenceResolver = new MapBackedRefResolver(referenceImplementationMap);
     }
 

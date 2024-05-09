@@ -44,7 +44,7 @@ import io.crate.statistics.TableStats;
 
 public class IterativeOptimizerTest {
 
-    private final NodeContext nodeCtx = createNodeContext();
+    private final NodeContext nodeCtx = createNodeContext(null);
     private final CoordinatorTxnCtx ctx = CoordinatorTxnCtx.systemTransactionContext();
     private final PlanStats planStats = new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats());
 

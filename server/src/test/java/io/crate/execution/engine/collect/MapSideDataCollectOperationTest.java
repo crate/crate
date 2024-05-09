@@ -67,7 +67,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
     @Test
     public void testFileUriCollect() throws Exception {
         FileCollectSource fileCollectSource = new FileCollectSource(
-            createNodeContext(),
+            createNodeContext(null),
             clusterService,
             Collections.emptyMap(),
             THREAD_POOL,

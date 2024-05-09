@@ -44,7 +44,7 @@ import io.crate.metadata.RelationName;
 
 public class DocTableInfoFactoryTest extends ESTestCase {
 
-    private NodeContext nodeCtx = createNodeContext();
+    private NodeContext nodeCtx = createNodeContext(null);
 
     private String randomSchema() {
         if (randomBoolean()) {

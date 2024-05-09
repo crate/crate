@@ -45,7 +45,7 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        NodeContext nodeContext = createNodeContext();
+        NodeContext nodeContext = createNodeContext(null);
         udfService = new UserDefinedFunctionService(clusterService, new DocTableInfoFactory(nodeContext), nodeContext);
     }
 
