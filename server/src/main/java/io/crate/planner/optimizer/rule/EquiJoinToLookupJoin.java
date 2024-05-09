@@ -51,7 +51,10 @@ import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
+import io.crate.statistics.ColumnStats;
+import io.crate.statistics.Stats;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 /**
@@ -130,8 +133,23 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             largerSide,
             largerRelationColumn,
             nodeCtx,
-            txnCtx
+            txnCtx,
+            planStats
         );
+
+        if (lookupJoin == null) {
+            return new JoinPlan(
+                lhs,
+                rhs,
+                plan.joinType(),
+                plan.joinCondition(),
+                plan.isFiltered(),
+                plan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                plan.moveConstantJoinConditionRuleApplied(),
+                true,
+                AbstractJoinPlan.LookUpJoin.NONE
+            );
+        }
 
         LogicalPlan newLhs;
         LogicalPlan newRhs;
@@ -164,11 +182,12 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
                                             LogicalPlan largerSide,
                                             Symbol largerRelationColumn,
                                             NodeContext nodeCtx,
-                                            TransactionContext txnCtx) {
-
+                                            TransactionContext txnCtx,
+                                            PlanStats planStats) {
+        DataType<?> dataType = smallerRelationColumn.valueType();
         var lookUpQuery = new SelectSymbol(
             new PlannedRelation(smallerSide),
-            new ArrayType<>(smallerRelationColumn.valueType()),
+            new ArrayType<>(dataType),
             SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES,
             true
         );
@@ -187,6 +206,14 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
         );
         var largerSideWithLookup = new Filter(largerSide, anyEqFunction);
         var smallerSidePruned = smallerSide.pruneOutputsExcept(List.of(smallerRelationColumn));
+        Stats stats = planStats.get(smallerSidePruned);
+        ColumnStats<?> columnStats = stats.statsByColumn().values().iterator().next();
+        double estimatedMemoryForLookup = columnStats.averageSizeInBytes() * columnStats.approxDistinct();
+        int memoryLimitInBytes = txnCtx.sessionSettings().memoryLimitInBytes();
+        if (memoryLimitInBytes != 0 && estimatedMemoryForLookup > memoryLimitInBytes) {
+            return null;
+        }
+
         var eval = Eval.create(smallerSidePruned, List.of(smallerRelationColumn));
         var smallerSideIdLookup = new RootRelationBoundary(eval);
         Map<LogicalPlan, SelectSymbol> subQueries = Map.of(smallerSideIdLookup, lookUpQuery);
