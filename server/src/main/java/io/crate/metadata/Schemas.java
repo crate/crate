@@ -533,10 +533,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 }
             }
             Metadata metadata = clusterService.state().metadata();
-            ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
-            if (foreignTables == null) {
-                return null;
-            }
+            ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
             for (ForeignTable foreignTable : foreignTables) {
                 RelationName foreignTableIdent = foreignTable.ident();
                 if (oid == OidHash.relationOid(OidHash.Type.fromRelationType(foreignTable.relationType()), foreignTableIdent)) {
