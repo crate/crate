@@ -22,13 +22,13 @@
 package io.crate.common;
 
 /**
- * Represents a function that accepts three arguments and produces a result.
+ * Represents a function that accepts four arguments and produces a result.
  *
  * @param <A> the type of the first argument
  * @param <B> the type of the second argument
  * @param <C> the type of the third argument
  * @param <D> the type of the fourth argument
- * @param <R> the type of the fifth argument
+ * @param <E> the type of the fifth argument
  * @param <R> the return type
  */
 @FunctionalInterface
@@ -40,6 +40,7 @@ public interface FiveFunction<A, B, C, D, E, R> {
      * @param b the second function argument
      * @param c the third function argument
      * @param d the fourth function argument
+     * @param e the fifth function argument
      * @return the result
      */
     R apply(A a, B b, C c, D d, E e);
