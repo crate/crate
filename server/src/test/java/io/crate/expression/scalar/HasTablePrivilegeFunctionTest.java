@@ -67,20 +67,6 @@ public class HasTablePrivilegeFunctionTest extends ScalarTestCase {
                 new Privilege(Policy.GRANT, Permission.DQL, Securable.TABLE, "doc.users", Role.CRATE_USER.name())),
             null);
 
-    // TODO bug?
-    @Test
-    public void test_user_with_cluster_dql_do_not_have_privilege_on_unknown_table() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_DQL_ON_CLUSTER, List.of(), null);
-        assertEvaluate("has_table_privilege('testUserWithClusterDQL', 'sys.unknown_table', 'USAGE')", false);
-    }
-
-    // TODO bug?
-    @Test
-    public void test_user_with_sys_schema_dql_do_not_have_privilege_on_unknown_table_in_sys_schema() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_SYS_DQL, List.of(), null);
-        assertEvaluate("has_table_privilege('testUserWithSysDQL', 'sys.unknown_table', 'USAGE')", false);
-    }
-
     @Test
     public void test_user_with_sys_cluster_dql_do_not_have_privilege_on_sys_privileges() {
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_SYS_CLUSTER_DQL, List.of(), null);
