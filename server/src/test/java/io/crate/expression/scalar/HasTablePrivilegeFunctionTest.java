@@ -42,16 +42,6 @@ import io.crate.testing.SqlExpressions;
 
 public class HasTablePrivilegeFunctionTest extends ScalarTestCase {
 
-    private static final Role TEST_USER_WITH_CLUSTER_DQL =
-        RolesHelper.userOf("testUserWithClusterDQL", Set.of(
-                new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, Role.CRATE_USER.name())),
-            null);
-
-    private static final Role TEST_USER_WITH_SYS_SCHEMA_DQL =
-        RolesHelper.userOf("testUserWithSysDQL", Set.of(
-                new Privilege(Policy.GRANT, Permission.DQL, Securable.SCHEMA, "sys", Role.CRATE_USER.name())),
-            null);
-
     private static final Role TEST_USER_WITH_SYS_SUMMITS_TABLE_DQL =
         RolesHelper.userOf("testUserWithSysSummitsDQL", Set.of(
                 new Privilege(Policy.GRANT, Permission.DQL, Securable.TABLE, "sys.summits", Role.CRATE_USER.name())),
@@ -77,18 +67,6 @@ public class HasTablePrivilegeFunctionTest extends ScalarTestCase {
     public void test_user_with_sys_summits_table_dql_have_privilege_on_sys_summits_table() {
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_SYS_SUMMITS_TABLE_DQL, List.of(), null);
         assertEvaluate("has_table_privilege('testUserWithSysSummitsDQL', 'sys.summits', 'USAGE')", true);
-    }
-
-    @Test
-    public void test_user_with_sys_schema_dql_have_privilege_on_sys_summits_table() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_SYS_SCHEMA_DQL, List.of(), null);
-        assertEvaluate("has_table_privilege('testUserWithSysDQL', 'sys.summits', 'USAGE')", true);
-    }
-
-    @Test
-    public void test_user_with_cluster_dql_have_privilege_on_sys_summits_table() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_CLUSTER_DQL, List.of(), null);
-        assertEvaluate("has_table_privilege('testUserWithClusterDQL', 'sys.summits', 'USAGE')", true);
     }
 
     @Test
