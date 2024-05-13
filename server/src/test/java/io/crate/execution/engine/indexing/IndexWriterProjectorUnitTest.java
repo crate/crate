@@ -106,7 +106,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             scheduler,
             executor,
             CoordinatorTxnCtx.systemTransactionContext(),
-            createNodeContext(null),
+            createNodeContext(),
             Settings.EMPTY,
             5,
             1,

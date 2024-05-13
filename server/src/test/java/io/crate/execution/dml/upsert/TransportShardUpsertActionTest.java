@@ -193,7 +193,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),
-            createNodeContext(null),
+            createNodeContext(),
             schemas
         );
     }

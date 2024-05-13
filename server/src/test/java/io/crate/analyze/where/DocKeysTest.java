@@ -39,7 +39,7 @@ import io.crate.planner.operators.SubQueryResults;
 
 public class DocKeysTest extends ESTestCase {
 
-    private NodeContext nodeCtx = createNodeContext(null);
+    private NodeContext nodeCtx = createNodeContext();
 
     @Test
     public void testClusteredIsFirstInId() throws Exception {

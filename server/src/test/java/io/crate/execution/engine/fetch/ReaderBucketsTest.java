@@ -61,7 +61,7 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
         fetchSource.addRefToFetch(x);
         var fetchRows = FetchRows.create(
             CoordinatorTxnCtx.systemTransactionContext(),
-            TestingHelpers.createNodeContext(null),
+            TestingHelpers.createNodeContext(),
             Map.of(t1.ident(), fetchSource),
             List.of(
                 new FetchReference(new InputColumn(0, DataTypes.LONG), x),

@@ -50,7 +50,7 @@ import io.crate.planner.optimizer.LoadedRules;
 public class SessionSettingRegistryTest extends ESTestCase {
 
     private static final CoordinatorSessionSettings SESSION_SETTINGS = CoordinatorSessionSettings.systemDefaults();
-    private static final NodeContext NODE_CTX = createNodeContext(null);
+    private static final NodeContext NODE_CTX = createNodeContext();
     private static final Function<Symbol, Object> EVAL = s -> SymbolEvaluator.evaluateWithoutParams(
         CoordinatorTxnCtx.systemTransactionContext(),
         NODE_CTX,

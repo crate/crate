@@ -80,7 +80,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         clusterSettings = clusterService.getClusterSettings();
         breakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings);
         scheduler = Executors.newSingleThreadScheduledExecutor();
-        nodeCtx = createNodeContext(null);
+        nodeCtx = createNodeContext();
     }
 
     @After

@@ -54,7 +54,7 @@ import io.crate.types.DataTypes;
 
 public class RoutedCollectPhaseTest extends ESTestCase {
 
-    private NodeContext nodeCtx = createNodeContext(null);
+    private NodeContext nodeCtx = createNodeContext();
 
     @Test
     public void testStreaming() throws Exception {

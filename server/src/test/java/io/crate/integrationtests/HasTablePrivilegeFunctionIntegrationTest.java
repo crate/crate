@@ -93,7 +93,7 @@ public class HasTablePrivilegeFunctionIntegrationTest extends IntegTestCase {
         execute("select has_table_privilege('john', 'remote_documents', 'usage')");
         assertThat(response.rows()[0][0]).isEqualTo(false);
 
-        execute("grant dql on view doc.remote_documents to john");
+        execute("grant dql on table doc.remote_documents to john");
 
         execute("select has_table_privilege('john', 'remote_documents', 'usage')");
         assertThat(response.rows()[0][0]).isEqualTo(true);

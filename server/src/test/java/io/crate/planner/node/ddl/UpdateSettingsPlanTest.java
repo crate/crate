@@ -56,7 +56,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
     private Function<Symbol, Object> symbolEvaluator(Row row) {
         return x -> SymbolEvaluator.evaluate(
             TransactionContext.of(new SessionSettings("", SearchPath.createSearchPathFrom(""))),
-            createNodeContext(null),
+            createNodeContext(),
             x,
             row,
             SubQueryResults.EMPTY);

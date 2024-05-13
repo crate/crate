@@ -114,8 +114,6 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             createTableStmt,
             clusterService);
 
-        String createViewStmt = "create view doc.v as select * from doc.users";
-
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         tableSources = Map.of(tableInfo.ident(), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);

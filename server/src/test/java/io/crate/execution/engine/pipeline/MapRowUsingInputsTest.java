@@ -56,7 +56,7 @@ public class MapRowUsingInputsTest extends ESTestCase {
 
     @Before
     public void createInputs() throws Exception {
-        InputFactory inputFactory = new InputFactory(createNodeContext(null));
+        InputFactory inputFactory = new InputFactory(createNodeContext());
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         var addFunction = new Function(
             Signature.scalar(

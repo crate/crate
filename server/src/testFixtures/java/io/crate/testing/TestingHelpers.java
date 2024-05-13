@@ -214,8 +214,8 @@ public class TestingHelpers {
         return sortedList;
     }
 
-    public static NodeContext createNodeContext(Schemas schemas) {
-        return createNodeContext(schemas, List.of(Role.CRATE_USER));
+    public static NodeContext createNodeContext() {
+        return createNodeContext(null, List.of(Role.CRATE_USER));
     }
 
     public static NodeContext createNodeContext(Schemas schemas, List<Role> roles) {

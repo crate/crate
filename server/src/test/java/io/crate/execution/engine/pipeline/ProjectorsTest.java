@@ -65,7 +65,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        nodeCtx = createNodeContext(null);
+        nodeCtx = createNodeContext();
         memoryManager = new OnHeapMemoryManager(bytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,

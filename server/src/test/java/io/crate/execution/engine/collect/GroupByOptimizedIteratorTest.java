@@ -99,7 +99,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     @Before
     public void prepare() throws Exception {
-        NodeContext nodeCtx = createNodeContext(null);
+        NodeContext nodeCtx = createNodeContext();
         IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         columnName = "x";
         expectedResult = new ArrayList<>(20);
@@ -231,7 +231,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         IndexShard shard = newStartedPrimaryShard(List.of(reference), THREAD_POOL);
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
-        var nodeCtx = createNodeContext(null);
+        var nodeCtx = createNodeContext();
         FieldTypeLookup fieldTypeLookup = shard.mapperService()::fieldType;
 
         var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(

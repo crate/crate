@@ -64,7 +64,7 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
             int tableOid = (int) table;
             String tableFqn = schemasProvider.get().oidToName(tableOid);
             if (tableFqn == null) {
-                throw new IllegalArgumentException("Cannot find corresponding relation name by the given oid");
+                throw new IllegalArgumentException("Cannot find corresponding relation by the given oid");
             }
             boolean result = false;
             for (Permission permission : permissions) {

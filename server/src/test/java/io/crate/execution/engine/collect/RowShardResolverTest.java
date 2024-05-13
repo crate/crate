@@ -57,7 +57,7 @@ public class RowShardResolverTest extends ESTestCase {
     }
 
     private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-    private final NodeContext nodeCtx = createNodeContext(null);
+    private final NodeContext nodeCtx = createNodeContext();
 
     @Test
     public void testNoPrimaryKeyNoRouting() {

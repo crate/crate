@@ -62,7 +62,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setup() {
-        functions = createNodeContext(null).functions();
+        functions = createNodeContext().functions();
         RelationName name = new RelationName(DocSchemaInfo.NAME, "tbl");
         this.table = SQLExecutor.tableInfo(
             name,

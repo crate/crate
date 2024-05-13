@@ -46,7 +46,7 @@ import io.crate.types.TypeSignature;
 public class ScalarNullabilityTest {
 
     final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-    final NodeContext nodeContext = TestingHelpers.createNodeContext(null);
+    final NodeContext nodeContext = TestingHelpers.createNodeContext();
     final Functions functions = nodeContext.functions();
 
     @Test
