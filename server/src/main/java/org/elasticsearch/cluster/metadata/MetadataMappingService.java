@@ -30,14 +30,9 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.cluster.AckedClusterStateTaskListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskConfig;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.compress.CompressedXContent;
@@ -46,17 +41,11 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MapperService.MergeReason;
 import org.elasticsearch.indices.IndicesService;
-import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Maps;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.XContentHelper;
 
 /**
@@ -70,7 +59,6 @@ public class MetadataMappingService {
     private final IndicesService indicesService;
 
     final RefreshTaskExecutor refreshExecutor = new RefreshTaskExecutor();
-    public final PutMappingExecutor putMappingExecutor = new PutMappingExecutor();
 
 
     @Inject
@@ -202,185 +190,6 @@ public class MetadataMappingService {
             ClusterStateTaskConfig.build(Priority.HIGH),
             refreshExecutor,
             (source, e) -> LOGGER.warn(() -> new ParameterizedMessage("failure during [{}]", source), e)
-        );
-    }
-
-    public class PutMappingExecutor implements ClusterStateTaskExecutor<PutMappingRequest> {
-        @Override
-        public ClusterTasksResult<PutMappingRequest> execute(ClusterState currentState,
-                                                             List<PutMappingRequest> tasks) throws Exception {
-            Map<Index, MapperService> indexMapperServices = new HashMap<>();
-            ClusterTasksResult.Builder<PutMappingRequest> builder = ClusterTasksResult.builder();
-            try {
-                for (PutMappingRequest request : tasks) {
-                    try {
-                        Index concreteIndex = request.getConcreteIndex();
-                        Index[] concreteIndices = concreteIndex == null
-                            ? IndexNameExpressionResolver.concreteIndices(currentState, request)
-                            : new Index[] { concreteIndex };
-                        for (Index index : concreteIndices) {
-                            final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
-                            if (indexMapperServices.containsKey(indexMetadata.getIndex()) == false) {
-                                MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
-                                indexMapperServices.put(index, mapperService);
-                                // add mappings for all types, we need them for cross-type validation
-                                mapperService.merge(indexMetadata, MergeReason.MAPPING_RECOVERY);
-                            }
-                        }
-                        currentState = applyMapping(
-                            currentState,
-                            request.source(),
-                            concreteIndices,
-                            indexMapperServices
-                        );
-                        builder.success(request);
-                    } catch (Exception e) {
-                        builder.failure(request, e);
-                    }
-                }
-                return builder.build(currentState);
-            } finally {
-                IOUtils.close(indexMapperServices.values());
-            }
-        }
-
-        public ClusterState applyMapping(ClusterState currentState,
-                                         String mapping,
-                                         Index[] indices,
-                                         Map<Index, MapperService> indexMapperServices) throws Exception {
-            CompressedXContent mappingUpdateSource = new CompressedXContent(mapping);
-            final Metadata metadata = currentState.metadata();
-            final List<IndexMetadata> updateList = new ArrayList<>();
-            for (Index index : indices) {
-                MapperService mapperService = indexMapperServices.get(index);
-                // IMPORTANT: always get the metadata from the state since it get's batched
-                // and if we pull it from the indexService we might miss an update etc.
-                final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
-
-                // this is paranoia... just to be sure we use the exact same metadata tuple on the update that
-                // we used for the validation, it makes this mechanism little less scary (a little)
-                updateList.add(indexMetadata);
-                // try and parse it (no need to add it here) so we can bail early in case of parsing exception
-                DocumentMapper existingMapper = mapperService.documentMapper();
-                DocumentMapper newMapper = mapperService.parse(mappingUpdateSource);
-                if (existingMapper != null) {
-                    // first, simulate: just call merge and ignore the result
-                    existingMapper.merge(newMapper.mapping());
-                }
-            }
-            Metadata.Builder builder = Metadata.builder(metadata);
-            boolean updated = false;
-            for (IndexMetadata indexMetadata : updateList) {
-                boolean updatedMapping = false;
-                // do the actual merge here on the master, and update the mapping source
-                // we use the exact same indexService and metadata we used to validate above here to actually apply the update
-                final Index index = indexMetadata.getIndex();
-
-                Map<String, Object> updatedSourceMap = null;
-                if (IndexParts.isPartitioned(index.getName())) {
-                    String partitionName = PartitionName.templateName(index.getName());
-                    IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(partitionName);
-                    updatedSourceMap = XContentHelper.convertToMap(mappingUpdateSource.compressedReference(), true, XContentType.JSON).map();
-                    // if partitioned, template-mapping should contain the latest column positions
-                    populateColumnPositions(updatedSourceMap, indexTemplateMetadata.mapping());
-                }
-
-
-                final MapperService mapperService = indexMapperServices.get(index);
-
-                CompressedXContent existingSource = null;
-                DocumentMapper existingMapper = mapperService.documentMapper();
-                if (existingMapper != null) {
-                    existingSource = existingMapper.mappingSource();
-                }
-                DocumentMapper mergedMapper =
-                    (updatedSourceMap == null /* if partitioned */) ?
-                        mapperService.merge(mappingUpdateSource, MergeReason.MAPPING_UPDATE) :
-                        mapperService.merge(updatedSourceMap, MergeReason.MAPPING_UPDATE);
-                CompressedXContent updatedSource = mergedMapper.mappingSource();
-
-                if (existingSource != null) {
-                    if (existingSource.equals(updatedSource)) {
-                        // same source, no changes, ignore it
-                    } else {
-                        updatedMapping = true;
-                        // use the merged mapping source
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("{} update_mapping with source [{}]", index, updatedSource);
-                        } else if (LOGGER.isInfoEnabled()) {
-                            LOGGER.info("{} update_mapping", index);
-                        }
-                    }
-                } else {
-                    updatedMapping = true;
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("{} create_mapping with source [{}]", index, updatedSource);
-                    } else if (LOGGER.isInfoEnabled()) {
-                        LOGGER.info("{} create_mapping", index);
-                    }
-                }
-
-                IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexMetadata);
-                // Mapping updates on a single type may have side-effects on other types so we need to
-                // update mapping metadata on all types
-                DocumentMapper mapper = mapperService.documentMapper();
-                if (mapper != null) {
-                    indexMetadataBuilder.putMapping(new MappingMetadata(mapper.mappingSource()));
-                }
-                if (updatedMapping) {
-                    indexMetadataBuilder.mappingVersion(1 + indexMetadataBuilder.mappingVersion());
-                }
-                /*
-                 * This implicitly increments the index metadata version and builds the index metadata. This means that we need to have
-                 * already incremented the mapping version if necessary. Therefore, the mapping version increment must remain before this
-                 * statement.
-                 */
-                builder.put(indexMetadataBuilder);
-                updated |= updatedMapping;
-            }
-            if (updated) {
-                return ClusterState.builder(currentState).metadata(builder).build();
-            } else {
-                return currentState;
-            }
-        }
-
-    }
-
-    public void putMapping(PutMappingRequest request, ActionListener<ClusterStateUpdateResponse> listener) {
-        AckedClusterStateTaskListener updateListener = new AckedClusterStateTaskListener() {
-
-            @Override
-            public void onFailure(String source, Exception e) {
-                listener.onFailure(e);
-            }
-
-            @Override
-            public boolean mustAck(DiscoveryNode discoveryNode) {
-                return true;
-            }
-
-            @Override
-            public void onAllNodesAcked(@Nullable Exception e) {
-                listener.onResponse(new ClusterStateUpdateResponse(e == null));
-            }
-
-            @Override
-            public void onAckTimeout() {
-                listener.onResponse(new ClusterStateUpdateResponse(false));
-            }
-
-            @Override
-            public TimeValue ackTimeout() {
-                return request.ackTimeout();
-            }
-        };
-        clusterService.submitStateUpdateTask(
-            "put-mapping",
-            request,
-            ClusterStateTaskConfig.build(Priority.HIGH, request.masterNodeTimeout()),
-            putMappingExecutor,
-            updateListener
         );
     }
 

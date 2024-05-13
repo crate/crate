@@ -58,12 +58,10 @@ import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -603,30 +601,14 @@ public class IndicesService extends AbstractLifecycleComponent
         }
         return future.thenCompose(indexShard -> {
             indexShard.addShardFailureCallback(onShardFailure);
-            CompletableFuture<IndexShard> mappingDone = new CompletableFuture<>();
-            indexShard.startRecovery(recoveryState, recoveryTargetService, recoveryListener, repositoriesService,
-                mapping -> {
-                    assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS :
-                        "mapping update consumer only required by local shards recovery";
-
-                    var request = new PutMappingRequest()
-                        .indices(new String[0])
-                        .setConcreteIndex(shardRouting.index()) // concrete index - no name clash, it uses uuid
-                        .source(mapping.source().string());
-                    client.admin().indices().putMapping(request).whenComplete((ignored, err) -> {
-                        if (err == null) {
-                            mappingDone.complete(indexShard);
-                        } else {
-                            try {
-                                indexShard.close("Failure during startRecovery mapping update", false);
-                            } catch (IOException e) {
-                                err.addSuppressed(e);
-                            }
-                            mappingDone.completeExceptionally(err);
-                        }
-                    });
-                }, this);
-            return mappingDone;
+            indexShard.startRecovery(
+                recoveryState,
+                recoveryTargetService,
+                recoveryListener,
+                repositoriesService,
+                this
+            );
+            return CompletableFuture.completedFuture(indexShard);
         });
     }
 

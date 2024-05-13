@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
@@ -43,7 +42,6 @@ import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
 import org.elasticsearch.common.UUIDs;
@@ -104,8 +102,7 @@ final class StoreRecovery {
         }
     }
 
-    void recoverFromLocalShards(Consumer<MappingMetadata> mappingUpdateConsumer,
-                                IndexShard indexShard,
+    void recoverFromLocalShards(IndexShard indexShard,
                                 List<LocalShardSnapshot> shards,
                                 ActionListener<Boolean> listener) {
         if (canRecover(indexShard)) {
@@ -121,9 +118,6 @@ final class StoreRecovery {
                 throw new IllegalArgumentException("can't add shards from more than one index");
             }
             IndexMetadata sourceMetadata = shards.get(0).getIndexMetadata();
-            if (sourceMetadata.mapping() != null) {
-                mappingUpdateConsumer.accept(sourceMetadata.mapping());
-            }
             indexShard.mapperService().merge(sourceMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             // now that the mapping is merged we can validate the index sort configuration.
             final boolean isSplit = sourceMetadata.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();

@@ -78,7 +78,6 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.support.replication.PendingReplicationActions;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
@@ -1720,8 +1719,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return path;
     }
 
-    public void recoverFromLocalShards(Consumer<MappingMetadata> mappingUpdateConsumer,
-                                       List<IndexShard> localShards,
+    public void recoverFromLocalShards(List<IndexShard> localShards,
                                        ActionListener<Boolean> listener) throws IOException {
         assert shardRouting.primary() : "recover from local shards only makes sense if the shard is a primary shard";
         assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS : "invalid recovery type: " + recoveryState.getRecoverySource();
@@ -1736,7 +1734,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             // if its post api allocation, the index should exists
             assert shardRouting.primary() : "recover from local shards only makes sense if the shard is a primary shard";
             StoreRecovery storeRecovery = new StoreRecovery(shardId, logger);
-            storeRecovery.recoverFromLocalShards(mappingUpdateConsumer, this, snapshots, recoveryListener);
+            storeRecovery.recoverFromLocalShards(this, snapshots, recoveryListener);
             success = true;
         } finally {
             if (success == false) {
@@ -2462,7 +2460,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                               PeerRecoveryTargetService recoveryTargetService,
                               PeerRecoveryTargetService.RecoveryListener recoveryListener,
                               RepositoriesService repositoriesService,
-                              Consumer<MappingMetadata> mappingUpdateConsumer,
                               IndicesService indicesService) {
         // TODO: Create a proper object to encapsulate the recovery context
         // all of the current methods here follow a pattern of:
@@ -2528,8 +2525,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 if (numShards == startedShards.size()) {
                     assert requiredShards.isEmpty() == false;
                     executeRecovery("from local shards", recoveryState, recoveryListener,
-                        l -> recoverFromLocalShards(mappingUpdateConsumer,
-                            startedShards.stream().filter((s) -> requiredShards.contains(s.shardId())).collect(Collectors.toList()), l));
+                        l -> recoverFromLocalShards(
+                            startedShards.stream().filter((s) -> requiredShards.contains(s.shardId())).collect(Collectors.toList()),
+                            l
+                        ));
                 } else {
                     final RuntimeException e;
                     if (numShards == -1) {
