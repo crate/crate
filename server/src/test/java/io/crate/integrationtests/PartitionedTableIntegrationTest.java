@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
 import static io.crate.testing.Asserts.assertThat;
@@ -35,7 +34,6 @@ import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_E
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -61,8 +59,6 @@ import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -70,9 +66,6 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -297,37 +290,31 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   name string," +
             "   date timestamp with time zone" +
             ") partitioned by (date)");
-        ensureYellow();
+
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "parted");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        assertThat(templatesResponse.getIndexTemplates().get(0).patterns(),
-            contains(is(templateName + "*")));
-        assertThat(templatesResponse.getIndexTemplates().get(0).name(),
-            is(templateName));
-        assertTrue(templatesResponse.getIndexTemplates().get(0).aliases().get(getFqn("parted")) != null);
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 13959981214861L});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metadata().hasAlias(getFqn("parted")));
+        Metadata metadata = clusterService().state().metadata();
+        String fqTablename = getFqn("parted");
+        assertThat(metadata.hasAlias(fqTablename)).isTrue();
+        assertThat(metadata.templates().containsKey(templateName)).isTrue();
 
         String partitionName = new PartitionName(
             new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
             Collections.singletonList(String.valueOf(13959981214861L))
         ).asIndexName();
-        Metadata metadata = client().admin().cluster().state(new ClusterStateRequest()).get()
-            .getState().metadata();
-        assertNotNull(metadata.indices().get(partitionName).getAliases().get(getFqn("parted")));
+
+        assertThat(metadata.indices().get(partitionName).getAliases().get(fqTablename)).isNotNull();
 
         execute("select id, name, date from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((String) response.rows()[0][1], is("Ford"));
-        assertThat((Long) response.rows()[0][2], is(13959981214861L));
+        assertThat(response).hasRows(
+            "1| Ford| 13959981214861"
+        );
     }
 
     private void validateInsertPartitionedTable() {
@@ -1077,13 +1064,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("drop table quotes");
         assertEquals(1L, response.rowCount());
 
-        GetIndexTemplatesResponse getIndexTemplatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes"))).get();
-        assertThat(getIndexTemplatesResponse.getIndexTemplates().size(), is(0));
-
         ClusterState state = cluster().clusterService().state();
-        assertThat(state.metadata().indices().size(), is(0));
-        assertThat(state.metadata().hasAlias("quotes"), is(false));
+        assertThat(state.metadata().indices()).isEmpty();
+        assertThat(state.metadata().hasAlias("quotes")).isFalse();
+        assertThat(state.metadata().templates()).isEmpty();
     }
 
     @Test
@@ -1297,130 +1281,85 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testAlterNumberOfReplicas() throws Exception {
         String defaultSchema = sqlExecutor.getCurrentSchema();
         execute(
-            "create table quotes (" +
-            "   id integer," +
-            "   quote string," +
-            "   date timestamp with time zone" +
-            ") partitioned by(date) " +
-            "clustered into 3 shards with (number_of_replicas='0-all')");
-        ensureYellow();
-
-        String templateName = PartitionName.templateName(defaultSchema, "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("0-all"));
-
-        execute("alter table quotes set (number_of_replicas=0)");
-        ensureYellow();
-
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
-        assertThat(templateSettings.getAsBoolean(AutoExpandReplicas.SETTING_KEY, true), is(false));
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-            new Object[]{1, "Don't panic", 1395874800000L,
-                2, "Now panic", 1395961200000L}
+            "create table tbl (id int, p int) partitioned by (p) " +
+            "clustered into 3 shards with (number_of_replicas = '0-all')"
         );
-        assertThat(response.rowCount(), is(2L));
+
+        execute("select number_of_replicas from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("0-all");
+        execute("alter table tbl set (number_of_replicas=0)");
+        execute("select number_of_replicas from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("0");
+
+        execute("select count(*) from sys.shards where id = 0 and table_name = 'tbl'");
+        assertThat(response)
+            .as("has no partitions yet")
+            .hasRows("0");
+
+        execute("insert into tbl (id, p) values (1, 1), (2, 2)");
+        assertThat(response).hasRowCount(2);
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metadata().hasAlias(getFqn("quotes")));
+        assertTrue(clusterService().state().metadata().hasAlias(getFqn("tbl")));
 
+        RelationName relationName = new RelationName(defaultSchema, "tbl");
         List<String> partitions = List.of(
-            new PartitionName(
-                new RelationName(defaultSchema, "quotes"),
-                Collections.singletonList("1395874800000")).asIndexName(),
-            new PartitionName(
-                new RelationName(defaultSchema, "quotes"),
-                Collections.singletonList("1395961200000")).asIndexName()
+            new PartitionName(relationName, List.of("1")).asIndexName(),
+            new PartitionName(relationName, List.of("2")).asIndexName()
         );
 
         execute("select number_of_replicas from information_schema.table_partitions");
-        assertThat(
-            printedTable(response.rows()),
-            is("0\n" +
-               "0\n"));
+        assertThat(response).hasRows(
+            "0",
+            "0"
+        );
 
-        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertEquals("0", response.rows()[0][0]);
-        assertEquals(3, response.rows()[0][1]);
-
-        execute("alter table quotes set (number_of_replicas='1-all')");
+        execute("alter table tbl set (number_of_replicas='1-all')");
         ensureYellow();
 
-        execute("select number_of_replicas from information_schema.tables where table_name = 'quotes'");
-        assertEquals("1-all", response.rows()[0][0]);
-
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("1-all"));
+        execute("select number_of_replicas from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("1-all");
 
 
         execute("select number_of_replicas from information_schema.table_partitions");
-        assertThat(
-            printedTable(response.rows()),
-            is("1-all\n" +
-               "1-all\n"));
-    }
-
-    @Test
-    public void testAlterTableResetEmptyPartitionedTable() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas='1')");
-        ensureYellow();
-
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("false"));
-
-        execute("alter table quotes reset (number_of_replicas)");
-        ensureYellow();
-
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("0-1"));
-
-    }
-
-    @Test
-    public void testAlterTableResetPartitionedTable() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
-                "partitioned by(date) clustered into 3 shards with( number_of_replicas = '1-all')");
-        ensureYellow();
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-            new Object[]{1, "Don't panic", 1395874800000L,
-                2, "Now panic", 1395961200000L}
+        assertThat(response).hasRows(
+            "1-all",
+            "1-all"
         );
-        assertThat(response.rowCount(), is(2L));
-        ensureYellow();
-        refresh();
 
-        execute("alter table quotes reset (number_of_replicas)");
-        ensureYellow();
+        execute("select count(*) from sys.shards where table_name = 'tbl'");
+        assertThat(response)
+            .as("3 shards per data node and partition due to `1-all`")
+            .hasRows(Integer.toString(2 * 3 * cluster().numDataNodes()));
+    }
 
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("0-1"));
+    @Test
+    public void test_can_reset_number_of_replicas_on_partitioned_table() throws Exception {
+        execute("create table tbl (id int, p int) partitioned by (p) with (number_of_replicas = 1)");
+        execute("insert into tbl (id, p) values (1, 1)");
+
+        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "tbl");
+        IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+        Settings settings = indexTemplateMetadata.settings();
+
+        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(1);
+        AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
+        assertThat(autoExpand1.isEnabled()).isFalse();
+
+        execute("alter table tbl reset (number_of_replicas)");
+
+        indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+        settings = indexTemplateMetadata.settings();
+
+        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
+        AutoExpandReplicas autoExpand2 = AutoExpandReplicas.SETTING.get(settings);
+        assertThat(autoExpand2.isEnabled()).isTrue();
+        assertThat(autoExpand2.toString()).isEqualTo("0-1");
+
         assertBusy(() -> {
             execute("select number_of_replicas from information_schema.table_partitions");
-            assertThat(
-                printedTable(response.rows()),
-                is("0-1\n" +
-                   "0-1\n"));
+            assertThat(response).hasRows("0-1");
         });
     }
 
@@ -1428,13 +1367,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testAlterPartitionedTablePartition() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L,
                 2, "Now panic", 1395961200000L}
         );
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2);
         ensureYellow();
         refresh();
 
@@ -1442,18 +1380,18 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select partition_ident, number_of_replicas from information_schema.table_partitions order by 1");
-        assertThat(
-            printedTable(response.rows()),
-            is("04732cpp6ks3ed1o60o30c1g| 1\n" +
-               "04732cpp6ksjcc9i60o30c1g| 0\n")
+        assertThat(response).hasRows(
+            "04732cpp6ks3ed1o60o30c1g| 1",
+            "04732cpp6ksjcc9i60o30c1g| 0"
         );
 
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(AutoExpandReplicas.SETTING_KEY), is("false"));
+        IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+        Settings settings = indexTemplateMetadata.settings();
+
+        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
+        AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
+        assertThat(autoExpand1.isEnabled()).isFalse();
     }
 
     @Test
@@ -1706,45 +1644,37 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     @UseRandomizedSchema(random = false)
-    public void testAlterTableAddColumnOnPartitionedTableWithoutPartitions() throws Exception {
+    public void test_can_add_column_via_alter_table_on_partitioned_table() throws Exception {
         execute("create table t (id int primary key, date timestamp with time zone primary key) " +
                 "partitioned by (date) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
+
+        if (randomBoolean()) {
+            // presence of partition must not make a difference
+            execute("insert into t (id, date) values (1, now())");
+        }
 
         execute("alter table t add column name string");
         execute("alter table t add column ft_name string index using fulltext");
-        ensureYellow();
 
         execute("select * from t");
-        assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "ft_name", "id", "name"));
+        assertThat(response).hasColumns("id", "date", "name", "ft_name");
 
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
-        IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
-        String mappingSource = metadata.mapping().toString();
-        Map mapping = (Map) JsonXContent.JSON_XCONTENT
-            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
-            .map()
-            .get(DEFAULT_MAPPING_TYPE);
-        assertNotNull(((Map) mapping.get("properties")).get("name"));
-        assertNotNull(((Map) mapping.get("properties")).get("ft_name"));
-    }
-
-    @Test
-    @UseRandomizedSchema(random = false)
-    public void testAlterTableAddColumnOnPartitionedTable() throws Exception {
-        execute("create table t (id int primary key, date timestamp with time zone primary key) " +
-                "partitioned by (date) " +
-                "clustered into 1 shards " +
-                "with (number_of_replicas=0)");
-
-        execute("insert into t (id, date) values (1, '2014-01-01')");
-        execute("insert into t (id, date) values (10, '2015-01-01')");
-        ensureYellow();
-        refresh();
-
-        execute("alter table t add name string");
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0]).startsWith(
+            """
+            CREATE TABLE IF NOT EXISTS "doc"."t" (
+               "id" INTEGER NOT NULL,
+               "date" TIMESTAMP WITH TIME ZONE NOT NULL,
+               "name" TEXT,
+               "ft_name" TEXT INDEX USING FULLTEXT WITH (
+                  analyzer = 'standard'
+               ),
+               PRIMARY KEY ("id", "date")
+            )
+            """.stripLeading()
+        );
 
         // Verify that ADD COLUMN gets advanced OID.
         Schemas schemas = cluster().getMasterNodeInstance(Schemas.class);
@@ -1752,17 +1682,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         var dateRef = table.getReference(new ColumnIdent("date"));
         var nameRef = table.getReference(new ColumnIdent("name"));
         assertThat(nameRef.oid()).isGreaterThan(dateRef.oid());
-
-        execute("select * from t");
-        assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "id", "name"));
-
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
-        IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
-        String mappingSource = metadata.mapping().toString();
-        Map mapping = (Map) JsonXContent.JSON_XCONTENT
-            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
-            .map().get(DEFAULT_MAPPING_TYPE);
-        assertNotNull(((Map) mapping.get("properties")).get("name"));
     }
 
     @Test
@@ -1815,68 +1734,39 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testAlterNumberOfShards() throws Exception {
-        execute("create table quotes (" +
-                "  id integer, " +
-                "  quote string, " +
-                "  date timestamp with time zone) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
-        ensureYellow();
+        execute("create table tbl (x int, p int) partitioned by (p) " +
+                "clustered into 1 shards with (number_of_replicas = '0-all')");
 
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(3));
+        execute("select number_of_shards from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("1");
 
-        execute("alter table quotes set (number_of_shards=6)");
-        ensureGreen();
+        execute("alter table tbl set (number_of_shards = 2)");
 
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(6));
+        execute("select number_of_shards from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("2");
 
-        execute("insert into quotes (id, quote, date) values (?, ?, ?)",
-            new Object[]{1, "Don't panic", 1395874800000L}
-        );
-        assertThat(response.rowCount(), is(1L));
+        execute("insert into tbl (x, p) values (1, 1)");
+        assertThat(response).hasRowCount(1);
         refresh();
 
-        assertTrue(clusterService().state().metadata().hasAlias(getFqn("quotes")));
+        execute("select number_of_shards from information_schema.table_partitions where table_name='tbl'");
+        assertThat(response).hasRows("2");
 
-        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertEquals("0-all", response.rows()[0][0]);
-        assertEquals(6, response.rows()[0][1]);
-
-        execute("select number_of_shards from information_schema.table_partitions where table_name='quotes'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(6));
-
-        execute("alter table quotes set (number_of_shards=2)");
-        ensureYellow();
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?)",
-            new Object[]{2, "Now panic", 1395961200000L}
-        );
-        assertThat(response.rowCount(), is(1L));
+        execute("alter table tbl set (number_of_shards = 1)");
+        assertThat(execute("insert into tbl (x, p) values (2, 2)")).hasRowCount(1);
         ensureYellow();
         refresh();
 
-        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertEquals("0-all", response.rows()[0][0]);
-        assertEquals(2, response.rows()[0][1]);
+        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("0-all| 1");
 
-        execute("select partition_ident, number_of_shards from information_schema.table_partitions " +
-                "where table_name = 'quotes' order by number_of_shards ASC");
-        assertThat(
-            printedTable(response.rows()),
-            is("04732cpp6ksjcc9i60o30c1g| 2\n" +
-               "04732cpp6ks3ed1o60o30c1g| 6\n")
+        execute("select values, number_of_shards from information_schema.table_partitions " +
+                "where table_name = 'tbl' " +
+                "order by number_of_shards ASC");
+        assertThat(response).as("only new partition has updated number of shards").hasRows(
+            "{p=2}| 1",
+            "{p=1}| 2"
         );
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).settings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(2));
     }
 
     @Test
