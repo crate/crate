@@ -21,13 +21,13 @@
 
 package io.crate.statistics;
 
-import io.crate.metadata.RelationName;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.inject.Singleton;
+
+import io.crate.metadata.RelationName;
 
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.

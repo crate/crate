@@ -72,7 +72,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -119,16 +118,14 @@ import io.crate.types.RowType;
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
     private final NodeContext nodeCtx;
-    private final Schemas schemas;
 
     private static final List<Relation> EMPTY_ROW_TABLE_RELATION = List.of(
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
     );
 
     @Inject
-    public RelationAnalyzer(NodeContext nodeCtx, Schemas schemas) {
+    public RelationAnalyzer(NodeContext nodeCtx) {
         this.nodeCtx = nodeCtx;
-        this.schemas = schemas;
     }
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
@@ -702,7 +699,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (withQuery != null) {
             relation = withQuery;
         } else {
-            RelationInfo relationInfo = schemas.findRelation(
+            RelationInfo relationInfo = nodeCtx.schemas().findRelation(
                 tableQualifiedName, context.currentOperation(), context.sessionSettings().sessionUser(), searchPath);
             switch (relationInfo) {
                 case DocTableInfo docTable ->

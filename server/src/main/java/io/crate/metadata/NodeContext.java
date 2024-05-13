@@ -21,11 +21,12 @@
 
 package io.crate.metadata;
 
-import io.crate.role.Roles;
+import java.util.function.Function;
 
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+
+import io.crate.role.Roles;
 
 @Singleton
 public class NodeContext {
@@ -33,23 +34,15 @@ public class NodeContext {
     private final Functions functions;
     private final long serverStartTimeInMs;
     private final Roles roles;
-    private final Provider<Schemas> schemasProvider;
-
-    public static NodeContext withoutSchemas(Functions functions, Roles roles) {
-        return new NodeContext(functions, roles, null) {
-            @Override
-            public Provider<Schemas> schemasProvider() {
-                throw new IllegalStateException("The current nodeContext instance does not hold Schemas");
-            }
-        };
-    }
+    private final Function<NodeContext, Schemas> createSchemas;
+    private Schemas schemas;
 
     @Inject
-    public NodeContext(Functions functions, Roles roles, Provider<Schemas> schemasProvider) {
+    public NodeContext(Functions functions, Roles roles, Function<NodeContext, Schemas> createSchemas) {
         this.functions = functions;
         this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();
         this.roles = roles;
-        this.schemasProvider = schemasProvider;
+        this.createSchemas = createSchemas;
     }
 
     public Functions functions() {
@@ -64,7 +57,20 @@ public class NodeContext {
         return roles;
     }
 
-    public Provider<Schemas> schemasProvider() {
-        return schemasProvider;
+    public Schemas schemas() {
+        if (schemas == null) {
+            synchronized (createSchemas) {
+                if (schemas == null) {
+                    schemas = createSchemas.apply(this);
+                }
+            }
+        }
+        return schemas;
+    }
+
+    public NodeContext copy() {
+        NodeContext copy = new NodeContext(functions, roles, createSchemas);
+        copy.schemas = this.schemas;
+        return copy;
     }
 }

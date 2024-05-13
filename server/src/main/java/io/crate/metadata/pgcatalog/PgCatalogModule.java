@@ -21,16 +21,12 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 public final class PgCatalogModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        var schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
-        schemaBinder.addBinding(PgCatalogSchemaInfo.NAME).to(PgCatalogSchemaInfo.class).asEagerSingleton();
         bind(PgCatalogTableDefinitions.class).asEagerSingleton();
     }
 }

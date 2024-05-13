@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -43,11 +43,11 @@ import io.crate.metadata.SimpleReference;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Query;
 
+@Singleton
 public class ViewInfoFactory {
 
     private final Provider<RelationAnalyzer> analyzerProvider;
 
-    @Inject
     public ViewInfoFactory(Provider<RelationAnalyzer> analyzerProvider) {
         this.analyzerProvider = analyzerProvider;
     }

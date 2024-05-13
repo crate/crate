@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
-import org.elasticsearch.common.inject.Provider;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
@@ -48,7 +47,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_database_privilege");
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_DB_NAME =
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> CHECK_BY_DB_NAME =
         (roles, user, db, permissions, schemasProvider) -> {
             if (Constants.DB_NAME.equals(db) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -58,7 +57,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
             return checkPrivileges(user, permissions);
         };
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_DB_OID =
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> CHECK_BY_DB_OID =
         (roles, user, db, privileges, schemasProvider) -> {
             if (Constants.DB_OID != (Integer) db) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -200,7 +199,7 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
     protected HasDatabasePrivilegeFunction(Signature signature,
                                            BoundSignature boundSignature,
                                            BiFunction<Roles, Object, Role> getUser,
-                                           FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> checkPrivilege) {
+                                           FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

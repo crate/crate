@@ -45,12 +45,12 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UnsupportedFunctionException;
@@ -288,7 +288,7 @@ public class UserDefinedFunctionService {
         // The iteration of schemas/tables must happen on the node context WITHOUT the UDF already removed.
         // Otherwise the lazy table factories will already fail while evaluating generated functionsMetadata.
         // To avoid that, a copy of the node context with the removed UDF function is used on concrete expression evaluation.
-        var nodeCtxWithRemovedFunction = NodeContext.withoutSchemas(nodeCtx.functions().copyOf(), nodeCtx.roles());
+        var nodeCtxWithRemovedFunction = nodeCtx.copy();
         updateImplementations(schema, functionsMetadata.functionsMetadata().stream(), nodeCtxWithRemovedFunction);
 
         var metadata = currentState.metadata();

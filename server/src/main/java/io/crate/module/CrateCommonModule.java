@@ -33,7 +33,6 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.replication.logical.repository.PublisherRestoreService;
 import io.crate.rest.action.RestSQLAction;
-import io.crate.statistics.TableStats;
 import io.crate.statistics.TableStatsService;
 
 public class CrateCommonModule extends AbstractModule {
@@ -44,7 +43,6 @@ public class CrateCommonModule extends AbstractModule {
         bind(PostgresNetty.class).asEagerSingleton();
         bind(Sessions.class).asEagerSingleton();
         bind(Planner.class).asEagerSingleton();
-        bind(TableStats.class).asEagerSingleton();
         bind(TableStatsService.class).asEagerSingleton();
         bind(MemoryManagerFactory.class).asEagerSingleton();
         bind(UserDefinedFunctionService.class).asEagerSingleton();

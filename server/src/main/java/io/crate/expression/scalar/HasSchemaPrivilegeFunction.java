@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
-import org.elasticsearch.common.inject.Provider;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.FiveFunction;
@@ -47,7 +46,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_schema_privilege");
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_SCHEMA_NAME =
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> CHECK_BY_SCHEMA_NAME =
         (roles, user, schema, permissions, schemasProvider) -> {
             String schemaName = (String) schema;
             boolean result = false;
@@ -62,7 +61,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
             return result;
         };
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_SCHEMA_OID =
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> CHECK_BY_SCHEMA_OID =
         (roles, user, schema, permissions, schemasProvider) -> {
             Integer schemaOid = (Integer) schema;
             boolean result = false;
@@ -172,7 +171,7 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
     protected HasSchemaPrivilegeFunction(Signature signature,
                                          BoundSignature boundSignature,
                                          BiFunction<Roles, Object, Role> getUser,
-                                         FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> checkPrivilege) {
+                                         FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }

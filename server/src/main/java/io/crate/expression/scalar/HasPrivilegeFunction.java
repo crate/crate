@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.elasticsearch.common.inject.Provider;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.FiveFunction;
@@ -49,7 +48,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
     private final BiFunction<Roles, Object, Role> getUser;
 
-    private final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> checkPrivilege;
+    private final FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> checkPrivilege;
 
     protected static final BiFunction<Roles, Object, Role> USER_BY_NAME = (roles, userName) -> roles.getUser((String) userName);
 
@@ -76,7 +75,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     protected HasPrivilegeFunction(Signature signature,
                                    BoundSignature boundSignature,
                                    BiFunction<Roles, Object, Role> getUser,
-                                   FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> checkPrivilege) {
+                                   FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> checkPrivilege) {
         super(signature, boundSignature);
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
@@ -161,7 +160,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         if (schemaNameOrOid == null || privileges == null) {
             return null;
         }
-        return checkPrivilege.apply(roles, user, schemaNameOrOid, parsePermissions((String) privileges), nodeCtx.schemasProvider());
+        return checkPrivilege.apply(roles, user, schemaNameOrOid, parsePermissions((String) privileges), nodeCtx.schemas());
     }
 
     private class CompiledHasPrivilege extends Scalar<Boolean, Object> {
@@ -208,7 +207,7 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             if (schema == null || privilege == null) {
                 return null;
             }
-            return checkPrivilege.apply(roles, user, schema, getPermissions.apply(privilege), nodeContext.schemasProvider());
+            return checkPrivilege.apply(roles, user, schema, getPermissions.apply(privilege), nodeContext.schemas());
         }
     }
 

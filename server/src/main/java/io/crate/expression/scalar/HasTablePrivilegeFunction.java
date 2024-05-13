@@ -24,8 +24,6 @@ package io.crate.expression.scalar;
 import java.util.Collection;
 import java.util.function.BiFunction;
 
-import org.elasticsearch.common.inject.Provider;
-
 import io.crate.common.FiveFunction;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
@@ -44,8 +42,8 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_table_privilege");
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_TABLE_NAME =
-        (roles, user, table, permissions, schemasProvider) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> CHECK_BY_TABLE_NAME =
+        (roles, user, table, permissions, schemas) -> {
             String tableFqn = RelationName.fqnFromIndexName((String) table);
             boolean result = false;
             for (Permission permission : permissions) {
@@ -59,10 +57,10 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
             return result;
         };
 
-    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> CHECK_BY_TABLE_OID =
-        (roles, user, table, permissions, schemasProvider) -> {
+    private static final FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> CHECK_BY_TABLE_OID =
+        (roles, user, table, permissions, schemas) -> {
             int tableOid = (int) table;
-            String tableFqn = schemasProvider.get().oidToName(tableOid);
+            String tableFqn = schemas.oidToName(tableOid);
             if (tableFqn == null) {
                 throw new IllegalArgumentException("Cannot find corresponding relation by the given oid");
             }
@@ -149,7 +147,7 @@ public class HasTablePrivilegeFunction extends HasSchemaPrivilegeFunction {
     protected HasTablePrivilegeFunction(Signature signature,
                                         BoundSignature boundSignature,
                                         BiFunction<Roles, Object, Role> getUser,
-                                        FiveFunction<Roles, Role, Object, Collection<Permission>, Provider<Schemas>, Boolean> checkPrivilege) {
+                                        FiveFunction<Roles, Role, Object, Collection<Permission>, Schemas, Boolean> checkPrivilege) {
         super(signature, boundSignature, getUser, checkPrivilege);
     }
 }
