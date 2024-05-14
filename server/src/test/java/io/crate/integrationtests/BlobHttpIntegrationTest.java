@@ -53,17 +53,12 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.util.IOUtils;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.junit.After;
 import org.junit.Before;
 
 import io.crate.blob.BlobTransferStatus;
 import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.v2.BlobAdminClient;
 import io.crate.test.utils.Blobs;
 
 public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
@@ -87,23 +82,9 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
         dataNode1 = httpTransports.next().boundAddress().publishAddress().address();
         dataNode2 = httpTransports.next().boundAddress().publishAddress().address();
-        BlobAdminClient blobAdminClient = cluster().getInstance(BlobAdminClient.class);
-
-        Settings indexSettings = Settings.builder()
-            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2)
-            // SETTING_AUTO_EXPAND_REPLICAS is enabled by default
-            // but for this test it needs to be disabled so we can have 0 replicas
-            .put(AutoExpandReplicas.SETTING_KEY, "false")
-            .build();
-        blobAdminClient.createBlobTable("test", indexSettings).get();
-        blobAdminClient.createBlobTable("test_blobs2", indexSettings).get();
-
-        client().admin().indices().create(new CreateIndexRequest("test_no_blobs")
-            .settings(
-                Settings.builder()
-                    .put("number_of_shards", 2)
-                    .put("number_of_replicas", 0).build())).get();
+        execute("create blob table test clustered into 2 shards with (number_of_replicas = 0)");
+        execute("create blob table test_blobs2 clustered into 2 shards with (number_of_replicas = 0)");
+        execute("create table test_no_blobs (x int) clustered into 2 shards with (number_of_replicas = 0)");
         ensureGreen();
     }
 
