@@ -1096,6 +1096,24 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         restoreWithDifferentName();
         restoreIntoDifferentSchema();
+
+        execute("select * from source.my_table_1 order by id");
+        assertThat(response)
+            .as("Original table must not contain records of the renamed table")
+            .hasRows(
+                "1| foo| 0| The quick brown fox jumps over the lazy dog.",
+                "2| bar| 1445941740000| Morgenstund hat Gold im Mund.",
+                "3| baz| 626572800000| Reden ist Schweigen. Silber ist Gold."
+            );
+
+        execute("select * from source.my_prefix_my_table_1 order by id");
+        assertThat(response)
+            .as("Renamed table must have new records")
+            .hasRows(
+                "1| foo| 0| The quick brown fox jumps over the lazy dog.",
+                "2| bar| 1445941740000| Morgenstund hat Gold im Mund.",
+                "3| baz| 626572800000| Reden ist Schweigen. Silber ist Gold."
+            );
     }
 
     private void restoreWithDifferentName() {
