@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -37,6 +38,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
 
@@ -84,11 +87,17 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
 
     @Override
     protected ClusterBlockException checkBlock(DropTableRequest request, ClusterState state) {
-        IndicesOptions indicesOptions = INDICES_OPTIONS;
-        if (request.isPartitioned()) {
-            indicesOptions = IndicesOptions.lenientExpandOpen();
-        }
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-            IndexNameExpressionResolver.concreteIndexNames(state.metadata(), indicesOptions, request.tableIdent().indexNameOrAlias()));
+        RelationName relation = request.tableIdent();
+        String templateName = PartitionName.templateName(relation.schema(), relation.name());
+        Metadata metadata = state.metadata();
+        boolean isPartitioned = metadata.templates().containsKey(templateName);
+        IndicesOptions indicesOptions = isPartitioned ? IndicesOptions.lenientExpandOpen() : INDICES_OPTIONS;
+        return state.blocks().indicesBlockedException(
+            ClusterBlockLevel.METADATA_WRITE,
+            IndexNameExpressionResolver.concreteIndexNames(
+                metadata,
+                indicesOptions,
+                relation.indexNameOrAlias()
+            ));
     }
 }

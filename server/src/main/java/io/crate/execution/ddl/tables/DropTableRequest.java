@@ -21,41 +21,45 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+import io.crate.metadata.RelationName;
 
 public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
 
     private final RelationName relationName;
-    private final boolean isPartitioned;
 
-    public DropTableRequest(RelationName relationName, boolean isPartitioned) {
+    public DropTableRequest(RelationName relationName) {
         this.relationName = relationName;
-        this.isPartitioned = isPartitioned;
     }
 
     public RelationName tableIdent() {
         return relationName;
     }
 
-    public boolean isPartitioned() {
-        return isPartitioned;
-    }
-
     public DropTableRequest(StreamInput in) throws IOException {
         super(in);
         relationName = new RelationName(in);
-        isPartitioned = in.readBoolean();
+        if (in.getVersion().before(Version.V_5_8_0)) {
+            in.readBoolean(); // isPartitioned
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
-        out.writeBoolean(isPartitioned);
+        if (out.getVersion().before(Version.V_5_8_0)) {
+            // sets isPartitioned to true,
+            // which if wrong shouldn't cause much harm, as it will only result in a
+            // templates.remove() call for an item that is missing
+            // The opposite (setting it to false, and not deleting a template) would be worse
+            out.writeBoolean(true);
+        }
     }
 }

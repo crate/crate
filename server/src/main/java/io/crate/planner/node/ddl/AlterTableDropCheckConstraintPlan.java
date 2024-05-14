@@ -57,7 +57,7 @@ public class AlterTableDropCheckConstraintPlan implements Plan {
         );
 
         dependencies.alterTableOperation()
-            .executeAlterTableDropConstraint(request)
+            .dropConstraint(request)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

@@ -24,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
@@ -32,8 +31,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 /**
@@ -77,21 +74,9 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      */
     CompletableFuture<RefreshResponse> refresh(RefreshRequest request);
 
-    /**
-     * Add mapping definition for a type into one or more indices.
-     *
-     * @param request The create mapping request
-     * @return A result future
-     */
-    CompletableFuture<AcknowledgedResponse> putMapping(PutMappingRequest request);
 
     /**
      * Update indices settings.
      */
     CompletableFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request);
-
-    /**
-     * Gets index template.
-     */
-    CompletableFuture<GetIndexTemplatesResponse> getTemplates(GetIndexTemplatesRequest request);
 }

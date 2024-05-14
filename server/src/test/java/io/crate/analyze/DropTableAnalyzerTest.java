@@ -99,19 +99,19 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropExistingTable() {
         AnalyzedDropTable<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
         assertThat(dropTable.dropIfExists()).isFalse();
-        assertThat(dropTable.table().ident().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
+        assertThat(dropTable.tableName().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
     }
 
     @Test
     public void testDropIfExistExistingTable() {
         AnalyzedDropTable<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
         assertThat(dropTable.dropIfExists()).isTrue();
-        assertThat(dropTable.table().ident().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
+        assertThat(dropTable.tableName().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
     }
 
     @Test
     public void testNonExistentTableIsRecognizedCorrectly() {
         AnalyzedDropTable<TableInfo> dropTable = e.analyze("drop table if exists unknowntable");
-        assertThat(dropTable.table()).isNull();
+        assertThat(dropTable.tableName().name()).isEqualTo("unknowntable");
     }
 }

@@ -1054,15 +1054,14 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "  quote string, " +
                 "  date timestamp with time zone" +
                 ") partitioned by (date) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, date) values(?, ?, ?), (?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L,
                 2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("drop table quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response).hasRowCount(1);
 
         ClusterState state = cluster().clusterService().state();
         assertThat(state.metadata().indices()).isEmpty();

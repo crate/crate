@@ -27,17 +27,29 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.mapper.DocumentMapper;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.MapperService.MergeReason;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -70,8 +82,39 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                 .endObject()
             .endObject()
             .endObject();
-        client().admin().indices().putMapping(new PutMappingRequest("tbl").source(BytesReference.bytes(builder).utf8ToString()))
-            .get(5, TimeUnit.SECONDS);
+
+        ClusterService clusterService = cluster().getCurrentMasterNodeInstance(ClusterService.class);
+        IndicesService indicesService = cluster().getCurrentMasterNodeInstance(IndicesService.class);
+        var updateTask = new AckedClusterStateUpdateTask<AcknowledgedResponse>(new AcknowledgedRequest() {}) {
+
+            @Override
+            protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                return new AcknowledgedResponse(acknowledged);
+            }
+
+            @Override
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                Metadata metadata = currentState.metadata();
+                IndexMetadata indexMetadata = metadata.index("tbl");
+                MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
+                mapperService.merge(indexMetadata, MergeReason.MAPPING_RECOVERY);
+
+                BytesReference newMapping = BytesReference.bytes(builder);
+                DocumentMapper newMapper = mapperService.merge(new CompressedXContent(newMapping), MergeReason.MAPPING_UPDATE);
+                return ClusterState.builder(currentState)
+                    .metadata(
+                        Metadata.builder(metadata)
+                            .put(
+                                IndexMetadata.builder(indexMetadata)
+                                    .putMapping(new MappingMetadata(newMapper.mappingSource()))
+                                    .mappingVersion(indexMetadata.getMappingVersion() + 1)
+                            )
+                    )
+                    .build();
+                }
+        };
+        clusterService.submitStateUpdateTask("corrupt-mapping", updateTask);
+        assertThat(updateTask.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
 
         assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
             .isTrue();

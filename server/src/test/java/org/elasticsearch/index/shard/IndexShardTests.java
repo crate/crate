@@ -154,7 +154,6 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
-import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
@@ -873,24 +872,20 @@ public class IndexShardTests extends IndexShardTestCase {
             Map.of(),
             Set.of(),
             Version.CURRENT);
-        Map<String, MappingMetadata> requestedMappingUpdates = new ConcurrentHashMap<>();
         targetShard = newShard(targetRouting);
         targetShard.markAsRecovering("store", new RecoveryState(targetShard.routingEntry(), localNode, null));
-
-        Consumer<MappingMetadata> mappingConsumer =  mapping ->
-            assertThat(requestedMappingUpdates.put(Constants.DEFAULT_MAPPING_TYPE, mapping)).isNull();
 
         final IndexShard differentIndex = newShard(new ShardId("index_2", "index_2", 0), true);
         recoverShardFromStore(differentIndex);
         assertThatThrownBy(() -> {
             final FutureActionListener<Boolean> future = new FutureActionListener<>();
-            targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard, differentIndex), future);
+            targetShard.recoverFromLocalShards(Arrays.asList(sourceShard, differentIndex), future);
             future.get();
         }).isExactlyInstanceOf(IllegalArgumentException.class);
         closeShards(differentIndex);
 
         final FutureActionListener<Boolean> future = new FutureActionListener<>();
-        targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard), future);
+        targetShard.recoverFromLocalShards(Arrays.asList(sourceShard), future);
         assertThat(future.get()).isTrue();
         RecoveryState recoveryState = targetShard.recoveryState();
         assertThat(RecoveryState.Stage.DONE).isEqualTo(recoveryState.getStage());
@@ -917,9 +912,6 @@ public class IndexShardTests extends IndexShardTestCase {
         assertDocCount(newShard, 2);
         closeShards(newShard);
 
-        assertThat(
-            requestedMappingUpdates.get("default").source().string())
-            .isEqualTo("{\"properties\":{\"foo\":{\"type\":\"text\",\"position\":1}}}");
         closeShards(sourceShard, targetShard);
     }
 

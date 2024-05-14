@@ -21,8 +21,6 @@
 
 package io.crate.metadata.cluster;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.elasticsearch.action.support.IndicesOptions;
@@ -50,16 +48,19 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
     @Override
     protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
         RelationName relationName = request.tableIdent();
-        final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(IndexNameExpressionResolver.concreteIndices(
-            currentState.metadata(), IndicesOptions.lenientExpandOpen(), relationName.indexNameOrAlias())));
-        currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
+        Set<Index> concreteIndices = Set.of(IndexNameExpressionResolver.concreteIndices(
+            currentState.metadata(),
+            IndicesOptions.lenientExpandOpen(),
+            relationName.indexNameOrAlias()));
 
-        if (request.isPartitioned()) {
-            // delete template
-            String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-            Metadata.Builder metadata = Metadata.builder(currentState.metadata());
-            metadata.removeTemplate(templateName);
-            currentState = ClusterState.builder(currentState).metadata(metadata).build();
+        currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
+        Metadata metadata = currentState.metadata();
+
+        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
+        if (metadata.templates().containsKey(templateName)) {
+            currentState = ClusterState.builder(currentState)
+                .metadata(Metadata.builder(metadata).removeTemplate(templateName))
+                .build();
         }
 
         // call possible modifiers
