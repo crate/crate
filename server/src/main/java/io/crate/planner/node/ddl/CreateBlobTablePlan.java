@@ -26,10 +26,12 @@ import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
 
 import java.util.function.Function;
 
+import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.NumberOfShards;
@@ -37,7 +39,6 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TableProperties;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -88,7 +89,7 @@ public class CreateBlobTablePlan implements Plan {
 
         OneRowActionListener<CreateIndexResponse> listener =
             new OneRowActionListener<>(consumer, r -> new Row1(1L));
-        dependencies.createIndexAction().execute(createIndexRequest).whenComplete(listener);
+        dependencies.client().execute(CreateIndexAction.INSTANCE, createIndexRequest).whenComplete(listener);
     }
 
     @VisibleForTesting
