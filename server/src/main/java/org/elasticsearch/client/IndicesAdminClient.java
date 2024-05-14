@@ -23,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
@@ -57,14 +56,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @return The result future
      */
     CompletableFuture<CreateIndexResponse> create(CreateIndexRequest request);
-
-    /**
-     * Deletes an index based on the index name.
-     *
-     * @param request The delete index request
-     * @return The result future
-     */
-    CompletableFuture<AcknowledgedResponse> delete(DeleteIndexRequest request);
 
     /**
      * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
