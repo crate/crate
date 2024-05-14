@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.action.sql.Sessions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -61,7 +62,7 @@ public class PgCatalogITest extends IntegTestCase {
 
     @After
     public void dropViews() {
-        Schemas schemas = cluster().getInstance(Schemas.class);
+        Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
         List<String> fqQuotedViews = new ArrayList<>();
         for (SchemaInfo schema : schemas) {
             for (ViewInfo view : schema.getViews()) {

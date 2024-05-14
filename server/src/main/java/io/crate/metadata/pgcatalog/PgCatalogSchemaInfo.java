@@ -27,8 +27,6 @@ import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -44,7 +42,6 @@ import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.role.Roles;
 import io.crate.statistics.TableStats;
 
-@Singleton
 public final class PgCatalogSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "pg_catalog";
@@ -52,7 +49,6 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
     private final UserDefinedFunctionService udfService;
     private final SystemTable<PgClassTable.Entry> pgClassTable;
 
-    @Inject
     public PgCatalogSchemaInfo(UserDefinedFunctionService udfService, TableStats tableStats, Roles roles) {
         this.udfService = udfService;
         this.pgClassTable = PgClassTable.create(tableStats);

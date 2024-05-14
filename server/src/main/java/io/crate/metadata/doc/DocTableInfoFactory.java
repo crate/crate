@@ -44,8 +44,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -93,7 +91,6 @@ import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
 
-@Singleton
 public class DocTableInfoFactory {
 
     private static final Logger LOGGER = LogManager.getLogger(DocTableInfoFactory.class);
@@ -102,7 +99,6 @@ public class DocTableInfoFactory {
     private final ExpressionAnalyzer expressionAnalyzer;
     private final CoordinatorTxnCtx systemTransactionContext;
 
-    @Inject
     public DocTableInfoFactory(NodeContext nodeCtx) {
         this.nodeCtx = nodeCtx;
         this.systemTransactionContext = CoordinatorTxnCtx.systemTransactionContext();

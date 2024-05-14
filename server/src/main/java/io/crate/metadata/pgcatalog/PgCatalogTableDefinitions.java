@@ -34,8 +34,8 @@ import org.elasticsearch.common.inject.Inject;
 import io.crate.action.sql.Sessions;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -58,7 +58,7 @@ public final class PgCatalogTableDefinitions {
                                      TableStats tableStats,
                                      PgCatalogSchemaInfo pgCatalogSchemaInfo,
                                      SessionSettingRegistry sessionSettingRegistry,
-                                     Schemas schemas,
+                                     NodeContext nodeContext,
                                      LogicalReplicationService logicalReplicationService,
                                      Roles roles) {
         tableDefinitions = new HashMap<>();
@@ -188,7 +188,7 @@ public final class PgCatalogTableDefinitions {
         ));
 
         tableDefinitions.put(PgPublicationTablesTable.IDENT, new StaticTableDefinition<>(
-            () -> PgPublicationTablesTable.rows(logicalReplicationService, schemas),
+            () -> PgPublicationTablesTable.rows(logicalReplicationService, nodeContext.schemas()),
             (user, p) -> p.owner().equals(user.name()),
             PgPublicationTablesTable.create().expressions()
         ));

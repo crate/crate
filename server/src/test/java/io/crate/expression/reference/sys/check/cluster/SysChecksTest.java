@@ -22,6 +22,7 @@
 package io.crate.expression.reference.sys.check.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.expression.reference.sys.check.SysCheck.Severity;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -53,8 +55,9 @@ public class SysChecksTest extends ESTestCase {
     @SuppressWarnings("unchecked")
     @Test
     public void testNumberOfPartitionCorrectPartitioning() {
+        NodeContext nodeContext = createNodeContext(schemas, List.of());
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
-            schemas,
+            nodeContext,
             clusterService);
 
         when(schemas.iterator()).thenReturn(List.of(docSchemaInfo).iterator());
@@ -73,8 +76,9 @@ public class SysChecksTest extends ESTestCase {
 
     @Test
     public void testNumberOfPartitionsWrongPartitioning() {
+        NodeContext nodeContext = createNodeContext(schemas, List.of());
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
-            schemas,
+            nodeContext,
             clusterService);
         List<PartitionName> partitions = buildPartitions(1001);
 

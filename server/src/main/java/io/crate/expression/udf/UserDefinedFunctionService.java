@@ -42,8 +42,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -74,7 +72,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
 
-@Singleton
 public class UserDefinedFunctionService {
 
     private static final Logger LOGGER = LogManager.getLogger(UserDefinedFunctionService.class);
@@ -84,7 +81,6 @@ public class UserDefinedFunctionService {
     private final Map<String, UDFLanguage> languageRegistry = new HashMap<>();
     private final DocTableInfoFactory docTableFactory;
 
-    @Inject
     public UserDefinedFunctionService(ClusterService clusterService,
                                       DocTableInfoFactory docTableFactory,
                                       NodeContext nodeCtx) {
@@ -282,13 +278,13 @@ public class UserDefinedFunctionService {
     }
 
     void validateFunctionIsNotInUseByGeneratedColumn(String schema,
-                                                             String functionName,
-                                                             UserDefinedFunctionsMetadata functionsMetadata,
-                                                             ClusterState currentState) {
+                                                     String functionName,
+                                                     UserDefinedFunctionsMetadata functionsMetadata,
+                                                     ClusterState currentState) {
         // The iteration of schemas/tables must happen on the node context WITHOUT the UDF already removed.
         // Otherwise the lazy table factories will already fail while evaluating generated functionsMetadata.
         // To avoid that, a copy of the node context with the removed UDF function is used on concrete expression evaluation.
-        var nodeCtxWithRemovedFunction = new NodeContext(nodeCtx.functions().copyOf(), nodeCtx.roles());
+        var nodeCtxWithRemovedFunction = nodeCtx.copy();
         updateImplementations(schema, functionsMetadata.functionsMetadata().stream(), nodeCtxWithRemovedFunction);
 
         var metadata = currentState.metadata();

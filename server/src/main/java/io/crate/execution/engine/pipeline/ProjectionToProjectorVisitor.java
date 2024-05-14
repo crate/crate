@@ -133,7 +133,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
@@ -175,11 +174,8 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
     private final int numProcessors;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
-    private final Schemas schemas;
-
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
-                                        Schemas schemas,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
@@ -194,7 +190,6 @@ public class ProjectionToProjectorVisitor
                                         @Nullable ShardId shardId,
                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.clusterService = clusterService;
-        this.schemas = schemas;
         this.nodeJobsCounter = nodeJobsCounter;
         this.circuitBreakerService = circuitBreakerService;
         this.nodeCtx = nodeCtx;
@@ -212,7 +207,6 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
-                                        Schemas schemas,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
@@ -224,7 +218,6 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter) {
         this(clusterService,
-            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -520,7 +513,7 @@ public class ProjectionToProjectorVisitor
         BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
             indexItem,
             indexName,
-            schemas.getTableInfo(projection.tableIdent()),
+            nodeCtx.schemas().getTableInfo(projection.tableIdent()),
             context.txnCtx,
             nodeCtx,
             validatorsCache,
