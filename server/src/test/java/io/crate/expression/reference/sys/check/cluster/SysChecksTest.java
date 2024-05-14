@@ -23,6 +23,7 @@ package io.crate.expression.reference.sys.check.cluster;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -37,6 +38,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.expression.reference.sys.check.SysCheck.Severity;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -46,6 +48,7 @@ import io.crate.metadata.table.SchemaInfo;
 
 public class SysChecksTest extends ESTestCase {
 
+    private final Schemas schemas = mock(Schemas.class);
     private final SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
     private final DocTableInfo docTableInfo = mock(DocTableInfo.class);
     private final ClusterService clusterService = mock(ClusterService.class);
@@ -53,8 +56,9 @@ public class SysChecksTest extends ESTestCase {
     @SuppressWarnings("unchecked")
     @Test
     public void testNumberOfPartitionCorrectPartitioning() {
+        NodeContext nodeContext = createNodeContext(schemas, List.of());
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
-            mock(Schemas.class),
+            nodeContext,
             clusterService);
 
         when(clusterService.state()).thenReturn(ClusterState.EMPTY_STATE);
@@ -72,8 +76,9 @@ public class SysChecksTest extends ESTestCase {
 
     @Test
     public void testNumberOfPartitionsWrongPartitioning() {
+        NodeContext nodeContext = createNodeContext(schemas, List.of());
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
-            mock(Schemas.class),
+            nodeContext,
             clusterService);
         List<PartitionName> partitions = buildPartitions(1001);
 

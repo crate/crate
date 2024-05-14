@@ -65,6 +65,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -94,7 +95,7 @@ public class DocLevelCollectTest extends IntegTestCase {
     @Before
     public void prepare() {
         functions = cluster().getDataNodeInstance(Functions.class);
-        schemas = cluster().getDataNodeInstance(Schemas.class);
+        schemas = cluster().getDataNodeInstance(NodeContext.class).schemas();
 
         execute(String.format(Locale.ENGLISH, "create table %s (" +
                                               "  id integer," +

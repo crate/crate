@@ -76,6 +76,7 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -97,12 +98,12 @@ public final class ReservoirSampler {
     @Inject
     public ReservoirSampler(ClusterService clusterService,
                             CircuitBreakerService circuitBreakerService,
-                            Schemas schemas,
+                            NodeContext nodeContext,
                             IndicesService indicesService,
                             Settings settings) {
         this(clusterService,
              circuitBreakerService,
-             schemas,
+             nodeContext,
              indicesService,
              new RateLimiter.SimpleRateLimiter(STATS_SERVICE_THROTTLING_SETTING.get(settings).getMbFrac())
         );
@@ -110,13 +111,13 @@ public final class ReservoirSampler {
 
     @VisibleForTesting
     ReservoirSampler(ClusterService clusterService,
-                            CircuitBreakerService circuitBreakerService,
-                            Schemas schemas,
-                            IndicesService indicesService,
-                            RateLimiter rateLimiter) {
+                     CircuitBreakerService circuitBreakerService,
+                     NodeContext nodeContext,
+                     IndicesService indicesService,
+                     RateLimiter rateLimiter) {
         this.clusterService = clusterService;
         this.circuitBreakerService = circuitBreakerService;
-        this.schemas = schemas;
+        this.schemas = nodeContext.schemas();
         this.indicesService = indicesService;
         this.rateLimiter = rateLimiter;
 

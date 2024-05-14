@@ -21,9 +21,9 @@
 
 package io.crate.fdw;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.Strings;
@@ -37,7 +37,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -86,7 +85,7 @@ public class ForeignTablesMetadataTest extends ESTestCase {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             Strings.toString(builder));
         parser.nextToken();
-        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), () -> List.of());
+        NodeContext nodeCtx = createNodeContext();
         ForeignTablesMetadata deserializedTables = ForeignTablesMetadata.fromXContent(nodeCtx, parser);
 
         assertThat(deserializedTables).isEqualTo(foreignTables);

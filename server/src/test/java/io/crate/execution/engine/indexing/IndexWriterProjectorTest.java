@@ -26,6 +26,7 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.Assert.assertThat;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 
 import java.util.Collections;
 import java.util.List;
@@ -58,8 +59,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -92,7 +91,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),
-            new NodeContext(cluster().getInstance(Functions.class), null),
+            createNodeContext(),
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
             NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize()),

@@ -30,7 +30,6 @@ import java.util.List;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ParseField;
@@ -40,7 +39,6 @@ import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.fdw.ServersMetadata;
 import io.crate.license.License;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -210,12 +208,6 @@ public class MetadataModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bindSchemas();
         bind(DDLClusterStateService.class).asEagerSingleton();
-    }
-
-    private void bindSchemas() {
-        MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
-        bind(Schemas.class).asEagerSingleton();
     }
 }

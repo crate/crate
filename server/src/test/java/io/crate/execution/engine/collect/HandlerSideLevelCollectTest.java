@@ -57,6 +57,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -112,7 +113,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testClusterLevel() throws Exception {
-        Schemas schemas = cluster().getInstance(Schemas.class);
+        Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
         TableInfo tableInfo = schemas.getTableInfo(new RelationName("sys", "cluster"));
         Routing routing = tableInfo.getRouting(
             clusterService().state(),

@@ -46,7 +46,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.role.Role;
@@ -79,7 +78,7 @@ public class SqlExpressions {
                           @Nullable FieldResolver fieldResolver,
                           Role sessionUser,
                           List<Role> additionalUsers) {
-        this.nodeCtx = createNodeContext(Lists.concat(additionalUsers, sessionUser));
+        this.nodeCtx = createNodeContext(null, Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
         var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? Role.CRATE_USER : sessionUser);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
@@ -92,7 +91,7 @@ public class SqlExpressions {
                 ParentRelations.NO_PARENTS,
                 sessionSettings.searchPath().currentSchema()),
             new SubqueryAnalyzer(
-                new RelationAnalyzer(nodeCtx, mock(Schemas.class)),
+                new RelationAnalyzer(nodeCtx),
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)
             )
         );
