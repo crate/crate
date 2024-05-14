@@ -32,7 +32,6 @@ import static org.elasticsearch.test.XContentTestUtils.differenceBetweenMapsIgno
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -831,8 +830,7 @@ public abstract class IntegTestCase extends ESTestCase {
                         var response = sqlExecutor.exec("select count(*) from " + indexer.table);
                         long count = (long) response.rows()[0][0];
                         if (count == lastKnownCount) {
-                            // no progress - try to refresh for the next time
-                            client().admin().indices().refresh(new RefreshRequest()).get();
+                            sqlExecutor.exec("refresh table " + indexer.table);
                         }
                         lastKnownCount = count;
                     } catch (Exception e) { // count now acts like search and barfs if all shards failed...
@@ -849,7 +847,7 @@ public abstract class IntegTestCase extends ESTestCase {
                     }
                 }
 
-                assertThat(lastKnownCount, greaterThanOrEqualTo(numDocs));
+                assertThat(lastKnownCount).isGreaterThanOrEqualTo(numDocs);
             },
             maxWaitTimeMs,
             TimeUnit.MILLISECONDS
@@ -990,10 +988,11 @@ public abstract class IntegTestCase extends ESTestCase {
      * Waits for relocations and refreshes all indices in the cluster.
      *
      * @see #waitForRelocation()
+     * @deprecated use SQL: refresh table
      */
+    @Deprecated(forRemoval = true)
     protected final RefreshResponse refresh(String... indices) {
         waitForRelocation();
-        // TODO RANDOMIZE with flush?
         RefreshResponse actionGet;
         try {
             actionGet = client().admin().indices().refresh(new RefreshRequest(indices)).get();
