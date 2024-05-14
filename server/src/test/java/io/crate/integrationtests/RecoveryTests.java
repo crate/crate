@@ -40,11 +40,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.IntegTestCase;
@@ -57,7 +54,6 @@ import io.crate.blob.PutChunkAction;
 import io.crate.blob.PutChunkRequest;
 import io.crate.blob.StartBlobAction;
 import io.crate.blob.StartBlobRequest;
-import io.crate.blob.v2.BlobAdminClient;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
@@ -165,18 +161,8 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
         final String node1 = cluster().startNode();
 
-        BlobAdminClient blobAdminClient = cluster().getInstance(BlobAdminClient.class, node1);
-
-        logger.trace("--> creating test index ...");
-        Settings indexSettings = Settings.builder()
-            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-            // SETTING_AUTO_EXPAND_REPLICAS is enabled by default
-            // but for this test it needs to be disabled so we can have 0 replicas
-            .put(AutoExpandReplicas.SETTING_KEY, "false")
-            .build();
-
-        blobAdminClient.createBlobTable("test", indexSettings).get();
+        logger.trace("--> creating test blob table ...");
+        execute("create blob table test clustered into 1 shards with (number_of_replicas = 0)");
 
         logger.trace("--> starting [node2] ...");
         final String node2 = cluster().startNode();
