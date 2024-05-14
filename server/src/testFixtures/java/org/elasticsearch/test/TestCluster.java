@@ -459,7 +459,7 @@ public final class TestCluster implements Closeable {
             for (var cursor : templates) {
                 String templateName = cursor.key;
                 RelationName relationName = RelationName.fromIndexName(templateName);
-                futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relationName, true)));
+                futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relationName)));
             }
             CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);
             try {

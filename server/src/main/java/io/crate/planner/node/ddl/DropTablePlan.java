@@ -26,16 +26,15 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedDropTable;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.DropTableRequest;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -80,9 +79,7 @@ public class DropTablePlan implements Plan {
         DropTableRequest request;
         if (table == null) {
             if (dropTable.maybeCorrupt()) {
-                // setting isPartitioned=true should be safe.
-                // It will delete a template if it exists, and if there is no template it shouldn't do any harm
-                request = new DropTableRequest(dropTable.tableName(), true);
+                request = new DropTableRequest(dropTable.tableName());
             } else {
                 // no-op, table is already gone
                 assert dropTable.dropIfExists() : "If table is null, IF EXISTS flag must have been present";
@@ -90,8 +87,7 @@ public class DropTablePlan implements Plan {
                 return;
             }
         } else {
-            boolean isPartitioned = table instanceof DocTableInfo && ((DocTableInfo) table).isPartitioned();
-            request = new DropTableRequest(table.ident(), isPartitioned);
+            request = new DropTableRequest(table.ident());
         }
         dependencies.transportDropTableAction().execute(request).whenComplete((response, err) -> {
             if (err == null) {
