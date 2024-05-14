@@ -21,6 +21,7 @@
 
 package io.crate.role;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -36,7 +37,6 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
@@ -45,7 +45,7 @@ import io.crate.types.DataTypes;
 
 public class UserActionsTest extends ESTestCase {
 
-    private static final NodeContext NODE_CTX = new NodeContext(new Functions(Map.of()), null);
+    private static final NodeContext NODE_CTX = createNodeContext();
 
     TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 

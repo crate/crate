@@ -25,22 +25,18 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 
-@Singleton
 public class InformationSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "information_schema";
 
     private final Map<String, TableInfo> tableInfoMap;
 
-    @Inject
     public InformationSchemaInfo() {
         tableInfoMap = MapBuilder.<String, TableInfo>treeMapBuilder()
             .put(InformationTablesTableInfo.NAME, InformationTablesTableInfo.create())

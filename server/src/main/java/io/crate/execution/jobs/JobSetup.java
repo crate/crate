@@ -146,7 +146,6 @@ public class JobSetup {
 
     @Inject
     public JobSetup(Settings settings,
-                    Schemas schemas,
                     MapSideDataCollectOperation collectOperation,
                     ClusterService clusterService,
                     NodeLimits nodeJobsCounter,
@@ -161,7 +160,7 @@ public class JobSetup {
                     ShardCollectSource shardCollectSource,
                     MemoryManagerFactory memoryManagerFactory) {
         this.nodeName = Node.NODE_NAME_SETTING.get(settings);
-        this.schemas = schemas;
+        this.schemas = nodeCtx.schemas();
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.circuitBreakerService = circuitBreakerService;
@@ -175,7 +174,6 @@ public class JobSetup {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,

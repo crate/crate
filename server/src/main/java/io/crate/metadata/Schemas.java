@@ -43,8 +43,6 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -77,7 +75,6 @@ import io.crate.role.Securable;
 import io.crate.sql.tree.QualifiedName;
 
 
-@Singleton
 public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(Schemas.class);
@@ -104,7 +101,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
 
-    @Inject
     public Schemas(Map<String, SchemaInfo> builtInSchemas,
                    ClusterService clusterService,
                    DocSchemaInfoFactory docSchemaInfoFactory,

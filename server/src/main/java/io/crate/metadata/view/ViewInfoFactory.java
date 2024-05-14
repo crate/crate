@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 
 import io.crate.analyze.ParamTypeHints;
@@ -47,7 +46,6 @@ public class ViewInfoFactory {
 
     private final Provider<RelationAnalyzer> analyzerProvider;
 
-    @Inject
     public ViewInfoFactory(Provider<RelationAnalyzer> analyzerProvider) {
         this.analyzerProvider = analyzerProvider;
     }

@@ -47,7 +47,6 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.blob.BlobReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 
 public class BlobShardCollectorProvider extends ShardCollectorProvider {
@@ -57,7 +56,6 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
     public BlobShardCollectorProvider(BlobShard blobShard,
                                       ClusterService clusterService,
-                                      Schemas schemas,
                                       NodeLimits nodeJobsCounter,
                                       CircuitBreakerService circuitBreakerService,
                                       NodeContext nodeCtx,
@@ -68,7 +66,6 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
         super(
             clusterService,
             circuitBreakerService,
-            schemas,
             nodeJobsCounter,
             nodeCtx,
             threadPool,

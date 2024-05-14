@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -46,9 +47,9 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
     private final ClusterService clusterService;
 
     @Inject
-    public NumberOfPartitionsSysCheck(Schemas schemas, ClusterService clusterService) {
+    public NumberOfPartitionsSysCheck(NodeContext nodeContext, ClusterService clusterService) {
         super(ID, DESCRIPTION, Severity.MEDIUM);
-        this.schemas = schemas;
+        this.schemas = nodeContext.schemas();
         this.clusterService = clusterService;
     }
 

@@ -97,7 +97,6 @@ public class DependencyCarrier {
                              Node node,
                              PhasesTaskFactory phasesTaskFactory,
                              ThreadPool threadPool,
-                             Schemas schemas,
                              NodeContext nodeCtx,
                              ClusterService clusterService,
                              NodeLimits nodeLimits,
@@ -124,8 +123,8 @@ public class DependencyCarrier {
         this.client = node.client();
         this.phasesTaskFactory = phasesTaskFactory;
         this.threadPool = threadPool;
-        this.schemas = schemas;
         this.nodeCtx = nodeCtx;
+        this.schemas = nodeCtx.schemas();
         this.clusterService = clusterService;
         this.nodeLimits = nodeLimits;
         this.circuitBreakerService = circuitBreakerService;
