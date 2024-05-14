@@ -20,6 +20,7 @@
  */
 package org.elasticsearch.index.shard;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
@@ -108,7 +109,6 @@ import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
 import io.crate.execution.dml.TranslogIndexer;
-import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -256,7 +256,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
     }
 
     protected TranslogIndexer getTranslogIndexer(IndexShard shard) {
-        NodeContext nodeCtx = new NodeContext(new Functions.Builder().build(), List::of);
+        NodeContext nodeCtx = createNodeContext();
         DocTableInfoFactory tableFactory = new DocTableInfoFactory(nodeCtx);
         IndexMetadata indexMetadata = IndexMetadata.builder(shard.indexSettings.getIndexMetadata()).build();
         Metadata metadata = new Metadata.Builder().put(indexMetadata, false).build();

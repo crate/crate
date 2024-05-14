@@ -21,18 +21,12 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 public class MetadataSysModule extends AbstractModule {
 
-    protected MapBinder<String, SchemaInfo> schemaBinder;
-
     @Override
     protected void configure() {
-        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
-        schemaBinder.addBinding(SysSchemaInfo.NAME).to(SysSchemaInfo.class).asEagerSingleton();
         bind(SysTableDefinitions.class).asEagerSingleton();
     }
 }

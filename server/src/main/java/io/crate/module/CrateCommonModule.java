@@ -24,7 +24,6 @@ package io.crate.module;
 import org.elasticsearch.common.inject.AbstractModule;
 
 import io.crate.action.sql.Sessions;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -33,7 +32,6 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.replication.logical.repository.PublisherRestoreService;
 import io.crate.rest.action.RestSQLAction;
-import io.crate.statistics.TableStats;
 import io.crate.statistics.TableStatsService;
 
 public class CrateCommonModule extends AbstractModule {
@@ -44,10 +42,8 @@ public class CrateCommonModule extends AbstractModule {
         bind(PostgresNetty.class).asEagerSingleton();
         bind(Sessions.class).asEagerSingleton();
         bind(Planner.class).asEagerSingleton();
-        bind(TableStats.class).asEagerSingleton();
         bind(TableStatsService.class).asEagerSingleton();
         bind(MemoryManagerFactory.class).asEagerSingleton();
-        bind(UserDefinedFunctionService.class).asEagerSingleton();
         bind(RestSQLAction.class).asEagerSingleton();
         bind(DanglingArtifactsService.class).asEagerSingleton();
         bind(PublisherRestoreService.class).asEagerSingleton();

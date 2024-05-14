@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.role.metadata.RolesMetadata;
@@ -42,7 +41,6 @@ public class RolesService implements Roles, ClusterStateListener {
 
     private volatile Map<String, Role> roles = Map.of(Role.CRATE_USER.name(), Role.CRATE_USER);
 
-    @Inject
     public RolesService(ClusterService clusterService) {
         clusterService.addListener(this);
     }

@@ -23,9 +23,9 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.planner.node.ddl.ResetSettingsPlan.buildSettingsFrom;
 import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -37,8 +37,6 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
@@ -111,7 +109,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
     private Function<Symbol, Object> symbolEvaluator(Row row) {
         return x -> SymbolEvaluator.evaluate(
             TransactionContext.of(new SessionSettings("", SearchPath.createSearchPathFrom(""))),
-            new NodeContext(new Functions(Map.of()), null),
+            createNodeContext(),
             x,
             row,
             SubQueryResults.EMPTY);

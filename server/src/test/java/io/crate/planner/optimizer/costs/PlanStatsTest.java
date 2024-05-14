@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.costs;
 
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.AbstractJoinPlan;
@@ -48,7 +48,6 @@ import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.planner.optimizer.iterative.MemoTest;
-import io.crate.role.Role;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
@@ -62,8 +61,8 @@ import io.crate.types.DataTypes;
 
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
-    private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-    private NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of(Role.CRATE_USER));
+    private final CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final NodeContext nodeContext = createNodeContext();
 
     @Test
     public void test_collect() throws Exception {

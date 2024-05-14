@@ -183,7 +183,8 @@ public class IndicesService extends AbstractLifecycleComponent
                           Client client,
                           MetaStateService metaStateService,
                           Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
-                          Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories) {
+                          Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories,
+                          Schemas schemas) {
         this.settings = settings;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
@@ -205,6 +206,7 @@ public class IndicesService extends AbstractLifecycleComponent
         this.client = client;
         this.metaStateService = metaStateService;
         this.engineFactoryProviders = engineFactoryProviders;
+        this.schemas = schemas;
 
         // do not allow any plugin-provided index store type to conflict with a built-in type
         for (final String indexStoreType : directoryFactories.keySet()) {
@@ -239,10 +241,6 @@ public class IndicesService extends AbstractLifecycleComponent
             1, 1,
             0, TimeUnit.MILLISECONDS,
             daemonThreadFactory(nodeName, DANGLING_INDICES_UPDATE_THREAD_NAME)) : null;
-    }
-
-    public final void setSchemas(Schemas schemas) {
-        this.schemas = schemas;
     }
 
     private static final String DANGLING_INDICES_UPDATE_THREAD_NAME = "DanglingIndices#updateTask";

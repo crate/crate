@@ -21,11 +21,10 @@
 
 package io.crate.role.metadata;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
@@ -38,7 +37,6 @@ import org.junit.Test;
 
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadataTest;
-import io.crate.metadata.Functions;
 import io.crate.metadata.MetadataModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.view.ViewsMetadata;
@@ -63,7 +61,7 @@ public class CustomMetadataTest {
 
         String xContent = xContentFromMetadata(metadata);
 
-        NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of());
+        NodeContext nodeContext = createNodeContext();
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             new NamedXContentRegistry(MetadataModule.getNamedXContents(nodeContext)),
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,

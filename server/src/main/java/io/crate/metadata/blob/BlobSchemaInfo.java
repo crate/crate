@@ -29,7 +29,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,7 +42,6 @@ public class BlobSchemaInfo implements SchemaInfo {
     private final BlobTableInfoFactory blobTableInfoFactory;
     private final ConcurrentHashMap<String, BlobTableInfo> tableByName = new ConcurrentHashMap<>();
 
-    @Inject
     public BlobSchemaInfo(ClusterService clusterService,
                           BlobTableInfoFactory blobTableInfoFactory) {
         this.clusterService = clusterService;

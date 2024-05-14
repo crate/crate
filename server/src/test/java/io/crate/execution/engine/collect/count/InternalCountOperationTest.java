@@ -50,6 +50,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -81,7 +82,7 @@ public class InternalCountOperationTest extends IntegTestCase {
             assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(3L);
         }
 
-        Schemas schemas = cluster().getInstance(Schemas.class);
+        Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
         TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t"));
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);

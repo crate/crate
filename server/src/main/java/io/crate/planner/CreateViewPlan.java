@@ -39,7 +39,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.SqlFormatter;
@@ -77,7 +76,6 @@ public final class CreateViewPlan implements Plan {
         ensureFormattedQueryCanStillBeAnalyzed(
             createViewStmt.name(),
             dependencies.nodeContext(),
-            dependencies.schemas(),
             plannerContext.transactionContext(),
             formattedQuery,
             createViewStmt.replaceExisting()
@@ -99,11 +97,10 @@ public final class CreateViewPlan implements Plan {
 
     private static void ensureFormattedQueryCanStillBeAnalyzed(RelationName viewName,
                                                                NodeContext nodeCtx,
-                                                               Schemas schemas,
                                                                CoordinatorTxnCtx txnCtx,
                                                                String formattedQuery,
                                                                boolean replaceExisting) {
-        RelationAnalyzer analyzer = new RelationAnalyzer(nodeCtx, schemas);
+        RelationAnalyzer analyzer = new RelationAnalyzer(nodeCtx);
         Query query = (Query) SqlParser.createStatement(formattedQuery);
         if (replaceExisting) {
             new EnsureNoSelfReference(viewName, txnCtx.sessionSettings().searchPath())
