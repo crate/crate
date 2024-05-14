@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -57,8 +56,8 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
     public void testRemoveCustomsSuccessful() throws Exception {
         cluster().setBootstrapMasterNodeIndex(0);
         String node = cluster().startNode();
-        createIndex("test");
-        client().admin().indices().delete(new DeleteIndexRequest("test")).get();
+        execute("create table tbl (x int)");
+        execute("drop table tbl");
         assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
             .hasSize(1);
         Settings dataPathSettings = cluster().dataPathSettings(node);
@@ -85,8 +84,8 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
     public void testCustomDoesNotMatch() throws Exception {
         cluster().setBootstrapMasterNodeIndex(0);
         String node = cluster().startNode();
-        createIndex("test");
-        client().admin().indices().delete(new DeleteIndexRequest("test")).get();
+        execute("create table tbl (x int)");
+        execute("drop table tbl");
         assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
             .hasSize(1);
         Settings dataPathSettings = cluster().dataPathSettings(node);
