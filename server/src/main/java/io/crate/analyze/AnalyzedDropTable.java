@@ -23,8 +23,6 @@ package io.crate.analyze;
 
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
@@ -32,22 +30,13 @@ import io.crate.metadata.table.TableInfo;
 public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatement {
 
     private final boolean dropIfExists;
-
-    @Nullable
-    private final T tableInfo;
-
     private final RelationName tableName;
 
-    AnalyzedDropTable(@Nullable T tableInfo, boolean dropIfExists, RelationName tableName) {
-        this.tableInfo = tableInfo;
+    AnalyzedDropTable(boolean dropIfExists, RelationName tableName) {
         this.dropIfExists = dropIfExists;
         this.tableName = tableName;
     }
 
-    @Nullable
-    public T table() {
-        return tableInfo;
-    }
 
     public boolean dropIfExists() {
         return dropIfExists;

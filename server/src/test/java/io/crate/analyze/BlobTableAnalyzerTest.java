@@ -175,8 +175,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropBlobTable() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table blobs");
-        assertThat(analysis.table().ident().name()).isEqualTo("blobs");
-        assertThat(analysis.table().ident().schema()).isEqualTo(BlobSchemaInfo.NAME);
+        assertThat(analysis.tableName().name()).isEqualTo("blobs");
+        assertThat(analysis.tableName().schema()).isEqualTo(BlobSchemaInfo.NAME);
     }
 
     @Test
@@ -189,7 +189,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropBlobTableWithValidSchema() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table \"blob\".blobs");
-        assertThat(analysis.table().ident().name()).isEqualTo("blobs");
+        assertThat(analysis.tableName().name()).isEqualTo("blobs");
     }
 
     @Test
@@ -203,7 +203,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropBlobTableIfExists() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table if exists blobs");
         assertThat(analysis.dropIfExists()).isTrue();
-        assertThat(analysis.table().ident().fqn()).isEqualTo("blob.blobs");
+        assertThat(analysis.tableName().fqn()).isEqualTo("blob.blobs");
     }
 
     @Test

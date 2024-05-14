@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -50,32 +51,32 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropTable() throws Exception {
         DropTablePlan plan = e.plan("drop table users");
-        assertThat(plan.tableInfo().ident().name()).isEqualTo("users");
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("users");
     }
 
     @Test
     public void testDropTableIfExistsWithUnknownSchema() throws Exception {
-        DropTablePlan plan = e.plan("drop table if exists unknown_schema.unknwon_table");
-        assertThat(plan.tableInfo()).isNull();
+        DropTablePlan plan = e.plan("drop table if exists unknown_schema.unknown_table");
+        assertThat(plan.dropTable().tableName()).isEqualTo(new RelationName("unknown_schema", "unknown_table"));
     }
 
     @Test
     public void testDropTableIfExists() throws Exception {
         DropTablePlan plan = e.plan("drop table if exists users");
-        assertThat(plan.tableInfo().ident().name()).isEqualTo("users");
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("users");
     }
 
     @Test
     public void testDropTableIfExistsNonExistentTableCreatesPlanWithoutTableInfo() throws Exception {
         DropTablePlan plan = e.plan("drop table if exists groups");
-        assertThat(plan.tableInfo()).isNull();
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("groups");
     }
 
 
     @Test
     public void testDropPartitionedTable() throws Exception {
         DropTablePlan plan = e.plan("drop table parted");
-        assertThat(plan.tableInfo().ident().name()).isEqualTo("parted");
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("parted");
     }
 
     @Test
@@ -87,6 +88,6 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropNonExistentBlobTableCreatesPlanWithoutTableInfo() throws Exception {
         DropTablePlan plan = e.plan("drop blob table if exists unknown");
-        assertThat(plan.tableInfo()).isNull();
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("unknown");
     }
 }

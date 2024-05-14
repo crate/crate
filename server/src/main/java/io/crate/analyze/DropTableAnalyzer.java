@@ -73,10 +73,9 @@ class DropTableAnalyzer {
     private <T extends TableInfo> AnalyzedDropTable<T> analyze(QualifiedName name,
                                                                boolean dropIfExists,
                                                                CoordinatorSessionSettings sessionSettings) {
-        T tableInfo;
         RelationName tableName;
         try {
-            tableInfo = schemas.findRelation(
+            TableInfo tableInfo = schemas.findRelation(
                 name,
                 Operation.DROP,
                 sessionSettings.sessionUser(),
@@ -88,9 +87,7 @@ class DropTableAnalyzer {
             var metadata = clusterService.state().metadata();
             String indexNameOrAlias = tableName.indexNameOrAlias();
             String templateName = PartitionName.templateName(tableName.schema(), tableName.name());
-            if (metadata.hasIndex(indexNameOrAlias) || metadata.templates().containsKey(templateName) || dropIfExists) {
-                tableInfo = null;
-            } else {
+            if (!(metadata.hasIndex(indexNameOrAlias) || metadata.templates().containsKey(templateName) || dropIfExists)) {
                 throw e;
             }
         } catch (OperationOnInaccessibleRelationException e) {
@@ -99,7 +96,6 @@ class DropTableAnalyzer {
             if (!sessionSettings.sessionUser().isSuperUser()) {
                 throw t;
             }
-            tableInfo = null;
             tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());
             LOGGER.info(
                 "Unexpected error resolving table during DROP TABLE operation on {}. " +
@@ -108,6 +104,6 @@ class DropTableAnalyzer {
                 t
             );
         }
-        return new AnalyzedDropTable<>(tableInfo, dropIfExists, tableName);
+        return new AnalyzedDropTable<>(dropIfExists, tableName);
     }
 }

@@ -35,7 +35,6 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.DropTableRequest;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -51,11 +50,6 @@ public class DropTablePlan implements Plan {
 
     public DropTablePlan(AnalyzedDropTable<?> dropTable) {
         this.dropTable = dropTable;
-    }
-
-    @VisibleForTesting
-    public TableInfo tableInfo() {
-        return dropTable.table();
     }
 
     @VisibleForTesting
