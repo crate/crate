@@ -435,7 +435,7 @@ public class AllocationService {
     }
 
     private void allocateExistingUnassignedShards(RoutingAllocation allocation) {
-        allocation.routingNodes().unassigned().sort(PriorityComparator.getAllocationComparator(allocation)); // sort for priority ordering
+        allocation.routingNodes().unassigned().sort(new PriorityComparator(allocation)); // sort for priority ordering
 
         for (final ExistingShardsAllocator existingShardsAllocator : existingShardsAllocators.values()) {
             existingShardsAllocator.beforeAllocation(allocation);
