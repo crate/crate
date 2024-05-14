@@ -19,12 +19,13 @@
 
 package org.elasticsearch.action.support.master;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
+import io.crate.common.unit.TimeValue;
 
 /**
  * A based request for master based operation.
@@ -50,13 +51,6 @@ public abstract class MasterNodeRequest<Request extends MasterNodeRequest<Reques
     public final Request masterNodeTimeout(TimeValue timeout) {
         this.masterNodeTimeout = timeout;
         return (Request) this;
-    }
-
-    /**
-     * A timeout value in case the master has not been discovered yet or disconnected.
-     */
-    public final Request masterNodeTimeout(String timeout) {
-        return masterNodeTimeout(TimeValue.parseTimeValue(timeout, null, getClass().getSimpleName() + ".masterNodeTimeout"));
     }
 
     public final TimeValue masterNodeTimeout() {

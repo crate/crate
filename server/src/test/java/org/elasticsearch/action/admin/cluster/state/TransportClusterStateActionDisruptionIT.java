@@ -66,7 +66,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
             ClusterStateRequest request = new ClusterStateRequest()
                 .clear()
                 .nodes(true)
-                .masterNodeTimeout("100ms");
+                .masterNodeTimeout(TimeValue.timeValueMillis(100));
             final ClusterStateResponse clusterStateResponse;
             try {
                 clusterStateResponse = FutureUtils.get(client().admin().cluster().state(request));
@@ -86,7 +86,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
                         .clear()
                         .local(true)
                         .nodes(true)
-                        .masterNodeTimeout("100ms")
+                        .masterNodeTimeout(TimeValue.timeValueMillis(100))
                 )).getState().nodes();
             for (DiscoveryNode discoveryNode : discoveryNodes) {
                 if (discoveryNode.getName().equals(node)) {
