@@ -49,7 +49,7 @@ public class AlterTableRenameTablePlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        dependencies.alterTableOperation().executeAlterTableRenameTable(analyzedAlterTableRenameTable)
+        dependencies.alterTableOperation().rename(analyzedAlterTableRenameTable)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }
