@@ -21,12 +21,13 @@
 
 package io.crate.analyze;
 
+import java.util.function.Consumer;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.function.Consumer;
 
 public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatement {
 
@@ -37,13 +38,10 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
 
     private final RelationName tableName;
 
-    private final boolean maybeCorrupt;
-
-    AnalyzedDropTable(@Nullable T tableInfo, boolean dropIfExists, RelationName tableName, boolean maybeCorrupt) {
+    AnalyzedDropTable(@Nullable T tableInfo, boolean dropIfExists, RelationName tableName) {
         this.tableInfo = tableInfo;
         this.dropIfExists = dropIfExists;
         this.tableName = tableName;
-        this.maybeCorrupt = maybeCorrupt;
     }
 
     @Nullable
@@ -57,10 +55,6 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
 
     public RelationName tableName() {
         return tableName;
-    }
-
-    public boolean maybeCorrupt() {
-        return maybeCorrupt;
     }
 
     @Override

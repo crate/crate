@@ -75,20 +75,7 @@ public class DropTablePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        TableInfo table = dropTable.table();
-        DropTableRequest request;
-        if (table == null) {
-            if (dropTable.maybeCorrupt()) {
-                request = new DropTableRequest(dropTable.tableName());
-            } else {
-                // no-op, table is already gone
-                assert dropTable.dropIfExists() : "If table is null, IF EXISTS flag must have been present";
-                consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
-                return;
-            }
-        } else {
-            request = new DropTableRequest(table.ident());
-        }
+        var request = new DropTableRequest(dropTable.tableName());
         dependencies.transportDropTableAction().execute(request).whenComplete((response, err) -> {
             if (err == null) {
                 if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {
