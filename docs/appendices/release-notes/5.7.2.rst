@@ -49,3 +49,9 @@ Fixes
 - Added memory accounting for multi-phase execution to prevent out-of-memory
   errors caused by sub-queries such as ''SELECT * FROM t1 WHERE id IN
   (SELECT id FROM t2)'' or lookup-joins with large intermediate results.
+
+- Fixed an issue leading to restoring data into wrong tables when restoring a
+  snapshot with partitioned tables using one of the renaming parameters
+  ``schema_rename_pattern``, ``schema_rename_replacement``,
+  ``table_rename_pattern`` or ``table_rename_replacement``. Renamed table was
+  created but used to be empty.
