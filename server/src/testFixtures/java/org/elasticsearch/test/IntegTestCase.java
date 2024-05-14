@@ -615,18 +615,8 @@ public abstract class IntegTestCase extends ESTestCase {
      * already exists this method will fail and wipe all the indices created so far.
      */
     public final void createIndex(String... names) {
-        List<String> created = new ArrayList<>();
         for (String name : names) {
-            boolean success = false;
-            try {
-                assertAcked(FutureUtils.get(client().admin().indices().create(new CreateIndexRequest(name, indexSettings()))));
-                created.add(name);
-                success = true;
-            } finally {
-                if (!success && !created.isEmpty()) {
-                    cluster().wipeIndices(created.toArray(new String[created.size()]));
-                }
-            }
+            assertAcked(FutureUtils.get(client().admin().indices().create(new CreateIndexRequest(name, indexSettings()))));
         }
     }
 
