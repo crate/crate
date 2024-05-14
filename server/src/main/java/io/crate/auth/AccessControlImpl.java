@@ -501,16 +501,13 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitDropTable(AnalyzedDropTable<?> dropTable, Role user) {
-            TableInfo table = dropTable.table();
-            if (table != null) {
-                Privileges.ensureUserHasPrivilege(
-                    relationVisitor.roles,
-                    user,
-                    Permission.DDL,
-                    Securable.TABLE,
-                    table.ident().toString()
-                );
-            }
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.DDL,
+                Securable.TABLE,
+                dropTable.tableName().toString()
+            );
             return null;
         }
 
