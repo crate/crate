@@ -22,8 +22,6 @@
 package io.crate.execution.engine.fetch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.junit.Assert.assertThat;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -43,6 +41,7 @@ import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.StreamBucket;
@@ -80,7 +79,7 @@ public class NodeFetchResponseTest extends ESTestCase {
         NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, RamAccounting.NO_ACCOUNTING);
 
         assertThat(streamed.fetched().get(1)).hasSize(1);
-        assertThat(streamed.fetched().get(1).iterator().next(), isRow(true));
+        assertThat(streamed.fetched().get(1).iterator().next()).isEqualTo(new Row1(true));
     }
 
     @Test

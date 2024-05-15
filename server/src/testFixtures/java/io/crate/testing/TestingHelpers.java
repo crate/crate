@@ -45,7 +45,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
@@ -247,46 +246,6 @@ public class TestingHelpers {
         return String.join("\n", Files.readAllLines(Paths.get(path)));
     }
 
-
-    public static Matcher<Row> isNullRow() {
-        return isRow((Object) null);
-    }
-
-    public static Matcher<Row> isRow(Object... cells) {
-        if (cells == null) {
-            cells = new Object[]{null};
-        }
-        final List<Object> expected = Arrays.asList(cells);
-        return new TypeSafeDiagnosingMatcher<>() {
-            @Override
-            protected boolean matchesSafely(Row item, Description mismatchDescription) {
-                if (item.numColumns() != expected.size()) {
-                    mismatchDescription.appendText("row size does not match: ")
-                        .appendValue(item.numColumns()).appendText(" != ").appendValue(expected.size());
-                    return false;
-                }
-                for (int i = 0; i < item.numColumns(); i++) {
-                    Object actual = item.get(i);
-                    if (!Objects.equals(expected.get(i), actual)) {
-                        mismatchDescription.appendText("value at pos ")
-                            .appendValue(i)
-                            .appendText(" does not match: ")
-                            .appendValue(expected.get(i))
-                            .appendText(" != ")
-                            .appendValue(actual);
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("is Row with cells: ")
-                    .appendValue(expected);
-            }
-        };
-    }
 
     /**
      * Get the values at column index <code>index</code> within all <code>rows</code>
