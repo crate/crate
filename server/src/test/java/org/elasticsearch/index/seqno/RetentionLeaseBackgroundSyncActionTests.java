@@ -17,10 +17,9 @@
 
 package org.elasticsearch.index.seqno;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -119,7 +118,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
                 // the retention leases on the shard should be persisted
                 verify(indexShard).persistRetentionLeases();
                 // we should forward the request containing the current retention leases to the replica
-                assertThat(result.replicaRequest(), sameInstance(request));
+                assertThat(result.replicaRequest()).isSameAs(request);
             }), latch));
         latch.await();
     }

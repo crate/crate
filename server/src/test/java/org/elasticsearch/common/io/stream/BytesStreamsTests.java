@@ -22,8 +22,6 @@ package org.elasticsearch.common.io.stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.closeTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -924,7 +922,7 @@ public class BytesStreamsTests extends ESTestCase {
         BytesStreamOutput prodOut = new BytesStreamOutput() {
             @Override
             boolean failOnTooManyNestedExceptions(Throwable throwable) {
-                assertThat(throwable, sameInstance(rootEx));
+                assertThat(throwable).isSameAs(rootEx);
                 return true;
             }
         };

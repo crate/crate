@@ -22,10 +22,7 @@
 package io.crate.expression;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -198,7 +195,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(impl.signature()).isEqualTo(function.signature());
 
         FunctionImplementation uncompiled = expressions.nodeCtx.functions().getQualified(function);
-        assertThat(uncompiled, not(sameInstance(impl)));
+        assertThat(uncompiled).isNotSameAs(impl);
     }
 
     @Test
@@ -208,6 +205,6 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Input<?> input1 = ctx.add(symbol);
         Input<?> input2 = ctx.add(symbol);
 
-        assertThat(input1, sameInstance(input2));
+        assertThat(input1).isSameAs(input2);
     }
 }

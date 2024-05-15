@@ -23,8 +23,6 @@ package io.crate.planner.node;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -146,6 +144,6 @@ public class RoutedCollectPhaseTest extends ESTestCase {
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()));
 
-        assertThat(normalizedCollect, sameInstance(collect));
+        assertThat(normalizedCollect).isSameAs(collect);
     }
 }

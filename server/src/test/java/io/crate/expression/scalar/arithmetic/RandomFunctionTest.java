@@ -22,8 +22,6 @@
 package io.crate.expression.scalar.arithmetic;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 
@@ -57,7 +55,7 @@ public class RandomFunctionTest extends ScalarTestCase {
     public void normalizeReference() {
         Function function = new Function(random.signature(), Collections.emptyList(), DataTypes.DOUBLE);
         Function normalized = (Function) random.normalizeSymbol(function, txnCtx, sqlExpressions.nodeCtx);
-        assertThat(normalized, sameInstance(function));
+        assertThat(normalized).isSameAs(function);
     }
 
 }

@@ -60,7 +60,7 @@ public class TransportRequestDeduplicatorTests extends ESTestCase {
 
                         @Override
                         public void onFailure(Exception e) {
-                            assertThat(e, sameInstance(failure));
+                            assertThat(e).isSameAs(failure);
                             failureCount.incrementAndGet();
                         }
                     }, (req, reqListener) -> listenerHolder.set(reqListener));
