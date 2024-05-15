@@ -23,6 +23,7 @@ package io.crate.expression.symbol;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -107,7 +108,7 @@ public class FunctionTest extends ESTestCase {
         input.setVersion(Version.V_4_0_0);
         Function fn2 = (Function) Symbols.fromStream(input);
 
-        assertThat(fn2.filter(), is(nullValue()));
+        assertThat(fn2.filter()).isNull();
         assertThat(fn, is(fn2));
     }
 

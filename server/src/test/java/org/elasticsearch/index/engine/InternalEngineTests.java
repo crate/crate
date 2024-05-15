@@ -1005,7 +1005,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         // but, get should not see it (in realtime)
         try (Engine.GetResult getResult = engine.get(newGet(doc), searcherFactory)) {
-            assertThat(getResult.docIdAndVersion(), is(nullValue()));
+            assertThat(getResult.docIdAndVersion()).isNull();
         }
 
         // refresh and it should be deleted
@@ -2818,7 +2818,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             // Get should not find the document
             Engine.GetResult getResult = engine.get(newGet(doc), searcherFactory);
-            assertThat(getResult.docIdAndVersion(), is(nullValue()));
+            assertThat(getResult.docIdAndVersion()).isNull();
 
             // Give the gc pruning logic a chance to kick in
             Thread.sleep(1000);
@@ -2843,7 +2843,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             // Get should not find the document (we never indexed uid=2):
             getResult = engine.get(new Engine.Get("2", newUid("2")), searcherFactory);
-            assertThat(getResult.docIdAndVersion(), is(nullValue()));
+            assertThat(getResult.docIdAndVersion()).isNull();
 
             // Try to index uid=1 with a too-old version, should fail:
             Engine.Index index = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0, 2,
@@ -2854,7 +2854,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             // Get should still not find the document
             getResult = engine.get(newGet(doc), searcherFactory);
-            assertThat(getResult.docIdAndVersion(), is(nullValue()));
+            assertThat(getResult.docIdAndVersion()).isNull();
 
             // Try to index uid=2 with a too-old version, should fail:
             Engine.Index index1 = new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 0, 2,
@@ -2865,7 +2865,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             // Get should not find the document
             getResult = engine.get(newGet(doc), searcherFactory);
-            assertThat(getResult.docIdAndVersion(), is(nullValue()));
+            assertThat(getResult.docIdAndVersion()).isNull();
         }
     }
 
@@ -5380,7 +5380,7 @@ public class InternalEngineTests extends EngineTestCase {
                     new Engine.Get(doc.id(), doc.uid()),
                     engine::acquireSearcher)) {
 
-                    assertThat(getResult.docIdAndVersion(), is(nullValue()));
+                    assertThat(getResult.docIdAndVersion()).isNull();
                 }
                 thread.join();
             }

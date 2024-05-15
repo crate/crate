@@ -21,9 +21,9 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -74,8 +74,8 @@ public class SysNodeResiliencyIntegrationTest extends IntegTestCase {
                 );
             }
             assertThat(response.rowCount(), is(1L));
-            assertThat(response.rows()[0][0], is(nullValue()));
-            assertThat(response.rows()[0][1], is(nullValue()));
+            assertThat(response.rows()[0][0]).isNull();
+            assertThat(response.rows()[0][1]).isNull();
             assertThat(response.rows()[0][2], is(notNullValue()));
             assertThat(response.rows()[0][3], is(n2));
         } finally {

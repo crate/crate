@@ -21,8 +21,8 @@
 
 package io.crate.planner.optimizer.symbol.rule;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -143,7 +143,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
         assertTrue(match.isPresent());
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, dummyParent);
-        assertThat(optimizedFunction, is(nullValue()));
+        assertThat(optimizedFunction).isNull();
     }
 
     @Test

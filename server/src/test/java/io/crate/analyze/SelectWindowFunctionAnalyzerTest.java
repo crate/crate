@@ -67,7 +67,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         assertThat(windowFunction.arguments().size(), is(1));
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
         assertThat(windowDefinition.partitions()).isEmpty();
-        assertThat(windowDefinition.orderBy(), is(nullValue()));
+        assertThat(windowDefinition.orderBy()).isNull();
         assertThat(windowDefinition.windowFrameDefinition(), is(WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW));
     }
 

@@ -21,9 +21,8 @@ package org.elasticsearch.cluster.routing;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.net.InetAddress;
@@ -87,9 +86,9 @@ public class RoutingNodeTests extends ESTestCase {
         routingNode.remove(unassignedShard0);
         routingNode.remove(initializingShard0);
         routingNode.remove(relocatingShard0);
-        assertThat(routingNode.getByShardId(new ShardId("test", IndexMetadata.INDEX_UUID_NA_VALUE, 0)), is(nullValue()));
-        assertThat(routingNode.getByShardId(new ShardId("test", IndexMetadata.INDEX_UUID_NA_VALUE, 1)), is(nullValue()));
-        assertThat(routingNode.getByShardId(new ShardId("test", IndexMetadata.INDEX_UUID_NA_VALUE, 2)), is(nullValue()));
+        assertThat(routingNode.getByShardId(new ShardId("test", IndexMetadata.INDEX_UUID_NA_VALUE, 0))).isNull();
+        assertThat(routingNode.getByShardId(new ShardId("test", IndexMetadata.INDEX_UUID_NA_VALUE, 1))).isNull();
+        assertThat(routingNode.getByShardId(new ShardId("test", IndexMetadata.INDEX_UUID_NA_VALUE, 2))).isNull();
     }
 
     public void testNumberOfShardsWithState() {

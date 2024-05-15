@@ -21,8 +21,8 @@
 
 package io.crate.types;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
@@ -43,7 +43,7 @@ public class TimeTZTypeTest extends ESTestCase {
 
     @Test
     public void test_value_cast_null() {
-        assertThat(TimeTZType.INSTANCE.implicitCast(null), is(nullValue()));
+        assertThat(TimeTZType.INSTANCE.implicitCast(null)).isNull();
     }
 
     @Test

@@ -379,7 +379,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument parsedDoc = mapper.parse(sourceToParse);
-        assertThat(parsedDoc.doc().getField("array_field"), is(nullValue()));
+        assertThat(parsedDoc.doc().getField("array_field")).isNull();
     }
 
     @Test
@@ -408,7 +408,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument parsedDoc = mapper.parse(sourceToParse);
-        assertThat(parsedDoc.doc().getField("array_field"), is(nullValue()));
+        assertThat(parsedDoc.doc().getField("array_field")).isNull();
 
 
     }
@@ -427,8 +427,8 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
-        assertThat(doc.doc().getField("new_array_field"), is(nullValue()));
-        assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
+        assertThat(doc.doc().getField("new_array_field")).isNull();
+        assertThat(mapper.mappers().getMapper("new_array_field")).isNull();
     }
 
     @Test
@@ -445,7 +445,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
-        assertThat(doc.doc().getField("new_array_field"), is(nullValue()));
-        assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
+        assertThat(doc.doc().getField("new_array_field")).isNull();
+        assertThat(mapper.mappers().getMapper("new_array_field")).isNull();
     }
 }

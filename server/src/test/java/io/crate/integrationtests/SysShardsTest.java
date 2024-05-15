@@ -384,7 +384,7 @@ public class SysShardsTest extends IntegTestCase {
             );
             String nodeName = response.rows()[0][0].toString();
             assertEquals("node_s0", nodeName);
-            assertThat(response.rows()[12][0], is(nullValue()));
+            assertThat(response.rows()[12][0]).isNull();
         } finally {
             execute("drop table users");
         }
