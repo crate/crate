@@ -22,12 +22,7 @@
 package io.crate.license;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.gateway.GatewayMetaStateTests.randomMetadata;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -63,7 +58,7 @@ public class LicenseCustomMetadataUpgraderTest {
         var upgrade = GatewayMetaState.upgradeMetadata(metadata, new GatewayMetaStateTests.MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade != metadata).isTrue();
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
-        assertThat(upgrade.custom(LicenseCustomMetadata.TYPE), is(nullValue()));
+        assertThat((LicenseCustomMetadata) upgrade.custom(LicenseCustomMetadata.TYPE)).isNull();
     }
 
     private static class LicenseCustomMetadata extends TestCustomMetadata {

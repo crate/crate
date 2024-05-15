@@ -127,7 +127,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
         IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
 
-        assertThat(updatedMetadata.mapping(), is(nullValue()));
+        assertThat(updatedMetadata.mapping()).isNull();
     }
 
     private static CompressedXContent createDynamicStringMappingTemplate() throws IOException {
