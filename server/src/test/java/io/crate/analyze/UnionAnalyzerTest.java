@@ -24,9 +24,9 @@ package io.crate.analyze;
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -71,7 +71,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .satisfiesExactly(isField("id"), isField("text"));
         Asserts.assertThat(relation.limit()).isLiteral(10L);
         Asserts.assertThat(relation.offset()).isLiteral(20L);
-        assertThat(relation.isDistinct(), is(false));
+        assertThat(relation.isDistinct()).isFalse();
 
         UnionSelect tableUnion = ((UnionSelect) relation.from().get(0));
         assertThat(tableUnion.left(), instanceOf(QueriedSelectRelation.class));
@@ -96,7 +96,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .satisfiesExactly(isField("text"));
         Asserts.assertThat(relation.limit()).isLiteral(10L);
         Asserts.assertThat(relation.offset()).isLiteral(20L);
-        assertThat(relation.isDistinct(), is(false));
+        assertThat(relation.isDistinct()).isFalse();
 
         UnionSelect tableUnion1 = ((UnionSelect) relation.from().get(0));
         assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
@@ -120,10 +120,10 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table x (a text)");
 
         UnionSelect unionSelect = analyze("select a from x union select a from x");
-        assertThat(unionSelect.isDistinct(), is(true));
+        assertThat(unionSelect.isDistinct()).isTrue();
 
         unionSelect = analyze("select a from x union distinct select a from x");
-        assertThat(unionSelect.isDistinct(), is(true));
+        assertThat(unionSelect.isDistinct()).isTrue();
     }
 
     @Test

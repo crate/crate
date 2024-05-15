@@ -21,6 +21,7 @@
 
 package io.crate.execution.support;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -125,7 +126,7 @@ public class ChainableActionsTest {
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
-        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(result.isCompletedExceptionally()).isTrue();
 
         assertThat(doCalls, contains(0, 1, 2));
         assertThat(undoCalls, contains(1, 0));
@@ -146,7 +147,7 @@ public class ChainableActionsTest {
             () -> CompletableFuture.completedFuture(0)));
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
-        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(result.isCompletedExceptionally()).isTrue();
         try {
             result.get();
         } catch (ExecutionException e) {
@@ -182,7 +183,7 @@ public class ChainableActionsTest {
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
-        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(result.isCompletedExceptionally()).isTrue();
         try {
             result.get();
         } catch (ExecutionException e) {
@@ -225,7 +226,7 @@ public class ChainableActionsTest {
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
-        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(result.isCompletedExceptionally()).isTrue();
         assertThat(doCalls, contains(0, 1, 2));
         // Undo was only called on action 1 as 2 failed and this undo action failed also,
         // so no other action was rolled back.
@@ -277,7 +278,7 @@ public class ChainableActionsTest {
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
-        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(result.isCompletedExceptionally()).isTrue();
         assertThat(doCalls, contains(0));
         // undo was only called on action 0 as it failed, so rollback only action 0
         assertThat(undoCalls, contains(0));

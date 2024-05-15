@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -64,15 +65,15 @@ public class SysNodeCheckerIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount(), is(2L));
 
         execute("select acknowledged from sys.node_checks where id = 3");
-        assertThat(response.rows()[0][0], is(true));
-        assertThat(response.rows()[1][0], is(true));
+        assertThat(response.rows()[0][0]).isEqualTo(true);
+        assertThat(response.rows()[1][0]).isEqualTo(true);
 
         execute("update sys.node_checks set acknowledged = false where id = 3");
         assertThat(response.rowCount(), is(2L));
 
         execute("select acknowledged from sys.node_checks where id = 3");
-        assertThat(response.rows()[0][0], is(false));
-        assertThat(response.rows()[1][0], is(false));
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+        assertThat(response.rows()[1][0]).isEqualTo(false);
     }
 
     @Test

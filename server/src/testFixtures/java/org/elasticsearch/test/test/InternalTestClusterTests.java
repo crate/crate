@@ -22,8 +22,6 @@ package org.elasticsearch.test.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileExists;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileNotExists;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -292,7 +290,7 @@ public class InternalTestClusterTests extends ESTestCase {
             final Path testMarker = dataPath.resolve("testMarker");
             Files.createDirectories(testMarker);
             cluster.stopRandomNode(TestCluster.nameFilter(poorNode));
-            assertFileExists(testMarker); // stopping a node half way shouldn't clean data
+            assertThat(testMarker).exists(); // stopping a node half way shouldn't clean data
 
             final String stableNode = randomFrom(cluster.getNodeNames());
             final Path stableDataPath = getNodePaths(cluster, stableNode)[0];
@@ -302,7 +300,7 @@ public class InternalTestClusterTests extends ESTestCase {
 
             final String newNode1 =  cluster.startNode();
             assertThat(getNodePaths(cluster, newNode1)[0]).isNotEqualTo(dataPath);
-            assertFileExists(testMarker); // starting a node should re-use data folders and not clean it
+            assertThat(testMarker).exists(); // starting a node should re-use data folders and not clean it
             final String newNode2 =  cluster.startNode();
             final Path newDataPath = getNodePaths(cluster, newNode2)[0];
             final Path newTestMarker = newDataPath.resolve("newTestMarker");
@@ -311,9 +309,9 @@ public class InternalTestClusterTests extends ESTestCase {
             final String newNode3 =  cluster.startNode(poorNodeDataPathSettings);
             assertThat(getNodePaths(cluster, newNode3)[0]).isEqualTo(dataPath);
             cluster.beforeTest(random());
-            assertFileNotExists(newTestMarker); // the cluster should be reset for a new test, cleaning up the extra path we made
-            assertFileNotExists(testMarker); // a new unknown node used this path, it should be cleaned
-            assertFileExists(stableTestMarker); // but leaving the structure of existing, reused nodes
+            assertThat(newTestMarker).doesNotExist(); // the cluster should be reset for a new test, cleaning up the extra path we made
+            assertThat(testMarker).doesNotExist(); // a new unknown node used this path, it should be cleaned
+            assertThat(stableTestMarker).exists(); // but leaving the structure of existing, reused nodes
             for (String name: cluster.getNodeNames()) {
                 assertThat(getNodePaths(cluster, name))
                     .as("data paths for " + name + " changed")
@@ -321,7 +319,7 @@ public class InternalTestClusterTests extends ESTestCase {
             }
 
             cluster.beforeTest(random());
-            assertFileExists(stableTestMarker); // but leaving the structure of existing, reused nodes
+            assertThat(stableTestMarker).exists(); // but leaving the structure of existing, reused nodes
             for (String name: cluster.getNodeNames()) {
                 assertThat(getNodePaths(cluster, name))
                     .as("data paths for " + name + " changed")

@@ -21,6 +21,9 @@ package org.elasticsearch.index.store;
 import static java.util.Collections.unmodifiableMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
@@ -343,7 +346,7 @@ public class StoreTests extends ESTestCase {
         writer.commit();
         writer.close();
         metadata = store.getMetadata(null);
-        assertThat(metadata.asMap().isEmpty(), is(false));
+        assertThat(metadata.asMap().isEmpty()).isFalse();
         for (StoreFileMetadata meta : metadata) {
             try (IndexInput input = store.directory().openInput(meta.name(), IOContext.DEFAULT)) {
                 String checksum = Store.digestToString(CodecUtil.retrieveChecksum(input));

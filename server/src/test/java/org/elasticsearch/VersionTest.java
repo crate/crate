@@ -21,6 +21,9 @@
 
 package org.elasticsearch;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -30,7 +33,7 @@ public class VersionTest {
 
     @Test
     public void test_compatible_current_version_is_compatible_to_4_0_0() {
-        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0), is(true));
+        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0)).isTrue();
     }
 
     @Test

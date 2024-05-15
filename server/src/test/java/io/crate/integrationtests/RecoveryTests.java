@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -243,7 +243,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.trace("--> marking and waiting for upload threads to stop ...");
         timeBetweenChunks.set(0);
         stop.set(true);
-        assertThat(stopLatch.await(60, TimeUnit.SECONDS), is(true));
+        assertThat(stopLatch.await(60, TimeUnit.SECONDS)).isTrue();
         logger.trace("--> uploading threads stopped");
 
         logger.trace("--> expected {} got {}", indexCounter.get(), uploadedDigests.size());

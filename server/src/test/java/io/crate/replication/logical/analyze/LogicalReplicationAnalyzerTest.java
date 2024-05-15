@@ -21,6 +21,9 @@
 
 package io.crate.replication.logical.analyze;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -82,7 +85,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         var e = SQLExecutor.of(clusterService);
         AnalyzedCreatePublication stmt = e.analyze("CREATE PUBLICATION pub1 FOR ALL TABLES");
         assertThat(stmt.tables(), Matchers.empty());
-        assertThat(stmt.isForAllTables(), is(true));
+        assertThat(stmt.isForAllTables()).isTrue();
     }
 
     @Test
@@ -90,7 +93,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         var e = SQLExecutor.of(clusterService);
         AnalyzedCreatePublication stmt = e.analyze("CREATE PUBLICATION pub1");
         assertThat(stmt.tables(), Matchers.empty());
-        assertThat(stmt.isForAllTables(), is(false));
+        assertThat(stmt.isForAllTables()).isFalse();
     }
 
     @Test
@@ -122,7 +125,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     public void test_drop_publication_if_exists_with_unknown_publication_does_not_raise_error() {
         var e = SQLExecutor.of(clusterService);
         AnalyzedDropPublication stmt = e.analyze("DROP PUBLICATION IF EXISTS pub1");
-        assertThat(stmt.ifExists(), is(true));
+        assertThat(stmt.ifExists()).isTrue();
         assertThat(stmt.name(), is("pub1"));
     }
 
@@ -210,7 +213,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     public void test_drop_unknown_subscription_using_if_exists_does_not_raise_error() {
         var e = SQLExecutor.of(clusterService);
         AnalyzedDropSubscription stmt = e.analyze("DROP SUBSCRIPTION IF EXISTS sub1");
-        assertThat(stmt.ifExists(), is(true));
+        assertThat(stmt.ifExists()).isTrue();
         assertThat(stmt.name(), is("sub1"));
     }
 

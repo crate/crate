@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -105,9 +106,9 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         execute("create table custom.foo (id integer)");
         execute("create table custom.bar (id integer)");
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo"), is(true));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo")).isTrue();
         execute("drop table custom.foo");
-        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo"), is(false));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo")).isFalse();
 
         assertBusy(() -> {
             try {

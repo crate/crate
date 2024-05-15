@@ -21,6 +21,9 @@
 
 package io.crate.rest;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
@@ -76,7 +79,7 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
         // all redirect locations should not be null
         assertThat(allRedirectLocations, notNullValue());
         // all redirect locations should contain the crateAdminUI URI
-        assertThat(allRedirectLocations.contains(adminURI()), is(true));
+        assertThat(allRedirectLocations.contains(adminURI())).isTrue();
     }
 
     @Test
@@ -89,7 +92,7 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
         List<URI> allRedirectLocations = getAllRedirectLocations("/_plugin/crate-admin", headers);
 
         // all redirect locations should contain the crateAdminUI URI
-        assertThat(allRedirectLocations.contains(adminURI()), is(true));
+        assertThat(allRedirectLocations.contains(adminURI())).isTrue();
     }
 
     @Test

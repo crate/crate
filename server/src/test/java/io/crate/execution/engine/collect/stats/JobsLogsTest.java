@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.stats;
 import static io.crate.planner.Plan.StatementType.SELECT;
 import static io.crate.planner.Plan.StatementType.UNDEFINED;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
@@ -91,7 +92,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDefaultSettings() {
         JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
-        assertThat(stats.isEnabled(), is(true));
+        assertThat(stats.isEnabled()).isTrue();
         assertThat(stats.jobsLogSize, is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
         assertThat(stats.operationsLogSize, is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
         assertThat(stats.jobsLogExpiration, is(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY)));
@@ -152,7 +153,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
         LogSink<OperationContextLog> operationsLogSink = (LogSink<OperationContextLog>) stats.get().operationsLog();
 
-        assertThat(stats.isEnabled(), is(false));
+        assertThat(stats.isEnabled()).isFalse();
         assertThat(stats.jobsLogSize, is(100));
         assertThat(jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
         assertThat(stats.operationsLogSize, is(100));
@@ -162,7 +163,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .build());
 
-        assertThat(stats.isEnabled(), is(true));
+        assertThat(stats.isEnabled()).isTrue();
         assertThat(stats.jobsLogSize, is(100));
         assertThat(stats.get().jobsLog(), Matchers.instanceOf(FilteredLogSink.class));
         assertThat(stats.operationsLogSize, is(100));
@@ -209,7 +210,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .build());
         assertThat(jobsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
         assertThat(operationsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
-        assertThat(stats.isEnabled(), is(true));
+        assertThat(stats.isEnabled()).isTrue();
 
         clusterSettings.applySettings(Settings.builder()
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 200)
@@ -227,7 +228,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         clusterSettings.applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false)
             .build());
-        assertThat(stats.isEnabled(), is(false));
+        assertThat(stats.isEnabled()).isFalse();
         assertThat(jobsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
         assertThat(operationsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
     }

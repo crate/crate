@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.export;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -57,8 +58,7 @@ public class FileWriterCountCollectorTest extends ESTestCase {
         Path file = createTempFile("out", "json");
         try (OutputStream os = new FileOutputStream(file.toFile())) {
             XContentBuilder xContentBuilder = FileWriterCountCollector.createJsonBuilder(os);
-            assertThat(xContentBuilder.generator().isEnabled(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM),
-                is(false));
+            assertThat(xContentBuilder.generator().isEnabled(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)).isFalse();
         }
     }
 }

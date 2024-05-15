@@ -21,6 +21,9 @@ package org.elasticsearch.index.engine;
 
 import static java.util.Collections.shuffle;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_RESET;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PEER_RECOVERY;
@@ -6436,7 +6439,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertThatThrownBy(() -> engine.delete(op))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("fatal");
-            assertThat(engine.isClosed.get(), is(true));
+            assertThat(engine.isClosed.get()).isTrue();
             assertThat(engine.failedEngine.get(), not(nullValue()));
             assertThat(engine.failedEngine.get(), instanceOf(IllegalArgumentException.class));
             assertThat(engine.failedEngine.get().getMessage(), equalTo("fatal"));

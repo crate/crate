@@ -19,6 +19,7 @@
 package org.elasticsearch.indices.state;
 
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -72,10 +73,10 @@ public class CloseIndexIT extends IntegTestCase {
             final IndexMetadata indexMetadata = availableIndices.get(index);
             assertThat(indexMetadata.getState(), is(IndexMetadata.State.CLOSE));
             final Settings indexSettings = indexMetadata.getSettings();
-            assertThat(indexSettings.hasValue(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey()), is(true));
-            assertThat(indexSettings.getAsBoolean(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), false), is(true));
+            assertThat(indexSettings.hasValue(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey())).isTrue();
+            assertThat(indexSettings.getAsBoolean(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), false)).isTrue();
             assertThat(clusterState.routingTable().index(index), notNullValue());
-            assertThat(clusterState.blocks().hasIndexBlock(index, IndexMetadata.INDEX_CLOSED_BLOCK), is(true));
+            assertThat(clusterState.blocks().hasIndexBlock(index, IndexMetadata.INDEX_CLOSED_BLOCK)).isTrue();
             assertThat("Index " + index + " must have only 1 block with [id=" + TransportCloseTable.INDEX_CLOSED_BLOCK_ID + "]",
                        clusterState.blocks().indices().getOrDefault(index, emptySet()).stream()
                            .filter(clusterBlock -> clusterBlock.id() == TransportCloseTable.INDEX_CLOSED_BLOCK_ID).count(), equalTo(1L));

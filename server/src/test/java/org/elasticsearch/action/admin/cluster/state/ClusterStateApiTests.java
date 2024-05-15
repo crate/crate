@@ -21,6 +21,9 @@ package org.elasticsearch.action.admin.cluster.state;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -39,9 +42,9 @@ public class ClusterStateApiTests extends IntegTestCase {
         clusterStateRequest.waitForTimeout(TimeValue.timeValueHours(1));
         CompletableFuture<ClusterStateResponse> future1 = client().admin().cluster().state(clusterStateRequest);
         assertBusy(() -> {
-            assertThat(future1.isDone(), is(true));
+            assertThat(future1.isDone()).isTrue();
         });
-        assertThat(future1.get().isWaitForTimedOut(), is(false));
+        assertThat(future1.get().isWaitForTimedOut()).isFalse();
         long metadataVersion = future1.get().getState().metadata().version();
 
         // Verify that cluster state api returns after the cluster settings have been updated:
@@ -49,16 +52,16 @@ public class ClusterStateApiTests extends IntegTestCase {
         clusterStateRequest.waitForMetadataVersion(metadataVersion + 1);
 
         CompletableFuture<ClusterStateResponse> future2 = client().admin().cluster().state(clusterStateRequest);
-        assertThat(future2.isDone(), is(false));
+        assertThat(future2.isDone()).isFalse();
 
         // Pick an arbitrary dynamic cluster setting and change it. Just to get metadata version incremented:
         execute("set global transient cluster.max_shards_per_node = 999");
 
         assertBusy(() -> {
-            assertThat(future2.isDone(), is(true));
+            assertThat(future2.isDone()).isTrue();
         });
         ClusterStateResponse response = future2.get();
-        assertThat(response.isWaitForTimedOut(), is(false));
+        assertThat(response.isWaitForTimedOut()).isFalse();
         assertThat(response.getState().metadata().version(), equalTo(metadataVersion + 1));
 
         // Verify that the timed out property has been set"
@@ -67,10 +70,10 @@ public class ClusterStateApiTests extends IntegTestCase {
         clusterStateRequest.waitForTimeout(TimeValue.timeValueSeconds(1)); // Fail fast
         CompletableFuture<ClusterStateResponse> future3 = client().admin().cluster().state(clusterStateRequest);
         assertBusy(() -> {
-            assertThat(future3.isDone(), is(true));
+            assertThat(future3.isDone()).isTrue();
         });
         response = future3.get();
-        assertThat(response.isWaitForTimedOut(), is(true));
+        assertThat(response.isWaitForTimedOut()).isTrue();
         assertThat(response.getState(), nullValue());
 
         // Remove transient setting, otherwise test fails with the reason that this test leaves state behind:
